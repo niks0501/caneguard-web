@@ -390,7 +390,10 @@ a {
 }
 
 .page-header__actions {
+  display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
 }
 
 .button {
@@ -520,6 +523,95 @@ a {
 .metric-card small {
   color: var(--color-muted);
   font-size: 11px;
+}
+
+.dashboard-primary-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dashboard-primary-metrics .metric-card {
+  min-width: 0;
+}
+
+.dashboard-secondary-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(180px, 0.7fr) minmax(260px, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.secondary-metric,
+.dashboard-refreshed {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 15px;
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--color-surface-soft));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.secondary-metric__icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border-radius: 9px;
+}
+
+.secondary-metric__icon svg,
+.dashboard-refreshed svg {
+  width: 16px;
+}
+
+.secondary-metric > span:nth-child(2),
+.dashboard-refreshed span {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.secondary-metric > strong {
+  margin-left: auto;
+  font-family: var(--font-heading);
+  font-size: 24px;
+}
+
+.dashboard-refreshed {
+  justify-content: flex-end;
+  color: var(--color-primary);
+}
+
+.dashboard-refreshed strong {
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.dashboard-refresh-warning {
+  margin: -5px 0 18px;
+  padding: 11px 14px;
+  color: #6e5213;
+  font-size: 11px;
+  background: #f7eecb;
+  border: 1px solid #eadb9c;
+  border-radius: 10px;
+}
+
+.dashboard-recent {
+  overflow: hidden;
+}
+
+.dashboard-report-table {
+  min-width: 920px;
 }
 
 .report-workspace,
@@ -1654,6 +1746,19 @@ blockquote {
     grid-template-columns: 1fr;
   }
 
+  .dashboard-primary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-secondary-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-refreshed {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
   .metric-card {
     min-height: 100px;
   }
@@ -1695,6 +1800,20 @@ blockquote {
   .page-header__actions,
   .page-header__actions .button {
     width: 100%;
+  }
+
+  .page-header__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-primary-metrics,
+  .dashboard-secondary-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-refreshed {
+    grid-column: auto;
   }
 
   .metric-card {

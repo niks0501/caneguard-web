@@ -10,9 +10,9 @@ is marked complete only after its required automated checks pass.
 | 0 | Baseline and scope lock | Complete |
 | 1 | Create Laravel inside the existing repository | Complete |
 | 2 | MySQL report API and storage | Complete |
-| 3 | Web API infrastructure | Not started |
-| 4 | Authentication and protected routes | Not started |
-| 5 | Dashboard overview | Not started |
+| 3 | Web API infrastructure | Complete |
+| 4 | Authentication and protected routes | Complete |
+| 5 | Dashboard overview | Complete |
 | 6 | Submitted reports list | Not started |
 | 7 | Report detail, image, and review | Not started |
 | 8 | Refresh, errors, and resilience | Not started |
@@ -120,3 +120,72 @@ is marked complete only after its required automated checks pass.
 - `just verify-full`: `PASS_WITH_GAPS`; lint, typecheck, build, Gitleaks, and
   Trivy passed, while the harness root test slot remains unconfigured
 - Independent high-risk review: approved with no unresolved code findings
+
+## Phase 3 web API infrastructure
+
+- Axios is configured for Laravel's credentialed XSRF flow, with normalized
+  API errors and no low-level redirects.
+- Zod schemas validate environment, user, dashboard, report, pagination,
+  review, and error boundaries before snake-case DTOs are mapped to the
+  camel-case web domain.
+- API and mock report/dashboard repositories are selected explicitly through
+  `VITE_DATA_SOURCE`, with API mode as the default.
+- TanStack Query providers, stable keys, hooks, devtools, and query-cache
+  invalidation replace page-level repository calls.
+- Vitest, Testing Library, jsdom, and MSW cover configuration, schemas,
+  mappers, pagination, repository selection, API requests, and the mock-mode
+  report workflow.
+
+### Phase 3 verification
+
+- `npm run check:web`: passed; 9 frontend test files, 19 tests, plus lint,
+  typecheck, and production build
+- `VITE_DATA_SOURCE=mock npm run build`: passed
+- `npm run check:all`: passed; 31 Laravel tests, 161 assertions
+- `just verify-targeted`: passed
+- Local commit: `3bce8a2 feat: add web API data infrastructure`
+
+## Phase 4 authentication and protected routes
+
+- Sanctum SPA authentication follows CSRF cookie, login, and authenticated-user
+  restoration requests without browser token storage.
+- Login regenerates sessions, logout invalidates sessions and rotates CSRF,
+  and reviewer/admin role checks are enforced on the server.
+- Login attempts are rate-limited by normalized email and IP, and auth-route
+  401, 419, and 429 responses use canonical non-leaking error envelopes.
+- React protected routes preserve internal destinations, distinguish network
+  restoration errors from confirmed logout, clear sensitive query state on
+  expiration/logout, and handle both 401 and 419 session expiration once.
+- The login screen supports keyboard submission, password visibility, invalid
+  credentials, access denial, throttling, service failure, and restored paths.
+- Independent security review approved the corrected implementation with no
+  unresolved actionable findings.
+
+### Phase 4 verification
+
+- `npm run check:all`: passed; 11 frontend test files, 32 tests, and 37 Laravel
+  tests with 196 assertions
+- `just verify-full`: passed lint, typecheck, tests, build, Gitleaks, and Trivy;
+  tracked npm and Composer lockfiles reported zero vulnerabilities
+- `api/vendor/bin/pint --test`: passed
+- Route audit confirmed throttled login, authenticated logout, and Sanctum
+  protected `/api/v1/me`
+- Local commit: `cac95ac feat: add Sanctum web authentication`
+
+## Phase 5 dashboard overview
+
+- `/dashboard` is the protected default route and uses the dashboard summary
+  repository/query boundary.
+- Primary and secondary totals, last-refresh time, refresh action, full-queue
+  link, and five latest reports use decision-support language.
+- Loading, cached refresh failure, empty, server error, and access-denied states
+  are implemented and tested.
+- Recent report actions route by server UUID while displaying the human
+  reference code.
+
+### Phase 5 verification
+
+- `npm run check:all`: passed; 12 frontend test files, 38 tests, and 37 Laravel
+  tests with 196 assertions
+- `just verify-targeted`: passed
+- `git diff --check`: passed

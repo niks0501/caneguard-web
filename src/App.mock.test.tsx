@@ -8,6 +8,29 @@ afterEach(() => {
 });
 
 describe("mock data mode", () => {
+  it("loads the dashboard as the protected default route", async () => {
+    vi.stubEnv("VITE_DATA_SOURCE", "mock");
+    window.history.pushState({}, "", "/");
+    const [{ AppProviders }, { default: App }] = await Promise.all([
+      import("./app/AppProviders"),
+      import("./App"),
+    ]);
+
+    render(
+      <AppProviders>
+        <App />
+      </AppProviders>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "CaneGuard dashboard" }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/dashboard");
+    expect(
+      screen.getByRole("link", { name: "Open CG-2026-0718" }),
+    ).toBeInTheDocument();
+  });
+
   it("loads the report queue and completes a review workflow", async () => {
     vi.stubEnv("VITE_DATA_SOURCE", "mock");
     window.history.pushState({}, "", "/reports");

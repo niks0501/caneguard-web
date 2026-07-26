@@ -15,6 +15,11 @@ export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
   const location = useLocation();
   const auth = useAuth();
   const isDetail = location.pathname.startsWith("/reports/");
+  const title = location.pathname.startsWith("/dashboard")
+    ? "Overview"
+    : isDetail
+      ? "Case review"
+      : "Submitted reports";
 
   return (
     <header className="app-header">
@@ -29,7 +34,7 @@ export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
         </button>
         <div>
           <span>Case monitoring</span>
-          <strong>{isDetail ? "Case review" : "Submitted reports"}</strong>
+          <strong>{title}</strong>
         </div>
       </div>
       <div className="app-header__actions">
