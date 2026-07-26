@@ -11,6 +11,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
+import { ZodError } from "zod";
 import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
@@ -68,6 +69,29 @@ export function CaseReviewPage() {
     reviewMutation.error instanceof ApiError ? reviewMutation.error : null;
   const serverNoteError = mutationError?.errors?.notes?.[0];
   const conflict = mutationError?.status === 409;
+  const mutationRateLimited = mutationError?.status === 429;
+  const mutationForbidden = mutationError?.status === 403;
+  const mutationValidation = mutationError?.status === 422;
+  const malformedMutationResponse = reviewMutation.error instanceof ZodError;
+  const detailStatus =
+    reportQuery.error instanceof ApiError ? reportQuery.error.status : undefined;
+  const suppressCachedDetail = detailStatus === 403 || detailStatus === 404;
+  const detailErrorMessage =
+    detailStatus === 403
+      ? "Your account does not have access to this report."
+      : detailStatus === 404
+        ? "This report does not exist in the current submitted report queue."
+        : detailStatus === 429
+        ? "This report is receiving too many requests. Wait a moment, then try again."
+        : reportQuery.error instanceof ZodError
+          ? "CaneGuard returned report data in an unexpected format. Try again after the service is corrected."
+          : "The report could not be loaded.";
+  const detailRefreshMessage =
+    detailStatus === 429
+      ? "The report refresh was rate limited. Wait a moment before trying again; the previously loaded report remains visible."
+      : reportQuery.error instanceof ZodError
+        ? "The latest report response had an unexpected format. The previously loaded report remains visible."
+        : "The latest report refresh failed. The previously loaded report remains visible.";
 
   const saveReview = async () => {
     setSubmitted(true);
@@ -91,7 +115,7 @@ export function CaseReviewPage() {
 
   if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report evidence..." /></PageContent>;
   if (reportQuery.isSuccess && !report) return <PageContent><ErrorState message="This report does not exist in the current submitted report queue." /></PageContent>;
-  if (reportQuery.isError || !report) return <PageContent><ErrorState message={reportQuery.error instanceof ApiError && reportQuery.error.status === 403 ? "Your account does not have access to this report." : "The report could not be loaded."} onRetry={reportQuery.error instanceof ApiError && reportQuery.error.status === 403 ? undefined : () => reportQuery.refetch()} /></PageContent>;
+  if ((reportQuery.isError && (!report || suppressCachedDetail)) || !report) return <PageContent><ErrorState message={detailErrorMessage} onRetry={suppressCachedDetail ? undefined : () => reportQuery.refetch()} /></PageContent>;
 
   return (
     <PageContent>
@@ -102,6 +126,14 @@ export function CaseReviewPage() {
         description="Examine the submitted evidence before recording an office response."
         actions={<ReviewStatusBadge status={report.reviewStatus} />}
       />
+      {reportQuery.isRefetchError ? (
+        <div className="detail-refresh-warning" role="alert">
+          <span>{detailRefreshMessage}</span>
+          <Button type="button" variant="secondary" onClick={() => reportQuery.refetch()}>
+            Retry report refresh
+          </Button>
+        </div>
+      ) : null}
 
       <div className="review-layout">
         <div className="review-main">
@@ -213,7 +245,11 @@ export function CaseReviewPage() {
                 <Button type="button" variant="secondary" onClick={() => { reviewMutation.reset(); reportQuery.refetch(); }}>Refresh report</Button>
               </div>
             ) : null}
-            {reviewMutation.isError && !conflict && !serverNoteError ? <p className="form-error" role="alert">The review could not be saved. Please try again.</p> : null}
+            {mutationRateLimited ? <p className="form-error" role="alert">Too many review attempts were received. Wait a moment before trying again.</p> : null}
+            {mutationForbidden ? <p className="form-error" role="alert">Your account no longer has permission to review this report.</p> : null}
+            {mutationValidation && !serverNoteError ? <p className="form-error" role="alert">The server rejected this review. Check the selected action and notes before trying again.</p> : null}
+            {malformedMutationResponse ? <p className="form-error" role="alert">The server returned an unexpected response. Refresh the report before trying again.</p> : null}
+            {reviewMutation.isError && !conflict && !serverNoteError && !mutationRateLimited && !mutationForbidden && !mutationValidation && !malformedMutationResponse ? <p className="form-error" role="alert">The review service is unavailable. No review change was confirmed.</p> : null}
             <Button type="button" icon={<Save aria-hidden="true" />} disabled={reviewMutation.isPending} onClick={saveReview}>
               {reviewMutation.isPending ? "Saving review..." : "Save review action"}
             </Button>

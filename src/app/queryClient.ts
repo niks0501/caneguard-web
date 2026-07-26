@@ -1,16 +1,22 @@
 import { QueryClient } from "@tanstack/react-query";
 import { ApiError } from "../api/ApiError";
 
+export function isTransientServerError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    (error.status === undefined || error.status >= 500)
+  );
+}
+
+export function shouldRetryQuery(failureCount: number, error: unknown) {
+  return failureCount < 1 && isTransientServerError(error);
+}
+
 export function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        retry: (failureCount, error) => {
-          if (error instanceof ApiError && error.status && error.status < 500) {
-            return false;
-          }
-          return failureCount < 2;
-        },
+        retry: shouldRetryQuery,
         staleTime: 30_000,
       },
       mutations: {

@@ -9,6 +9,7 @@ import {
   Rows3,
 } from "lucide-react";
 import { Link } from "react-router";
+import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
@@ -34,6 +35,21 @@ export function DashboardPage() {
   const summary = dashboard.data;
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
+  const isRateLimited =
+    dashboard.error instanceof ApiError && dashboard.error.status === 429;
+  const isMalformed = dashboard.error instanceof ZodError;
+  const initialErrorMessage = isForbidden
+    ? "Your account does not have access to the municipal dashboard."
+    : isRateLimited
+      ? "The dashboard is receiving too many requests. Wait a moment, then try again."
+      : isMalformed
+        ? "CaneGuard returned dashboard data in an unexpected format. Try again after the service is corrected."
+        : "The dashboard could not be loaded from CaneGuard.";
+  const refreshErrorMessage = isRateLimited
+    ? "The latest refresh was rate limited. Wait a moment before trying again; the previous dashboard remains visible."
+    : isMalformed
+      ? "The latest response had an unexpected format. The previous dashboard remains visible."
+      : "The latest refresh failed. Showing the most recently loaded dashboard.";
 
   if (dashboard.isPending) {
     return (
@@ -47,11 +63,7 @@ export function DashboardPage() {
     return (
       <PageContent>
         <ErrorState
-          message={
-            isForbidden
-              ? "Your account does not have access to the municipal dashboard."
-              : "The dashboard could not be loaded from CaneGuard."
-          }
+          message={initialErrorMessage}
           onRetry={isForbidden ? undefined : () => dashboard.refetch()}
         />
       </PageContent>
@@ -86,7 +98,7 @@ export function DashboardPage() {
 
       {dashboard.isRefetchError ? (
         <div className="dashboard-refresh-warning" role="alert">
-          The latest refresh failed. Showing the most recently loaded dashboard.
+          {refreshErrorMessage}
         </div>
       ) : null}
 

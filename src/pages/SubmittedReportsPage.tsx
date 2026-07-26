@@ -50,6 +50,10 @@ function isAccessDeniedError(error: unknown) {
   return error instanceof ApiError && error.status === 403;
 }
 
+function isRateLimitedError(error: unknown) {
+  return error instanceof ApiError && error.status === 429;
+}
+
 function isMalformedDataError(error: unknown) {
   return error instanceof ZodError;
 }
@@ -128,6 +132,7 @@ export function SubmittedReportsPage() {
   const invalidQuery =
     urlState.invalid || isInvalidQueryError(reportsQuery.error);
   const accessDenied = isAccessDeniedError(reportsQuery.error);
+  const rateLimited = isRateLimitedError(reportsQuery.error);
   const malformedData = isMalformedDataError(reportsQuery.error);
   const hasCachedData = Boolean(reportsQuery.data);
   const hasDisplayableData =
@@ -275,7 +280,11 @@ export function SubmittedReportsPage() {
         ) : null}
         {reportsQuery.isRefetchError && hasDisplayableData ? (
           <p className="queue-refresh-warning" role="alert">
-            The latest refresh failed. Showing the most recently loaded queue.
+            {rateLimited
+              ? "The latest refresh was rate limited. Wait a moment before trying again; the previous queue remains visible."
+              : malformedData
+                ? "The latest response had an unexpected format. The previous queue remains visible."
+                : "The latest refresh failed. Showing the most recently loaded queue."}
           </p>
         ) : null}
 
@@ -301,10 +310,17 @@ export function SubmittedReportsPage() {
             onRetry={() => reportsQuery.refetch()}
           />
         ) : null}
+        {!urlState.invalid && showInitialError && rateLimited ? (
+          <ErrorState
+            message="The report queue is receiving too many requests. Wait a moment, then try again."
+            onRetry={() => reportsQuery.refetch()}
+          />
+        ) : null}
         {!urlState.invalid &&
         showInitialError &&
         !invalidQuery &&
         !accessDenied &&
+        !rateLimited &&
         !malformedData ? (
           <ErrorState
             message="The submitted report service is unavailable. Please try again."

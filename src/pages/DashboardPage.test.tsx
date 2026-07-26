@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { ZodError } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { mockReports } from "../data/mock/mockReports";
@@ -154,6 +155,32 @@ describe("DashboardPage", () => {
     expect(
       screen.getByRole("button", { name: "Try again" }),
     ).toBeInTheDocument();
+  });
+
+  it("distinguishes rate limits and malformed dashboard data", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: undefined,
+        error: new ApiError("Slow down", { status: 429 }),
+        isError: true,
+      }),
+    );
+    const { rerender } = renderDashboard();
+    expect(screen.getByText(/too many requests/i)).toBeInTheDocument();
+
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: undefined,
+        error: new ZodError([]),
+        isError: true,
+      }),
+    );
+    rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/unexpected format/i)).toBeInTheDocument();
   });
 
   it("keeps cached data visible when a refresh fails", () => {

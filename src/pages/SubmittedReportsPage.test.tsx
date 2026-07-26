@@ -183,6 +183,10 @@ describe("SubmittedReportsPage", () => {
         message: "service is unavailable",
       },
       {
+        error: new ApiError("Slow down", { status: 429 }),
+        message: "too many requests",
+      },
+      {
         error: new ZodError([]),
         message: "unexpected format",
       },

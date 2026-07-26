@@ -1,6 +1,7 @@
 import { Bell, Menu, Search } from "lucide-react";
 import { useLocation } from "react-router";
 import { useAuth } from "../../auth/useAuth";
+import { ServerStatus } from "./ServerStatus";
 
 function initials(name: string) {
   return name
@@ -38,6 +39,7 @@ export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
         </div>
       </div>
       <div className="app-header__actions">
+        <ServerStatus />
         <button className="header-search" type="button" aria-label="Search reports">
           <Search aria-hidden="true" />
           <span>Search reports</span>

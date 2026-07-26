@@ -15,7 +15,7 @@ is marked complete only after its required automated checks pass.
 | 5 | Dashboard overview | Complete |
 | 6 | Submitted reports list | Complete |
 | 7 | Report detail, image, and review | Complete |
-| 8 | Refresh, errors, and resilience | Not started |
+| 8 | Refresh, errors, and resilience | Complete |
 | 9 | Testing, demo, and release | Not started |
 
 ## Phase 0 baseline
@@ -260,3 +260,31 @@ is marked complete only after its required automated checks pass.
 - MySQL contract execution is incomplete because the local MySQL service is
   stopped; the SQLite migration and behavior suite passed, and the MySQL
   schema test now asserts the unsigned defaulted version column
+
+## Phase 8 refresh, errors, and resilience
+
+- Query GETs retry only network and 5xx failures, exactly once. Authorization,
+  validation, rate-limit, and malformed-data failures do not retry, and all
+  mutations remain non-retrying.
+- The application header derives Connected, Refreshing, and Server unavailable
+  states from active TanStack Query requests and transient failures.
+- Dashboard, report queue, and report detail refreshes preserve cached data
+  after transient, rate-limit, or malformed-response failures and provide
+  intentional retry guidance.
+- Cached report detail is suppressed for 403 and 404 results so revoked or
+  deleted evidence is not presented as current.
+- 429 and malformed-data states are distinct across the dashboard, queue,
+  detail load, and review mutation. Existing session expiry, access denial,
+  conflict, field validation, and image failure states remain non-duplicating
+  and explicit.
+- Optional polling was not enabled; manual refresh behavior is stable and
+  covered without introducing background request load.
+
+### Phase 8 verification
+
+- `npm run check:all`: passed; 19 frontend test files, 73 tests, and 45 Laravel
+  tests with 243 assertions, plus lint, typecheck, production build, and Pint
+- Focused resilience suite: 5 test files, 29 tests passed
+- `just verify-targeted`: passed lint and typecheck
+- `git diff --check`: passed
+- Graphify was updated after the final code changes

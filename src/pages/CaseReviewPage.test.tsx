@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { ZodError } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { mapReportDetail } from "../data/api/mappers/report.mapper";
@@ -24,6 +25,7 @@ function queryResult(overrides: Record<string, unknown> = {}) {
     error: null,
     isError: false,
     isPending: false,
+    isRefetchError: false,
     isSuccess: true,
     refetch: vi.fn(),
     ...overrides,
@@ -184,7 +186,59 @@ describe("CaseReviewPage", () => {
     ).toBeDisabled();
   });
 
-  it("distinguishes missing and forbidden reports", () => {
+  it("keeps cached detail visible and offers retry after a failed refresh", async () => {
+    const refetch = vi.fn();
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({
+        error: new ApiError("Unavailable", { status: 503 }),
+        isError: true,
+        isRefetchError: true,
+        refetch,
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.getByText(report.referenceCode)).toBeInTheDocument();
+    expect(
+      screen.getByText(/previously loaded report remains visible/i),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Retry report refresh" }),
+    );
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it("distinguishes rate-limited and malformed review responses", () => {
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      mutationResult({
+        error: new ApiError("Slow down", { status: 429 }),
+        isError: true,
+      }),
+    );
+    const { rerender } = renderPage();
+    expect(screen.getByText(/too many review attempts/i)).toBeInTheDocument();
+
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      mutationResult({
+        error: new ZodError([]),
+        isError: true,
+      }),
+    );
+    rerender(
+      <MemoryRouter initialEntries={[`/reports/${report.uuid}`]}>
+        <Routes>
+          <Route path="/reports/:reportId" element={<CaseReviewPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(/server returned an unexpected response/i),
+    ).toBeInTheDocument();
+  });
+
+  it("distinguishes missing, forbidden, and rate-limited reports", () => {
     vi.mocked(useReport).mockReturnValue(
       queryResult({ data: null, isSuccess: true }),
     );
@@ -193,9 +247,10 @@ describe("CaseReviewPage", () => {
 
     vi.mocked(useReport).mockReturnValue(
       queryResult({
-        data: undefined,
+        data: report,
         error: new ApiError("Forbidden", { status: 403 }),
         isError: true,
+        isRefetchError: true,
         isSuccess: false,
       }),
     );
@@ -207,8 +262,29 @@ describe("CaseReviewPage", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText(/does not have access/i)).toBeInTheDocument();
+    expect(screen.queryByText(report.referenceCode)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Try again" }),
     ).not.toBeInTheDocument();
+
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({
+        data: undefined,
+        error: new ApiError("Slow down", { status: 429 }),
+        isError: true,
+        isSuccess: false,
+      }),
+    );
+    rerender(
+      <MemoryRouter initialEntries={[`/reports/${report.uuid}`]}>
+        <Routes>
+          <Route path="/reports/:reportId" element={<CaseReviewPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/too many requests/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Try again" }),
+    ).toBeInTheDocument();
   });
 });
