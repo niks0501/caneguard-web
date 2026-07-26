@@ -15,7 +15,7 @@ class DemoUserSeederTest extends TestCase
 
     public function test_demo_users_are_seeded_with_the_canonical_roles(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         config([
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',

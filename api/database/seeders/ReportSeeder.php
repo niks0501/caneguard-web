@@ -53,7 +53,7 @@ class ReportSeeder extends Seeder
             );
             $path = sprintf('seeded/report-%02d.png', $number);
 
-            if (! Storage::disk('public')->put($path, $image)) {
+            if (! Storage::disk('local')->put($path, $image)) {
                 throw new RuntimeException("Unable to seed report image [{$path}].");
             }
 

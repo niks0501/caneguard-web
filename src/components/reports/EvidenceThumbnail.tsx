@@ -1,11 +1,27 @@
 import { Cloud, ImageOff } from "lucide-react";
 import type { ImageStatus } from "../../domain/report.types";
 
-export function EvidenceThumbnail({ status, label }: { status: ImageStatus; label: string }) {
+export function EvidenceThumbnail({
+  status,
+  label,
+  src,
+}: {
+  status: ImageStatus;
+  label: string;
+  src?: string;
+}) {
   if (status !== "available") {
     return (
       <div className="evidence-thumbnail evidence-thumbnail--empty" aria-label={label}>
         {status === "pending_sync" ? <Cloud aria-hidden="true" /> : <ImageOff aria-hidden="true" />}
+      </div>
+    );
+  }
+
+  if (src) {
+    return (
+      <div className="evidence-thumbnail">
+        <img src={src} alt={label} loading="lazy" />
       </div>
     );
   }

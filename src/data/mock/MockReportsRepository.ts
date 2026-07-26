@@ -41,8 +41,20 @@ export class MockReportsRepository implements ReportsRepository {
           !filters?.barangay ||
           filters.barangay === "all" ||
           report.barangay === filters.barangay;
+        const submittedDate = report.submittedAt.slice(0, 10);
+        const matchesDateFrom =
+          !filters?.dateFrom || submittedDate >= filters.dateFrom;
+        const matchesDateTo =
+          !filters?.dateTo || submittedDate <= filters.dateTo;
 
-        return matchesSearch && matchesStatus && matchesDisease && matchesBarangay;
+        return (
+          matchesSearch &&
+          matchesStatus &&
+          matchesDisease &&
+          matchesBarangay &&
+          matchesDateFrom &&
+          matchesDateTo
+        );
       })
       .sort((first, second) => {
         if (filters?.sort === "confidence_desc") {

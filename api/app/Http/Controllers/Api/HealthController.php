@@ -46,7 +46,7 @@ final class HealthController extends Controller
     private function storageIsReady(): bool
     {
         try {
-            $path = Storage::disk('public')->path('');
+            $path = Storage::disk('local')->path('');
 
             return is_dir($path) && is_writable($path);
         } catch (Throwable) {

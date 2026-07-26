@@ -23,7 +23,7 @@ class MobileReportUploadTest extends TestCase
 
     public function test_upload_is_transactional_and_idempotent_by_reporter_and_client_uuid(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $reporter = User::factory()->fieldReporter()->create();
         $token = $reporter->createToken('mobile-upload-test')->plainTextToken;
         $clientUuid = fake()->uuid();
@@ -46,7 +46,7 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonCount(3, 'data.model.class_scores');
 
         $report = Report::query()->sole();
-        Storage::disk('public')->assertExists($report->image_path);
+        Storage::disk('local')->assertExists($report->image_path);
         $this->assertDatabaseCount('reports', 1);
         $this->assertDatabaseCount('report_class_scores', 3);
         $this->assertDatabaseCount('report_symptoms', 1);
@@ -63,12 +63,12 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.identity.uuid', $report->uuid);
 
         $this->assertDatabaseCount('reports', 1);
-        $this->assertCount(1, Storage::disk('public')->allFiles('reports'));
+        $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
     }
 
     public function test_upload_rejects_reviewer_role(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $reviewer = User::factory()->reviewer()->create();
         $token = $reviewer
             ->createToken('reviewer-upload-test')
@@ -81,12 +81,12 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('code', 'FORBIDDEN');
 
         $this->assertDatabaseCount('reports', 0);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
     public function test_upload_rejects_admin_role(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $admin = User::factory()->admin()->create();
         $token = $admin->createToken('admin-upload-test')->plainTextToken;
 
@@ -97,12 +97,12 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('code', 'FORBIDDEN');
 
         $this->assertDatabaseCount('reports', 0);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
     public function test_upload_rejects_invalid_payloads(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $fieldReporter = User::factory()->fieldReporter()->create();
         $fieldToken = $fieldReporter
             ->createToken('invalid-upload-test')
@@ -118,12 +118,12 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonValidationErrors('class_scores');
 
         $this->assertDatabaseCount('reports', 0);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
     public function test_image_is_deleted_when_database_creation_fails(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $reporter = User::factory()->fieldReporter()->create();
         $token = $reporter->createToken('rollback-test')->plainTextToken;
         Event::listen(
@@ -147,12 +147,12 @@ class MobileReportUploadTest extends TestCase
 
         $this->assertDatabaseCount('reports', 0);
         $this->assertDatabaseCount('report_class_scores', 0);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
     public function test_competing_insert_returns_the_winning_idempotent_report(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $reporter = User::factory()->fieldReporter()->create();
         $token = $reporter->createToken('race-recovery-test')->plainTextToken;
         $clientUuid = fake()->uuid();
@@ -186,7 +186,7 @@ class MobileReportUploadTest extends TestCase
                 === $winningReport?->uuid);
 
         $this->assertDatabaseCount('reports', 1);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
     public function test_cleanup_failure_is_logged_without_masking_database_failure(): void
@@ -202,7 +202,7 @@ class MobileReportUploadTest extends TestCase
             ->with('reports/forced-cleanup.png')
             ->andReturn(false);
         Storage::shouldReceive('disk')
-            ->with('public')
+            ->with('local')
             ->twice()
             ->andReturn($disk);
         Log::spy();

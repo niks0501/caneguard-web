@@ -8,8 +8,11 @@ import {
   reportsQueryOptions,
 } from "./reportQueries";
 
-export function useReports(filters: ReportFilters = {}) {
-  return useQuery(reportsQueryOptions(filters));
+export function useReports(
+  filters: ReportFilters = {},
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery(reportsQueryOptions(filters, options));
 }
 
 export function useReport(reportId: string) {

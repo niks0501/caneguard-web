@@ -7,6 +7,20 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
+function visiblePages(currentPage: number, pageCount: number) {
+  const pages = new Set([
+    1,
+    pageCount,
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+  ]);
+
+  return [...pages]
+    .filter((page) => page >= 1 && page <= pageCount)
+    .sort((first, second) => first - second);
+}
+
 export function Pagination({
   currentPage,
   pageCount,
@@ -14,7 +28,7 @@ export function Pagination({
   onPageChange,
 }: PaginationProps) {
   return (
-    <div className="pagination" aria-label="Report table pagination">
+    <nav className="pagination" aria-label="Report table pagination">
       <p>
         Page <strong>{currentPage}</strong> of <strong>{pageCount}</strong>
         <span> · {itemCount} reports</span>
@@ -28,16 +42,20 @@ export function Pagination({
         >
           <ChevronLeft aria-hidden="true" size={18} />
         </button>
-        {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => (
-          <button
-            type="button"
-            aria-label={`Go to page ${page}`}
-            aria-current={page === currentPage ? "page" : undefined}
-            key={page}
-            onClick={() => onPageChange(page)}
-          >
-            {page}
-          </button>
+        {visiblePages(currentPage, pageCount).map((page, index, pages) => (
+          <span className="pagination__page" key={page}>
+            {index > 0 && page - pages[index - 1] > 1 ? (
+              <span className="pagination__ellipsis" aria-hidden="true">…</span>
+            ) : null}
+            <button
+              type="button"
+              aria-label={`Go to page ${page}`}
+              aria-current={page === currentPage ? "page" : undefined}
+              onClick={() => onPageChange(page)}
+            >
+              {page}
+            </button>
+          </span>
         ))}
         <button
           type="button"
@@ -48,6 +66,6 @@ export function Pagination({
           <ChevronRight aria-hidden="true" size={18} />
         </button>
       </div>
-    </div>
+    </nav>
   );
 }

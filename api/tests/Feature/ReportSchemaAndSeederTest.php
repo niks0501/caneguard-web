@@ -50,7 +50,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     public function test_seeder_creates_twelve_varied_reports_with_valid_images(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         config([
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
@@ -79,10 +79,10 @@ class ReportSchemaAndSeederTest extends TestCase
             ->values()
             ->all());
 
-        $files = Storage::disk('public')->allFiles('seeded');
+        $files = Storage::disk('local')->allFiles('seeded');
         $this->assertCount(12, $files);
         $this->assertNotFalse(
-            getimagesizefromstring(Storage::disk('public')->get($files[0])),
+            getimagesizefromstring(Storage::disk('local')->get($files[0])),
         );
         $this->assertSame(
             3,

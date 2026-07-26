@@ -12,8 +12,14 @@ describe("ApiReportsRepository", () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports`, ({ request }) => {
         const query = new URL(request.url).searchParams;
+        expect(query.get("page")).toBe("2");
         expect(query.get("per_page")).toBe("25");
+        expect(query.get("search")).toBe("CG-2026");
+        expect(query.get("status")).toBe("submitted_unverified");
         expect(query.get("predicted_label")).toBe("rust");
+        expect(query.get("barangay")).toBe("Mabini");
+        expect(query.get("date_from")).toBe("2026-07-01");
+        expect(query.get("date_to")).toBe("2026-07-27");
         expect(query.get("sort")).toBe("-confidence");
         return HttpResponse.json(paginatedReportsDto);
       }),
@@ -23,8 +29,14 @@ describe("ApiReportsRepository", () => {
     );
 
     const result = await repository.listReports({
+      page: 2,
       perPage: 25,
+      search: " CG-2026 ",
+      status: "submitted_unverified",
       disease: "rust",
+      barangay: "Mabini",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-27",
       sort: "confidence_desc",
     });
 

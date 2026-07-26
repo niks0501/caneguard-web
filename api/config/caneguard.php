@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'legacy_public_storage_link' => public_path('storage'),
     'demo_users' => [
         'field_reporter_password' => env('CANEGUARD_FIELD_PASSWORD'),
         'reviewer_password' => env('CANEGUARD_REVIEWER_PASSWORD'),

@@ -45,8 +45,25 @@ cp api/.env.example api/.env
 php api/artisan key:generate
 php api/artisan migrate
 php api/artisan db:seed
-php api/artisan storage:link
 ```
+
+For an existing installation created before private evidence storage, put the
+application in maintenance mode and run the migration before serving this
+release:
+
+```bash
+php api/artisan down
+php api/artisan reports:secure-images
+php api/artisan reports:secure-images --remove-public
+php api/artisan up
+```
+
+The first command copies and verifies every report image. The second removes
+only verified public copies and the legacy `public/storage` symlink. To roll
+back before the second command, keep using the public copies. After removal,
+restore from the private disk or a backup before recreating a public link.
+Do not switch traffic to this release until the copy-and-verify command passes;
+the authorized image endpoint intentionally reads private storage only.
 
 Set the database password and the three local demo account passwords only in
 `api/.env`. Never commit that file. The seeded accounts are:

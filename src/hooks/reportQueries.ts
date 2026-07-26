@@ -12,10 +12,14 @@ export const reportKeys = {
     [...reportKeys.details(), reportId] as const,
 };
 
-export const reportsQueryOptions = (filters: ReportFilters = {}) =>
+export const reportsQueryOptions = (
+  filters: ReportFilters = {},
+  options: { enabled?: boolean } = {},
+) =>
   queryOptions({
     queryKey: reportKeys.list(filters),
     queryFn: () => reportsRepository.listReports(filters),
+    enabled: options.enabled,
   });
 
 export const reportQueryOptions = (reportId: string) =>

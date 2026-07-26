@@ -1,8 +1,17 @@
-import { useDeferredValue, useState } from "react";
-import { ClipboardCheck, Clock3, MapPin, RefreshCw, Rows3 } from "lucide-react";
-import { useLocation } from "react-router";
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+} from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ClipboardCheck, RefreshCw } from "lucide-react";
+import {
+  useLocation,
+  useSearchParams,
+} from "react-router";
+import { ZodError } from "zod";
+import { ApiError } from "../api/ApiError";
 import { PageContent, PageHeader } from "../components/layout/Page";
-import { MetricCard } from "../components/reports/MetricCard";
 import { ReportTable } from "../components/reports/ReportTable";
 import { Button } from "../components/ui/Button";
 import { SearchInput, SelectFilter } from "../components/ui/FormControls";
@@ -13,84 +22,118 @@ import {
   LoadingState,
   NoResultsState,
 } from "../components/ui/States";
-import { diseaseLabels, reviewStatusLabels } from "../domain/report.metadata";
-import type { DiseaseKey, ReviewStatus } from "../domain/report.types";
-import { env } from "../config/env";
+import {
+  diseaseLabels,
+  reviewStatusLabels,
+} from "../domain/report.metadata";
+import type { ReportFilters } from "../domain/report.types";
+import { reportKeys } from "../hooks/reportQueries";
 import { useReports } from "../hooks/useReports";
+import {
+  parseReportListUrl,
+} from "./reportListUrlState";
 
-const pageSize = 5;
+type FilterKey =
+  | "search"
+  | "status"
+  | "predicted_label"
+  | "barangay"
+  | "date_from"
+  | "date_to"
+  | "sort";
 
-type SortOption = "newest" | "oldest" | "confidence";
+function isInvalidQueryError(error: unknown) {
+  return error instanceof ApiError && error.status === 422;
+}
 
-const initialFilters = {
-  search: "",
-  status: "all" as ReviewStatus | "all",
-  disease: "all" as DiseaseKey | "all",
-  barangay: "all",
-  date: "all",
-  sort: "newest" as SortOption,
-};
+function isAccessDeniedError(error: unknown) {
+  return error instanceof ApiError && error.status === 403;
+}
+
+function isMalformedDataError(error: unknown) {
+  return error instanceof ZodError;
+}
 
 export function SubmittedReportsPage() {
   const location = useLocation();
-  const [filters, setFilters] = useState(initialFilters);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filterReferenceTime] = useState(() => Date.now());
-  const deferredSearch = useDeferredValue(filters.search);
-  const reportsQuery = useReports({ perPage: 100, sort: "newest" });
-  const reports = reportsQuery.data?.reports ?? [];
-
-  const barangays = [...new Set(reports.map((report) => report.barangay))].sort();
-  const filteredReports = reports
-    .filter((report) => {
-      const search = deferredSearch.trim().toLowerCase();
-      const matchesSearch =
-        !search ||
-        [report.referenceCode, report.submittedByName, report.barangay, diseaseLabels[report.predictedDisease]]
-          .some((value) => value.toLowerCase().includes(search));
-      const matchesStatus = filters.status === "all" || report.reviewStatus === filters.status;
-      const matchesDisease = filters.disease === "all" || report.predictedDisease === filters.disease;
-      const matchesBarangay = filters.barangay === "all" || report.barangay === filters.barangay;
-      const reportDate = new Date(report.submittedAt);
-      const dayAge = (filterReferenceTime - reportDate.getTime()) / 86_400_000;
-      const matchesDate =
-        filters.date === "all" ||
-        (filters.date === "7_days" && dayAge <= 7) ||
-        (filters.date === "30_days" && dayAge <= 30);
-      return matchesSearch && matchesStatus && matchesDisease && matchesBarangay && matchesDate;
-    })
-    .sort((a, b) => {
-      if (filters.sort === "confidence") return b.confidence - a.confidence;
-      const difference = new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
-      return filters.sort === "newest" ? difference : -difference;
-    });
-
-  const pageCount = Math.max(1, Math.ceil(filteredReports.length / pageSize));
-  const visibleReports = filteredReports.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const urlState = useMemo(
+    () => parseReportListUrl(searchParams),
+    [searchParams],
   );
-  const pendingCount = reports.filter(
-    (report) => report.reviewStatus === "submitted_unverified",
-  ).length;
-  const fieldCount = reports.filter(
-    (report) => report.reviewStatus === "for_field_validation",
-  ).length;
+  const deferredSearch = useDeferredValue(urlState.filters.search);
+  const queryFilters = useMemo<ReportFilters>(
+    () => ({
+      ...urlState.filters,
+      search: deferredSearch?.trim() || undefined,
+      barangay: urlState.filters.barangay?.trim() || undefined,
+    }),
+    [deferredSearch, urlState.filters],
+  );
+  const reportsQuery = useReports(queryFilters, {
+    enabled: !urlState.invalid,
+  });
+  const reports = reportsQuery.data?.reports ?? [];
+  const meta = reportsQuery.data?.meta;
 
-  const updateFilter = <Key extends keyof typeof initialFilters>(
-    key: Key,
-    value: (typeof initialFilters)[Key],
+  useEffect(() => {
+    if (
+      meta &&
+      meta.total > 0 &&
+      meta.currentPage > meta.lastPage
+    ) {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set("page", String(meta.lastPage));
+        return next;
+      }, { replace: true });
+    }
+  }, [meta, setSearchParams]);
+
+  const updateFilter = (
+    key: FilterKey,
+    value: string,
+    options: { replace?: boolean } = {},
   ) => {
-    setFilters((current) => ({ ...current, [key]: value }));
-    setCurrentPage(1);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      next.delete("page");
+      return next;
+    }, options);
+  };
+
+  const setPage = (page: number) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (page === 1) next.delete("page");
+      else next.set("page", String(page));
+      return next;
+    });
   };
 
   const clearFilters = () => {
-    setFilters(initialFilters);
-    setCurrentPage(1);
+    setSearchParams(new URLSearchParams());
   };
 
+  const refreshQueue = () =>
+    queryClient.invalidateQueries({
+      queryKey: reportKeys.list(queryFilters),
+      exact: true,
+    });
+
   const reviewNotice = (location.state as { notice?: string } | null)?.notice;
+  const invalidQuery =
+    urlState.invalid || isInvalidQueryError(reportsQuery.error);
+  const accessDenied = isAccessDeniedError(reportsQuery.error);
+  const malformedData = isMalformedDataError(reportsQuery.error);
+  const hasCachedData = Boolean(reportsQuery.data);
+  const hasDisplayableData =
+    hasCachedData && !accessDenied && !urlState.invalid;
+  const showInitialError =
+    reportsQuery.isError && (!hasCachedData || accessDenied);
 
   return (
     <PageContent>
@@ -99,63 +142,194 @@ export function SubmittedReportsPage() {
         title="Submitted reports"
         description="Review field observations and decide the appropriate municipal follow-up."
         actions={
-          <Button variant="secondary" icon={<RefreshCw aria-hidden="true" />} onClick={() => reportsQuery.refetch()}>
-            Refresh queue
+          <Button
+            variant="secondary"
+            icon={
+              <RefreshCw
+                aria-hidden="true"
+                className={reportsQuery.isFetching ? "spin" : undefined}
+              />
+            }
+            disabled={
+              reportsQuery.isFetching ||
+              urlState.invalid ||
+              !hasDisplayableData
+            }
+            onClick={refreshQueue}
+          >
+            {reportsQuery.isFetching ? "Refreshing queue" : "Refresh queue"}
           </Button>
         }
       />
 
-      {reviewNotice ? <div className="success-banner" role="status"><ClipboardCheck aria-hidden="true" />{reviewNotice}</div> : null}
-
-      <section className="metric-grid" aria-label="Report work queue summary">
-        <MetricCard label="All reports" value={String(reports.length).padStart(2, "0")} context={env.dataSource === "mock" ? "Current mock dataset" : "Current API queue"} icon={<Rows3 aria-hidden="true" />} />
-        <MetricCard label="Needs review" value={String(pendingCount).padStart(2, "0")} context="Awaiting an office action" icon={<Clock3 aria-hidden="true" />} />
-        <MetricCard label="Field follow-up" value={String(fieldCount).padStart(2, "0")} context="Marked for observation" icon={<MapPin aria-hidden="true" />} />
-      </section>
-
-      <section className="report-workspace" aria-labelledby="report-table-heading">
-        <div className="workspace-heading">
-          <div><p className="eyebrow">Work queue</p><h2 id="report-table-heading">Recent submissions</h2></div>
-          <span>{filteredReports.length} matching reports</span>
+      {reviewNotice ? (
+        <div className="success-banner" role="status">
+          <ClipboardCheck aria-hidden="true" />
+          {reviewNotice}
         </div>
+      ) : null}
+
+      <section
+        className="report-workspace"
+        aria-labelledby="report-table-heading"
+      >
+        <div className="workspace-heading">
+          <div>
+            <p className="eyebrow">Work queue</p>
+            <h2 id="report-table-heading">Recent submissions</h2>
+          </div>
+          <span>
+            {meta && hasDisplayableData
+              ? `${meta.total} matching ${
+                  meta.total === 1 ? "report" : "reports"
+                }`
+              : "Server-filtered queue"}
+          </span>
+        </div>
+
         <div className="filter-bar">
           <SearchInput
-            value={filters.search}
+            value={urlState.filters.search ?? ""}
+            maxLength={120}
             placeholder="Search ID, submitter, barangay..."
-            onChange={(event) => updateFilter("search", event.target.value)}
+            onChange={(event) =>
+              updateFilter("search", event.target.value, { replace: true })
+            }
           />
-          <SelectFilter label="Status" value={filters.status} onChange={(event) => updateFilter("status", event.target.value as ReviewStatus | "all")}>
-            <option value="all">All statuses</option>
-            {Object.entries(reviewStatusLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          <SelectFilter
+            label="Status"
+            value={urlState.filters.status ?? ""}
+            onChange={(event) => updateFilter("status", event.target.value)}
+          >
+            <option value="">All statuses</option>
+            {Object.entries(reviewStatusLabels).map(([value, label]) => (
+              <option value={value} key={value}>{label}</option>
+            ))}
           </SelectFilter>
-          <SelectFilter label="Possible disease" value={filters.disease} onChange={(event) => updateFilter("disease", event.target.value as DiseaseKey | "all")}>
-            <option value="all">All results</option>
-            {Object.entries(diseaseLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          <SelectFilter
+            label="Possible result"
+            value={urlState.filters.disease ?? ""}
+            onChange={(event) =>
+              updateFilter("predicted_label", event.target.value)
+            }
+          >
+            <option value="">All results</option>
+            {Object.entries(diseaseLabels).map(([value, label]) => (
+              <option value={value} key={value}>{label}</option>
+            ))}
           </SelectFilter>
-          <SelectFilter label="Barangay" value={filters.barangay} onChange={(event) => updateFilter("barangay", event.target.value)}>
-            <option value="all">All barangays</option>
-            {barangays.map((barangay) => <option value={barangay} key={barangay}>{barangay}</option>)}
-          </SelectFilter>
-          <SelectFilter label="Date range" value={filters.date} onChange={(event) => updateFilter("date", event.target.value)}>
-            <option value="all">Any date</option>
-            <option value="7_days">Last 7 days</option>
-            <option value="30_days">Last 30 days</option>
-          </SelectFilter>
-          <SelectFilter label="Sort by" value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value as SortOption)}>
+          <label className="select-filter">
+            <span>Barangay</span>
+            <input
+              type="text"
+              value={urlState.filters.barangay ?? ""}
+              maxLength={120}
+              placeholder="All barangays"
+              onChange={(event) =>
+                updateFilter("barangay", event.target.value, {
+                  replace: true,
+                })
+              }
+            />
+          </label>
+          <label className="select-filter">
+            <span>From date</span>
+            <input
+              type="date"
+              value={urlState.filters.dateFrom ?? ""}
+              max={urlState.filters.dateTo}
+              onChange={(event) =>
+                updateFilter("date_from", event.target.value)
+              }
+            />
+          </label>
+          <label className="select-filter">
+            <span>To date</span>
+            <input
+              type="date"
+              value={urlState.filters.dateTo ?? ""}
+              min={urlState.filters.dateFrom}
+              onChange={(event) =>
+                updateFilter("date_to", event.target.value)
+              }
+            />
+          </label>
+          <SelectFilter
+            label="Sort by"
+            value={urlState.filters.sort ?? "newest"}
+            onChange={(event) =>
+              updateFilter("sort", event.target.value)
+            }
+          >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
-            <option value="confidence">Model confidence</option>
+            <option value="confidence_desc">Highest confidence</option>
+            <option value="confidence_asc">Lowest confidence</option>
           </SelectFilter>
         </div>
 
-        {reportsQuery.isPending ? <LoadingState /> : null}
-        {reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : null}
-        {reportsQuery.isSuccess && reports.length === 0 ? <EmptyState /> : null}
-        {reportsQuery.isSuccess && reports.length > 0 && filteredReports.length === 0 ? <NoResultsState onClear={clearFilters} /> : null}
-        {reportsQuery.isSuccess && visibleReports.length > 0 ? (
+        {reportsQuery.isFetching && hasDisplayableData ? (
+          <p className="queue-refresh-status" role="status">
+            Refreshing this server-filtered queue…
+          </p>
+        ) : null}
+        {reportsQuery.isRefetchError && hasDisplayableData ? (
+          <p className="queue-refresh-warning" role="alert">
+            The latest refresh failed. Showing the most recently loaded queue.
+          </p>
+        ) : null}
+
+        {urlState.invalid ? (
+          <ErrorState
+            message="The report URL contains an invalid filter or page. Clear the filters to return to the queue."
+            onRetry={clearFilters}
+          />
+        ) : null}
+        {!urlState.invalid && reportsQuery.isPending ? <LoadingState /> : null}
+        {!urlState.invalid && showInitialError && invalidQuery ? (
+          <ErrorState
+            message="The server rejected one or more report filters. Clear them and try again."
+            onRetry={clearFilters}
+          />
+        ) : null}
+        {!urlState.invalid && showInitialError && accessDenied ? (
+          <ErrorState message="Your account does not have access to the submitted report queue." />
+        ) : null}
+        {!urlState.invalid && showInitialError && malformedData ? (
+          <ErrorState
+            message="CaneGuard returned report data in an unexpected format. Refresh after the service is corrected."
+            onRetry={() => reportsQuery.refetch()}
+          />
+        ) : null}
+        {!urlState.invalid &&
+        showInitialError &&
+        !invalidQuery &&
+        !accessDenied &&
+        !malformedData ? (
+          <ErrorState
+            message="The submitted report service is unavailable. Please try again."
+            onRetry={() => reportsQuery.refetch()}
+          />
+        ) : null}
+        {hasDisplayableData &&
+        meta?.total === 0 &&
+        !urlState.hasActiveFilters ? (
+          <EmptyState />
+        ) : null}
+        {hasDisplayableData &&
+        meta?.total === 0 &&
+        urlState.hasActiveFilters ? (
+          <NoResultsState onClear={clearFilters} />
+        ) : null}
+        {hasDisplayableData && reports.length > 0 && meta ? (
           <>
-            <ReportTable reports={visibleReports} />
-            <Pagination currentPage={currentPage} pageCount={pageCount} itemCount={filteredReports.length} onPageChange={setCurrentPage} />
+            <ReportTable reports={reports} />
+            <Pagination
+              currentPage={meta.currentPage}
+              pageCount={meta.lastPage}
+              itemCount={meta.total}
+              onPageChange={setPage}
+            />
           </>
         ) : null}
       </section>

@@ -15,9 +15,9 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
         <thead>
           <tr>
             <th scope="col">Report</th>
-            <th scope="col">Possible disease</th>
-            <th scope="col">Submitted by</th>
-            <th scope="col">Location</th>
+            <th scope="col">Possible result</th>
+            <th scope="col">Reporter</th>
+            <th scope="col">Barangay</th>
             <th scope="col">Captured</th>
             <th scope="col">Submitted</th>
             <th scope="col">Review status</th>
@@ -32,6 +32,7 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                   <EvidenceThumbnail
                     status={report.imageStatus}
                     label={`Submitted evidence for ${report.referenceCode}`}
+                    src={report.imageUrl}
                   />
                   <div><strong>{report.referenceCode}</strong><span>{report.farmReference ?? "No farm reference"}</span></div>
                 </div>
@@ -47,7 +48,7 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
               <td><ReviewStatusBadge status={report.reviewStatus} /></td>
               <td>
                 <Link className="table-action" to={routes.reportDetail(report.uuid)} aria-label={`Open ${report.referenceCode}`}>
-                  <span>Review</span><ArrowUpRight aria-hidden="true" />
+                  <span>Open</span><ArrowUpRight aria-hidden="true" />
                 </Link>
               </td>
             </tr>

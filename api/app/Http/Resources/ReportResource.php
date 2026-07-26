@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class ReportResource extends JsonResource
 {
@@ -27,7 +26,10 @@ class ReportResource extends JsonResource
                 'submitted_at' => $this->submitted_at->utc()->toISOString(),
             ],
             'image' => [
-                'url' => Storage::disk('public')->url($this->image_path),
+                'url' => route(
+                    'api.v1.reports.image',
+                    ['report' => $this->uuid],
+                ),
                 'mime_type' => $this->image_mime_type,
                 'size_bytes' => $this->image_size_bytes,
                 'source_type' => $this->image_source_type,

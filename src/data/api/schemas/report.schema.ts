@@ -19,6 +19,7 @@ export const reportListItemSchema = z.object({
   reference_code: z.string(),
   reporter: userSchema.pick({ uuid: true, name: true }),
   barangay: z.string(),
+  captured_at: z.iso.datetime({ offset: true }),
   submitted_at: z.iso.datetime({ offset: true }),
   predicted_label: diseaseKeySchema,
   confidence: z.number().min(0).max(1),

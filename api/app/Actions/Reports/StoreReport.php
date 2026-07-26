@@ -32,7 +32,7 @@ class StoreReport
 
         $uuid = (string) Str::uuid7();
         $extension = $image->guessExtension() ?: 'bin';
-        $path = Storage::disk('public')->putFileAs(
+        $path = Storage::disk('local')->putFileAs(
             'reports',
             $image,
             "{$uuid}.{$extension}",
@@ -104,7 +104,7 @@ class StoreReport
     private function deleteFailedUpload(string $path, Throwable $original): void
     {
         try {
-            $deleted = Storage::disk('public')->delete($path);
+            $deleted = Storage::disk('local')->delete($path);
 
             if (! $deleted) {
                 Log::critical('Failed report upload left an orphaned image.', [

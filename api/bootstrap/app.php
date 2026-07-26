@@ -113,6 +113,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $status = $exception->getStatusCode();
             [$message, $code] = match ($status) {
                 400 => ['The request could not be processed.', 'BAD_REQUEST'],
+                403 => ['This action is unauthorized.', 'FORBIDDEN'],
                 404 => ['The requested resource was not found.', 'NOT_FOUND'],
                 405 => ['The HTTP method is not allowed.', 'METHOD_NOT_ALLOWED'],
                 409 => ['The request conflicts with the current state.', 'CONFLICT'],

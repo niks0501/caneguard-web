@@ -18,7 +18,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     barangay: dto.barangay,
     submittedByName: dto.reporter.name,
     submitterRole: "field_reporter",
-    capturedAt: dto.submitted_at,
+    capturedAt: dto.captured_at,
     submittedAt: dto.submitted_at,
     predictedDisease: dto.predicted_label,
     confidence: dto.confidence,

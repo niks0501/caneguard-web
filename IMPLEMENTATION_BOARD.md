@@ -13,7 +13,7 @@ is marked complete only after its required automated checks pass.
 | 3 | Web API infrastructure | Complete |
 | 4 | Authentication and protected routes | Complete |
 | 5 | Dashboard overview | Complete |
-| 6 | Submitted reports list | Not started |
+| 6 | Submitted reports list | Complete |
 | 7 | Report detail, image, and review | Not started |
 | 8 | Refresh, errors, and resilience | Not started |
 | 9 | Testing, demo, and release | Not started |
@@ -189,3 +189,41 @@ is marked complete only after its required automated checks pass.
   tests with 196 assertions
 - `just verify-targeted`: passed
 - `git diff --check`: passed
+
+## Phase 6 submitted reports list
+
+- `/reports` derives page, search, status, possible result, barangay, date range,
+  and sort state from the URL; filter changes reset the server page.
+- Laravel/MySQL performs filtering, sorting, and pagination. The browser
+  requests 15 rows at a time and renders Laravel pagination metadata.
+- The report list contract now returns the true capture timestamp and a
+  policy-protected evidence URL. Evidence is stored on the private disk and is
+  never served through Laravel's public storage link.
+- The idempotent `reports:secure-images` rollout command copies and checksum
+  verifies legacy images before optional public-copy and exact-target symlink
+  removal. Maintenance-mode deployment and rollback steps are documented.
+- Refresh invalidates only the exact current queue query. Cached data remains
+  visible for ordinary refresh failures, but is suppressed immediately for
+  invalid URL state or revoked access.
+- First load, background refresh, empty database, no filter match, invalid
+  query, access denial, unavailable service, and malformed payload states are
+  distinct and tested.
+- SQL search treats `%`, `_`, and the escape character literally. Large
+  pagination ranges are bounded in the UI and expose a named navigation
+  landmark.
+- Independent high-risk review approved the settled diff with no unresolved
+  actionable findings.
+
+### Phase 6 verification
+
+- `npm run check:all`: passed; 15 frontend test files, 57 tests, and 43 Laravel
+  tests with 235 assertions
+- `just verify-full`: passed lint, typecheck, tests, build, Gitleaks, and Trivy;
+  tracked npm and Composer lockfiles reported zero vulnerabilities
+- `api/vendor/bin/pint --test`: passed
+- `git diff --check`: passed
+- Graphify was updated after the final code changes
+- The 12 local seeded images were copied to private storage and SHA-256
+  verified; the legacy web symlink was moved to a recoverable `/tmp` backup
+- Live MySQL migration-command verification remains unavailable because the
+  local MySQL service was stopped; the command failed safely without removal

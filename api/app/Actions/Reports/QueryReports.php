@@ -18,12 +18,25 @@ class QueryReports
 
         $query
             ->when($filters['search'] ?? null, function (Builder $query, string $search) {
-                $query->where(function (Builder $query) use ($search) {
+                $pattern = '%'.$this->escapeLike($search).'%';
+
+                $query->where(function (Builder $query) use ($pattern) {
                     $query
-                        ->where('reference_code', 'like', "%{$search}%")
-                        ->orWhere('barangay', 'like', "%{$search}%")
-                        ->orWhereHas('reporter', fn (Builder $reporter) => $reporter
-                            ->where('name', 'like', "%{$search}%"));
+                        ->whereRaw(
+                            "reference_code LIKE ? ESCAPE '!'",
+                            [$pattern],
+                        )
+                        ->orWhereRaw(
+                            "barangay LIKE ? ESCAPE '!'",
+                            [$pattern],
+                        )
+                        ->orWhereHas(
+                            'reporter',
+                            fn (Builder $reporter) => $reporter->whereRaw(
+                                "name LIKE ? ESCAPE '!'",
+                                [$pattern],
+                            ),
+                        );
                 });
             })
             ->when(
@@ -64,5 +77,14 @@ class QueryReports
             ->orderBy('id')
             ->paginate((int) ($filters['per_page'] ?? 15))
             ->withQueryString();
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return str_replace(
+            ['!', '%', '_'],
+            ['!!', '!%', '!_'],
+            $value,
+        );
     }
 }

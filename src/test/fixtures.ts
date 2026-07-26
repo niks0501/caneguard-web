@@ -6,6 +6,7 @@ export const reportListItemDto = {
     name: "Ana Reporter",
   },
   barangay: "Mabini",
+  captured_at: "2026-07-20T09:55:00.000Z",
   submitted_at: "2026-07-20T10:00:00.000Z",
   predicted_label: "rust",
   confidence: 0.93,
@@ -25,7 +26,7 @@ export const reportDetailDto = {
   },
   barangay: reportListItemDto.barangay,
   timestamps: {
-    captured_at: "2026-07-20T09:55:00.000Z",
+    captured_at: reportListItemDto.captured_at,
     submitted_at: reportListItemDto.submitted_at,
   },
   image: {
