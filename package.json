@@ -12,6 +12,7 @@
     "api:install": "composer install --working-dir=api",
     "api:dev": "php api/artisan serve --host=127.0.0.1 --port=8000",
     "api:test": "cd api && php artisan test",
+    "api:test:mysql": "cd api && vendor/bin/phpunit --configuration=phpunit.mysql.xml",
     "api:format:check": "cd api && vendor/bin/pint --test",
     "api:migrate": "php api/artisan migrate",
     "api:seed": "php api/artisan db:seed",

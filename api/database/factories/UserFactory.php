@@ -43,4 +43,25 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    public function fieldReporter(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_FIELD_REPORTER,
+        ]);
+    }
+
+    public function reviewer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_REVIEWER,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_ADMIN,
+        ]);
+    }
 }

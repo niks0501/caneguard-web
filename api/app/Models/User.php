@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -47,6 +48,22 @@ class User extends Authenticatable
             self::ROLE_REVIEWER,
             self::ROLE_ADMIN,
         ];
+    }
+
+    /**
+     * @return HasMany<Report, $this>
+     */
+    public function submittedReports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reporter_id');
+    }
+
+    /**
+     * @return HasMany<Report, $this>
+     */
+    public function reviewedReports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reviewer_id');
     }
 
     /**

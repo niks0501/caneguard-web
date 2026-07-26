@@ -9,7 +9,7 @@ is marked complete only after its required automated checks pass.
 | --- | --- | --- |
 | 0 | Baseline and scope lock | Complete |
 | 1 | Create Laravel inside the existing repository | Complete |
-| 2 | MySQL report API and storage | Not started |
+| 2 | MySQL report API and storage | Complete |
 | 3 | Web API infrastructure | Not started |
 | 4 | Authentication and protected routes | Not started |
 | 5 | Dashboard overview | Not started |
@@ -82,3 +82,41 @@ is marked complete only after its required automated checks pass.
   `.harness/project.json` has no test command
 - Trivy reported sample Python requirements embedded in Mockery documentation;
   the tracked Composer and npm lockfiles reported zero vulnerabilities
+
+## Phase 2 report API and storage
+
+- MySQL report, class-score, symptom, and quality-warning tables match the
+  planned columns, composite keys, foreign keys, indexes, InnoDB engine, and
+  `utf8mb4_unicode_ci` collation.
+- Report timestamps are stored as UTC `DATETIME`, with millisecond precision
+  retained for capture, submission, and review times.
+- UUID route binding, reporter/reviewer relationships, factories, and a
+  repeat-safe 12-report demonstration seeder are implemented.
+- Reviewer/admin web access and field-reporter-only bearer-token endpoints are
+  enforced by the report policy.
+- Dashboard summary, searchable/filterable/paginated report list, report
+  detail, review update, idempotent upload, and cursor-based status sync
+  endpoints are available under `/api/v1`.
+- Uploads validate real images, write child records in one transaction, recover
+  competing reporter/client UUID inserts, remove failed files, and log any
+  cleanup failure without masking the original database exception.
+- Status sync uses a stable `(updated_at, id)` cursor and a fixed
+  `sync_before` boundary to prevent loss or duplication across page ties and
+  mid-sync updates.
+- API validation, authentication, authorization, missing-resource, rate-limit,
+  CSRF, and server failures use non-leaking JSON error shapes.
+
+### Phase 2 verification
+
+- `php api/artisan migrate:fresh --seed` against `caneguard_test`: passed; eight
+  migrations and the report seeder completed
+- `npm run api:test:mysql`: passed; 1 MySQL schema test, 115 assertions
+- `npm run check:all`: passed; 31 Laravel tests, 161 assertions, plus web lint,
+  typecheck, and production build
+- `api/vendor/bin/pint --test`: passed
+- `composer --working-dir=api validate --strict`: passed
+- `php api/artisan route:list --path=api/v1`: six planned API routes registered
+- Seeded image URL check: HTTP 200, `image/png`, valid 1×1 PNG
+- `just verify-full`: `PASS_WITH_GAPS`; lint, typecheck, build, Gitleaks, and
+  Trivy passed, while the harness root test slot remains unconfigured
+- Independent high-risk review: approved with no unresolved code findings

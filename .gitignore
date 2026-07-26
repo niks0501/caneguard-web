@@ -40,7 +40,7 @@ tasks
 GUIDE.md
 justfile
 scripts
-tests/
+/tests/
 
 # Laravel application
 /api/.env

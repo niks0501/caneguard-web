@@ -45,6 +45,7 @@ cp api/.env.example api/.env
 php api/artisan key:generate
 php api/artisan migrate
 php api/artisan db:seed
+php api/artisan storage:link
 ```
 
 Set the database password and the three local demo account passwords only in
@@ -67,7 +68,9 @@ npm run api:dev
 ```
 
 The API runs at `http://localhost:8000`. Its readiness endpoint is
-`GET http://localhost:8000/api/health`.
+`GET http://localhost:8000/api/health`. Authenticated report endpoints use the
+`/api/v1` prefix; browser requests use Sanctum cookies, while mobile-compatible
+submission and status requests use Sanctum bearer tokens.
 
 ## Verification
 
@@ -75,10 +78,13 @@ The API runs at `http://localhost:8000`. Its readiness endpoint is
 npm run check:web
 npm run check:api
 npm run check:all
+npm run api:test:mysql
 ```
 
 The API checks use Laravel feature tests and Pint. The web test suite is added
-with the web API infrastructure phase.
+with the web API infrastructure phase. The MySQL schema suite is read-only,
+refuses to target any database other than `caneguard_test`, and expects the
+latest migrations to have already run.
 
 ## Presentation commands
 

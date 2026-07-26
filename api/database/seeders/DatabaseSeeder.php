@@ -51,5 +51,7 @@ class DatabaseSeeder extends Seeder
                 $user,
             );
         }
+
+        $this->call(ReportSeeder::class);
     }
 }
