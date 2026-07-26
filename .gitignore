@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Workflow files
+.opencode
+opencode.jsonc
+PROJECT_CHECKS.md
+docs/
+.ai
+project-structure.txt
+.agents
+.codex
+.harness
+harness/
+tasks
+.gitleaks.toml
+.pre-commit-config.yaml
+GUIDE.md
+justfile
+scripts
+tests/

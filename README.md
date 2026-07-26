@@ -1,8 +1,28 @@
-# React + TypeScript + Vite
+# CaneGuard Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Backend-neutral React prototype for a municipal agriculture office to review submitted sugarcane field observations.
 
-Currently, two official plugins are available:
+## Current workflow
+
+- Browse, search, filter, sort, and paginate realistic mock reports.
+- Open a report and inspect its evidence, model-supported result, symptoms, and field context.
+- Record a mock office review action and return to the updated work queue.
+- Use the responsive dashboard shell on desktop, tablet, and smaller screens.
+
+Mock changes are stored in memory and reset when the browser reloads. The main routes are `/reports` and `/reports/:reportId`.
+
+## Commands
+
+```bash
+npm run dev
+npm run lint
+npx --no-install tsc --noEmit
+npm run build
+```
+
+## Vite tooling
+
+The project uses the following Vite plugins:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)

@@ -1,0 +1,6 @@
+/.opencode/agents/** text eol=lf
+/.opencode/commands/** text eol=lf
+/.codex/agents/** text eol=lf
+/.codex/rules/** text eol=lf
+/.agents/skills/** text eol=lf
+/harness/adapters/** text eol=lf
