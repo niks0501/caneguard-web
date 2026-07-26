@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'review_notes',
     'reviewer_id',
     'reviewed_at',
+    'lock_version',
 ])]
 class Report extends Model
 {
@@ -155,6 +156,7 @@ class Report extends Model
             'captured_at' => 'immutable_datetime',
             'submitted_at' => 'immutable_datetime',
             'reviewed_at' => 'immutable_datetime',
+            'lock_version' => 'integer',
         ];
     }
 }

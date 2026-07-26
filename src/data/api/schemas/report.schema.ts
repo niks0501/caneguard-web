@@ -81,6 +81,7 @@ export const reportDetailSchema = z.object({
     reviewer: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
     reviewed_at: z.iso.datetime({ offset: true }).nullable(),
   }),
+  version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),
 });
 

@@ -11,7 +11,8 @@ export const reportListItemDto = {
   predicted_label: "rust",
   confidence: 0.93,
   review_status: "submitted_unverified",
-  image_url: "/storage/reports/example.jpg",
+  image_url:
+    "https://api.caneguard.test/api/v1/reports/7e8c2e48-a2d4-4aca-9a50-9ca460fd7a7f/image",
 } as const;
 
 export const reportDetailDto = {
@@ -64,6 +65,7 @@ export const reportDetailDto = {
     reviewer: null,
     reviewed_at: null,
   },
+  version: 0,
   updated_at: "2026-07-20T10:00:00.000Z",
 } as const;
 

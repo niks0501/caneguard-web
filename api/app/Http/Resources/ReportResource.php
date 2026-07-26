@@ -69,6 +69,7 @@ class ReportResource extends JsonResource
                 ]),
                 'reviewed_at' => $this->reviewed_at?->utc()->toISOString(),
             ],
+            'version' => $this->lock_version,
             'updated_at' => $this->updated_at->utc()->toISOString(),
         ];
     }

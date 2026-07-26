@@ -45,6 +45,12 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertDateTime($columns, 'reviewed_at', 3);
         $this->assertDateTime($columns, 'created_at', 0);
         $this->assertDateTime($columns, 'updated_at', 0);
+        $this->assertSame('bigint', $columns->get('lock_version')->DATA_TYPE);
+        $this->assertStringContainsString(
+            'unsigned',
+            $columns->get('lock_version')->COLUMN_TYPE,
+        );
+        $this->assertSame('0', $columns->get('lock_version')->COLUMN_DEFAULT);
         $this->assertStringContainsString(
             'unsigned',
             $columns->get('image_size_bytes')->COLUMN_TYPE,

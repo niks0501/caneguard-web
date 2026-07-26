@@ -87,6 +87,7 @@ export class ApiReportsRepository implements ReportsRepository {
       {
         status: input.status,
         notes: input.notes.trim() || null,
+        expected_version: input.expectedVersion,
       },
     );
 

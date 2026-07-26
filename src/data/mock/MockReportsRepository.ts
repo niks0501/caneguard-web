@@ -10,6 +10,8 @@ import { mockReports } from "./mockReports";
 
 const cloneReport = (report: DiseaseReport): DiseaseReport => ({
   ...report,
+  updatedAt: report.updatedAt ?? report.submittedAt,
+  reviewVersion: report.reviewVersion ?? 0,
   symptoms: report.symptoms.map((symptom) => ({ ...symptom })),
 });
 
@@ -108,6 +110,8 @@ export class MockReportsRepository implements ReportsRepository {
       reviewStatus: input.status,
       reviewNotes: input.notes.trim() || undefined,
       reviewedAt: new Date().toISOString(),
+      reviewVersion: (current.reviewVersion ?? 0) + 1,
+      updatedAt: new Date().toISOString(),
     };
     this.reports[index] = updated;
     return cloneReport(updated);

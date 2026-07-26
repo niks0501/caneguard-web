@@ -1158,13 +1158,55 @@ a {
   font-size: 12px;
 }
 
+.image-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  color: var(--color-danger);
+  font-size: 11px;
+  font-weight: 700;
+  background: #f9e9e5;
+  border-radius: 10px;
+}
+
 .evidence-meta {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 14px;
   margin-top: 12px;
   color: var(--color-muted);
   font-size: 10px;
+}
+
+.evidence-properties {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+}
+
+.quality-summary {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 12px;
+  color: var(--color-muted);
+  font-size: 10px;
+  background: var(--color-surface-soft);
+  border-radius: 10px;
+}
+
+.quality-summary strong {
+  color: var(--color-text);
+}
+
+.quality-summary ul {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .evidence-meta span {
@@ -1250,6 +1292,25 @@ blockquote {
 
 .model-card > .confidence strong {
   font-size: 12px;
+}
+
+.model-breakdown {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 17px;
+}
+
+.model-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 5px;
+  font-size: 10px;
+  text-transform: capitalize;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.model-metadata {
+  margin-bottom: 17px;
 }
 
 .decision-reminder {
@@ -1396,6 +1457,28 @@ blockquote {
   color: var(--color-danger);
   font-size: 10px;
   font-weight: 700;
+}
+
+.review-note-count {
+  margin: -10px 0 10px;
+  color: var(--color-muted);
+  font-size: 9px;
+  text-align: right;
+}
+
+.review-conflict {
+  display: grid;
+  gap: 9px;
+  margin: 0 0 12px;
+  padding: 12px;
+  color: #6e5213;
+  font-size: 10px;
+  background: #f7eecb;
+  border-radius: 10px;
+}
+
+.review-conflict p {
+  margin: 0;
 }
 
 .auth-state {
@@ -1815,6 +1898,10 @@ blockquote {
 
   .review-sidebar {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .evidence-properties {
+    grid-template-columns: 1fr;
   }
 
   .office-review {

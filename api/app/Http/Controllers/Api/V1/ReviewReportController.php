@@ -16,16 +16,28 @@ class ReviewReportController extends Controller
     ): ReportResource {
         $data = $request->validated();
 
-        DB::transaction(function () use ($request, $report, $data) {
-            $report->update([
+        $updated = DB::transaction(function () use ($request, $report, $data) {
+            $locked = Report::query()
+                ->lockForUpdate()
+                ->findOrFail($report->getKey());
+
+            abort_unless(
+                $locked->lock_version === $data['expected_version'],
+                409,
+            );
+
+            $locked->update([
                 'review_status' => $data['status'],
                 'review_notes' => $data['notes'] ?? null,
                 'reviewer_id' => $request->user()->getKey(),
                 'reviewed_at' => now(),
+                'lock_version' => $locked->lock_version + 1,
             ]);
+
+            return $locked;
         });
 
-        return new ReportResource($report->load([
+        return new ReportResource($updated->load([
             'reporter',
             'reviewer',
             'classScores',

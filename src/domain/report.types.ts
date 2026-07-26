@@ -30,12 +30,29 @@ export interface DiseaseReport {
   confidence: number;
   imageUrl?: string;
   imageStatus: ImageStatus;
+  imageMimeType?: string;
+  imageSizeBytes?: number;
+  imageSourceType?: string;
+  sourceWidth?: number;
+  sourceHeight?: number;
   symptoms: SymptomResponse[];
   fieldNotes?: string;
+  classScores?: Array<{ label: DiseaseKey; score: number }>;
+  modelVersion?: string;
+  processingTimingsMs?: {
+    preprocess: number;
+    inference: number;
+    total: number;
+  };
+  checklistConsistency?: string;
+  reportedSeverity?: string;
+  qualityWarnings?: string[];
   reviewStatus: ReviewStatus;
   reviewNotes?: string;
   reviewedBy?: string;
   reviewedAt?: string;
+  reviewVersion?: number;
+  updatedAt?: string;
 }
 
 export interface ReportFilters {

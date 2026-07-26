@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import { routes } from "../app/routes";
+import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { ConfidenceDisplay } from "../components/reports/ConfidenceDisplay";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
@@ -43,6 +44,9 @@ export function CaseReviewPage() {
   const navigate = useNavigate();
   const [notesOverride, setNotesOverride] = useState<string | null>(null);
   const [actionOverride, setActionOverride] = useState<ReviewAction | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const [imageRetry, setImageRetry] = useState(0);
   const reportQuery = useReport(reportId);
   const reviewMutation = useUpdateReportReview(reportId);
   const report = reportQuery.data;
@@ -53,12 +57,27 @@ export function CaseReviewPage() {
     (persistedAction && persistedAction !== "submitted_unverified"
       ? persistedAction
       : "verified_by_staff");
+  const trimmedNotes = notes.trim();
+  const noteError =
+    trimmedNotes.length > 1000
+      ? "Review notes must be 1,000 characters or fewer."
+      : selectedAction === "unable_to_verify" && !trimmedNotes
+        ? "Add a note explaining why the evidence cannot be verified."
+        : null;
+  const mutationError =
+    reviewMutation.error instanceof ApiError ? reviewMutation.error : null;
+  const serverNoteError = mutationError?.errors?.notes?.[0];
+  const conflict = mutationError?.status === 409;
 
   const saveReview = async () => {
+    setSubmitted(true);
+    if (noteError || report?.reviewVersion === undefined) return;
+
     try {
       await reviewMutation.mutateAsync({
         status: selectedAction,
         notes,
+        expectedVersion: report.reviewVersion,
       });
       navigate(routes.reports, {
         state: {
@@ -72,7 +91,7 @@ export function CaseReviewPage() {
 
   if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report evidence..." /></PageContent>;
   if (reportQuery.isSuccess && !report) return <PageContent><ErrorState message="This report does not exist in the current submitted report queue." /></PageContent>;
-  if (reportQuery.isError || !report) return <PageContent><ErrorState onRetry={() => reportQuery.refetch()} /></PageContent>;
+  if (reportQuery.isError || !report) return <PageContent><ErrorState message={reportQuery.error instanceof ApiError && reportQuery.error.status === 403 ? "Your account does not have access to this report." : "The report could not be loaded."} onRetry={reportQuery.error instanceof ApiError && reportQuery.error.status === 403 ? undefined : () => reportQuery.refetch()} /></PageContent>;
 
   return (
     <PageContent>
@@ -87,17 +106,35 @@ export function CaseReviewPage() {
       <div className="review-layout">
         <div className="review-main">
           <section className="review-card evidence-card" aria-labelledby="evidence-heading">
-            <div className="section-heading"><div><p className="eyebrow">Submitted evidence</p><h2 id="evidence-heading">Field image</h2></div><span className="source-label"><Smartphone aria-hidden="true" />Mobile capture</span></div>
+            <div className="section-heading"><div><p className="eyebrow">Submitted evidence</p><h2 id="evidence-heading">Field image</h2></div><span className="source-label"><Smartphone aria-hidden="true" />{report.imageSourceType === "gallery" ? "Gallery upload" : "Camera capture"}</span></div>
             <div className="evidence-stage">
               {report.imageStatus === "available" ? (
-                <EvidenceThumbnail status="available" label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
+                <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
               ) : (
                 <ImagePendingState status={report.imageStatus} />
               )}
             </div>
+            {imageLoadFailed ? (
+              <div className="image-load-error" role="alert">
+                <span>Image could not be loaded.</span>
+                <Button type="button" variant="secondary" onClick={() => { setImageLoadFailed(false); setImageRetry((current) => current + 1); }}>Retry image</Button>
+              </div>
+            ) : null}
             <div className="evidence-meta">
-              <span><Cloud aria-hidden="true" />{imageStatusLabels[report.imageStatus]}</span>
+              <span><Cloud aria-hidden="true" />{imageLoadFailed ? "Image load failed" : imageStatusLabels[report.imageStatus]}</span>
               <span>Captured {formatDateTime(report.capturedAt)}</span>
+              <span>Submitted {formatDateTime(report.submittedAt)}</span>
+            </div>
+            <dl className="evidence-properties">
+              <DetailField label="File type">{report.imageMimeType ?? "Unavailable"}</DetailField>
+              <DetailField label="Image size">{report.imageSizeBytes ? `${Math.round(report.imageSizeBytes / 1024)} KB` : "Unavailable"}</DetailField>
+              <DetailField label="Dimensions">{report.sourceWidth && report.sourceHeight ? `${report.sourceWidth} × ${report.sourceHeight}` : "Not provided"}</DetailField>
+            </dl>
+            <div className="quality-summary">
+              <strong>Image quality checks</strong>
+              {report.qualityWarnings?.length ? (
+                <ul>{report.qualityWarnings.map((warning) => <li key={warning}>{warning.replaceAll("_", " ")}</li>)}</ul>
+              ) : <span>No image quality warnings were reported.</span>}
             </div>
           </section>
 
@@ -109,16 +146,35 @@ export function CaseReviewPage() {
           </section>
 
           <section className="review-card" aria-labelledby="notes-heading">
-            <div className="section-heading"><div><p className="eyebrow">Field context</p><h2 id="notes-heading">Submitter note</h2></div></div>
-            <blockquote>{report.fieldNotes ?? "No field note was included with this submission."}</blockquote>
+            <div className="section-heading"><div><p className="eyebrow">Observation context</p><h2 id="notes-heading">Submitted observations</h2></div></div>
+            <dl className="detail-list">
+              <DetailField label="Checklist consistency">{report.checklistConsistency?.replaceAll("_", " ") ?? "Not provided"}</DetailField>
+              <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
+              <DetailField label="Barangay">{report.barangay}</DetailField>
+              <DetailField label="Reporter">{report.submittedByName}</DetailField>
+            </dl>
           </section>
         </div>
 
         <aside className="review-sidebar" aria-label="Report assessment and office review">
           <section className="review-card model-card">
-            <div className="section-heading"><div><p className="eyebrow">Model-supported result</p><h2>Image assessment</h2></div><ScanLine aria-hidden="true" /></div>
+            <div className="section-heading"><div><p className="eyebrow">Model decision support</p><h2>Image assessment</h2></div><ScanLine aria-hidden="true" /></div>
             <DiseaseBadge disease={report.predictedDisease} />
             <ConfidenceDisplay confidence={report.confidence} />
+            <div className="model-breakdown">
+              {(report.classScores ?? []).map((score) => (
+                <div key={score.label}>
+                  <span>{score.label}</span>
+                  <strong>{Math.round(score.score * 100)}%</strong>
+                </div>
+              ))}
+            </div>
+            <dl className="detail-list model-metadata">
+              <DetailField label="Model version">{report.modelVersion ?? "Unavailable"}</DetailField>
+              <DetailField label="Total processing">{report.processingTimingsMs ? `${report.processingTimingsMs.total} ms` : "Unavailable"}</DetailField>
+              <DetailField label="Preprocess">{report.processingTimingsMs ? `${report.processingTimingsMs.preprocess} ms` : "Unavailable"}</DetailField>
+              <DetailField label="Inference">{report.processingTimingsMs ? `${report.processingTimingsMs.inference} ms` : "Unavailable"}</DetailField>
+            </dl>
             <div className="decision-reminder"><Info aria-hidden="true" /><p><strong>Decision-support only</strong><span>This result is not a diagnosis. Compare it with the submitted observations and field context.</span></p></div>
           </section>
 
@@ -131,6 +187,8 @@ export function CaseReviewPage() {
               <DetailField label="Submitter role">{submitterRoleLabels[report.submitterRole]}</DetailField>
               <DetailField label="Submitted at">{formatDateTime(report.submittedAt)}</DetailField>
               {report.reviewedBy ? <DetailField label="Last reviewed by">{report.reviewedBy}</DetailField> : null}
+              {report.reviewedAt ? <DetailField label="Reviewed at">{formatDateTime(report.reviewedAt)}</DetailField> : null}
+              {report.reviewNotes ? <DetailField label="Current review note">{report.reviewNotes}</DetailField> : null}
             </dl>
           </section>
 
@@ -140,13 +198,22 @@ export function CaseReviewPage() {
               <legend>Select an action</legend>
               {actions.map((action) => (
                 <label className={selectedAction === action.value ? "is-selected" : ""} key={action.value}>
-                  <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} onChange={() => setActionOverride(action.value)} />
+                  <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} onChange={() => { setActionOverride(action.value); setSubmitted(false); reviewMutation.reset(); }} />
                   <span><strong>{reviewStatusLabels[action.value]}</strong><small>{action.description}</small></span>
                 </label>
               ))}
             </fieldset>
-            <TextArea id="review-notes" label="Review notes" hint="Use neutral, observable language. Notes remain in this browser session." rows={5} value={notes} onChange={(event) => setNotesOverride(event.target.value)} placeholder="Add context for this office response..." />
-            {reviewMutation.isError ? <p className="form-error" role="alert">The review could not be saved. Please try again.</p> : null}
+            <TextArea id="review-notes" label="Review notes" hint="Use neutral, observable language. Notes are saved with the review." rows={5} maxLength={1000} value={notes} onChange={(event) => { setNotesOverride(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Add context for this office response..." />
+            <p className="review-note-count">{notes.length}/1,000</p>
+            {submitted && noteError ? <p className="form-error" role="alert">{noteError}</p> : null}
+            {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
+            {conflict ? (
+              <div className="review-conflict" role="alert">
+                <p>This report changed after you opened it. Refresh before saving again.</p>
+                <Button type="button" variant="secondary" onClick={() => { reviewMutation.reset(); reportQuery.refetch(); }}>Refresh report</Button>
+              </div>
+            ) : null}
+            {reviewMutation.isError && !conflict && !serverNoteError ? <p className="form-error" role="alert">The review could not be saved. Please try again.</p> : null}
             <Button type="button" icon={<Save aria-hidden="true" />} disabled={reviewMutation.isPending} onClick={saveReview}>
               {reviewMutation.isPending ? "Saving review..." : "Save review action"}
             </Button>

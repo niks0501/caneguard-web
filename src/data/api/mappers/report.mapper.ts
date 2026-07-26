@@ -42,15 +42,28 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     confidence: dto.model.confidence,
     imageUrl: dto.image.url,
     imageStatus: dto.image.url ? "available" : "unavailable",
+    imageMimeType: dto.image.mime_type,
+    imageSizeBytes: dto.image.size_bytes,
+    imageSourceType: dto.image.source_type,
+    sourceWidth: dto.image.source_width ?? undefined,
+    sourceHeight: dto.image.source_height ?? undefined,
     symptoms: dto.observations.symptom_keys.map((key) => ({
       id: key,
       label: humanize(key),
       answer: "yes",
     })),
+    classScores: dto.model.class_scores,
+    modelVersion: dto.model.model_version,
+    processingTimingsMs: dto.model.timings_ms,
+    checklistConsistency: dto.observations.checklist_consistency,
+    reportedSeverity: dto.observations.reported_severity ?? undefined,
+    qualityWarnings: dto.observations.quality_warnings,
     reviewStatus: dto.review.status,
     reviewNotes: dto.review.notes ?? undefined,
     reviewedBy: dto.review.reviewer?.name,
     reviewedAt: dto.review.reviewed_at ?? undefined,
+    reviewVersion: dto.version,
+    updatedAt: dto.updated_at,
   };
 }
 

@@ -27,7 +27,13 @@ class ReviewReportRequest extends ApiFormRequest
                     Report::STATUS_RESOLVED,
                 ]),
             ],
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'notes' => [
+                'nullable',
+                'string',
+                'max:1000',
+                'required_if:status,'.Report::STATUS_UNABLE_TO_VERIFY,
+            ],
+            'expected_version' => ['required', 'integer', 'min:0'],
         ];
     }
 }

@@ -42,6 +42,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'review_notes',
             'reviewer_id',
             'reviewed_at',
+            'lock_version',
         ]));
         $this->assertTrue(Schema::hasTable('report_class_scores'));
         $this->assertTrue(Schema::hasTable('report_symptoms'));

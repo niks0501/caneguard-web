@@ -55,6 +55,7 @@ describe("ApiReportsRepository", () => {
           expect(await request.json()).toEqual({
             status: "for_field_validation",
             notes: "Visit the field.",
+            expected_version: reportDetailDto.version,
           });
           return HttpResponse.json({
             data: {
@@ -86,6 +87,7 @@ describe("ApiReportsRepository", () => {
       repository.updateReview(reportDetailDto.identity.uuid, {
         status: "for_field_validation",
         notes: " Visit the field. ",
+        expectedVersion: reportDetailDto.version,
       }),
     ).resolves.toMatchObject({ reviewStatus: "for_field_validation" });
     await expect(repository.getReportById("missing")).resolves.toBeNull();

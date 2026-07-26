@@ -31,6 +31,13 @@ describe("report mappers", () => {
       label: "Orange Spots",
       answer: "yes",
     });
+    expect(report.imageSourceType).toBe("camera");
+    expect(report.classScores).toEqual(reportDetailDto.model.class_scores);
+    expect(report.modelVersion).toBe("caneguard-v1");
+    expect(report.processingTimingsMs?.total).toBe(30);
+    expect(report.checklistConsistency).toBe("consistent");
+    expect(report.updatedAt).toBe(reportDetailDto.updated_at);
+    expect(report.reviewVersion).toBe(0);
   });
 
   it("maps Laravel pagination metadata", () => {

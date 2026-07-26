@@ -14,7 +14,7 @@ is marked complete only after its required automated checks pass.
 | 4 | Authentication and protected routes | Complete |
 | 5 | Dashboard overview | Complete |
 | 6 | Submitted reports list | Complete |
-| 7 | Report detail, image, and review | Not started |
+| 7 | Report detail, image, and review | Complete |
 | 8 | Refresh, errors, and resilience | Not started |
 | 9 | Testing, demo, and release | Not started |
 
@@ -227,3 +227,36 @@ is marked complete only after its required automated checks pass.
   verified; the legacy web symlink was moved to a recoverable `/tmp` backup
 - Live MySQL migration-command verification remains unavailable because the
   local MySQL service was stopped; the command failed safely without removal
+
+## Phase 7 report detail, image, and review
+
+- The protected detail route renders the submitted image, capture and file
+  metadata, quality warnings, symptom responses, observation context, model
+  class scores, processing timings, and the current office review.
+- Image request failures replace the availability state with an accessible
+  failure message and a retry action; missing and forbidden reports remain
+  distinct.
+- Review actions persist through the API with a 1,000-character note limit,
+  a required explanation for `unable_to_verify`, server-supplied reviewer
+  identity and time, duplicate-submit prevention, and field-level 422 errors.
+- A monotonic `lock_version` is checked and incremented under a database row
+  lock. Stale review writes receive 409 without replacing the newer review,
+  and the UI offers an explicit refresh path.
+- Successful reviews update the exact detail cache and invalidate report-list
+  and dashboard data before returning to the report queue.
+- Independent review approved the settled concurrency, authorization,
+  accessibility, error-state, and cache-invalidation behavior.
+
+### Phase 7 verification
+
+- `npm run check:api`: passed; 45 Laravel tests, 243 assertions, and Pint
+- Frontend full suite: 17 test files, 64 tests passed; lint, typecheck, and
+  production build passed
+- Targeted final page check: 6 tests passed after the version-neutral model
+  label correction
+- `just verify-full`: passed lint, typecheck, tests, build, Gitleaks, and Trivy
+- `git diff --check`: passed
+- Graphify was updated after the final code changes
+- MySQL contract execution is incomplete because the local MySQL service is
+  stopped; the SQLite migration and behavior suite passed, and the MySQL
+  schema test now asserts the unsigned defaulted version column
