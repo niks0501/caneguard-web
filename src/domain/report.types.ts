@@ -1,22 +1,13 @@
-export type DiseaseKey =
-  | "healthy"
-  | "downy_mildew"
-  | "smut"
-  | "mosaic"
-  | "rust"
-  | "unclear";
+export type DiseaseKey = "healthy" | "mosaic" | "rust";
 
 export type ReviewStatus =
-  | "pending_review"
-  | "acknowledged"
-  | "needs_field_verification"
-  | "insufficient_evidence"
-  | "closed";
+  | "submitted_unverified"
+  | "for_field_validation"
+  | "verified_by_staff"
+  | "unable_to_verify"
+  | "resolved";
 
-export type SubmitterRole =
-  | "farmer"
-  | "field_inspector"
-  | "agricultural_personnel";
+export type SubmitterRole = "field_reporter" | "reviewer" | "admin";
 
 export type ImageStatus = "available" | "pending_sync" | "unavailable";
 
@@ -27,7 +18,8 @@ export interface SymptomResponse {
 }
 
 export interface DiseaseReport {
-  id: string;
+  uuid: string;
+  referenceCode: string;
   barangay: string;
   farmReference?: string;
   submittedByName: string;
@@ -51,4 +43,23 @@ export interface ReportFilters {
   status?: ReviewStatus | "all";
   disease?: DiseaseKey | "all";
   barangay?: string | "all";
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: "newest" | "oldest" | "confidence_desc" | "confidence_asc";
+  page?: number;
+  perPage?: number;
+}
+
+export interface PaginationMeta {
+  currentPage: number;
+  from: number | null;
+  lastPage: number;
+  perPage: number;
+  to: number | null;
+  total: number;
+}
+
+export interface PaginatedReports {
+  reports: DiseaseReport[];
+  meta: PaginationMeta;
 }

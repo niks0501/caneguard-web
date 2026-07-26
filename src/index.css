@@ -755,21 +755,19 @@ a {
 .disease-badge > span {
   width: 7px;
   height: 7px;
-  background: var(--disease-unclear);
+  background: var(--color-muted);
   border-radius: 50%;
 }
 
 .disease-badge--healthy > span { background: var(--disease-healthy); }
-.disease-badge--downy_mildew > span { background: var(--disease-downy); }
-.disease-badge--smut > span { background: var(--disease-smut); }
 .disease-badge--mosaic > span { background: var(--disease-mosaic); }
 .disease-badge--rust > span { background: var(--disease-rust); }
 
-.status-badge--pending_review { color: #6e5213; background: #f7eecb; }
-.status-badge--acknowledged { color: #2d5f3a; background: #e4f1e7; }
-.status-badge--needs_field_verification { color: #8a421e; background: #f7e4d8; }
-.status-badge--insufficient_evidence { color: #526068; background: #e8edef; }
-.status-badge--closed { color: #575e57; background: #e9ece9; }
+.status-badge--submitted_unverified { color: #6e5213; background: #f7eecb; }
+.status-badge--for_field_validation { color: #8a421e; background: #f7e4d8; }
+.status-badge--verified_by_staff { color: #2d5f3a; background: #e4f1e7; }
+.status-badge--unable_to_verify { color: #526068; background: #e8edef; }
+.status-badge--resolved { color: #575e57; background: #e9ece9; }
 
 .confidence {
   display: grid;

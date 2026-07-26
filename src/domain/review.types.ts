@@ -1,7 +1,6 @@
 import type { ReviewStatus } from "./report.types";
 
 export interface ReportReviewInput {
-  status: Exclude<ReviewStatus, "pending_review">;
+  status: Exclude<ReviewStatus, "submitted_unverified">;
   notes: string;
-  reviewedBy: string;
 }

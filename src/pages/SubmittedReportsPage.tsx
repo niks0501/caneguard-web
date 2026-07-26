@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { ClipboardCheck, Clock3, MapPin, RefreshCw, Rows3 } from "lucide-react";
 import { useLocation } from "react-router";
 import { PageContent, PageHeader } from "../components/layout/Page";
@@ -14,8 +14,9 @@ import {
   NoResultsState,
 } from "../components/ui/States";
 import { diseaseLabels, reviewStatusLabels } from "../domain/report.metadata";
-import type { DiseaseKey, DiseaseReport, ReviewStatus } from "../domain/report.types";
-import { reportsRepository } from "../services/reports.service";
+import type { DiseaseKey, ReviewStatus } from "../domain/report.types";
+import { env } from "../config/env";
+import { useReports } from "../hooks/useReports";
 
 const pageSize = 5;
 
@@ -32,31 +33,12 @@ const initialFilters = {
 
 export function SubmittedReportsPage() {
   const location = useLocation();
-  const [reports, setReports] = useState<DiseaseReport[]>([]);
   const [filters, setFilters] = useState(initialFilters);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [filterReferenceTime] = useState(() => Date.now());
   const deferredSearch = useDeferredValue(filters.search);
-
-  useEffect(() => {
-    let active = true;
-    reportsRepository
-      .listReports()
-      .then((data) => {
-        if (active) {
-          setReports(data);
-          setState("ready");
-        }
-      })
-      .catch(() => {
-        if (active) setState("error");
-      });
-    return () => {
-      active = false;
-    };
-  }, [loadAttempt]);
+  const reportsQuery = useReports({ perPage: 100, sort: "newest" });
+  const reports = reportsQuery.data?.reports ?? [];
 
   const barangays = [...new Set(reports.map((report) => report.barangay))].sort();
   const filteredReports = reports
@@ -64,7 +46,7 @@ export function SubmittedReportsPage() {
       const search = deferredSearch.trim().toLowerCase();
       const matchesSearch =
         !search ||
-        [report.id, report.submittedByName, report.barangay, diseaseLabels[report.predictedDisease]]
+        [report.referenceCode, report.submittedByName, report.barangay, diseaseLabels[report.predictedDisease]]
           .some((value) => value.toLowerCase().includes(search));
       const matchesStatus = filters.status === "all" || report.reviewStatus === filters.status;
       const matchesDisease = filters.disease === "all" || report.predictedDisease === filters.disease;
@@ -88,9 +70,11 @@ export function SubmittedReportsPage() {
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
-  const pendingCount = reports.filter((report) => report.reviewStatus === "pending_review").length;
+  const pendingCount = reports.filter(
+    (report) => report.reviewStatus === "submitted_unverified",
+  ).length;
   const fieldCount = reports.filter(
-    (report) => report.reviewStatus === "needs_field_verification",
+    (report) => report.reviewStatus === "for_field_validation",
   ).length;
 
   const updateFilter = <Key extends keyof typeof initialFilters>(
@@ -115,7 +99,7 @@ export function SubmittedReportsPage() {
         title="Submitted reports"
         description="Review field observations and decide the appropriate municipal follow-up."
         actions={
-          <Button variant="secondary" icon={<RefreshCw aria-hidden="true" />} onClick={() => setLoadAttempt((value) => value + 1)}>
+          <Button variant="secondary" icon={<RefreshCw aria-hidden="true" />} onClick={() => reportsQuery.refetch()}>
             Refresh queue
           </Button>
         }
@@ -124,7 +108,7 @@ export function SubmittedReportsPage() {
       {reviewNotice ? <div className="success-banner" role="status"><ClipboardCheck aria-hidden="true" />{reviewNotice}</div> : null}
 
       <section className="metric-grid" aria-label="Report work queue summary">
-        <MetricCard label="All reports" value={String(reports.length).padStart(2, "0")} context="Current mock dataset" icon={<Rows3 aria-hidden="true" />} />
+        <MetricCard label="All reports" value={String(reports.length).padStart(2, "0")} context={env.dataSource === "mock" ? "Current mock dataset" : "Current API queue"} icon={<Rows3 aria-hidden="true" />} />
         <MetricCard label="Needs review" value={String(pendingCount).padStart(2, "0")} context="Awaiting an office action" icon={<Clock3 aria-hidden="true" />} />
         <MetricCard label="Field follow-up" value={String(fieldCount).padStart(2, "0")} context="Marked for observation" icon={<MapPin aria-hidden="true" />} />
       </section>
@@ -164,11 +148,11 @@ export function SubmittedReportsPage() {
           </SelectFilter>
         </div>
 
-        {state === "loading" ? <LoadingState /> : null}
-        {state === "error" ? <ErrorState onRetry={() => { setState("loading"); setLoadAttempt((value) => value + 1); }} /> : null}
-        {state === "ready" && reports.length === 0 ? <EmptyState /> : null}
-        {state === "ready" && reports.length > 0 && filteredReports.length === 0 ? <NoResultsState onClear={clearFilters} /> : null}
-        {state === "ready" && visibleReports.length > 0 ? (
+        {reportsQuery.isPending ? <LoadingState /> : null}
+        {reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : null}
+        {reportsQuery.isSuccess && reports.length === 0 ? <EmptyState /> : null}
+        {reportsQuery.isSuccess && reports.length > 0 && filteredReports.length === 0 ? <NoResultsState onClear={clearFilters} /> : null}
+        {reportsQuery.isSuccess && visibleReports.length > 0 ? (
           <>
             <ReportTable reports={visibleReports} />
             <Pagination currentPage={currentPage} pageCount={pageCount} itemCount={filteredReports.length} onPageChange={setCurrentPage} />

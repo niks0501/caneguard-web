@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -25,78 +25,61 @@ import {
   reviewStatusLabels,
   submitterRoleLabels,
 } from "../domain/report.metadata";
-import type { DiseaseReport, ReviewStatus } from "../domain/report.types";
+import type { ReviewStatus } from "../domain/report.types";
+import { useReport, useUpdateReportReview } from "../hooks/useReports";
 import { formatDateTime } from "../lib/formatters";
-import { reportsRepository } from "../services/reports.service";
 
-type ReviewAction = Exclude<ReviewStatus, "pending_review">;
+type ReviewAction = Exclude<ReviewStatus, "submitted_unverified">;
 
 const actions: Array<{ value: ReviewAction; description: string }> = [
-  { value: "acknowledged", description: "Record the observation without field follow-up." },
-  { value: "needs_field_verification", description: "Flag this report for an on-site observation." },
-  { value: "insufficient_evidence", description: "Request clearer or more complete evidence." },
-  { value: "closed", description: "Complete office review of this submission." },
+  { value: "for_field_validation", description: "Flag this report for an on-site observation." },
+  { value: "verified_by_staff", description: "Record that staff verified the submitted evidence." },
+  { value: "unable_to_verify", description: "Record that the available evidence is insufficient." },
+  { value: "resolved", description: "Complete office review of this submission." },
 ];
 
 export function CaseReviewPage() {
   const { reportId = "" } = useParams();
   const navigate = useNavigate();
-  const [report, setReport] = useState<DiseaseReport | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
-  const [notes, setNotes] = useState("");
-  const [selectedAction, setSelectedAction] = useState<ReviewAction>("acknowledged");
-  const [isSaving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    reportsRepository
-      .getReportById(reportId)
-      .then((data) => {
-        if (!active) return;
-        if (!data) {
-          setState("missing");
-          return;
-        }
-        setReport(data);
-        setNotes(data.reviewNotes ?? "");
-        if (data.reviewStatus !== "pending_review") setSelectedAction(data.reviewStatus);
-        setState("ready");
-      })
-      .catch(() => {
-        if (active) setState("error");
-      });
-    return () => {
-      active = false;
-    };
-  }, [reportId]);
+  const [notesOverride, setNotesOverride] = useState<string | null>(null);
+  const [actionOverride, setActionOverride] = useState<ReviewAction | null>(null);
+  const reportQuery = useReport(reportId);
+  const reviewMutation = useUpdateReportReview(reportId);
+  const report = reportQuery.data;
+  const persistedAction = report?.reviewStatus;
+  const notes = notesOverride ?? report?.reviewNotes ?? "";
+  const selectedAction: ReviewAction =
+    actionOverride ??
+    (persistedAction && persistedAction !== "submitted_unverified"
+      ? persistedAction
+      : "verified_by_staff");
 
   const saveReview = async () => {
-    setSaving(true);
-    setSaveError(null);
     try {
-      await reportsRepository.updateReview(reportId, {
+      await reviewMutation.mutateAsync({
         status: selectedAction,
         notes,
-        reviewedBy: "Maria Santos",
       });
-      navigate(routes.reports, { state: { notice: `${reportId} was updated to ${reviewStatusLabels[selectedAction]}.` } });
+      navigate(routes.reports, {
+        state: {
+          notice: `${report?.referenceCode ?? reportId} was updated to ${reviewStatusLabels[selectedAction]}.`,
+        },
+      });
     } catch {
-      setSaveError("The mock review could not be saved. Please try again.");
-      setSaving(false);
+      return;
     }
   };
 
-  if (state === "loading") return <PageContent><LoadingState message="Loading report evidence..." /></PageContent>;
-  if (state === "missing") return <PageContent><ErrorState message="This report does not exist in the current submitted report queue." /></PageContent>;
-  if (state === "error" || !report) return <PageContent><ErrorState /></PageContent>;
+  if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report evidence..." /></PageContent>;
+  if (reportQuery.isSuccess && !report) return <PageContent><ErrorState message="This report does not exist in the current submitted report queue." /></PageContent>;
+  if (reportQuery.isError || !report) return <PageContent><ErrorState onRetry={() => reportQuery.refetch()} /></PageContent>;
 
   return (
     <PageContent>
       <Link className="back-link" to={routes.reports}><ArrowLeft aria-hidden="true" />Back to submitted reports</Link>
       <PageHeader
         eyebrow="Case review"
-        title={report.id}
+        title={report.referenceCode}
         description="Examine the submitted evidence before recording an office response."
         actions={<ReviewStatusBadge status={report.reviewStatus} />}
       />
@@ -107,7 +90,7 @@ export function CaseReviewPage() {
             <div className="section-heading"><div><p className="eyebrow">Submitted evidence</p><h2 id="evidence-heading">Field image</h2></div><span className="source-label"><Smartphone aria-hidden="true" />Mobile capture</span></div>
             <div className="evidence-stage">
               {report.imageStatus === "available" ? (
-                <EvidenceThumbnail status="available" label={`Submitted sugarcane evidence for ${report.id}`} />
+                <EvidenceThumbnail status="available" label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
               ) : (
                 <ImagePendingState status={report.imageStatus} />
               )}
@@ -157,15 +140,15 @@ export function CaseReviewPage() {
               <legend>Select an action</legend>
               {actions.map((action) => (
                 <label className={selectedAction === action.value ? "is-selected" : ""} key={action.value}>
-                  <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} onChange={() => setSelectedAction(action.value)} />
+                  <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} onChange={() => setActionOverride(action.value)} />
                   <span><strong>{reviewStatusLabels[action.value]}</strong><small>{action.description}</small></span>
                 </label>
               ))}
             </fieldset>
-            <TextArea id="review-notes" label="Review notes" hint="Use neutral, observable language. Notes remain in this browser session." rows={5} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Add context for this office response..." />
-            {saveError ? <p className="form-error" role="alert">{saveError}</p> : null}
-            <Button type="button" icon={<Save aria-hidden="true" />} disabled={isSaving} onClick={saveReview}>
-              {isSaving ? "Saving review..." : "Save review action"}
+            <TextArea id="review-notes" label="Review notes" hint="Use neutral, observable language. Notes remain in this browser session." rows={5} value={notes} onChange={(event) => setNotesOverride(event.target.value)} placeholder="Add context for this office response..." />
+            {reviewMutation.isError ? <p className="form-error" role="alert">The review could not be saved. Please try again.</p> : null}
+            <Button type="button" icon={<Save aria-hidden="true" />} disabled={reviewMutation.isPending} onClick={saveReview}>
+              {reviewMutation.isPending ? "Saving review..." : "Save review action"}
             </Button>
           </section>
         </aside>

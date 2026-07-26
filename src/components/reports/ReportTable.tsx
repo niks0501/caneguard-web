@@ -26,14 +26,14 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
         </thead>
         <tbody>
           {reports.map((report) => (
-            <tr key={report.id}>
+            <tr key={report.uuid}>
               <td>
                 <div className="report-identity">
                   <EvidenceThumbnail
                     status={report.imageStatus}
-                    label={`Submitted evidence for ${report.id}`}
+                    label={`Submitted evidence for ${report.referenceCode}`}
                   />
-                  <div><strong>{report.id}</strong><span>{report.farmReference ?? "No farm reference"}</span></div>
+                  <div><strong>{report.referenceCode}</strong><span>{report.farmReference ?? "No farm reference"}</span></div>
                 </div>
               </td>
               <td>
@@ -46,7 +46,7 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
               <td>{formatDate(report.submittedAt)}</td>
               <td><ReviewStatusBadge status={report.reviewStatus} /></td>
               <td>
-                <Link className="table-action" to={routes.reportDetail(report.id)} aria-label={`Open ${report.id}`}>
+                <Link className="table-action" to={routes.reportDetail(report.uuid)} aria-label={`Open ${report.referenceCode}`}>
                   <span>Review</span><ArrowUpRight aria-hidden="true" />
                 </Link>
               </td>
