@@ -22,13 +22,29 @@ class ReportApiTest extends TestCase
             'name' => 'Ana Field Reporter',
         ]);
         $reviewer = User::factory()->reviewer()->create();
-        $matching = Report::factory()->create([
+        $highestConfidence = Report::factory()->create([
             'reporter_id' => $reporter,
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.93,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'submitted_at' => CarbonImmutable::parse('2026-07-20T10:00:00Z'),
+        ]);
+        $middleConfidence = Report::factory()->create([
+            'reporter_id' => $reporter,
+            'barangay' => 'Mabini',
+            'predicted_label' => Report::LABEL_RUST,
+            'confidence' => 0.88,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'submitted_at' => CarbonImmutable::parse('2026-07-20T09:00:00Z'),
+        ]);
+        $lowestConfidence = Report::factory()->create([
+            'reporter_id' => $reporter,
+            'barangay' => 'Mabini',
+            'predicted_label' => Report::LABEL_RUST,
+            'confidence' => 0.77,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'submitted_at' => CarbonImmutable::parse('2026-07-20T08:00:00Z'),
         ]);
         Report::factory()->create([
             'barangay' => 'Poblacion',
@@ -39,7 +55,7 @@ class ReportApiTest extends TestCase
 
         Sanctum::actingAs($reviewer);
 
-        $this->getJson('/api/v1/reports?'.http_build_query([
+        $query = [
             'search' => 'Ana Field',
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'predicted_label' => Report::LABEL_RUST,
@@ -47,22 +63,41 @@ class ReportApiTest extends TestCase
             'date_from' => '2026-07-20',
             'date_to' => '2026-07-20',
             'sort' => '-confidence',
-            'per_page' => 1,
-        ]))
+            'per_page' => 2,
+        ];
+
+        $this->getJson('/api/v1/reports?'.http_build_query($query))
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.uuid', $matching->uuid)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.uuid', $highestConfidence->uuid)
+            ->assertJsonPath('data.1.uuid', $middleConfidence->uuid)
             ->assertJsonPath('data.0.reporter.name', 'Ana Field Reporter')
             ->assertJsonPath(
                 'data.0.captured_at',
-                $matching->captured_at->utc()->toISOString(),
+                $highestConfidence->captured_at->utc()->toISOString(),
             )
             ->assertJsonPath(
                 'data.0.image_url',
-                route('api.v1.reports.image', ['report' => $matching->uuid]),
+                route(
+                    'api.v1.reports.image',
+                    ['report' => $highestConfidence->uuid],
+                ),
             )
-            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 3)
             ->assertJsonStructure(['data', 'links', 'meta']);
+
+        $this->getJson('/api/v1/reports?'.http_build_query([
+            ...$query,
+            'page' => 2,
+        ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $lowestConfidence->uuid)
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 3);
     }
 
     public function test_report_search_treats_like_wildcards_as_literal_text(): void
@@ -152,6 +187,8 @@ class ReportApiTest extends TestCase
         );
         $path = "/api/v1/reports/{$report->uuid}/image";
 
+        $this->assertFalse(config('filesystems.disks.local.serve'));
+        $this->get("/storage/{$report->image_path}")->assertNotFound();
         $this->getJson($path)
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');

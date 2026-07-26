@@ -1,0 +1,47 @@
+meta {
+  name: Submit prepared report
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mobile/reports
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{fieldToken}}
+}
+
+headers {
+  Accept: application/json
+}
+
+body:multipart-form {
+  client_uuid: {{$guid}}
+  image: @file({{imagePath}})
+  image_source_type: camera
+  source_width: 1254
+  source_height: 1254
+  predicted_label: rust
+  confidence: 0.82
+  class_scores[healthy]: 0.08
+  class_scores[mosaic]: 0.10
+  class_scores[rust]: 0.82
+  symptom_keys[]: rust
+  checklist_consistency: consistent
+  reported_severity: moderate
+  barangay: Mabini
+  model_version: caneguard-mobile-v1.0.0
+  preprocess_ms: 12.5
+  inference_ms: 95.75
+  total_ms: 122.25
+  captured_at: 2026-07-27T09:00:00.456+08:00
+}
+
+tests {
+  test("creates a report", function() {
+    expect([200, 201]).to.include(res.status);
+  });
+}

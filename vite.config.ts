@@ -5,6 +5,23 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    fs: {
+      deny: [
+        ".env",
+        ".env.*",
+        "*.{crt,pem,key,p12,pfx,cer,der}",
+        ".npmrc",
+        ".yarnrc.yml",
+        "**/.git/**",
+        "**/auth.json",
+        "**/api/.env*",
+        "**/api/config/**",
+        "**/api/storage/**",
+        "**/api/bootstrap/cache/**",
+      ],
+    },
+  },
   test: {
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",

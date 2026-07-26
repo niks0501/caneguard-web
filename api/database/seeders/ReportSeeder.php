@@ -20,9 +20,10 @@ class ReportSeeder extends Seeder
         $reviewer = User::query()
             ->where('email', 'mao@caneguard.test')
             ->firstOrFail();
-        $image = base64_decode(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-            strict: true,
+        $image = file_get_contents(
+            database_path(
+                'seeders/assets/synthetic-sugarcane-rust.png',
+            ),
         );
 
         if (! is_string($image)) {
@@ -75,8 +76,8 @@ class ReportSeeder extends Seeder
                     'image_mime_type' => 'image/png',
                     'image_size_bytes' => strlen($image),
                     'image_source_type' => $number % 2 === 0 ? 'gallery' : 'camera',
-                    'source_width' => 1,
-                    'source_height' => 1,
+                    'source_width' => 1254,
+                    'source_height' => 1254,
                     'predicted_label' => $label,
                     'confidence' => $confidence,
                     'checklist_consistency' => $number % 4 === 0

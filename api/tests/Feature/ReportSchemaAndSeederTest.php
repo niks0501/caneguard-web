@@ -82,9 +82,12 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $files = Storage::disk('local')->allFiles('seeded');
         $this->assertCount(12, $files);
-        $this->assertNotFalse(
-            getimagesizefromstring(Storage::disk('local')->get($files[0])),
-        );
+        $seededImage = Storage::disk('local')->get($files[0]);
+        $dimensions = getimagesizefromstring($seededImage);
+        $this->assertNotFalse($dimensions);
+        $this->assertGreaterThanOrEqual(512, $dimensions[0]);
+        $this->assertGreaterThanOrEqual(512, $dimensions[1]);
+        $this->assertGreaterThan(10_000, strlen($seededImage));
         $this->assertSame(
             3,
             ReportClassScore::query()
