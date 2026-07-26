@@ -2,10 +2,7 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class HealthEndpointTest extends TestCase
@@ -61,15 +58,6 @@ class HealthEndpointTest extends TestCase
 
     public function test_stateful_auth_routes_support_credentialed_cors_and_json_errors(): void
     {
-        Route::post('/login', function (): never {
-            throw ValidationException::withMessages([
-                'email' => ['The credentials are invalid.'],
-            ]);
-        });
-        Route::post('/logout', function (): never {
-            throw new AuthenticationException;
-        });
-
         $headers = [
             'Accept' => 'application/json',
             'Origin' => 'http://localhost:5173',
@@ -87,6 +75,9 @@ class HealthEndpointTest extends TestCase
             ->assertUnauthorized()
             ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5173')
             ->assertHeader('Access-Control-Allow-Credentials', 'true')
-            ->assertJsonPath('message', 'Unauthenticated.');
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+                'code' => 'UNAUTHENTICATED',
+            ]);
     }
 }

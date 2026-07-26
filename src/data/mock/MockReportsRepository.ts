@@ -95,7 +95,6 @@ export class MockReportsRepository implements ReportsRepository {
       ...current,
       reviewStatus: input.status,
       reviewNotes: input.notes.trim() || undefined,
-      reviewedBy: "Maria Santos",
       reviewedAt: new Date().toISOString(),
     };
     this.reports[index] = updated;

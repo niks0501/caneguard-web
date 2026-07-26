@@ -1,9 +1,20 @@
 import { Bell, Menu, Search } from "lucide-react";
 import { useLocation } from "react-router";
+import { useAuth } from "../../auth/useAuth";
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase();
+}
 
 export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
   const location = useLocation();
-  const isDetail = location.pathname !== "/reports";
+  const auth = useAuth();
+  const isDetail = location.pathname.startsWith("/reports/");
 
   return (
     <header className="app-header">
@@ -31,7 +42,9 @@ export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
           <Bell aria-hidden="true" />
           <span className="notification-dot" />
         </button>
-        <span className="avatar">MS</span>
+        <span className="avatar" aria-label={auth.user?.name}>
+          {initials(auth.user?.name ?? "CaneGuard user")}
+        </span>
       </div>
     </header>
   );

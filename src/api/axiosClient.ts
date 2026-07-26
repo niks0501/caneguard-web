@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { AppEnv } from "../config/env";
 import { env } from "../config/env";
+import { notifySessionExpired } from "../auth/authSession";
 import { toApiError } from "./ApiError";
 
 export function createAxiosClient(config: Pick<AppEnv, "apiBaseUrl"> = env) {
@@ -16,7 +17,13 @@ export function createAxiosClient(config: Pick<AppEnv, "apiBaseUrl"> = env) {
 
   client.interceptors.response.use(
     (response) => response,
-    (error: unknown) => Promise.reject(toApiError(error)),
+    (error: unknown) => {
+      const apiError = toApiError(error);
+      if (apiError.status === 401 || apiError.status === 419) {
+        notifySessionExpired();
+      }
+      return Promise.reject(apiError);
+    },
   );
 
   return client;

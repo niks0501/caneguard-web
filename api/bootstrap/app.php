@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AuthenticationException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
@@ -40,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AuthorizationException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
@@ -53,7 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ModelNotFoundException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
@@ -66,7 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
             NotFoundHttpException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
@@ -79,7 +79,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ValidationException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
@@ -93,7 +93,7 @@ return Application::configure(basePath: dirname(__DIR__))
             TokenMismatchException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
@@ -106,7 +106,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HttpExceptionInterface $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
@@ -134,7 +134,7 @@ return Application::configure(basePath: dirname(__DIR__))
             Throwable $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*', 'login', 'logout')) {
                 return null;
             }
 
