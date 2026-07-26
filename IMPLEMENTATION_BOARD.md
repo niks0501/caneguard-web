@@ -8,7 +8,7 @@ is marked complete only after its required automated checks pass.
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 0 | Baseline and scope lock | Complete |
-| 1 | Create Laravel inside the existing repository | Not started |
+| 1 | Create Laravel inside the existing repository | Complete |
 | 2 | MySQL report API and storage | Not started |
 | 3 | Web API infrastructure | Not started |
 | 4 | Authentication and protected routes | Not started |
@@ -48,3 +48,37 @@ is marked complete only after its required automated checks pass.
 - `npm run lint`: passed
 - `npx --no-install tsc --noEmit`: passed
 - `npm run build`: passed
+
+## Phase 1 foundation
+
+- Laravel 13 is installed in `api/` without a nested Git repository.
+- Sanctum is installed for stateful web authentication and bearer tokens.
+- MySQL databases `caneguard` and `caneguard_test` use the dedicated
+  `caneguard_app` account.
+- Demo credentials remain only in the ignored `api/.env`; the seeder validates
+  all three passwords before writing any users.
+- The public `/api/health` endpoint reports database and public-storage
+  readiness without returning exception details.
+- Credentialed CORS is limited to configured origins and covers the API,
+  CSRF-cookie, login, and logout paths.
+- The default API development command binds only to `127.0.0.1`, and the
+  committed environment example keeps debug output disabled.
+- React Router was patched from 8.2.0 to 8.3.0 to clear a high-severity
+  advisory found by the required security scan.
+
+### Phase 1 verification
+
+- `npm run check:all`: passed
+- `php api/artisan test`: 10 tests passed, 39 assertions
+- `api/vendor/bin/pint --test`: passed
+- `composer --working-dir=api validate --strict`: passed
+- `php api/artisan migrate --force` against `caneguard_test`: four migrations
+  ran successfully
+- `php api/artisan db:seed --force` against `caneguard_test`: the three expected
+  role accounts were created with UUIDs
+- `php api/artisan route:list --path=api`: `/api/health` registered
+- `just verify-full`: `PASS_WITH_GAPS`; lint, typecheck, build, Gitleaks, and
+  Trivy passed, while the harness skipped its root test slot because
+  `.harness/project.json` has no test command
+- Trivy reported sample Python requirements embedded in Mockery documentation;
+  the tracked Composer and npm lockfiles reported zero vulnerabilities

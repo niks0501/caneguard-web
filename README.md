@@ -1,95 +1,96 @@
-# CaneGuard Web
+# CaneGuard Web Monorepo
 
-Backend-neutral React prototype for a municipal agriculture office to review submitted sugarcane field observations.
+CaneGuard is a local defense prototype for municipal agriculture staff to
+review submitted sugarcane field observations. Model output is decision
+support, not a diagnosis.
 
-## Current workflow
+## Repository architecture
 
-- Browse, search, filter, sort, and paginate realistic mock reports.
-- Open a report and inspect its evidence, model-supported result, symptoms, and field context.
-- Record a mock office review action and return to the updated work queue.
-- Use the responsive dashboard shell on desktop, tablet, and smaller screens.
+This repository contains two applications with separate runtime boundaries:
 
-Mock changes are stored in memory and reset when the browser reloads. The main routes are `/reports` and `/reports/:reportId`.
+- React 19, TypeScript, and Vite at the repository root
+- Laravel 13 and Sanctum in `api/`
 
-## Commands
+There is one root Git repository. Do not initialize another repository inside
+`api/`, move the React application, or expose API/database secrets through
+`VITE_` variables.
+
+## Requirements
+
+- Node.js and npm compatible with Vite 8
+- PHP 8.3–8.5 with PDO MySQL
+- Composer
+- MySQL 8.4 LTS
+
+## Web setup
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+The web runs at `http://localhost:5173`. Values prefixed with `VITE_` are
+public browser configuration.
+
+## API and MySQL setup
+
+Create MySQL databases named `caneguard` and `caneguard_test` with
+`utf8mb4_unicode_ci`, then grant a dedicated local `caneguard_app` user access
+to both.
+
+```bash
+npm run api:install
+cp api/.env.example api/.env
+php api/artisan key:generate
+php api/artisan migrate
+php api/artisan db:seed
+```
+
+Set the database password and the three local demo account passwords only in
+`api/.env`. Never commit that file. The seeded accounts are:
+
+- `field@caneguard.test`
+- `mao@caneguard.test`
+- `admin@caneguard.test`
+
+## Local development
+
+Run the applications in separate terminals:
 
 ```bash
 npm run dev
-npm run lint
-npx --no-install tsc --noEmit
-npm run build
 ```
 
-## Vite tooling
-
-The project uses the following Vite plugins:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run api:dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The API runs at `http://localhost:8000`. Its readiness endpoint is
+`GET http://localhost:8000/api/health`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Verification
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run check:web
+npm run check:api
+npm run check:all
 ```
+
+The API checks use Laravel feature tests and Pint. The web test suite is added
+with the web API infrastructure phase.
+
+## Presentation commands
+
+Set `APP_DEBUG=false` in the uncommitted `api/.env` before the presentation,
+then run:
+
+```bash
+npm run api:migrate
+npm run api:seed
+npm run check:all
+npm run api:dev
+npm run dev
+```
+
+Keep MySQL running on port `3306`, the API on `8000`, and the web on `5173`.

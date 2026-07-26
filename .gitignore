@@ -41,3 +41,23 @@ GUIDE.md
 justfile
 scripts
 tests/
+
+# Laravel application
+/api/.env
+/api/vendor/
+/api/node_modules/
+/api/public/storage
+/api/storage/*.key
+/api/storage/framework/cache/data/*
+/api/storage/framework/sessions/*
+/api/storage/framework/views/*
+/api/storage/logs/*
+!/api/storage/framework/cache/data/.gitignore
+!/api/storage/framework/sessions/.gitignore
+!/api/storage/framework/views/.gitignore
+!/api/storage/logs/.gitignore
+/api/.github/
+
+# Web environment
+.env.local
+.env.*.local
