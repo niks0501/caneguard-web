@@ -100,15 +100,301 @@
   },
   "nodes": [
     {
+      "label": "IMPLEMENTATION_BOARD.md",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "implementation_board",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "implementation_board.md"
+    },
+    {
+      "label": "CaneGuard Monorepo Implementation Board",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "implementation_board_caneguard_monorepo_implementation_board",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "caneguard monorepo implementation board"
+    },
+    {
+      "label": "Phase cards",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "implementation_board_phase_cards",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase cards"
+    },
+    {
+      "label": "Phase 0 baseline",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "implementation_board_phase_0_baseline",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 0 baseline"
+    },
+    {
+      "label": "Existing user work preserved",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L31",
+      "_origin": "ast",
+      "id": "implementation_board_existing_user_work_preserved",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "existing user work preserved"
+    },
+    {
+      "label": "Tool baseline",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "implementation_board_tool_baseline",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "tool baseline"
+    },
+    {
+      "label": "Web baseline checks",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "implementation_board_web_baseline_checks",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "web baseline checks"
+    },
+    {
+      "label": "Phase 1 foundation",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L52",
+      "_origin": "ast",
+      "id": "implementation_board_phase_1_foundation",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 1 foundation"
+    },
+    {
+      "label": "Phase 1 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L69",
+      "_origin": "ast",
+      "id": "implementation_board_phase_1_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 1 verification"
+    },
+    {
+      "label": "Phase 2 report API and storage",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L86",
+      "_origin": "ast",
+      "id": "implementation_board_phase_2_report_api_and_storage",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 2 report api and storage"
+    },
+    {
+      "label": "Phase 2 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L109",
+      "_origin": "ast",
+      "id": "implementation_board_phase_2_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 2 verification"
+    },
+    {
+      "label": "Phase 3 web API infrastructure",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L124",
+      "_origin": "ast",
+      "id": "implementation_board_phase_3_web_api_infrastructure",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 3 web api infrastructure"
+    },
+    {
+      "label": "Phase 3 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L139",
+      "_origin": "ast",
+      "id": "implementation_board_phase_3_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 3 verification"
+    },
+    {
+      "label": "Phase 4 authentication and protected routes",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L148",
+      "_origin": "ast",
+      "id": "implementation_board_phase_4_authentication_and_protected_routes",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 4 authentication and protected routes"
+    },
+    {
+      "label": "Phase 4 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L164",
+      "_origin": "ast",
+      "id": "implementation_board_phase_4_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 4 verification"
+    },
+    {
+      "label": "Phase 5 dashboard overview",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L175",
+      "_origin": "ast",
+      "id": "implementation_board_phase_5_dashboard_overview",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 5 dashboard overview"
+    },
+    {
+      "label": "Phase 5 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L186",
+      "_origin": "ast",
+      "id": "implementation_board_phase_5_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 5 verification"
+    },
+    {
+      "label": "Phase 6 submitted reports list",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L193",
+      "_origin": "ast",
+      "id": "implementation_board_phase_6_submitted_reports_list",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 6 submitted reports list"
+    },
+    {
+      "label": "Phase 6 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L217",
+      "_origin": "ast",
+      "id": "implementation_board_phase_6_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 6 verification"
+    },
+    {
+      "label": "Phase 7 report detail, image, and review",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L231",
+      "_origin": "ast",
+      "id": "implementation_board_phase_7_report_detail_image_and_review",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 7 report detail, image, and review"
+    },
+    {
+      "label": "Phase 7 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L250",
+      "_origin": "ast",
+      "id": "implementation_board_phase_7_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 7 verification"
+    },
+    {
+      "label": "Phase 8 refresh, errors, and resilience",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L264",
+      "_origin": "ast",
+      "id": "implementation_board_phase_8_refresh_errors_and_resilience",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 8 refresh, errors, and resilience"
+    },
+    {
+      "label": "Phase 8 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L283",
+      "_origin": "ast",
+      "id": "implementation_board_phase_8_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 8 verification"
+    },
+    {
+      "label": "Phase 9 testing, demo, and release",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L292",
+      "_origin": "ast",
+      "id": "implementation_board_phase_9_testing_demo_and_release",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 9 testing, demo, and release"
+    },
+    {
+      "label": "Phase 9 verification",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L317",
+      "_origin": "ast",
+      "id": "implementation_board_phase_9_verification",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "phase 9 verification"
+    },
+    {
+      "label": "Accepted manual release follow-ups",
+      "file_type": "document",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L340",
+      "_origin": "ast",
+      "id": "implementation_board_accepted_manual_release_follow_ups",
+      "community": 29,
+      "community_name": "Phase 0 baseline",
+      "norm_label": "accepted manual release follow-ups"
+    },
+    {
       "label": "filesystems.php",
       "file_type": "code",
       "source_file": "api/config/filesystems.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "api_config_filesystems",
       "community": 42,
       "community_name": "filesystems.php",
-      "norm_label": "filesystems.php"
+      "norm_label": "filesystems.php",
+      "id": "api_config_filesystems"
     },
     {
       "label": "ReportSeeder.php",
@@ -116,10 +402,10 @@
       "source_file": "api/database/seeders/ReportSeeder.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "api_database_seeders_reportseeder",
       "community": 61,
       "community_name": "DatabaseSeeder.php",
-      "norm_label": "reportseeder.php"
+      "norm_label": "reportseeder.php",
+      "id": "api_database_seeders_reportseeder"
     },
     {
       "label": "ReportSeeder",
@@ -127,10 +413,10 @@
       "source_file": "api/database/seeders/ReportSeeder.php",
       "source_location": "L13",
       "_origin": "ast",
-      "id": "api_database_seeders_reportseeder_reportseeder",
       "community": 61,
       "community_name": "DatabaseSeeder.php",
-      "norm_label": "reportseeder"
+      "norm_label": "reportseeder",
+      "id": "api_database_seeders_reportseeder_reportseeder"
     },
     {
       "label": ".run()",
@@ -138,10 +424,10 @@
       "source_file": "api/database/seeders/ReportSeeder.php",
       "source_location": "L15",
       "_origin": "ast",
-      "id": "api_database_seeders_reportseeder_reportseeder_run",
       "community": 61,
       "community_name": "DatabaseSeeder.php",
-      "norm_label": ".run()"
+      "norm_label": ".run()",
+      "id": "api_database_seeders_reportseeder_reportseeder_run"
     },
     {
       "label": "assets/README.md",
@@ -149,10 +435,10 @@
       "source_file": "api/database/seeders/assets/README.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "api_database_seeders_assets_readme",
       "community": 86,
       "community_name": "assets/README.md",
-      "norm_label": "assets/readme.md"
+      "norm_label": "assets/readme.md",
+      "id": "api_database_seeders_assets_readme"
     },
     {
       "label": "Synthetic rehearsal image",
@@ -160,10 +446,10 @@
       "source_file": "api/database/seeders/assets/README.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "api_database_seeders_assets_readme_synthetic_rehearsal_image",
       "community": 86,
       "community_name": "assets/README.md",
-      "norm_label": "synthetic rehearsal image"
+      "norm_label": "synthetic rehearsal image",
+      "id": "api_database_seeders_assets_readme_synthetic_rehearsal_image"
     },
     {
       "label": "ReportApiTest.php",
@@ -171,10 +457,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest",
       "community": 61,
       "community_name": "DatabaseSeeder.php",
-      "norm_label": "reportapitest.php"
+      "norm_label": "reportapitest.php",
+      "id": "api_tests_feature_reportapitest"
     },
     {
       "label": "ReportApiTest",
@@ -182,10 +468,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L15",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": "reportapitest"
+      "norm_label": "reportapitest",
+      "id": "api_tests_feature_reportapitest_reportapitest"
     },
     {
       "label": ".test_reports_are_searchable_filterable_sorted_and_paginated()",
@@ -193,10 +479,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L19",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_reports_are_searchable_filterable_sorted_and_paginated",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_reports_are_searchable_filterable_sorted_and_paginated()"
+      "norm_label": ".test_reports_are_searchable_filterable_sorted_and_paginated()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_reports_are_searchable_filterable_sorted_and_paginated"
     },
     {
       "label": ".test_report_search_treats_like_wildcards_as_literal_text()",
@@ -204,10 +490,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L103",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_report_search_treats_like_wildcards_as_literal_text",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_report_search_treats_like_wildcards_as_literal_text()"
+      "norm_label": ".test_report_search_treats_like_wildcards_as_literal_text()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_report_search_treats_like_wildcards_as_literal_text"
     },
     {
       "label": ".test_report_list_rejects_invalid_query_values()",
@@ -215,10 +501,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L123",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_report_list_rejects_invalid_query_values",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_report_list_rejects_invalid_query_values()"
+      "norm_label": ".test_report_list_rejects_invalid_query_values()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_report_list_rejects_invalid_query_values"
     },
     {
       "label": ".test_report_detail_uses_uuid_and_returns_every_contract_section()",
@@ -226,10 +512,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L148",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_report_detail_uses_uuid_and_returns_every_contract_section",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_report_detail_uses_uuid_and_returns_every_contract_section()"
+      "norm_label": ".test_report_detail_uses_uuid_and_returns_every_contract_section()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_report_detail_uses_uuid_and_returns_every_contract_section"
     },
     {
       "label": ".test_report_image_is_private_and_policy_authorized()",
@@ -237,10 +523,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L177",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_report_image_is_private_and_policy_authorized",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_report_image_is_private_and_policy_authorized()"
+      "norm_label": ".test_report_image_is_private_and_policy_authorized()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_report_image_is_private_and_policy_authorized"
     },
     {
       "label": ".test_dashboard_returns_all_status_counts_and_five_recent_reports()",
@@ -248,10 +534,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L215",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_dashboard_returns_all_status_counts_and_five_recent_reports",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_dashboard_returns_all_status_counts_and_five_recent_reports()"
+      "norm_label": ".test_dashboard_returns_all_status_counts_and_five_recent_reports()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_dashboard_returns_all_status_counts_and_five_recent_reports"
     },
     {
       "label": ".test_report_queue_rejects_unauthenticated_and_wrong_role_users()",
@@ -259,10 +545,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L243",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_report_queue_rejects_unauthenticated_and_wrong_role_users",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_report_queue_rejects_unauthenticated_and_wrong_role_users()"
+      "norm_label": ".test_report_queue_rejects_unauthenticated_and_wrong_role_users()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_report_queue_rejects_unauthenticated_and_wrong_role_users"
     },
     {
       "label": ".test_unexpected_api_errors_do_not_leak_exception_details()",
@@ -270,10 +556,10 @@
       "source_file": "api/tests/Feature/ReportApiTest.php",
       "source_location": "L256",
       "_origin": "ast",
-      "id": "api_tests_feature_reportapitest_reportapitest_test_unexpected_api_errors_do_not_leak_exception_details",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_unexpected_api_errors_do_not_leak_exception_details()"
+      "norm_label": ".test_unexpected_api_errors_do_not_leak_exception_details()",
+      "id": "api_tests_feature_reportapitest_reportapitest_test_unexpected_api_errors_do_not_leak_exception_details"
     },
     {
       "label": "ReportSchemaAndSeederTest.php",
@@ -281,10 +567,10 @@
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "api_tests_feature_reportschemaandseedertest",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": "reportschemaandseedertest.php"
+      "norm_label": "reportschemaandseedertest.php",
+      "id": "api_tests_feature_reportschemaandseedertest"
     },
     {
       "label": "ReportSchemaAndSeederTest",
@@ -292,10 +578,10 @@
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
       "source_location": "L13",
       "_origin": "ast",
-      "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": "reportschemaandseedertest"
+      "norm_label": "reportschemaandseedertest",
+      "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest"
     },
     {
       "label": ".test_report_schema_contains_the_planned_tables_and_columns()",
@@ -303,10 +589,10 @@
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
       "source_location": "L17",
       "_origin": "ast",
-      "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_schema_contains_the_planned_tables_and_columns",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_report_schema_contains_the_planned_tables_and_columns()"
+      "norm_label": ".test_report_schema_contains_the_planned_tables_and_columns()",
+      "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_schema_contains_the_planned_tables_and_columns"
     },
     {
       "label": ".test_seeder_creates_twelve_varied_reports_with_valid_images()",
@@ -314,10 +600,10 @@
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
       "source_location": "L52",
       "_origin": "ast",
-      "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_creates_twelve_varied_reports_with_valid_images",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_seeder_creates_twelve_varied_reports_with_valid_images()"
+      "norm_label": ".test_seeder_creates_twelve_varied_reports_with_valid_images()",
+      "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_creates_twelve_varied_reports_with_valid_images"
     },
     {
       "label": "ReleaseDemoFlowMySqlTest.php",
@@ -325,10 +611,10 @@
       "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "api_tests_mysql_releasedemoflowmysqltest",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": "releasedemoflowmysqltest.php"
+      "norm_label": "releasedemoflowmysqltest.php",
+      "id": "api_tests_mysql_releasedemoflowmysqltest"
     },
     {
       "label": "ReleaseDemoFlowMySqlTest",
@@ -336,10 +622,10 @@
       "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
       "source_location": "L15",
       "_origin": "ast",
-      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": "releasedemoflowmysqltest"
+      "norm_label": "releasedemoflowmysqltest",
+      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest"
     },
     {
       "label": ".test_release_demo_flow_persists_a_review_across_requests()",
@@ -347,10 +633,10 @@
       "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
       "source_location": "L23",
       "_origin": "ast",
-      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_test_release_demo_flow_persists_a_review_across_requests",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".test_release_demo_flow_persists_a_review_across_requests()"
+      "norm_label": ".test_release_demo_flow_persists_a_review_across_requests()",
+      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_test_release_demo_flow_persists_a_review_across_requests"
     },
     {
       "label": ".tearDown()",
@@ -358,10 +644,10 @@
       "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
       "source_location": "L136",
       "_origin": "ast",
-      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_teardown",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".teardown()"
+      "norm_label": ".teardown()",
+      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_teardown"
     },
     {
       "label": ".payload()",
@@ -369,10 +655,10 @@
       "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
       "source_location": "L159",
       "_origin": "ast",
-      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_payload",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": ".payload()"
+      "norm_label": ".payload()",
+      "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_payload"
     },
     {
       "label": "vite.config.ts",
@@ -380,10 +666,10 @@
       "source_file": "vite.config.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "vite_config",
       "community": 22,
       "community_name": "Vite Configuration",
-      "norm_label": "vite.config.ts"
+      "norm_label": "vite.config.ts",
+      "id": "vite_config"
     },
     {
       "label": "Illuminate\\Database\\Seeder",
@@ -391,10 +677,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "id": "illuminate_database_seeder",
       "community": 61,
       "community_name": "DatabaseSeeder.php",
-      "norm_label": "illuminate\\database\\seeder"
+      "norm_label": "illuminate\\database\\seeder",
+      "id": "illuminate_database_seeder"
     },
     {
       "label": "Illuminate\\Foundation\\Testing\\RefreshDatabase",
@@ -402,10 +688,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "id": "illuminate_foundation_testing_refreshdatabase",
       "community": 57,
       "community_name": "TestCase",
-      "norm_label": "illuminate\\foundation\\testing\\refreshdatabase"
+      "norm_label": "illuminate\\foundation\\testing\\refreshdatabase",
+      "id": "illuminate_foundation_testing_refreshdatabase"
     },
     {
       "label": "Tests\\TestCase",
@@ -413,10 +699,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "id": "tests_testcase",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": "tests\\testcase"
+      "norm_label": "tests\\testcase",
+      "id": "tests_testcase"
     },
     {
       "label": "Illuminate\\Foundation\\Testing\\DatabaseTransactions",
@@ -424,10 +710,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "id": "illuminate_foundation_testing_databasetransactions",
       "community": 6,
       "community_name": "Report Data Workflow",
-      "norm_label": "illuminate\\foundation\\testing\\databasetransactions"
+      "norm_label": "illuminate\\foundation\\testing\\databasetransactions",
+      "id": "illuminate_foundation_testing_databasetransactions"
     },
     {
       "label": "PersistReport.php",
@@ -5660,8 +5946,8 @@
       "source_file": "src/App.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "app.tsx",
       "id": "src_app"
     },
@@ -5671,8 +5957,8 @@
       "source_file": "src/App.tsx",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "app()",
       "id": "src_app_app"
     },
@@ -5704,8 +5990,8 @@
       "source_file": "src/api/ApiError.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "apierror",
       "id": "src_api_apierror_apierror"
     },
@@ -5715,8 +6001,8 @@
       "source_file": "src/api/ApiError.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": ".constructor()",
       "id": "src_api_apierror_apierror_constructor"
     },
@@ -5770,8 +6056,8 @@
       "source_file": "src/api/axiosClient.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "axiosclient",
       "id": "src_api_axiosclient_axiosclient"
     },
@@ -5781,8 +6067,8 @@
       "source_file": "src/app/AppProviders.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "appproviders.tsx",
       "id": "src_app_appproviders"
     },
@@ -5792,8 +6078,8 @@
       "source_file": "src/app/AppProviders.tsx",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "appproviders()",
       "id": "src_app_appproviders_appproviders"
     },
@@ -5803,8 +6089,8 @@
       "source_file": "src/app/queryClient.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "queryclient.test.ts",
       "id": "src_app_queryclient_test"
     },
@@ -5814,8 +6100,8 @@
       "source_file": "src/app/queryClient.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "queryclient.ts",
       "id": "src_app_queryclient"
     },
@@ -5825,8 +6111,8 @@
       "source_file": "src/app/queryClient.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "istransientservererror()",
       "id": "src_app_queryclient_istransientservererror"
     },
@@ -5836,8 +6122,8 @@
       "source_file": "src/app/queryClient.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "shouldretryquery()",
       "id": "src_app_queryclient_shouldretryquery"
     },
@@ -5847,8 +6133,8 @@
       "source_file": "src/app/queryClient.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "createqueryclient()",
       "id": "src_app_queryclient_createqueryclient"
     },
@@ -5858,8 +6144,8 @@
       "source_file": "src/app/queryClient.ts",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "queryclient",
       "id": "src_app_queryclient_queryclient"
     },
@@ -5869,8 +6155,8 @@
       "source_file": "src/app/router.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "router.tsx",
       "id": "src_app_router"
     },
@@ -5880,8 +6166,8 @@
       "source_file": "src/app/router.tsx",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "approuter()",
       "id": "src_app_router_approuter"
     },
@@ -5891,8 +6177,8 @@
       "source_file": "src/app/routes.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "routes.ts",
       "id": "src_app_routes"
     },
@@ -5902,8 +6188,8 @@
       "source_file": "src/app/routes.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "routes",
       "id": "src_app_routes_routes"
     },
@@ -5968,8 +6254,8 @@
       "source_file": "src/auth/AuthRouting.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "authrouting.test.tsx",
       "id": "src_auth_authrouting_test"
     },
@@ -5979,8 +6265,8 @@
       "source_file": "src/auth/AuthRouting.test.tsx",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "webuser",
       "id": "src_auth_authrouting_test_webuser"
     },
@@ -5990,8 +6276,8 @@
       "source_file": "src/auth/AuthRouting.test.tsx",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "renderapp()",
       "id": "src_auth_authrouting_test_renderapp"
     },
@@ -6001,8 +6287,8 @@
       "source_file": "src/auth/AuthRouting.test.tsx",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "usesuccessfulloginhandlers()",
       "id": "src_auth_authrouting_test_usesuccessfulloginhandlers"
     },
@@ -6012,8 +6298,8 @@
       "source_file": "src/auth/RequireAuth.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "requireauth.tsx",
       "id": "src_auth_requireauth"
     },
@@ -6023,8 +6309,8 @@
       "source_file": "src/auth/RequireAuth.tsx",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "requireauth()",
       "id": "src_auth_requireauth_requireauth"
     },
@@ -6166,8 +6452,8 @@
       "source_file": "src/auth/auth.context.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 69,
-      "community_name": "queryClient.ts",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "authcontext",
       "id": "src_auth_auth_context_authcontext"
     },
@@ -6309,8 +6595,8 @@
       "source_file": "src/auth/useAuth.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "useauth.ts",
       "id": "src_auth_useauth"
     },
@@ -6320,8 +6606,8 @@
       "source_file": "src/auth/useAuth.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "useauth()",
       "id": "src_auth_useauth_useauth"
     },
@@ -6353,8 +6639,8 @@
       "source_file": "src/components/dashboard/SecondaryMetric.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "secondarymetric.tsx",
       "id": "src_components_dashboard_secondarymetric"
     },
@@ -6364,8 +6650,8 @@
       "source_file": "src/components/dashboard/SecondaryMetric.tsx",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "secondarymetric()",
       "id": "src_components_dashboard_secondarymetric_secondarymetric"
     },
@@ -6375,8 +6661,8 @@
       "source_file": "src/components/layout/AppHeader.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "appheader.tsx",
       "id": "src_components_layout_appheader"
     },
@@ -6386,8 +6672,8 @@
       "source_file": "src/components/layout/AppHeader.tsx",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "initials()",
       "id": "src_components_layout_appheader_initials"
     },
@@ -6397,8 +6683,8 @@
       "source_file": "src/components/layout/AppHeader.tsx",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "appheader()",
       "id": "src_components_layout_appheader_appheader"
     },
@@ -6408,8 +6694,8 @@
       "source_file": "src/components/layout/AppShell.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "appshell.tsx",
       "id": "src_components_layout_appshell"
     },
@@ -6419,8 +6705,8 @@
       "source_file": "src/components/layout/AppShell.tsx",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "appshell()",
       "id": "src_components_layout_appshell_appshell"
     },
@@ -6474,8 +6760,8 @@
       "source_file": "src/components/layout/ServerStatus.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "serverstatus.test.tsx",
       "id": "src_components_layout_serverstatus_test"
     },
@@ -6485,8 +6771,8 @@
       "source_file": "src/components/layout/ServerStatus.test.tsx",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "queryclient()",
       "id": "src_components_layout_serverstatus_test_queryclient"
     },
@@ -6496,8 +6782,8 @@
       "source_file": "src/components/layout/ServerStatus.test.tsx",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "queryprobe()",
       "id": "src_components_layout_serverstatus_test_queryprobe"
     },
@@ -6507,8 +6793,8 @@
       "source_file": "src/components/layout/ServerStatus.test.tsx",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "renderstatus()",
       "id": "src_components_layout_serverstatus_test_renderstatus"
     },
@@ -6518,8 +6804,8 @@
       "source_file": "src/components/layout/ServerStatus.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "serverstatus.tsx",
       "id": "src_components_layout_serverstatus"
     },
@@ -6529,8 +6815,8 @@
       "source_file": "src/components/layout/ServerStatus.tsx",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "serverstatusvalue",
       "id": "src_components_layout_serverstatus_serverstatusvalue"
     },
@@ -6540,8 +6826,8 @@
       "source_file": "src/components/layout/ServerStatus.tsx",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "serverstatus()",
       "id": "src_components_layout_serverstatus_serverstatus"
     },
@@ -6551,8 +6837,8 @@
       "source_file": "src/components/navigation/AppSidebar.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "appsidebar.tsx",
       "id": "src_components_navigation_appsidebar"
     },
@@ -6562,8 +6848,8 @@
       "source_file": "src/components/navigation/AppSidebar.tsx",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "futurelinks",
       "id": "src_components_navigation_appsidebar_futurelinks"
     },
@@ -6573,8 +6859,8 @@
       "source_file": "src/components/navigation/AppSidebar.tsx",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "appsidebar()",
       "id": "src_components_navigation_appsidebar_appsidebar"
     },
@@ -6628,8 +6914,8 @@
       "source_file": "src/components/reports/MetricCard.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "metriccard.tsx",
       "id": "src_components_reports_metriccard"
     },
@@ -6639,8 +6925,8 @@
       "source_file": "src/components/reports/MetricCard.tsx",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "metriccard()",
       "id": "src_components_reports_metriccard_metriccard"
     },
@@ -6705,8 +6991,8 @@
       "source_file": "src/components/reports/SymptomResponseItem.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 76,
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "symptomresponseitem.tsx",
       "id": "src_components_reports_symptomresponseitem"
     },
@@ -6716,8 +7002,8 @@
       "source_file": "src/components/reports/SymptomResponseItem.tsx",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 76,
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "answerlabels",
       "id": "src_components_reports_symptomresponseitem_answerlabels"
     },
@@ -6727,8 +7013,8 @@
       "source_file": "src/components/reports/SymptomResponseItem.tsx",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 76,
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "symptomresponseitem()",
       "id": "src_components_reports_symptomresponseitem_symptomresponseitem"
     },
@@ -6738,8 +7024,8 @@
       "source_file": "src/components/ui/Button.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "button.tsx",
       "id": "src_components_ui_button"
     },
@@ -6749,8 +7035,8 @@
       "source_file": "src/components/ui/Button.tsx",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "buttonvariant",
       "id": "src_components_ui_button_buttonvariant"
     },
@@ -6760,8 +7046,8 @@
       "source_file": "src/components/ui/Button.tsx",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "buttonprops",
       "id": "src_components_ui_button_buttonprops"
     },
@@ -6771,8 +7057,8 @@
       "source_file": "src/components/ui/Button.tsx",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "button()",
       "id": "src_components_ui_button_button"
     },
@@ -6782,8 +7068,8 @@
       "source_file": "src/components/ui/FormControls.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "formcontrols.tsx",
       "id": "src_components_ui_formcontrols"
     },
@@ -6793,8 +7079,8 @@
       "source_file": "src/components/ui/FormControls.tsx",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "searchinputprops",
       "id": "src_components_ui_formcontrols_searchinputprops"
     },
@@ -6804,8 +7090,8 @@
       "source_file": "src/components/ui/FormControls.tsx",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "searchinput()",
       "id": "src_components_ui_formcontrols_searchinput"
     },
@@ -6815,8 +7101,8 @@
       "source_file": "src/components/ui/FormControls.tsx",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "selectfilterprops",
       "id": "src_components_ui_formcontrols_selectfilterprops"
     },
@@ -6826,8 +7112,8 @@
       "source_file": "src/components/ui/FormControls.tsx",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "selectfilter()",
       "id": "src_components_ui_formcontrols_selectfilter"
     },
@@ -6837,8 +7123,8 @@
       "source_file": "src/components/ui/FormControls.tsx",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "textareaprops",
       "id": "src_components_ui_formcontrols_textareaprops"
     },
@@ -6848,8 +7134,8 @@
       "source_file": "src/components/ui/FormControls.tsx",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "textarea()",
       "id": "src_components_ui_formcontrols_textarea"
     },
@@ -6859,8 +7145,8 @@
       "source_file": "src/components/ui/Pagination.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "pagination.test.tsx",
       "id": "src_components_ui_pagination_test"
     },
@@ -6870,8 +7156,8 @@
       "source_file": "src/components/ui/Pagination.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "pagination.tsx",
       "id": "src_components_ui_pagination"
     },
@@ -6881,8 +7167,8 @@
       "source_file": "src/components/ui/Pagination.tsx",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "paginationprops",
       "id": "src_components_ui_pagination_paginationprops"
     },
@@ -6892,8 +7178,8 @@
       "source_file": "src/components/ui/Pagination.tsx",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "visiblepages()",
       "id": "src_components_ui_pagination_visiblepages"
     },
@@ -6903,8 +7189,8 @@
       "source_file": "src/components/ui/Pagination.tsx",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "pagination()",
       "id": "src_components_ui_pagination_pagination"
     },
@@ -6914,8 +7200,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "states.tsx",
       "id": "src_components_ui_states"
     },
@@ -6925,8 +7211,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "stateprops",
       "id": "src_components_ui_states_stateprops"
     },
@@ -6936,8 +7222,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "statepanel()",
       "id": "src_components_ui_states_statepanel"
     },
@@ -6947,8 +7233,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "loadingstate()",
       "id": "src_components_ui_states_loadingstate"
     },
@@ -6958,8 +7244,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L37",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "emptystate()",
       "id": "src_components_ui_states_emptystate"
     },
@@ -6969,8 +7255,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L47",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "noresultsstate()",
       "id": "src_components_ui_states_noresultsstate"
     },
@@ -6980,8 +7266,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L62",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "errorstate()",
       "id": "src_components_ui_states_errorstate"
     },
@@ -6991,8 +7277,8 @@
       "source_file": "src/components/ui/States.tsx",
       "source_location": "L85",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "imagependingstate()",
       "id": "src_components_ui_states_imagependingstate"
     },
@@ -7244,8 +7530,8 @@
       "source_file": "src/data/api/mappers/report.mapper.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "report.mapper.test.ts",
       "id": "src_data_api_mappers_report_mapper_test"
     },
@@ -7255,8 +7541,8 @@
       "source_file": "src/data/api/mappers/report.mapper.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "report.mapper.ts",
       "id": "src_data_api_mappers_report_mapper"
     },
@@ -7266,8 +7552,8 @@
       "source_file": "src/data/api/mappers/report.mapper.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "humanize()",
       "id": "src_data_api_mappers_report_mapper_humanize"
     },
@@ -7288,8 +7574,8 @@
       "source_file": "src/data/api/mappers/report.mapper.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "mapreportdetail()",
       "id": "src_data_api_mappers_report_mapper_mapreportdetail"
     },
@@ -7299,8 +7585,8 @@
       "source_file": "src/data/api/mappers/report.mapper.ts",
       "source_location": "L70",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "mappaginationmeta()",
       "id": "src_data_api_mappers_report_mapper_mappaginationmeta"
     },
@@ -7310,8 +7596,8 @@
       "source_file": "src/data/api/schemas/common.schema.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "common.schema.test.ts",
       "id": "src_data_api_schemas_common_schema_test"
     },
@@ -7321,8 +7607,8 @@
       "source_file": "src/data/api/schemas/common.schema.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "common.schema.ts",
       "id": "src_data_api_schemas_common_schema"
     },
@@ -7332,8 +7618,8 @@
       "source_file": "src/data/api/schemas/common.schema.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "userschema",
       "id": "src_data_api_schemas_common_schema_userschema"
     },
@@ -7343,8 +7629,8 @@
       "source_file": "src/data/api/schemas/common.schema.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "paginationmetaschema",
       "id": "src_data_api_schemas_common_schema_paginationmetaschema"
     },
@@ -7354,8 +7640,8 @@
       "source_file": "src/data/api/schemas/common.schema.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "paginationlinksschema",
       "id": "src_data_api_schemas_common_schema_paginationlinksschema"
     },
@@ -7398,8 +7684,8 @@
       "source_file": "src/data/api/schemas/report.schema.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "report.schema.test.ts",
       "id": "src_data_api_schemas_report_schema_test"
     },
@@ -7409,8 +7695,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "report.schema.ts",
       "id": "src_data_api_schemas_report_schema"
     },
@@ -7420,8 +7706,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "diseasekeyschema",
       "id": "src_data_api_schemas_report_schema_diseasekeyschema"
     },
@@ -7431,8 +7717,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reviewstatusschema",
       "id": "src_data_api_schemas_report_schema_reviewstatusschema"
     },
@@ -7453,8 +7739,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportlistresponseschema",
       "id": "src_data_api_schemas_report_schema_reportlistresponseschema"
     },
@@ -7464,8 +7750,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportdetailschema",
       "id": "src_data_api_schemas_report_schema_reportdetailschema"
     },
@@ -7475,8 +7761,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L88",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportdetailresponseschema",
       "id": "src_data_api_schemas_report_schema_reportdetailresponseschema"
     },
@@ -7486,8 +7772,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L94",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportlistitemdto",
       "id": "src_data_api_schemas_report_schema_reportlistitemdto"
     },
@@ -7497,8 +7783,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L95",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportlistresponsedto",
       "id": "src_data_api_schemas_report_schema_reportlistresponsedto"
     },
@@ -7508,8 +7794,8 @@
       "source_file": "src/data/api/schemas/report.schema.ts",
       "source_location": "L96",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportdetaildto",
       "id": "src_data_api_schemas_report_schema_reportdetaildto"
     },
@@ -7827,8 +8113,8 @@
       "source_file": "src/domain/report.types.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 9,
+      "community_name": "Application Routing Shell",
       "norm_label": "diseasekey",
       "id": "src_domain_report_types_diseasekey"
     },
@@ -7871,8 +8157,8 @@
       "source_file": "src/domain/report.types.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 76,
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "symptomresponse",
       "id": "src_domain_report_types_symptomresponse"
     },
@@ -7904,8 +8190,8 @@
       "source_file": "src/domain/report.types.ts",
       "source_location": "L70",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "paginationmeta",
       "id": "src_domain_report_types_paginationmeta"
     },
@@ -7970,8 +8256,8 @@
       "source_file": "src/hooks/reportQueries.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportqueries.ts",
       "id": "src_hooks_reportqueries"
     },
@@ -7981,8 +8267,8 @@
       "source_file": "src/hooks/reportQueries.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportkeys",
       "id": "src_hooks_reportqueries_reportkeys"
     },
@@ -7992,8 +8278,8 @@
       "source_file": "src/hooks/reportQueries.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportsqueryoptions()",
       "id": "src_hooks_reportqueries_reportsqueryoptions"
     },
@@ -8003,8 +8289,8 @@
       "source_file": "src/hooks/reportQueries.ts",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportqueryoptions()",
       "id": "src_hooks_reportqueries_reportqueryoptions"
     },
@@ -8014,8 +8300,8 @@
       "source_file": "src/hooks/useDashboard.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "usedashboard.ts",
       "id": "src_hooks_usedashboard"
     },
@@ -8025,8 +8311,8 @@
       "source_file": "src/hooks/useDashboard.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "dashboardkeys",
       "id": "src_hooks_usedashboard_dashboardkeys"
     },
@@ -8036,8 +8322,8 @@
       "source_file": "src/hooks/useDashboard.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "usedashboard()",
       "id": "src_hooks_usedashboard_usedashboard"
     },
@@ -8047,8 +8333,8 @@
       "source_file": "src/hooks/useReports.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "usereports.test.tsx",
       "id": "src_hooks_usereports_test"
     },
@@ -8058,8 +8344,8 @@
       "source_file": "src/hooks/useReports.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "usereports.ts",
       "id": "src_hooks_usereports"
     },
@@ -8080,8 +8366,8 @@
       "source_file": "src/hooks/useReports.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "usereport()",
       "id": "src_hooks_usereports_usereport"
     },
@@ -8091,8 +8377,8 @@
       "source_file": "src/hooks/useReports.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "useupdatereportreview()",
       "id": "src_hooks_usereports_useupdatereportreview"
     },
@@ -8146,8 +8432,8 @@
       "source_file": "src/main.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "main.tsx",
       "id": "src_main"
     },
@@ -8157,8 +8443,8 @@
       "source_file": "src/pages/CaseReviewPage.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "casereviewpage.test.tsx",
       "id": "src_pages_casereviewpage_test"
     },
@@ -8168,8 +8454,8 @@
       "source_file": "src/pages/CaseReviewPage.test.tsx",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "report",
       "id": "src_pages_casereviewpage_test_report"
     },
@@ -8179,8 +8465,8 @@
       "source_file": "src/pages/CaseReviewPage.test.tsx",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "queryresult()",
       "id": "src_pages_casereviewpage_test_queryresult"
     },
@@ -8190,8 +8476,8 @@
       "source_file": "src/pages/CaseReviewPage.test.tsx",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "mutationresult()",
       "id": "src_pages_casereviewpage_test_mutationresult"
     },
@@ -8201,8 +8487,8 @@
       "source_file": "src/pages/CaseReviewPage.test.tsx",
       "source_location": "L46",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "renderpage()",
       "id": "src_pages_casereviewpage_test_renderpage"
     },
@@ -8245,8 +8531,8 @@
       "source_file": "src/pages/CaseReviewPage.tsx",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "casereviewpage()",
       "id": "src_pages_casereviewpage_casereviewpage"
     },
@@ -8256,8 +8542,8 @@
       "source_file": "src/pages/DashboardPage.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardpage.test.tsx",
       "id": "src_pages_dashboardpage_test"
     },
@@ -8267,8 +8553,8 @@
       "source_file": "src/pages/DashboardPage.test.tsx",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "summary",
       "id": "src_pages_dashboardpage_test_summary"
     },
@@ -8278,8 +8564,8 @@
       "source_file": "src/pages/DashboardPage.test.tsx",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardresult()",
       "id": "src_pages_dashboardpage_test_dashboardresult"
     },
@@ -8289,8 +8575,8 @@
       "source_file": "src/pages/DashboardPage.test.tsx",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "renderdashboard()",
       "id": "src_pages_dashboardpage_test_renderdashboard"
     },
@@ -8300,8 +8586,8 @@
       "source_file": "src/pages/DashboardPage.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardpage.tsx",
       "id": "src_pages_dashboardpage"
     },
@@ -8311,8 +8597,8 @@
       "source_file": "src/pages/DashboardPage.tsx",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "formatrefreshtime()",
       "id": "src_pages_dashboardpage_formatrefreshtime"
     },
@@ -8322,8 +8608,8 @@
       "source_file": "src/pages/DashboardPage.tsx",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 74,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardpage()",
       "id": "src_pages_dashboardpage_dashboardpage"
     },
@@ -8333,8 +8619,8 @@
       "source_file": "src/pages/LoginPage.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "loginpage.tsx",
       "id": "src_pages_loginpage"
     },
@@ -8344,8 +8630,8 @@
       "source_file": "src/pages/LoginPage.tsx",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "loginlocationstate",
       "id": "src_pages_loginpage_loginlocationstate"
     },
@@ -8355,8 +8641,8 @@
       "source_file": "src/pages/LoginPage.tsx",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "safedestination()",
       "id": "src_pages_loginpage_safedestination"
     },
@@ -8366,8 +8652,8 @@
       "source_file": "src/pages/LoginPage.tsx",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "loginpage()",
       "id": "src_pages_loginpage_loginpage"
     },
@@ -8377,8 +8663,8 @@
       "source_file": "src/pages/NotFoundPage.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "notfoundpage.tsx",
       "id": "src_pages_notfoundpage"
     },
@@ -8388,8 +8674,8 @@
       "source_file": "src/pages/NotFoundPage.tsx",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 60,
+      "community_name": "MobileReportUploadTest",
       "norm_label": "notfoundpage()",
       "id": "src_pages_notfoundpage_notfoundpage"
     },
@@ -8399,8 +8685,8 @@
       "source_file": "src/pages/SubmittedReportsPage.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "submittedreportspage.test.tsx",
       "id": "src_pages_submittedreportspage_test"
     },
@@ -8410,8 +8696,8 @@
       "source_file": "src/pages/SubmittedReportsPage.test.tsx",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "pagedata",
       "id": "src_pages_submittedreportspage_test_pagedata"
     },
@@ -8421,8 +8707,8 @@
       "source_file": "src/pages/SubmittedReportsPage.test.tsx",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "reportsresult()",
       "id": "src_pages_submittedreportspage_test_reportsresult"
     },
@@ -8432,8 +8718,8 @@
       "source_file": "src/pages/SubmittedReportsPage.test.tsx",
       "source_location": "L45",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "locationprobe()",
       "id": "src_pages_submittedreportspage_test_locationprobe"
     },
@@ -8443,8 +8729,8 @@
       "source_file": "src/pages/SubmittedReportsPage.test.tsx",
       "source_location": "L50",
       "_origin": "ast",
-      "community": 60,
-      "community_name": "MobileReportUploadTest",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "renderpage()",
       "id": "src_pages_submittedreportspage_test_renderpage"
     },
@@ -8454,8 +8740,8 @@
       "source_file": "src/pages/SubmittedReportsPage.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "submittedreportspage.tsx",
       "id": "src_pages_submittedreportspage"
     },
@@ -8465,8 +8751,8 @@
       "source_file": "src/pages/SubmittedReportsPage.tsx",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "filterkey",
       "id": "src_pages_submittedreportspage_filterkey"
     },
@@ -8476,8 +8762,8 @@
       "source_file": "src/pages/SubmittedReportsPage.tsx",
       "source_location": "L45",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "isinvalidqueryerror()",
       "id": "src_pages_submittedreportspage_isinvalidqueryerror"
     },
@@ -8487,8 +8773,8 @@
       "source_file": "src/pages/SubmittedReportsPage.tsx",
       "source_location": "L49",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "isaccessdeniederror()",
       "id": "src_pages_submittedreportspage_isaccessdeniederror"
     },
@@ -8498,8 +8784,8 @@
       "source_file": "src/pages/SubmittedReportsPage.tsx",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "isratelimitederror()",
       "id": "src_pages_submittedreportspage_isratelimitederror"
     },
@@ -8509,8 +8795,8 @@
       "source_file": "src/pages/SubmittedReportsPage.tsx",
       "source_location": "L57",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "ismalformeddataerror()",
       "id": "src_pages_submittedreportspage_ismalformeddataerror"
     },
@@ -8520,8 +8806,8 @@
       "source_file": "src/pages/SubmittedReportsPage.tsx",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 9,
-      "community_name": "Application Routing Shell",
+      "community": 63,
+      "community_name": "AppServiceProvider.php",
       "norm_label": "submittedreportspage()",
       "id": "src_pages_submittedreportspage_submittedreportspage"
     },
@@ -8531,8 +8817,8 @@
       "source_file": "src/pages/reportListUrlState.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "reportlisturlstate.test.ts",
       "id": "src_pages_reportlisturlstate_test"
     },
@@ -8542,8 +8828,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "reportlisturlstate.ts",
       "id": "src_pages_reportlisturlstate"
     },
@@ -8553,8 +8839,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "statusschema",
       "id": "src_pages_reportlisturlstate_statusschema"
     },
@@ -8564,8 +8850,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "diseaseschema",
       "id": "src_pages_reportlisturlstate_diseaseschema"
     },
@@ -8575,8 +8861,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "sortschema",
       "id": "src_pages_reportlisturlstate_sortschema"
     },
@@ -8586,8 +8872,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "dateschema",
       "id": "src_pages_reportlisturlstate_dateschema"
     },
@@ -8597,8 +8883,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "reportlisturlstate",
       "id": "src_pages_reportlisturlstate_reportlisturlstate"
     },
@@ -8608,8 +8894,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "optionalvalue()",
       "id": "src_pages_reportlisturlstate_optionalvalue"
     },
@@ -8619,8 +8905,8 @@
       "source_file": "src/pages/reportListUrlState.ts",
       "source_location": "L37",
       "_origin": "ast",
-      "community": 2,
-      "community_name": "Page Layout Components",
+      "community": 75,
+      "community_name": "reportListUrlState.ts",
       "norm_label": "parsereportlisturl()",
       "id": "src_pages_reportlisturlstate_parsereportlisturl"
     },
@@ -8685,8 +8971,8 @@
       "source_file": "src/services/reports.service.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportsrepository",
       "id": "src_services_reports_service_reportsrepository"
     },
@@ -8707,8 +8993,8 @@
       "source_file": "src/test/fixtures.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "fixtures.ts",
       "id": "src_test_fixtures"
     },
@@ -8718,8 +9004,8 @@
       "source_file": "src/test/fixtures.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "reportlistitemdto",
       "id": "src_test_fixtures_reportlistitemdto"
     },
@@ -8729,8 +9015,8 @@
       "source_file": "src/test/fixtures.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 2,
+      "community_name": "Page Layout Components",
       "norm_label": "reportdetaildto",
       "id": "src_test_fixtures_reportdetaildto"
     },
@@ -8740,8 +9026,8 @@
       "source_file": "src/test/fixtures.ts",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 63,
-      "community_name": "AppServiceProvider.php",
+      "community": 69,
+      "community_name": "queryClient.ts",
       "norm_label": "paginatedreportsdto",
       "id": "src_test_fixtures_paginatedreportsdto"
     },
@@ -9294,259 +9580,6 @@
       "community_name": "Tooling TypeScript Config",
       "norm_label": "vite.config.ts",
       "id": "ref_vite_config_ts"
-    },
-    {
-      "label": "IMPLEMENTATION_BOARD.md",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "implementation_board.md",
-      "id": "implementation_board"
-    },
-    {
-      "label": "CaneGuard Monorepo Implementation Board",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "caneguard monorepo implementation board",
-      "id": "implementation_board_caneguard_monorepo_implementation_board"
-    },
-    {
-      "label": "Phase cards",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L6",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase cards",
-      "id": "implementation_board_phase_cards"
-    },
-    {
-      "label": "Phase 0 baseline",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L21",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 0 baseline",
-      "id": "implementation_board_phase_0_baseline"
-    },
-    {
-      "label": "Existing user work preserved",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L31",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "existing user work preserved",
-      "id": "implementation_board_existing_user_work_preserved"
-    },
-    {
-      "label": "Tool baseline",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L37",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "tool baseline",
-      "id": "implementation_board_tool_baseline"
-    },
-    {
-      "label": "Web baseline checks",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L46",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "web baseline checks",
-      "id": "implementation_board_web_baseline_checks"
-    },
-    {
-      "label": "Phase 1 foundation",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L52",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 1 foundation",
-      "id": "implementation_board_phase_1_foundation"
-    },
-    {
-      "label": "Phase 1 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L69",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 1 verification",
-      "id": "implementation_board_phase_1_verification"
-    },
-    {
-      "label": "Phase 2 report API and storage",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L86",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 2 report api and storage",
-      "id": "implementation_board_phase_2_report_api_and_storage"
-    },
-    {
-      "label": "Phase 2 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L109",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 2 verification",
-      "id": "implementation_board_phase_2_verification"
-    },
-    {
-      "label": "Phase 3 web API infrastructure",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L124",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 3 web api infrastructure",
-      "id": "implementation_board_phase_3_web_api_infrastructure"
-    },
-    {
-      "label": "Phase 3 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L139",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 3 verification",
-      "id": "implementation_board_phase_3_verification"
-    },
-    {
-      "label": "Phase 4 authentication and protected routes",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L148",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 4 authentication and protected routes",
-      "id": "implementation_board_phase_4_authentication_and_protected_routes"
-    },
-    {
-      "label": "Phase 4 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L164",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 4 verification",
-      "id": "implementation_board_phase_4_verification"
-    },
-    {
-      "label": "Phase 5 dashboard overview",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L175",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 5 dashboard overview",
-      "id": "implementation_board_phase_5_dashboard_overview"
-    },
-    {
-      "label": "Phase 5 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L186",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 5 verification",
-      "id": "implementation_board_phase_5_verification"
-    },
-    {
-      "label": "Phase 6 submitted reports list",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L193",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 6 submitted reports list",
-      "id": "implementation_board_phase_6_submitted_reports_list"
-    },
-    {
-      "label": "Phase 6 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L217",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 6 verification",
-      "id": "implementation_board_phase_6_verification"
-    },
-    {
-      "label": "Phase 7 report detail, image, and review",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L231",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 7 report detail, image, and review",
-      "id": "implementation_board_phase_7_report_detail_image_and_review"
-    },
-    {
-      "label": "Phase 7 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L250",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 7 verification",
-      "id": "implementation_board_phase_7_verification"
-    },
-    {
-      "label": "Phase 8 refresh, errors, and resilience",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L264",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 8 refresh, errors, and resilience",
-      "id": "implementation_board_phase_8_refresh_errors_and_resilience"
-    },
-    {
-      "label": "Phase 8 verification",
-      "file_type": "document",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L283",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "Phase 0 baseline",
-      "norm_label": "phase 8 verification",
-      "id": "implementation_board_phase_8_verification"
     },
     {
       "label": "CHANGELOG.md",
@@ -11472,24 +11505,276 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "api/database/seeders/ReportSeeder.php",
-      "source_location": "L13",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L1",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "api_database_seeders_reportseeder",
-      "target": "api_database_seeders_reportseeder_reportseeder",
+      "source": "implementation_board",
+      "target": "implementation_board_caneguard_monorepo_implementation_board",
       "confidence_score": 1.0
     },
     {
-      "relation": "imports",
-      "context": "import",
+      "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "api/database/seeders/ReportSeeder.php",
-      "source_location": "L8",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "api_database_seeders_reportseeder",
-      "target": "illuminate_database_seeder",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_0_baseline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L52",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_1_foundation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L86",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_2_report_api_and_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L124",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_3_web_api_infrastructure",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L148",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_4_authentication_and_protected_routes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L175",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_5_dashboard_overview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L193",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_6_submitted_reports_list",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L231",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_7_report_detail_image_and_review",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L264",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_8_refresh_errors_and_resilience",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L292",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_9_testing_demo_and_release",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_caneguard_monorepo_implementation_board",
+      "target": "implementation_board_phase_cards",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_0_baseline",
+      "target": "implementation_board_existing_user_work_preserved",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L37",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_0_baseline",
+      "target": "implementation_board_tool_baseline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_0_baseline",
+      "target": "implementation_board_web_baseline_checks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L69",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_1_foundation",
+      "target": "implementation_board_phase_1_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_2_report_api_and_storage",
+      "target": "implementation_board_phase_2_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L139",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_3_web_api_infrastructure",
+      "target": "implementation_board_phase_3_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L164",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_4_authentication_and_protected_routes",
+      "target": "implementation_board_phase_4_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L186",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_5_dashboard_overview",
+      "target": "implementation_board_phase_5_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L217",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_6_submitted_reports_list",
+      "target": "implementation_board_phase_6_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L250",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_7_report_detail_image_and_review",
+      "target": "implementation_board_phase_7_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L283",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_8_refresh_errors_and_resilience",
+      "target": "implementation_board_phase_8_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L340",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_9_testing_demo_and_release",
+      "target": "implementation_board_accepted_manual_release_follow_ups",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IMPLEMENTATION_BOARD.md",
+      "source_location": "L317",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "implementation_board_phase_9_testing_demo_and_release",
+      "target": "implementation_board_phase_9_verification",
       "confidence_score": 1.0
     },
     {
@@ -11500,9 +11785,9 @@
       "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_database_seeders_reportseeder",
-      "target": "api_app_models_report",
-      "confidence_score": 1.0
+      "target": "api_app_models_report"
     },
     {
       "relation": "imports",
@@ -11512,9 +11797,32 @@
       "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_database_seeders_reportseeder",
-      "target": "api_app_models_user",
-      "confidence_score": 1.0
+      "target": "api_app_models_user"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/database/seeders/ReportSeeder.php",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_database_seeders_reportseeder",
+      "target": "api_database_seeders_reportseeder_reportseeder"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/database/seeders/ReportSeeder.php",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_database_seeders_reportseeder",
+      "target": "illuminate_database_seeder"
     },
     {
       "relation": "method",
@@ -11523,9 +11831,9 @@
       "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_database_seeders_reportseeder_reportseeder",
-      "target": "api_database_seeders_reportseeder_reportseeder_run",
-      "confidence_score": 1.0
+      "target": "api_database_seeders_reportseeder_reportseeder_run"
     },
     {
       "relation": "inherits",
@@ -11534,9 +11842,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_database_seeders_reportseeder_reportseeder",
-      "target": "illuminate_database_seeder",
-      "confidence_score": 1.0
+      "target": "illuminate_database_seeder"
     },
     {
       "relation": "contains",
@@ -11545,32 +11853,9 @@
       "source_location": "L1",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_database_seeders_assets_readme",
-      "target": "api_database_seeders_assets_readme_synthetic_rehearsal_image",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/tests/Feature/ReportApiTest.php",
-      "source_location": "L15",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_tests_feature_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "api/tests/Feature/ReportApiTest.php",
-      "source_location": "L8",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_tests_feature_reportapitest",
-      "target": "illuminate_foundation_testing_refreshdatabase",
-      "confidence_score": 1.0
+      "target": "api_database_seeders_assets_readme_synthetic_rehearsal_image"
     },
     {
       "relation": "imports",
@@ -11580,9 +11865,21 @@
       "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest",
-      "target": "api_app_models_report",
-      "confidence_score": 1.0
+      "target": "api_app_models_report"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/tests/Feature/ReportApiTest.php",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_tests_feature_reportapitest",
+      "target": "api_app_models_user"
     },
     {
       "relation": "imports",
@@ -11592,9 +11889,32 @@
       "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest",
-      "target": "api_config_sanctum",
-      "confidence_score": 1.0
+      "target": "api_config_sanctum"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/tests/Feature/ReportApiTest.php",
+      "source_location": "L15",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_tests_feature_reportapitest",
+      "target": "api_tests_feature_reportapitest_reportapitest"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/tests/Feature/ReportApiTest.php",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_tests_feature_reportapitest",
+      "target": "illuminate_foundation_testing_refreshdatabase"
     },
     {
       "relation": "imports",
@@ -11604,21 +11924,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest",
-      "target": "tests_testcase",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "api/tests/Feature/ReportApiTest.php",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_tests_feature_reportapitest",
-      "target": "api_app_models_user",
-      "confidence_score": 1.0
+      "target": "tests_testcase"
     },
     {
       "relation": "method",
@@ -11627,9 +11935,9 @@
       "source_location": "L215",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_dashboard_returns_all_status_counts_and_five_recent_reports",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_dashboard_returns_all_status_counts_and_five_recent_reports"
     },
     {
       "relation": "method",
@@ -11638,9 +11946,9 @@
       "source_location": "L148",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_report_detail_uses_uuid_and_returns_every_contract_section",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_report_detail_uses_uuid_and_returns_every_contract_section"
     },
     {
       "relation": "method",
@@ -11649,9 +11957,9 @@
       "source_location": "L177",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_report_image_is_private_and_policy_authorized",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_report_image_is_private_and_policy_authorized"
     },
     {
       "relation": "method",
@@ -11660,9 +11968,9 @@
       "source_location": "L123",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_report_list_rejects_invalid_query_values",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_report_list_rejects_invalid_query_values"
     },
     {
       "relation": "method",
@@ -11671,9 +11979,9 @@
       "source_location": "L243",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_report_queue_rejects_unauthenticated_and_wrong_role_users",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_report_queue_rejects_unauthenticated_and_wrong_role_users"
     },
     {
       "relation": "method",
@@ -11682,9 +11990,9 @@
       "source_location": "L103",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_report_search_treats_like_wildcards_as_literal_text",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_report_search_treats_like_wildcards_as_literal_text"
     },
     {
       "relation": "method",
@@ -11693,9 +12001,9 @@
       "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_reports_are_searchable_filterable_sorted_and_paginated",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_reports_are_searchable_filterable_sorted_and_paginated"
     },
     {
       "relation": "method",
@@ -11704,9 +12012,9 @@
       "source_location": "L256",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "api_tests_feature_reportapitest_reportapitest_test_unexpected_api_errors_do_not_leak_exception_details",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportapitest_reportapitest_test_unexpected_api_errors_do_not_leak_exception_details"
     },
     {
       "relation": "mixes_in",
@@ -11715,9 +12023,9 @@
       "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "illuminate_foundation_testing_refreshdatabase",
-      "confidence_score": 1.0
+      "target": "illuminate_foundation_testing_refreshdatabase"
     },
     {
       "relation": "inherits",
@@ -11726,20 +12034,33 @@
       "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportapitest_reportapitest",
-      "target": "tests_testcase",
-      "confidence_score": 1.0
+      "target": "tests_testcase"
     },
     {
-      "relation": "contains",
+      "relation": "imports",
+      "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest",
-      "confidence_score": 1.0
+      "target": "api_app_models_report"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_tests_feature_reportschemaandseedertest",
+      "target": "api_app_models_reportclassscore"
     },
     {
       "relation": "imports",
@@ -11749,9 +12070,20 @@
       "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_database_seeders_databaseseeder",
-      "confidence_score": 1.0
+      "target": "api_database_seeders_databaseseeder"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_tests_feature_reportschemaandseedertest",
+      "target": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest"
     },
     {
       "relation": "imports",
@@ -11761,33 +12093,9 @@
       "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "illuminate_foundation_testing_refreshdatabase",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L5",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_app_models_report",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_app_models_reportclassscore",
-      "confidence_score": 1.0
+      "target": "illuminate_foundation_testing_refreshdatabase"
     },
     {
       "relation": "imports",
@@ -11797,9 +12105,9 @@
       "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "tests_testcase",
-      "confidence_score": 1.0
+      "target": "tests_testcase"
     },
     {
       "relation": "method",
@@ -11808,9 +12116,9 @@
       "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest",
-      "target": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_schema_contains_the_planned_tables_and_columns",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_schema_contains_the_planned_tables_and_columns"
     },
     {
       "relation": "method",
@@ -11819,9 +12127,9 @@
       "source_location": "L52",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest",
-      "target": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_creates_twelve_varied_reports_with_valid_images",
-      "confidence_score": 1.0
+      "target": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_creates_twelve_varied_reports_with_valid_images"
     },
     {
       "relation": "mixes_in",
@@ -11830,9 +12138,9 @@
       "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest",
-      "target": "illuminate_foundation_testing_refreshdatabase",
-      "confidence_score": 1.0
+      "target": "illuminate_foundation_testing_refreshdatabase"
     },
     {
       "relation": "inherits",
@@ -11841,20 +12149,33 @@
       "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest",
-      "target": "tests_testcase",
-      "confidence_score": 1.0
+      "target": "tests_testcase"
     },
     {
-      "relation": "contains",
+      "relation": "imports",
+      "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
-      "source_location": "L15",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest",
-      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
-      "confidence_score": 1.0
+      "target": "api_app_models_report"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_tests_mysql_releasedemoflowmysqltest",
+      "target": "api_app_models_user"
     },
     {
       "relation": "imports",
@@ -11864,9 +12185,20 @@
       "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest",
-      "target": "api_config_auth",
-      "confidence_score": 1.0
+      "target": "api_config_auth"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
+      "source_location": "L15",
+      "weight": 1.0,
+      "_origin": "ast",
+      "confidence_score": 1.0,
+      "source": "api_tests_mysql_releasedemoflowmysqltest",
+      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest"
     },
     {
       "relation": "imports",
@@ -11876,21 +12208,9 @@
       "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest",
-      "target": "illuminate_foundation_testing_databasetransactions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
-      "source_location": "L5",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_tests_mysql_releasedemoflowmysqltest",
-      "target": "api_app_models_report",
-      "confidence_score": 1.0
+      "target": "illuminate_foundation_testing_databasetransactions"
     },
     {
       "relation": "imports",
@@ -11900,21 +12220,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest",
-      "target": "tests_testcase",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "api/tests/MySql/ReleaseDemoFlowMySqlTest.php",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_tests_mysql_releasedemoflowmysqltest",
-      "target": "api_app_models_user",
-      "confidence_score": 1.0
+      "target": "tests_testcase"
     },
     {
       "relation": "method",
@@ -11923,9 +12231,9 @@
       "source_location": "L159",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
-      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_payload",
-      "confidence_score": 1.0
+      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_payload"
     },
     {
       "relation": "method",
@@ -11934,9 +12242,9 @@
       "source_location": "L136",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
-      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_teardown",
-      "confidence_score": 1.0
+      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_teardown"
     },
     {
       "relation": "method",
@@ -11945,9 +12253,9 @@
       "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
-      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_test_release_demo_flow_persists_a_review_across_requests",
-      "confidence_score": 1.0
+      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_test_release_demo_flow_persists_a_review_across_requests"
     },
     {
       "relation": "mixes_in",
@@ -11956,9 +12264,9 @@
       "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
-      "target": "illuminate_foundation_testing_databasetransactions",
-      "confidence_score": 1.0
+      "target": "illuminate_foundation_testing_databasetransactions"
     },
     {
       "relation": "inherits",
@@ -11967,9 +12275,9 @@
       "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
-      "target": "tests_testcase",
-      "confidence_score": 1.0
+      "target": "tests_testcase"
     },
     {
       "relation": "calls",
@@ -11979,9 +12287,9 @@
       "source_location": "L69",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_test_release_demo_flow_persists_a_review_across_requests",
-      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_payload",
-      "confidence_score": 1.0
+      "target": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_payload"
     },
     {
       "relation": "imports",
@@ -29990,248 +30298,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board",
-      "target": "implementation_board_caneguard_monorepo_implementation_board"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L21",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_0_baseline"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L52",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_1_foundation"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L86",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_2_report_api_and_storage"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L124",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_3_web_api_infrastructure"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L148",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_4_authentication_and_protected_routes"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L175",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_5_dashboard_overview"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L193",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_6_submitted_reports_list"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L231",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_7_report_detail_image_and_review"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L264",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_8_refresh_errors_and_resilience"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_caneguard_monorepo_implementation_board",
-      "target": "implementation_board_phase_cards"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L31",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_0_baseline",
-      "target": "implementation_board_existing_user_work_preserved"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L37",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_0_baseline",
-      "target": "implementation_board_tool_baseline"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L46",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_0_baseline",
-      "target": "implementation_board_web_baseline_checks"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L69",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_1_foundation",
-      "target": "implementation_board_phase_1_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L109",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_2_report_api_and_storage",
-      "target": "implementation_board_phase_2_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L139",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_3_web_api_infrastructure",
-      "target": "implementation_board_phase_3_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L164",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_4_authentication_and_protected_routes",
-      "target": "implementation_board_phase_4_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L186",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_5_dashboard_overview",
-      "target": "implementation_board_phase_5_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L217",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_6_submitted_reports_list",
-      "target": "implementation_board_phase_6_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L250",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_7_report_detail_image_and_review",
-      "target": "implementation_board_phase_7_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "IMPLEMENTATION_BOARD.md",
-      "source_location": "L283",
-      "weight": 1.0,
-      "_origin": "ast",
-      "confidence_score": 1.0,
-      "source": "implementation_board_phase_8_refresh_errors_and_resilience",
-      "target": "implementation_board_phase_8_verification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "api/CHANGELOG.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -31745,5 +31811,5 @@
       "source_file": "src/assets/vite.svg"
     }
   ],
-  "built_at_commit": "8c4245263d4fa87f5deed84bb21fe2254b813958"
+  "built_at_commit": "56a6d94060bf9cf19dd889b27778df1d6b04e5df"
 }

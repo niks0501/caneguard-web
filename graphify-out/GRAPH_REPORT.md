@@ -1,16 +1,16 @@
 # Graph Report - caneguard-web  (2026-07-27)
 
 ## Corpus Check
-- 207 files · ~131,367 words
+- 184 files · ~122,561 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1016 nodes · 1758 edges · 81 communities (71 shown, 10 thin omitted)
+- 1018 nodes · 1761 edges · 83 communities (71 shown, 12 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.82)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `56a6d940`
+- Built from commit: `89a30e9e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -64,7 +64,9 @@
 - DashboardPage.tsx
 - reportListUrlState.ts
 - SymptomResponseItem.tsx
+- ReportApiTest
 - AppServiceProvider.php
+- DatabaseSeeder.php
 - Controller
 - assets/README.md
 
@@ -72,8 +74,8 @@
 1. `Report` - 48 edges
 2. `User` - 47 edges
 3. `Release Notes` - 43 edges
-4. `Controller` - 22 edges
-5. `TestCase` - 22 edges
+4. `TestCase` - 23 edges
+5. `Controller` - 22 edges
 6. `documents` - 21 edges
 7. `CaneGuard Web Monorepo Implementation Plan` - 20 edges
 8. `scripts` - 18 edges
@@ -104,7 +106,7 @@
 - **React Atomic Symbol Composition** — src_assets_react_logo, src_assets_react_atomic_orbits, src_assets_react_central_nucleus, src_assets_react_cyan_brand_color [INFERRED 0.95]
 - **Vite Visual Identity Composition** — src_assets_vite_lightning_bolt, src_assets_vite_parentheses, src_assets_vite_glow_effect [INFERRED 0.95]
 
-## Communities (81 total, 10 thin omitted)
+## Communities (83 total, 12 thin omitted)
 
 ### Community 0 - "Plan and Agent Governance"
 Cohesion: 0.06
@@ -116,7 +118,7 @@ Nodes (30): api_location, backend, database, documents, mobile_implementation_in
 
 ### Community 2 - "Page Layout Components"
 Cohesion: 0.06
-Nodes (51): ApiDashboardRepository, ApiReportsRepository, sortValues, toQueryParams(), mapDashboard(), humanize(), mapPaginationMeta(), mapReportDetail() (+43 more)
+Nodes (53): webUser, ApiDashboardRepository, ApiReportsRepository, sortValues, toQueryParams(), mapDashboard(), humanize(), mapPaginationMeta() (+45 more)
 
 ### Community 3 - "Shared UI Controls"
 Cohesion: 0.05
@@ -131,8 +133,8 @@ Cohesion: 0.08
 Nodes (23): DOM, src, vite/client, compilerOptions, allowArbitraryExtensions, allowImportingTsExtensions, erasableSyntaxOnly, jsx (+15 more)
 
 ### Community 6 - "Report Data Workflow"
-Cohesion: 0.08
-Nodes (10): ReportClassScore, ReportQualityWarning, ReportSymptom, ReportApiTest, ReportSchemaAndSeederTest, ReleaseDemoFlowMySqlTest, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo (+2 more)
+Cohesion: 0.23
+Nodes (5): ReportClassScore, ReportQualityWarning, ReportSymptom, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo
 
 ### Community 7 - "NPM Project Config"
 Cohesion: 0.05
@@ -143,8 +145,8 @@ Cohesion: 0.10
 Nodes (19): node, vite.config.ts, compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection (+11 more)
 
 ### Community 9 - "Application Routing Shell"
-Cohesion: 0.15
-Nodes (21): DashboardRecentReports(), DetailField(), PageContent(), PageHeader(), ConfidenceDisplay(), EvidenceThumbnail(), DiseaseBadge(), ReviewStatusBadge() (+13 more)
+Cohesion: 0.12
+Nodes (25): DashboardRecentReports(), DetailField(), PageContent(), PageHeader(), ConfidenceDisplay(), EvidenceThumbnail(), DiseaseBadge(), ReviewStatusBadge() (+17 more)
 
 ### Community 10 - "Frontend Architecture Docs"
 Cohesion: 0.21
@@ -207,12 +209,12 @@ Cohesion: 0.29
 Nodes (4): ReportListResource, ReportStatusResource, Illuminate\Http\Request, Illuminate\Http\Resources\Json\JsonResource
 
 ### Community 57 - "TestCase"
-Cohesion: 0.09
-Nodes (9): DemoUserSeederTest, ExampleTest, HealthEndpointTest, MobileReportStatusTest, SanctumInstallationTest, SecureReportImagesCommandTest, TestCase, Illuminate\Foundation\Testing\RefreshDatabase (+1 more)
+Cohesion: 0.10
+Nodes (9): DemoUserSeederTest, ExampleTest, HealthEndpointTest, SanctumInstallationTest, SecureReportImagesCommandTest, TestCase, Illuminate\Foundation\Application, Illuminate\Foundation\Testing\RefreshDatabase (+1 more)
 
 ### Community 58 - "User"
-Cohesion: 0.12
-Nodes (5): User, ReportPolicy, MobileReportUploadTest, WebAuthenticationTest, Illuminate\Foundation\Auth\User
+Cohesion: 0.11
+Nodes (5): User, ReportPolicy, MobileReportStatusTest, WebAuthenticationTest, Illuminate\Foundation\Auth\User
 
 ### Community 59 - "StoreReport"
 Cohesion: 0.25
@@ -220,19 +222,19 @@ Nodes (4): PersistReport, StoreReport, Illuminate\Http\UploadedFile, Throwable
 
 ### Community 60 - "MobileReportUploadTest"
 Cohesion: 0.20
-Nodes (14): routes, AuthContext, RequireAuth(), useAuth(), AppHeader(), initials(), AppShell(), AppSidebar() (+6 more)
+Nodes (13): routes, AuthContext, RequireAuth(), useAuth(), AppHeader(), initials(), AppShell(), AppSidebar() (+5 more)
 
 ### Community 61 - "DatabaseSeeder.php"
-Cohesion: 0.18
-Nodes (8): DatabaseSeeder, ReportSeeder, Illuminate\Database\Console\Seeds\WithoutModelEvents, Illuminate\Database\Eloquent\Concerns\HasUuids, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Database\Seeder, Illuminate\Notifications\Notifiable, Laravel\Sanctum\HasApiTokens
+Cohesion: 0.16
+Nodes (8): ReportSchemaAndSeederTest, ReleaseDemoFlowMySqlTest, Illuminate\Database\Eloquent\Concerns\HasUuids, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Foundation\Testing\DatabaseTransactions, Illuminate\Notifications\Notifiable, Laravel\Sanctum\HasApiTokens, Tests\TestCase
 
 ### Community 62 - "ReportMySqlSchemaTest"
 Cohesion: 0.47
 Nodes (3): SecureReportImages, Illuminate\Console\Command, Illuminate\Filesystem\FilesystemAdapter
 
 ### Community 63 - "AppServiceProvider.php"
-Cohesion: 0.15
-Nodes (16): SearchInput(), SearchInputProps, SelectFilter(), SelectFilterProps, TextArea(), TextAreaProps, Pagination(), PaginationProps (+8 more)
+Cohesion: 0.10
+Nodes (24): SearchInput(), SearchInputProps, SelectFilter(), SelectFilterProps, TextArea(), TextAreaProps, Pagination(), PaginationProps (+16 more)
 
 ### Community 67 - "DashboardPage.tsx"
 Cohesion: 0.21
@@ -243,8 +245,8 @@ Cohesion: 0.32
 Nodes (3): MobileReportStatusController, ReportStatusesRequest, Illuminate\Http\Resources\Json\AnonymousResourceCollection
 
 ### Community 69 - "queryClient.ts"
-Cohesion: 0.05
-Nodes (49): ApiError, errorPayloadSchema, toApiError(), axiosClient, createAxiosClient(), App(), AppProviders(), createQueryClient() (+41 more)
+Cohesion: 0.08
+Nodes (36): toApiError(), axiosClient, createAxiosClient(), App(), AppProviders(), queryClient, AppRouter(), getCurrentUser() (+28 more)
 
 ### Community 70 - "CaseReviewPage.tsx"
 Cohesion: 0.32
@@ -259,16 +261,16 @@ Cohesion: 0.32
 Nodes (3): ReviewReportController, ReviewReportRequest, ReportResource
 
 ### Community 74 - "DashboardPage.tsx"
-Cohesion: 0.13
-Nodes (14): SecondaryMetric(), MetricCard(), Button(), ButtonProps, ButtonVariant, EmptyState(), ErrorState(), ImagePendingState() (+6 more)
+Cohesion: 0.15
+Nodes (13): SecondaryMetric(), MetricCard(), Button(), ButtonProps, ButtonVariant, EmptyState(), ErrorState(), LoadingState() (+5 more)
 
 ### Community 75 - "reportListUrlState.ts"
-Cohesion: 0.28
-Nodes (7): dateSchema, diseaseSchema, optionalValue(), parseReportListUrl(), ReportListUrlState, sortSchema, statusSchema
+Cohesion: 0.18
+Nodes (11): ApiError, errorPayloadSchema, createQueryClient(), isTransientServerError(), shouldRetryQuery(), ServerStatus(), ServerStatusValue, queryClient() (+3 more)
 
-### Community 76 - "SymptomResponseItem.tsx"
-Cohesion: 0.50
-Nodes (3): answerLabels, SymptomResponseItem(), SymptomResponse
+### Community 79 - "DatabaseSeeder.php"
+Cohesion: 0.36
+Nodes (4): DatabaseSeeder, ReportSeeder, Illuminate\Database\Console\Seeds\WithoutModelEvents, Illuminate\Database\Seeder
 
 ### Community 80 - "Controller"
 Cohesion: 0.43
@@ -277,17 +279,17 @@ Nodes (4): ReportImageController, Controller, Illuminate\Foundation\Auth\Access\
 ## Knowledge Gaps
 - **296 isolated node(s):** `Phase cards`, `Existing user work preserved`, `Tool baseline`, `Web baseline checks`, `Phase 1 verification` (+291 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Report` connect `User` to `DashboardPage.tsx`, `FormControls.tsx`, `Report Data Workflow`, `Pagination.tsx`, `StoreReport`, `MetricCard.tsx`, `Frontend Architecture Docs`, `Controller`, `TestCase`, `User`, `HealthController`, `DatabaseSeeder.php`, `ReportMySqlSchemaTest`?**
+- **Why does `Report` connect `User` to `DashboardPage.tsx`, `FormControls.tsx`, `Report Data Workflow`, `Pagination.tsx`, `StoreReport`, `MetricCard.tsx`, `Frontend Architecture Docs`, `SymptomResponseItem.tsx`, `Controller`, `TestCase`, `User`, `HealthController`, `DatabaseSeeder.php`, `ReportMySqlSchemaTest`?**
   _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `User` connect `User` to `Frontend Architecture Docs`, `User`, `StoreReport`, `DatabaseSeeder.php`, `TestCase`?**
+- **Why does `User` connect `User` to `Frontend Architecture Docs`, `SymptomResponseItem.tsx`, `DatabaseSeeder.php`, `User`, `StoreReport`, `DatabaseSeeder.php`, `TestCase`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `TestCase` connect `TestCase` to `HealthEndpointTest`, `SymptomResponseItem.tsx`, `ApiReportsRepository.ts`, `User`, `User`, `StoreReport`, `DatabaseSeeder.php`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._
-- **Why does `ApiError` connect `queryClient.ts` to `Page Layout Components`, `Application Routing Shell`, `DashboardPage.tsx`, `MobileReportUploadTest`, `AppServiceProvider.php`?**
-  _High betweenness centrality (0.010) - this node is a cross-community bridge._
 - **Are the 20 inferred relationships involving `Report` (e.g. with `.handle()` and `.handle()`) actually correct?**
   _`Report` has 20 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 24 inferred relationships involving `User` (e.g. with `.definition()` and `.run()`) actually correct?**
