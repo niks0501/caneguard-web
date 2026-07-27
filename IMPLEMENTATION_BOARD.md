@@ -16,7 +16,7 @@ is marked complete only after its required automated checks pass.
 | 6 | Submitted reports list | Complete |
 | 7 | Report detail, image, and review | Complete |
 | 8 | Refresh, errors, and resilience | Complete |
-| 9 | Testing, demo, and release | Not started |
+| 9 | Testing, demo, and release | Complete with manual release follow-ups |
 
 ## Phase 0 baseline
 
@@ -288,3 +288,63 @@ is marked complete only after its required automated checks pass.
 - `just verify-targeted`: passed lint and typecheck
 - `git diff --check`: passed
 - Graphify was updated after the final code changes
+
+## Phase 9 testing, demo, and release
+
+- The final coverage matrix includes web environment, transport, schema,
+  mapping, authentication, protected routing, dashboard, report queue,
+  pagination, detail, review, invalidation, expiration, and resilience tests.
+- Laravel coverage includes authentication, role policy, upload validation and
+  idempotency, dashboard counts, filtering, sorting, real two-page pagination,
+  report detail, private storage, review persistence and ownership, and
+  resource contracts.
+- The local private disk no longer exposes Laravel's framework storage route.
+  Vite also denies API environment, configuration, private storage, and
+  bootstrap-cache paths, while presentation processes remain loopback-only.
+- The repeat-safe seeder creates 12 reports spanning all roles, review
+  statuses, disease labels, and multiple barangays. Its 1254×1254 synthetic
+  sugarcane image has recorded provenance and is explicitly not diagnostic
+  ground truth.
+- The committed Bruno collection provides the honest mobile-compatible
+  multipart submission client. Its bearer token is issued for 30 minutes,
+  stored outside the repository, and has exact revocation and cleanup steps.
+- The MySQL release test refuses any database other than `caneguard_test`,
+  uses a separate bearer client, exercises the entire reviewer flow, verifies
+  persistence, and guarantees transaction and uploaded-file cleanup.
+- Independent security review approved the settled implementation with no
+  actionable findings.
+
+### Phase 9 verification
+
+- `npm ci`: passed; 324 packages installed and the lockfile remained unchanged
+- `just verify-full`: passed
+- Web suite: 19 test files and 73 tests passed; lint, typecheck, and production
+  build passed
+- Laravel suite: 45 tests and 259 assertions passed; Pint passed
+- MySQL contract suite: 2 tests and 157 assertions passed
+- Two explicit whole-flow rehearsals: 1 test and 39 assertions passed in each
+  run
+- `composer validate --strict`: passed
+- `migrate:fresh --seed --force` ran only against the approved
+  `caneguard_test`; all nine migrations and the 12-report seeder passed
+- Migration audit reported all nine migrations as ran; route audit reported
+  14 application routes and no framework storage route
+- Vite loopback audit returned 403 for a real private image and `api/.env`,
+  while the application root returned 200
+- Gitleaks and Trivy completed; tracked npm and Composer lockfiles reported no
+  vulnerabilities
+- `git diff --check`, harness validation, source-bundle verification, archive
+  listings, image metadata checks, and recursive artifact checksums passed
+- Local implementation commit: `8c42452 chore: prepare release rehearsal`
+
+### Accepted manual release follow-ups
+
+- The user accepted the real-browser plus trusted-Bruno rehearsal and live
+  recording as a manual follow-up. The three retained screenshots are clearly
+  labeled mock-reference images and are not represented as live-client proof.
+- `/tmp/caneguard-release-final-H7B8iVlQ` is restrictive staging, not durable
+  backup storage. Before a live release, copy the refreshed artifact to
+  access-controlled durable storage, verify `SHA256SUMS` and `source.bundle`
+  there, and record its owner, retention, and restore responsibility.
+- These operator gates remain a release readiness gap; Phase 9 implementation
+  completion is not a production deployment approval.
