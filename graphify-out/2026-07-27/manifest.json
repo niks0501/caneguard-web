@@ -1,16 +1,11 @@
 {
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/manifest.json": {
-    "mtime": 1785076181.5353441,
-    "ast_hash": "09ee5e17f67e90240100c9f9f13cbed0",
-    "semantic_hash": "09ee5e17f67e90240100c9f9f13cbed0"
-  },
   "eslint.config.js": {
-    "mtime": 1785083579.1041234,
-    "ast_hash": "a093fb8ce53f961a71003c150ae213ed",
+    "mtime": 1785139256.1470747,
+    "ast_hash": "d4a1a3cbed4e032dd22ea2d07c56f869",
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1785083578.936255,
+    "mtime": 1785136386.767976,
     "ast_hash": "951e0dca42f54b65f20966f8bec9a973",
     "semantic_hash": ""
   },
@@ -185,124 +180,14 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1785066775.7354362,
-    "ast_hash": "c8499d2f5097062a7f35799e17ee3a30",
-    "semantic_hash": "c8499d2f5097062a7f35799e17ee3a30"
-  },
-  "README.md": {
-    "mtime": 1785090900.6990912,
-    "ast_hash": "22edce2c7784889426da1375bf64b32d",
+    "mtime": 1785131747.8416374,
+    "ast_hash": "9444a4aba63ea7b3bd242b1875d751c0",
     "semantic_hash": ""
   },
-  "docs/CaneGuard_Frontend_Implementation_Plan_Design_System.md": {
-    "mtime": 1784511867.4213357,
-    "ast_hash": "37d4c936455945e48aabc2c4f68f8dc3",
-    "semantic_hash": "37d4c936455945e48aabc2c4f68f8dc3"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/00_START_HERE.md": {
-    "mtime": 1785076181.471502,
-    "ast_hash": "3fbe2a0a34cec7b3fc70369c239ff5d2",
-    "semantic_hash": "3fbe2a0a34cec7b3fc70369c239ff5d2"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/01_MONOREPO_ARCHITECTURE_AND_DIRECTORY_RULES.md": {
-    "mtime": 1785076181.4794824,
-    "ast_hash": "b15b5ef9c76007573cf145d6ff9a68c7",
-    "semantic_hash": "b15b5ef9c76007573cf145d6ff9a68c7"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/02_LOCKED_TECHNICAL_DECISIONS.md": {
-    "mtime": 1785076181.4874625,
-    "ast_hash": "1bd57be946fc5f8407c006f9e57c602e",
-    "semantic_hash": "1bd57be946fc5f8407c006f9e57c602e"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/03_REPOSITORY_RESTRUCTURE_AND_MIGRATION_PLAN.md": {
-    "mtime": 1785076181.4954429,
-    "ast_hash": "13fc633f12dcbda926bbcd1f8d77b4cc",
-    "semantic_hash": "13fc633f12dcbda926bbcd1f8d77b4cc"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/04_TOOLS_PACKAGES_AND_COMMANDS.md": {
-    "mtime": 1785076181.499433,
-    "ast_hash": "1d07a4c200ad6e02e525416acf48bed4",
-    "semantic_hash": "1d07a4c200ad6e02e525416acf48bed4"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/05_MYSQL_SCHEMA_AND_DATA_RULES.md": {
-    "mtime": 1785076181.499433,
-    "ast_hash": "7408c9c32df46dfcd62a40659007f14e",
-    "semantic_hash": "7408c9c32df46dfcd62a40659007f14e"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/06_API_CONTRACT.md": {
-    "mtime": 1785076181.5074131,
-    "ast_hash": "543351a2b78327c12942501791d47558",
-    "semantic_hash": "543351a2b78327c12942501791d47558"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/07_PHASE_0_BASELINE_AND_SCOPE_LOCK.md": {
-    "mtime": 1785076181.5473144,
-    "ast_hash": "be3de40cc90f71655d58c6af26f4118f",
-    "semantic_hash": "be3de40cc90f71655d58c6af26f4118f"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/08_PHASE_1_CREATE_LARAVEL_INSIDE_EXISTING_REPOSITORY.md": {
-    "mtime": 1785076181.5473144,
-    "ast_hash": "e038def951eaaadb2528f46fb4358c9a",
-    "semantic_hash": "e038def951eaaadb2528f46fb4358c9a"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/09_PHASE_2_MYSQL_REPORT_API_AND_STORAGE.md": {
-    "mtime": 1785076181.5513046,
-    "ast_hash": "5416e5009ade03ebb0bfc50adb215fb9",
-    "semantic_hash": "5416e5009ade03ebb0bfc50adb215fb9"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/10_PHASE_3_WEB_API_INFRASTRUCTURE.md": {
-    "mtime": 1785076181.5114033,
-    "ast_hash": "a012d7edbd5892db7080a13b154c057d",
-    "semantic_hash": "a012d7edbd5892db7080a13b154c057d"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/11_PHASE_4_AUTHENTICATION_AND_PROTECTED_ROUTES.md": {
-    "mtime": 1785076181.5153935,
-    "ast_hash": "52a0de4b90856161b0093a1f8a39de5b",
-    "semantic_hash": "52a0de4b90856161b0093a1f8a39de5b"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/12_PHASE_5_DASHBOARD_OVERVIEW.md": {
-    "mtime": 1785076181.5193837,
-    "ast_hash": "d9fd80b21c3d83c97e83863c9347f292",
-    "semantic_hash": "d9fd80b21c3d83c97e83863c9347f292"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/13_PHASE_6_SUBMITTED_REPORTS_LIST.md": {
-    "mtime": 1785076181.5193837,
-    "ast_hash": "6d29019e80bf96a3b89531eb8175d151",
-    "semantic_hash": "6d29019e80bf96a3b89531eb8175d151"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/14_PHASE_7_REPORT_DETAIL_IMAGE_AND_REVIEW.md": {
-    "mtime": 1785076181.5233736,
-    "ast_hash": "ede815bf0320469e5c3a68be6296e42e",
-    "semantic_hash": "ede815bf0320469e5c3a68be6296e42e"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/15_PHASE_8_REFRESH_ERRORS_AND_RESILIENCE.md": {
-    "mtime": 1785076181.5233736,
-    "ast_hash": "7005d6d81353ebcf501b171d6e3bdeaa",
-    "semantic_hash": "7005d6d81353ebcf501b171d6e3bdeaa"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/16_PHASE_9_TESTING_DEMO_AND_RELEASE.md": {
-    "mtime": 1785076181.5273638,
-    "ast_hash": "6d5cb739236afda7a172eea890b51d41",
-    "semantic_hash": "6d5cb739236afda7a172eea890b51d41"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/17_AI_AGENT_OPERATING_PROTOCOL.md": {
-    "mtime": 1785076181.531354,
-    "ast_hash": "3b3812136955c31c67f0a8080c25ed58",
-    "semantic_hash": "3b3812136955c31c67f0a8080c25ed58"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/18_MASTER_DEFINITION_OF_DONE.md": {
-    "mtime": 1785076181.531354,
-    "ast_hash": "5482bd1a50b24f97a00b67e7a12b4436",
-    "semantic_hash": "5482bd1a50b24f97a00b67e7a12b4436"
-  },
-  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/19_OFFICIAL_REFERENCES.md": {
-    "mtime": 1785076181.5353441,
-    "ast_hash": "ed55f9a3eb4988f35b9a60fa36c970e8",
-    "semantic_hash": "ed55f9a3eb4988f35b9a60fa36c970e8"
-  },
-  "docs/HARNESS_SYNC.md": {
-    "mtime": 1784224299.3562949,
-    "ast_hash": "f9333282edac38ee09eb1bf597001792",
-    "semantic_hash": "f9333282edac38ee09eb1bf597001792"
+  "README.md": {
+    "mtime": 1785136386.767976,
+    "ast_hash": "22edce2c7784889426da1375bf64b32d",
+    "semantic_hash": ""
   },
   "index.html": {
     "mtime": 1784550861.821023,
@@ -725,8 +610,8 @@
     "semantic_hash": ""
   },
   "api/tests/TestCase.php": {
-    "mtime": 1785077378.87573,
-    "ast_hash": "7e567dc27e68d5b57bae16af07f68907",
+    "mtime": 1785139277.4303815,
+    "ast_hash": "68fc648273538310f6d5b9d18ffe6a43",
     "semantic_hash": ""
   },
   "api/tests/Unit/ExampleTest.php": {

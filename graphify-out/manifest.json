@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1785136386.767976,
-    "ast_hash": "951e0dca42f54b65f20966f8bec9a973",
+    "mtime": 1785163242.0674798,
+    "ast_hash": "6ee24813682acc3a6649242aa2cb51dd",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -245,8 +245,8 @@
     "semantic_hash": ""
   },
   "api/bootstrap/app.php": {
-    "mtime": 1785087001.4927251,
-    "ast_hash": "a577e46bae7c4a4c1074e76bd1709df8",
+    "mtime": 1785159510.5491166,
+    "ast_hash": "3ea324ffec9a26245509879b5e7e8080",
     "semantic_hash": ""
   },
   "api/bootstrap/providers.php": {
@@ -255,8 +255,8 @@
     "semantic_hash": ""
   },
   "api/composer.json": {
-    "mtime": 1785077606.630124,
-    "ast_hash": "d31e2ae21a126296f26134bd45b83272",
+    "mtime": 1785163242.204388,
+    "ast_hash": "7ae77f09d1ee8c5a874507192eebd009",
     "semantic_hash": ""
   },
   "api/config/app.php": {
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "api/routes/api.php": {
-    "mtime": 1785086773.9270902,
-    "ast_hash": "5bf8df5c629fb51f4d94a76dea3fc914",
+    "mtime": 1785159698.6483645,
+    "ast_hash": "581c6e79ff8cdf3e68173bdb28b65855",
     "semantic_hash": ""
   },
   "api/routes/console.php": {
@@ -455,7 +455,7 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/ApiFormRequest.php": {
-    "mtime": 1785080216.2966456,
+    "mtime": 1785163241.644207,
     "ast_hash": "1577d9f234e339060c40a6b9821e4c55",
     "semantic_hash": ""
   },
@@ -480,8 +480,8 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/StoreMobileReportRequest.php": {
-    "mtime": 1785080216.608308,
-    "ast_hash": "28db0cfa1a954f38c24e9cd2b70c356a",
+    "mtime": 1785163241.7732284,
+    "ast_hash": "b1624262f4708c53e0414908e6b3d788",
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportListResource.php": {
@@ -575,13 +575,13 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/MobileReportStatusTest.php": {
-    "mtime": 1785081585.8253639,
-    "ast_hash": "cf7b9378507a7689746f79b3cd097174",
+    "mtime": 1785159461.6767662,
+    "ast_hash": "bda973b95477736588511f41e5b9ced3",
     "semantic_hash": ""
   },
   "api/tests/Feature/MobileReportUploadTest.php": {
-    "mtime": 1785086809.3760445,
-    "ast_hash": "b1d899aeaf94b31a61eaeb513da378f4",
+    "mtime": 1785163241.9143455,
+    "ast_hash": "fdd469a924e8a756c34260cdf6fd891e",
     "semantic_hash": ""
   },
   "api/tests/Feature/ReportApiTest.php": {
@@ -962,6 +962,31 @@
   "api/database/seeders/assets/synthetic-sugarcane-rust.png": {
     "mtime": 1785090457.8926961,
     "ast_hash": "464a413581a4ba2dd9ebb166c1767c1e",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/MobileAuthController.php": {
+    "mtime": 1785159306.1849806,
+    "ast_hash": "054f8dc5f63c7bac9f7358e32118394b",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/MobileLoginRequest.php": {
+    "mtime": 1785159305.9748373,
+    "ast_hash": "c3b2386f1b2ab0527cbc34d228b4dc23",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/MobileSessionRequest.php": {
+    "mtime": 1785159306.0799396,
+    "ast_hash": "f331f90f2ca9921360ce43f6e44ea8ce",
+    "semantic_hash": ""
+  },
+  "api/server.php": {
+    "mtime": 1785163242.349349,
+    "ast_hash": "9b7fc39166aa408412fcfc6019d111e5",
+    "semantic_hash": ""
+  },
+  "api/tests/Feature/MobileAuthenticationTest.php": {
+    "mtime": 1785159858.694901,
+    "ast_hash": "d55ce9b55b64255f999f638970caad76",
     "semantic_hash": ""
   }
 }
