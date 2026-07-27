@@ -1,0 +1,180 @@
+{
+  "nodes": [
+    {
+      "id": "src_assets_vite_logo",
+      "label": "Vite Logo",
+      "file_type": "image",
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "src_assets_vite_brand",
+      "label": "Vite",
+      "file_type": "concept",
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "src_assets_vite_lightning_bolt",
+      "label": "Purple Lightning Bolt",
+      "file_type": "image",
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "src_assets_vite_parentheses",
+      "label": "Adaptive Parentheses",
+      "file_type": "image",
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "src_assets_vite_glow_effect",
+      "label": "Purple and Cyan Glow Effect",
+      "file_type": "image",
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "src_assets_vite_dark_mode_adaptation",
+      "label": "Dark Mode Color Adaptation",
+      "file_type": "concept",
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "src_assets_vite_accessible_title",
+      "label": "Accessible Vite Title",
+      "file_type": "concept",
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "src_assets_vite_logo",
+      "target": "src_assets_vite_brand",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "src_assets_vite_logo",
+      "target": "src_assets_vite_accessible_title",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "src_assets_vite_logo",
+      "target": "src_assets_vite_lightning_bolt",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "src_assets_vite_logo",
+      "target": "src_assets_vite_parentheses",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "src_assets_vite_lightning_bolt",
+      "target": "src_assets_vite_glow_effect",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "src_assets_vite_parentheses",
+      "target": "src_assets_vite_dark_mode_adaptation",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "src_assets_vite_lightning_bolt",
+      "target": "src_assets_vite_brand",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "src_assets_vite_glow_effect",
+      "target": "src_assets_vite_brand",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg",
+      "source_location": null,
+      "weight": 0.85
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "src_assets_vite_visual_identity",
+      "label": "Vite Visual Identity Composition",
+      "nodes": [
+        "src_assets_vite_lightning_bolt",
+        "src_assets_vite_parentheses",
+        "src_assets_vite_glow_effect"
+      ],
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/aki/projects/caneguard-web/src/assets/vite.svg"
+    }
+  ],
+  "input_tokens": 2690,
+  "output_tokens": 1180
+}

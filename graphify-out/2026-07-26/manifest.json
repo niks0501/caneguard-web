@@ -1,0 +1,537 @@
+{
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/manifest.json": {
+    "mtime": 1785076181.5353441,
+    "ast_hash": "09ee5e17f67e90240100c9f9f13cbed0",
+    "semantic_hash": "09ee5e17f67e90240100c9f9f13cbed0"
+  },
+  "eslint.config.js": {
+    "mtime": 1784510175.0157034,
+    "ast_hash": "0355276bc79439afe3c53e3a2470ca1e",
+    "semantic_hash": "0355276bc79439afe3c53e3a2470ca1e"
+  },
+  "package.json": {
+    "mtime": 1785079540.364254,
+    "ast_hash": "8c6e8d9ae57a50c5ad7e4585fdea1087",
+    "semantic_hash": ""
+  },
+  "src/App.tsx": {
+    "mtime": 1784550513.0766594,
+    "ast_hash": "2bc9db25621b46a288adba54ee18f3d3",
+    "semantic_hash": "2bc9db25621b46a288adba54ee18f3d3"
+  },
+  "src/app/router.tsx": {
+    "mtime": 1784550512.981326,
+    "ast_hash": "c5732e80d7932375a7e5de4ce2b52426",
+    "semantic_hash": "c5732e80d7932375a7e5de4ce2b52426"
+  },
+  "src/app/routes.ts": {
+    "mtime": 1784550270.4072626,
+    "ast_hash": "9133ddbbe232272700ddf6995e967d4c",
+    "semantic_hash": "9133ddbbe232272700ddf6995e967d4c"
+  },
+  "src/components/layout/AppHeader.tsx": {
+    "mtime": 1784550355.2849827,
+    "ast_hash": "a654c5fae7e82845eb948fbd3cff9f8c",
+    "semantic_hash": "a654c5fae7e82845eb948fbd3cff9f8c"
+  },
+  "src/components/layout/AppShell.tsx": {
+    "mtime": 1784550355.4129827,
+    "ast_hash": "2c720c23db76c0ae21cbbaaf77461dc5",
+    "semantic_hash": "2c720c23db76c0ae21cbbaaf77461dc5"
+  },
+  "src/components/layout/Page.tsx": {
+    "mtime": 1784550354.9809828,
+    "ast_hash": "b8acfb2778b2d6474c582566b193e914",
+    "semantic_hash": "b8acfb2778b2d6474c582566b193e914"
+  },
+  "src/components/navigation/AppSidebar.tsx": {
+    "mtime": 1784550355.1049826,
+    "ast_hash": "255d639222e2ce696412ec7b6e1882fd",
+    "semantic_hash": "255d639222e2ce696412ec7b6e1882fd"
+  },
+  "src/components/reports/ConfidenceDisplay.tsx": {
+    "mtime": 1784550398.8687737,
+    "ast_hash": "dc5faca781dc6e4d2bea09149195cab6",
+    "semantic_hash": "dc5faca781dc6e4d2bea09149195cab6"
+  },
+  "src/components/reports/EvidenceThumbnail.tsx": {
+    "mtime": 1784550398.964107,
+    "ast_hash": "41856396c78c80838b67cfb3363e5d14",
+    "semantic_hash": "41856396c78c80838b67cfb3363e5d14"
+  },
+  "src/components/reports/MetricCard.tsx": {
+    "mtime": 1784550399.0594404,
+    "ast_hash": "78448d0bab87c74d813a1f5786df6112",
+    "semantic_hash": "78448d0bab87c74d813a1f5786df6112"
+  },
+  "src/components/reports/ReportBadges.tsx": {
+    "mtime": 1784550398.7734404,
+    "ast_hash": "d6ec9b378279a8f728282e0c62b42bcd",
+    "semantic_hash": "d6ec9b378279a8f728282e0c62b42bcd"
+  },
+  "src/components/reports/ReportTable.tsx": {
+    "mtime": 1784550399.2544403,
+    "ast_hash": "c6cb3195066b389ab59ab250c1ee0cad",
+    "semantic_hash": "c6cb3195066b389ab59ab250c1ee0cad"
+  },
+  "src/components/reports/SymptomResponseItem.tsx": {
+    "mtime": 1784550399.1547737,
+    "ast_hash": "c2a19dbe89c3336d49326f83b4827f3a",
+    "semantic_hash": "c2a19dbe89c3336d49326f83b4827f3a"
+  },
+  "src/components/ui/Button.tsx": {
+    "mtime": 1784550354.6093087,
+    "ast_hash": "439538019967cdde29f16f4837f6b80d",
+    "semantic_hash": "439538019967cdde29f16f4837f6b80d"
+  },
+  "src/components/ui/FormControls.tsx": {
+    "mtime": 1784550354.717642,
+    "ast_hash": "cba27c03574b7dcd8406a5b5abae03c9",
+    "semantic_hash": "cba27c03574b7dcd8406a5b5abae03c9"
+  },
+  "src/components/ui/Pagination.tsx": {
+    "mtime": 1784550354.8969827,
+    "ast_hash": "17e55134cc438b0b30038728ecf5122a",
+    "semantic_hash": "17e55134cc438b0b30038728ecf5122a"
+  },
+  "src/components/ui/States.tsx": {
+    "mtime": 1784550354.8089828,
+    "ast_hash": "df44a10c7e9547162ac4be541a18f302",
+    "semantic_hash": "df44a10c7e9547162ac4be541a18f302"
+  },
+  "src/data/contracts/ReportsRepository.ts": {
+    "mtime": 1784550269.761596,
+    "ast_hash": "76dfb21f7fac04a096b66e9dd47f2694",
+    "semantic_hash": "76dfb21f7fac04a096b66e9dd47f2694"
+  },
+  "src/data/mock/MockReportsRepository.ts": {
+    "mtime": 1784550270.1039293,
+    "ast_hash": "967df0c000a370f4059c1d5c32c418dc",
+    "semantic_hash": "967df0c000a370f4059c1d5c32c418dc"
+  },
+  "src/data/mock/mockReports.ts": {
+    "mtime": 1784550269.9392626,
+    "ast_hash": "05cf6c2ad8d4a2a5162c1668528c30bb",
+    "semantic_hash": "05cf6c2ad8d4a2a5162c1668528c30bb"
+  },
+  "src/domain/report.metadata.ts": {
+    "mtime": 1784550269.5654132,
+    "ast_hash": "fba2c7422f82286e48bfd3c16aec48cb",
+    "semantic_hash": "fba2c7422f82286e48bfd3c16aec48cb"
+  },
+  "src/domain/report.types.ts": {
+    "mtime": 1784550269.0335963,
+    "ast_hash": "6178bdcae359087c9569eb961479abff",
+    "semantic_hash": "6178bdcae359087c9569eb961479abff"
+  },
+  "src/domain/review.types.ts": {
+    "mtime": 1784550269.1982627,
+    "ast_hash": "db94ca02bede1c919d36c2e74a815c7e",
+    "semantic_hash": "db94ca02bede1c919d36c2e74a815c7e"
+  },
+  "src/domain/user.types.ts": {
+    "mtime": 1784550269.3802629,
+    "ast_hash": "7b00855edd1d57f398d8254b109e38bd",
+    "semantic_hash": "7b00855edd1d57f398d8254b109e38bd"
+  },
+  "src/lib/formatters.ts": {
+    "mtime": 1784550398.678107,
+    "ast_hash": "cb981f632d5c3c69ffac63793781abb6",
+    "semantic_hash": "cb981f632d5c3c69ffac63793781abb6"
+  },
+  "src/main.tsx": {
+    "mtime": 1784550513.1676595,
+    "ast_hash": "5868efe0f1dd467b0d0a07302988dc54",
+    "semantic_hash": "5868efe0f1dd467b0d0a07302988dc54"
+  },
+  "src/pages/CaseReviewPage.tsx": {
+    "mtime": 1784550512.794993,
+    "ast_hash": "165af1aa0e829837f369f104bed71836",
+    "semantic_hash": "165af1aa0e829837f369f104bed71836"
+  },
+  "src/pages/NotFoundPage.tsx": {
+    "mtime": 1784550512.8946595,
+    "ast_hash": "9f22bca8492fe16bd8d6ed98884352cc",
+    "semantic_hash": "9f22bca8492fe16bd8d6ed98884352cc"
+  },
+  "src/pages/SubmittedReportsPage.tsx": {
+    "mtime": 1784550758.4759595,
+    "ast_hash": "58c63f0b8bdcee19c273c5a0ecd56d3f",
+    "semantic_hash": "58c63f0b8bdcee19c273c5a0ecd56d3f"
+  },
+  "src/services/reports.service.ts": {
+    "mtime": 1784550270.2382624,
+    "ast_hash": "a35cdb31ed2f91044d892b0f7fdde69a",
+    "semantic_hash": "a35cdb31ed2f91044d892b0f7fdde69a"
+  },
+  "tsconfig.app.json": {
+    "mtime": 1784510175.0155518,
+    "ast_hash": "5f2dafd737dea8a4ddcbb10f5113ac5a",
+    "semantic_hash": "5f2dafd737dea8a4ddcbb10f5113ac5a"
+  },
+  "tsconfig.json": {
+    "mtime": 1784510175.0156465,
+    "ast_hash": "a3d39fa780ebff65444de257f291ce6c",
+    "semantic_hash": "a3d39fa780ebff65444de257f291ce6c"
+  },
+  "tsconfig.node.json": {
+    "mtime": 1784510175.0156722,
+    "ast_hash": "f9cb81ddcea69ffdab672fc8c48dca66",
+    "semantic_hash": "f9cb81ddcea69ffdab672fc8c48dca66"
+  },
+  "vite.config.ts": {
+    "mtime": 1784510389.05818,
+    "ast_hash": "7a69211ab98723578adbdbe1d8e16ff5",
+    "semantic_hash": "7a69211ab98723578adbdbe1d8e16ff5"
+  },
+  "AGENTS.md": {
+    "mtime": 1785066775.7354362,
+    "ast_hash": "c8499d2f5097062a7f35799e17ee3a30",
+    "semantic_hash": "c8499d2f5097062a7f35799e17ee3a30"
+  },
+  "README.md": {
+    "mtime": 1785079143.6641555,
+    "ast_hash": "adeabfe368337dcd64e563d0ee80a4e2",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_Frontend_Implementation_Plan_Design_System.md": {
+    "mtime": 1784511867.4213357,
+    "ast_hash": "37d4c936455945e48aabc2c4f68f8dc3",
+    "semantic_hash": "37d4c936455945e48aabc2c4f68f8dc3"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/00_START_HERE.md": {
+    "mtime": 1785076181.471502,
+    "ast_hash": "3fbe2a0a34cec7b3fc70369c239ff5d2",
+    "semantic_hash": "3fbe2a0a34cec7b3fc70369c239ff5d2"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/01_MONOREPO_ARCHITECTURE_AND_DIRECTORY_RULES.md": {
+    "mtime": 1785076181.4794824,
+    "ast_hash": "b15b5ef9c76007573cf145d6ff9a68c7",
+    "semantic_hash": "b15b5ef9c76007573cf145d6ff9a68c7"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/02_LOCKED_TECHNICAL_DECISIONS.md": {
+    "mtime": 1785076181.4874625,
+    "ast_hash": "1bd57be946fc5f8407c006f9e57c602e",
+    "semantic_hash": "1bd57be946fc5f8407c006f9e57c602e"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/03_REPOSITORY_RESTRUCTURE_AND_MIGRATION_PLAN.md": {
+    "mtime": 1785076181.4954429,
+    "ast_hash": "13fc633f12dcbda926bbcd1f8d77b4cc",
+    "semantic_hash": "13fc633f12dcbda926bbcd1f8d77b4cc"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/04_TOOLS_PACKAGES_AND_COMMANDS.md": {
+    "mtime": 1785076181.499433,
+    "ast_hash": "1d07a4c200ad6e02e525416acf48bed4",
+    "semantic_hash": "1d07a4c200ad6e02e525416acf48bed4"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/05_MYSQL_SCHEMA_AND_DATA_RULES.md": {
+    "mtime": 1785076181.499433,
+    "ast_hash": "7408c9c32df46dfcd62a40659007f14e",
+    "semantic_hash": "7408c9c32df46dfcd62a40659007f14e"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/06_API_CONTRACT.md": {
+    "mtime": 1785076181.5074131,
+    "ast_hash": "543351a2b78327c12942501791d47558",
+    "semantic_hash": "543351a2b78327c12942501791d47558"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/07_PHASE_0_BASELINE_AND_SCOPE_LOCK.md": {
+    "mtime": 1785076181.5473144,
+    "ast_hash": "be3de40cc90f71655d58c6af26f4118f",
+    "semantic_hash": "be3de40cc90f71655d58c6af26f4118f"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/08_PHASE_1_CREATE_LARAVEL_INSIDE_EXISTING_REPOSITORY.md": {
+    "mtime": 1785076181.5473144,
+    "ast_hash": "e038def951eaaadb2528f46fb4358c9a",
+    "semantic_hash": "e038def951eaaadb2528f46fb4358c9a"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/09_PHASE_2_MYSQL_REPORT_API_AND_STORAGE.md": {
+    "mtime": 1785076181.5513046,
+    "ast_hash": "5416e5009ade03ebb0bfc50adb215fb9",
+    "semantic_hash": "5416e5009ade03ebb0bfc50adb215fb9"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/10_PHASE_3_WEB_API_INFRASTRUCTURE.md": {
+    "mtime": 1785076181.5114033,
+    "ast_hash": "a012d7edbd5892db7080a13b154c057d",
+    "semantic_hash": "a012d7edbd5892db7080a13b154c057d"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/11_PHASE_4_AUTHENTICATION_AND_PROTECTED_ROUTES.md": {
+    "mtime": 1785076181.5153935,
+    "ast_hash": "52a0de4b90856161b0093a1f8a39de5b",
+    "semantic_hash": "52a0de4b90856161b0093a1f8a39de5b"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/12_PHASE_5_DASHBOARD_OVERVIEW.md": {
+    "mtime": 1785076181.5193837,
+    "ast_hash": "d9fd80b21c3d83c97e83863c9347f292",
+    "semantic_hash": "d9fd80b21c3d83c97e83863c9347f292"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/13_PHASE_6_SUBMITTED_REPORTS_LIST.md": {
+    "mtime": 1785076181.5193837,
+    "ast_hash": "6d29019e80bf96a3b89531eb8175d151",
+    "semantic_hash": "6d29019e80bf96a3b89531eb8175d151"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/14_PHASE_7_REPORT_DETAIL_IMAGE_AND_REVIEW.md": {
+    "mtime": 1785076181.5233736,
+    "ast_hash": "ede815bf0320469e5c3a68be6296e42e",
+    "semantic_hash": "ede815bf0320469e5c3a68be6296e42e"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/15_PHASE_8_REFRESH_ERRORS_AND_RESILIENCE.md": {
+    "mtime": 1785076181.5233736,
+    "ast_hash": "7005d6d81353ebcf501b171d6e3bdeaa",
+    "semantic_hash": "7005d6d81353ebcf501b171d6e3bdeaa"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/16_PHASE_9_TESTING_DEMO_AND_RELEASE.md": {
+    "mtime": 1785076181.5273638,
+    "ast_hash": "6d5cb739236afda7a172eea890b51d41",
+    "semantic_hash": "6d5cb739236afda7a172eea890b51d41"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/17_AI_AGENT_OPERATING_PROTOCOL.md": {
+    "mtime": 1785076181.531354,
+    "ast_hash": "3b3812136955c31c67f0a8080c25ed58",
+    "semantic_hash": "3b3812136955c31c67f0a8080c25ed58"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/18_MASTER_DEFINITION_OF_DONE.md": {
+    "mtime": 1785076181.531354,
+    "ast_hash": "5482bd1a50b24f97a00b67e7a12b4436",
+    "semantic_hash": "5482bd1a50b24f97a00b67e7a12b4436"
+  },
+  "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/19_OFFICIAL_REFERENCES.md": {
+    "mtime": 1785076181.5353441,
+    "ast_hash": "ed55f9a3eb4988f35b9a60fa36c970e8",
+    "semantic_hash": "ed55f9a3eb4988f35b9a60fa36c970e8"
+  },
+  "docs/HARNESS_SYNC.md": {
+    "mtime": 1784224299.3562949,
+    "ast_hash": "f9333282edac38ee09eb1bf597001792",
+    "semantic_hash": "f9333282edac38ee09eb1bf597001792"
+  },
+  "index.html": {
+    "mtime": 1784550861.821023,
+    "ast_hash": "012295620a30427ba3067b432822eec8",
+    "semantic_hash": "012295620a30427ba3067b432822eec8"
+  },
+  "public/favicon.svg": {
+    "mtime": 1784510175.014721,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": "7e840862161341271697daa99a40d76b"
+  },
+  "public/icons.svg": {
+    "mtime": 1784510175.0147734,
+    "ast_hash": "3b4fcfcf393eca4d264dca4a4663bc37",
+    "semantic_hash": "3b4fcfcf393eca4d264dca4a4663bc37"
+  },
+  "src/assets/hero.png": {
+    "mtime": 1784510175.0152955,
+    "ast_hash": "aead493361b27e7510691c5d7072dfc1",
+    "semantic_hash": "aead493361b27e7510691c5d7072dfc1"
+  },
+  "src/assets/react.svg": {
+    "mtime": 1784510175.0153785,
+    "ast_hash": "f0402b67b6ce880f65666bb49e841696",
+    "semantic_hash": "f0402b67b6ce880f65666bb49e841696"
+  },
+  "src/assets/vite.svg": {
+    "mtime": 1784510175.0154092,
+    "ast_hash": "9960a24288958394ac50e57ff638b036",
+    "semantic_hash": "9960a24288958394ac50e57ff638b036"
+  },
+  "api/app/Http/Controllers/Api/HealthController.php": {
+    "mtime": 1785078029.175245,
+    "ast_hash": "032b49a495c3cc4a0450c174ac9bd910",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Controller.php": {
+    "mtime": 1785077378.8690906,
+    "ast_hash": "25a307335c0719bc9a91b3f7babd186d",
+    "semantic_hash": ""
+  },
+  "api/app/Models/User.php": {
+    "mtime": 1785079366.3682084,
+    "ast_hash": "31922c5ae3de04a9142eda7c65349e7c",
+    "semantic_hash": ""
+  },
+  "api/app/Providers/AppServiceProvider.php": {
+    "mtime": 1785077378.8692193,
+    "ast_hash": "c0094f35cad6bba7636002a62186dae4",
+    "semantic_hash": ""
+  },
+  "api/artisan": {
+    "mtime": 1785077378.8693867,
+    "ast_hash": "e66bb13691f6184c762c196427d8e685",
+    "semantic_hash": ""
+  },
+  "api/bootstrap/app.php": {
+    "mtime": 1785079539.9295988,
+    "ast_hash": "ecd426f6ab08a1bdc677646d186f144c",
+    "semantic_hash": ""
+  },
+  "api/bootstrap/providers.php": {
+    "mtime": 1785077378.8695695,
+    "ast_hash": "888c810b5a4720916f07aa05dd2c2dd3",
+    "semantic_hash": ""
+  },
+  "api/composer.json": {
+    "mtime": 1785077606.630124,
+    "ast_hash": "d31e2ae21a126296f26134bd45b83272",
+    "semantic_hash": ""
+  },
+  "api/config/app.php": {
+    "mtime": 1785077378.8695695,
+    "ast_hash": "276578ad68424be59d0998379ae7d4cb",
+    "semantic_hash": ""
+  },
+  "api/config/auth.php": {
+    "mtime": 1785077378.8697684,
+    "ast_hash": "26354511ab860b301f2a3554bc388b91",
+    "semantic_hash": ""
+  },
+  "api/config/cache.php": {
+    "mtime": 1785077378.8698223,
+    "ast_hash": "399c7a3b4bca7e3cb9b622828682ab56",
+    "semantic_hash": ""
+  },
+  "api/config/caneguard.php": {
+    "mtime": 1785078028.6322355,
+    "ast_hash": "eb27b75d0eb623b02fecce32ceec8043",
+    "semantic_hash": ""
+  },
+  "api/config/cors.php": {
+    "mtime": 1785079540.0253057,
+    "ast_hash": "8482d2ca4343621c1a2062d9a3c9befc",
+    "semantic_hash": ""
+  },
+  "api/config/database.php": {
+    "mtime": 1785077378.8698728,
+    "ast_hash": "594a01554ab7583541a8fb05a69f935f",
+    "semantic_hash": ""
+  },
+  "api/config/filesystems.php": {
+    "mtime": 1785077378.8699062,
+    "ast_hash": "bde1aa1027f0448f17348dbd93f3d7ea",
+    "semantic_hash": ""
+  },
+  "api/config/logging.php": {
+    "mtime": 1785077378.8699338,
+    "ast_hash": "d8255a5c07d3da72c7c9363f0c44bddd",
+    "semantic_hash": ""
+  },
+  "api/config/mail.php": {
+    "mtime": 1785077378.8699758,
+    "ast_hash": "18601a927b48d38337ba2077426a7d60",
+    "semantic_hash": ""
+  },
+  "api/config/queue.php": {
+    "mtime": 1785077378.870005,
+    "ast_hash": "f98ce92e7bf51db1fabaf8a30e12fc5a",
+    "semantic_hash": ""
+  },
+  "api/config/sanctum.php": {
+    "mtime": 1785077799.6765327,
+    "ast_hash": "e3887ebee464a1b2c014cb16696a2b50",
+    "semantic_hash": ""
+  },
+  "api/config/services.php": {
+    "mtime": 1785077378.8700345,
+    "ast_hash": "534a1b7af7009c373ea4ebfa18823d57",
+    "semantic_hash": ""
+  },
+  "api/config/session.php": {
+    "mtime": 1785077378.8700798,
+    "ast_hash": "5ea7169252ec3cc7fad471f5cd0d7678",
+    "semantic_hash": ""
+  },
+  "api/database/factories/UserFactory.php": {
+    "mtime": 1785078028.9636495,
+    "ast_hash": "c6fdb34099f2928570a252c034853693",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/0001_01_01_000000_create_users_table.php": {
+    "mtime": 1785078028.875805,
+    "ast_hash": "e963dcf337a1f19d1e52425008eb23a5",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/0001_01_01_000001_create_cache_table.php": {
+    "mtime": 1785077378.8706205,
+    "ast_hash": "6952fb360e8d8b84e6f47573e4459d48",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/0001_01_01_000002_create_jobs_table.php": {
+    "mtime": 1785077378.8706205,
+    "ast_hash": "b0603b9fa0a27473971da76bb0c42ee1",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/2026_07_26_145640_create_personal_access_tokens_table.php": {
+    "mtime": 1785077799.9281867,
+    "ast_hash": "eb77af89d184f92ec893eff344c34999",
+    "semantic_hash": ""
+  },
+  "api/database/seeders/DatabaseSeeder.php": {
+    "mtime": 1785079540.1130335,
+    "ast_hash": "5e71b1e7cf5d3f44a1cca671cc4bb5d2",
+    "semantic_hash": ""
+  },
+  "api/package.json": {
+    "mtime": 1785077378.87087,
+    "ast_hash": "0cdafb1ed5ed16e0ad8d871d33e3eafc",
+    "semantic_hash": ""
+  },
+  "api/public/index.php": {
+    "mtime": 1785077378.8710077,
+    "ast_hash": "d8eda274115af5fd2aaa8230af329ef7",
+    "semantic_hash": ""
+  },
+  "api/resources/js/app.js": {
+    "mtime": 1785077378.871596,
+    "ast_hash": "b519d08ef66fd54910edbedba6181ec2",
+    "semantic_hash": ""
+  },
+  "api/resources/views/welcome.blade.php": {
+    "mtime": 1785079759.7101922,
+    "ast_hash": "bbb589f3a20977f662f6dc2b95026f12",
+    "semantic_hash": ""
+  },
+  "api/routes/api.php": {
+    "mtime": 1785078029.2550893,
+    "ast_hash": "d4e8e97a9b7b57ce593f606c29e7afb9",
+    "semantic_hash": ""
+  },
+  "api/routes/console.php": {
+    "mtime": 1785077378.8734522,
+    "ast_hash": "3c6ce2e6d16444282b24a9aa63885563",
+    "semantic_hash": ""
+  },
+  "api/routes/web.php": {
+    "mtime": 1785077378.8734837,
+    "ast_hash": "84625c52e743b1a4178bb27b7afb3615",
+    "semantic_hash": ""
+  },
+  "api/vite.config.js": {
+    "mtime": 1785077378.87573,
+    "ast_hash": "8ef22d264079dab94f6d36526b0cb1bc",
+    "semantic_hash": ""
+  },
+  "IMPLEMENTATION_BOARD.md": {
+    "mtime": 1785079656.4335692,
+    "ast_hash": "e75660a9d6f54921abe5b69eedbaa4f8",
+    "semantic_hash": ""
+  },
+  "api/.styleci.yml": {
+    "mtime": 1785077378.8685281,
+    "ast_hash": "5177f4fa500b459b5ca4ba40ab889f20",
+    "semantic_hash": ""
+  },
+  "api/CHANGELOG.md": {
+    "mtime": 1785077378.8686543,
+    "ast_hash": "b157a0fca957d4d2980560920ede9495",
+    "semantic_hash": ""
+  },
+  "api/README.md": {
+    "mtime": 1785077378.8687031,
+    "ast_hash": "d2661a31fed7f254f5b7d3b6fe19330a",
+    "semantic_hash": ""
+  },
+  "api/public/robots.txt": {
+    "mtime": 1785077378.8710077,
+    "ast_hash": "b6216d61c03e6ce0c9aea6ca7808f7ca",
+    "semantic_hash": ""
+  }
+}

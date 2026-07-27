@@ -28,6 +28,7 @@ dist-ssr
 opencode.jsonc
 PROJECT_CHECKS.md
 docs/
+graphify-out/cache
 .ai
 project-structure.txt
 .agents

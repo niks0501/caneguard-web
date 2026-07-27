@@ -4,3 +4,4 @@
 /.codex/rules/** text eol=lf
 /.agents/skills/** text eol=lf
 /harness/adapters/** text eol=lf
+graphify-out/graph.json merge=graphify
