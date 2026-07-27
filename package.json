@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "api:install": "composer install --working-dir=api",
-    "api:dev": "php api/artisan serve --host=127.0.0.1 --port=8000",
+    "api:dev": "php -d upload_max_filesize=12M -d post_max_size=16M -S 127.0.0.1:8000 -t api/public api/server.php",
     "api:test": "cd api && php artisan test",
     "api:test:mysql": "cd api && vendor/bin/phpunit --configuration=phpunit.mysql.xml",
     "api:format:check": "cd api && vendor/bin/pint --test",

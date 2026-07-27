@@ -8,6 +8,13 @@ use Illuminate\Validation\Rules\File;
 
 class StoreMobileReportRequest extends ApiFormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('quality_warnings')) {
+            $this->merge(['quality_warnings' => []]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', Report::class) ?? false;

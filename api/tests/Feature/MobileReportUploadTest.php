@@ -100,6 +100,24 @@ class MobileReportUploadTest extends TestCase
         $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
+    public function test_upload_requires_report_submit_token_ability(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter
+            ->createToken('status-only', ['report:status'])
+            ->plainTextToken;
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload(fake()->uuid()))
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+
+        $this->assertDatabaseCount('reports', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
     public function test_upload_rejects_invalid_payloads(): void
     {
         Storage::fake('local');
@@ -119,6 +137,25 @@ class MobileReportUploadTest extends TestCase
 
         $this->assertDatabaseCount('reports', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_upload_accepts_an_omitted_empty_quality_warnings_array(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter
+            ->createToken('empty-quality-warnings-test')
+            ->plainTextToken;
+        $payload = $this->payload(fake()->uuid());
+        unset($payload['quality_warnings']);
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $payload)
+            ->assertCreated();
+
+        $this->assertDatabaseCount('reports', 1);
+        $this->assertDatabaseCount('report_quality_warnings', 0);
     }
 
     public function test_image_is_deleted_when_database_creation_fails(): void

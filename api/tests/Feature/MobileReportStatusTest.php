@@ -76,6 +76,19 @@ class MobileReportStatusTest extends TestCase
             ->assertJsonPath('code', 'FORBIDDEN');
     }
 
+    public function test_status_feed_requires_report_status_token_ability(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter
+            ->createToken('submit-only', ['report:submit'])
+            ->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses')
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+    }
+
     public function test_status_cursor_is_stable_across_ties_and_mid_sync_updates(): void
     {
         $reporter = User::factory()->fieldReporter()->create();
