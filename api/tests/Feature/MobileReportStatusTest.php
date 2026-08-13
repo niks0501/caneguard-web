@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -80,6 +81,43 @@ class MobileReportStatusTest extends TestCase
             ]);
     }
 
+    public function test_status_feed_rejects_an_invalid_cursor(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('invalid-cursor-test')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses?cursor=not-a-cursor')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('cursor');
+    }
+
+    public function test_forged_cursor_cannot_escape_owner_scope(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $otherReporter = User::factory()->fieldReporter()->create();
+        $owned = Report::factory()->create(['reporter_id' => $reporter]);
+        $other = Report::factory()->create(['reporter_id' => $otherReporter]);
+        $cursor = (new Cursor([
+            'updated_at' => $other->updated_at->format('Y-m-d H:i:s'),
+            'id' => $other->id,
+        ]))->encode();
+        $token = $reporter->createToken('forged-cursor-test')->plainTextToken;
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses?'.http_build_query([
+                'cursor' => $cursor,
+            ]))
+            ->assertOk();
+
+        $this->assertNotContains(
+            $other->uuid,
+            collect($response->json('data'))->pluck('uuid')->all(),
+        );
+        $this->assertNotNull($owned->uuid);
+    }
+
     public function test_status_feed_preserves_the_five_wire_statuses(): void
     {
         $reporter = User::factory()->fieldReporter()->create();
@@ -104,6 +142,30 @@ class MobileReportStatusTest extends TestCase
             $statuses,
             collect($response->json('data'))->pluck('review_status')->all(),
         );
+    }
+
+    public function test_status_feed_uses_authenticated_owner_not_query_identity(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $otherReporter = User::factory()->fieldReporter()->create();
+        $owned = Report::factory()->create([
+            'reporter_id' => $reporter,
+            'updated_at' => now()->subMinute(),
+        ]);
+        $other = Report::factory()->create([
+            'reporter_id' => $otherReporter,
+            'updated_at' => now()->subMinute(),
+        ]);
+        $token = $reporter->createToken('owner-bound-status-test')->plainTextToken;
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses?'.http_build_query([
+                'reporter_id' => $otherReporter->getKey(),
+                'owner_id' => $otherReporter->uuid,
+            ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $owned->uuid)
+            ->assertJsonMissing(['uuid' => $other->uuid]);
     }
 
     public function test_status_serializer_is_exact_current_snapshot_and_omits_reviewer_identity(): void
@@ -181,6 +243,49 @@ class MobileReportStatusTest extends TestCase
             ->getJson('/api/v1/mobile/reports/statuses')
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
+    }
+
+    public function test_status_cursor_does_not_skip_or_duplicate_rows_after_mid_sync_update(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $reports = Report::factory()->count(5)->create([
+            'reporter_id' => $reporter,
+        ]);
+        $tiedTimestamp = now()->subMinute()->startOfSecond();
+
+        DB::table('reports')
+            ->whereIn('id', $reports->pluck('id'))
+            ->update(['updated_at' => $tiedTimestamp]);
+
+        $token = $reporter->createToken('complete-cursor-status-test')->plainTextToken;
+        $first = $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses?per_page=2')
+            ->assertOk();
+        $syncBefore = $first->json('sync.before');
+        $seen = collect($first->json('data'))->pluck('uuid');
+        $nextUrl = $first->json('links.next');
+
+        DB::table('reports')
+            ->where('uuid', $seen->first())
+            ->update(['updated_at' => now()->addMinute()]);
+
+        while ($nextUrl !== null) {
+            $nextPath = parse_url($nextUrl, PHP_URL_PATH).'?'
+                .parse_url($nextUrl, PHP_URL_QUERY);
+            $page = $this->withToken($token)
+                ->getJson($nextPath)
+                ->assertOk()
+                ->assertJsonPath('sync.before', $syncBefore);
+            $seen = $seen->merge(collect($page->json('data'))->pluck('uuid'));
+            $nextUrl = $page->json('links.next');
+        }
+
+        $this->assertCount(5, $seen);
+        $this->assertCount(5, $seen->unique());
+        $this->assertSame(
+            $reports->pluck('uuid')->sort()->values()->all(),
+            $seen->sort()->values()->all(),
+        );
     }
 
     public function test_status_cursor_is_stable_across_ties_and_mid_sync_updates(): void

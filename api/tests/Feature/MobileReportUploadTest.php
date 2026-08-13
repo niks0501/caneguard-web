@@ -147,6 +147,39 @@ class MobileReportUploadTest extends TestCase
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
     }
 
+    public function test_upload_ignores_spoofed_reporter_and_reviewer_fields(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $spoofedReporter = User::factory()->fieldReporter()->create();
+        $spoofedReviewer = User::factory()->reviewer()->create();
+        $token = $reporter->createToken('spoofed-identity-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', array_merge(
+                $this->payload($clientUuid),
+                [
+                    'reporter_id' => $spoofedReporter->getKey(),
+                    'reviewer_id' => $spoofedReviewer->getKey(),
+                ],
+            ))
+            ->assertCreated()
+            ->assertJsonPath('data.reporter.uuid', $reporter->uuid);
+
+        $this->assertDatabaseHas('reports', [
+            'client_uuid' => $clientUuid,
+            'reporter_id' => $reporter->getKey(),
+            'reviewer_id' => null,
+            'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+        ]);
+        $this->assertDatabaseMissing('reports', [
+            'client_uuid' => $clientUuid,
+            'reporter_id' => $spoofedReporter->getKey(),
+        ]);
+    }
+
     public function test_upload_rejects_reviewer_role(): void
     {
         Storage::fake('local');
@@ -179,6 +212,20 @@ class MobileReportUploadTest extends TestCase
 
         $this->assertDatabaseCount('reports', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_status_feed_rejects_a_submit_only_token_even_for_an_owner(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        Report::factory()->create(['reporter_id' => $reporter]);
+        $token = $reporter
+            ->createToken('submit-only-status-audit', ['report:submit'])
+            ->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses')
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
     }
 
     public function test_upload_requires_report_submit_token_ability(): void
