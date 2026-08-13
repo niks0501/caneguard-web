@@ -21,6 +21,45 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Mobile report review status contract
+
+The existing mobile feed is `GET /api/v1/mobile/reports/statuses`. It requires a
+Sanctum bearer token with `report:status` and is owner-scoped to Field Reporters;
+reviewers and admins cannot read this mobile feed. Reviewer and admin mutation
+continues through `PATCH /api/v1/reports/{report}/review` with optimistic
+`expected_version` checks.
+
+Each status item is the current snapshot with this exact shape:
+
+```json
+{
+  "uuid": "server-report-uuid",
+  "client_uuid": "stable-mobile-report-uuid",
+  "reference_code": "CG-20260813-AB12CD34",
+  "review_status": "verified_by_staff",
+  "review_notes": "Latest plain-text authority note or null",
+  "reviewed_at": "2026-08-13T10:20:30.123000Z",
+  "updated_at": "2026-08-13T10:20:31.456000Z"
+}
+```
+
+The five wire states are `submitted_unverified`, `for_field_validation`,
+`verified_by_staff`, `unable_to_verify`, and `resolved`. Notes are the latest
+optional plain-text note only; there is no review history or threaded reply
+contract. Reviewer identity is deliberately omitted from the mobile feed; mobile
+may present generic `Authority staff` attribution.
+
+The response retains top-level `data`, `links`, and `meta` keys and includes
+`sync.before`. Cursor pagination is ordered by `(updated_at, id)`; clients keep
+that `sync.before` checkpoint while consuming the returned cursor links. The
+optional `updated_after` parameter supports incremental reads and `per_page` is
+limited to 100.
+
+Repeated submission with the same `(reporter_id, client_uuid)` returns the
+existing logical report and does not reset its review status, note, reviewer,
+reviewed time, or lock version. This P1 slice adds no push, unread state, replies,
+history, referral workflow, analytics, optional fields, or competing endpoint.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

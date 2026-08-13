@@ -9,6 +9,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -66,6 +67,119 @@ class MobileReportUploadTest extends TestCase
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
     }
 
+    public function test_same_client_uuid_is_scoped_to_the_reporter(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $otherReporter = User::factory()->fieldReporter()->create();
+        $clientUuid = fake()->uuid();
+        $firstToken = $reporter->createToken('owner-one')->plainTextToken;
+        $secondToken = $otherReporter->createToken('owner-two')->plainTextToken;
+
+        $first = $this->withToken($firstToken)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid));
+        $first->assertCreated();
+        $first->assertJsonPath('data.identity.uuid', fn (string $uuid) => $uuid !== '');
+        $firstReportUuid = $first->json('data.identity.uuid');
+        Auth::forgetGuards();
+        $second = $this->withToken($secondToken)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid));
+        $second->assertCreated();
+        $second->assertJsonPath('data.identity.uuid', fn (string $uuid) => $uuid !== $firstReportUuid);
+
+        $this->assertDatabaseCount('reports', 2);
+        $this->assertDatabaseHas('reports', [
+            'reporter_id' => $reporter->getKey(),
+            'client_uuid' => $clientUuid,
+        ]);
+        $this->assertDatabaseHas('reports', [
+            'reporter_id' => $otherReporter->getKey(),
+            'client_uuid' => $clientUuid,
+        ]);
+    }
+
+    public function test_idempotent_resubmission_preserves_existing_review_snapshot_and_version(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('review-preservation-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+        $reviewer = User::factory()->reviewer()->create();
+        $reviewedAt = now()->subMinute()->setMicrosecond(123000);
+        $report = Report::factory()->create([
+            'reporter_id' => $reporter,
+            'client_uuid' => $clientUuid,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'review_notes' => 'Keep this current snapshot.',
+            'reviewer_id' => $reviewer,
+            'reviewed_at' => $reviewedAt,
+            'lock_version' => 4,
+        ]);
+        $imagePath = 'reports/existing-review.png';
+        Storage::disk('local')->put($imagePath, 'existing-image');
+        $report->update(['image_path' => $imagePath]);
+        $before = $report->fresh();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid))
+            ->assertOk()
+            ->assertJsonPath('data.identity.uuid', $before->uuid)
+            ->assertJsonPath('data.identity.client_uuid', $clientUuid)
+            ->assertJsonPath('data.review.status', $before->review_status)
+            ->assertJsonPath('data.review.notes', $before->review_notes)
+            ->assertJsonPath('data.review.reviewer.uuid', $reviewer->uuid)
+            ->assertJsonPath('data.version', $before->lock_version);
+
+        $after = $report->fresh();
+        $this->assertSame($before->uuid, $after->uuid);
+        $this->assertSame($before->review_status, $after->review_status);
+        $this->assertSame($before->review_notes, $after->review_notes);
+        $this->assertSame($before->reviewer_id, $after->reviewer_id);
+        $this->assertSame(
+            $before->reviewed_at?->toISOString(),
+            $after->reviewed_at?->toISOString(),
+        );
+        $this->assertSame($before->lock_version, $after->lock_version);
+        Storage::disk('local')->assertExists($imagePath);
+        $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
+    }
+
+    public function test_upload_ignores_spoofed_reporter_and_reviewer_fields(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $spoofedReporter = User::factory()->fieldReporter()->create();
+        $spoofedReviewer = User::factory()->reviewer()->create();
+        $token = $reporter->createToken('spoofed-identity-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', array_merge(
+                $this->payload($clientUuid),
+                [
+                    'reporter_id' => $spoofedReporter->getKey(),
+                    'reviewer_id' => $spoofedReviewer->getKey(),
+                ],
+            ))
+            ->assertCreated()
+            ->assertJsonPath('data.reporter.uuid', $reporter->uuid);
+
+        $this->assertDatabaseHas('reports', [
+            'client_uuid' => $clientUuid,
+            'reporter_id' => $reporter->getKey(),
+            'reviewer_id' => null,
+            'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+        ]);
+        $this->assertDatabaseMissing('reports', [
+            'client_uuid' => $clientUuid,
+            'reporter_id' => $spoofedReporter->getKey(),
+        ]);
+    }
+
     public function test_upload_rejects_reviewer_role(): void
     {
         Storage::fake('local');
@@ -98,6 +212,20 @@ class MobileReportUploadTest extends TestCase
 
         $this->assertDatabaseCount('reports', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_status_feed_rejects_a_submit_only_token_even_for_an_owner(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        Report::factory()->create(['reporter_id' => $reporter]);
+        $token = $reporter
+            ->createToken('submit-only-status-audit', ['report:submit'])
+            ->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses')
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
     }
 
     public function test_upload_requires_report_submit_token_ability(): void

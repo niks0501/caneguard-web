@@ -35,6 +35,9 @@ public browser configuration.
 
 ## API and MySQL setup
 
+The mobile report review-status wire contract is documented in the API
+README under [Mobile report review status contract](api/README.md#mobile-report-review-status-contract).
+
 Create MySQL databases named `caneguard` and `caneguard_test` with
 `utf8mb4_unicode_ci`, then grant a dedicated local `caneguard_app` user access
 to both.
