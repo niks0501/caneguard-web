@@ -1,79 +1,229 @@
-# Core Agent Rules
+# AkiDev Core Agent Rules
 
-These rules are the small always-loaded layer for AI coding agents in this repository.
-Load additional `harness/rules/*` files only when the current task category needs them.
+This repository uses AkiDev's project-local engineering conventions.
 
-## Operating Mode
+The current user request, repository evidence, and these rules are authoritative. Load additional rules and skills only when relevant.
 
-- Preserve user work. Run `git status` before editing and do not overwrite uncommitted changes.
-- Classify every task as tiny, normal, or high risk before choosing a workflow.
-- Use the lightest workflow that can safely complete the request.
-- Make only changes relevant to the current task.
-- Prefer readable, maintainable code over clever abstractions.
-- Do not add dependencies unless they clearly reduce complexity or are explicitly requested.
-- Never claim a check passed unless it was actually executed and succeeded.
-- Read `.harness/project.json` when present; it is the source of truth for application checks and command runtime.
-- Ask before destructive operations, data deletion, production deployment, credential access, commits, pushes, resets, rebases, stashes, or file deletion.
+## 1. Scope and safety
 
-## Execution Runtime
+- Work only inside this repository unless the user explicitly asks otherwise.
+- Never modify global Codex, OpenCode, shell, operating-system, editor, package-manager, or credential configuration as a side effect of project work.
+- Never write to `~/.codex`, `~/.config/opencode`, `~/.agents`, shell profiles, `/etc`, or unrelated repositories unless explicitly requested.
+- Preserve user work. Inspect `git status` before editing when Git is available.
+- Never overwrite, revert, reset, stash, delete, or rewrite unrelated user changes.
+- Treat secrets, credentials, tokens, `.env` contents, production data, and personal data as sensitive.
+- Do not expose secret values in output, logs, commits, examples, or generated files.
+- Ask before destructive or externally consequential actions: deleting data/files, migrations with data risk, production changes, deployments, publishing, commits, pushes, rebases, resets, force operations, dependency installation/update, or credential access.
+- Approval is operation-specific. A previous approval does not authorize a future risky operation.
 
-- Treat `.harness/project.json.runtime` as the source of truth for where application commands run.
-- Run `just project-preflight` before application verification when a project profile is present.
-- When `runtime.kind` is `docker-compose`, run application tools through the configured Compose service. Do not invoke PHP, Composer, Artisan, Node, npm, database clients, or other declared runtime tools directly on the host.
-- Never search Windows installations, `/mnt/c`, sibling drives, or global filesystem locations for a missing application executable.
-- When a required command is unavailable in its configured environment, stop. Tell the user the exact missing command and runtime, then ask whether they want to install it manually, start or rebuild the service, or update the project profile.
-- Do not install missing runtime tools, change images, or fall back to another host environment without explicit approval.
-- Docker wrappers do not weaken policy: dependency changes, migrations, destructive data operations, and deployments still require their normal approval.
+## 2. Autonomy
 
-## Workflow Routing
+Resolve facts that are discoverable from the repository before asking the user.
 
-- Tiny: one or two local files, no public API/schema/auth/deployment impact. Inspect relevant files, edit, run a targeted check, report.
-- Normal: several related files or new reversible behavior. Inspect relevant files, write a compact plan, implement, run targeted checks, review the diff, report.
-- High risk: auth, permissions, secrets, uploads, payments, migrations, destructive data changes, deployment, production config, or broad architecture. Use full planning, security review, independent review, full verification, and rollback notes.
+Proceed autonomously when:
+- the requested behavior is clear;
+- the change is reversible and project-local;
+- repository conventions establish the expected implementation;
+- no material product decision is required;
+- no risky external side effect is required.
 
-Escalate when inspection reveals more risk. Do not silently downgrade high-risk work.
+Stop and ask when:
+- two reasonable product behaviors would produce materially different outcomes;
+- a required secret, credential, external account decision, or production action is missing;
+- destructive data behavior is required;
+- the user must choose a compatibility or migration tradeoff;
+- repository evidence contradicts the request and the conflict cannot be safely resolved.
 
-## Progressive Context
+Do not ask questions merely because implementation requires investigation.
 
-Always use:
+## 3. Task classification
 
-- this file
-- the current user request
-- the current role or command instructions
+Classify work before choosing a workflow.
 
-Load only when relevant:
+### Tiny
 
-- `harness/rules/frontend.md`
-- `harness/rules/backend.md`
-- `harness/rules/security.md`
-- `harness/rules/database.md`
-- `harness/rules/deployment.md`
-- `harness/rules/testing.md`
-- `harness/rules/review.md`
-- domain docs, API contracts, ADRs, completed tasks, and run logs
+Typical characteristics:
+- isolated local change;
+- one or two closely related files;
+- no public API, schema, authentication, authorization, dependency, deployment, or architecture impact;
+- expected behavior is clear.
 
-Do not load completed tasks, old run records, full architecture docs, or all ADRs by default.
+Workflow:
+1. inspect the focused code path;
+2. reproduce or establish the issue;
+3. make the smallest complete change;
+4. run targeted verification;
+5. inspect the diff;
+6. report.
 
-## Verification And Reporting
+### Normal
 
-Use `just validate` to validate AkiForge itself. This is not application verification.
-Use `just project-preflight` to verify the configured host or container runtime without installing or changing anything.
-Use `just verify-targeted` for tiny/normal application work and `just verify-full` for high-risk or broad application changes.
-If `just` is unavailable, run the relevant scripts or project commands directly.
+Typical characteristics:
+- several related files;
+- new reversible feature or behavior;
+- internal interfaces may change;
+- moderate testing or integration work.
 
-Treat `SKIPPED` and `UNAVAILABLE` as gaps. Never report `PASS_WITH_GAPS` as “all checks passed,” and treat an unavailable required check as incomplete verification.
+Workflow:
+1. inspect Git state;
+2. inspect relevant existing patterns;
+3. establish acceptance criteria;
+4. write a compact implementation plan;
+5. implement in cohesive increments;
+6. run targeted checks, then broader checks if justified;
+7. review the diff independently when practical;
+8. report evidence and remaining gaps.
 
-Final reports must include:
+### High risk
 
-- what changed
-- files touched
-- verification commands and results
-- manual test steps when UI or workflow behavior changed
-- remaining risks or follow-ups
+Automatically treat work as high risk when it materially involves:
+- authentication or authorization;
+- secrets or credentials;
+- file uploads or untrusted input;
+- payments or financial behavior;
+- database migrations or destructive data operations;
+- privacy-sensitive or regulated data;
+- production configuration;
+- deployment or publishing;
+- broad architecture changes;
+- security controls;
+- irreversible external side effects.
 
-## Maintaining this file
+Workflow:
+1. architecture/risk analysis;
+2. explicit affected contracts and data flows;
+3. rollback or recovery strategy;
+4. scoped implementation;
+5. security/data review;
+6. independent review;
+7. full relevant verification;
+8. clearly report any unverified risk.
 
-Keep this file for knowledge useful to almost every future agent session in this project.
-Do not repeat what the codebase already shows; point to the authoritative file or command instead.
-Prefer rewriting or pruning existing entries over appending new ones.
-When updating this file, preserve this bar for all agents and keep entries concise.
+Escalate risk when investigation reveals wider impact. Never silently downgrade risk.
+
+## 4. Progressive context
+
+Always start with:
+- the current request;
+- this `AGENTS.md`;
+- the active role/skill instructions;
+- the smallest relevant project files.
+
+Load conditional material only when needed:
+- `PROJECT_CONTEXT.md`;
+- `PROJECT_CHECKS.md`;
+- `PROJECT_STACK.md`;
+- `DATABASE_GUIDE.md`;
+- `.agents/rules/*`;
+- API contracts;
+- schema/migrations;
+- ADRs;
+- framework documentation;
+- external library documentation.
+
+Do not preload old task logs, every ADR, full history, generated files, or unrelated modules.
+
+Prefer:
+1. repository-local facts;
+2. framework-owner documentation;
+3. current dependency documentation;
+4. trustworthy upstream sources;
+5. general model knowledge.
+
+When documentation and repository behavior differ, call out the discrepancy.
+
+## 5. Engineering principles
+
+- Prefer the simplest design that fully satisfies the requirement.
+- Prefer existing project patterns unless there is a concrete reason to change them.
+- Keep abstractions proportional to actual repetition and complexity.
+- Avoid speculative generalization.
+- Make invalid states difficult to represent where practical.
+- Keep interfaces narrow and explicit.
+- Separate pure logic from I/O and side effects when it improves testability.
+- Handle errors at the layer that has enough context to act on them.
+- Validate data at trust boundaries.
+- Preserve backwards compatibility unless a breaking change is explicitly accepted.
+- Avoid hidden global state.
+- Prefer deterministic behavior.
+- Prefer readable code over clever code.
+- Comments should explain why, constraints, or non-obvious behavior—not narrate obvious syntax.
+- Do not add dependencies when the platform or existing stack already solves the problem adequately.
+
+## 6. External tools and skills
+
+When `.akidev/bin/` exists, prefer those project-local wrappers over similarly named global commands. Examples include `./.akidev/bin/graphify`, `./.akidev/bin/maestro`, `./.akidev/bin/agent-device`, and `./.akidev/bin/playwright`. This keeps tool behavior tied to the repository.
+
+
+Third-party integrations are optional.
+
+- Do not install, update, register, or globally configure a third-party tool without explicit user intent.
+- Do not assume an MCP, CLI, or skill exists. Detect availability first.
+- Use Context7 or equivalent documentation tooling for version-sensitive external APIs when useful, not reflexively.
+- When GitHub MCP is available, prefer local Git for local working-tree state and use GitHub MCP for remote repositories, PRs, issues, and Actions. Never inspect or expose `GITHUB_PERSONAL_ACCESS_TOKEN`.
+- Ask before remote GitHub mutations such as creating/editing issues, comments, pull requests, workflow dispatches, releases, or other externally visible state.
+- Use Graphify only when repository-wide structure or hidden dependency analysis would materially help.
+- Use browser/device automation when UI behavior requires it, not for unrelated backend work.
+- Framework-owner guidance wins when third-party skills conflict with the framework's official behavior.
+- Repository-specific instructions win over generic style guidance unless doing so would introduce a correctness or security defect.
+
+## 7. Verification
+
+Verification should match risk.
+
+Start narrow:
+- syntax/typecheck for changed code;
+- focused unit/integration tests;
+- lint on changed scope when supported.
+
+Expand when justified:
+- related test suite;
+- build;
+- E2E;
+- browser/device verification;
+- security checks.
+
+Never claim a check passed unless it actually ran and succeeded.
+
+Distinguish:
+- `PASS` — required relevant checks ran and passed.
+- `PASS_WITH_GAPS` — implemented successfully, but one or more non-blocking verification gaps remain.
+- `FAIL` — implemented or attempted, but a relevant check failed.
+- `INCOMPLETE` — the task could not be completed or required evidence could not be obtained.
+
+`SKIPPED`, `UNAVAILABLE`, and "not run" are gaps, not passes.
+
+## 8. Failure handling
+
+When a command fails:
+1. read the actual error;
+2. determine whether the failure is caused by the change, environment, configuration, or unrelated baseline state;
+3. make one evidence-based corrective attempt when appropriate;
+4. avoid repeatedly running the same failing command without changing the relevant condition;
+5. report the blocker when progress requires user action or an unsafe assumption.
+
+Never hide failing checks by deleting tests, weakening assertions, disabling validation, or broadening ignores without a justified requirement.
+
+## 9. Final reporting
+
+A completion report should state:
+- what behavior changed;
+- important files touched;
+- verification actually run and its result;
+- manual checks required for UI/workflow changes;
+- remaining risks, gaps, or follow-ups.
+
+Keep reports proportional to the task.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

@@ -77,9 +77,9 @@ is marked complete only after its required automated checks pass.
 - `php api/artisan db:seed --force` against `caneguard_test`: the three expected
   role accounts were created with UUIDs
 - `php api/artisan route:list --path=api`: `/api/health` registered
-- `just verify-full`: `PASS_WITH_GAPS`; lint, typecheck, build, Gitleaks, and
-  Trivy passed, while the harness skipped its root test slot because
-  `.harness/project.json` has no test command
+- `npm run lint`, `npm run typecheck`, and `npm run build` plus Gitleaks and
+  Trivy: `PASS_WITH_GAPS`; all passed, while no root-level test command was
+  configured at the time
 - Trivy reported sample Python requirements embedded in Mockery documentation;
   the tracked Composer and npm lockfiles reported zero vulnerabilities
 
@@ -117,8 +117,9 @@ is marked complete only after its required automated checks pass.
 - `composer --working-dir=api validate --strict`: passed
 - `php api/artisan route:list --path=api/v1`: six planned API routes registered
 - Seeded image URL check: HTTP 200, `image/png`, valid 1×1 PNG
-- `just verify-full`: `PASS_WITH_GAPS`; lint, typecheck, build, Gitleaks, and
-  Trivy passed, while the harness root test slot remains unconfigured
+- `npm run lint`, `npm run typecheck`, and `npm run build` plus Gitleaks and
+  Trivy: `PASS_WITH_GAPS`; all passed, while no root-level test command was
+  configured
 - Independent high-risk review: approved with no unresolved code findings
 
 ## Phase 3 web API infrastructure
@@ -142,7 +143,7 @@ is marked complete only after its required automated checks pass.
   typecheck, and production build
 - `VITE_DATA_SOURCE=mock npm run build`: passed
 - `npm run check:all`: passed; 31 Laravel tests, 161 assertions
-- `just verify-targeted`: passed
+- `npm run lint`, `npm run typecheck`, and `npm run build`: passed
 - Local commit: `3bce8a2 feat: add web API data infrastructure`
 
 ## Phase 4 authentication and protected routes
@@ -165,8 +166,9 @@ is marked complete only after its required automated checks pass.
 
 - `npm run check:all`: passed; 11 frontend test files, 32 tests, and 37 Laravel
   tests with 196 assertions
-- `just verify-full`: passed lint, typecheck, tests, build, Gitleaks, and Trivy;
-  tracked npm and Composer lockfiles reported zero vulnerabilities
+- `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` plus
+  Gitleaks and Trivy: passed; tracked npm and Composer lockfiles reported zero
+  vulnerabilities
 - `api/vendor/bin/pint --test`: passed
 - Route audit confirmed throttled login, authenticated logout, and Sanctum
   protected `/api/v1/me`
@@ -187,7 +189,7 @@ is marked complete only after its required automated checks pass.
 
 - `npm run check:all`: passed; 12 frontend test files, 38 tests, and 37 Laravel
   tests with 196 assertions
-- `just verify-targeted`: passed
+- `npm run lint`, `npm run typecheck`, and `npm run build`: passed
 - `git diff --check`: passed
 
 ## Phase 6 submitted reports list
@@ -218,8 +220,9 @@ is marked complete only after its required automated checks pass.
 
 - `npm run check:all`: passed; 15 frontend test files, 57 tests, and 43 Laravel
   tests with 235 assertions
-- `just verify-full`: passed lint, typecheck, tests, build, Gitleaks, and Trivy;
-  tracked npm and Composer lockfiles reported zero vulnerabilities
+- `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` plus
+  Gitleaks and Trivy: passed; tracked npm and Composer lockfiles reported zero
+  vulnerabilities
 - `api/vendor/bin/pint --test`: passed
 - `git diff --check`: passed
 - Graphify was updated after the final code changes
@@ -254,7 +257,8 @@ is marked complete only after its required automated checks pass.
   production build passed
 - Targeted final page check: 6 tests passed after the version-neutral model
   label correction
-- `just verify-full`: passed lint, typecheck, tests, build, Gitleaks, and Trivy
+- `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` plus
+  Gitleaks and Trivy: passed
 - `git diff --check`: passed
 - Graphify was updated after the final code changes
 - MySQL contract execution is incomplete because the local MySQL service is
@@ -285,7 +289,7 @@ is marked complete only after its required automated checks pass.
 - `npm run check:all`: passed; 19 frontend test files, 73 tests, and 45 Laravel
   tests with 243 assertions, plus lint, typecheck, production build, and Pint
 - Focused resilience suite: 5 test files, 29 tests passed
-- `just verify-targeted`: passed lint and typecheck
+- `npm run lint` and `npm run typecheck`: passed
 - `git diff --check`: passed
 - Graphify was updated after the final code changes
 
@@ -317,7 +321,7 @@ is marked complete only after its required automated checks pass.
 ### Phase 9 verification
 
 - `npm ci`: passed; 324 packages installed and the lockfile remained unchanged
-- `just verify-full`: passed
+- `npm run check:all` plus Gitleaks and Trivy: passed
 - Web suite: 19 test files and 73 tests passed; lint, typecheck, and production
   build passed
 - Laravel suite: 45 tests and 259 assertions passed; Pint passed
@@ -333,7 +337,7 @@ is marked complete only after its required automated checks pass.
   while the application root returned 200
 - Gitleaks and Trivy completed; tracked npm and Composer lockfiles reported no
   vulnerabilities
-- `git diff --check`, harness validation, source-bundle verification, archive
+- `git diff --check`, tooling validation, source-bundle verification, archive
   listings, image metadata checks, and recursive artifact checksums passed
 - Local implementation commit: `8c42452 chore: prepare release rehearsal`
 

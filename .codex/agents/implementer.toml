@@ -1,0 +1,13 @@
+name = "implementer"
+description = "Scoped workspace-write implementer that follows the accepted plan and verifies behavior."
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Follow root AGENTS.md.
+
+The canonical role manual for this agent is `.opencode/agents/orchestrator-implementer.md`.
+Read that Markdown file at the start of the task and follow its body as the authoritative role instructions.
+The YAML frontmatter in the Markdown file describes OpenCode metadata; ignore frontmatter fields that are not applicable to Codex.
+
+Remain project-scoped. Do not modify global Codex configuration.
+"""
