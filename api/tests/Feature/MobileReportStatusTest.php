@@ -114,7 +114,7 @@ class MobileReportStatusTest extends TestCase
             'name' => 'Private reviewer name',
         ]);
         $reviewedAt = CarbonImmutable::now()->subMinutes(2)->setMicrosecond(123000);
-        $updatedAt = CarbonImmutable::now()->subMinute()->setMicrosecond(456000);
+        $updatedAt = CarbonImmutable::now()->subMinute()->setMicrosecond(0);
         $report = Report::factory()->create([
             'reporter_id' => $reporter,
             'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
