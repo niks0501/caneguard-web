@@ -43,6 +43,31 @@ class ReviewReportTest extends TestCase
         );
     }
 
+    public function test_admin_can_mutate_a_report_review(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $report = Report::factory()->create();
+
+        Sanctum::actingAs($admin);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'status' => Report::STATUS_RESOLVED,
+            'notes' => 'Resolved by the authority team.',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.review.status', Report::STATUS_RESOLVED)
+            ->assertJsonPath('data.review.reviewer.uuid', $admin->uuid)
+            ->assertJsonPath('data.version', 1);
+
+        $this->assertDatabaseHas('reports', [
+            'uuid' => $report->uuid,
+            'review_status' => Report::STATUS_RESOLVED,
+            'reviewer_id' => $admin->getKey(),
+            'lock_version' => 1,
+        ]);
+    }
+
     public function test_field_reporter_cannot_review_a_report(): void
     {
         $fieldReporter = User::factory()->fieldReporter()->create();

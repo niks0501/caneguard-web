@@ -66,6 +66,53 @@ class MobileReportUploadTest extends TestCase
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
     }
 
+    public function test_idempotent_resubmission_preserves_existing_review_snapshot_and_version(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('review-preservation-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+        $reviewer = User::factory()->reviewer()->create();
+        $reviewedAt = now()->subMinute()->setMicrosecond(123000);
+        $report = Report::factory()->create([
+            'reporter_id' => $reporter,
+            'client_uuid' => $clientUuid,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'review_notes' => 'Keep this current snapshot.',
+            'reviewer_id' => $reviewer,
+            'reviewed_at' => $reviewedAt,
+            'lock_version' => 4,
+        ]);
+        $imagePath = 'reports/existing-review.png';
+        Storage::disk('local')->put($imagePath, 'existing-image');
+        $report->update(['image_path' => $imagePath]);
+        $before = $report->fresh();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid))
+            ->assertOk()
+            ->assertJsonPath('data.identity.uuid', $before->uuid)
+            ->assertJsonPath('data.identity.client_uuid', $clientUuid)
+            ->assertJsonPath('data.review.status', $before->review_status)
+            ->assertJsonPath('data.review.notes', $before->review_notes)
+            ->assertJsonPath('data.review.reviewer.uuid', $reviewer->uuid)
+            ->assertJsonPath('data.version', $before->lock_version);
+
+        $after = $report->fresh();
+        $this->assertSame($before->uuid, $after->uuid);
+        $this->assertSame($before->review_status, $after->review_status);
+        $this->assertSame($before->review_notes, $after->review_notes);
+        $this->assertSame($before->reviewer_id, $after->reviewer_id);
+        $this->assertSame(
+            $before->reviewed_at?->toISOString(),
+            $after->reviewed_at?->toISOString(),
+        );
+        $this->assertSame($before->lock_version, $after->lock_version);
+        Storage::disk('local')->assertExists($imagePath);
+        $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
+    }
+
     public function test_upload_rejects_reviewer_role(): void
     {
         Storage::fake('local');

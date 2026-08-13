@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Report;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -50,6 +51,72 @@ class MobileReportStatusTest extends TestCase
                 'Verified by office staff.',
             )
             ->assertJsonStructure(['data', 'links', 'meta']);
+    }
+
+    public function test_status_feed_preserves_the_five_wire_statuses(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $statuses = Report::reviewStatuses();
+
+        foreach ($statuses as $index => $status) {
+            Report::factory()->create([
+                'reporter_id' => $reporter,
+                'review_status' => $status,
+                'updated_at' => now()->subMinutes(count($statuses) - $index),
+            ]);
+        }
+
+        $token = $reporter->createToken('wire-status-test')->plainTextToken;
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses')
+            ->assertOk()
+            ->assertJsonCount(count($statuses), 'data');
+
+        $this->assertSame(
+            $statuses,
+            collect($response->json('data'))->pluck('review_status')->all(),
+        );
+    }
+
+    public function test_status_serializer_is_exact_current_snapshot_and_omits_reviewer_identity(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->reviewer()->create([
+            'email' => 'reviewer-private@example.test',
+            'name' => 'Private reviewer name',
+        ]);
+        $reviewedAt = CarbonImmutable::now()->subMinutes(2)->setMicrosecond(123000);
+        $updatedAt = CarbonImmutable::now()->subMinute()->setMicrosecond(456000);
+        $report = Report::factory()->create([
+            'reporter_id' => $reporter,
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'review_notes' => 'Latest authority note.',
+            'reviewer_id' => $reviewer,
+            'reviewed_at' => $reviewedAt,
+            'updated_at' => $updatedAt,
+        ]);
+        $token = $reporter->createToken('serializer-status-test')->plainTextToken;
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data',
+                'links',
+                'meta',
+                'sync' => ['before'],
+            ]);
+
+        $this->assertSame([
+            'uuid' => $report->uuid,
+            'client_uuid' => $report->client_uuid,
+            'reference_code' => $report->reference_code,
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'review_notes' => 'Latest authority note.',
+            'reviewed_at' => $reviewedAt->toISOString(),
+            'updated_at' => $updatedAt->toISOString(),
+        ], $response->json('data.0'));
     }
 
     public function test_reviewer_cannot_read_mobile_status_feed(): void
