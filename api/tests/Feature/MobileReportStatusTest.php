@@ -13,6 +13,13 @@ class MobileReportStatusTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_status_feed_requires_authentication(): void
+    {
+        $this->getJson('/api/v1/mobile/reports/statuses')
+            ->assertUnauthorized()
+            ->assertJsonPath('code', 'UNAUTHENTICATED');
+    }
+
     public function test_field_reporter_receives_only_owned_statuses_updated_after_cursor(): void
     {
         $reporter = User::factory()->fieldReporter()->create();
@@ -51,6 +58,26 @@ class MobileReportStatusTest extends TestCase
                 'Verified by office staff.',
             )
             ->assertJsonStructure(['data', 'links', 'meta']);
+    }
+
+    public function test_status_feed_rejects_malformed_checkpoints_and_page_sizes(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('invalid-status-query-test')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses?'.http_build_query([
+                'updated_after' => 'not-a-date',
+                'sync_before' => 'also-not-a-date',
+                'per_page' => 101,
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors([
+                'updated_after',
+                'sync_before',
+                'per_page',
+            ]);
     }
 
     public function test_status_feed_preserves_the_five_wire_statuses(): void

@@ -9,6 +9,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -64,6 +65,39 @@ class MobileReportUploadTest extends TestCase
 
         $this->assertDatabaseCount('reports', 1);
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
+    }
+
+    public function test_same_client_uuid_is_scoped_to_the_reporter(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $otherReporter = User::factory()->fieldReporter()->create();
+        $clientUuid = fake()->uuid();
+        $firstToken = $reporter->createToken('owner-one')->plainTextToken;
+        $secondToken = $otherReporter->createToken('owner-two')->plainTextToken;
+
+        $first = $this->withToken($firstToken)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid));
+        $first->assertCreated();
+        $first->assertJsonPath('data.identity.uuid', fn (string $uuid) => $uuid !== '');
+        $firstReportUuid = $first->json('data.identity.uuid');
+        Auth::forgetGuards();
+        $second = $this->withToken($secondToken)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid));
+        $second->assertCreated();
+        $second->assertJsonPath('data.identity.uuid', fn (string $uuid) => $uuid !== $firstReportUuid);
+
+        $this->assertDatabaseCount('reports', 2);
+        $this->assertDatabaseHas('reports', [
+            'reporter_id' => $reporter->getKey(),
+            'client_uuid' => $clientUuid,
+        ]);
+        $this->assertDatabaseHas('reports', [
+            'reporter_id' => $otherReporter->getKey(),
+            'client_uuid' => $clientUuid,
+        ]);
     }
 
     public function test_idempotent_resubmission_preserves_existing_review_snapshot_and_version(): void
