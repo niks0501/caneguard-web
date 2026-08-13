@@ -3,5 +3,16 @@
 /.codex/agents/** text eol=lf
 /.codex/rules/** text eol=lf
 /.agents/skills/** text eol=lf
-/harness/adapters/** text eol=lf
 graphify-out/graph.json merge=graphify
+
+# >>> AkiDev line endings >>>
+/AGENTS.md text eol=lf
+/.agents/** text eol=lf
+/.codex/** text eol=lf
+/.opencode/** text eol=lf
+/.akidev/config text eol=lf
+/.akidev/managed.tsv text eol=lf
+/opencode.jsonc text eol=lf
+/.pre-commit-config.yaml text eol=lf
+/.gitleaks.toml text eol=lf
+# <<< AkiDev line endings <<<

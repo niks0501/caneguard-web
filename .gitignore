@@ -23,25 +23,21 @@ dist-ssr
 *.sln
 *.sw?
 
-# Workflow files
-.opencode
-opencode.jsonc
-PROJECT_CHECKS.md
-docs/
-graphify-out/cache
-.ai
-project-structure.txt
-.agents
-.codex
-.harness
-harness/
-tasks
-.gitleaks.toml
-.pre-commit-config.yaml
-GUIDE.md
-justfile
-scripts
-/tests/
+# ============================================================
+# Development / AI workflow runtime
+# ============================================================
+#
+# Project agents, skills, rules, documentation, and tooling
+# configuration are intentionally version controlled:
+#   AGENTS.md, PROJECT_CONTEXT.md, PROJECT_CHECKS.md,
+#   PROJECT_STACK.md, opencode.jsonc, .agents/, .codex/,
+#   .opencode/, .akidev/config, .akidev/managed.tsv
+
+# OpenCode local dependencies
+.opencode/node_modules/
+
+# Generated Graphify cache
+graphify-out/cache/
 
 # Laravel application
 /api/.env
@@ -62,3 +58,11 @@ scripts
 # Web environment
 .env.local
 .env.*.local
+
+# >>> AkiDev project-local runtime >>>
+.akidev/cache/
+.akidev/home/
+.akidev/tools/
+.akidev/tmp/
+.akidev/conflicts/
+# <<< AkiDev project-local runtime <<<

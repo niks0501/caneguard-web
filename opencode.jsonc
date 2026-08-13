@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Managed by AkiDev project MCP configuration.
+  "default_agent": "orchestrator",
+  // Keep personal OpenCode overrides in .opencode/opencode.jsonc.
+  "mcp": {
+  }
+}

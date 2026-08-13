@@ -1,0 +1,20 @@
+# AkiDev project-local Codex configuration.
+# This file belongs inside the repository and must not be copied to ~/.codex.
+
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+model_reasoning_effort = "high"
+
+project_doc_fallback_filenames = ["PROJECT_CHECKS.md", "PROJECT_CONTEXT.md"]
+project_doc_max_bytes = 32768
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4
+
+
+
+# AkiDev manages only this project-local MCP block.
+# >>> AKIDEV MCP START
+# No AkiDev MCP integrations selected.
+# <<< AKIDEV MCP END
