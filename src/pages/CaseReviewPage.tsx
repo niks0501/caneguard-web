@@ -182,6 +182,12 @@ export function CaseReviewPage() {
             <dl className="detail-list">
               <DetailField label="Checklist consistency">{report.checklistConsistency?.replaceAll("_", " ") ?? "Not provided"}</DetailField>
               <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
+              <DetailField label="Sugarcane variety">{report.sugarcaneVariety ?? "Not provided"}</DetailField>
+              <DetailField label="Crop age">{report.cropAge ?? "Not provided"}</DetailField>
+              <DetailField label="Cane class">{report.caneClass ?? "Not provided"}</DetailField>
+              <DetailField label="Affected area">{report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : "Not provided"}</DetailField>
+              <DetailField label="Affected portion">{report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : "Not provided"}</DetailField>
+              <DetailField label="Field notes">{report.fieldNotes ?? "Not provided"}</DetailField>
               <DetailField label="Barangay">{report.barangay}</DetailField>
               <DetailField label="Reporter">{report.submittedByName}</DetailField>
             </dl>

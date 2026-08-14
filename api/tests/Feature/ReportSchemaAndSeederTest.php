@@ -22,6 +22,12 @@ class ReportSchemaAndSeederTest extends TestCase
             'reporter_id',
             'client_uuid',
             'barangay',
+            'sugarcane_variety',
+            'crop_age',
+            'cane_class',
+            'affected_area_hectares',
+            'affected_portion_percent',
+            'field_notes',
             'image_path',
             'image_mime_type',
             'image_size_bytes',
@@ -47,6 +53,25 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertTrue(Schema::hasTable('report_class_scores'));
         $this->assertTrue(Schema::hasTable('report_symptoms'));
         $this->assertTrue(Schema::hasTable('report_quality_warnings'));
+    }
+
+    public function test_report_factory_supports_smart_field_values_and_casts_them(): void
+    {
+        $report = Report::factory()->create([
+            'sugarcane_variety' => 'PSR 86',
+            'crop_age' => '6 months',
+            'cane_class' => 'Class A',
+            'affected_area_hectares' => 12.5,
+            'affected_portion_percent' => 42.75,
+            'field_notes' => 'Observed along the eastern edge.',
+        ]);
+
+        $this->assertSame('PSR 86', $report->sugarcane_variety);
+        $this->assertSame('6 months', $report->crop_age);
+        $this->assertSame('Class A', $report->cane_class);
+        $this->assertSame('12.50', $report->affected_area_hectares);
+        $this->assertSame('42.75', $report->affected_portion_percent);
+        $this->assertSame('Observed along the eastern edge.', $report->field_notes);
     }
 
     public function test_seeder_creates_twelve_varied_reports_with_valid_images(): void
