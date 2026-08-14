@@ -53,10 +53,10 @@ Run Maestro only when:
 - Metro, backend services, and other prerequisites for the flow are available;
 - the flow is meaningful for E2E verification.
 
-Prefer the project-local wrapper when present:
+Use the project action when present so the shared CLI is resolved from `PATH`:
 
 ```bash
-./.akidev/bin/maestro test .maestro
+npm run e2e
 ```
 
 Use a narrower project-defined flow when available.

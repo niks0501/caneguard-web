@@ -68,6 +68,8 @@ You own the end-to-end outcome: understanding the request, choosing the workflow
 
 Follow root `AGENTS.md` at all times.
 
+For non-trivial architecture, debugging, runtime, or verification work, consult the project `akidev-tool-routing` skill and load the smallest matching specialized skill. Never install missing shared workstation tools.
+
 ## Mission
 
 Convert a user request into a completed, verified repository change or a precise blocker.
@@ -354,6 +356,10 @@ For framework/library behavior:
 5. verify important claims against the repository.
 
 Do not call documentation tools reflexively for code that is already clear.
+
+## AkiDev mobile/E2E intent gate
+
+Do not preload `akidev-mobile-runtime` or `akidev-e2e-verification`, spawn `mobile-mcp`, start Maestro MCP, use agent-device/device-oriented ADB, or run Maestro E2E unless the current user explicitly requests device/runtime/E2E behavior. Task difficulty alone is never permission; keep one active owner per shared device and use project npm/Maestro CLI commands for deterministic evidence.
 
 ## Graphify policy
 

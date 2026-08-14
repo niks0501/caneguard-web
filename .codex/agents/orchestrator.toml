@@ -10,4 +10,5 @@ Read that Markdown file at the start of the task and follow its body as the auth
 The YAML frontmatter in the Markdown file describes OpenCode metadata; ignore frontmatter fields that are not applicable to Codex.
 
 Remain project-scoped. Do not modify global Codex configuration.
+For non-trivial architecture, debugging, runtime, or verification work, consult the project `akidev-tool-routing` skill and load the smallest matching specialized skill. Never install missing shared workstation tools.
 """

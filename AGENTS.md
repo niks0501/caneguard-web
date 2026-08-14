@@ -152,7 +152,7 @@ When documentation and repository behavior differ, call out the discrepancy.
 
 ## 6. External tools and skills
 
-When `.akidev/bin/` exists, prefer those project-local wrappers over similarly named global commands. Examples include `./.akidev/bin/graphify`, `./.akidev/bin/maestro`, `./.akidev/bin/agent-device`, and `./.akidev/bin/playwright`. This keeps tool behavior tied to the repository.
+Read `.akidev/config` to understand selected integrations. For the shared mobile/agent toolchain, resolve `graphify`, `maestro`, `agent-device`, and `adb` from the active shell `PATH`; do not look for or create `.akidev/bin/` wrappers for those commands. Use project npm actions such as `npm run e2e` for project behavior. Other integrations may still document a project-local wrapper where their integration requires it.
 
 
 Third-party integrations are optional.
@@ -163,7 +163,9 @@ Third-party integrations are optional.
 - When GitHub MCP is available, prefer local Git for local working-tree state and use GitHub MCP for remote repositories, PRs, issues, and Actions. Never inspect or expose `GITHUB_PERSONAL_ACCESS_TOKEN`.
 - Ask before remote GitHub mutations such as creating/editing issues, comments, pull requests, workflow dispatches, releases, or other externally visible state.
 - Use Graphify only when repository-wide structure or hidden dependency analysis would materially help.
-- Use browser/device automation when UI behavior requires it, not for unrelated backend work.
+- Use browser/device automation when UI behavior requires it, not for unrelated backend work. Device/runtime and E2E capabilities are explicit-user-intent only; task difficulty does not activate them.
+- For non-trivial architecture, debugging, runtime, or verification work, consult the project `akidev-tool-routing` skill and load the smallest matching specialized skill. Never install missing shared workstation tools.
+- Do not preload `akidev-mobile-runtime` or `akidev-e2e-verification`, spawn `mobile-mcp`, start Maestro MCP, use agent-device/device-oriented ADB, or run Maestro E2E unless the current user explicitly requests device/runtime/E2E behavior. Task difficulty alone is never permission; keep one active owner per shared device.
 - Framework-owner guidance wins when third-party skills conflict with the framework's official behavior.
 - Repository-specific instructions win over generic style guidance unless doing so would introduce a correctness or security defect.
 
@@ -227,3 +229,10 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.

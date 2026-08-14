@@ -59,6 +59,7 @@ graphify-out/cache/
 .env.local
 .env.*.local
 
+
 # >>> AkiDev project-local runtime >>>
 .akidev/cache/
 .akidev/home/
