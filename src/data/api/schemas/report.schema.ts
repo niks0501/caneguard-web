@@ -74,6 +74,12 @@ export const reportDetailSchema = z.object({
     checklist_consistency: z.string(),
     reported_severity: z.string().nullable(),
     quality_warnings: z.array(z.string()),
+    sugarcane_variety: z.string().nullable(),
+    crop_age: z.string().nullable(),
+    cane_class: z.string().nullable(),
+    affected_area_hectares: z.number().positive().nullable(),
+    affected_portion_percent: z.number().min(0).max(100).nullable(),
+    field_notes: z.string().nullable(),
   }),
   review: z.object({
     status: reviewStatusSchema,

@@ -13,6 +13,26 @@ class StoreMobileReportRequest extends ApiFormRequest
         if (! $this->has('quality_warnings')) {
             $this->merge(['quality_warnings' => []]);
         }
+
+        $nullableFields = [
+            'sugarcane_variety',
+            'crop_age',
+            'cane_class',
+            'affected_area_hectares',
+            'affected_portion_percent',
+            'field_notes',
+        ];
+        $emptyFields = [];
+
+        foreach ($nullableFields as $field) {
+            if ($this->input($field) === '') {
+                $emptyFields[$field] = null;
+            }
+        }
+
+        if ($emptyFields !== []) {
+            $this->merge($emptyFields);
+        }
     }
 
     public function authorize(): bool
@@ -67,6 +87,12 @@ class StoreMobileReportRequest extends ApiFormRequest
                 ]),
             ],
             'barangay' => ['required', 'string', 'max:120'],
+            'sugarcane_variety' => ['nullable', 'string', 'max:100'],
+            'crop_age' => ['nullable', 'string', 'max:100'],
+            'cane_class' => ['nullable', 'string', 'max:100'],
+            'affected_area_hectares' => ['nullable', 'numeric', 'gt:0'],
+            'affected_portion_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'field_notes' => ['nullable', 'string', 'max:5000'],
             'model_version' => ['required', 'string', 'max:100'],
             'preprocess_ms' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'inference_ms' => ['required', 'numeric', 'min:0', 'max:999999999'],

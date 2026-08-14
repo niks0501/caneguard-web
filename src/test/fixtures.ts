@@ -58,6 +58,12 @@ export const reportDetailDto = {
     checklist_consistency: "consistent",
     reported_severity: "moderate",
     quality_warnings: [],
+    sugarcane_variety: "PSR 86",
+    crop_age: "6 months",
+    cane_class: "Class A",
+    affected_area_hectares: 12.5,
+    affected_portion_percent: 42.75,
+    field_notes: "Rust symptoms concentrated on the eastern edge.",
   },
   review: {
     status: "submitted_unverified",

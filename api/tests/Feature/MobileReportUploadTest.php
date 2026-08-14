@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Mockery;
 use PDOException;
 use RuntimeException;
@@ -65,6 +66,250 @@ class MobileReportUploadTest extends TestCase
 
         $this->assertDatabaseCount('reports', 1);
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
+    }
+
+    public function test_upload_persists_and_returns_all_smart_field_report_fields(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('smart-fields-upload-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+        $payload = array_merge($this->payload($clientUuid), [
+            'sugarcane_variety' => 'PSR 86',
+            'crop_age' => '6 months',
+            'cane_class' => 'Class A',
+            'affected_area_hectares' => '12.50',
+            'affected_portion_percent' => '42.75',
+            'field_notes' => 'Rust symptoms concentrated on the eastern edge.',
+        ]);
+
+        $response = $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $payload);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.observations.sugarcane_variety', 'PSR 86')
+            ->assertJsonPath('data.observations.crop_age', '6 months')
+            ->assertJsonPath('data.observations.cane_class', 'Class A')
+            ->assertJsonPath('data.observations.affected_area_hectares', 12.5)
+            ->assertJsonPath('data.observations.affected_portion_percent', 42.75)
+            ->assertJsonPath(
+                'data.observations.field_notes',
+                'Rust symptoms concentrated on the eastern edge.',
+            );
+
+        $report = Report::query()->sole();
+        $this->assertSame('PSR 86', $report->sugarcane_variety);
+        $this->assertSame('6 months', $report->crop_age);
+        $this->assertSame('Class A', $report->cane_class);
+        $this->assertSame('12.50', $report->affected_area_hectares);
+        $this->assertSame('42.75', $report->affected_portion_percent);
+        $this->assertSame(
+            'Rust symptoms concentrated on the eastern edge.',
+            $report->field_notes,
+        );
+
+        $reviewer = User::factory()->reviewer()->create();
+        Sanctum::actingAs($reviewer);
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.observations.sugarcane_variety', 'PSR 86')
+            ->assertJsonPath('data.observations.affected_area_hectares', 12.5)
+            ->assertJsonPath('data.observations.field_notes', $report->field_notes);
+    }
+
+    public function test_upload_without_smart_fields_remains_backward_compatible(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('legacy-upload-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid))
+            ->assertCreated()
+            ->assertJsonPath('data.observations.sugarcane_variety', null)
+            ->assertJsonPath('data.observations.crop_age', null)
+            ->assertJsonPath('data.observations.cane_class', null)
+            ->assertJsonPath('data.observations.affected_area_hectares', null)
+            ->assertJsonPath('data.observations.affected_portion_percent', null)
+            ->assertJsonPath('data.observations.field_notes', null);
+
+        $this->assertDatabaseHas('reports', [
+            'client_uuid' => $clientUuid,
+            'sugarcane_variety' => null,
+            'crop_age' => null,
+            'cane_class' => null,
+            'affected_area_hectares' => null,
+            'affected_portion_percent' => null,
+            'field_notes' => null,
+        ]);
+    }
+
+    public function test_upload_accepts_zero_and_one_hundred_percent_boundaries(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('portion-boundaries-test')->plainTextToken;
+
+        foreach ([0, 100] as $portion) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', array_merge(
+                    $this->payload(fake()->uuid()),
+                    ['affected_portion_percent' => $portion],
+                ))
+                ->assertCreated()
+                ->assertJsonPath(
+                    'data.observations.affected_portion_percent',
+                    $portion,
+                );
+        }
+
+        $this->assertDatabaseCount('reports', 2);
+    }
+
+    public function test_upload_rejects_invalid_smart_field_numeric_ranges_and_types(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('smart-fields-validation-test')->plainTextToken;
+
+        foreach ([0, -1] as $area) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', array_merge(
+                    $this->payload(fake()->uuid()),
+                    ['affected_area_hectares' => $area],
+                ))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('affected_area_hectares');
+        }
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', array_merge(
+                $this->payload(fake()->uuid()),
+                ['affected_portion_percent' => 100.01],
+            ))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('affected_portion_percent');
+
+        foreach ([
+            'affected_area_hectares' => 'not-a-number',
+            'affected_portion_percent' => 'not-a-number',
+        ] as $field => $value) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', array_merge(
+                    $this->payload(fake()->uuid()),
+                    [$field => $value],
+                ))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors($field);
+        }
+
+        $this->assertDatabaseCount('reports', 0);
+    }
+
+    public function test_upload_rejects_smart_field_strings_over_their_limits(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('smart-fields-length-test')->plainTextToken;
+
+        foreach ([
+            'sugarcane_variety' => str_repeat('v', 101),
+            'crop_age' => str_repeat('a', 101),
+            'cane_class' => str_repeat('c', 101),
+            'field_notes' => str_repeat('n', 5001),
+        ] as $field => $value) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', array_merge(
+                    $this->payload(fake()->uuid()),
+                    [$field => $value],
+                ))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors($field);
+        }
+
+        $this->assertDatabaseCount('reports', 0);
+    }
+
+    public function test_upload_normalizes_absent_null_and_empty_smart_fields_to_null(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('smart-fields-null-test')->plainTextToken;
+        $fields = [
+            'sugarcane_variety',
+            'crop_age',
+            'cane_class',
+            'affected_area_hectares',
+            'affected_portion_percent',
+            'field_notes',
+        ];
+
+        foreach (['absent', 'null', 'empty'] as $variant) {
+            $clientUuid = fake()->uuid();
+            $payload = $this->payload($clientUuid);
+            if ($variant === 'null') {
+                $payload = array_merge($payload, array_fill_keys($fields, null));
+            } elseif ($variant === 'empty') {
+                $payload = array_merge($payload, array_fill_keys($fields, ''));
+            }
+
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', $payload)
+                ->assertCreated();
+
+            $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+            foreach ($fields as $field) {
+                $this->assertNull($report->{$field}, "Expected {$field} to be null for {$variant} input.");
+            }
+        }
+
+        $this->assertDatabaseCount('reports', 3);
+    }
+
+    public function test_original_required_upload_fields_remain_required(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('required-fields-test')->plainTextToken;
+        $requiredFields = [
+            'client_uuid',
+            'image',
+            'image_source_type',
+            'predicted_label',
+            'confidence',
+            'class_scores',
+            'symptom_keys',
+            'checklist_consistency',
+            'barangay',
+            'model_version',
+            'preprocess_ms',
+            'inference_ms',
+            'total_ms',
+            'captured_at',
+        ];
+
+        foreach ($requiredFields as $field) {
+            $payload = $this->payload(fake()->uuid());
+            unset($payload[$field]);
+
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', $payload)
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors($field);
+        }
+
+        $this->assertDatabaseCount('reports', 0);
     }
 
     public function test_same_client_uuid_is_scoped_to_the_reporter(): void

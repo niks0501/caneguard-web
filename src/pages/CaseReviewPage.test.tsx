@@ -71,6 +71,13 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText(report.modelVersion!)).toBeInTheDocument();
     expect(screen.getAllByText("93%").length).toBeGreaterThan(0);
     expect(screen.getByText("Checklist consistency")).toBeInTheDocument();
+    expect(screen.getByText("PSR 86")).toBeInTheDocument();
+    expect(screen.getByText("6 months")).toBeInTheDocument();
+    expect(screen.getByText("12.5 ha")).toBeInTheDocument();
+    expect(screen.getByText("42.75%")).toBeInTheDocument();
+    expect(
+      screen.getByText("Rust symptoms concentrated on the eastern edge."),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();

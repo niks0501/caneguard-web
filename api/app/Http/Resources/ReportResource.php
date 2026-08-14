@@ -59,6 +59,16 @@ class ReportResource extends JsonResource
                 'quality_warnings' => $this->qualityWarnings
                     ->pluck('warning_key')
                     ->values(),
+                'sugarcane_variety' => $this->sugarcane_variety,
+                'crop_age' => $this->crop_age,
+                'cane_class' => $this->cane_class,
+                'affected_area_hectares' => $this->affected_area_hectares === null
+                    ? null
+                    : (float) $this->affected_area_hectares,
+                'affected_portion_percent' => $this->affected_portion_percent === null
+                    ? null
+                    : (float) $this->affected_portion_percent,
+                'field_notes' => $this->field_notes,
             ],
             'review' => [
                 'status' => $this->review_status,

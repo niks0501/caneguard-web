@@ -47,6 +47,11 @@ export interface DiseaseReport {
   checklistConsistency?: string;
   reportedSeverity?: string;
   qualityWarnings?: string[];
+  sugarcaneVariety?: string;
+  cropAge?: string;
+  caneClass?: string;
+  affectedAreaHectares?: number;
+  affectedPortionPercent?: number;
   reviewStatus: ReviewStatus;
   reviewNotes?: string;
   reviewedBy?: string;

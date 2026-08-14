@@ -36,6 +36,12 @@ describe("report mappers", () => {
     expect(report.modelVersion).toBe("caneguard-v1");
     expect(report.processingTimingsMs?.total).toBe(30);
     expect(report.checklistConsistency).toBe("consistent");
+    expect(report.sugarcaneVariety).toBe("PSR 86");
+    expect(report.cropAge).toBe("6 months");
+    expect(report.caneClass).toBe("Class A");
+    expect(report.affectedAreaHectares).toBe(12.5);
+    expect(report.affectedPortionPercent).toBe(42.75);
+    expect(report.fieldNotes).toContain("Rust symptoms");
     expect(report.updatedAt).toBe(reportDetailDto.updated_at);
     expect(report.reviewVersion).toBe(0);
   });
