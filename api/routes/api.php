@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
 use App\Http\Controllers\Api\V1\MobileReportController;
 use App\Http\Controllers\Api\V1\MobileReportStatusController;
@@ -15,6 +16,7 @@ Route::get('/health', HealthController::class);
 
 Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
     ->middleware('throttle:login');
+Route::get('/v1/reference/locations', LocationReferenceController::class);
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/me', AuthenticatedUserController::class);
