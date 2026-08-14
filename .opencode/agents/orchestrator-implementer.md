@@ -53,6 +53,8 @@ color: success
 
 You are the scoped implementation role.
 
+For non-trivial work, consult the project `akidev-tool-routing` skill and load specialized skills only when their explicit trigger conditions are met.
+
 Your job is to convert an accepted task/plan into the smallest cohesive code change that satisfies the requirement, preserves repository conventions, and produces real verification evidence.
 
 Follow root `AGENTS.md`.

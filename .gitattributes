@@ -5,9 +5,11 @@
 /.agents/skills/** text eol=lf
 graphify-out/graph.json merge=graphify
 
+
 # >>> AkiDev line endings >>>
 /AGENTS.md text eol=lf
 /.agents/** text eol=lf
+/.pi/** text eol=lf
 /.codex/** text eol=lf
 /.opencode/** text eol=lf
 /.akidev/config text eol=lf
