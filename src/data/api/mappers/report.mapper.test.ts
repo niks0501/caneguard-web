@@ -20,6 +20,7 @@ describe("report mappers", () => {
       municipality: "Bago",
       observedAt: "2026-07-20T09:58:00.000Z",
       reviewStatus: "submitted_unverified",
+      mismatchReported: true,
     });
   });
 
@@ -56,8 +57,29 @@ describe("report mappers", () => {
     expect(report.affectedAreaHectares).toBe(12.5);
     expect(report.affectedPortionPercent).toBe(42.75);
     expect(report.fieldNotes).toContain("Rust symptoms");
+    expect(report.mismatchReported).toBe(true);
+    expect(report.reporterSuspectedCondition).toBe("smut");
+    expect(report.reporterObservationText).toContain("Dark whip-like growths");
+    expect(report.authorityClassifiedCondition).toBeNull();
     expect(report.updatedAt).toBe(reportDetailDto.updated_at);
     expect(report.reviewVersion).toBe(0);
+  });
+
+  it("maps an authority classification without changing the model result", () => {
+    const report = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          review: {
+            ...reportDetailDto.review,
+            authority_classified_condition: "smut",
+          },
+        },
+      }).data,
+    );
+
+    expect(report.authorityClassifiedCondition).toBe("smut");
+    expect(report.predictedDisease).toBe("rust");
   });
 
   it("maps Laravel pagination metadata", () => {

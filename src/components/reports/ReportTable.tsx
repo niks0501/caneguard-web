@@ -35,7 +35,13 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                     label={`Submitted evidence for ${report.referenceCode}`}
                     src={report.imageUrl}
                   />
-                  <div><strong>{report.referenceCode}</strong><span>{report.farmReference ?? "No farm reference"}</span></div>
+                  <div>
+                    <strong>{report.referenceCode}</strong>
+                    <span>{report.farmReference ?? "No farm reference"}</span>
+                    {report.mismatchReported === true ? (
+                      <span className="mismatch-table-marker">AI mismatch flagged</span>
+                    ) : null}
+                  </div>
                 </div>
               </td>
               <td>

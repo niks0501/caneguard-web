@@ -38,6 +38,9 @@ class ReportSchemaAndSeederTest extends TestCase
             'affected_area_hectares',
             'affected_portion_percent',
             'field_notes',
+            'mismatch_reported',
+            'reporter_suspected_condition',
+            'reporter_observation_text',
             'image_path',
             'image_mime_type',
             'image_size_bytes',
@@ -56,6 +59,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'submitted_at',
             'review_status',
             'review_notes',
+            'authority_classified_condition',
             'reviewer_id',
             'reviewed_at',
             'lock_version',
@@ -83,6 +87,10 @@ class ReportSchemaAndSeederTest extends TestCase
             'gps_accuracy' => 4.25,
             'observed_at' => '2026-07-20T09:58:00.000Z',
             'scan_record_client_uuid' => 'a9b3c7d1-e23c-43cb-a3ae-08ec6e0f302e',
+            'mismatch_reported' => true,
+            'reporter_suspected_condition' => 'smut',
+            'reporter_observation_text' => 'Dark whip-like growths are visible.',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
         ]);
 
         $this->assertSame('PSR 86', $report->sugarcane_variety);
@@ -107,6 +115,10 @@ class ReportSchemaAndSeederTest extends TestCase
             'a9b3c7d1-e23c-43cb-a3ae-08ec6e0f302e',
             $report->scan_record_client_uuid,
         );
+        $this->assertTrue($report->mismatch_reported);
+        $this->assertSame('smut', $report->reporter_suspected_condition);
+        $this->assertSame('Dark whip-like growths are visible.', $report->reporter_observation_text);
+        $this->assertSame(Report::AUTHORITY_CONDITION_SMUT, $report->authority_classified_condition);
     }
 
     public function test_legacy_report_values_can_leave_new_contract_fields_null(): void
@@ -133,6 +145,10 @@ class ReportSchemaAndSeederTest extends TestCase
             'gps_accuracy',
             'observed_at',
             'scan_record_client_uuid',
+            'mismatch_reported',
+            'reporter_suspected_condition',
+            'reporter_observation_text',
+            'authority_classified_condition',
         ] as $field) {
             $this->assertNull($report->{$field}, "Expected {$field} to remain nullable.");
         }

@@ -31,6 +31,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'affected_area_hectares',
     'affected_portion_percent',
     'field_notes',
+    'mismatch_reported',
+    'reporter_suspected_condition',
+    'reporter_observation_text',
     'image_path',
     'image_mime_type',
     'image_size_bytes',
@@ -49,6 +52,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'submitted_at',
     'review_status',
     'review_notes',
+    'authority_classified_condition',
     'reviewer_id',
     'reviewed_at',
     'lock_version',
@@ -65,6 +69,14 @@ class Report extends Model
     public const LABEL_MOSAIC = 'mosaic';
 
     public const LABEL_RUST = 'rust';
+
+    public const AUTHORITY_CONDITION_SMUT = 'smut';
+
+    public const AUTHORITY_CONDITION_DOWNY_MILDEW = 'downy_mildew';
+
+    public const AUTHORITY_CONDITION_MIXED_OR_MULTIPLE = 'mixed_or_multiple';
+
+    public const AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY = 'unable_to_classify';
 
     public const STATUS_SUBMITTED_UNVERIFIED = 'submitted_unverified';
 
@@ -85,6 +97,19 @@ class Report extends Model
             self::LABEL_HEALTHY,
             self::LABEL_MOSAIC,
             self::LABEL_RUST,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function authorityClassifiedConditions(): array
+    {
+        return [
+            self::AUTHORITY_CONDITION_SMUT,
+            self::AUTHORITY_CONDITION_DOWNY_MILDEW,
+            self::AUTHORITY_CONDITION_MIXED_OR_MULTIPLE,
+            self::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY,
         ];
     }
 
@@ -177,6 +202,10 @@ class Report extends Model
             'affected_area_hectares' => 'decimal:2',
             'affected_portion_percent' => 'decimal:2',
             'field_notes' => 'string',
+            'mismatch_reported' => 'boolean',
+            'reporter_suspected_condition' => 'string',
+            'reporter_observation_text' => 'string',
+            'authority_classified_condition' => 'string',
             'confidence' => 'decimal:7',
             'preprocess_ms' => 'decimal:3',
             'inference_ms' => 'decimal:3',

@@ -82,6 +82,9 @@ class MobileReportUploadTest extends TestCase
             'affected_area_hectares' => '12.50',
             'affected_portion_percent' => '42.75',
             'field_notes' => 'Rust symptoms concentrated on the eastern edge.',
+            'mismatch_reported' => true,
+            'reporter_suspected_condition' => 'smut',
+            'reporter_observation_text' => 'Dark whip-like growths are visible at the tops of several stalks.',
         ]);
 
         $response = $this->withToken($token)
@@ -90,6 +93,9 @@ class MobileReportUploadTest extends TestCase
 
         $response
             ->assertCreated()
+            ->assertJsonPath('data.model.predicted_label', Report::LABEL_RUST)
+            ->assertJsonPath('data.review.status', Report::STATUS_SUBMITTED_UNVERIFIED)
+            ->assertJsonCount(3, 'data.model.class_scores')
             ->assertJsonPath('data.observations.sugarcane_variety', 'PSR 86')
             ->assertJsonPath('data.observations.crop_age', '6 months')
             ->assertJsonPath('data.observations.cane_class', 'Class A')
@@ -98,6 +104,12 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath(
                 'data.observations.field_notes',
                 'Rust symptoms concentrated on the eastern edge.',
+            )
+            ->assertJsonPath('data.reporter_observation.mismatch_reported', true)
+            ->assertJsonPath('data.reporter_observation.reporter_suspected_condition', 'smut')
+            ->assertJsonPath(
+                'data.reporter_observation.reporter_observation_text',
+                'Dark whip-like growths are visible at the tops of several stalks.',
             );
 
         $report = Report::query()->sole();
@@ -110,6 +122,12 @@ class MobileReportUploadTest extends TestCase
             'Rust symptoms concentrated on the eastern edge.',
             $report->field_notes,
         );
+        $this->assertTrue($report->mismatch_reported);
+        $this->assertSame('smut', $report->reporter_suspected_condition);
+        $this->assertSame(
+            'Dark whip-like growths are visible at the tops of several stalks.',
+            $report->reporter_observation_text,
+        );
 
         $reviewer = User::factory()->reviewer()->create();
         Sanctum::actingAs($reviewer);
@@ -118,6 +136,47 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.observations.sugarcane_variety', 'PSR 86')
             ->assertJsonPath('data.observations.affected_area_hectares', 12.5)
             ->assertJsonPath('data.observations.field_notes', $report->field_notes);
+    }
+
+    public function test_upload_persists_an_explicit_no_mismatch_without_reporter_text(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('no-mismatch-upload-test')->plainTextToken;
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', array_merge(
+                $this->payload(fake()->uuid()),
+                ['mismatch_reported' => 'false'],
+            ))
+            ->assertCreated()
+            ->assertJsonPath('data.reporter_observation.mismatch_reported', false)
+            ->assertJsonPath('data.reporter_observation.reporter_suspected_condition', null)
+            ->assertJsonPath('data.reporter_observation.reporter_observation_text', null);
+
+        $this->assertDatabaseHas('reports', [
+            'mismatch_reported' => false,
+            'reporter_suspected_condition' => null,
+            'reporter_observation_text' => null,
+        ]);
+    }
+
+    public function test_upload_allows_a_mismatch_without_a_description(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mismatch-without-text-test')->plainTextToken;
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', array_merge(
+                $this->payload(fake()->uuid()),
+                ['mismatch_reported' => true],
+            ))
+            ->assertCreated()
+            ->assertJsonPath('data.reporter_observation.mismatch_reported', true)
+            ->assertJsonPath('data.reporter_observation.reporter_observation_text', null);
     }
 
     public function test_upload_persists_mobile_field_report_context_and_separates_observed_from_submitted_timestamps(): void
@@ -227,6 +286,9 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.observations.affected_area_hectares', null)
             ->assertJsonPath('data.observations.affected_portion_percent', null)
             ->assertJsonPath('data.observations.field_notes', null)
+            ->assertJsonPath('data.reporter_observation.mismatch_reported', null)
+            ->assertJsonPath('data.reporter_observation.reporter_suspected_condition', null)
+            ->assertJsonPath('data.reporter_observation.reporter_observation_text', null)
             ->assertJsonPath('data.observations.farmer_or_farm_owner_name', null)
             ->assertJsonPath('data.observations.province', null)
             ->assertJsonPath('data.observations.municipality', null)
@@ -245,6 +307,9 @@ class MobileReportUploadTest extends TestCase
             'affected_area_hectares' => null,
             'affected_portion_percent' => null,
             'field_notes' => null,
+            'mismatch_reported' => null,
+            'reporter_suspected_condition' => null,
+            'reporter_observation_text' => null,
             'farmer_or_farm_owner_name' => null,
             'province' => null,
             'municipality' => null,
@@ -334,6 +399,8 @@ class MobileReportUploadTest extends TestCase
             'crop_age' => str_repeat('a', 101),
             'cane_class' => str_repeat('c', 101),
             'field_notes' => str_repeat('n', 5001),
+            'reporter_suspected_condition' => str_repeat('s', 121),
+            'reporter_observation_text' => str_repeat('o', 1001),
         ] as $field => $value) {
             $this->withToken($token)
                 ->withHeader('Accept', 'application/json')
@@ -343,6 +410,38 @@ class MobileReportUploadTest extends TestCase
                 ))
                 ->assertUnprocessable()
                 ->assertJsonValidationErrors($field);
+        }
+
+        $this->assertDatabaseCount('reports', 0);
+    }
+
+    public function test_upload_rejects_invalid_mismatch_and_model_taxonomy_values(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mismatch-validation-test')->plainTextToken;
+
+        foreach ([
+            [['mismatch_reported' => 'sometimes'], 'mismatch_reported'],
+            [['predicted_label' => 'other'], 'predicted_label'],
+            [[
+                'class_scores' => [
+                    'healthy' => 0.08,
+                    'mosaic' => 0.10,
+                    'rust' => 0.72,
+                    'other' => 0.10,
+                ],
+            ], 'class_scores'],
+            [['symptom_keys' => ['other']], 'symptom_keys.0'],
+        ] as [$fields, $errorField]) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', array_merge(
+                    $this->payload(fake()->uuid()),
+                    $fields,
+                ))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors($errorField);
         }
 
         $this->assertDatabaseCount('reports', 0);
@@ -360,6 +459,9 @@ class MobileReportUploadTest extends TestCase
             'affected_area_hectares',
             'affected_portion_percent',
             'field_notes',
+            'mismatch_reported',
+            'reporter_suspected_condition',
+            'reporter_observation_text',
         ];
 
         foreach (['absent', 'null', 'empty'] as $variant) {
@@ -586,6 +688,7 @@ class MobileReportUploadTest extends TestCase
                 [
                     'reporter_id' => $spoofedReporter->getKey(),
                     'reviewer_id' => $spoofedReviewer->getKey(),
+                    'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
                 ],
             ))
             ->assertCreated()
@@ -595,6 +698,7 @@ class MobileReportUploadTest extends TestCase
             'client_uuid' => $clientUuid,
             'reporter_id' => $reporter->getKey(),
             'reviewer_id' => null,
+            'authority_classified_condition' => null,
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
         ]);
         $this->assertDatabaseMissing('reports', [

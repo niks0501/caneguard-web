@@ -92,6 +92,7 @@ describe("SubmittedReportsPage", () => {
       screen.getByRole("columnheader", { name: "Observed" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Bago, Negros Occidental")).toBeInTheDocument();
+    expect(screen.getByText("AI mismatch flagged")).toBeInTheDocument();
     expect(
       screen.getAllByRole("link", { name: /Open CG-/ })[0],
     ).toHaveTextContent("Open");
