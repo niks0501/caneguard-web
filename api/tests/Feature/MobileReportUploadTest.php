@@ -422,15 +422,17 @@ class MobileReportUploadTest extends TestCase
         $token = $reporter->createToken('mismatch-validation-test')->plainTextToken;
 
         foreach ([
-            ['mismatch_reported' => 'sometimes', 'mismatch_reported'],
-            ['predicted_label' => 'other', 'predicted_label'],
-            ['class_scores' => [
-                'healthy' => 0.08,
-                'mosaic' => 0.10,
-                'rust' => 0.72,
-                'other' => 0.10,
+            [['mismatch_reported' => 'sometimes'], 'mismatch_reported'],
+            [['predicted_label' => 'other'], 'predicted_label'],
+            [[
+                'class_scores' => [
+                    'healthy' => 0.08,
+                    'mosaic' => 0.10,
+                    'rust' => 0.72,
+                    'other' => 0.10,
+                ],
             ], 'class_scores'],
-            ['symptom_keys' => ['other'], 'symptom_keys.0'],
+            [['symptom_keys' => ['other']], 'symptom_keys.0'],
         ] as [$fields, $errorField]) {
             $this->withToken($token)
                 ->withHeader('Accept', 'application/json')
