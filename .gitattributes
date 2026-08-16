@@ -6,6 +6,7 @@
 graphify-out/graph.json merge=graphify
 
 
+
 # >>> AkiDev line endings >>>
 /AGENTS.md text eol=lf
 /.agents/** text eol=lf
