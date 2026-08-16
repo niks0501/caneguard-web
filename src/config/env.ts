@@ -4,12 +4,14 @@ const envSchema = z.object({
   VITE_API_BASE_URL: z.url().default("http://localhost:8000"),
   VITE_DATA_SOURCE: z.enum(["api", "mock"]).default("api"),
   VITE_REPORT_REFRESH_MS: z.coerce.number().int().positive().default(15_000),
+  VITE_MAPTILER_KEY: z.string().trim().default(""),
 });
 
 export type AppEnv = {
   apiBaseUrl: string;
   dataSource: "api" | "mock";
   reportRefreshMs: number;
+  mapTilerKey: string;
 };
 
 export function parseEnv(source: Record<string, unknown>): AppEnv {
@@ -19,6 +21,7 @@ export function parseEnv(source: Record<string, unknown>): AppEnv {
     apiBaseUrl: parsed.VITE_API_BASE_URL.replace(/\/$/, ""),
     dataSource: parsed.VITE_DATA_SOURCE,
     reportRefreshMs: parsed.VITE_REPORT_REFRESH_MS,
+    mapTilerKey: parsed.VITE_MAPTILER_KEY,
   };
 }
 

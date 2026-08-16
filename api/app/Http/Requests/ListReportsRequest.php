@@ -18,15 +18,7 @@ class ListReportsRequest extends ApiFormRequest
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'search' => ['sometimes', 'string', 'max:120'],
-            'status' => ['sometimes', Rule::in(Report::reviewStatuses())],
-            'predicted_label' => ['sometimes', Rule::in(Report::labels())],
-            'barangay' => ['sometimes', 'string', 'max:120'],
-            'date_from' => ['sometimes', 'date_format:Y-m-d'],
-            'date_to' => [
-                'sometimes',
-                'date_format:Y-m-d',
-                'after_or_equal:date_from',
-            ],
+            ...ReportFilterRules::rules(),
             'sort' => [
                 'sometimes',
                 Rule::in([

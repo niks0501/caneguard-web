@@ -7,6 +7,7 @@ describe("parseEnv", () => {
       apiBaseUrl: "http://localhost:8000",
       dataSource: "api",
       reportRefreshMs: 15_000,
+      mapTilerKey: "",
     });
   });
 
@@ -16,11 +17,13 @@ describe("parseEnv", () => {
         VITE_API_BASE_URL: "https://api.caneguard.test/",
         VITE_DATA_SOURCE: "mock",
         VITE_REPORT_REFRESH_MS: "30000",
+        VITE_MAPTILER_KEY: "test-map-key",
       }),
     ).toEqual({
       apiBaseUrl: "https://api.caneguard.test",
       dataSource: "mock",
       reportRefreshMs: 30_000,
+      mapTilerKey: "test-map-key",
     });
   });
 

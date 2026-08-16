@@ -6,7 +6,7 @@ import type {
 } from "./report.types";
 
 export const diseaseLabels: Record<DiseaseKey, string> = {
-  healthy: "Healthy appearance",
+  healthy: "Possible healthy appearance",
   mosaic: "Possible mosaic",
   rust: "Possible rust",
 };

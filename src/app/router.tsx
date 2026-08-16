@@ -3,6 +3,7 @@ import { RequireAuth } from "../auth/RequireAuth";
 import { AppShell } from "../components/layout/AppShell";
 import { CaseReviewPage } from "../pages/CaseReviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
+import { FieldValidationMapPage } from "../pages/FieldValidationMapPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SubmittedReportsPage } from "../pages/SubmittedReportsPage";
 import { LoginPage } from "../pages/LoginPage";
@@ -17,6 +18,7 @@ export function AppRouter() {
           <Route index element={<Navigate replace to={routes.dashboard} />} />
           <Route element={<AppShell />}>
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="map" element={<FieldValidationMapPage />} />
             <Route path="reports" element={<SubmittedReportsPage />} />
             <Route path="reports/:reportId" element={<CaseReviewPage />} />
           </Route>

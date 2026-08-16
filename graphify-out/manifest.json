@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1786594624.532101,
-    "ast_hash": "6ee24813682acc3a6649242aa2cb51dd",
+    "mtime": 1786899692.7823572,
+    "ast_hash": "f44af70d25e0223b6b279289f34f6bd1",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -15,13 +15,13 @@
     "semantic_hash": "2bc9db25621b46a288adba54ee18f3d3"
   },
   "src/app/router.tsx": {
-    "mtime": 1786594624.5351088,
-    "ast_hash": "f81ff481b9af684c0390c1ef6bc958dd",
+    "mtime": 1786900138.8637893,
+    "ast_hash": "2602b07a410ce71c1ef4bb5e4f0e4f3b",
     "semantic_hash": ""
   },
   "src/app/routes.ts": {
-    "mtime": 1786594624.5351088,
-    "ast_hash": "393c265ef83dd2cfb65e7af6e055c6df",
+    "mtime": 1786900133.6717765,
+    "ast_hash": "f1407a77386b0f1e1a8742f9b50b8159",
     "semantic_hash": ""
   },
   "src/components/layout/AppHeader.tsx": {
@@ -40,8 +40,8 @@
     "semantic_hash": "b8acfb2778b2d6474c582566b193e914"
   },
   "src/components/navigation/AppSidebar.tsx": {
-    "mtime": 1786594624.5359542,
-    "ast_hash": "6d16b1d1a477c2853f7a6d9c9eed503a",
+    "mtime": 1786900146.8038092,
+    "ast_hash": "944e467caa07a8035bd0c68afe17a397",
     "semantic_hash": ""
   },
   "src/components/reports/ConfidenceDisplay.tsx": {
@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "src/domain/report.metadata.ts": {
-    "mtime": 1786594624.5376754,
-    "ast_hash": "7158572823a98cd63dfb2b897860729b",
+    "mtime": 1786899961.2352521,
+    "ast_hash": "ee184502f7ba3274b18946cd24da1583",
     "semantic_hash": ""
   },
   "src/domain/report.types.ts": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1786594989.721205,
-    "ast_hash": "c5818a19501592b3f3c87c221cb96535",
+    "mtime": 1786900525.8729699,
+    "ast_hash": "c3fa9f21f9ecc4e064a7ae7db6604916",
     "semantic_hash": ""
   },
   "index.html": {
@@ -370,8 +370,8 @@
     "semantic_hash": ""
   },
   "api/routes/api.php": {
-    "mtime": 1786712676.0473406,
-    "ast_hash": "c418e88c5d282ba804cbb3f8688ef843",
+    "mtime": 1786899827.9188488,
+    "ast_hash": "15d71998c9b1dcdd8f3f7e47e7ab82df",
     "semantic_hash": ""
   },
   "api/routes/console.php": {
@@ -415,8 +415,8 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/QueryReports.php": {
-    "mtime": 1786594624.5123985,
-    "ast_hash": "fd375b3aa20f8886956241e5a679cf07",
+    "mtime": 1786900305.326375,
+    "ast_hash": "b195f1e75396f217bc253aa8194d5d8b",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/StoreReport.php": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/ListReportsRequest.php": {
-    "mtime": 1786594624.5136502,
-    "ast_hash": "3f15883f155fb0333e4a5b424620be37",
+    "mtime": 1786899794.9467485,
+    "ast_hash": "590e28dfa4af2dbf0e55a982f9ae8d4d",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/ReportStatusesRequest.php": {
@@ -645,13 +645,13 @@
     "semantic_hash": ""
   },
   "src/config/env.test.ts": {
-    "mtime": 1786594624.5364187,
-    "ast_hash": "bc42211ecffea899782a35868ceeb1a3",
+    "mtime": 1786900402.7925856,
+    "ast_hash": "9e75421f783199bc90142dc1275be5d6",
     "semantic_hash": ""
   },
   "src/config/env.ts": {
-    "mtime": 1786594624.5365894,
-    "ast_hash": "1662387f934d48a9d9275e30ca07d525",
+    "mtime": 1786899932.7831662,
+    "ast_hash": "fdc75ebe6e08d8e3051d969dce2b3c09",
     "semantic_hash": ""
   },
   "src/data/api/ApiDashboardRepository.test.ts": {
@@ -1172,6 +1172,166 @@
   "api/tests/Feature/LocationReferenceTest.php": {
     "mtime": 1786712658.6756668,
     "ast_hash": "0b240dadf811c0aeb6b3a5521aa28f00",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Reports/ApplyReportFilters.php": {
+    "mtime": 1786900305.3556056,
+    "ast_hash": "a27d76c161ea0d1ac55d51a704956dd7",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Reports/QueryFieldValidationQueue.php": {
+    "mtime": 1786900305.338887,
+    "ast_hash": "9b873abdb7758c21c48c569f327f32fb",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Reports/QueryMapReports.php": {
+    "mtime": 1786900305.3674095,
+    "ast_hash": "e599134264df1b7b8352aef325b86975",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/FieldValidationQueueController.php": {
+    "mtime": 1786899785.054723,
+    "ast_hash": "4b243b927fa570d7dfa11c5c76688900",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/MapReportController.php": {
+    "mtime": 1786899785.054723,
+    "ast_hash": "78ddbe1dd71863f952f746371983827d",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/FieldValidationQueueRequest.php": {
+    "mtime": 1786899785.034723,
+    "ast_hash": "31ea7d4e7e8892487571d48df5bcf9a6",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/MapReportsRequest.php": {
+    "mtime": 1786899785.034723,
+    "ast_hash": "743605a56e1b2a74e8221885c1ef4160",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/ReportFilterRules.php": {
+    "mtime": 1786899785.034723,
+    "ast_hash": "29ab718327479c3c5598f75bd420d086",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/FieldValidationQueueResource.php": {
+    "mtime": 1786899785.050723,
+    "ast_hash": "711b74b31b292e1035677d2b4137cf5a",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/MapReportResource.php": {
+    "mtime": 1786899785.038723,
+    "ast_hash": "1e208fd4088d262761ffe8d65220ced6",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/2026_08_16_000000_add_map_queue_indexes_to_reports_table.php": {
+    "mtime": 1786899785.054723,
+    "ast_hash": "61f92929b7f8b63ef41144142f0e951c",
+    "semantic_hash": ""
+  },
+  "api/tests/Feature/ReportMapAndQueueTest.php": {
+    "mtime": 1786901136.3264978,
+    "ast_hash": "8bffbcbc251d8e4ee4eec68851289b5a",
+    "semantic_hash": ""
+  },
+  "src/components/fieldValidation/FieldValidationFilterBar.tsx": {
+    "mtime": 1786900367.1804864,
+    "ast_hash": "971a48508b5d708d50c89e38124fc84f",
+    "semantic_hash": ""
+  },
+  "src/components/fieldValidation/FieldValidationQueuePanel.tsx": {
+    "mtime": 1786900358.160464,
+    "ast_hash": "5f8af80c2313ee378fe883ed1248fa0f",
+    "semantic_hash": ""
+  },
+  "src/components/fieldValidation/FieldValidationTable.tsx": {
+    "mtime": 1786900358.160464,
+    "ast_hash": "c35cad9525c3048e6a566c8c7e68209b",
+    "semantic_hash": ""
+  },
+  "src/components/fieldValidation/ValidationMap.tsx": {
+    "mtime": 1786900961.158118,
+    "ast_hash": "6c5a9630b8553a178dd1452fb51fc133",
+    "semantic_hash": ""
+  },
+  "src/components/fieldValidation/fieldValidation.format.ts": {
+    "mtime": 1786900346.856427,
+    "ast_hash": "740a9297f7694d40b426f2e7050659a0",
+    "semantic_hash": ""
+  },
+  "src/data/api/ApiFieldValidationRepository.test.ts": {
+    "mtime": 1786900434.7806988,
+    "ast_hash": "0573b67a7cc9e04db60697b30fcf13ad",
+    "semantic_hash": ""
+  },
+  "src/data/api/ApiFieldValidationRepository.ts": {
+    "mtime": 1786900411.3486226,
+    "ast_hash": "34ac447ba928c8865e0a81c244263f4f",
+    "semantic_hash": ""
+  },
+  "src/data/api/mappers/fieldValidation.mapper.ts": {
+    "mtime": 1786899915.4751115,
+    "ast_hash": "06f6897804c9d565302ef9946e43cd3c",
+    "semantic_hash": ""
+  },
+  "src/data/api/schemas/fieldValidation.schema.ts": {
+    "mtime": 1786899915.4751115,
+    "ast_hash": "554de4f79f8c5eec441a7cfb536eaea5",
+    "semantic_hash": ""
+  },
+  "src/data/contracts/FieldValidationRepository.ts": {
+    "mtime": 1786899915.4791117,
+    "ast_hash": "775b349da9f2e207016f8e4d128d8508",
+    "semantic_hash": ""
+  },
+  "src/data/mock/MockFieldValidationRepository.test.ts": {
+    "mtime": 1786899927.7511485,
+    "ast_hash": "fdd3a1baa68cde64be9ffb09dad8f14e",
+    "semantic_hash": ""
+  },
+  "src/data/mock/MockFieldValidationRepository.ts": {
+    "mtime": 1786899925.3151407,
+    "ast_hash": "51a16a8483087267e0788d9849a79f7a",
+    "semantic_hash": ""
+  },
+  "src/domain/fieldValidation.types.ts": {
+    "mtime": 1786899915.4751115,
+    "ast_hash": "386b6acb4433e8ae5c1d05d35215e454",
+    "semantic_hash": ""
+  },
+  "src/hooks/fieldValidationQueries.ts": {
+    "mtime": 1786899915.4831116,
+    "ast_hash": "3375912fa9b67ce81eed9ec814ae8752",
+    "semantic_hash": ""
+  },
+  "src/hooks/useFieldValidation.ts": {
+    "mtime": 1786899915.4831116,
+    "ast_hash": "ec42971f098f592d26170c3c42d4feab",
+    "semantic_hash": ""
+  },
+  "src/pages/FieldValidationMapPage.test.tsx": {
+    "mtime": 1786900970.530137,
+    "ast_hash": "c7566537b3d77ae29e4437eef126f3c6",
+    "semantic_hash": ""
+  },
+  "src/pages/FieldValidationMapPage.tsx": {
+    "mtime": 1786901124.926472,
+    "ast_hash": "683548f47ef2f00b0c6ebd5c4f3f673c",
+    "semantic_hash": ""
+  },
+  "src/pages/mapUrlState.test.ts": {
+    "mtime": 1786900445.2887294,
+    "ast_hash": "f315c15119d06c165ddd6ed9f1db4c50",
+    "semantic_hash": ""
+  },
+  "src/pages/mapUrlState.ts": {
+    "mtime": 1786899949.9392195,
+    "ast_hash": "a9f23c43a007d2f3a711d7c9430d891b",
+    "semantic_hash": ""
+  },
+  "src/services/fieldValidation.service.ts": {
+    "mtime": 1786899915.4831116,
+    "ast_hash": "bdf3a81fc3a7f2b23df978d23c24ee5c",
     "semantic_hash": ""
   }
 }
