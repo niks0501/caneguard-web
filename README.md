@@ -32,6 +32,10 @@ npm run dev
 
 The web runs at `http://localhost:5173`. Values prefixed with `VITE_` are
 public browser configuration.
+Set `VITE_MAPTILER_KEY` in `.env.local` to the browser-visible MapTiler key used
+by the authenticated field-validation map.
+Without a key, the workspace keeps its report table fallback visible and does
+not load the hosted basemap.
 
 ## API and MySQL setup
 

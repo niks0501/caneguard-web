@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\FieldValidationQueueController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
+use App\Http\Controllers\Api\V1\MapReportController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
 use App\Http\Controllers\Api\V1\MobileReportController;
 use App\Http\Controllers\Api\V1\MobileReportStatusController;
@@ -22,6 +24,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/me', AuthenticatedUserController::class);
     Route::get('/dashboard/summary', DashboardSummaryController::class);
     Route::get('/reports', [ReportController::class, 'index']);
+    Route::get('/reports/map', MapReportController::class)
+        ->name('api.v1.reports.map');
+    Route::get('/reports/field-validation-queue', FieldValidationQueueController::class)
+        ->name('api.v1.reports.field-validation-queue');
     Route::get('/reports/{report}/image', ReportImageController::class)
         ->name('api.v1.reports.image');
     Route::get('/reports/{report}', [ReportController::class, 'show']);

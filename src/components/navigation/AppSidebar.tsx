@@ -13,7 +13,6 @@ import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
 
 const futureLinks = [
-  { label: "Barangay monitoring", icon: MapPinned },
   { label: "Analytics", icon: BarChart3 },
 ];
 
@@ -40,6 +39,15 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
         >
           <LayoutDashboard aria-hidden="true" />
           <span>Overview</span>
+          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+        </NavLink>
+        <NavLink
+          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+          to={routes.map}
+          onClick={onNavigate}
+        >
+          <MapPinned aria-hidden="true" />
+          <span>Field-validation map</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
         {futureLinks.map(({ label, icon: Icon }) => (
