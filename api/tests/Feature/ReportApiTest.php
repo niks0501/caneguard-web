@@ -28,6 +28,9 @@ class ReportApiTest extends TestCase
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.93,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'province' => 'Negros Occidental',
+            'municipality' => 'Bago',
+            'observed_at' => CarbonImmutable::parse('2026-07-20T09:58:00Z'),
             'submitted_at' => CarbonImmutable::parse('2026-07-20T10:00:00Z'),
         ]);
         $middleConfidence = Report::factory()->create([
@@ -82,6 +85,12 @@ class ReportApiTest extends TestCase
                     'api.v1.reports.image',
                     ['report' => $highestConfidence->uuid],
                 ),
+            )
+            ->assertJsonPath('data.0.province', 'Negros Occidental')
+            ->assertJsonPath('data.0.municipality', 'Bago')
+            ->assertJsonPath(
+                'data.0.observed_at',
+                $highestConfidence->observed_at->utc()->toISOString(),
             )
             ->assertJsonPath('meta.current_page', 1)
             ->assertJsonPath('meta.last_page', 2)
@@ -148,13 +157,35 @@ class ReportApiTest extends TestCase
     public function test_report_detail_uses_uuid_and_returns_every_contract_section(): void
     {
         $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $report = Report::factory()->create([
+            'scan_record_client_uuid' => 'a9b3c7d1-e23c-43cb-a3ae-08ec6e0f302e',
+            'farmer_or_farm_owner_name' => 'Juan Dela Cruz',
+            'province' => 'Negros Occidental',
+            'municipality' => 'Bago',
+            'final_latitude' => 10.1234567,
+            'final_longitude' => 122.9876543,
+            'location_source' => 'gps',
+            'gps_accuracy' => 4.25,
+            'observed_at' => CarbonImmutable::parse('2026-07-20T09:58:00Z'),
+        ]);
 
         Sanctum::actingAs($reviewer);
 
         $this->getJson("/api/v1/reports/{$report->uuid}")
             ->assertOk()
             ->assertJsonPath('data.identity.uuid', $report->uuid)
+            ->assertJsonPath(
+                'data.identity.scan_record_client_uuid',
+                'a9b3c7d1-e23c-43cb-a3ae-08ec6e0f302e',
+            )
+            ->assertJsonPath('data.timestamps.observed_at', '2026-07-20T09:58:00.000000Z')
+            ->assertJsonPath(
+                'data.observations.farmer_or_farm_owner_name',
+                'Juan Dela Cruz',
+            )
+            ->assertJsonPath('data.observations.final_latitude', 10.1234567)
+            ->assertJsonPath('data.observations.final_longitude', 122.9876543)
+            ->assertJsonPath('data.observations.gps_accuracy', 4.25)
             ->assertJsonStructure([
                 'data' => [
                     'identity',

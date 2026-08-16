@@ -21,6 +21,15 @@ class StoreMobileReportRequest extends ApiFormRequest
             'affected_area_hectares',
             'affected_portion_percent',
             'field_notes',
+            'farmer_or_farm_owner_name',
+            'province',
+            'municipality',
+            'final_latitude',
+            'final_longitude',
+            'location_source',
+            'gps_accuracy',
+            'observed_at',
+            'scan_record_client_uuid',
         ];
         $emptyFields = [];
 
@@ -87,6 +96,37 @@ class StoreMobileReportRequest extends ApiFormRequest
                 ]),
             ],
             'barangay' => ['required', 'string', 'max:120'],
+            'farmer_or_farm_owner_name' => ['nullable', 'string', 'max:160'],
+            'province' => ['nullable', 'string', 'max:120'],
+            'municipality' => ['nullable', 'string', 'max:120'],
+            'final_latitude' => [
+                'nullable',
+                'numeric',
+                'between:-90,90',
+                'required_with:final_longitude,location_source',
+            ],
+            'final_longitude' => [
+                'nullable',
+                'numeric',
+                'between:-180,180',
+                'required_with:final_latitude,location_source',
+            ],
+            'location_source' => [
+                'nullable',
+                Rule::in(['gps', 'manual_map']),
+                'required_with:final_latitude,final_longitude',
+            ],
+            'gps_accuracy' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'required_if:location_source,gps',
+                Rule::prohibitedIf(
+                    fn (): bool => $this->input('location_source') !== 'gps',
+                ),
+            ],
+            'observed_at' => ['nullable', 'date'],
+            'scan_record_client_uuid' => ['nullable', 'uuid'],
             'sugarcane_variety' => ['nullable', 'string', 'max:100'],
             'crop_age' => ['nullable', 'string', 'max:100'],
             'cane_class' => ['nullable', 'string', 'max:100'],

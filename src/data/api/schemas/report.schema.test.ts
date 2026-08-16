@@ -16,6 +16,14 @@ describe("report API schemas", () => {
   it("accepts nullable capture metadata from the database contract", () => {
     const nullableMetadata = {
       ...reportDetailDto,
+      identity: {
+        ...reportDetailDto.identity,
+        scan_record_client_uuid: null,
+      },
+      timestamps: {
+        ...reportDetailDto.timestamps,
+        observed_at: null,
+      },
       image: {
         ...reportDetailDto.image,
         source_width: null,
@@ -24,8 +32,24 @@ describe("report API schemas", () => {
       observations: {
         ...reportDetailDto.observations,
         reported_severity: null,
+        farmer_or_farm_owner_name: null,
+        province: null,
+        municipality: null,
+        final_latitude: null,
+        final_longitude: null,
+        location_source: null,
+        gps_accuracy: null,
       },
     };
+
+    expect(
+      reportDetailResponseSchema.parse({ data: nullableMetadata }).data.identity
+        .scan_record_client_uuid,
+    ).toBeNull();
+    expect(
+      reportDetailResponseSchema.parse({ data: nullableMetadata }).data.timestamps
+        .observed_at,
+    ).toBeNull();
 
     expect(
       reportDetailResponseSchema.parse({ data: nullableMetadata }).data.image

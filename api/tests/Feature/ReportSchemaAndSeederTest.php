@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Report;
 use App\Models\ReportClassScore;
+use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -21,7 +22,16 @@ class ReportSchemaAndSeederTest extends TestCase
             'reference_code',
             'reporter_id',
             'client_uuid',
+            'scan_record_client_uuid',
             'barangay',
+            'farmer_or_farm_owner_name',
+            'province',
+            'municipality',
+            'final_latitude',
+            'final_longitude',
+            'location_source',
+            'gps_accuracy',
+            'observed_at',
             'sugarcane_variety',
             'crop_age',
             'cane_class',
@@ -64,6 +74,15 @@ class ReportSchemaAndSeederTest extends TestCase
             'affected_area_hectares' => 12.5,
             'affected_portion_percent' => 42.75,
             'field_notes' => 'Observed along the eastern edge.',
+            'farmer_or_farm_owner_name' => 'Juan Dela Cruz',
+            'province' => 'Negros Occidental',
+            'municipality' => 'Bago',
+            'final_latitude' => 10.1234567,
+            'final_longitude' => 122.9876543,
+            'location_source' => 'gps',
+            'gps_accuracy' => 4.25,
+            'observed_at' => '2026-07-20T09:58:00.000Z',
+            'scan_record_client_uuid' => 'a9b3c7d1-e23c-43cb-a3ae-08ec6e0f302e',
         ]);
 
         $this->assertSame('PSR 86', $report->sugarcane_variety);
@@ -72,6 +91,51 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('12.50', $report->affected_area_hectares);
         $this->assertSame('42.75', $report->affected_portion_percent);
         $this->assertSame('Observed along the eastern edge.', $report->field_notes);
+        $this->assertSame('Juan Dela Cruz', $report->farmer_or_farm_owner_name);
+        $this->assertSame('Negros Occidental', $report->province);
+        $this->assertSame('Bago', $report->municipality);
+        $this->assertSame('10.1234567', $report->final_latitude);
+        $this->assertSame('122.9876543', $report->final_longitude);
+        $this->assertSame('gps', $report->location_source);
+        $this->assertSame('4.25', $report->gps_accuracy);
+        $this->assertInstanceOf(CarbonImmutable::class, $report->observed_at);
+        $this->assertSame(
+            '2026-07-20T09:58:00.000000Z',
+            $report->observed_at->utc()->toISOString(),
+        );
+        $this->assertSame(
+            'a9b3c7d1-e23c-43cb-a3ae-08ec6e0f302e',
+            $report->scan_record_client_uuid,
+        );
+    }
+
+    public function test_legacy_report_values_can_leave_new_contract_fields_null(): void
+    {
+        $report = Report::factory()->create([
+            'farmer_or_farm_owner_name' => null,
+            'province' => null,
+            'municipality' => null,
+            'final_latitude' => null,
+            'final_longitude' => null,
+            'location_source' => null,
+            'gps_accuracy' => null,
+            'observed_at' => null,
+            'scan_record_client_uuid' => null,
+        ]);
+
+        foreach ([
+            'farmer_or_farm_owner_name',
+            'province',
+            'municipality',
+            'final_latitude',
+            'final_longitude',
+            'location_source',
+            'gps_accuracy',
+            'observed_at',
+            'scan_record_client_uuid',
+        ] as $field) {
+            $this->assertNull($report->{$field}, "Expected {$field} to remain nullable.");
+        }
     }
 
     public function test_seeder_creates_twelve_varied_reports_with_valid_images(): void

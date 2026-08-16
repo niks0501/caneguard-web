@@ -34,7 +34,11 @@ class PersistReport
                 'reference_code' => $referenceCode,
                 'reporter_id' => $reporter->getKey(),
                 'client_uuid' => $data['client_uuid'],
+                'scan_record_client_uuid' => $data['scan_record_client_uuid'] ?? null,
                 'barangay' => $data['barangay'],
+                'farmer_or_farm_owner_name' => $data['farmer_or_farm_owner_name'] ?? null,
+                'province' => $data['province'] ?? null,
+                'municipality' => $data['municipality'] ?? null,
                 'sugarcane_variety' => $data['sugarcane_variety'] ?? null,
                 'crop_age' => $data['crop_age'] ?? null,
                 'cane_class' => $data['cane_class'] ?? null,
@@ -58,6 +62,13 @@ class PersistReport
                 'captured_at' => CarbonImmutable::parse(
                     $data['captured_at'],
                 )->utc(),
+                'final_latitude' => $data['final_latitude'] ?? null,
+                'final_longitude' => $data['final_longitude'] ?? null,
+                'location_source' => $data['location_source'] ?? null,
+                'gps_accuracy' => $data['gps_accuracy'] ?? null,
+                'observed_at' => isset($data['observed_at'])
+                    ? CarbonImmutable::parse($data['observed_at'])->utc()
+                    : null,
                 'submitted_at' => now()->utc(),
                 'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
             ]);

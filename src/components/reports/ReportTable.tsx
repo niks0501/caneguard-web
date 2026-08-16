@@ -18,6 +18,7 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
             <th scope="col">Possible result</th>
             <th scope="col">Reporter</th>
             <th scope="col">Barangay</th>
+            <th scope="col">Observed</th>
             <th scope="col">Captured</th>
             <th scope="col">Submitted</th>
             <th scope="col">Review status</th>
@@ -42,7 +43,13 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                 <ConfidenceDisplay confidence={report.confidence} />
               </td>
               <td><strong className="table-primary">{report.submittedByName}</strong><span className="table-secondary">{submitterRoleLabels[report.submitterRole]}</span></td>
-              <td><strong className="table-primary">{report.barangay}</strong><span className="table-secondary">Municipality</span></td>
+              <td>
+                <strong className="table-primary">{report.barangay}</strong>
+                <span className="table-secondary">
+                  {[report.municipality, report.province].filter(Boolean).join(", ") || "Location not provided"}
+                </span>
+              </td>
+              <td>{report.observedAt ? formatDate(report.observedAt) : "Not provided"}</td>
               <td>{formatDate(report.capturedAt)}</td>
               <td>{formatDate(report.submittedAt)}</td>
               <td><ReviewStatusBadge status={report.reviewStatus} /></td>

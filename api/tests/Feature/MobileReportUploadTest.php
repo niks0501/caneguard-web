@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\Reports\PersistReport;
 use App\Models\Report;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -119,6 +120,96 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.observations.field_notes', $report->field_notes);
     }
 
+    public function test_upload_persists_mobile_field_report_context_and_separates_observed_from_submitted_timestamps(): void
+    {
+        Storage::fake('local');
+        $serverNow = CarbonImmutable::parse('2026-07-20T06:30:00.123Z');
+        CarbonImmutable::setTestNow($serverNow);
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('field-report-contract-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+        $scanRecordClientUuid = fake()->uuid();
+        $payload = array_merge($this->payload($clientUuid), [
+            'scan_record_client_uuid' => $scanRecordClientUuid,
+            'farmer_or_farm_owner_name' => 'Juan Dela Cruz',
+            'province' => 'Negros Occidental',
+            'municipality' => 'Bago',
+            'final_latitude' => '10.1234567',
+            'final_longitude' => '122.9876543',
+            'location_source' => 'gps',
+            'gps_accuracy' => '4.25',
+            'observed_at' => '2026-07-19T14:20:30.789+08:00',
+            'submitted_at' => '2000-01-01T00:00:00.000Z',
+        ]);
+
+        try {
+            $response = $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', $payload);
+
+            $response
+                ->assertCreated()
+                ->assertJsonPath(
+                    'data.identity.scan_record_client_uuid',
+                    $scanRecordClientUuid,
+                )
+                ->assertJsonPath(
+                    'data.observations.farmer_or_farm_owner_name',
+                    'Juan Dela Cruz',
+                )
+                ->assertJsonPath('data.observations.province', 'Negros Occidental')
+                ->assertJsonPath('data.observations.municipality', 'Bago')
+                ->assertJsonPath('data.observations.final_latitude', 10.1234567)
+                ->assertJsonPath('data.observations.final_longitude', 122.9876543)
+                ->assertJsonPath('data.observations.location_source', 'gps')
+                ->assertJsonPath('data.observations.gps_accuracy', 4.25)
+                ->assertJsonPath(
+                    'data.timestamps.observed_at',
+                    '2026-07-19T06:20:30.789000Z',
+                )
+                ->assertJsonPath(
+                    'data.timestamps.submitted_at',
+                    '2026-07-20T06:30:00.123000Z',
+                );
+
+            $report = Report::query()->sole();
+            $this->assertSame($scanRecordClientUuid, $report->scan_record_client_uuid);
+            $this->assertSame('Juan Dela Cruz', $report->farmer_or_farm_owner_name);
+            $this->assertSame('Negros Occidental', $report->province);
+            $this->assertSame('Bago', $report->municipality);
+            $this->assertSame('10.1234567', $report->final_latitude);
+            $this->assertSame('122.9876543', $report->final_longitude);
+            $this->assertSame('gps', $report->location_source);
+            $this->assertSame('4.25', $report->gps_accuracy);
+            $this->assertSame(
+                '2026-07-19T06:20:30.789000Z',
+                $report->observed_at->utc()->toISOString(),
+            );
+            $this->assertSame(
+                $serverNow->toISOString(),
+                $report->submitted_at->utc()->toISOString(),
+            );
+            $this->assertNotSame(
+                $report->observed_at->toISOString(),
+                $report->submitted_at->toISOString(),
+            );
+
+            Sanctum::actingAs(User::factory()->reviewer()->create());
+            $this->getJson("/api/v1/reports/{$report->uuid}")
+                ->assertOk()
+                ->assertJsonPath(
+                    'data.identity.scan_record_client_uuid',
+                    $scanRecordClientUuid,
+                )
+                ->assertJsonPath(
+                    'data.timestamps.observed_at',
+                    '2026-07-19T06:20:30.789000Z',
+                );
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_upload_without_smart_fields_remains_backward_compatible(): void
     {
         Storage::fake('local');
@@ -135,7 +226,16 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.observations.cane_class', null)
             ->assertJsonPath('data.observations.affected_area_hectares', null)
             ->assertJsonPath('data.observations.affected_portion_percent', null)
-            ->assertJsonPath('data.observations.field_notes', null);
+            ->assertJsonPath('data.observations.field_notes', null)
+            ->assertJsonPath('data.observations.farmer_or_farm_owner_name', null)
+            ->assertJsonPath('data.observations.province', null)
+            ->assertJsonPath('data.observations.municipality', null)
+            ->assertJsonPath('data.observations.final_latitude', null)
+            ->assertJsonPath('data.observations.final_longitude', null)
+            ->assertJsonPath('data.observations.location_source', null)
+            ->assertJsonPath('data.observations.gps_accuracy', null)
+            ->assertJsonPath('data.timestamps.observed_at', null)
+            ->assertJsonPath('data.identity.scan_record_client_uuid', null);
 
         $this->assertDatabaseHas('reports', [
             'client_uuid' => $clientUuid,
@@ -145,6 +245,15 @@ class MobileReportUploadTest extends TestCase
             'affected_area_hectares' => null,
             'affected_portion_percent' => null,
             'field_notes' => null,
+            'farmer_or_farm_owner_name' => null,
+            'province' => null,
+            'municipality' => null,
+            'final_latitude' => null,
+            'final_longitude' => null,
+            'location_source' => null,
+            'gps_accuracy' => null,
+            'observed_at' => null,
+            'scan_record_client_uuid' => null,
         ]);
     }
 
@@ -274,6 +383,75 @@ class MobileReportUploadTest extends TestCase
         }
 
         $this->assertDatabaseCount('reports', 3);
+    }
+
+    public function test_upload_validates_mobile_location_boundaries_and_cross_field_rules(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('location-validation-test')->plainTextToken;
+
+        foreach ([
+            ['final_latitude' => -90, 'final_longitude' => -180],
+            ['final_latitude' => 90, 'final_longitude' => 180],
+        ] as $location) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', array_merge(
+                    $this->payload(fake()->uuid()),
+                    [...$location, 'location_source' => 'manual_map'],
+                ))
+                ->assertCreated();
+        }
+
+        foreach ([
+            [['final_latitude' => -90.01], 'final_latitude'],
+            [['final_longitude' => 180.01], 'final_longitude'],
+            [['location_source' => 'device'], 'location_source'],
+            [
+                [
+                    'final_latitude' => 10,
+                    'final_longitude' => 120,
+                    'location_source' => 'gps',
+                    'gps_accuracy' => -0.01,
+                ],
+                'gps_accuracy',
+            ],
+            [
+                [
+                    'final_latitude' => 10,
+                    'final_longitude' => 120,
+                    'location_source' => 'gps',
+                ],
+                'gps_accuracy',
+            ],
+            [
+                [
+                    'final_latitude' => 10,
+                    'final_longitude' => 120,
+                    'location_source' => 'manual_map',
+                    'gps_accuracy' => 4,
+                ],
+                'gps_accuracy',
+            ],
+            [
+                ['location_source' => 'gps', 'gps_accuracy' => 4],
+                'final_latitude',
+            ],
+            [['gps_accuracy' => 4], 'gps_accuracy'],
+            [['final_latitude' => 10], 'final_longitude'],
+        ] as [$fields, $errorField]) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v1/mobile/reports', array_merge(
+                    $this->payload(fake()->uuid()),
+                    $fields,
+                ))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors($errorField);
+        }
+
+        $this->assertDatabaseCount('reports', 2);
     }
 
     public function test_original_required_upload_fields_remain_required(): void

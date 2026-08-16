@@ -65,8 +65,8 @@
     "semantic_hash": "d6ec9b378279a8f728282e0c62b42bcd"
   },
   "src/components/reports/ReportTable.tsx": {
-    "mtime": 1786594624.5362036,
-    "ast_hash": "b080de898820a6689629ee2f43382d52",
+    "mtime": 1786893978.402039,
+    "ast_hash": "beebd1c4cc3a1f60e6733b5be7b402c5",
     "semantic_hash": ""
   },
   "src/components/reports/SymptomResponseItem.tsx": {
@@ -105,8 +105,8 @@
     "semantic_hash": ""
   },
   "src/data/mock/mockReports.ts": {
-    "mtime": 1786594624.5375154,
-    "ast_hash": "59187e110a48c39ff8c0f4a7ecfe8e9a",
+    "mtime": 1786893982.354132,
+    "ast_hash": "376955c7018d920da33782114e577cc9",
     "semantic_hash": ""
   },
   "src/domain/report.metadata.ts": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/domain/report.types.ts": {
-    "mtime": 1786706775.451776,
-    "ast_hash": "55c1e107082dca3e63dd8a5be1a40c3b",
+    "mtime": 1786893394.2020671,
+    "ast_hash": "d25ea31fef56a1e5d756450b6a7774e3",
     "semantic_hash": ""
   },
   "src/domain/review.types.ts": {
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.tsx": {
-    "mtime": 1786706805.6347866,
-    "ast_hash": "584b08f3cd0f8912ef41e7cc6210c551",
+    "mtime": 1786893416.6987996,
+    "ast_hash": "22a1930fb83feba7c74b6f5de2f8c1de",
     "semantic_hash": ""
   },
   "src/pages/NotFoundPage.tsx": {
@@ -177,11 +177,6 @@
   "vite.config.ts": {
     "mtime": 1786594624.5388758,
     "ast_hash": "f117e996df6d4611e07fe533dd712d2a",
-    "semantic_hash": ""
-  },
-  "AGENTS.md": {
-    "mtime": 1786693609.6199944,
-    "ast_hash": "941d7d07d42857080c8e6c79f8348bb7",
     "semantic_hash": ""
   },
   "README.md": {
@@ -375,8 +370,8 @@
     "semantic_hash": ""
   },
   "api/routes/api.php": {
-    "mtime": 1786594624.5214348,
-    "ast_hash": "581c6e79ff8cdf3e68173bdb28b65855",
+    "mtime": 1786712676.0473406,
+    "ast_hash": "c418e88c5d282ba804cbb3f8688ef843",
     "semantic_hash": ""
   },
   "api/routes/console.php": {
@@ -480,18 +475,18 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/StoreMobileReportRequest.php": {
-    "mtime": 1786706713.7111154,
-    "ast_hash": "ed647400dfad2a739c359b5bccde1ffa",
+    "mtime": 1786894503.9304352,
+    "ast_hash": "705f47a1c4f0911818298870fcaa254f",
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportListResource.php": {
-    "mtime": 1786594624.5139565,
-    "ast_hash": "091d144c6e73c609d90730d47db57220",
+    "mtime": 1786893364.7049584,
+    "ast_hash": "2c70f3119a31953994a3a8c15268770a",
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportResource.php": {
-    "mtime": 1786706726.4459486,
-    "ast_hash": "0b829ce09e3274a1a632bc0756fae7cd",
+    "mtime": 1786893360.1248755,
+    "ast_hash": "31b657d4e20b481555a6dadef3358371",
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportStatusResource.php": {
@@ -500,8 +495,8 @@
     "semantic_hash": ""
   },
   "api/app/Models/Report.php": {
-    "mtime": 1786706702.5878453,
-    "ast_hash": "df4e01b7ecb0081e726ac560e0150aa4",
+    "mtime": 1786893606.6091826,
+    "ast_hash": "18b40bd4e7af42b6a257ad00ae914065",
     "semantic_hash": ""
   },
   "api/app/Models/ReportClassScore.php": {
@@ -525,8 +520,8 @@
     "semantic_hash": ""
   },
   "api/database/factories/ReportFactory.php": {
-    "mtime": 1786706740.784806,
-    "ast_hash": "70b6cf565cbd74c4b8d1c36d824d5e4a",
+    "mtime": 1786893376.5494106,
+    "ast_hash": "d20e5e897592f6fa0cb79d456fb288bb",
     "semantic_hash": ""
   },
   "api/database/migrations/2026_07_26_153000_create_reports_table.php": {
@@ -555,8 +550,8 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/PersistReport.php": {
-    "mtime": 1786706717.8883395,
-    "ast_hash": "883a0a878ba73facedf923ac42145372",
+    "mtime": 1786893341.8442822,
+    "ast_hash": "1e08c95891586ce60c19cea7f98ab45f",
     "semantic_hash": ""
   },
   "api/tests/Feature/DemoUserSeederTest.php": {
@@ -580,18 +575,18 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/MobileReportUploadTest.php": {
-    "mtime": 1786706935.907407,
-    "ast_hash": "8abf56e9d4cf1c241ab69cee6730072f",
+    "mtime": 1786894508.2825344,
+    "ast_hash": "3c220e6f0b3cbb2f1af02077e7874b21",
     "semantic_hash": ""
   },
   "api/tests/Feature/ReportApiTest.php": {
-    "mtime": 1786594624.5240314,
-    "ast_hash": "46840375b4b1466800126c841ed7b86e",
+    "mtime": 1786893550.8993418,
+    "ast_hash": "8a4d02c3f891458eafdf7f5d14c4822f",
     "semantic_hash": ""
   },
   "api/tests/Feature/ReportSchemaAndSeederTest.php": {
-    "mtime": 1786706887.3480995,
-    "ast_hash": "42da7a786fa2cee2becfd2bd01ac342b",
+    "mtime": 1786893609.331104,
+    "ast_hash": "90ed2014ea0c90ecab52b1b81bcc7715",
     "semantic_hash": ""
   },
   "api/tests/Feature/ReviewReportTest.php": {
@@ -605,8 +600,8 @@
     "semantic_hash": ""
   },
   "api/tests/MySql/ReportMySqlSchemaTest.php": {
-    "mtime": 1786706761.2818341,
-    "ast_hash": "7fa0cdaa4b99ffa2a7282930e6ebd927",
+    "mtime": 1786893469.6166599,
+    "ast_hash": "ab22752357a69239e2a4b103b0125a4f",
     "semantic_hash": ""
   },
   "api/tests/TestCase.php": {
@@ -685,13 +680,13 @@
     "semantic_hash": ""
   },
   "src/data/api/mappers/report.mapper.test.ts": {
-    "mtime": 1786706796.455601,
-    "ast_hash": "2dcbb6364c777473ffccf7d30b789a8a",
+    "mtime": 1786893578.0162127,
+    "ast_hash": "c647ab53861a35e95a43ecd2c3349245",
     "semantic_hash": ""
   },
   "src/data/api/mappers/report.mapper.ts": {
-    "mtime": 1786706781.2554426,
-    "ast_hash": "69098b4107d44aa1b5f8ada9c49837da",
+    "mtime": 1786893403.6863315,
+    "ast_hash": "2d3ca3a8950e60da706c24eef3f9ff41",
     "semantic_hash": ""
   },
   "src/data/api/schemas/common.schema.test.ts": {
@@ -710,13 +705,13 @@
     "semantic_hash": ""
   },
   "src/data/api/schemas/report.schema.test.ts": {
-    "mtime": 1786594624.5370843,
-    "ast_hash": "d0092dd55511a34e603b121996ecd22e",
+    "mtime": 1786893566.1998146,
+    "ast_hash": "f8dbcec22d6cc9218575b722aadf3cb7",
     "semantic_hash": ""
   },
   "src/data/api/schemas/report.schema.ts": {
-    "mtime": 1786706768.4022772,
-    "ast_hash": "c25b2cc2389155cc28079067708a7393",
+    "mtime": 1786893387.1977575,
+    "ast_hash": "ba03186cf28fed590abd86336b733f9a",
     "semantic_hash": ""
   },
   "src/data/contracts/DashboardRepository.ts": {
@@ -760,8 +755,8 @@
     "semantic_hash": ""
   },
   "src/test/fixtures.ts": {
-    "mtime": 1786706786.9433265,
-    "ast_hash": "e8a97450d4657ca22eec01c83374dc5e",
+    "mtime": 1786893427.0911653,
+    "ast_hash": "f3c8e8ce814420e3bac81acd299c314d",
     "semantic_hash": ""
   },
   "src/test/server.ts": {
@@ -880,8 +875,8 @@
     "semantic_hash": ""
   },
   "src/pages/SubmittedReportsPage.test.tsx": {
-    "mtime": 1786594624.5382233,
-    "ast_hash": "59d89ead670eca11458f76e6305737cd",
+    "mtime": 1786893986.8382409,
+    "ast_hash": "86282d80da1269f91852345876605d76",
     "semantic_hash": ""
   },
   "src/pages/reportListUrlState.test.ts": {
@@ -920,8 +915,8 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.test.tsx": {
-    "mtime": 1786706895.2045965,
-    "ast_hash": "26904e80621ca766506df4ce70c9ab50",
+    "mtime": 1786893585.660487,
+    "ast_hash": "8542a2949fb2ed5981d5ed590f6d8807",
     "semantic_hash": ""
   },
   "api/database/migrations/2026_07_27_020000_add_lock_version_to_reports_table.php": {
@@ -1164,9 +1159,19 @@
     "ast_hash": "24f5ec30b6352947fcaff0cec08122fb",
     "semantic_hash": ""
   },
-  "CLAUDE.md": {
-    "mtime": 1786693609.6199944,
-    "ast_hash": "941d7d07d42857080c8e6c79f8348bb7",
+  "api/app/Http/Controllers/Api/V1/LocationReferenceController.php": {
+    "mtime": 1786712658.6756668,
+    "ast_hash": "411b7ca528f6ec1a6dcffb3ac74d058a",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/2026_08_15_000000_add_mobile_field_report_contract_fields_to_reports_table.php": {
+    "mtime": 1786893318.7275732,
+    "ast_hash": "0c179314b6fee25f1d5afd0b2d4c79a4",
+    "semantic_hash": ""
+  },
+  "api/tests/Feature/LocationReferenceTest.php": {
+    "mtime": 1786712658.6756668,
+    "ast_hash": "0b240dadf811c0aeb6b3a5521aa28f00",
     "semantic_hash": ""
   }
 }

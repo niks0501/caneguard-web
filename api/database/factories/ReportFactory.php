@@ -16,11 +16,13 @@ class ReportFactory extends Factory
     public function definition(): array
     {
         $capturedAt = fake()->dateTimeBetween('-30 days', '-1 hour');
+        $observedAt = fake()->dateTimeBetween($capturedAt, 'now');
 
         return [
             'reference_code' => 'CG-'.fake()->unique()->numerify('########'),
             'reporter_id' => User::factory()->fieldReporter(),
             'client_uuid' => fake()->uuid(),
+            'scan_record_client_uuid' => fake()->uuid(),
             'barangay' => fake()->randomElement([
                 'Mabini',
                 'Maligaya',
@@ -46,6 +48,14 @@ class ReportFactory extends Factory
             'affected_area_hectares' => fake()->optional()->randomFloat(2, 0.01, 1000),
             'affected_portion_percent' => fake()->optional()->randomFloat(2, 0, 100),
             'field_notes' => fake()->optional()->sentence(),
+            'farmer_or_farm_owner_name' => fake()->name(),
+            'province' => fake()->randomElement(['Negros Occidental', 'Batangas', 'Tarlac']),
+            'municipality' => fake()->city(),
+            'final_latitude' => fake()->randomFloat(7, -90, 90),
+            'final_longitude' => fake()->randomFloat(7, -180, 180),
+            'location_source' => 'gps',
+            'gps_accuracy' => fake()->randomFloat(2, 0, 50),
+            'observed_at' => $observedAt,
             'image_path' => 'reports/'.fake()->uuid().'.jpg',
             'image_mime_type' => 'image/jpeg',
             'image_size_bytes' => fake()->numberBetween(50_000, 4_000_000),

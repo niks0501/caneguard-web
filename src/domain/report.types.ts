@@ -1,5 +1,7 @@
 export type DiseaseKey = "healthy" | "mosaic" | "rust";
 
+export type LocationSource = "gps" | "manual_map";
+
 export type ReviewStatus =
   | "submitted_unverified"
   | "for_field_validation"
@@ -21,11 +23,20 @@ export interface DiseaseReport {
   uuid: string;
   referenceCode: string;
   barangay: string;
+  farmerOrFarmOwnerName?: string;
+  province?: string;
+  municipality?: string;
   farmReference?: string;
   submittedByName: string;
   submitterRole: SubmitterRole;
   capturedAt: string;
+  observedAt?: string;
   submittedAt: string;
+  finalLatitude?: number;
+  finalLongitude?: number;
+  locationSource?: LocationSource;
+  gpsAccuracy?: number;
+  scanRecordClientUuid?: string;
   predictedDisease: DiseaseKey;
   confidence: number;
   imageUrl?: string;

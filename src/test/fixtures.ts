@@ -6,6 +6,9 @@ export const reportListItemDto = {
     name: "Ana Reporter",
   },
   barangay: "Mabini",
+  province: "Negros Occidental",
+  municipality: "Bago",
+  observed_at: "2026-07-20T09:58:00.000Z",
   captured_at: "2026-07-20T09:55:00.000Z",
   submitted_at: "2026-07-20T10:00:00.000Z",
   predicted_label: "rust",
@@ -20,6 +23,7 @@ export const reportDetailDto = {
     uuid: reportListItemDto.uuid,
     reference_code: reportListItemDto.reference_code,
     client_uuid: "cf9023da-e23c-43cb-a3ae-08ec6e0f302e",
+    scan_record_client_uuid: "a9b3c7d1-e23c-43cb-a3ae-08ec6e0f302e",
   },
   reporter: {
     ...reportListItemDto.reporter,
@@ -28,6 +32,7 @@ export const reportDetailDto = {
   barangay: reportListItemDto.barangay,
   timestamps: {
     captured_at: reportListItemDto.captured_at,
+    observed_at: reportListItemDto.observed_at,
     submitted_at: reportListItemDto.submitted_at,
   },
   image: {
@@ -55,6 +60,13 @@ export const reportDetailDto = {
   },
   observations: {
     symptom_keys: ["orange_spots", "rough_leaf_surface"],
+    farmer_or_farm_owner_name: "Juan Dela Cruz",
+    province: "Negros Occidental",
+    municipality: "Bago",
+    final_latitude: 10.1234567,
+    final_longitude: 122.9876543,
+    location_source: "gps",
+    gps_accuracy: 4.25,
     checklist_consistency: "consistent",
     reported_severity: "moderate",
     quality_warnings: [],

@@ -188,6 +188,24 @@ export function CaseReviewPage() {
               <DetailField label="Affected area">{report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : "Not provided"}</DetailField>
               <DetailField label="Affected portion">{report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : "Not provided"}</DetailField>
               <DetailField label="Field notes">{report.fieldNotes ?? "Not provided"}</DetailField>
+              <DetailField label="Farmer or farm owner">{report.farmerOrFarmOwnerName ?? "Not provided"}</DetailField>
+              <DetailField label="Province">{report.province ?? "Not provided"}</DetailField>
+              <DetailField label="Municipality">{report.municipality ?? "Not provided"}</DetailField>
+              <DetailField label="Final location">
+                {report.finalLatitude !== undefined && report.finalLongitude !== undefined
+                  ? `${report.finalLatitude}, ${report.finalLongitude}`
+                  : "Not provided"}
+              </DetailField>
+              <DetailField label="Location source">
+                {report.locationSource === "gps"
+                  ? "GPS"
+                  : report.locationSource === "manual_map"
+                    ? "Manual map"
+                    : "Not provided"}
+              </DetailField>
+              <DetailField label="GPS accuracy">
+                {report.gpsAccuracy !== undefined ? `${report.gpsAccuracy} m` : "Not provided"}
+              </DetailField>
               <DetailField label="Barangay">{report.barangay}</DetailField>
               <DetailField label="Reporter">{report.submittedByName}</DetailField>
             </dl>
@@ -223,6 +241,7 @@ export function CaseReviewPage() {
               <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
               <DetailField label="Submitted by">{report.submittedByName}</DetailField>
               <DetailField label="Submitter role">{submitterRoleLabels[report.submitterRole]}</DetailField>
+              <DetailField label="Observed at">{report.observedAt ? formatDateTime(report.observedAt) : "Not provided"}</DetailField>
               <DetailField label="Submitted at">{formatDateTime(report.submittedAt)}</DetailField>
               {report.reviewedBy ? <DetailField label="Last reviewed by">{report.reviewedBy}</DetailField> : null}
               {report.reviewedAt ? <DetailField label="Reviewed at">{formatDateTime(report.reviewedAt)}</DetailField> : null}
