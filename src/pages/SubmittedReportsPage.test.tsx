@@ -89,6 +89,10 @@ describe("SubmittedReportsPage", () => {
       screen.getByRole("columnheader", { name: "Possible result" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("columnheader", { name: "Observed" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Bago, Negros Occidental")).toBeInTheDocument();
+    expect(
       screen.getAllByRole("link", { name: /Open CG-/ })[0],
     ).toHaveTextContent("Open");
   });

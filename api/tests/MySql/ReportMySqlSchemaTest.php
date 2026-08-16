@@ -30,7 +30,15 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertColumn($columns, 'uuid', 'char', 36);
         $this->assertColumn($columns, 'reference_code', 'varchar', 32);
         $this->assertColumn($columns, 'client_uuid', 'char', 36);
+        $this->assertColumn($columns, 'scan_record_client_uuid', 'char', 36);
+        $this->assertNullable($columns, 'scan_record_client_uuid');
         $this->assertColumn($columns, 'barangay', 'varchar', 120);
+        $this->assertColumn($columns, 'farmer_or_farm_owner_name', 'varchar', 160);
+        $this->assertColumn($columns, 'province', 'varchar', 120);
+        $this->assertColumn($columns, 'municipality', 'varchar', 120);
+        $this->assertNullable($columns, 'farmer_or_farm_owner_name');
+        $this->assertNullable($columns, 'province');
+        $this->assertNullable($columns, 'municipality');
         $this->assertColumn($columns, 'sugarcane_variety', 'varchar', 100);
         $this->assertColumn($columns, 'crop_age', 'varchar', 100);
         $this->assertColumn($columns, 'cane_class', 'varchar', 100);
@@ -44,10 +52,20 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertDecimal($columns, 'confidence', 8, 7);
         $this->assertDecimal($columns, 'affected_area_hectares', 12, 2);
         $this->assertDecimal($columns, 'affected_portion_percent', 5, 2);
+        $this->assertDecimal($columns, 'final_latitude', 10, 7);
+        $this->assertDecimal($columns, 'final_longitude', 10, 7);
+        $this->assertDecimal($columns, 'gps_accuracy', 10, 2);
+        $this->assertNullable($columns, 'final_latitude');
+        $this->assertNullable($columns, 'final_longitude');
+        $this->assertNullable($columns, 'gps_accuracy');
+        $this->assertColumn($columns, 'location_source', 'varchar', 20);
+        $this->assertNullable($columns, 'location_source');
         $this->assertDecimal($columns, 'preprocess_ms', 12, 3);
         $this->assertDecimal($columns, 'inference_ms', 12, 3);
         $this->assertDecimal($columns, 'total_ms', 12, 3);
         $this->assertDateTime($columns, 'captured_at', 3);
+        $this->assertDateTime($columns, 'observed_at', 3);
+        $this->assertNullable($columns, 'observed_at');
         $this->assertDateTime($columns, 'submitted_at', 3);
         $this->assertDateTime($columns, 'reviewed_at', 3);
         $this->assertDateTime($columns, 'created_at', 0);
@@ -95,6 +113,11 @@ class ReportMySqlSchemaTest extends TestCase
             $indexes,
             'reports_submitted_at_index',
             'submitted_at',
+        );
+        $this->assertIndex(
+            $indexes,
+            'reports_scan_record_client_uuid_index',
+            'scan_record_client_uuid',
         );
         $this->assertIndex(
             $indexes,
@@ -222,6 +245,17 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertSame($type, $column->DATA_TYPE);
         $this->assertSame($length, (int) $column->CHARACTER_MAXIMUM_LENGTH);
         $this->assertSame('utf8mb4_unicode_ci', $column->COLLATION_NAME);
+    }
+
+    /**
+     * @param  Collection<string, object>  $columns
+     */
+    private function assertNullable(Collection $columns, string $name): void
+    {
+        $column = $columns->get($name);
+
+        $this->assertNotNull($column, "Missing column [{$name}].");
+        $this->assertSame('YES', $column->IS_NULLABLE);
     }
 
     /**

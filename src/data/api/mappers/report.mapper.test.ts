@@ -16,6 +16,9 @@ describe("report mappers", () => {
       referenceCode: "CG-2026-0001",
       submittedByName: "Ana Reporter",
       predictedDisease: "rust",
+      province: "Negros Occidental",
+      municipality: "Bago",
+      observedAt: "2026-07-20T09:58:00.000Z",
       reviewStatus: "submitted_unverified",
     });
   });
@@ -26,6 +29,10 @@ describe("report mappers", () => {
     );
 
     expect(report.capturedAt).toBe("2026-07-20T09:55:00.000Z");
+    expect(report.observedAt).toBe("2026-07-20T09:58:00.000Z");
+    expect(report.scanRecordClientUuid).toBe(
+      reportDetailDto.identity.scan_record_client_uuid,
+    );
     expect(report.symptoms[0]).toEqual({
       id: "orange_spots",
       label: "Orange Spots",
@@ -36,6 +43,13 @@ describe("report mappers", () => {
     expect(report.modelVersion).toBe("caneguard-v1");
     expect(report.processingTimingsMs?.total).toBe(30);
     expect(report.checklistConsistency).toBe("consistent");
+    expect(report.farmerOrFarmOwnerName).toBe("Juan Dela Cruz");
+    expect(report.province).toBe("Negros Occidental");
+    expect(report.municipality).toBe("Bago");
+    expect(report.finalLatitude).toBe(10.1234567);
+    expect(report.finalLongitude).toBe(122.9876543);
+    expect(report.locationSource).toBe("gps");
+    expect(report.gpsAccuracy).toBe(4.25);
     expect(report.sugarcaneVariety).toBe("PSR 86");
     expect(report.cropAge).toBe("6 months");
     expect(report.caneClass).toBe("Class A");

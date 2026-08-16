@@ -14,6 +14,7 @@ class ReportResource extends JsonResource
                 'uuid' => $this->uuid,
                 'reference_code' => $this->reference_code,
                 'client_uuid' => $this->client_uuid,
+                'scan_record_client_uuid' => $this->scan_record_client_uuid,
             ],
             'reporter' => [
                 'uuid' => $this->reporter->uuid,
@@ -23,6 +24,7 @@ class ReportResource extends JsonResource
             'barangay' => $this->barangay,
             'timestamps' => [
                 'captured_at' => $this->captured_at->utc()->toISOString(),
+                'observed_at' => $this->observed_at?->utc()->toISOString(),
                 'submitted_at' => $this->submitted_at->utc()->toISOString(),
             ],
             'image' => [
@@ -69,6 +71,19 @@ class ReportResource extends JsonResource
                     ? null
                     : (float) $this->affected_portion_percent,
                 'field_notes' => $this->field_notes,
+                'farmer_or_farm_owner_name' => $this->farmer_or_farm_owner_name,
+                'province' => $this->province,
+                'municipality' => $this->municipality,
+                'final_latitude' => $this->final_latitude === null
+                    ? null
+                    : (float) $this->final_latitude,
+                'final_longitude' => $this->final_longitude === null
+                    ? null
+                    : (float) $this->final_longitude,
+                'location_source' => $this->location_source,
+                'gps_accuracy' => $this->gps_accuracy === null
+                    ? null
+                    : (float) $this->gps_accuracy,
             ],
             'review' => [
                 'status' => $this->review_status,

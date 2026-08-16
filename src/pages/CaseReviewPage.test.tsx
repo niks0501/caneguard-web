@@ -71,6 +71,12 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText(report.modelVersion!)).toBeInTheDocument();
     expect(screen.getAllByText("93%").length).toBeGreaterThan(0);
     expect(screen.getByText("Checklist consistency")).toBeInTheDocument();
+    expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
+    expect(screen.getByText("Negros Occidental")).toBeInTheDocument();
+    expect(screen.getByText("Bago")).toBeInTheDocument();
+    expect(screen.getByText("10.1234567, 122.9876543")).toBeInTheDocument();
+    expect(screen.getByText("GPS")).toBeInTheDocument();
+    expect(screen.getByText("4.25 m")).toBeInTheDocument();
     expect(screen.getByText("PSR 86")).toBeInTheDocument();
     expect(screen.getByText("6 months")).toBeInTheDocument();
     expect(screen.getByText("12.5 ha")).toBeInTheDocument();
@@ -82,6 +88,8 @@ describe("CaseReviewPage", () => {
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();
     expect(screen.getByText("Decision-support only")).toBeInTheDocument();
+    expect(screen.getByText("Observed at")).toBeInTheDocument();
+    expect(screen.getByText("Submitted at")).toBeInTheDocument();
 
     fireEvent.error(image);
     expect(
