@@ -33,6 +33,10 @@ class ReviewReportRequest extends ApiFormRequest
                 'max:1000',
                 'required_if:status,'.Report::STATUS_UNABLE_TO_VERIFY,
             ],
+            'authority_classified_condition' => [
+                'nullable',
+                Rule::in(Report::authorityClassifiedConditions()),
+            ],
             'expected_version' => ['required', 'integer', 'min:0'],
         ];
     }

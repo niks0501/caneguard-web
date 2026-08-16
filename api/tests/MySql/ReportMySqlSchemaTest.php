@@ -44,6 +44,14 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertColumn($columns, 'cane_class', 'varchar', 100);
         $this->assertSame('text', $columns->get('field_notes')->DATA_TYPE);
         $this->assertSame('utf8mb4_unicode_ci', $columns->get('field_notes')->COLLATION_NAME);
+        $this->assertSame('tinyint', $columns->get('mismatch_reported')->DATA_TYPE);
+        $this->assertNullable($columns, 'mismatch_reported');
+        $this->assertColumn($columns, 'reporter_suspected_condition', 'varchar', 120);
+        $this->assertNullable($columns, 'reporter_suspected_condition');
+        $this->assertSame('text', $columns->get('reporter_observation_text')->DATA_TYPE);
+        $this->assertNullable($columns, 'reporter_observation_text');
+        $this->assertColumn($columns, 'authority_classified_condition', 'varchar', 40);
+        $this->assertNullable($columns, 'authority_classified_condition');
         $this->assertColumn($columns, 'image_path', 'varchar', 500);
         $this->assertColumn($columns, 'image_mime_type', 'varchar', 100);
         $this->assertColumn($columns, 'image_source_type', 'varchar', 20);

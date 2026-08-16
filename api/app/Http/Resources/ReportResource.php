@@ -85,9 +85,15 @@ class ReportResource extends JsonResource
                     ? null
                     : (float) $this->gps_accuracy,
             ],
+            'reporter_observation' => [
+                'mismatch_reported' => $this->mismatch_reported,
+                'reporter_suspected_condition' => $this->reporter_suspected_condition,
+                'reporter_observation_text' => $this->reporter_observation_text,
+            ],
             'review' => [
                 'status' => $this->review_status,
                 'notes' => $this->review_notes,
+                'authority_classified_condition' => $this->authority_classified_condition,
                 'reviewer' => $this->when($this->reviewer, fn () => [
                     'uuid' => $this->reviewer->uuid,
                     'name' => $this->reviewer->name,

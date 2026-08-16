@@ -39,6 +39,7 @@ describe("useUpdateReportReview", () => {
       await result.current.mutateAsync({
         status: "verified_by_staff",
         notes: "Reviewed.",
+        authorityClassifiedCondition: null,
         expectedVersion: report.reviewVersion!,
       });
     });

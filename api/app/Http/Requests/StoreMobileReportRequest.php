@@ -21,6 +21,9 @@ class StoreMobileReportRequest extends ApiFormRequest
             'affected_area_hectares',
             'affected_portion_percent',
             'field_notes',
+            'mismatch_reported',
+            'reporter_suspected_condition',
+            'reporter_observation_text',
             'farmer_or_farm_owner_name',
             'province',
             'municipality',
@@ -41,6 +44,12 @@ class StoreMobileReportRequest extends ApiFormRequest
 
         if ($emptyFields !== []) {
             $this->merge($emptyFields);
+        }
+
+        if ($this->input('mismatch_reported') === 'true') {
+            $this->merge(['mismatch_reported' => true]);
+        } elseif ($this->input('mismatch_reported') === 'false') {
+            $this->merge(['mismatch_reported' => false]);
         }
     }
 
@@ -84,6 +93,9 @@ class StoreMobileReportRequest extends ApiFormRequest
             ],
             'checklist_consistency' => ['required', 'string', 'max:40'],
             'reported_severity' => ['nullable', 'string', 'max:20'],
+            'mismatch_reported' => ['nullable', 'boolean'],
+            'reporter_suspected_condition' => ['nullable', 'string', 'max:120'],
+            'reporter_observation_text' => ['nullable', 'string', 'max:1000'],
             'quality_warnings' => ['present', 'array'],
             'quality_warnings.*' => [
                 'string',

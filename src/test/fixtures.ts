@@ -14,6 +14,7 @@ export const reportListItemDto = {
   predicted_label: "rust",
   confidence: 0.93,
   review_status: "submitted_unverified",
+  mismatch_reported: true,
   image_url:
     "https://api.caneguard.test/api/v1/reports/7e8c2e48-a2d4-4aca-9a50-9ca460fd7a7f/image",
 } as const;
@@ -77,9 +78,16 @@ export const reportDetailDto = {
     affected_portion_percent: 42.75,
     field_notes: "Rust symptoms concentrated on the eastern edge.",
   },
+  reporter_observation: {
+    mismatch_reported: true,
+    reporter_suspected_condition: "smut",
+    reporter_observation_text:
+      "Dark whip-like growths are visible at the tops of several stalks.",
+  },
   review: {
     status: "submitted_unverified",
     notes: null,
+    authority_classified_condition: null,
     reviewer: null,
     reviewed_at: null,
   },

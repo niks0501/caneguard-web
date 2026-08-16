@@ -44,6 +44,104 @@ class ReviewReportTest extends TestCase
         );
     }
 
+    public function test_reviewer_can_persist_an_authority_classification_without_changing_model_evidence(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'predicted_label' => Report::LABEL_RUST,
+            'confidence' => 0.82,
+        ]);
+        $modelLabel = $report->predicted_label;
+        $modelConfidence = $report->confidence;
+        $modelScores = $report->classScores()->pluck('score', 'label')->all();
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'notes' => 'Authority review requested for visible whip-like growth.',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath(
+                'data.review.authority_classified_condition',
+                Report::AUTHORITY_CONDITION_SMUT,
+            )
+            ->assertJsonPath('data.model.predicted_label', $modelLabel)
+            ->assertJsonPath('data.model.confidence', (float) $modelConfidence)
+            ->assertJsonPath('data.review.reviewer.uuid', $reviewer->uuid);
+
+        $updated = $report->fresh();
+        $this->assertSame(Report::AUTHORITY_CONDITION_SMUT, $updated->authority_classified_condition);
+        $this->assertSame($modelLabel, $updated->predicted_label);
+        $this->assertSame($modelConfidence, $updated->confidence);
+        $this->assertSame(
+            $modelScores,
+            $updated->classScores()->pluck('score', 'label')->all(),
+        );
+    }
+
+    public function test_review_without_classification_preserves_an_existing_authority_finding(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'notes' => 'Retain the reviewed authority finding.',
+            'expected_version' => 0,
+        ])->assertOk()
+            ->assertJsonPath(
+                'data.review.authority_classified_condition',
+                Report::AUTHORITY_CONDITION_SMUT,
+            );
+
+        $this->assertSame(
+            Report::AUTHORITY_CONDITION_SMUT,
+            $report->fresh()->authority_classified_condition,
+        );
+    }
+
+    public function test_authority_classification_uses_only_the_server_owned_allowlist(): void
+    {
+        Sanctum::actingAs(User::factory()->reviewer()->create());
+        $report = Report::factory()->create();
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'status' => Report::STATUS_RESOLVED,
+            'notes' => 'No supported authority condition could be recorded.',
+            'authority_classified_condition' => 'rust',
+            'expected_version' => 0,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('authority_classified_condition');
+
+        $this->assertNull($report->fresh()->authority_classified_condition);
+    }
+
+    public function test_unable_to_verify_can_keep_authority_classification_null(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'status' => Report::STATUS_UNABLE_TO_VERIFY,
+            'notes' => 'The submitted image does not provide enough evidence.',
+            'authority_classified_condition' => null,
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.review.authority_classified_condition', null)
+            ->assertJsonPath('data.review.status', Report::STATUS_UNABLE_TO_VERIFY);
+    }
+
     public function test_admin_can_mutate_a_report_review(): void
     {
         $admin = User::factory()->admin()->create();
