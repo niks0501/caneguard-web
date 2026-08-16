@@ -55,6 +55,7 @@ describe("ApiReportsRepository", () => {
           expect(await request.json()).toEqual({
             status: "for_field_validation",
             notes: "Visit the field.",
+            authority_classified_condition: null,
             expected_version: reportDetailDto.version,
           });
           return HttpResponse.json({
@@ -87,6 +88,7 @@ describe("ApiReportsRepository", () => {
       repository.updateReview(reportDetailDto.identity.uuid, {
         status: "for_field_validation",
         notes: " Visit the field. ",
+        authorityClassifiedCondition: null,
         expectedVersion: reportDetailDto.version,
       }),
     ).resolves.toMatchObject({ reviewStatus: "for_field_validation" });

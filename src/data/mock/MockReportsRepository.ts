@@ -109,6 +109,7 @@ export class MockReportsRepository implements ReportsRepository {
       ...current,
       reviewStatus: input.status,
       reviewNotes: input.notes.trim() || undefined,
+      authorityClassifiedCondition: input.authorityClassifiedCondition,
       reviewedAt: new Date().toISOString(),
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       updatedAt: new Date().toISOString(),

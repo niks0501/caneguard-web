@@ -31,6 +31,7 @@ class ReportApiTest extends TestCase
             'province' => 'Negros Occidental',
             'municipality' => 'Bago',
             'observed_at' => CarbonImmutable::parse('2026-07-20T09:58:00Z'),
+            'mismatch_reported' => true,
             'submitted_at' => CarbonImmutable::parse('2026-07-20T10:00:00Z'),
         ]);
         $middleConfidence = Report::factory()->create([
@@ -88,6 +89,7 @@ class ReportApiTest extends TestCase
             )
             ->assertJsonPath('data.0.province', 'Negros Occidental')
             ->assertJsonPath('data.0.municipality', 'Bago')
+            ->assertJsonPath('data.0.mismatch_reported', true)
             ->assertJsonPath(
                 'data.0.observed_at',
                 $highestConfidence->observed_at->utc()->toISOString(),
@@ -186,6 +188,8 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.observations.final_latitude', 10.1234567)
             ->assertJsonPath('data.observations.final_longitude', 122.9876543)
             ->assertJsonPath('data.observations.gps_accuracy', 4.25)
+            ->assertJsonPath('data.reporter_observation.mismatch_reported', null)
+            ->assertJsonPath('data.review.authority_classified_condition', null)
             ->assertJsonStructure([
                 'data' => [
                     'identity',
@@ -195,6 +199,7 @@ class ReportApiTest extends TestCase
                     'image',
                     'model',
                     'observations',
+                    'reporter_observation',
                     'review',
                     'updated_at',
                 ],

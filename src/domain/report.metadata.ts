@@ -1,4 +1,5 @@
 import type {
+  AuthorityClassifiedCondition,
   DiseaseKey,
   ImageStatus,
   ReviewStatus,
@@ -9,6 +10,16 @@ export const diseaseLabels: Record<DiseaseKey, string> = {
   healthy: "Healthy appearance",
   mosaic: "Possible mosaic",
   rust: "Possible rust",
+};
+
+export const authorityClassifiedConditionLabels: Record<
+  AuthorityClassifiedCondition,
+  string
+> = {
+  smut: "Smut",
+  downy_mildew: "Downy mildew",
+  mixed_or_multiple: "Mixed or multiple conditions",
+  unable_to_classify: "Unable to classify",
 };
 
 export const reviewStatusLabels: Record<ReviewStatus, string> = {

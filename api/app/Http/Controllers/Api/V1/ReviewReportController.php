@@ -26,13 +26,20 @@ class ReviewReportController extends Controller
                 409,
             );
 
-            $locked->update([
+            $reviewUpdate = [
                 'review_status' => $data['status'],
                 'review_notes' => $data['notes'] ?? null,
                 'reviewer_id' => $request->user()->getKey(),
                 'reviewed_at' => now(),
                 'lock_version' => $locked->lock_version + 1,
-            ]);
+            ];
+
+            if (array_key_exists('authority_classified_condition', $data)) {
+                $reviewUpdate['authority_classified_condition'] =
+                    $data['authority_classified_condition'];
+            }
+
+            $locked->update($reviewUpdate);
 
             return $locked;
         });

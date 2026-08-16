@@ -32,6 +32,7 @@ export const mockReports: DiseaseReport[] = [
     capturedAt: "2026-07-18T07:42:00+08:00",
     submittedAt: "2026-07-18T09:16:00+08:00",
     predictedDisease: "mosaic",
+    mismatchReported: true,
     confidence: 0.87,
     imageStatus: "available",
     symptoms: commonSymptoms.downy.map((symptom) => ({ ...symptom })),

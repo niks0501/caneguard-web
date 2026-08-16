@@ -40,6 +40,15 @@ describe("report API schemas", () => {
         location_source: null,
         gps_accuracy: null,
       },
+      reporter_observation: {
+        mismatch_reported: null,
+        reporter_suspected_condition: null,
+        reporter_observation_text: null,
+      },
+      review: {
+        ...reportDetailDto.review,
+        authority_classified_condition: null,
+      },
     };
 
     expect(
@@ -64,5 +73,17 @@ describe("report API schemas", () => {
     };
 
     expect(() => reportListResponseSchema.parse(invalid)).toThrow();
+  });
+
+  it("keeps authority classifications separate from model labels", () => {
+    const invalid = {
+      ...reportDetailDto,
+      review: {
+        ...reportDetailDto.review,
+        authority_classified_condition: "rust",
+      },
+    };
+
+    expect(() => reportDetailResponseSchema.parse({ data: invalid })).toThrow();
   });
 });

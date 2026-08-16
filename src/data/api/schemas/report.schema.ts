@@ -6,6 +6,12 @@ import {
 } from "./common.schema";
 
 export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust"]);
+export const authorityClassifiedConditionSchema = z.enum([
+  "smut",
+  "downy_mildew",
+  "mixed_or_multiple",
+  "unable_to_classify",
+]);
 export const reviewStatusSchema = z.enum([
   "submitted_unverified",
   "for_field_validation",
@@ -27,6 +33,7 @@ export const reportListItemSchema = z.object({
   predicted_label: diseaseKeySchema,
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
+  mismatch_reported: z.boolean().nullable(),
   image_url: z.string(),
 });
 
@@ -93,9 +100,15 @@ export const reportDetailSchema = z.object({
     location_source: z.enum(["gps", "manual_map"]).nullable().optional(),
     gps_accuracy: z.number().nonnegative().nullable().optional(),
   }),
+  reporter_observation: z.object({
+    mismatch_reported: z.boolean().nullable(),
+    reporter_suspected_condition: z.string().max(120).nullable(),
+    reporter_observation_text: z.string().max(1000).nullable(),
+  }),
   review: z.object({
     status: reviewStatusSchema,
     notes: z.string().nullable(),
+    authority_classified_condition: authorityClassifiedConditionSchema.nullable(),
     reviewer: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
     reviewed_at: z.iso.datetime({ offset: true }).nullable(),
   }),

@@ -48,6 +48,9 @@ class ReportFactory extends Factory
             'affected_area_hectares' => fake()->optional()->randomFloat(2, 0.01, 1000),
             'affected_portion_percent' => fake()->optional()->randomFloat(2, 0, 100),
             'field_notes' => fake()->optional()->sentence(),
+            'mismatch_reported' => null,
+            'reporter_suspected_condition' => null,
+            'reporter_observation_text' => null,
             'farmer_or_farm_owner_name' => fake()->name(),
             'province' => fake()->randomElement(['Negros Occidental', 'Batangas', 'Tarlac']),
             'municipality' => fake()->city(),
@@ -77,6 +80,7 @@ class ReportFactory extends Factory
             'captured_at' => $capturedAt,
             'submitted_at' => fake()->dateTimeBetween($capturedAt, 'now'),
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+            'authority_classified_condition' => null,
         ];
     }
 

@@ -88,6 +88,10 @@ describe("CaseReviewPage", () => {
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();
     expect(screen.getByText("Decision-support only")).toBeInTheDocument();
+    expect(screen.getByText("Reporter flagged AI mismatch")).toBeInTheDocument();
+    expect(screen.getByText("Smut")).toBeInTheDocument();
+    expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Authority classification")).toHaveValue("");
     expect(screen.getByText("Observed at")).toBeInTheDocument();
     expect(screen.getByText("Submitted at")).toBeInTheDocument();
 
@@ -105,6 +109,32 @@ describe("CaseReviewPage", () => {
       screen.getByRole("img", {
         name: `Submitted sugarcane evidence for ${report.referenceCode}`,
       }),
+    ).toBeInTheDocument();
+  });
+
+  it("distinguishes an unasked mismatch state from an explicit no", () => {
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({ data: { ...report, mismatchReported: null } }),
+    );
+    const { rerender } = renderPage();
+
+    expect(
+      screen.getByText("Mismatch status was not collected for this report."),
+    ).toBeInTheDocument();
+
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({ data: { ...report, mismatchReported: false } }),
+    );
+    rerender(
+      <MemoryRouter initialEntries={[`/reports/${report.uuid}`]}>
+        <Routes>
+          <Route path="/reports/:reportId" element={<CaseReviewPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByText("The reporter explicitly indicated no AI mismatch."),
     ).toBeInTheDocument();
   });
 
@@ -137,6 +167,10 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
+    await user.selectOptions(
+      screen.getByLabelText("Authority classification"),
+      "smut",
+    );
     await user.type(
       screen.getByLabelText(/^Review notes/),
       "Field evidence reviewed.",
@@ -148,6 +182,7 @@ describe("CaseReviewPage", () => {
     expect(mutateAsync).toHaveBeenCalledWith({
       status: "verified_by_staff",
       notes: "Field evidence reviewed.",
+      authorityClassifiedCondition: "smut",
       expectedVersion: report.reviewVersion,
     });
     expect(

@@ -1,5 +1,11 @@
 export type DiseaseKey = "healthy" | "mosaic" | "rust";
 
+export type AuthorityClassifiedCondition =
+  | "smut"
+  | "downy_mildew"
+  | "mixed_or_multiple"
+  | "unable_to_classify";
+
 export type LocationSource = "gps" | "manual_map";
 
 export type ReviewStatus =
@@ -64,6 +70,10 @@ export interface DiseaseReport {
   affectedAreaHectares?: number;
   affectedPortionPercent?: number;
   reviewStatus: ReviewStatus;
+  mismatchReported?: boolean | null;
+  reporterSuspectedCondition?: string | null;
+  reporterObservationText?: string | null;
+  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   reviewNotes?: string;
   reviewedBy?: string;
   reviewedAt?: string;

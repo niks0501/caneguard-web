@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   ClipboardList,
@@ -20,14 +21,18 @@ import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
 import { DiseaseBadge, ReviewStatusBadge } from "../components/reports/ReportBadges";
 import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
 import { Button } from "../components/ui/Button";
-import { TextArea } from "../components/ui/FormControls";
+import { SelectFilter, TextArea } from "../components/ui/FormControls";
 import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/States";
 import {
   imageStatusLabels,
+  authorityClassifiedConditionLabels,
   reviewStatusLabels,
   submitterRoleLabels,
 } from "../domain/report.metadata";
-import type { ReviewStatus } from "../domain/report.types";
+import type {
+  AuthorityClassifiedCondition,
+  ReviewStatus,
+} from "../domain/report.types";
 import { useReport, useUpdateReportReview } from "../hooks/useReports";
 import { formatDateTime } from "../lib/formatters";
 
@@ -45,6 +50,8 @@ export function CaseReviewPage() {
   const navigate = useNavigate();
   const [notesOverride, setNotesOverride] = useState<string | null>(null);
   const [actionOverride, setActionOverride] = useState<ReviewAction | null>(null);
+  const [authorityClassificationOverride, setAuthorityClassificationOverride] =
+    useState<AuthorityClassifiedCondition | null | undefined>(undefined);
   const [submitted, setSubmitted] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
@@ -58,6 +65,10 @@ export function CaseReviewPage() {
     (persistedAction && persistedAction !== "submitted_unverified"
       ? persistedAction
       : "verified_by_staff");
+  const selectedAuthorityClassification =
+    authorityClassificationOverride !== undefined
+      ? authorityClassificationOverride
+      : report?.authorityClassifiedCondition ?? null;
   const trimmedNotes = notes.trim();
   const noteError =
     trimmedNotes.length > 1000
@@ -101,6 +112,7 @@ export function CaseReviewPage() {
       await reviewMutation.mutateAsync({
         status: selectedAction,
         notes,
+        authorityClassifiedCondition: selectedAuthorityClassification,
         expectedVersion: report.reviewVersion,
       });
       navigate(routes.reports, {
@@ -126,6 +138,15 @@ export function CaseReviewPage() {
         description="Examine the submitted evidence before recording an office response."
         actions={<ReviewStatusBadge status={report.reviewStatus} />}
       />
+      {report.mismatchReported === true ? (
+        <div className="mismatch-banner" role="status">
+          <AlertTriangle aria-hidden="true" />
+          <div>
+            <strong>Reporter flagged AI mismatch</strong>
+            <span>The reporter said the model result does not match what they see.</span>
+          </div>
+        </div>
+      ) : null}
       {reportQuery.isRefetchError ? (
         <div className="detail-refresh-warning" role="alert">
           <span>{detailRefreshMessage}</span>
@@ -213,6 +234,21 @@ export function CaseReviewPage() {
         </div>
 
         <aside className="review-sidebar" aria-label="Report assessment and office review">
+          <section className="review-card reporter-observation-card" aria-labelledby="reporter-observation-heading">
+            <div className="section-heading"><div><p className="eyebrow">Reporter observation</p><h2 id="reporter-observation-heading">What the reporter saw</h2></div><AlertTriangle aria-hidden="true" /></div>
+            {report.mismatchReported === true ? (
+              <div className="reporter-mismatch-label"><AlertTriangle aria-hidden="true" /><strong>AI result does not match the reported observation</strong></div>
+            ) : report.mismatchReported === false ? (
+              <p className="observation-empty">The reporter explicitly indicated no AI mismatch.</p>
+            ) : (
+              <p className="observation-empty">Mismatch status was not collected for this report.</p>
+            )}
+            <dl className="detail-list reporter-observation-details">
+              <DetailField label="Suspected condition">{report.reporterSuspectedCondition ?? "Not provided"}</DetailField>
+              <DetailField label="Observation text">{report.reporterObservationText ?? "Not provided"}</DetailField>
+            </dl>
+          </section>
+
           <section className="review-card model-card">
             <div className="section-heading"><div><p className="eyebrow">Model decision support</p><h2>Image assessment</h2></div><ScanLine aria-hidden="true" /></div>
             <DiseaseBadge disease={report.predictedDisease} />
@@ -251,6 +287,26 @@ export function CaseReviewPage() {
 
           <section className="review-card office-review" aria-labelledby="office-review-heading">
             <div className="section-heading"><div><p className="eyebrow">Office response</p><h2 id="office-review-heading">Record review action</h2></div><CheckCircle2 aria-hidden="true" /></div>
+            <SelectFilter
+              label="Authority classification"
+              value={selectedAuthorityClassification ?? ""}
+              onChange={(event) => {
+                setAuthorityClassificationOverride(
+                  (event.target.value || null) as AuthorityClassifiedCondition | null,
+                );
+                setSubmitted(false);
+                reviewMutation.reset();
+              }}
+            >
+              <option value="">Not classified</option>
+              {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </SelectFilter>
+            <p className="authority-classification-help">This is a separate authority finding and never changes the original model result.</p>
+            {report.authorityClassifiedCondition && report.reviewedBy ? (
+              <p className="authority-provenance">Last classified by {report.reviewedBy}{report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.</p>
+            ) : null}
             <fieldset className="review-actions">
               <legend>Select an action</legend>
               {actions.map((action) => (
