@@ -1,3 +1,4 @@
+import syntheticSugarcaneRustImage from "../../assets/synthetic-sugarcane-rust.png";
 import type { DiseaseReport } from "../../domain/report.types";
 
 const commonSymptoms = {
@@ -18,7 +19,7 @@ const commonSymptoms = {
   ],
 } as const;
 
-export const mockReports: DiseaseReport[] = [
+const sourceReports: DiseaseReport[] = [
   {
     uuid: "00000000-0000-4000-8000-000000000001",
     referenceCode: "CG-2026-0718",
@@ -173,3 +174,11 @@ export const mockReports: DiseaseReport[] = [
     reviewedAt: "2026-07-07T08:50:00+08:00",
   },
 ];
+
+// The seeded synthetic evidence is already part of the repository and keeps
+// mock-mode screenshots representative of the real report-image experience.
+export const mockReports: DiseaseReport[] = sourceReports.map((report) =>
+  report.imageStatus === "available"
+    ? { ...report, imageUrl: syntheticSugarcaneRustImage }
+    : report,
+);

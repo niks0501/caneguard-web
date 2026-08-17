@@ -22,8 +22,8 @@
   --disease-healthy: #2e7d32;
   --disease-mosaic: #a97209;
   --disease-rust: #b54b17;
-  --font-heading: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-body: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --text-page-title: clamp(30px, 3vw, 36px);
   --text-section-title: 20px;
   --text-metric: 34px;
