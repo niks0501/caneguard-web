@@ -23,8 +23,14 @@ export function PageHeader({
   );
 }
 
-export function PageContent({ children }: { children: ReactNode }) {
-  return <div className="page-content">{children}</div>;
+export function PageContent({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={`page-content ${className}`.trim()}>{children}</div>;
 }
 
 export function DetailField({ label, children }: { label: string; children: ReactNode }) {

@@ -109,7 +109,7 @@ export function FieldValidationMapPage() {
   };
 
   return (
-    <PageContent>
+    <PageContent className="page-content--field-validation">
       <PageHeader
         eyebrow="Field operations"
         title="Field-validation map"
