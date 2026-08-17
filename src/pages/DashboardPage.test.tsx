@@ -77,6 +77,11 @@ describe("DashboardPage", () => {
       "/reports/00000000-0000-4000-8000-000000000001",
     );
     expect(
+      screen.getByRole("img", {
+        name: "Submitted evidence for CG-2026-0718",
+      }),
+    ).toHaveAttribute("src", mockReports[0].imageUrl);
+    expect(
       screen.queryByText(/confirmed cases?/i),
     ).not.toBeInTheDocument();
   });

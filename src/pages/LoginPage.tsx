@@ -102,7 +102,7 @@ export function LoginPage() {
 
         <div className="login-copy">
           <span className="login-icon"><ShieldCheck aria-hidden="true" /></span>
-          <p className="eyebrow">Secure staff access</p>
+          <p className="eyebrow">Staff sign in</p>
           <h1 id="login-heading">Sign in to review field reports</h1>
           <p>Use your municipal reviewer or administrator account.</p>
         </div>

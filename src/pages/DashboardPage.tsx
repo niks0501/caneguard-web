@@ -102,49 +102,51 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="dashboard-primary-metrics" aria-label="Report overview">
-        <MetricCard
-          label="Total submitted"
-          value={String(summary.totalSubmitted)}
-          context="All synchronized field reports"
-          icon={<FileStack aria-hidden="true" />}
-        />
-        <MetricCard
-          label="Submitted–unverified"
-          value={String(summary.counts.submitted_unverified)}
-          context="Awaiting staff review"
-          icon={<Clock3 aria-hidden="true" />}
-        />
-        <MetricCard
-          label="For field validation"
-          value={String(summary.counts.for_field_validation)}
-          context="Requires an on-site follow-up"
-          icon={<MapPin aria-hidden="true" />}
-        />
-        <MetricCard
-          label="Verified by staff"
-          value={String(summary.counts.verified_by_staff)}
-          context="Evidence reviewed by staff"
-          icon={<BadgeCheck aria-hidden="true" />}
-        />
-      </section>
+      <section className="dashboard-metrics-band" aria-label="Report metrics">
+        <section className="dashboard-primary-metrics" aria-label="Report overview">
+          <MetricCard
+            label="Total submitted"
+            value={String(summary.totalSubmitted)}
+            context="All synchronized field reports"
+            icon={<FileStack aria-hidden="true" />}
+          />
+          <MetricCard
+            label="Submitted–unverified"
+            value={String(summary.counts.submitted_unverified)}
+            context="Awaiting staff review"
+            icon={<Clock3 aria-hidden="true" />}
+          />
+          <MetricCard
+            label="For field validation"
+            value={String(summary.counts.for_field_validation)}
+            context="Requires an on-site follow-up"
+            icon={<MapPin aria-hidden="true" />}
+          />
+          <MetricCard
+            label="Verified by staff"
+            value={String(summary.counts.verified_by_staff)}
+            context="Evidence reviewed by staff"
+            icon={<BadgeCheck aria-hidden="true" />}
+          />
+        </section>
 
-      <section className="dashboard-secondary-row" aria-label="Additional report status totals">
-        <SecondaryMetric
-          label="Unable to verify"
-          value={summary.counts.unable_to_verify}
-          icon={<CircleHelp aria-hidden="true" />}
-        />
-        <SecondaryMetric
-          label="Resolved"
-          value={summary.counts.resolved}
-          icon={<CheckCircle2 aria-hidden="true" />}
-        />
-        <p className="dashboard-refreshed" aria-live="polite">
-          <RefreshCw aria-hidden="true" />
-          <span>Last refreshed</span>
-          <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
-        </p>
+        <section className="dashboard-secondary-row" aria-label="Additional report status totals">
+          <SecondaryMetric
+            label="Unable to verify"
+            value={summary.counts.unable_to_verify}
+            icon={<CircleHelp aria-hidden="true" />}
+          />
+          <SecondaryMetric
+            label="Resolved"
+            value={summary.counts.resolved}
+            icon={<CheckCircle2 aria-hidden="true" />}
+          />
+          <p className="dashboard-refreshed" aria-live="polite">
+            <RefreshCw aria-hidden="true" />
+            <span>Last refreshed</span>
+            <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
+          </p>
+        </section>
       </section>
 
       <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">

@@ -18,9 +18,11 @@ export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
   const isDetail = location.pathname.startsWith("/reports/");
   const title = location.pathname.startsWith("/dashboard")
     ? "Overview"
-    : isDetail
-      ? "Case review"
-      : "Submitted reports";
+    : location.pathname.startsWith("/map")
+      ? "Field-validation map"
+      : isDetail
+        ? "Case review"
+        : "Submitted reports";
 
   return (
     <header className="app-header">

@@ -32,6 +32,7 @@ export function DashboardRecentReports({
                   <EvidenceThumbnail
                     status={report.imageStatus}
                     label={`Submitted evidence for ${report.referenceCode}`}
+                    src={report.imageUrl}
                   />
                   <div>
                     <strong>{report.referenceCode}</strong>
