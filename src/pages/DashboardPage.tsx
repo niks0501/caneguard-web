@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   BadgeCheck,
   CheckCircle2,
   CircleHelp,
@@ -105,22 +106,24 @@ export function DashboardPage() {
       <section className="dashboard-metrics-band" aria-label="Report metrics">
         <section className="dashboard-primary-metrics" aria-label="Report overview">
           <MetricCard
-            label="Total submitted"
-            value={String(summary.totalSubmitted)}
-            context="All synchronized field reports"
-            icon={<FileStack aria-hidden="true" />}
-          />
-          <MetricCard
             label="Submitted–unverified"
             value={String(summary.counts.submitted_unverified)}
             context="Awaiting staff review"
             icon={<Clock3 aria-hidden="true" />}
+            priority="primary"
           />
           <MetricCard
             label="For field validation"
             value={String(summary.counts.for_field_validation)}
             context="Requires an on-site follow-up"
             icon={<MapPin aria-hidden="true" />}
+            priority="primary"
+          />
+          <MetricCard
+            label="Total submitted"
+            value={String(summary.totalSubmitted)}
+            context="All synchronized field reports"
+            icon={<FileStack aria-hidden="true" />}
           />
           <MetricCard
             label="Verified by staff"
@@ -147,6 +150,27 @@ export function DashboardPage() {
             <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
           </p>
         </section>
+      </section>
+
+      <section className="dashboard-next-action" aria-labelledby="next-action-heading">
+        <div className="dashboard-next-action__icon"><MapPin aria-hidden="true" /></div>
+        <div>
+          <p className="eyebrow">Next safe action</p>
+          <h2 id="next-action-heading">
+            {summary.counts.for_field_validation > 0
+              ? "Start with the oldest field validation"
+              : "Review the submitted report queue"}
+          </h2>
+          <p>
+            {summary.counts.for_field_validation > 0
+              ? `${summary.counts.for_field_validation} report${summary.counts.for_field_validation === 1 ? " is" : "s are"} waiting for an on-site follow-up. The field workspace keeps the oldest observation first.`
+              : "Use the submitted report queue to choose the next review action without losing evidence context."}
+          </p>
+        </div>
+        <Link className="dashboard-next-action__link" to={summary.counts.for_field_validation > 0 ? routes.map : routes.reports}>
+          <span>{summary.counts.for_field_validation > 0 ? "Open field queue" : "Open report queue"}</span>
+          <ArrowRight aria-hidden="true" />
+        </Link>
       </section>
 
       <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">

@@ -156,6 +156,32 @@ export function CaseReviewPage() {
         </div>
       ) : null}
 
+      <section className="review-summary" aria-labelledby="review-summary-heading">
+        <div className="review-summary__lead">
+          <p className="eyebrow">Review at a glance</p>
+          <h2 id="review-summary-heading">Choose the next safe action</h2>
+          <p>Keep the submitted evidence, model support, and authorized response in view as you review.</p>
+        </div>
+        <div className="review-summary__item">
+          <span>Current status</span>
+          <ReviewStatusBadge status={report.reviewStatus} />
+        </div>
+        <div className="review-summary__item">
+          <span>Evidence posture</span>
+          <strong className={report.mismatchReported === true ? "is-warning" : "is-neutral"}>
+            {report.mismatchReported === true
+              ? "Reporter flagged mismatch"
+              : report.mismatchReported === false
+                ? "No mismatch reported"
+                : "Mismatch not collected"}
+          </strong>
+        </div>
+        <div className="review-summary__item">
+          <span>Selected response</span>
+          <strong>{reviewStatusLabels[selectedAction]}</strong>
+        </div>
+      </section>
+
       <div className="review-layout">
         <div className="review-main">
           <section className="review-card evidence-card" aria-labelledby="evidence-heading">

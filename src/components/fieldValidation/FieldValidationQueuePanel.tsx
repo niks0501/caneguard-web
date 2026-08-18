@@ -56,7 +56,10 @@ export function FieldValidationQueuePanel({
           <p className="eyebrow">Operational queue</p>
           <h2 id="field-validation-queue-heading">Field validations needed</h2>
         </div>
-        <strong className="validation-queue-panel__count">{data.count}</strong>
+        <div className="validation-queue-panel__heading-meta">
+          <span className="queue-priority-badge">Oldest first</span>
+          <strong className="validation-queue-panel__count">{data.count}</strong>
+        </div>
       </div>
       <p className="validation-queue-panel__description">
         Fixed to reports awaiting field validation. The map review-state filter does not change this queue.

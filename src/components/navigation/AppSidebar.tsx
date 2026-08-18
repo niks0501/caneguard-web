@@ -6,7 +6,6 @@ import {
   MapPinned,
   ShieldCheck,
   Sprout,
-  UploadCloud,
 } from "lucide-react";
 import { NavLink } from "react-router";
 import { routes } from "../../app/routes";
@@ -50,12 +49,6 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <span>Field-validation map</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
-        {futureLinks.map(({ label, icon: Icon }) => (
-          <button className="sidebar-link" disabled key={label} title="Planned screen">
-            <Icon aria-hidden="true" />
-            <span>{label}</span>
-          </button>
-        ))}
         <NavLink
           className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
           to={routes.reports}
@@ -65,12 +58,22 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <span>Submitted reports</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
+        <div className="sidebar__planned" aria-label="Planned screens">
+          <p>Coming next</p>
+          {futureLinks.map(({ label, icon: Icon }) => (
+            <button className="sidebar-link" disabled key={label} title="Planned screen">
+              <Icon aria-hidden="true" />
+              <span>{label}</span>
+              <span className="sidebar-link__planned-label">Planned</span>
+            </button>
+          ))}
+        </div>
       </nav>
 
       <div className="sidebar__footer">
         <div className="sync-card">
-          <UploadCloud aria-hidden="true" />
-          <div><strong>Field sync active</strong><span>Last checked 4 min ago</span></div>
+          <ShieldCheck aria-hidden="true" />
+          <div><strong>Review session active</strong><span>{auth.user?.role === "admin" ? "Administrator access" : "Reviewer access"}</span></div>
         </div>
         <button className="user-summary" type="button" onClick={logout}>
           <span className="avatar">

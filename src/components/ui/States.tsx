@@ -6,6 +6,7 @@ interface StateProps {
   title: string;
   message: string;
   action?: ReactNode;
+  role?: "status" | "alert";
 }
 
 function StatePanel({
@@ -13,9 +14,10 @@ function StatePanel({
   title,
   message,
   action,
+  role = "status",
 }: StateProps & { icon: ReactNode }) {
   return (
-    <div className="state-panel" role="status">
+    <div className="state-panel" role={role}>
       <div className="state-panel__icon">{icon}</div>
       <h2>{title}</h2>
       <p>{message}</p>
@@ -71,6 +73,7 @@ export function ErrorState({
       icon={<AlertTriangle aria-hidden="true" />}
       title="Something went wrong"
       message={message}
+      role="alert"
       action={
         onRetry ? (
           <Button type="button" variant="secondary" onClick={onRetry}>

@@ -89,6 +89,9 @@ describe("CaseReviewPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Decision-support only")).toBeInTheDocument();
     expect(screen.getByText("Reporter flagged AI mismatch")).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Choose the next safe action" }),
+    ).toHaveTextContent("Selected response");
     expect(screen.getByText("Smut")).toBeInTheDocument();
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
     expect(screen.getByLabelText("Authority classification")).toHaveValue("");
