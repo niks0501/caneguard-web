@@ -27,7 +27,11 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
         </thead>
         <tbody>
           {reports.map((report) => (
-            <tr key={report.uuid}>
+            <tr
+              className={`report-row report-row--${report.reviewStatus}${report.mismatchReported ? " report-row--mismatch" : ""}`}
+              data-review-status={report.reviewStatus}
+              key={report.uuid}
+            >
               <td>
                 <div className="report-identity">
                   <EvidenceThumbnail

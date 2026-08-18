@@ -107,14 +107,19 @@ export function LoginPage() {
           <p>Use your municipal reviewer or administrator account.</p>
         </div>
 
-        {routeMessage ? (
-          <p className="login-notice" role="status">{routeMessage}</p>
-        ) : null}
-        {auth.status === "service_error" ? (
-          <p className="login-notice login-notice--error" role="alert">
-            CaneGuard could not confirm an existing session. You may retry sign-in.
-          </p>
-        ) : null}
+        <div className="login-notice-slot" aria-live="polite">
+          {routeMessage ? (
+            <p className="login-notice" role="status">{routeMessage}</p>
+          ) : null}
+          {auth.status === "service_error" ? (
+            <p className="login-notice login-notice--error" role="alert">
+              CaneGuard could not confirm an existing session. You may retry sign-in.
+            </p>
+          ) : null}
+          {errorMessage ? (
+            <p className="login-notice login-notice--error" role="alert">{errorMessage}</p>
+          ) : null}
+        </div>
 
         <form className="login-form" onSubmit={submit}>
           <label htmlFor="email">
@@ -151,9 +156,6 @@ export function LoginPage() {
               </button>
             </span>
           </label>
-          {errorMessage ? (
-            <p className="form-error" role="alert">{errorMessage}</p>
-          ) : null}
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>

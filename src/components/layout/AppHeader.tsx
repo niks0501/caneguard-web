@@ -1,4 +1,5 @@
 import { Bell, Menu, Search } from "lucide-react";
+import type { RefObject } from "react";
 import { useLocation } from "react-router";
 import { useAuth } from "../../auth/useAuth";
 import { ServerStatus } from "./ServerStatus";
@@ -12,7 +13,13 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
+export function AppHeader({
+  onOpenMenu,
+  menuButtonRef,
+}: {
+  onOpenMenu: () => void;
+  menuButtonRef?: RefObject<HTMLButtonElement | null>;
+}) {
   const location = useLocation();
   const auth = useAuth();
   const isDetail = location.pathname.startsWith("/reports/");
@@ -28,6 +35,7 @@ export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
     <header className="app-header">
       <div className="app-header__context">
         <button
+          ref={menuButtonRef}
           className="header-icon header-icon--menu"
           type="button"
           aria-label="Open navigation"
@@ -42,15 +50,15 @@ export function AppHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
       <div className="app-header__actions">
         <ServerStatus />
-        <button className="header-search" type="button" aria-label="Search reports">
+        <div className="header-search" aria-hidden="true">
           <Search aria-hidden="true" />
           <span>Search reports</span>
           <kbd>/</kbd>
-        </button>
-        <button className="header-icon" type="button" aria-label="Notifications">
+        </div>
+        <div className="header-icon header-notifications" aria-hidden="true">
           <Bell aria-hidden="true" />
           <span className="notification-dot" />
-        </button>
+        </div>
         <span className="avatar" aria-label={auth.user?.name}>
           {initials(auth.user?.name ?? "CaneGuard user")}
         </span>

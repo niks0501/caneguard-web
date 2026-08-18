@@ -45,5 +45,7 @@
   --radius-xl: 16px;
   --shadow-surface: 0 8px 24px rgba(45, 64, 49, 0.05);
   --shadow-floating: 0 14px 34px rgba(34, 52, 39, 0.14);
+  --shadow-raised: 0 12px 28px rgba(34, 52, 39, 0.1);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-primary-light) 15%, transparent);
   --transition-fast: 150ms ease;
 }

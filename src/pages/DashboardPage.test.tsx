@@ -84,6 +84,13 @@ describe("DashboardPage", () => {
     expect(
       screen.queryByText(/confirmed cases?/i),
     ).not.toBeInTheDocument();
+    const nextAction = screen.getByRole("region", {
+      name: "Start with the oldest field validation",
+    });
+    expect(nextAction).toHaveTextContent("oldest observation first");
+    expect(
+      within(nextAction).getByRole("link", { name: "Open field queue" }),
+    ).toHaveAttribute("href", "/map");
   });
 
   it("refreshes on demand and links to the full queue", async () => {
