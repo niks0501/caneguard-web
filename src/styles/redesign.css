@@ -220,6 +220,35 @@ textarea:focus-visible {
   border: 1px solid #c7e2cc;
 }
 
+.server-status__summary {
+  display: none;
+}
+
+.server-status__details {
+  gap: 9px;
+}
+
+.server-status__details small {
+  font-size: 7px;
+}
+
+.server-status__details strong {
+  font-size: 9px;
+}
+
+.server-status--refreshing {
+  color: #6d5b16;
+  background: #fff8dd;
+  border-color: #eadb9a;
+}
+
+.server-status--unavailable,
+.server-status--offline {
+  color: var(--color-danger);
+  background: #fff0ee;
+  border-color: #f0c5bf;
+}
+
 .header-icon,
 .header-search {
   height: 38px;

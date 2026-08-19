@@ -96,6 +96,9 @@ The API runs at `http://localhost:8000`. Its readiness endpoint is
 `/api/v1` prefix; browser requests use Sanctum cookies, while mobile-compatible
 submission and status requests use Sanctum bearer tokens.
 
+For the primary wireless Android development-build connection workflow, see
+[Physical Android API connectivity](docs/development/physical-android-api.md).
+
 ## Verification
 
 ```bash

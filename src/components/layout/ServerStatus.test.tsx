@@ -2,6 +2,11 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../../api/ApiError";
+import {
+  ApiConnectivityContext,
+  type ApiConnectivitySnapshot,
+} from "../../api/apiConnectivity.context";
+import type { ApiHealthResult } from "../../api/apiHealth";
 import { ServerStatus } from "./ServerStatus";
 
 function queryClient() {
@@ -23,11 +28,23 @@ function QueryProbe({
   return null;
 }
 
-function renderStatus(queryKey: string, queryFn: () => Promise<unknown>) {
+const connected: ApiConnectivitySnapshot = {
+  networkStatus: "available",
+  apiReachability: "reachable",
+  checkApiReachability: async (): Promise<ApiHealthResult | null> => null,
+};
+
+function renderStatus(
+  queryKey: string,
+  queryFn: () => Promise<unknown>,
+  connectivity: ApiConnectivitySnapshot = connected,
+) {
   return render(
     <QueryClientProvider client={queryClient()}>
-      <QueryProbe queryKey={queryKey} queryFn={queryFn} />
-      <ServerStatus />
+      <ApiConnectivityContext value={connectivity}>
+        <QueryProbe queryKey={queryKey} queryFn={queryFn} />
+        <ServerStatus />
+      </ApiConnectivityContext>
     </QueryClientProvider>,
   );
 }
@@ -40,12 +57,10 @@ describe("ServerStatus", () => {
     });
     renderStatus("successful-status", () => request);
 
-    expect(
-      screen.getByRole("status", { name: "Server status: Refreshing" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Checking", { exact: true })).toBeInTheDocument();
     act(() => completeRequest());
     expect(
-      await screen.findByRole("status", { name: "Server status: Connected" }),
+      await screen.findByText("Connected", { exact: true }),
     ).toBeInTheDocument();
   });
 
@@ -56,9 +71,10 @@ describe("ServerStatus", () => {
 
     expect(
       await screen.findByRole("status", {
-        name: "Server status: Server unavailable",
+        name: "Connectivity: Network Available; CaneGuard server Unavailable",
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Server unavailable")).toBeInTheDocument();
   });
 
   it("keeps a reachable server connected for intentional 403 responses", async () => {
@@ -67,7 +83,25 @@ describe("ServerStatus", () => {
     );
 
     expect(
-      await screen.findByRole("status", { name: "Server status: Connected" }),
+      await screen.findByRole("status", {
+        name: "Connectivity: Network Available; CaneGuard server Connected",
+      }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+  });
+
+  it("does not report a server connection while the browser is offline", () => {
+    renderStatus("offline-status", () => Promise.resolve(), {
+      ...connected,
+      networkStatus: "unavailable",
+      apiReachability: "unreachable",
+    });
+
+    expect(
+      screen.getByRole("status", {
+        name: "Connectivity: Network Unavailable; CaneGuard server Unavailable",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Offline")).toBeInTheDocument();
   });
 });

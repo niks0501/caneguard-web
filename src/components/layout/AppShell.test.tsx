@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiConnectivityProvider } from "../../api/ApiConnectivityProvider";
 import { AppShell } from "./AppShell";
 
 vi.mock("../../auth/useAuth", () => ({
@@ -20,11 +21,13 @@ function renderShell() {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/"]}>
-        <Routes>
-          <Route element={<AppShell />} path="/">
-            <Route element={<div>Workspace content</div>} index />
-          </Route>
-        </Routes>
+        <ApiConnectivityProvider>
+          <Routes>
+            <Route element={<AppShell />} path="/">
+              <Route element={<div>Workspace content</div>} index />
+            </Route>
+          </Routes>
+        </ApiConnectivityProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
