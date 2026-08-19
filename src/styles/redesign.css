@@ -279,9 +279,18 @@ textarea:focus-visible {
   line-height: 1.55;
 }
 
+.page-header > div:first-child {
+  min-width: 0;
+}
+
 .page-header__actions {
+  min-width: 0;
   gap: 8px;
   padding-top: 4px;
+}
+
+.page-header__actions > .status-badge {
+  align-self: flex-start;
 }
 
 .button {
@@ -725,6 +734,25 @@ textarea:focus-visible {
   font-weight: 750;
 }
 
+.status-badge {
+  min-width: 0;
+  max-width: min(100%, 12rem);
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+}
+
+.status-badge__label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.report-status-cell {
+  vertical-align: middle;
+}
+
 .disease-badge {
   background: var(--color-surface-soft);
   border-color: var(--color-border);
@@ -971,8 +999,34 @@ textarea:focus-visible {
 }
 
 .status-chip {
+  max-width: min(100%, 12rem);
+  justify-content: center;
   padding: 4px 7px;
   font-size: 9px;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+}
+
+.status-chip__label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.status-chip svg {
+  flex: 0 0 auto;
+}
+
+.validation-queue-item__topline {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.validation-queue-item__topline > strong {
+  min-width: 0;
+  flex: 1 1 8rem;
 }
 
 .field-validation-table-card .workspace-heading {
@@ -1035,12 +1089,17 @@ textarea:focus-visible {
 
 .review-summary__item {
   display: grid;
+  min-width: 0;
   align-content: center;
   gap: 7px;
   border-left: 1px solid var(--color-border);
 }
 
-.review-summary__item > span {
+.review-summary__item > .status-badge {
+  justify-self: start;
+}
+
+.review-summary__label {
   color: var(--color-muted);
   font-size: 9px;
   font-weight: 800;

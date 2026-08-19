@@ -62,7 +62,7 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
               <td>{report.observedAt ? formatDate(report.observedAt) : "Not provided"}</td>
               <td>{formatDate(report.capturedAt)}</td>
               <td>{formatDate(report.submittedAt)}</td>
-              <td><ReviewStatusBadge status={report.reviewStatus} /></td>
+              <td className="report-status-cell"><ReviewStatusBadge status={report.reviewStatus} /></td>
               <td>
                 <Link className="table-action" to={routes.reportDetail(report.uuid)} aria-label={`Open ${report.referenceCode}`}>
                   <span>Open</span><ArrowUpRight aria-hidden="true" />

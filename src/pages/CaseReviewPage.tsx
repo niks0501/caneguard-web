@@ -163,11 +163,11 @@ export function CaseReviewPage() {
           <p>Keep the submitted evidence, model support, and authorized response in view as you review.</p>
         </div>
         <div className="review-summary__item">
-          <span>Current status</span>
+          <span className="review-summary__label">Current status</span>
           <ReviewStatusBadge status={report.reviewStatus} />
         </div>
         <div className="review-summary__item">
-          <span>Evidence posture</span>
+          <span className="review-summary__label">Evidence posture</span>
           <strong className={report.mismatchReported === true ? "is-warning" : "is-neutral"}>
             {report.mismatchReported === true
               ? "Reporter flagged mismatch"
@@ -177,7 +177,7 @@ export function CaseReviewPage() {
           </strong>
         </div>
         <div className="review-summary__item">
-          <span>Selected response</span>
+          <span className="review-summary__label">Selected response</span>
           <strong>{reviewStatusLabels[selectedAction]}</strong>
         </div>
       </section>

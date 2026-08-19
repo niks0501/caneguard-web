@@ -13,7 +13,7 @@ export function DiseaseBadge({ disease }: { disease: DiseaseKey }) {
 export function ReviewStatusBadge({ status }: { status: ReviewStatus }) {
   return (
     <span className={`badge status-badge status-badge--${status}`}>
-      {reviewStatusLabels[status]}
+      <span className="status-badge__label">{reviewStatusLabels[status]}</span>
     </span>
   );
 }

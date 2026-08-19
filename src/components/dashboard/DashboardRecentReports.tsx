@@ -47,7 +47,7 @@ export function DashboardRecentReports({
               <td><DiseaseBadge disease={report.predictedDisease} /></td>
               <td><strong className="table-primary">{report.barangay}</strong></td>
               <td>{formatDateTime(report.submittedAt)}</td>
-              <td><ReviewStatusBadge status={report.reviewStatus} /></td>
+              <td className="report-status-cell"><ReviewStatusBadge status={report.reviewStatus} /></td>
               <td>
                 <Link
                   className="table-action"
