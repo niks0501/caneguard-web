@@ -1,6 +1,7 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import type { ReportFilters } from "../domain/report.types";
 import { reportsRepository } from "../services/reports.service";
+import { getOperationalQueryRefreshOptions } from "./queryRefresh";
 
 export const reportKeys = {
   all: ["reports"] as const,
@@ -20,6 +21,8 @@ export const reportsQueryOptions = (
     queryKey: reportKeys.list(filters),
     queryFn: () => reportsRepository.listReports(filters),
     enabled: options.enabled,
+    placeholderData: keepPreviousData,
+    ...getOperationalQueryRefreshOptions(),
   });
 
 export const reportQueryOptions = (reportId: string) =>

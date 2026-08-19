@@ -1,6 +1,7 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import type { FieldValidationFilters } from "../domain/fieldValidation.types";
 import { fieldValidationRepository } from "../services/fieldValidation.service";
+import { getOperationalQueryRefreshOptions } from "./queryRefresh";
 
 export const fieldValidationKeys = {
   all: ["field-validation"] as const,
@@ -19,6 +20,7 @@ export const fieldValidationMapQueryOptions = (
     queryFn: () => fieldValidationRepository.getMap(filters),
     enabled: options.enabled,
     placeholderData: keepPreviousData,
+    ...getOperationalQueryRefreshOptions(),
   });
 
 export const fieldValidationQueueQueryOptions = (
@@ -30,4 +32,5 @@ export const fieldValidationQueueQueryOptions = (
     queryFn: () => fieldValidationRepository.getQueue(filters),
     enabled: options.enabled,
     placeholderData: keepPreviousData,
+    ...getOperationalQueryRefreshOptions(),
   });

@@ -7,7 +7,7 @@ import {
   reportQueryOptions,
   reportsQueryOptions,
 } from "./reportQueries";
-import { dashboardKeys } from "./useDashboard";
+import { invalidateReportDependentQueries } from "./reportInvalidation";
 
 export function useReports(
   filters: ReportFilters = {},
@@ -28,14 +28,7 @@ export function useUpdateReportReview(reportId: string) {
       reportsRepository.updateReview(reportId, input),
     onSuccess: (report) => {
       queryClient.setQueryData(reportKeys.detail(reportId), report);
-      return Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: reportKeys.detail(reportId),
-          exact: true,
-        }),
-        queryClient.invalidateQueries({ queryKey: reportKeys.lists() }),
-        queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
-      ]);
+      return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });
 }
