@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
+import { ZodError } from "zod";
 import type {
   FieldValidationMapData,
   FieldValidationQueueData,
@@ -105,7 +106,8 @@ describe("FieldValidationMapPage", () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "Field-validation map" })).toBeInTheDocument();
-    expect(screen.getByText("Interactive map unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Map provider is not configured.")).toBeInTheDocument();
+    expect(screen.getByText(/1 located, 1 unlocated/)).toBeInTheDocument();
     expect(screen.getByText(/1 filtered report has no valid coordinate pair/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
     expect(screen.getAllByText("Needs field validation").length).toBeGreaterThan(0);
@@ -113,6 +115,91 @@ describe("FieldValidationMapPage", () => {
       "href",
       "/reports/report-1",
     );
+  });
+
+  it("keeps the queue available when the map request fails", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, {
+        error: new ApiError("Unavailable", { status: 503 }),
+        isError: true,
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByText(/field-validation map is unavailable/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Report" })).toHaveAttribute(
+      "href",
+      "/reports/report-1",
+    );
+  });
+
+  it("keeps map data available when the queue request fails", () => {
+    vi.mocked(useFieldValidationQueue).mockReturnValue(
+      queryResult(undefined, {
+        error: new ApiError("Unavailable", { status: 503 }),
+        isError: true,
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByText("Map provider is not configured.")).toBeInTheDocument();
+    expect(screen.getByText(/field-validation queue is unavailable/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
+  });
+
+  it("keeps cached data visible after a refresh error", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(mapData, {
+        error: new ApiError("Unavailable", { status: 503 }),
+        isError: true,
+        isRefetchError: true,
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue/i);
+    expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
+  });
+
+  it("distinguishes no matching reports from the located table empty state", () => {
+    const emptyMap: FieldValidationMapData = {
+      type: "FeatureCollection",
+      features: [],
+      metadata: { totalCount: 0, locatedCount: 0, unlocatedCount: 0 },
+    };
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(emptyMap));
+    renderPage();
+
+    expect(screen.getByText("No reports match the applied filters.")).toBeInTheDocument();
+    expect(screen.getByText("No located observations match the applied filters.")).toBeInTheDocument();
+  });
+
+  it("reports when matching reports have no coordinate pair", () => {
+    const unlocatedMap: FieldValidationMapData = {
+      type: "FeatureCollection",
+      features: [],
+      metadata: { totalCount: 2, locatedCount: 0, unlocatedCount: 2 },
+    };
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(unlocatedMap));
+    renderPage();
+
+    expect(screen.getByText(/0 located, 2 unlocated/)).toBeInTheDocument();
+    expect(screen.getByText(/2 filtered reports have no valid coordinate pair/)).toBeInTheDocument();
+  });
+
+  it("reports malformed map data without hiding a healthy queue", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, {
+        error: new ZodError([]),
+        isError: true,
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByText(/unexpected map format/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
   });
 
   it("applies draft filters to the URL without changing the fixed queue scope", async () => {
@@ -146,7 +233,8 @@ describe("FieldValidationMapPage", () => {
     );
     renderPage();
     expect(screen.getByText(/does not have access to the field-validation map/i)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Open Report" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Located observations" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
   });
 
   it("distinguishes an access-denied map from a generic map failure", () => {

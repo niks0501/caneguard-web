@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   Layer,
@@ -22,6 +22,14 @@ import "maplibre-gl/dist/maplibre-gl.css";
 const mapTilerStyle = env.mapTilerKey
   ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(env.mapTilerKey)}`
   : undefined;
+
+const NASUGBU_VIEW = {
+  longitude: 120.63,
+  latitude: 14.07,
+  zoom: 10,
+} as const;
+
+type MapProviderState = "loading" | "ready" | "error";
 
 const statusColorExpression = [
   "match",
@@ -115,11 +123,63 @@ function PointPopup({
   );
 }
 
-export function ValidationMap({ data }: { data: FieldValidationMapData }) {
+function MapProviderStatus({
+  state,
+  hasLocatedReports,
+  hasMatchingReports,
+}: {
+  state: MapProviderState;
+  hasLocatedReports: boolean;
+  hasMatchingReports: boolean;
+}) {
+  if (state === "ready" && hasLocatedReports) return null;
+
+  if (state === "error") {
+    return (
+      <div className="validation-map__provider-status validation-map__provider-status--error" role="alert">
+        <strong>Map provider is unavailable.</strong>
+        <p>The report table and validation queue remain available.</p>
+      </div>
+    );
+  }
+
+  if (state === "loading") {
+    return (
+      <div className="validation-map__provider-status" role="status">
+        <strong>Loading map provider...</strong>
+        <p>Report locations and the accessible table remain available while the basemap loads.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="validation-map__provider-status" role="status">
+      <strong>{hasMatchingReports ? "No located reports to plot." : "No reports match these filters."}</strong>
+      <p>
+        {hasMatchingReports
+          ? "Reports exist, but none have a valid coordinate pair. They remain available in the report table and validation queue."
+          : "Try changing or clearing the applied filters."}
+      </p>
+    </div>
+  );
+}
+
+export function ValidationMap({
+  data,
+  frameKey = "default",
+  isPlaceholderData = false,
+}: {
+  data: FieldValidationMapData;
+  frameKey?: string;
+  isPlaceholderData?: boolean;
+}) {
   const [selected, setSelected] = useState<{
     feature: FieldValidationMapFeature;
     coordinates: [number, number];
   } | null>(null);
+  const [providerState, setProviderState] = useState<MapProviderState>("loading");
+  const mapRef = useRef<MapRef | null>(null);
+  const fittedFrameKey = useRef<string | null>(null);
   const sourceData = {
     ...data,
     features: data.features.map((feature) => ({
@@ -129,6 +189,56 @@ export function ValidationMap({ data }: { data: FieldValidationMapData }) {
         review_status: feature.properties.reviewStatus,
       },
     })),
+  };
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (
+      providerState !== "ready" ||
+      !map ||
+      isPlaceholderData ||
+      fittedFrameKey.current === frameKey
+    ) {
+      return;
+    }
+
+    if (data.features.length === 0) {
+      map.easeTo({
+        center: [NASUGBU_VIEW.longitude, NASUGBU_VIEW.latitude],
+        zoom: NASUGBU_VIEW.zoom,
+      });
+    } else if (data.features.length === 1) {
+      const [longitude, latitude] = data.features[0].geometry.coordinates;
+      map.easeTo({ center: [longitude, latitude], zoom: 13 });
+    } else {
+      const bounds = data.features.reduce(
+        (currentBounds, feature) => {
+          const [longitude, latitude] = feature.geometry.coordinates;
+          return [
+            [
+              Math.min(currentBounds[0][0], longitude),
+              Math.min(currentBounds[0][1], latitude),
+            ],
+            [
+              Math.max(currentBounds[1][0], longitude),
+              Math.max(currentBounds[1][1], latitude),
+            ],
+          ] as [[number, number], [number, number]];
+        },
+        [
+          [...data.features[0].geometry.coordinates],
+          [...data.features[0].geometry.coordinates],
+        ] as [[number, number], [number, number]],
+      );
+      map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+    }
+
+    fittedFrameKey.current = frameKey;
+  }, [data.features, frameKey, isPlaceholderData, providerState]);
+
+  const handleMapLoad = (event: { target: unknown }) => {
+    mapRef.current = event.target as MapRef;
+    setProviderState("ready");
   };
 
   const handleClick = (event: MapLayerMouseEvent) => {
@@ -173,11 +283,15 @@ export function ValidationMap({ data }: { data: FieldValidationMapData }) {
       </div>
       <div className="validation-map" aria-label="Map of submitted report locations">
         {mapTilerStyle ? (
-          <Map
-            initialViewState={{ longitude: 122.5, latitude: 10.5, zoom: 6 }}
+          <>
+            <Map
+            ref={mapRef}
+            initialViewState={NASUGBU_VIEW}
             mapStyle={mapTilerStyle}
             interactiveLayerIds={["validation-clusters", "validation-points"]}
             onClick={handleClick}
+            onLoad={handleMapLoad}
+            onError={() => setProviderState("error")}
             reuseMaps
           >
             <NavigationControl position="top-right" showCompass={false} />
@@ -260,11 +374,17 @@ export function ValidationMap({ data }: { data: FieldValidationMapData }) {
                 onClose={() => setSelected(null)}
               />
             ) : null}
-          </Map>
+            </Map>
+            <MapProviderStatus
+              state={providerState}
+              hasLocatedReports={data.features.length > 0}
+              hasMatchingReports={data.metadata.totalCount > 0}
+            />
+          </>
         ) : (
           <div className="validation-map__unavailable" role="status">
-            <strong>Interactive map unavailable</strong>
-            <p>Configure VITE_MAPTILER_KEY to load the MapTiler basemap. The report table below remains available.</p>
+            <strong>Map provider is not configured.</strong>
+            <p>The report table and validation queue remain available.</p>
           </div>
         )}
       </div>
