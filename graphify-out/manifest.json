@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1786902097.4003162,
-    "ast_hash": "c3fa9f21f9ecc4e064a7ae7db6604916",
+    "mtime": 1787147250.0577047,
+    "ast_hash": "a64dbd240ded81cd85d0c7f1095b9fc8",
     "semantic_hash": ""
   },
   "index.html": {
@@ -635,8 +635,8 @@
     "semantic_hash": ""
   },
   "src/app/AppProviders.tsx": {
-    "mtime": 1786611143.3422654,
-    "ast_hash": "049c6464b25fab88ffc937435d83c2ed",
+    "mtime": 1787147250.0755436,
+    "ast_hash": "d2e6f7ba2fca9e1f4ec1df7e5d91be11",
     "semantic_hash": ""
   },
   "src/app/queryClient.ts": {
@@ -930,13 +930,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/ServerStatus.test.tsx": {
-    "mtime": 1786611143.343179,
-    "ast_hash": "fa08715bf30c9a7509bdacaa62a2a534",
+    "mtime": 1787147250.0755436,
+    "ast_hash": "b982ce28be2484e0ba4fb50e15e92e9d",
     "semantic_hash": ""
   },
   "src/components/layout/ServerStatus.tsx": {
-    "mtime": 1786611143.343179,
-    "ast_hash": "7f30f648fc644dbead786484c517b968",
+    "mtime": 1787147250.0755436,
+    "ast_hash": "3478d513750facf1f1c36f9f512d26f6",
     "semantic_hash": ""
   },
   "api/tests/MySql/ReleaseDemoFlowMySqlTest.php": {
@@ -1345,8 +1345,8 @@
     "semantic_hash": ""
   },
   "src/components/layout/AppShell.test.tsx": {
-    "mtime": 1787144007.106451,
-    "ast_hash": "5225672b86a45929a21bfea7dc82a572",
+    "mtime": 1787147250.0755436,
+    "ast_hash": "9b0ee555ab027d68b9df6989f284f623",
     "semantic_hash": ""
   },
   "docs/CaneGuard_P0A-P0F_Stabilization_Plans/MANUAL-WIFI-OFFLINE-RECOVERY-TEST.md": {
@@ -1562,6 +1562,36 @@
   "src/assets/synthetic-sugarcane-rust.png": {
     "mtime": 1787144007.1024463,
     "ast_hash": "464a413581a4ba2dd9ebb166c1767c1e",
+    "semantic_hash": ""
+  },
+  "src/api/ApiConnectivityProvider.test.tsx": {
+    "mtime": 1787147250.0755436,
+    "ast_hash": "80ff1e37a99a48fd969c782a872841d8",
+    "semantic_hash": ""
+  },
+  "src/api/ApiConnectivityProvider.tsx": {
+    "mtime": 1787147250.0755436,
+    "ast_hash": "1ca26fd6682e9d57eda0bb2b4ca43d48",
+    "semantic_hash": ""
+  },
+  "src/api/apiConnectivity.context.ts": {
+    "mtime": 1787147250.0755436,
+    "ast_hash": "f010f7a59d2997fced0f540abf00f604",
+    "semantic_hash": ""
+  },
+  "src/api/apiHealth.test.ts": {
+    "mtime": 1787147250.0755436,
+    "ast_hash": "0964acf3f71d2530d1578e31493b7415",
+    "semantic_hash": ""
+  },
+  "src/api/apiHealth.ts": {
+    "mtime": 1787147250.0755436,
+    "ast_hash": "cdadb1d1f0a4f80923dfd1240d04af50",
+    "semantic_hash": ""
+  },
+  "docs/development/physical-android-api.md": {
+    "mtime": 1787147250.061712,
+    "ast_hash": "e209eec4f8f8b8f86202fbe045d32041",
     "semantic_hash": ""
   }
 }

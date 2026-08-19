@@ -1,16 +1,16 @@
 # Graph Report - caneguard-web  (2026-08-19)
 
 ## Corpus Check
-- 268 files · ~486,430 words
+- 274 files · ~488,717 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1674 nodes · 2776 edges · 141 communities (118 shown, 23 thin omitted)
-- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 170 edges (avg confidence: 0.8)
+- 1707 nodes · 2861 edges · 155 communities (124 shown, 31 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 171 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9162ffca`
+- Built from commit: `5e04c78a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -57,7 +57,7 @@
 - ExampleTest
 - ReportMySqlSchemaTest
 - ApplyReportFilters
-- Report.php
+- ReportController.php
 - AuthProvider.tsx
 - require-dev
 - P0A — Canonical Mobile ↔ API Authority Review Contract
@@ -68,7 +68,7 @@
 - User
 - Reviewer Operating Manual
 - AppServiceProvider.php
-- FieldValidationMapPage.tsx
+- FieldValidationMapPage.test.tsx
 - Controller
 - setup
 - reportListUrlState.ts
@@ -95,8 +95,8 @@
 - extra
 - fieldValidation.types.ts
 - ApiFormRequest
-- SecureReportImages
-- ReportMapAndQueueTest
+- ApiConnectivityProvider.tsx
+- ApiError.ts
 - Project Verification Commands
 - Pagination.tsx
 - Engineering
@@ -107,12 +107,16 @@
 - Ship Feature
 - Verification
 - SymptomResponseItem.tsx
+- axiosClient.ts
 - Graph Map
 - Quick Fix
 - Review Feature
+- FieldValidationMapPage.tsx
 - Mobile report review status contract
 - Database Review
 - Security Review
+- MobileReportStatusTest
+- ApiConnectivityProvider.test.tsx
 - backend.md
 - context-efficiency.md
 - database.md
@@ -121,6 +125,16 @@
 - rules/review.md
 - testing.md
 - CaneGuard Web
+- MapReportController.php
+- Physical Android API connectivity
+- env.ts
+- HealthEndpointTest
+- LocationReferenceTest
+- LocationReferenceController.php
+- Illuminate\Foundation\Application
+- HealthController
+- ReleaseDemoFlowMySqlTest
+- App.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `User` - 105 edges
@@ -143,8 +157,8 @@
   src/pages/reportListUrlState.ts → src/domain/report.types.ts
 - `QueryFieldValidationQueue` --references--> `ApplyReportFilters`  [EXTRACTED]
   api/app/Actions/Reports/QueryFieldValidationQueue.php → api/app/Actions/Reports/ApplyReportFilters.php
-- `HealthController` --inherits--> `Controller`  [EXTRACTED]
-  api/app/Http/Controllers/Api/HealthController.php → api/app/Http/Controllers/Controller.php
+- `QueryMapReports` --references--> `ApplyReportFilters`  [EXTRACTED]
+  api/app/Actions/Reports/QueryMapReports.php → api/app/Actions/Reports/ApplyReportFilters.php
 
 ## Import Cycles
 - None detected.
@@ -155,7 +169,7 @@
 - **React Atomic Symbol Composition** — src_assets_react_logo, src_assets_react_atomic_orbits, src_assets_react_central_nucleus, src_assets_react_cyan_brand_color [INFERRED 0.95]
 - **Vite Visual Identity Composition** — src_assets_vite_lightning_bolt, src_assets_vite_parentheses, src_assets_vite_glow_effect [INFERRED 0.95]
 
-## Communities (141 total, 23 thin omitted)
+## Communities (155 total, 31 thin omitted)
 
 ### Community 0 - "Core Agent Rules"
 Cohesion: 0.40
@@ -182,8 +196,8 @@ Cohesion: 0.08
 Nodes (23): DOM, src, vite/client, compilerOptions, allowArbitraryExtensions, allowImportingTsExtensions, erasableSyntaxOnly, jsx (+15 more)
 
 ### Community 6 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
-Cohesion: 0.15
-Nodes (6): ReportClassScore, ReportQualityWarning, ReportSymptom, ReportSchemaAndSeederTest, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo
+Cohesion: 0.21
+Nodes (5): ReportClassScore, ReportQualityWarning, ReportSymptom, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo
 
 ### Community 7 - "scripts"
 Cohesion: 0.04
@@ -194,8 +208,8 @@ Cohesion: 0.10
 Nodes (19): node, vite.config.ts, compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection (+11 more)
 
 ### Community 9 - "CaseReviewPage.tsx"
-Cohesion: 0.20
-Nodes (16): DashboardRecentReports(), ConfidenceDisplay(), EvidenceThumbnail(), DiseaseBadge(), ReviewStatusBadge(), ReportTable(), authorityClassifiedConditionLabels, imageStatusLabels (+8 more)
+Cohesion: 0.15
+Nodes (21): DashboardRecentReports(), DetailField(), PageContent(), PageHeader(), ConfidenceDisplay(), EvidenceThumbnail(), DiseaseBadge(), ReviewStatusBadge() (+13 more)
 
 ### Community 10 - "UserFactory"
 Cohesion: 0.21
@@ -238,8 +252,8 @@ Cohesion: 0.14
 Nodes (14): scripts, dev, post-autoload-dump, post-update-cmd, pre-package-uninstall, test, Composer\\Config::disableProcessTimeout, Illuminate\\Foundation\\ComposerScripts::postAutoloadDump (+6 more)
 
 ### Community 25 - "Report"
-Cohesion: 0.07
-Nodes (4): Report, MobileReportStatusTest, ReviewReportTest, Illuminate\Database\Eloquent\Relations\HasMany
+Cohesion: 0.08
+Nodes (5): Report, ReportMapAndQueueTest, ReviewReportTest, SecureReportImagesCommandTest, Illuminate\Database\Eloquent\Relations\HasMany
 
 ### Community 26 - "devDependencies"
 Cohesion: 0.11
@@ -258,8 +272,8 @@ Cohesion: 0.08
 Nodes (25): Accepted manual release follow-ups, CaneGuard Monorepo Implementation Board, Existing user work preserved, Phase 0 baseline, Phase 1 foundation, Phase 1 verification, Phase 2 report API and storage, Phase 2 verification (+17 more)
 
 ### Community 36 - "Illuminate\Http\JsonResponse"
-Cohesion: 0.15
-Nodes (5): HealthController, MobileAuthController, MobileLoginRequest, MobileSessionRequest, Illuminate\Http\JsonResponse
+Cohesion: 0.14
+Nodes (5): MobileAuthController, LogoutController, MobileLoginRequest, MobileSessionRequest, Illuminate\Http\JsonResponse
 
 ### Community 46 - "DashboardSummaryController.php"
 Cohesion: 0.24
@@ -274,16 +288,16 @@ Cohesion: 0.26
 Nodes (6): AuthenticatedUserResource, FieldValidationQueueResource, MapReportResource, ReportStatusResource, Illuminate\Http\Request, Illuminate\Http\Resources\Json\JsonResource
 
 ### Community 57 - "TestCase"
-Cohesion: 0.07
-Nodes (14): DemoUserSeederTest, ExampleTest, HealthEndpointTest, LocationReferenceTest, SanctumInstallationTest, SecureReportImagesCommandTest, TestCase, Illuminate\Database\Eloquent\Concerns\HasUuids (+6 more)
+Cohesion: 0.12
+Nodes (12): DemoUserSeederTest, ExampleTest, ReportSchemaAndSeederTest, SanctumInstallationTest, TestCase, Illuminate\Database\Eloquent\Concerns\HasUuids, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Foundation\Testing\DatabaseTransactions (+4 more)
 
 ### Community 58 - "P0B — Reliable Physical-Device API Connectivity and API Reachability"
 Cohesion: 0.06
 Nodes (31): Acceptance criteria, Automated test plan — Wi-Fi remains ON, Commands, Current verified code context, Definition of done, Design decision: API health is diagnostic, not a hard gate, Implementation phases, Important test constraint: wireless debugging (+23 more)
 
 ### Community 59 - "StoreReport"
-Cohesion: 0.25
-Nodes (4): PersistReport, StoreReport, Illuminate\Http\UploadedFile, Throwable
+Cohesion: 0.16
+Nodes (7): PersistReport, StoreReport, SecureReportImages, Illuminate\Console\Command, Illuminate\Filesystem\FilesystemAdapter, Illuminate\Http\UploadedFile, Throwable
 
 ### Community 61 - "P0C — Field-Validation Map Reliability and Failure Diagnostics"
 Cohesion: 0.07
@@ -294,16 +308,16 @@ Cohesion: 0.40
 Nodes (4): AkiDev tool routing, Choose the smallest sufficient path, Explicit mobile intent gate and device ownership, Shared prerequisite policy
 
 ### Community 67 - "ApplyReportFilters"
-Cohesion: 0.14
-Nodes (7): ApplyReportFilters, QueryMapReports, QueryReports, MapReportController, MapReportsRequest, Illuminate\Contracts\Pagination\LengthAwarePaginator, Illuminate\Database\Eloquent\Builder
+Cohesion: 0.23
+Nodes (4): ApplyReportFilters, QueryReports, Illuminate\Contracts\Pagination\LengthAwarePaginator, Illuminate\Database\Eloquent\Builder
 
-### Community 68 - "Report.php"
-Cohesion: 0.12
-Nodes (7): MobileReportStatusController, ReportController, ListReportsRequest, ReportFilterRules, ReportStatusesRequest, Illuminate\Database\Eloquent\Collection, Illuminate\Http\Resources\Json\AnonymousResourceCollection
+### Community 68 - "ReportController.php"
+Cohesion: 0.13
+Nodes (6): MobileReportStatusController, ReportController, ListReportsRequest, ReportFilterRules, ReportStatusesRequest, Illuminate\Http\Resources\Json\AnonymousResourceCollection
 
 ### Community 69 - "AuthProvider.tsx"
-Cohesion: 0.05
-Nodes (51): ApiError, errorPayloadSchema, toApiError(), axiosClient, createAxiosClient(), App(), AppProviders(), createQueryClient() (+43 more)
+Cohesion: 0.16
+Nodes (20): getCurrentUser(), initializeCsrf(), isWebRole(), loginRequest(), logoutRequest(), userResponseSchema, WebRoleError, AuthContextValue (+12 more)
 
 ### Community 70 - "require-dev"
 Cohesion: 0.25
@@ -322,8 +336,8 @@ Cohesion: 0.19
 Nodes (13): routes, RequireAuth(), useAuth(), AppHeader(), initials(), AppShell(), AppSidebar(), futureLinks (+5 more)
 
 ### Community 75 - "DashboardPage.tsx"
-Cohesion: 0.19
-Nodes (9): SecondaryMetric(), DetailField(), PageContent(), PageHeader(), MetricCard(), useDashboard(), DashboardPage(), formatRefreshTime() (+1 more)
+Cohesion: 0.26
+Nodes (6): SecondaryMetric(), MetricCard(), useDashboard(), DashboardPage(), formatRefreshTime(), summary
 
 ### Community 76 - "User"
 Cohesion: 0.12
@@ -333,13 +347,13 @@ Nodes (4): User, ReportPolicy, MobileReportUploadTest, Illuminate\Foundation\Aut
 Cohesion: 0.09
 Nodes (22): API review, Completion criteria, Correctness review, Critical, Database review, Expo / mobile review, Finding format, Frontend review (+14 more)
 
-### Community 79 - "FieldValidationMapPage.tsx"
-Cohesion: 0.14
-Nodes (17): fieldValidationKeys, fieldValidationMapQueryOptions(), fieldValidationQueueQueryOptions(), useFieldValidationMap(), useFieldValidationQueue(), coverageMessage(), errorMessage(), FieldValidationMapPage() (+9 more)
+### Community 79 - "FieldValidationMapPage.test.tsx"
+Cohesion: 0.21
+Nodes (8): fieldValidationKeys, fieldValidationMapQueryOptions(), fieldValidationQueueQueryOptions(), useFieldValidationMap(), useFieldValidationQueue(), mapData, queueData, fieldValidationRepository
 
 ### Community 80 - "Controller"
-Cohesion: 0.13
-Nodes (9): LocationReferenceController, ReportImageController, LoginController, LogoutController, Controller, LoginRequest, Illuminate\Foundation\Auth\Access\AuthorizesRequests, Illuminate\Http\Response (+1 more)
+Cohesion: 0.20
+Nodes (6): AuthenticatedUserController, ReportImageController, Controller, AuthenticatedUserRequest, Illuminate\Foundation\Auth\Access\AuthorizesRequests, Symfony\Component\HttpFoundation\StreamedResponse
 
 ### Community 82 - "setup"
 Cohesion: 0.25
@@ -348,10 +362,6 @@ Nodes (8): post-root-package-install, setup, composer install, npm install --ign
 ### Community 83 - "reportListUrlState.ts"
 Cohesion: 0.27
 Nodes (8): dateSchema, diseaseSchema, optionalValue(), parseReportListUrl(), reportListPageSize, ReportListUrlState, sortSchema, statusSchema
-
-### Community 84 - "MobileReportSecurityContractMySqlTest"
-Cohesion: 0.19
-Nodes (3): MobileReportSecurityContractMySqlTest, ReleaseDemoFlowMySqlTest, Illuminate\Foundation\Testing\DatabaseTransactions
 
 ### Community 85 - "Graph Mapper Operating Manual"
 Cohesion: 0.09
@@ -370,8 +380,8 @@ Cohesion: 0.10
 Nodes (19): API implementation, Before editing, Completion criteria, Correctness checklist, Database changes, Dependencies, Expo / React Native implementation, Failure recovery (+11 more)
 
 ### Community 93 - "FieldValidationQueueController.php"
-Cohesion: 0.24
-Nodes (3): QueryFieldValidationQueue, FieldValidationQueueController, FieldValidationQueueRequest
+Cohesion: 0.20
+Nodes (4): QueryFieldValidationQueue, FieldValidationQueueController, FieldValidationQueueRequest, Illuminate\Database\Eloquent\Collection
 
 ### Community 95 - "P0D — Web Data Freshness and React Query Cache Consistency"
 Cohesion: 0.07
@@ -383,7 +393,7 @@ Nodes (7): pestphp/pest-plugin, php-http/discovery, config, allow-plugins, optim
 
 ### Community 98 - "ValidationMap.tsx"
 Cohesion: 0.11
-Nodes (19): formatValidationDate(), FieldValidationQueuePanel(), QueueItem(), queueItemMeta(), FieldValidationTable(), MapLegend(), MapProviderState, NASUGBU_VIEW (+11 more)
+Nodes (17): formatValidationDate(), FieldValidationQueuePanel(), QueueItem(), queueItemMeta(), FieldValidationTable(), MapLegend(), MapProviderState, NASUGBU_VIEW (+9 more)
 
 ### Community 99 - "Test M1 — Create/finalize offline, restart app, recover automatically"
 Cohesion: 0.08
@@ -422,16 +432,20 @@ Cohesion: 0.67
 Nodes (3): extra, laravel, dont-discover
 
 ### Community 109 - "fieldValidation.types.ts"
-Cohesion: 0.23
-Nodes (12): FieldValidationFilterBar(), FieldValidationFilterBarProps, FieldValidationMapProperties, FieldValidationQueueItem, DiseaseKey, LocationSource, ReviewStatus, dateSchema (+4 more)
+Cohesion: 0.44
+Nodes (7): FieldValidationFilterBar(), FieldValidationFilterBarProps, FieldValidationMapProperties, FieldValidationQueueItem, DiseaseKey, LocationSource, ReviewStatus
 
 ### Community 110 - "ApiFormRequest"
-Cohesion: 0.19
-Nodes (5): AuthenticatedUserController, ApiFormRequest, AuthenticatedUserRequest, Illuminate\Contracts\Validation\Validator, Illuminate\Foundation\Http\FormRequest
+Cohesion: 0.20
+Nodes (5): LoginController, ApiFormRequest, LoginRequest, Illuminate\Contracts\Validation\Validator, Illuminate\Foundation\Http\FormRequest
 
-### Community 111 - "SecureReportImages"
-Cohesion: 0.47
-Nodes (3): SecureReportImages, Illuminate\Console\Command, Illuminate\Filesystem\FilesystemAdapter
+### Community 111 - "ApiConnectivityProvider.tsx"
+Cohesion: 0.19
+Nodes (14): ApiConnectivityContext, ApiConnectivitySnapshot, NetworkStatus, ApiHealthChecks, apiHealthClient, ApiHealthResult, ApiReachability, checkApiHealth() (+6 more)
+
+### Community 112 - "ApiError.ts"
+Cohesion: 0.18
+Nodes (11): ApiConnectivityProvider(), getInitialNetworkStatus(), ApiError, errorPayloadSchema, AppProviders(), createQueryClient(), isTransientServerError(), queryClient (+3 more)
 
 ### Community 113 - "Project Verification Commands"
 Cohesion: 0.29
@@ -473,6 +487,10 @@ Nodes (4): Evidence ladder, Principles, Report, Verification
 Cohesion: 0.50
 Nodes (3): answerLabels, SymptomResponseItem(), SymptomResponse
 
+### Community 123 - "axiosClient.ts"
+Cohesion: 0.19
+Nodes (10): toApiError(), axiosClient, createAxiosClient(), renderApp(), webUser, notifySessionExpired(), mapDto, queueDto (+2 more)
+
 ### Community 124 - "Graph Map"
 Cohesion: 0.50
 Nodes (3): Graph Map, Graphify, Map
@@ -485,29 +503,49 @@ Nodes (3): Escalate when, Quick Fix, Workflow
 Cohesion: 0.50
 Nodes (3): Finding quality, Review Feature, Review priority
 
+### Community 127 - "FieldValidationMapPage.tsx"
+Cohesion: 0.20
+Nodes (14): coverageMessage(), errorMessage(), FieldValidationMapPage(), isAccessDeniedError(), isMalformedDataError(), isRateLimitedError(), WorkspaceAreaError(), dateSchema (+6 more)
+
 ### Community 128 - "Mobile report review status contract"
 Cohesion: 0.50
 Nodes (3): Mobile report review status contract, Read status snapshots, Review mutation and retry behavior
 
+### Community 132 - "ApiConnectivityProvider.test.tsx"
+Cohesion: 0.27
+Nodes (9): useApiConnectivity(), authValue(), Probe(), renderProvider(), SessionHarness(), user, AuthContext, AuthStatus (+1 more)
+
+### Community 141 - "MapReportController.php"
+Cohesion: 0.28
+Nodes (3): QueryMapReports, MapReportController, MapReportsRequest
+
+### Community 146 - "Physical Android API connectivity"
+Cohesion: 0.25
+Nodes (7): Checking the two connectivity states, Fallback when ADB reverse is unreliable, Physical Android API connectivity, Primary workflow, Troubleshooting, Why this is the team default, Wireless-debugging test rules
+
+### Community 147 - "env.ts"
+Cohesion: 0.32
+Nodes (5): ServerStatusValue, AppEnv, env, envSchema, parseEnv()
+
 ## Knowledge Gaps
-- **647 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+642 more)
+- **657 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+652 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Report` connect `Report` to `ApplyReportFilters`, `Report.php`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `ReportResource`, `api.php`, `UserFactory`, `ReportApiTest`, `User`, `DashboardSummaryController.php`, `SecureReportImages`, `Controller`, `AppServiceProvider.php`, `ReportMapAndQueueTest`, `MobileReportSecurityContractMySqlTest`, `DatabaseSeeder.php`, `TestCase`, `StoreReport`, `FieldValidationQueueController.php`?**
+- **Why does `Report` connect `Report` to `MobileReportStatusTest`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `UserFactory`, `MapReportController.php`, `ReleaseDemoFlowMySqlTest`, `DashboardSummaryController.php`, `TestCase`, `StoreReport`, `ApplyReportFilters`, `ReportController.php`, `ReportResource`, `api.php`, `User`, `AppServiceProvider.php`, `Controller`, `MobileReportSecurityContractMySqlTest`, `DatabaseSeeder.php`, `ReportApiTest`, `FieldValidationQueueController.php`?**
   _High betweenness centrality (0.024) - this node is a cross-community bridge._
-- **Why does `User` connect `User` to `Illuminate\Http\JsonResponse`, `UserFactory`, `ReportApiTest`, `AppServiceProvider.php`, `ReportMapAndQueueTest`, `MobileReportSecurityContractMySqlTest`, `DatabaseSeeder.php`, `MobileAuthenticationTest`, `TestCase`, `StoreReport`, `WebAuthenticationTest`, `Report`?**
+- **Why does `User` connect `User` to `ReleaseDemoFlowMySqlTest`, `MobileReportStatusTest`, `Illuminate\Http\JsonResponse`, `UserFactory`, `ReportApiTest`, `AppServiceProvider.php`, `MobileReportSecurityContractMySqlTest`, `DatabaseSeeder.php`, `MobileAuthenticationTest`, `TestCase`, `StoreReport`, `WebAuthenticationTest`, `Report`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **Why does `TestCase` connect `TestCase` to `ReportMySqlSchemaTest`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `User`, `ReportMapAndQueueTest`, `MobileReportSecurityContractMySqlTest`, `MobileAuthenticationTest`, `Report`, `ReportApiTest`, `WebAuthenticationTest`?**
-  _High betweenness centrality (0.006) - this node is a cross-community bridge._
+- **Why does `TestCase` connect `TestCase` to `ReportMySqlSchemaTest`, `ReleaseDemoFlowMySqlTest`, `MobileReportStatusTest`, `User`, `HealthEndpointTest`, `LocationReferenceTest`, `MobileReportSecurityContractMySqlTest`, `Illuminate\Foundation\Application`, `MobileAuthenticationTest`, `Report`, `ReportApiTest`, `WebAuthenticationTest`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **Are the 82 inferred relationships involving `User` (e.g. with `.login()` and `.definition()`) actually correct?**
   _`User` has 82 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 59 inferred relationships involving `Report` (e.g. with `.handle()` and `.handle()`) actually correct?**
   _`Report` has 59 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `$schema`, `name`, `type` to the rest of the system?**
-  _647 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _657 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Orchestrator Operating Manual` be split into smaller, more focused modules?**
   _Cohesion score 0.06060606060606061 - nodes in this community are weakly interconnected._
