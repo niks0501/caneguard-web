@@ -41,6 +41,44 @@ function errorMessage(error: unknown, area: string) {
   return `The field-validation ${area} is unavailable. Please try again.`;
 }
 
+function coverageMessage({
+  totalCount,
+  locatedCount,
+  unlocatedCount,
+}: {
+  totalCount: number;
+  locatedCount: number;
+  unlocatedCount: number;
+}) {
+  if (totalCount === 0) {
+    return "No reports match the applied filters.";
+  }
+
+  const counts = `${locatedCount} located, ${unlocatedCount} unlocated.`;
+  if (unlocatedCount > 0) {
+    const reportLabel = unlocatedCount === 1 ? "report has" : "reports have";
+    return `${counts} ${unlocatedCount} filtered ${reportLabel} no valid coordinate pair. Continue in the queue or open the submitted report table to review every report.`;
+  }
+
+  return `${counts} All filtered reports with location data have a valid coordinate pair.`;
+}
+
+function WorkspaceAreaError({
+  area,
+  error,
+  onRetry,
+}: {
+  area: "map" | "queue";
+  error: unknown;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="validation-workspace__error">
+      <ErrorState message={errorMessage(error, area)} onRetry={onRetry} />
+    </div>
+  );
+}
+
 function FilterChips({
   filters,
   onRemove,
@@ -82,10 +120,13 @@ export function FieldValidationMapPage() {
   const queueData = queueQuery.data;
   const mapAccessDenied = isAccessDeniedError(mapQuery.error);
   const queueAccessDenied = isAccessDeniedError(queueQuery.error);
-  const hasMapCachedData = Boolean(mapData);
-  const hasQueueCachedData = Boolean(queueData);
+  const visibleMapData = mapAccessDenied ? undefined : mapData;
+  const visibleQueueData = queueAccessDenied ? undefined : queueData;
+  const hasMapCachedData = Boolean(visibleMapData);
+  const hasQueueCachedData = Boolean(visibleQueueData);
   const mapInitialError = mapAccessDenied || (mapQuery.isError && !hasMapCachedData);
   const queueInitialError = queueAccessDenied || (queueQuery.isError && !hasQueueCachedData);
+  const mapFrameKey = JSON.stringify(appliedFilters);
 
   const applyFilters = (draft: FieldValidationFilters) => {
     setSearchParams(writeMapUrl({
@@ -150,43 +191,46 @@ export function FieldValidationMapPage() {
         />
       ) : null}
 
-      {!urlState.invalid && mapInitialError ? (
-        <ErrorState message={errorMessage(mapQuery.error, "map")} onRetry={() => mapQuery.refetch()} />
-      ) : null}
-      {!urlState.invalid && queueInitialError && !mapInitialError ? (
-        <ErrorState message={errorMessage(queueQuery.error, "queue")} onRetry={() => queueQuery.refetch()} />
-      ) : null}
-
-      {!urlState.invalid && !mapInitialError && !queueInitialError ? (
+      {!urlState.invalid ? (
         <>
           {mapQuery.isRefetchError || queueQuery.isRefetchError ? (
             <p className="queue-refresh-warning" role="alert">
-              The latest workspace refresh failed. Showing the most recently loaded map and queue.
+              The latest workspace refresh failed. Showing the most recently loaded map and queue where available.
             </p>
           ) : null}
           {mapQuery.isFetching || queueQuery.isFetching ? (
             <p className="queue-refresh-status" role="status">Refreshing the field-validation workspace...</p>
           ) : null}
-          {mapData && queueData ? (
-            <>
-              <p className="field-validation-coverage" role="status">
-                {mapData.metadata.unlocatedCount > 0 ? (
-                  <>
-                    {mapData.metadata.unlocatedCount} filtered {mapData.metadata.unlocatedCount === 1 ? "report has" : "reports have"} no valid coordinate pair. Continue in the queue or <Link to={routes.reports}>open the submitted report table</Link>.
-                  </>
-                ) : "All filtered reports with location data have a valid coordinate pair."}
-              </p>
-              <div className="validation-workspace">
-                <div className="validation-workspace__map-column">
-                  <ValidationMap data={mapData} />
-                  <FieldValidationTable features={mapData.features} />
-                </div>
-                <FieldValidationQueuePanel data={queueData} />
-              </div>
-            </>
-          ) : (
-            <LoadingState message="Loading the field-validation map and queue..." />
-          )}
+          {visibleMapData ? (
+            <p className="field-validation-coverage" role="status">
+              {coverageMessage(visibleMapData.metadata)} <Link to={routes.reports}>Open the submitted report table.</Link>
+            </p>
+          ) : null}
+          <div className="validation-workspace">
+            <div className="validation-workspace__map-column">
+              {visibleMapData ? (
+                <>
+                  <ValidationMap
+                    data={visibleMapData}
+                    frameKey={mapFrameKey}
+                    isPlaceholderData={mapQuery.isPlaceholderData}
+                  />
+                  <FieldValidationTable features={visibleMapData.features} />
+                </>
+              ) : mapInitialError ? (
+                <WorkspaceAreaError area="map" error={mapQuery.error} onRetry={() => mapQuery.refetch()} />
+              ) : (
+                <LoadingState message="Loading the field-validation map..." />
+              )}
+            </div>
+            {visibleQueueData ? (
+              <FieldValidationQueuePanel data={visibleQueueData} />
+            ) : queueInitialError ? (
+              <WorkspaceAreaError area="queue" error={queueQuery.error} onRetry={() => queueQuery.refetch()} />
+            ) : (
+              <LoadingState message="Loading the validation queue..." />
+            )}
+          </div>
         </>
       ) : null}
     </PageContent>
