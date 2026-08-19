@@ -25,23 +25,23 @@
     "semantic_hash": ""
   },
   "src/components/layout/AppHeader.tsx": {
-    "mtime": 1786594624.5358477,
-    "ast_hash": "f2b0c918b8f8f5eac5f874946e5d4035",
+    "mtime": 1787063595.4106035,
+    "ast_hash": "914da5517c4bcb6765fa5f873b7e97a5",
     "semantic_hash": ""
   },
   "src/components/layout/AppShell.tsx": {
-    "mtime": 1786594624.5359542,
-    "ast_hash": "2c720c23db76c0ae21cbbaaf77461dc5",
-    "semantic_hash": "2c720c23db76c0ae21cbbaaf77461dc5"
+    "mtime": 1787064119.1938486,
+    "ast_hash": "9d52832d263c8c6abccef35fb3ea92dc",
+    "semantic_hash": ""
   },
   "src/components/layout/Page.tsx": {
-    "mtime": 1786594624.5359542,
-    "ast_hash": "b8acfb2778b2d6474c582566b193e914",
-    "semantic_hash": "b8acfb2778b2d6474c582566b193e914"
+    "mtime": 1786981467.852199,
+    "ast_hash": "55676b88d9ed7454d8c69031e4bdae2c",
+    "semantic_hash": ""
   },
   "src/components/navigation/AppSidebar.tsx": {
-    "mtime": 1786900146.8038092,
-    "ast_hash": "944e467caa07a8035bd0c68afe17a397",
+    "mtime": 1787063603.1269078,
+    "ast_hash": "94c3466e1fe7125fd729a1c4eac9e93a",
     "semantic_hash": ""
   },
   "src/components/reports/ConfidenceDisplay.tsx": {
@@ -55,18 +55,18 @@
     "semantic_hash": ""
   },
   "src/components/reports/MetricCard.tsx": {
-    "mtime": 1786594624.5362036,
-    "ast_hash": "78448d0bab87c74d813a1f5786df6112",
-    "semantic_hash": "78448d0bab87c74d813a1f5786df6112"
+    "mtime": 1787062085.4719508,
+    "ast_hash": "d841ed358199c22653c160095201a466",
+    "semantic_hash": ""
   },
   "src/components/reports/ReportBadges.tsx": {
-    "mtime": 1786594624.5362036,
-    "ast_hash": "d6ec9b378279a8f728282e0c62b42bcd",
-    "semantic_hash": "d6ec9b378279a8f728282e0c62b42bcd"
+    "mtime": 1787126757.426692,
+    "ast_hash": "1ba8bf9e441731515fd06a8e8f02e029",
+    "semantic_hash": ""
   },
   "src/components/reports/ReportTable.tsx": {
-    "mtime": 1786901325.8468547,
-    "ast_hash": "1ceb96da26f5876f41047916225f4f3c",
+    "mtime": 1787126764.9388113,
+    "ast_hash": "f6893716bdaee1f586d635d148ea4cdc",
     "semantic_hash": ""
   },
   "src/components/reports/SymptomResponseItem.tsx": {
@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "src/components/ui/States.tsx": {
-    "mtime": 1786594624.5364187,
-    "ast_hash": "df44a10c7e9547162ac4be541a18f302",
-    "semantic_hash": "df44a10c7e9547162ac4be541a18f302"
+    "mtime": 1787062154.1136851,
+    "ast_hash": "06a511fa9e4b401186bd71023c42d931",
+    "semantic_hash": ""
   },
   "src/data/contracts/ReportsRepository.ts": {
     "mtime": 1786594624.5372777,
@@ -105,8 +105,8 @@
     "semantic_hash": ""
   },
   "src/data/mock/mockReports.ts": {
-    "mtime": 1786901325.8468547,
-    "ast_hash": "2f994d616d61de3cb67a9231ec93ee82",
+    "mtime": 1786982989.3253934,
+    "ast_hash": "533d034b055a51902ee5683886d3ff8d",
     "semantic_hash": ""
   },
   "src/domain/report.metadata.ts": {
@@ -135,13 +135,13 @@
     "semantic_hash": "cb981f632d5c3c69ffac63793781abb6"
   },
   "src/main.tsx": {
-    "mtime": 1786594624.5378397,
-    "ast_hash": "5b4567cb29b14f1f6db6394e462c243d",
+    "mtime": 1786981515.5479279,
+    "ast_hash": "a238df64ed0d6124b89bf394e150e29a",
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.tsx": {
-    "mtime": 1786901325.8468547,
-    "ast_hash": "0be2df790d51ad8f188a7c481a96d77c",
+    "mtime": 1787126952.7579257,
+    "ast_hash": "d194320cf074d72c4eded61321e96344",
     "semantic_hash": ""
   },
   "src/pages/NotFoundPage.tsx": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1786900525.8729699,
-    "ast_hash": "c3fa9f21f9ecc4e064a7ae7db6604916",
+    "mtime": 1787144495.910494,
+    "ast_hash": "a64dbd240ded81cd85d0c7f1095b9fc8",
     "semantic_hash": ""
   },
   "index.html": {
@@ -635,8 +635,8 @@
     "semantic_hash": ""
   },
   "src/app/AppProviders.tsx": {
-    "mtime": 1786594624.5349677,
-    "ast_hash": "049c6464b25fab88ffc937435d83c2ed",
+    "mtime": 1787144293.6421661,
+    "ast_hash": "d2e6f7ba2fca9e1f4ec1df7e5d91be11",
     "semantic_hash": ""
   },
   "src/app/queryClient.ts": {
@@ -850,13 +850,13 @@
     "semantic_hash": ""
   },
   "src/pages/LoginPage.tsx": {
-    "mtime": 1786594624.5382233,
-    "ast_hash": "ad6d773258ef8ab2d46540014f8015ef",
+    "mtime": 1787062169.9841802,
+    "ast_hash": "100147de296baeee24ad1f7cef6cd1d5",
     "semantic_hash": ""
   },
   "src/components/dashboard/DashboardRecentReports.tsx": {
-    "mtime": 1786594624.5358198,
-    "ast_hash": "d43730468c73a31f1e2ab1512d85a86b",
+    "mtime": 1787126768.4451838,
+    "ast_hash": "86ed1039f2e78d63faaf25beef32b469",
     "semantic_hash": ""
   },
   "src/components/dashboard/SecondaryMetric.tsx": {
@@ -865,18 +865,18 @@
     "semantic_hash": ""
   },
   "src/pages/DashboardPage.test.tsx": {
-    "mtime": 1786594624.5382233,
-    "ast_hash": "3f6df0979c8806f84f04f8e4cb78179f",
+    "mtime": 1787062682.8560145,
+    "ast_hash": "7f6406498f4ad6e2a596ef681cb8e03b",
     "semantic_hash": ""
   },
   "src/pages/DashboardPage.tsx": {
-    "mtime": 1786594624.5382233,
-    "ast_hash": "cac7c81214bce99aa5e55ee73d3e8a14",
+    "mtime": 1787062105.4720252,
+    "ast_hash": "ecf594e18114a7a31f676d00cfed0f30",
     "semantic_hash": ""
   },
   "src/pages/SubmittedReportsPage.test.tsx": {
-    "mtime": 1786901325.8468547,
-    "ast_hash": "eefc206ebd2b96b8f7ff3002a8a41084",
+    "mtime": 1787126856.9621155,
+    "ast_hash": "38a2e996027ac82981391052a5e3276d",
     "semantic_hash": ""
   },
   "src/pages/reportListUrlState.test.ts": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.test.tsx": {
-    "mtime": 1786901325.8468547,
-    "ast_hash": "fb0344c013bed181d83e05e6cf157945",
+    "mtime": 1787126971.391328,
+    "ast_hash": "92993604ba61350c298c4e5e1060c99d",
     "semantic_hash": ""
   },
   "api/database/migrations/2026_07_27_020000_add_lock_version_to_reports_table.php": {
@@ -930,13 +930,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/ServerStatus.test.tsx": {
-    "mtime": 1786594624.5359542,
-    "ast_hash": "fa08715bf30c9a7509bdacaa62a2a534",
+    "mtime": 1787144932.8954852,
+    "ast_hash": "b982ce28be2484e0ba4fb50e15e92e9d",
     "semantic_hash": ""
   },
   "src/components/layout/ServerStatus.tsx": {
-    "mtime": 1786594624.5359542,
-    "ast_hash": "7f30f648fc644dbead786484c517b968",
+    "mtime": 1787145082.0438871,
+    "ast_hash": "3478d513750facf1f1c36f9f512d26f6",
     "semantic_hash": ""
   },
   "api/tests/MySql/ReleaseDemoFlowMySqlTest.php": {
@@ -1245,8 +1245,8 @@
     "semantic_hash": ""
   },
   "src/components/fieldValidation/FieldValidationQueuePanel.tsx": {
-    "mtime": 1786900358.160464,
-    "ast_hash": "5f8af80c2313ee378fe883ed1248fa0f",
+    "mtime": 1787126761.760641,
+    "ast_hash": "370bdd7998411c00bf7dddb59a6e7d7a",
     "semantic_hash": ""
   },
   "src/components/fieldValidation/FieldValidationTable.tsx": {
@@ -1320,8 +1320,8 @@
     "semantic_hash": ""
   },
   "src/pages/FieldValidationMapPage.tsx": {
-    "mtime": 1786901124.926472,
-    "ast_hash": "683548f47ef2f00b0c6ebd5c4f3f673c",
+    "mtime": 1786981488.6732798,
+    "ast_hash": "f51da38e1d33ed4c9af05d1160638db3",
     "semantic_hash": ""
   },
   "src/pages/mapUrlState.test.ts": {
@@ -1337,6 +1337,256 @@
   "src/services/fieldValidation.service.ts": {
     "mtime": 1786899915.4831116,
     "ast_hash": "bdf3a81fc3a7f2b23df978d23c24ee5c",
+    "semantic_hash": ""
+  },
+  "src/api/ApiConnectivityProvider.test.tsx": {
+    "mtime": 1787144961.5531034,
+    "ast_hash": "80ff1e37a99a48fd969c782a872841d8",
+    "semantic_hash": ""
+  },
+  "src/api/ApiConnectivityProvider.tsx": {
+    "mtime": 1787144955.059233,
+    "ast_hash": "1ca26fd6682e9d57eda0bb2b4ca43d48",
+    "semantic_hash": ""
+  },
+  "src/api/apiConnectivity.context.ts": {
+    "mtime": 1787144517.190356,
+    "ast_hash": "f010f7a59d2997fced0f540abf00f604",
+    "semantic_hash": ""
+  },
+  "src/api/apiHealth.test.ts": {
+    "mtime": 1787144545.0076785,
+    "ast_hash": "0964acf3f71d2530d1578e31493b7415",
+    "semantic_hash": ""
+  },
+  "src/api/apiHealth.ts": {
+    "mtime": 1787144258.9497488,
+    "ast_hash": "cdadb1d1f0a4f80923dfd1240d04af50",
+    "semantic_hash": ""
+  },
+  "src/components/layout/AppShell.test.tsx": {
+    "mtime": 1787144602.6514196,
+    "ast_hash": "9b0ee555ab027d68b9df6989f284f623",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_P0A-P0F_Stabilization_Plans/MANUAL-WIFI-OFFLINE-RECOVERY-TEST.md": {
+    "mtime": 1787143989.2424042,
+    "ast_hash": "9eb1e60e0674837f610bff4367b1941a",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0A-CANONICAL-MOBILE-API-STATUS-CONTRACT.md": {
+    "mtime": 1787143989.2486978,
+    "ast_hash": "06b034973d27778bc63c76c85027632a",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0B-PHYSICAL-DEVICE-API-CONNECTIVITY.md": {
+    "mtime": 1787143989.2486978,
+    "ast_hash": "766fe4f47b1c9a09352e345c5b9f20e0",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0C-FIELD-VALIDATION-MAP-RELIABILITY.md": {
+    "mtime": 1787143989.2486978,
+    "ast_hash": "019dff63aae604038fe6771184dd2052",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0D-WEB-DATA-FRESHNESS-CACHE-CONSISTENCY.md": {
+    "mtime": 1787143989.2486978,
+    "ast_hash": "64f6e4fb6a37ad4d724d6906c2847f2f",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0E-RESILIENT-OFFLINE-SYNC.md": {
+    "mtime": 1787143989.2486978,
+    "ast_hash": "adf303ff97093e812400b43281391f76",
+    "semantic_hash": ""
+  },
+  "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0F-CROSS-SYSTEM-ACCEPTANCE-GATE.md": {
+    "mtime": 1787143989.2486978,
+    "ast_hash": "3ccabfe6dab9ec52424d035269924fc8",
+    "semantic_hash": ""
+  },
+  "docs/development/physical-android-api.md": {
+    "mtime": 1787144489.6396298,
+    "ast_hash": "e209eec4f8f8b8f86202fbe045d32041",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/case-review-desktop.png": {
+    "mtime": 1786983252.8495677,
+    "ast_hash": "5945d980f0015a3754c4ab9d8d255620",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/case-review-responsive.png": {
+    "mtime": 1786983252.850912,
+    "ast_hash": "05b778def0a01806fc0c7fd43adc9cdb",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/dashboard-desktop.png": {
+    "mtime": 1786983252.8412037,
+    "ast_hash": "2c34ebd3ac5438724a471d9a77656ed1",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/dashboard-responsive.png": {
+    "mtime": 1786983252.8431556,
+    "ast_hash": "2be5b26ed76a171fb2a362b72c441f03",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/login-desktop.png": {
+    "mtime": 1786983252.852561,
+    "ast_hash": "22090fac67d31aa7bc19c66cf7281a20",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/login-responsive.png": {
+    "mtime": 1786983252.854123,
+    "ast_hash": "b45736589731d673a748c44b3986d470",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/map-desktop.png": {
+    "mtime": 1786983252.8466554,
+    "ast_hash": "13204b2ee8d4db1b80325a44ecc754e0",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/map-responsive.png": {
+    "mtime": 1786983252.8479195,
+    "ast_hash": "480e5862ab1d5f318868d32509ffa9bc",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/reports-desktop.png": {
+    "mtime": 1786983252.8443491,
+    "ast_hash": "0bb4faa73b9df565475f2d61031e4653",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-redesign/reports-responsive.png": {
+    "mtime": 1786983252.8455229,
+    "ast_hash": "1a1034bdcf6d25a0b0d1e6e8eed96c49",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-status-pills-follow-up/status-pills-medium-1024.png": {
+    "mtime": 1787129083.1672769,
+    "ast_hash": "aaba2cace3d60b6ac059ad55ae4f6c2a",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-status-pills-follow-up/status-pills-narrow-390.png": {
+    "mtime": 1787129133.263278,
+    "ast_hash": "2b0896091e7df00e214bf4a7e03c2293",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-status-pills-follow-up/status-pills-wide-1440.png": {
+    "mtime": 1787129000.1050649,
+    "ast_hash": "5e2bf61d55a7058bca7a8db3be33895f",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-case-review-desktop.png": {
+    "mtime": 1787063711.9506562,
+    "ast_hash": "770af7251e858d7a49023ebbea844303",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-case-review-responsive.png": {
+    "mtime": 1787063713.7122192,
+    "ast_hash": "96a4be900c18812c47c38938a46456b7",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-dashboard-desktop.png": {
+    "mtime": 1787063701.0319264,
+    "ast_hash": "28189f066eb8a802c57b9dbe83d0bd83",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-dashboard-responsive.png": {
+    "mtime": 1787063702.8938234,
+    "ast_hash": "e504ed1ed6b4b74e60192c42b4d2d9e4",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-login-desktop.png": {
+    "mtime": 1787062630.9663298,
+    "ast_hash": "89f7e4265b05f916ddc6d4cadc353099",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-login-responsive.png": {
+    "mtime": 1787062632.1538594,
+    "ast_hash": "123fa767e05ba4dfec4ef43ed5b2a639",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-map-desktop.png": {
+    "mtime": 1787063708.2729256,
+    "ast_hash": "6b5d23e7e5d477e2f9f6b214f42e90b4",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-map-responsive.png": {
+    "mtime": 1787063710.0958784,
+    "ast_hash": "d213c4f01cd9bff6445cb443cf78ec25",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-reports-desktop.png": {
+    "mtime": 1787063704.7166018,
+    "ast_hash": "d0d7961dc09af13acd34b653b47fb7a3",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-reports-no-results-responsive.png": {
+    "mtime": 1787062716.7856255,
+    "ast_hash": "20ad73755cd71a80b775b275978d529e",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-reports-no-results-state-responsive.png": {
+    "mtime": 1787062733.3508494,
+    "ast_hash": "499b52899b465a6bd137c5ef3a3c8932",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/after-reports-responsive.png": {
+    "mtime": 1787063706.4451094,
+    "ast_hash": "253b871c1422a8c7246114ae0f2338f3",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-case-review-desktop.png": {
+    "mtime": 1787061960.2186353,
+    "ast_hash": "5945d980f0015a3754c4ab9d8d255620",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-case-review-responsive.png": {
+    "mtime": 1787061962.2587914,
+    "ast_hash": "05b778def0a01806fc0c7fd43adc9cdb",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-dashboard-desktop.png": {
+    "mtime": 1787061947.4876716,
+    "ast_hash": "3f911b74e40bf3ef34136c8a5765de84",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-dashboard-responsive.png": {
+    "mtime": 1787061949.6149137,
+    "ast_hash": "2be5b26ed76a171fb2a362b72c441f03",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-login-desktop.png": {
+    "mtime": 1787062539.0278368,
+    "ast_hash": "22090fac67d31aa7bc19c66cf7281a20",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-login-responsive.png": {
+    "mtime": 1787062539.029597,
+    "ast_hash": "b45736589731d673a748c44b3986d470",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-map-desktop.png": {
+    "mtime": 1787061955.9156754,
+    "ast_hash": "13204b2ee8d4db1b80325a44ecc754e0",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-map-responsive.png": {
+    "mtime": 1787061958.0506954,
+    "ast_hash": "480e5862ab1d5f318868d32509ffa9bc",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-reports-desktop.png": {
+    "mtime": 1787061951.7384334,
+    "ast_hash": "0bb4faa73b9df565475f2d61031e4653",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/caneguard-uiux-enhancement/before-reports-responsive.png": {
+    "mtime": 1787061953.832688,
+    "ast_hash": "1a1034bdcf6d25a0b0d1e6e8eed96c49",
+    "semantic_hash": ""
+  },
+  "src/assets/synthetic-sugarcane-rust.png": {
+    "mtime": 1786982974.0305862,
+    "ast_hash": "464a413581a4ba2dd9ebb166c1767c1e",
     "semantic_hash": ""
   }
 }

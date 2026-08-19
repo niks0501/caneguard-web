@@ -8,10 +8,13 @@ import {
 } from "@tanstack/react-query";
 import { LoaderCircle, Wifi, WifiOff } from "lucide-react";
 import { isTransientServerError } from "../../app/queryClient";
+import { env } from "../../config/env";
+import { useApiConnectivity } from "../../api/apiConnectivity.context";
 
-type ServerStatusValue = "connected" | "refreshing" | "unavailable";
+type ServerStatusValue = "connected" | "refreshing" | "unavailable" | "offline";
 
 export function ServerStatus() {
+  const { networkStatus, apiReachability } = useApiConnectivity();
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
   const activeFetches = useIsFetching({ type: "active" });
@@ -31,33 +34,65 @@ export function ServerStatus() {
     getUnavailableSnapshot,
     getUnavailableSnapshot,
   );
+  const serverUnavailable = apiReachability === "unreachable" || unavailable;
+  const apiCheckPending =
+    env.dataSource === "api" &&
+    (apiReachability === "unknown" || apiReachability === "checking");
   const status: ServerStatusValue =
-    activeFetches > 0
-      ? "refreshing"
-      : unavailable
-        ? "unavailable"
-        : "connected";
-  const label = {
+    networkStatus === "unavailable"
+      ? "offline"
+      : activeFetches > 0 || apiCheckPending
+        ? "refreshing"
+        : serverUnavailable
+          ? "unavailable"
+          : "connected";
+  const networkLabel = {
+    available: "Available",
+    unavailable: "Unavailable",
+    unknown: "Unknown",
+  }[networkStatus];
+  const serverLabel =
+    serverUnavailable
+      ? "Unavailable"
+      : apiReachability === "reachable"
+        ? "Connected"
+        : apiReachability === "checking"
+          ? "Checking"
+          : env.dataSource === "mock"
+            ? "Local data"
+            : "Not checked";
+  const statusLabel = {
     connected: "Connected",
-    refreshing: "Refreshing",
+    refreshing: "Checking",
     unavailable: "Server unavailable",
+    offline: "Offline",
   }[status];
 
   return (
     <span
       className={`server-status server-status--${status}`}
       role="status"
-      aria-label={`Server status: ${label}`}
+      aria-label={`Connectivity: Network ${networkLabel}; CaneGuard server ${serverLabel}`}
       aria-live="polite"
     >
       {status === "refreshing" ? (
         <LoaderCircle className="spin" aria-hidden="true" />
-      ) : status === "unavailable" ? (
+      ) : status === "unavailable" || status === "offline" ? (
         <WifiOff aria-hidden="true" />
       ) : (
         <Wifi aria-hidden="true" />
       )}
-      <span>{label}</span>
+      <span className="server-status__summary">{statusLabel}</span>
+      <span className="server-status__details" aria-hidden="true">
+        <span>
+          <small>Network</small>
+          <strong>{networkLabel}</strong>
+        </span>
+        <span>
+          <small>CaneGuard server</small>
+          <strong>{serverLabel}</strong>
+        </span>
+      </span>
     </span>
   );
 }
