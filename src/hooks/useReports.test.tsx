@@ -7,6 +7,7 @@ import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
 import { reportsRepository } from "../services/reports.service";
 import { reportDetailDto } from "../test/fixtures";
+import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
 import { reportKeys } from "./reportQueries";
 import { useUpdateReportReview } from "./useReports";
@@ -18,7 +19,7 @@ vi.mock("../services/reports.service", () => ({
 }));
 
 describe("useUpdateReportReview", () => {
-  it("updates detail and invalidates report lists and dashboard after success", async () => {
+  it("updates detail and invalidates all report-dependent queries after success", async () => {
     const queryClient = createQueryClient();
     const report = mapReportDetail(
       reportDetailResponseSchema.parse({ data: reportDetailDto }).data,
@@ -56,6 +57,9 @@ describe("useUpdateReportReview", () => {
     });
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: dashboardKeys.all,
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: fieldValidationKeys.all,
     });
   });
 });
