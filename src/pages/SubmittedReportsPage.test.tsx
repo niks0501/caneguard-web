@@ -93,6 +93,10 @@ describe("SubmittedReportsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Bago, Negros Occidental")).toBeInTheDocument();
     expect(screen.getByText("AI mismatch flagged")).toBeInTheDocument();
+    const statusCell = screen.getByRole("cell", { name: "Needs field validation" });
+    const longStatusLabel = statusCell.querySelector(".status-badge__label");
+    expect(longStatusLabel).toHaveClass("status-badge__label");
+    expect(longStatusLabel?.parentElement).toHaveClass("status-badge");
     expect(
       screen.getAllByRole("link", { name: /Open CG-/ })[0],
     ).toHaveTextContent("Open");

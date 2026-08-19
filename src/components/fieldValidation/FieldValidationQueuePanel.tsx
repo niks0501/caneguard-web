@@ -25,7 +25,7 @@ function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem;
         <strong>{item.referenceCode}</strong>
         <span className="status-chip status-chip--field-validation">
           <ClipboardCheck aria-hidden="true" />
-          {reviewStatusLabels.for_field_validation}
+          <span className="status-chip__label">{reviewStatusLabels.for_field_validation}</span>
         </span>
       </div>
       <p className="validation-queue-item__place">{item.barangay}</p>
