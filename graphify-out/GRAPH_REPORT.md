@@ -1,16 +1,16 @@
 # Graph Report - caneguard-web  (2026-08-19)
 
 ## Corpus Check
-- 268 files · ~486,424 words
+- 268 files · ~486,430 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1674 nodes · 2776 edges · 139 communities (116 shown, 23 thin omitted)
+- 1674 nodes · 2776 edges · 141 communities (118 shown, 23 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 170 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `03a502f5`
+- Built from commit: `9162ffca`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -100,11 +100,13 @@
 - Project Verification Commands
 - Pagination.tsx
 - Engineering
+- FormControls.tsx
 - Project Stack Guide — Laravel + React
 - Security
 - Plan Feature
 - Ship Feature
 - Verification
+- SymptomResponseItem.tsx
 - Graph Map
 - Quick Fix
 - Review Feature
@@ -153,7 +155,7 @@
 - **React Atomic Symbol Composition** — src_assets_react_logo, src_assets_react_atomic_orbits, src_assets_react_central_nucleus, src_assets_react_cyan_brand_color [INFERRED 0.95]
 - **Vite Visual Identity Composition** — src_assets_vite_lightning_bolt, src_assets_vite_parentheses, src_assets_vite_glow_effect [INFERRED 0.95]
 
-## Communities (139 total, 23 thin omitted)
+## Communities (141 total, 23 thin omitted)
 
 ### Community 0 - "Core Agent Rules"
 Cohesion: 0.40
@@ -192,8 +194,8 @@ Cohesion: 0.10
 Nodes (19): node, vite.config.ts, compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection (+11 more)
 
 ### Community 9 - "CaseReviewPage.tsx"
-Cohesion: 0.16
-Nodes (19): DashboardRecentReports(), ConfidenceDisplay(), EvidenceThumbnail(), DiseaseBadge(), ReviewStatusBadge(), ReportTable(), answerLabels, SymptomResponseItem() (+11 more)
+Cohesion: 0.20
+Nodes (16): DashboardRecentReports(), ConfidenceDisplay(), EvidenceThumbnail(), DiseaseBadge(), ReviewStatusBadge(), ReportTable(), authorityClassifiedConditionLabels, imageStatusLabels (+8 more)
 
 ### Community 10 - "UserFactory"
 Cohesion: 0.21
@@ -360,8 +362,8 @@ Cohesion: 0.36
 Nodes (4): DatabaseSeeder, ReportSeeder, Illuminate\Database\Console\Seeds\WithoutModelEvents, Illuminate\Database\Seeder
 
 ### Community 89 - "SubmittedReportsPage.tsx"
-Cohesion: 0.12
-Nodes (21): Button(), ButtonProps, ButtonVariant, SearchInput(), SearchInputProps, SelectFilter(), SelectFilterProps, TextArea() (+13 more)
+Cohesion: 0.17
+Nodes (15): Button(), ButtonProps, ButtonVariant, EmptyState(), ErrorState(), ImagePendingState(), NoResultsState(), StateProps (+7 more)
 
 ### Community 92 - "Implementer Operating Manual"
 Cohesion: 0.10
@@ -443,6 +445,10 @@ Nodes (3): Pagination(), PaginationProps, visiblePages()
 Cohesion: 0.33
 Nodes (5): Compatibility, Correctness, Design, Engineering, Maintainability
 
+### Community 116 - "FormControls.tsx"
+Cohesion: 0.29
+Nodes (6): SearchInput(), SearchInputProps, SelectFilter(), SelectFilterProps, TextArea(), TextAreaProps
+
 ### Community 117 - "Project Stack Guide — Laravel + React"
 Cohesion: 0.33
 Nodes (5): Documentation, Integration boundary, Laravel, Project Stack Guide — Laravel + React, React
@@ -462,6 +468,10 @@ Nodes (4): Escalate, Risky operations, Ship Feature, Workflow
 ### Community 121 - "Verification"
 Cohesion: 0.40
 Nodes (4): Evidence ladder, Principles, Report, Verification
+
+### Community 122 - "SymptomResponseItem.tsx"
+Cohesion: 0.50
+Nodes (3): answerLabels, SymptomResponseItem(), SymptomResponse
 
 ### Community 124 - "Graph Map"
 Cohesion: 0.50

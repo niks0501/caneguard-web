@@ -125,12 +125,14 @@ function PointPopup({
 
 function MapProviderStatus({
   state,
-  hasReports,
+  hasLocatedReports,
+  hasMatchingReports,
 }: {
   state: MapProviderState;
-  hasReports: boolean;
+  hasLocatedReports: boolean;
+  hasMatchingReports: boolean;
 }) {
-  if (state === "ready" && hasReports) return null;
+  if (state === "ready" && hasLocatedReports) return null;
 
   if (state === "error") {
     return (
@@ -152,9 +154,9 @@ function MapProviderStatus({
 
   return (
     <div className="validation-map__provider-status" role="status">
-      <strong>{hasReports ? "No located reports to plot." : "No reports match these filters."}</strong>
+      <strong>{hasMatchingReports ? "No located reports to plot." : "No reports match these filters."}</strong>
       <p>
-        {hasReports
+        {hasMatchingReports
           ? "Reports exist, but none have a valid coordinate pair. They remain available in the report table and validation queue."
           : "Try changing or clearing the applied filters."}
       </p>
@@ -375,7 +377,8 @@ export function ValidationMap({
             </Map>
             <MapProviderStatus
               state={providerState}
-              hasReports={data.metadata.totalCount > 0}
+              hasLocatedReports={data.features.length > 0}
+              hasMatchingReports={data.metadata.totalCount > 0}
             />
           </>
         ) : (
