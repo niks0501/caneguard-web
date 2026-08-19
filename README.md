@@ -39,8 +39,8 @@ not load the hosted basemap.
 
 ## API and MySQL setup
 
-The mobile report review-status wire contract is documented in the API
-README under [Mobile report review status contract](api/README.md#mobile-report-review-status-contract).
+The canonical v1 mobile report review-status wire contract is documented in
+[docs/contracts/mobile-report-status-v1.md](docs/contracts/mobile-report-status-v1.md).
 
 Create MySQL databases named `caneguard` and `caneguard_test` with
 `utf8mb4_unicode_ci`, then grant a dedicated local `caneguard_app` user access
