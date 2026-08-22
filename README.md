@@ -36,6 +36,8 @@ Set `VITE_MAPTILER_KEY` in `.env.local` to the browser-visible MapTiler key used
 by the authenticated field-validation map.
 Without a key, the workspace keeps its report table fallback visible and does
 not load the hosted basemap.
+API-backed operational views refresh every 10 minutes by default; override this
+with `VITE_REPORT_REFRESH_MS` in `.env.local` when needed.
 
 ## API and MySQL setup
 
