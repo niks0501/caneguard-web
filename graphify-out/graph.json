@@ -199,8 +199,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "api_app_actions_reports_querymapreports_querymapreports",
-      "community": 67,
-      "community_name": "ApplyReportFilters",
+      "community": 141,
+      "community_name": "MapReportController.php",
       "norm_label": "querymapreports"
     },
     {
@@ -221,8 +221,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "api_app_actions_reports_querymapreports_querymapreports_handle",
-      "community": 67,
-      "community_name": "ApplyReportFilters",
+      "community": 141,
+      "community_name": "MapReportController.php",
       "norm_label": ".handle()"
     },
     {
@@ -364,8 +364,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "throwable",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": "throwable"
     },
     {
@@ -375,8 +375,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_app_console_commands_securereportimages",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": "securereportimages.php"
     },
     {
@@ -386,8 +386,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "api_app_console_commands_securereportimages_securereportimages",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": "securereportimages"
     },
     {
@@ -397,8 +397,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "api_app_console_commands_securereportimages_securereportimages_handle",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": ".handle()"
     },
     {
@@ -408,8 +408,8 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "api_app_console_commands_securereportimages_securereportimages_issafereportpath",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": ".issafereportpath()"
     },
     {
@@ -419,8 +419,8 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "api_app_console_commands_securereportimages_securereportimages_filesmatch",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": ".filesmatch()"
     },
     {
@@ -430,8 +430,8 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "api_app_console_commands_securereportimages_securereportimages_legacylinkissafe",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": ".legacylinkissafe()"
     },
     {
@@ -441,8 +441,8 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "api_app_console_commands_securereportimages_securereportimages_removelegacylink",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": ".removelegacylink()"
     },
     {
@@ -452,8 +452,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_healthcontroller",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": "healthcontroller.php"
     },
     {
@@ -464,7 +464,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_healthcontroller_healthcontroller",
       "community": 152,
-      "community_name": "SecureReportImages",
+      "community_name": "HealthController",
       "norm_label": "healthcontroller"
     },
     {
@@ -475,7 +475,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_healthcontroller_healthcontroller_invoke",
       "community": 152,
-      "community_name": "SecureReportImages",
+      "community_name": "HealthController",
       "norm_label": ".__invoke()"
     },
     {
@@ -486,7 +486,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_healthcontroller_healthcontroller_databaseisready",
       "community": 152,
-      "community_name": "SecureReportImages",
+      "community_name": "HealthController",
       "norm_label": ".databaseisready()"
     },
     {
@@ -497,7 +497,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_healthcontroller_healthcontroller_storageisready",
       "community": 152,
-      "community_name": "SecureReportImages",
+      "community_name": "HealthController",
       "norm_label": ".storageisready()"
     },
     {
@@ -606,8 +606,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_locationreferencecontroller",
-      "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community": 150,
+      "community_name": "LocationReferenceController.php",
       "norm_label": "locationreferencecontroller.php"
     },
     {
@@ -617,8 +617,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_locationreferencecontroller_locationreferencecontroller",
-      "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community": 150,
+      "community_name": "LocationReferenceController.php",
       "norm_label": "locationreferencecontroller"
     },
     {
@@ -628,8 +628,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_locationreferencecontroller_locationreferencecontroller_invoke",
-      "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community": 150,
+      "community_name": "LocationReferenceController.php",
       "norm_label": ".__invoke()"
     },
     {
@@ -639,8 +639,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_locationreferencecontroller_locationreferencecontroller_matchescurrentetag",
-      "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community": 150,
+      "community_name": "LocationReferenceController.php",
       "norm_label": ".matchescurrentetag()"
     },
     {
@@ -651,7 +651,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mapreportcontroller",
       "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community_name": "MapReportController.php",
       "norm_label": "mapreportcontroller.php"
     },
     {
@@ -662,7 +662,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mapreportcontroller_mapreportcontroller",
       "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community_name": "MapReportController.php",
       "norm_label": "mapreportcontroller"
     },
     {
@@ -673,7 +673,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mapreportcontroller_mapreportcontroller_invoke",
       "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community_name": "MapReportController.php",
       "norm_label": ".__invoke()"
     },
     {
@@ -684,7 +684,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobileauthcontroller",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "mobileauthcontroller.php"
     },
     {
@@ -695,7 +695,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobileauthcontroller_mobileauthcontroller",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "mobileauthcontroller"
     },
     {
@@ -706,7 +706,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobileauthcontroller_mobileauthcontroller_login",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".login()"
     },
     {
@@ -717,7 +717,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobileauthcontroller_mobileauthcontroller_me",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".me()"
     },
     {
@@ -728,7 +728,7 @@
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobileauthcontroller_mobileauthcontroller_logout",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".logout()"
     },
     {
@@ -771,8 +771,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobilereportstatuscontroller",
-      "community": 52,
-      "community_name": "Illuminate\\Http\\Request",
+      "community": 68,
+      "community_name": "ReportController.php",
       "norm_label": "mobilereportstatuscontroller.php"
     },
     {
@@ -782,8 +782,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobilereportstatuscontroller_mobilereportstatuscontroller",
-      "community": 52,
-      "community_name": "Illuminate\\Http\\Request",
+      "community": 68,
+      "community_name": "ReportController.php",
       "norm_label": "mobilereportstatuscontroller"
     },
     {
@@ -793,8 +793,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "api_app_http_controllers_api_v1_mobilereportstatuscontroller_mobilereportstatuscontroller_invoke",
-      "community": 52,
-      "community_name": "Illuminate\\Http\\Request",
+      "community": 68,
+      "community_name": "ReportController.php",
       "norm_label": ".__invoke()"
     },
     {
@@ -947,7 +947,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_app_http_controllers_auth_logoutcontroller",
-      "community": 141,
+      "community": 36,
       "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "logoutcontroller.php"
     },
@@ -958,7 +958,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "api_app_http_controllers_auth_logoutcontroller_logoutcontroller",
-      "community": 141,
+      "community": 36,
       "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "logoutcontroller"
     },
@@ -969,7 +969,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "api_app_http_controllers_auth_logoutcontroller_logoutcontroller_invoke",
-      "community": 141,
+      "community": 36,
       "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".__invoke()"
     },
@@ -1267,7 +1267,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mapreportsrequest",
       "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community_name": "MapReportController.php",
       "norm_label": "mapreportsrequest.php"
     },
     {
@@ -1278,7 +1278,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mapreportsrequest_mapreportsrequest",
       "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community_name": "MapReportController.php",
       "norm_label": "mapreportsrequest"
     },
     {
@@ -1289,7 +1289,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mapreportsrequest_mapreportsrequest_authorize",
       "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community_name": "MapReportController.php",
       "norm_label": ".authorize()"
     },
     {
@@ -1299,8 +1299,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "api_app_http_requests_mapreportsrequest_mapreportsrequest_rules",
-      "community": 68,
-      "community_name": "ReportController.php",
+      "community": 141,
+      "community_name": "MapReportController.php",
       "norm_label": ".rules()"
     },
     {
@@ -1311,7 +1311,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobileloginrequest",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "mobileloginrequest.php"
     },
     {
@@ -1322,7 +1322,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobileloginrequest_mobileloginrequest",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "mobileloginrequest"
     },
     {
@@ -1333,7 +1333,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobileloginrequest_mobileloginrequest_authorize",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".authorize()"
     },
     {
@@ -1344,7 +1344,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobileloginrequest_mobileloginrequest_rules",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".rules()"
     },
     {
@@ -1355,7 +1355,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobileloginrequest_mobileloginrequest_prepareforvalidation",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".prepareforvalidation()"
     },
     {
@@ -1366,7 +1366,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobilesessionrequest",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "mobilesessionrequest.php"
     },
     {
@@ -1377,7 +1377,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobilesessionrequest_mobilesessionrequest",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "mobilesessionrequest"
     },
     {
@@ -1388,7 +1388,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobilesessionrequest_mobilesessionrequest_authorize",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".authorize()"
     },
     {
@@ -1399,7 +1399,7 @@
       "_origin": "ast",
       "id": "api_app_http_requests_mobilesessionrequest_mobilesessionrequest_rules",
       "community": 36,
-      "community_name": "MobileAuthController.php",
+      "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": ".rules()"
     },
     {
@@ -1442,8 +1442,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_app_http_requests_reportstatusesrequest",
-      "community": 110,
-      "community_name": "ApiFormRequest",
+      "community": 68,
+      "community_name": "ReportController.php",
       "norm_label": "reportstatusesrequest.php"
     },
     {
@@ -1453,8 +1453,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "api_app_http_requests_reportstatusesrequest_reportstatusesrequest",
-      "community": 110,
-      "community_name": "ApiFormRequest",
+      "community": 68,
+      "community_name": "ReportController.php",
       "norm_label": "reportstatusesrequest"
     },
     {
@@ -1464,8 +1464,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "api_app_http_requests_reportstatusesrequest_reportstatusesrequest_authorize",
-      "community": 110,
-      "community_name": "ApiFormRequest",
+      "community": 68,
+      "community_name": "ReportController.php",
       "norm_label": ".authorize()"
     },
     {
@@ -1475,8 +1475,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "api_app_http_requests_reportstatusesrequest_reportstatusesrequest_rules",
-      "community": 110,
-      "community_name": "ApiFormRequest",
+      "community": 68,
+      "community_name": "ReportController.php",
       "norm_label": ".rules()"
     },
     {
@@ -1882,8 +1882,8 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "api_app_models_report_report_classscores",
-      "community": 106,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".classscores()"
     },
     {
@@ -1893,8 +1893,8 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "api_app_models_report_report_symptoms",
-      "community": 106,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".symptoms()"
     },
     {
@@ -1904,8 +1904,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "api_app_models_report_report_qualitywarnings",
-      "community": 106,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".qualitywarnings()"
     },
     {
@@ -2080,8 +2080,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "api_app_models_user_user_submittedreports",
-      "community": 106,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".submittedreports()"
     },
     {
@@ -2091,8 +2091,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "api_app_models_user_user_reviewedreports",
-      "community": 106,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".reviewedreports()"
     },
     {
@@ -4060,7 +4060,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_routes_web",
-      "community": 141,
+      "community": 36,
       "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "web.php"
     },
@@ -4885,8 +4885,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": "reportapitest"
     },
     {
@@ -4896,8 +4896,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_reports_are_searchable_filterable_sorted_and_paginated",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_reports_are_searchable_filterable_sorted_and_paginated()"
     },
     {
@@ -4907,8 +4907,8 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_report_search_treats_like_wildcards_as_literal_text",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_report_search_treats_like_wildcards_as_literal_text()"
     },
     {
@@ -4918,8 +4918,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_report_list_rejects_invalid_query_values",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_report_list_rejects_invalid_query_values()"
     },
     {
@@ -4929,8 +4929,8 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_report_detail_uses_uuid_and_returns_every_contract_section",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_report_detail_uses_uuid_and_returns_every_contract_section()"
     },
     {
@@ -4940,8 +4940,8 @@
       "source_location": "L213",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_report_image_is_private_and_policy_authorized",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_report_image_is_private_and_policy_authorized()"
     },
     {
@@ -4951,8 +4951,8 @@
       "source_location": "L251",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_dashboard_returns_all_status_counts_and_five_recent_reports",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_dashboard_returns_all_status_counts_and_five_recent_reports()"
     },
     {
@@ -4962,8 +4962,8 @@
       "source_location": "L279",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_report_queue_rejects_unauthenticated_and_wrong_role_users",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_report_queue_rejects_unauthenticated_and_wrong_role_users()"
     },
     {
@@ -4973,8 +4973,8 @@
       "source_location": "L292",
       "_origin": "ast",
       "id": "api_tests_feature_reportapitest_reportapitest_test_unexpected_api_errors_do_not_leak_exception_details",
-      "community": 25,
-      "community_name": "Report",
+      "community": 91,
+      "community_name": "ReportApiTest",
       "norm_label": ".test_unexpected_api_errors_do_not_leak_exception_details()"
     },
     {
@@ -4995,8 +4995,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest",
-      "community": 109,
-      "community_name": "ReportMapAndQueueTest",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": "reportmapandqueuetest"
     },
     {
@@ -5006,52 +5006,52 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_returns_private_geojson_with_filters_and_coverage_metadata",
-      "community": 109,
-      "community_name": "ReportMapAndQueueTest",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".test_map_returns_private_geojson_with_filters_and_coverage_metadata()"
     },
     {
       "label": ".test_map_date_filter_uses_observed_at_and_excludes_null_observations()",
       "file_type": "code",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L94",
+      "source_location": "L80",
       "_origin": "ast",
       "id": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_date_filter_uses_observed_at_and_excludes_null_observations",
-      "community": 109,
-      "community_name": "ReportMapAndQueueTest",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".test_map_date_filter_uses_observed_at_and_excludes_null_observations()"
     },
     {
       "label": ".test_field_validation_queue_is_fixed_oldest_first_and_shares_non_status_filters()",
       "file_type": "code",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L121",
+      "source_location": "L107",
       "_origin": "ast",
       "id": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_field_validation_queue_is_fixed_oldest_first_and_shares_non_status_filters",
-      "community": 109,
-      "community_name": "ReportMapAndQueueTest",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".test_field_validation_queue_is_fixed_oldest_first_and_shares_non_status_filters()"
     },
     {
       "label": ".test_map_and_queue_require_reviewer_or_admin_authorization()",
       "file_type": "code",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L183",
+      "source_location": "L169",
       "_origin": "ast",
       "id": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_and_queue_require_reviewer_or_admin_authorization",
-      "community": 109,
-      "community_name": "ReportMapAndQueueTest",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".test_map_and_queue_require_reviewer_or_admin_authorization()"
     },
     {
       "label": ".test_map_and_queue_validate_shared_filters()",
       "file_type": "code",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L211",
+      "source_location": "L197",
       "_origin": "ast",
       "id": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_and_queue_validate_shared_filters",
-      "community": 109,
-      "community_name": "ReportMapAndQueueTest",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": ".test_map_and_queue_validate_shared_filters()"
     },
     {
@@ -5567,8 +5567,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest",
-      "community": 57,
-      "community_name": "TestCase",
+      "community": 153,
+      "community_name": "ReleaseDemoFlowMySqlTest",
       "norm_label": "releasedemoflowmysqltest"
     },
     {
@@ -5578,8 +5578,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_test_release_demo_flow_persists_a_review_across_requests",
-      "community": 57,
-      "community_name": "TestCase",
+      "community": 153,
+      "community_name": "ReleaseDemoFlowMySqlTest",
       "norm_label": ".test_release_demo_flow_persists_a_review_across_requests()"
     },
     {
@@ -5589,8 +5589,8 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_teardown",
-      "community": 57,
-      "community_name": "TestCase",
+      "community": 153,
+      "community_name": "ReleaseDemoFlowMySqlTest",
       "norm_label": ".teardown()"
     },
     {
@@ -5600,8 +5600,8 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "api_tests_mysql_releasedemoflowmysqltest_releasedemoflowmysqltest_payload",
-      "community": 57,
-      "community_name": "TestCase",
+      "community": 153,
+      "community_name": "ReleaseDemoFlowMySqlTest",
       "norm_label": ".payload()"
     },
     {
@@ -6767,7 +6767,7 @@
       "_origin": "ast",
       "id": "src_app",
       "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community_name": "App.tsx",
       "norm_label": "app.tsx"
     },
     {
@@ -6778,7 +6778,7 @@
       "_origin": "ast",
       "id": "src_app_app",
       "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community_name": "App.tsx",
       "norm_label": "app()"
     },
     {
@@ -6865,8 +6865,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_api_apiconnectivityprovider_getinitialnetworkstatus",
-      "community": 111,
-      "community_name": "ApiConnectivityProvider.tsx",
+      "community": 112,
+      "community_name": "ApiError.ts",
       "norm_label": "getinitialnetworkstatus()"
     },
     {
@@ -6876,8 +6876,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_api_apiconnectivityprovider_apiconnectivityprovider",
-      "community": 111,
-      "community_name": "ApiConnectivityProvider.tsx",
+      "community": 112,
+      "community_name": "ApiError.ts",
       "norm_label": "apiconnectivityprovider()"
     },
     {
@@ -6997,8 +6997,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_api_apihealth_test",
-      "community": 123,
-      "community_name": "axiosClient.ts",
+      "community": 111,
+      "community_name": "ApiConnectivityProvider.tsx",
       "norm_label": "apihealth.test.ts"
     },
     {
@@ -7063,8 +7063,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_api_apihealth_createapihealthclient",
-      "community": 123,
-      "community_name": "axiosClient.ts",
+      "community": 111,
+      "community_name": "ApiConnectivityProvider.tsx",
       "norm_label": "createapihealthclient()"
     },
     {
@@ -7140,8 +7140,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_api_axiosclient_axiosclient",
-      "community": 69,
-      "community_name": "AuthProvider.tsx",
+      "community": 123,
+      "community_name": "axiosClient.ts",
       "norm_label": "axiosclient"
     },
     {
@@ -7151,8 +7151,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_appproviders",
-      "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community": 112,
+      "community_name": "ApiError.ts",
       "norm_label": "appproviders.tsx"
     },
     {
@@ -7162,8 +7162,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_appproviders_appproviders",
-      "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community": 112,
+      "community_name": "ApiError.ts",
       "norm_label": "appproviders()"
     },
     {
@@ -7228,8 +7228,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_app_queryclient_queryclient",
-      "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community": 112,
+      "community_name": "ApiError.ts",
       "norm_label": "queryclient"
     },
     {
@@ -7251,7 +7251,7 @@
       "_origin": "ast",
       "id": "src_app_router_approuter",
       "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community_name": "App.tsx",
       "norm_label": "approuter()"
     },
     {
@@ -7338,8 +7338,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_auth_authrouting_test",
-      "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community": 123,
+      "community_name": "axiosClient.ts",
       "norm_label": "authrouting.test.tsx"
     },
     {
@@ -7349,8 +7349,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_auth_authrouting_test_webuser",
-      "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community": 123,
+      "community_name": "axiosClient.ts",
       "norm_label": "webuser"
     },
     {
@@ -7360,8 +7360,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_auth_authrouting_test_renderapp",
-      "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community": 123,
+      "community_name": "axiosClient.ts",
       "norm_label": "renderapp()"
     },
     {
@@ -7371,8 +7371,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_auth_authrouting_test_usesuccessfulloginhandlers",
-      "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community": 123,
+      "community_name": "axiosClient.ts",
       "norm_label": "usesuccessfulloginhandlers()"
     },
     {
@@ -7536,8 +7536,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_auth_auth_context_authcontext",
-      "community": 69,
-      "community_name": "AuthProvider.tsx",
+      "community": 132,
+      "community_name": "ApiConnectivityProvider.test.tsx",
       "norm_label": "authcontext"
     },
     {
@@ -7624,8 +7624,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_auth_authsession",
-      "community": 123,
-      "community_name": "axiosClient.ts",
+      "community": 69,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "authsession.ts"
     },
     {
@@ -7635,8 +7635,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_auth_authsession_sessionexpiredlistener",
-      "community": 123,
-      "community_name": "axiosClient.ts",
+      "community": 69,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "sessionexpiredlistener"
     },
     {
@@ -7646,8 +7646,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_auth_authsession_listeners",
-      "community": 123,
-      "community_name": "axiosClient.ts",
+      "community": 69,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "listeners"
     },
     {
@@ -7668,8 +7668,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_auth_authsession_subscribetosessionexpiration",
-      "community": 123,
-      "community_name": "axiosClient.ts",
+      "community": 69,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "subscribetosessionexpiration()"
     },
     {
@@ -7723,8 +7723,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_dashboard_secondarymetric",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "secondarymetric.tsx"
     },
     {
@@ -7734,8 +7734,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_dashboard_secondarymetric_secondarymetric",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "secondarymetric()"
     },
     {
@@ -7745,8 +7745,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_fieldvalidation_fieldvalidationfilterbar",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 109,
+      "community_name": "fieldValidation.types.ts",
       "norm_label": "fieldvalidationfilterbar.tsx"
     },
     {
@@ -7756,8 +7756,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_fieldvalidation_fieldvalidationfilterbar_fieldvalidationfilterbarprops",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 109,
+      "community_name": "fieldValidation.types.ts",
       "norm_label": "fieldvalidationfilterbarprops"
     },
     {
@@ -7767,8 +7767,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_fieldvalidation_fieldvalidationfilterbar_fieldvalidationfilterbar",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 109,
+      "community_name": "fieldValidation.types.ts",
       "norm_label": "fieldvalidationfilterbar()"
     },
     {
@@ -8130,8 +8130,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_page",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 9,
+      "community_name": "CaseReviewPage.tsx",
       "norm_label": "page.tsx"
     },
     {
@@ -8141,8 +8141,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_layout_page_pageheader",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 9,
+      "community_name": "CaseReviewPage.tsx",
       "norm_label": "pageheader()"
     },
     {
@@ -8152,8 +8152,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_layout_page_pagecontent",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 9,
+      "community_name": "CaseReviewPage.tsx",
       "norm_label": "pagecontent()"
     },
     {
@@ -8163,8 +8163,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_components_layout_page_detailfield",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 9,
+      "community_name": "CaseReviewPage.tsx",
       "norm_label": "detailfield()"
     },
     {
@@ -8229,8 +8229,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_serverstatus",
-      "community": 132,
-      "community_name": "ApiConnectivityProvider.test.tsx",
+      "community": 147,
+      "community_name": "env.ts",
       "norm_label": "serverstatus.tsx"
     },
     {
@@ -8240,8 +8240,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_layout_serverstatus_serverstatusvalue",
-      "community": 132,
-      "community_name": "ApiConnectivityProvider.test.tsx",
+      "community": 147,
+      "community_name": "env.ts",
       "norm_label": "serverstatusvalue"
     },
     {
@@ -8339,8 +8339,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_reports_metriccard",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "metriccard.tsx"
     },
     {
@@ -8350,8 +8350,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_reports_metriccard_metriccard",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "metriccard()"
     },
     {
@@ -8417,7 +8417,7 @@
       "_origin": "ast",
       "id": "src_components_reports_symptomresponseitem",
       "community": 122,
-      "community_name": "report.types.ts",
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "symptomresponseitem.tsx"
     },
     {
@@ -8428,7 +8428,7 @@
       "_origin": "ast",
       "id": "src_components_reports_symptomresponseitem_answerlabels",
       "community": 122,
-      "community_name": "report.types.ts",
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "answerlabels"
     },
     {
@@ -8439,7 +8439,7 @@
       "_origin": "ast",
       "id": "src_components_reports_symptomresponseitem_symptomresponseitem",
       "community": 122,
-      "community_name": "report.types.ts",
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "symptomresponseitem()"
     },
     {
@@ -8493,8 +8493,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_formcontrols",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 116,
+      "community_name": "FormControls.tsx",
       "norm_label": "formcontrols.tsx"
     },
     {
@@ -8504,8 +8504,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_components_ui_formcontrols_searchinputprops",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 116,
+      "community_name": "FormControls.tsx",
       "norm_label": "searchinputprops"
     },
     {
@@ -8515,8 +8515,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_ui_formcontrols_searchinput",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 116,
+      "community_name": "FormControls.tsx",
       "norm_label": "searchinput()"
     },
     {
@@ -8526,8 +8526,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_ui_formcontrols_selectfilterprops",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 116,
+      "community_name": "FormControls.tsx",
       "norm_label": "selectfilterprops"
     },
     {
@@ -8537,8 +8537,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_ui_formcontrols_selectfilter",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 116,
+      "community_name": "FormControls.tsx",
       "norm_label": "selectfilter()"
     },
     {
@@ -8548,8 +8548,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_components_ui_formcontrols_textareaprops",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 116,
+      "community_name": "FormControls.tsx",
       "norm_label": "textareaprops"
     },
     {
@@ -8559,8 +8559,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_ui_formcontrols_textarea",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 116,
+      "community_name": "FormControls.tsx",
       "norm_label": "textarea()"
     },
     {
@@ -8768,8 +8768,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_config_env_env",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 147,
+      "community_name": "env.ts",
       "norm_label": "env"
     },
     {
@@ -8790,8 +8790,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_api_apidashboardrepository",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "apidashboardrepository.ts"
     },
     {
@@ -8801,8 +8801,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_data_api_apidashboardrepository_apidashboardrepository",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "apidashboardrepository"
     },
     {
@@ -8812,8 +8812,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_data_api_apidashboardrepository_apidashboardrepository_constructor",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -8823,8 +8823,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_data_api_apidashboardrepository_apidashboardrepository_getsummary",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": ".getsummary()"
     },
     {
@@ -8934,7 +8934,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_test",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "apireportsrepository.test.ts"
     },
     {
@@ -8945,7 +8945,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "apireportsrepository.ts"
     },
     {
@@ -8956,7 +8956,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_sortvalues",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "sortvalues"
     },
     {
@@ -8967,7 +8967,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_toqueryparams",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "toqueryparams()"
     },
     {
@@ -8978,7 +8978,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_apireportsrepository",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "apireportsrepository"
     },
     {
@@ -8989,7 +8989,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_apireportsrepository_constructor",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -9000,7 +9000,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_apireportsrepository_listreports",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": ".listreports()"
     },
     {
@@ -9011,7 +9011,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_apireportsrepository_getreportbyid",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": ".getreportbyid()"
     },
     {
@@ -9022,7 +9022,7 @@
       "_origin": "ast",
       "id": "src_data_api_apireportsrepository_apireportsrepository_updatereview",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": ".updatereview()"
     },
     {
@@ -9032,8 +9032,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_api_mappers_dashboard_mapper",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboard.mapper.ts"
     },
     {
@@ -9043,8 +9043,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_data_api_mappers_dashboard_mapper_mapdashboard",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "mapdashboard()"
     },
     {
@@ -9054,8 +9054,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_api_mappers_fieldvalidation_mapper",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "fieldvalidation.mapper.ts"
     },
     {
@@ -9065,8 +9065,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_data_api_mappers_fieldvalidation_mapper_mapqueueitem",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "mapqueueitem()"
     },
     {
@@ -9087,8 +9087,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_data_api_mappers_fieldvalidation_mapper_mapfieldvalidationqueue",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "mapfieldvalidationqueue()"
     },
     {
@@ -9099,7 +9099,7 @@
       "_origin": "ast",
       "id": "src_data_api_mappers_report_mapper_test",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "report.mapper.test.ts"
     },
     {
@@ -9110,7 +9110,7 @@
       "_origin": "ast",
       "id": "src_data_api_mappers_report_mapper",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "report.mapper.ts"
     },
     {
@@ -9121,7 +9121,7 @@
       "_origin": "ast",
       "id": "src_data_api_mappers_report_mapper_humanize",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "humanize()"
     },
     {
@@ -9132,7 +9132,7 @@
       "_origin": "ast",
       "id": "src_data_api_mappers_report_mapper_mapreportlistitem",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "mapreportlistitem()"
     },
     {
@@ -9143,7 +9143,7 @@
       "_origin": "ast",
       "id": "src_data_api_mappers_report_mapper_mapreportdetail",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "mapreportdetail()"
     },
     {
@@ -9154,7 +9154,7 @@
       "_origin": "ast",
       "id": "src_data_api_mappers_report_mapper_mappaginationmeta",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "mappaginationmeta()"
     },
     {
@@ -9165,7 +9165,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_common_schema_test",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "common.schema.test.ts"
     },
     {
@@ -9176,7 +9176,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_common_schema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "common.schema.ts"
     },
     {
@@ -9187,7 +9187,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_common_schema_userschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "userschema"
     },
     {
@@ -9198,7 +9198,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_common_schema_paginationmetaschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "paginationmetaschema"
     },
     {
@@ -9209,7 +9209,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_common_schema_paginationlinksschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "paginationlinksschema"
     },
     {
@@ -9219,8 +9219,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_api_schemas_dashboard_schema",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboard.schema.ts"
     },
     {
@@ -9230,8 +9230,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_data_api_schemas_dashboard_schema_dashboardresponseschema",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboardresponseschema"
     },
     {
@@ -9241,8 +9241,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_data_api_schemas_dashboard_schema_dashboardresponsedto",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboardresponsedto"
     },
     {
@@ -9252,8 +9252,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "fieldvalidation.schema.ts"
     },
     {
@@ -9263,8 +9263,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_nullablelocationsourceschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "nullablelocationsourceschema"
     },
     {
@@ -9274,8 +9274,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_shareditemfields",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "shareditemfields"
     },
     {
@@ -9285,8 +9285,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_mapfeaturepropertiesschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "mapfeaturepropertiesschema"
     },
     {
@@ -9296,8 +9296,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_mapfeatureschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "mapfeatureschema"
     },
     {
@@ -9307,8 +9307,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_mapresponseschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "mapresponseschema"
     },
     {
@@ -9318,8 +9318,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_fieldvalidationqueueitemschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "fieldvalidationqueueitemschema"
     },
     {
@@ -9329,8 +9329,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_fieldvalidationqueueresponseschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "fieldvalidationqueueresponseschema"
     },
     {
@@ -9340,8 +9340,8 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_mapresponsedto",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "mapresponsedto"
     },
     {
@@ -9351,8 +9351,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_fieldvalidationqueueitemdto",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "fieldvalidationqueueitemdto"
     },
     {
@@ -9362,8 +9362,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_data_api_schemas_fieldvalidation_schema_fieldvalidationqueueresponsedto",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "fieldvalidationqueueresponsedto"
     },
     {
@@ -9374,7 +9374,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_test",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "report.schema.test.ts"
     },
     {
@@ -9385,7 +9385,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "report.schema.ts"
     },
     {
@@ -9395,8 +9395,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_diseasekeyschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "diseasekeyschema"
     },
     {
@@ -9407,7 +9407,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_authorityclassifiedconditionschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "authorityclassifiedconditionschema"
     },
     {
@@ -9417,8 +9417,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reviewstatusschema",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 106,
+      "community_name": "fieldValidation.schema.ts",
       "norm_label": "reviewstatusschema"
     },
     {
@@ -9428,8 +9428,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reportlistitemschema",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "reportlistitemschema"
     },
     {
@@ -9440,7 +9440,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reportlistresponseschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reportlistresponseschema"
     },
     {
@@ -9451,7 +9451,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reportdetailschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reportdetailschema"
     },
     {
@@ -9462,7 +9462,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reportdetailresponseschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reportdetailresponseschema"
     },
     {
@@ -9473,7 +9473,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reviewresponseschema",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reviewresponseschema"
     },
     {
@@ -9484,7 +9484,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reportlistitemdto",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reportlistitemdto"
     },
     {
@@ -9495,7 +9495,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reportlistresponsedto",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reportlistresponsedto"
     },
     {
@@ -9506,7 +9506,7 @@
       "_origin": "ast",
       "id": "src_data_api_schemas_report_schema_reportdetaildto",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reportdetaildto"
     },
     {
@@ -9516,8 +9516,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_contracts_dashboardrepository",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboardrepository.ts"
     },
     {
@@ -9527,8 +9527,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_data_contracts_dashboardrepository_dashboardrepository",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboardrepository"
     },
     {
@@ -9538,8 +9538,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_data_contracts_dashboardrepository_dashboardrepository_getsummary",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": ".getsummary()"
     },
     {
@@ -9593,7 +9593,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_contracts_reportsrepository",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "reportsrepository.ts"
     },
@@ -9604,7 +9604,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_data_contracts_reportsrepository_reportsrepository",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "reportsrepository"
     },
@@ -9615,7 +9615,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_data_contracts_reportsrepository_reportsrepository_listreports",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": ".listreports()"
     },
@@ -9626,7 +9626,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_data_contracts_reportsrepository_reportsrepository_getreportbyid",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": ".getreportbyid()"
     },
@@ -9637,7 +9637,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_data_contracts_reportsrepository_reportsrepository_updatereview",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": ".updatereview()"
     },
@@ -9648,8 +9648,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_mock_mockdashboardrepository",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "mockdashboardrepository.ts"
     },
     {
@@ -9659,8 +9659,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_data_mock_mockdashboardrepository_mockdashboardrepository",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "mockdashboardrepository"
     },
     {
@@ -9670,8 +9670,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_data_mock_mockdashboardrepository_mockdashboardrepository_getsummary",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": ".getsummary()"
     },
     {
@@ -9758,7 +9758,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_mock_mockreportsrepository",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "mockreportsrepository.ts"
     },
@@ -9769,7 +9769,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_data_mock_mockreportsrepository_clonereport",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "clonereport()"
     },
@@ -9780,7 +9780,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_data_mock_mockreportsrepository_mockreportsrepository",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "mockreportsrepository"
     },
@@ -9791,7 +9791,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_data_mock_mockreportsrepository_mockreportsrepository_listreports",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": ".listreports()"
     },
@@ -9802,7 +9802,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "src_data_mock_mockreportsrepository_mockreportsrepository_getreportbyid",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": ".getreportbyid()"
     },
@@ -9813,7 +9813,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_data_mock_mockreportsrepository_mockreportsrepository_updatereview",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": ".updatereview()"
     },
@@ -9824,8 +9824,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_data_mock_mockreports",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "mockreports.ts"
     },
     {
@@ -9835,8 +9835,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_data_mock_mockreports_commonsymptoms",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "commonsymptoms"
     },
     {
@@ -9846,8 +9846,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_data_mock_mockreports_sourcereports",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "sourcereports"
     },
     {
@@ -9857,8 +9857,8 @@
       "source_location": "L180",
       "_origin": "ast",
       "id": "src_data_mock_mockreports_mockreports",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "mockreports"
     },
     {
@@ -9868,8 +9868,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_domain_dashboard_types",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboard.types.ts"
     },
     {
@@ -9879,8 +9879,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_domain_dashboard_types_dashboardsummary",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboardsummary"
     },
     {
@@ -9890,7 +9890,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_domain_fieldvalidation_types",
-      "community": 83,
+      "community": 109,
       "community_name": "fieldValidation.types.ts",
       "norm_label": "fieldvalidation.types.ts"
     },
@@ -9912,7 +9912,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_domain_fieldvalidation_types_fieldvalidationmapproperties",
-      "community": 83,
+      "community": 109,
       "community_name": "fieldValidation.types.ts",
       "norm_label": "fieldvalidationmapproperties"
     },
@@ -9923,8 +9923,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_domain_fieldvalidation_types_fieldvalidationmapfeature",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 98,
+      "community_name": "ValidationMap.tsx",
       "norm_label": "fieldvalidationmapfeature"
     },
     {
@@ -9945,7 +9945,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_domain_fieldvalidation_types_fieldvalidationqueueitem",
-      "community": 83,
+      "community": 109,
       "community_name": "fieldValidation.types.ts",
       "norm_label": "fieldvalidationqueueitem"
     },
@@ -9978,8 +9978,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_domain_report_metadata_diseaselabels",
-      "community": 98,
-      "community_name": "ValidationMap.tsx",
+      "community": 9,
+      "community_name": "CaseReviewPage.tsx",
       "norm_label": "diseaselabels"
     },
     {
@@ -10033,7 +10033,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_domain_report_types",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "report.types.ts"
     },
@@ -10044,7 +10044,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_domain_report_types_diseasekey",
-      "community": 83,
+      "community": 109,
       "community_name": "fieldValidation.types.ts",
       "norm_label": "diseasekey"
     },
@@ -10055,7 +10055,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_domain_report_types_authorityclassifiedcondition",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "authorityclassifiedcondition"
     },
@@ -10066,7 +10066,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_domain_report_types_locationsource",
-      "community": 83,
+      "community": 109,
       "community_name": "fieldValidation.types.ts",
       "norm_label": "locationsource"
     },
@@ -10077,7 +10077,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_domain_report_types_reviewstatus",
-      "community": 83,
+      "community": 109,
       "community_name": "fieldValidation.types.ts",
       "norm_label": "reviewstatus"
     },
@@ -10111,7 +10111,7 @@
       "_origin": "ast",
       "id": "src_domain_report_types_symptomresponse",
       "community": 122,
-      "community_name": "report.types.ts",
+      "community_name": "SymptomResponseItem.tsx",
       "norm_label": "symptomresponse"
     },
     {
@@ -10121,7 +10121,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_domain_report_types_diseasereport",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "diseasereport"
     },
@@ -10132,7 +10132,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_domain_report_types_reportfilters",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "reportfilters"
     },
@@ -10143,7 +10143,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_domain_report_types_paginationmeta",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "paginationmeta"
     },
@@ -10154,7 +10154,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_domain_report_types_paginatedreports",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "paginatedreports"
     },
@@ -10165,7 +10165,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_domain_review_types",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "review.types.ts"
     },
@@ -10176,7 +10176,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_domain_review_types_reportreviewinput",
-      "community": 122,
+      "community": 2,
       "community_name": "report.types.ts",
       "norm_label": "reportreviewinput"
     },
@@ -10209,108 +10209,42 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_fieldvalidationqueries",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "fieldvalidationqueries.ts"
     },
     {
       "label": "fieldValidationKeys",
       "file_type": "code",
       "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L6",
+      "source_location": "L5",
       "_origin": "ast",
       "id": "src_hooks_fieldvalidationqueries_fieldvalidationkeys",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "fieldvalidationkeys"
     },
     {
       "label": "fieldValidationMapQueryOptions()",
       "file_type": "code",
       "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L14",
+      "source_location": "L13",
       "_origin": "ast",
       "id": "src_hooks_fieldvalidationqueries_fieldvalidationmapqueryoptions",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "fieldvalidationmapqueryoptions()"
     },
     {
       "label": "fieldValidationQueueQueryOptions()",
       "file_type": "code",
       "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L26",
+      "source_location": "L24",
       "_origin": "ast",
       "id": "src_hooks_fieldvalidationqueries_fieldvalidationqueuequeryoptions",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "fieldvalidationqueuequeryoptions()"
-    },
-    {
-      "label": "queryRefresh.test.ts",
-      "file_type": "code",
-      "source_file": "src/hooks/queryRefresh.test.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_hooks_queryrefresh_test",
-      "community": 75,
-      "community_name": "useReports.ts",
-      "norm_label": "queryrefresh.test.ts"
-    },
-    {
-      "label": "queryRefresh.ts",
-      "file_type": "code",
-      "source_file": "src/hooks/queryRefresh.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_hooks_queryrefresh",
-      "community": 75,
-      "community_name": "useReports.ts",
-      "norm_label": "queryrefresh.ts"
-    },
-    {
-      "label": "getOperationalQueryRefreshOptions()",
-      "file_type": "code",
-      "source_file": "src/hooks/queryRefresh.ts",
-      "source_location": "L3",
-      "_origin": "ast",
-      "id": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions",
-      "community": 75,
-      "community_name": "useReports.ts",
-      "norm_label": "getoperationalqueryrefreshoptions()"
-    },
-    {
-      "label": "reportInvalidation.ts",
-      "file_type": "code",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_hooks_reportinvalidation",
-      "community": 75,
-      "community_name": "useReports.ts",
-      "norm_label": "reportinvalidation.ts"
-    },
-    {
-      "label": "ReportInvalidationOptions",
-      "file_type": "code",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "src_hooks_reportinvalidation_reportinvalidationoptions",
-      "community": 75,
-      "community_name": "useReports.ts",
-      "norm_label": "reportinvalidationoptions"
-    },
-    {
-      "label": "invalidateReportDependentQueries()",
-      "file_type": "code",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L10",
-      "_origin": "ast",
-      "id": "src_hooks_reportinvalidation_invalidatereportdependentqueries",
-      "community": 75,
-      "community_name": "useReports.ts",
-      "norm_label": "invalidatereportdependentqueries()"
     },
     {
       "label": "reportQueries.ts",
@@ -10319,41 +10253,41 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_reportqueries",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "reportqueries.ts"
     },
     {
       "label": "reportKeys",
       "file_type": "code",
       "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L6",
+      "source_location": "L5",
       "_origin": "ast",
       "id": "src_hooks_reportqueries_reportkeys",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "reportkeys"
     },
     {
       "label": "reportsQueryOptions()",
       "file_type": "code",
       "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L16",
+      "source_location": "L15",
       "_origin": "ast",
       "id": "src_hooks_reportqueries_reportsqueryoptions",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "reportsqueryoptions()"
     },
     {
       "label": "reportQueryOptions()",
       "file_type": "code",
       "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L28",
+      "source_location": "L25",
       "_origin": "ast",
       "id": "src_hooks_reportqueries_reportqueryoptions",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "reportqueryoptions()"
     },
     {
@@ -10363,30 +10297,30 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usedashboard",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "usedashboard.ts"
     },
     {
       "label": "dashboardKeys",
       "file_type": "code",
       "source_file": "src/hooks/useDashboard.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "_origin": "ast",
       "id": "src_hooks_usedashboard_dashboardkeys",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboardkeys"
     },
     {
       "label": "useDashboard()",
       "file_type": "code",
       "source_file": "src/hooks/useDashboard.ts",
-      "source_location": "L10",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "src_hooks_usedashboard_usedashboard",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "usedashboard()"
     },
     {
@@ -10396,8 +10330,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usefieldvalidation",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "usefieldvalidation.ts"
     },
     {
@@ -10407,8 +10341,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_hooks_usefieldvalidation_usefieldvalidationmap",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "usefieldvalidationmap()"
     },
     {
@@ -10418,8 +10352,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_hooks_usefieldvalidation_usefieldvalidationqueue",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "usefieldvalidationqueue()"
     },
     {
@@ -10429,8 +10363,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usereports_test",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "usereports.test.tsx"
     },
     {
@@ -10440,8 +10374,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usereports",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "usereports.ts"
     },
     {
@@ -10451,8 +10385,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_usereports_usereports",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 89,
+      "community_name": "SubmittedReportsPage.tsx",
       "norm_label": "usereports()"
     },
     {
@@ -10462,8 +10396,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_hooks_usereports_usereport",
-      "community": 91,
-      "community_name": "CaseReviewPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "usereport()"
     },
     {
@@ -10473,8 +10407,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_hooks_usereports_useupdatereportreview",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "useupdatereportreview()"
     },
     {
@@ -10529,7 +10463,7 @@
       "_origin": "ast",
       "id": "src_main",
       "community": 154,
-      "community_name": "AppProviders.tsx",
+      "community_name": "App.tsx",
       "norm_label": "main.tsx"
     },
     {
@@ -10539,8 +10473,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_casereviewpage_test",
-      "community": 91,
-      "community_name": "CaseReviewPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "casereviewpage.test.tsx"
     },
     {
@@ -10550,8 +10484,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_pages_casereviewpage_test_report",
-      "community": 91,
-      "community_name": "CaseReviewPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "report"
     },
     {
@@ -10561,8 +10495,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_pages_casereviewpage_test_queryresult",
-      "community": 91,
-      "community_name": "CaseReviewPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "queryresult()"
     },
     {
@@ -10572,8 +10506,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_pages_casereviewpage_test_mutationresult",
-      "community": 91,
-      "community_name": "CaseReviewPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "mutationresult()"
     },
     {
@@ -10583,8 +10517,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_pages_casereviewpage_test_renderpage",
-      "community": 91,
-      "community_name": "CaseReviewPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "renderpage()"
     },
     {
@@ -10627,8 +10561,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_pages_casereviewpage_casereviewpage",
-      "community": 91,
-      "community_name": "CaseReviewPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "casereviewpage()"
     },
     {
@@ -10638,8 +10572,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_dashboardpage_test",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardpage.test.tsx"
     },
     {
@@ -10649,8 +10583,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_pages_dashboardpage_test_summary",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "summary"
     },
     {
@@ -10660,8 +10594,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_pages_dashboardpage_test_dashboardresult",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardresult()"
     },
     {
@@ -10671,8 +10605,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_pages_dashboardpage_test_renderdashboard",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "renderdashboard()"
     },
     {
@@ -10682,8 +10616,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_dashboardpage",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardpage.tsx"
     },
     {
@@ -10693,8 +10627,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_pages_dashboardpage_formatrefreshtime",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "formatrefreshtime()"
     },
     {
@@ -10704,8 +10638,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_pages_dashboardpage_dashboardpage",
-      "community": 89,
-      "community_name": "SubmittedReportsPage.tsx",
+      "community": 75,
+      "community_name": "DashboardPage.tsx",
       "norm_label": "dashboardpage()"
     },
     {
@@ -10715,8 +10649,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_fieldvalidationmappage_test",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "fieldvalidationmappage.test.tsx"
     },
     {
@@ -10726,8 +10660,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_pages_fieldvalidationmappage_test_mapdata",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "mapdata"
     },
     {
@@ -10737,8 +10671,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_pages_fieldvalidationmappage_test_queuedata",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "queuedata"
     },
     {
@@ -10748,8 +10682,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_pages_fieldvalidationmappage_test_queryresult",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "queryresult()"
     },
     {
@@ -10759,8 +10693,8 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "src_pages_fieldvalidationmappage_test_locationprobe",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "locationprobe()"
     },
     {
@@ -10770,8 +10704,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_pages_fieldvalidationmappage_test_renderpage",
-      "community": 127,
-      "community_name": "FieldValidationMapPage.tsx",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "renderpage()"
     },
     {
@@ -11178,7 +11112,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_test",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "reportlisturlstate.test.ts"
     },
     {
@@ -11189,7 +11123,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "reportlisturlstate.ts"
     },
     {
@@ -11200,7 +11134,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_reportlistpagesize",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "reportlistpagesize"
     },
     {
@@ -11211,7 +11145,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_statusschema",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "statusschema"
     },
     {
@@ -11222,7 +11156,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_diseaseschema",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "diseaseschema"
     },
     {
@@ -11233,7 +11167,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_sortschema",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "sortschema"
     },
     {
@@ -11244,7 +11178,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_dateschema",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "dateschema"
     },
     {
@@ -11255,7 +11189,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_reportlisturlstate",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "reportlisturlstate"
     },
     {
@@ -11266,7 +11200,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_optionalvalue",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "optionalvalue()"
     },
     {
@@ -11277,7 +11211,7 @@
       "_origin": "ast",
       "id": "src_pages_reportlisturlstate_parsereportlisturl",
       "community": 83,
-      "community_name": "fieldValidation.types.ts",
+      "community_name": "reportListUrlState.ts",
       "norm_label": "parsereportlisturl()"
     },
     {
@@ -11287,8 +11221,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_dashboard_service",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboard.service.ts"
     },
     {
@@ -11298,8 +11232,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_services_dashboard_service_createdashboardrepository",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "createdashboardrepository()"
     },
     {
@@ -11309,8 +11243,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_services_dashboard_service_dashboardrepository",
-      "community": 116,
-      "community_name": "DashboardPage.test.tsx",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "dashboardrepository"
     },
     {
@@ -11342,8 +11276,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_services_fieldvalidation_service_fieldvalidationrepository",
-      "community": 100,
-      "community_name": "FieldValidationFilters",
+      "community": 79,
+      "community_name": "FieldValidationMapPage.test.tsx",
       "norm_label": "fieldvalidationrepository"
     },
     {
@@ -11353,8 +11287,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_reports_service",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "reports.service.ts"
     },
     {
@@ -11364,8 +11298,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_services_reports_service_createreportsrepository",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "createreportsrepository()"
     },
     {
@@ -11375,8 +11309,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_services_reports_service_reportsrepository",
-      "community": 75,
-      "community_name": "useReports.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "reportsrepository"
     },
     {
@@ -11386,8 +11320,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_repositoryselection_test",
-      "community": 79,
-      "community_name": "ApiDashboardRepository.ts",
+      "community": 2,
+      "community_name": "report.types.ts",
       "norm_label": "repositoryselection.test.ts"
     },
     {
@@ -11398,7 +11332,7 @@
       "_origin": "ast",
       "id": "src_test_fixtures",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "fixtures.ts"
     },
     {
@@ -11420,7 +11354,7 @@
       "_origin": "ast",
       "id": "src_test_fixtures_reportdetaildto",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "reportdetaildto"
     },
     {
@@ -11431,7 +11365,7 @@
       "_origin": "ast",
       "id": "src_test_fixtures_paginatedreportsdto",
       "community": 2,
-      "community_name": "ApiReportsRepository.ts",
+      "community_name": "report.types.ts",
       "norm_label": "paginatedreportsdto"
     },
     {
@@ -15332,7 +15266,7 @@
       "label": "Learning Laravel",
       "file_type": "document",
       "source_file": "api/README.md",
-      "source_location": "L32",
+      "source_location": "L63",
       "_origin": "ast",
       "id": "api_readme_learning_laravel",
       "community": 28,
@@ -15343,7 +15277,7 @@
       "label": "Agentic Development",
       "file_type": "document",
       "source_file": "api/README.md",
-      "source_location": "L40",
+      "source_location": "L71",
       "_origin": "ast",
       "id": "api_readme_agentic_development",
       "community": 28,
@@ -15354,7 +15288,7 @@
       "label": "Contributing",
       "file_type": "document",
       "source_file": "api/README.md",
-      "source_location": "L52",
+      "source_location": "L83",
       "_origin": "ast",
       "id": "api_readme_contributing",
       "community": 28,
@@ -15365,7 +15299,7 @@
       "label": "Code of Conduct",
       "file_type": "document",
       "source_file": "api/README.md",
-      "source_location": "L56",
+      "source_location": "L87",
       "_origin": "ast",
       "id": "api_readme_code_of_conduct",
       "community": 28,
@@ -15376,7 +15310,7 @@
       "label": "Security Vulnerabilities",
       "file_type": "document",
       "source_file": "api/README.md",
-      "source_location": "L60",
+      "source_location": "L91",
       "_origin": "ast",
       "id": "api_readme_security_vulnerabilities",
       "community": 28,
@@ -15387,7 +15321,7 @@
       "label": "License",
       "file_type": "document",
       "source_file": "api/README.md",
-      "source_location": "L64",
+      "source_location": "L95",
       "_origin": "ast",
       "id": "api_readme_license",
       "community": 28,
@@ -17870,149 +17804,6 @@
       "norm_label": "definition of done"
     },
     {
-      "label": "mobile-report-status-v1.md",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "mobile-report-status-v1.md"
-    },
-    {
-      "label": "Mobile report status API contract v1",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "mobile report status api contract v1"
-    },
-    {
-      "label": "Endpoint",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L8",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_endpoint",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "endpoint"
-    },
-    {
-      "label": "Authentication and authorization",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L14",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_authentication_and_authorization",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "authentication and authorization"
-    },
-    {
-      "label": "Query parameters",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L24",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_query_parameters",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "query parameters"
-    },
-    {
-      "label": "Response envelope",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L41",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_response_envelope",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "response envelope"
-    },
-    {
-      "label": "`data`",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L45",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_data",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "`data`"
-    },
-    {
-      "label": "`links`",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L69",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_links",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "`links`"
-    },
-    {
-      "label": "`meta`",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L77",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_meta",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "`meta`"
-    },
-    {
-      "label": "`sync`",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L83",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_sync",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "`sync`"
-    },
-    {
-      "label": "Privacy boundary",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L93",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_privacy_boundary",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "privacy boundary"
-    },
-    {
-      "label": "Canonical example",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L99",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_canonical_example",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "canonical example"
-    },
-    {
-      "label": "Producer and regression coverage",
-      "file_type": "document",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L105",
-      "_origin": "ast",
-      "id": "docs_contracts_mobile_report_status_v1_producer_and_regression_coverage",
-      "community": 28,
-      "community_name": "api/README.md",
-      "norm_label": "producer and regression coverage"
-    },
-    {
       "label": "physical-android-api.md",
       "file_type": "document",
       "source_file": "docs/development/physical-android-api.md",
@@ -18151,8 +17942,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "illuminate_console_command",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": "illuminate\\console\\command"
     },
     {
@@ -18162,8 +17953,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "illuminate_filesystem_filesystemadapter",
-      "community": 152,
-      "community_name": "SecureReportImages",
+      "community": 59,
+      "community_name": "StoreReport",
       "norm_label": "illuminate\\filesystem\\filesystemadapter"
     },
     {
@@ -18173,7 +17964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "illuminate_http_jsonresponse",
-      "community": 141,
+      "community": 36,
       "community_name": "Illuminate\\Http\\JsonResponse",
       "norm_label": "illuminate\\http\\jsonresponse"
     },
@@ -18195,8 +17986,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "illuminate_http_response",
-      "community": 141,
-      "community_name": "Illuminate\\Http\\JsonResponse",
+      "community": 150,
+      "community_name": "LocationReferenceController.php",
       "norm_label": "illuminate\\http\\response"
     },
     {
@@ -18316,8 +18107,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "illuminate_database_eloquent_relations_hasmany",
-      "community": 106,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
+      "community": 25,
+      "community_name": "Report",
       "norm_label": "illuminate\\database\\eloquent\\relations\\hasmany"
     },
     {
@@ -24199,7 +23990,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L124",
+      "source_location": "L110",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_field_validation_queue_is_fixed_oldest_first_and_shares_non_status_filters",
@@ -24211,7 +24002,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L97",
+      "source_location": "L83",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_date_filter_uses_observed_at_and_excludes_null_observations",
@@ -24259,7 +24050,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L170",
+      "source_location": "L171",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_creates_twelve_varied_reports_with_valid_images",
@@ -24675,7 +24466,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L222",
+      "source_location": "L198",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_creates_twelve_varied_reports_with_valid_images",
@@ -25942,7 +25733,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L123",
+      "source_location": "L109",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_field_validation_queue_is_fixed_oldest_first_and_shares_non_status_filters",
@@ -25954,7 +25745,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L192",
+      "source_location": "L178",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_and_queue_require_reviewer_or_admin_authorization",
@@ -25966,7 +25757,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L213",
+      "source_location": "L199",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_and_queue_validate_shared_filters",
@@ -25978,7 +25769,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L96",
+      "source_location": "L82",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest_test_map_date_filter_uses_observed_at_and_excludes_null_observations",
@@ -29660,7 +29451,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L121",
+      "source_location": "L107",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest",
@@ -29671,7 +29462,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L183",
+      "source_location": "L169",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest",
@@ -29682,7 +29473,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L211",
+      "source_location": "L197",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest",
@@ -29693,7 +29484,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "api/tests/Feature/ReportMapAndQueueTest.php",
-      "source_location": "L94",
+      "source_location": "L80",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_tests_feature_reportmapandqueuetest_reportmapandqueuetest",
@@ -33783,18 +33574,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/hooks/queryRefresh.test.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_queryrefresh_test",
-      "target": "src_app_queryclient",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
       "source_location": "L5",
       "weight": 1.0,
@@ -33867,18 +33646,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/hooks/queryRefresh.test.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_queryrefresh_test",
-      "target": "src_app_queryclient_createqueryclient",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
       "source_location": "L5",
       "weight": 1.0,
@@ -33910,18 +33677,6 @@
       "source": "src_pages_submittedreportspage_test_renderpage",
       "target": "src_app_queryclient_createqueryclient",
       "confidence_score": 1.0
-    },
-    {
-      "relation": "references",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation_invalidatereportdependentqueries",
-      "target": "src_app_queryclient_queryclient"
     },
     {
       "relation": "contains",
@@ -38518,18 +38273,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/hooks/queryRefresh.ts",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_queryrefresh",
-      "target": "src_config_env",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "src/services/dashboard.service.ts",
       "source_location": "L1",
       "weight": 1.0,
@@ -38560,18 +38303,6 @@
       "_origin": "ast",
       "source": "src_services_reports_service",
       "target": "src_config_env",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/queryRefresh.ts",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_queryrefresh",
-      "target": "src_config_env_env",
       "confidence_score": 1.0
     },
     {
@@ -43446,7 +43177,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L6",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_fieldvalidationqueries",
@@ -43457,7 +43188,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L14",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_fieldvalidationqueries",
@@ -43468,35 +43199,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L26",
+      "source_location": "L24",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_fieldvalidationqueries",
       "target": "src_hooks_fieldvalidationqueries_fieldvalidationqueuequeryoptions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_fieldvalidationqueries",
-      "target": "src_hooks_queryrefresh",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_fieldvalidationqueries",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions",
       "confidence_score": 1.0
     },
     {
@@ -43527,18 +43234,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_fieldvalidationqueries",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "src/hooks/useFieldValidation.ts",
       "source_location": "L3",
       "weight": 1.0,
@@ -43546,54 +43241,6 @@
       "source": "src_hooks_usefieldvalidation",
       "target": "src_hooks_fieldvalidationqueries",
       "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usereports_test",
-      "target": "src_hooks_fieldvalidationqueries",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_fieldvalidationqueries_fieldvalidationkeys",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usereports_test",
-      "target": "src_hooks_fieldvalidationqueries_fieldvalidationkeys",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L23",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_fieldvalidationqueries_fieldvalidationmapqueryoptions",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions"
     },
     {
       "relation": "imports",
@@ -43620,18 +43267,6 @@
       "target": "src_hooks_fieldvalidationqueries_fieldvalidationmapqueryoptions"
     },
     {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/hooks/fieldValidationQueries.ts",
-      "source_location": "L35",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_fieldvalidationqueries_fieldvalidationqueuequeryoptions",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions"
-    },
-    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -43656,234 +43291,21 @@
       "target": "src_hooks_fieldvalidationqueries_fieldvalidationqueuequeryoptions"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
+      "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/hooks/queryRefresh.test.ts",
-      "source_location": "L4",
+      "source_file": "src/hooks/reportQueries.ts",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_hooks_queryrefresh_test",
-      "target": "src_hooks_queryrefresh",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/queryRefresh.test.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_queryrefresh_test",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions",
+      "source": "src_hooks_reportqueries",
+      "target": "src_hooks_reportqueries_reportkeys",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/hooks/queryRefresh.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_queryrefresh",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportqueries",
-      "target": "src_hooks_queryrefresh",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/useDashboard.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usedashboard",
-      "target": "src_hooks_queryrefresh",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportqueries",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "src/hooks/reportQueries.ts",
       "source_location": "L25",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportqueries_reportsqueryoptions",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/useDashboard.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usedashboard",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/hooks/useDashboard.ts",
-      "source_location": "L14",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usedashboard_usedashboard",
-      "target": "src_hooks_queryrefresh_getoperationalqueryrefreshoptions"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_reportinvalidation_invalidatereportdependentqueries",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_reportinvalidation_reportinvalidationoptions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_reportqueries",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_reportqueries_reportkeys",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_usedashboard",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportInvalidation.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportinvalidation",
-      "target": "src_hooks_usedashboard_dashboardkeys",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/useReports.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usereports",
-      "target": "src_hooks_reportinvalidation",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/useReports.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usereports",
-      "target": "src_hooks_reportinvalidation_invalidatereportdependentqueries",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/hooks/useReports.ts",
-      "source_location": "L31",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_usereports_useupdatereportreview",
-      "target": "src_hooks_reportinvalidation_invalidatereportdependentqueries"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_hooks_reportqueries",
-      "target": "src_hooks_reportqueries_reportkeys",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_reportqueries",
@@ -43894,7 +43316,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/reportQueries.ts",
-      "source_location": "L16",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_reportqueries",
@@ -43942,7 +43364,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L12",
+      "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usereports_test",
@@ -43978,7 +43400,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L12",
+      "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usereports_test",
@@ -44049,7 +43471,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useDashboard.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usedashboard",
@@ -44060,7 +43482,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useDashboard.ts",
-      "source_location": "L10",
+      "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usedashboard",
@@ -44095,8 +43517,20 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/hooks/useReports.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_hooks_usereports",
+      "target": "src_hooks_usedashboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L11",
+      "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usereports_test",
@@ -44131,8 +43565,20 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/hooks/useReports.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_hooks_usereports",
+      "target": "src_hooks_usedashboard_dashboardkeys",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L11",
+      "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usereports_test",
@@ -44298,7 +43744,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L13",
+      "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usereports_test",
@@ -44310,7 +43756,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useReports.test.tsx",
-      "source_location": "L13",
+      "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_hooks_usereports_test",
@@ -49322,7 +48768,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/README.md",
-      "source_location": "L40",
+      "source_location": "L71",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_readme",
@@ -49333,7 +48779,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/README.md",
-      "source_location": "L56",
+      "source_location": "L87",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_readme",
@@ -49344,7 +48790,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/README.md",
-      "source_location": "L52",
+      "source_location": "L83",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_readme",
@@ -49355,7 +48801,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/README.md",
-      "source_location": "L32",
+      "source_location": "L63",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_readme",
@@ -49366,7 +48812,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/README.md",
-      "source_location": "L64",
+      "source_location": "L95",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_readme",
@@ -49388,22 +48834,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/README.md",
-      "source_location": "L60",
+      "source_location": "L91",
       "weight": 1.0,
       "_origin": "ast",
       "source": "api_readme",
       "target": "api_readme_security_vulnerabilities",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "source_file": "api/README.md",
-      "source_location": "L26",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "api_readme",
-      "target": "docs_contracts_mobile_report_status_v1",
       "confidence_score": 1.0
     },
     {
@@ -51785,138 +51220,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1",
-      "target": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L14",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "target": "docs_contracts_mobile_report_status_v1_authentication_and_authorization",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L99",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "target": "docs_contracts_mobile_report_status_v1_canonical_example",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L8",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "target": "docs_contracts_mobile_report_status_v1_endpoint",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L93",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "target": "docs_contracts_mobile_report_status_v1_privacy_boundary",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L105",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "target": "docs_contracts_mobile_report_status_v1_producer_and_regression_coverage",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L24",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "target": "docs_contracts_mobile_report_status_v1_query_parameters",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L41",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_mobile_report_status_api_contract_v1",
-      "target": "docs_contracts_mobile_report_status_v1_response_envelope",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L45",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_response_envelope",
-      "target": "docs_contracts_mobile_report_status_v1_data",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L69",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_response_envelope",
-      "target": "docs_contracts_mobile_report_status_v1_links",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L77",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_response_envelope",
-      "target": "docs_contracts_mobile_report_status_v1_meta",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/contracts/mobile-report-status-v1.md",
-      "source_location": "L83",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "docs_contracts_mobile_report_status_v1_response_envelope",
-      "target": "docs_contracts_mobile_report_status_v1_sync",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "docs/development/physical-android-api.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -52653,5 +51956,5 @@
       "source_file": "src/assets/vite.svg"
     }
   ],
-  "built_at_commit": "dc1986536bd33f19c5bb0890f931e07f54f7925b"
+  "built_at_commit": "5e04c78a4aebeee71eebbb1559d41e42280e8571"
 }
