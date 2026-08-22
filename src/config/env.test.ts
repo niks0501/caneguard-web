@@ -6,7 +6,7 @@ describe("parseEnv", () => {
     expect(parseEnv({})).toEqual({
       apiBaseUrl: "http://localhost:8000",
       dataSource: "api",
-      reportRefreshMs: 15_000,
+      reportRefreshMs: 600_000,
       mapTilerKey: "",
     });
   });

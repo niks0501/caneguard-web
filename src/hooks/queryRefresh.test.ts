@@ -12,6 +12,10 @@ describe("getOperationalQueryRefreshOptions", () => {
     vi.useRealTimers();
   });
 
+  it("defaults API-backed operational queries to a ten-minute cadence", () => {
+    expect(getOperationalQueryRefreshOptions("api").refetchInterval).toBe(600_000);
+  });
+
   it("polls API-backed operational queries at the configured interval", () => {
     expect(getOperationalQueryRefreshOptions("api", 30_000)).toEqual({
       refetchInterval: 30_000,

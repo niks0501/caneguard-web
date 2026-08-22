@@ -45,7 +45,7 @@ fieldValidationKeys.queue(filters)
 `.env.example`:
 
 ```env
-VITE_REPORT_REFRESH_MS=15000
+VITE_REPORT_REFRESH_MS=600000
 ```
 
 `src/config/env.ts` parses it into:
@@ -62,9 +62,9 @@ Use two mechanisms because they solve two different freshness problems:
 
 **A. Same-browser mutation:** immediate React Query invalidation.
 
-**B. External/mobile change:** lightweight polling with the already configured 15-second interval.
+**B. External/mobile change:** lightweight polling with the already configured ten-minute interval.
 
-Do not introduce WebSockets for this P0. Fifteen-to-thirty-second freshness is appropriate for the current field-report workflow and much easier to test and defend.
+Do not introduce WebSockets for this P0. Ten-minute freshness is appropriate for the current field-report workflow and much easier to test and defend.
 
 ## Target data-flow
 
@@ -158,7 +158,7 @@ If a query options factory already exists, put the policy there rather than dupl
 
 ### Phase 4 — Preserve previous data during refresh
 
-The page should not flash to a loading skeleton every 15 seconds.
+The page should not flash to a loading skeleton on each polling refresh.
 
 Keep existing `placeholderData: keepPreviousData` where appropriate and use query `isFetching`/`isRefetching` only for subtle status.
 
@@ -178,7 +178,7 @@ This is useful but secondary. Do not let timestamp UI block the P0 fix.
 
 ### Phase 6 — Avoid request storms
 
-Operational polling at 15 seconds is acceptable, but:
+Operational polling at ten minutes is acceptable, but:
 
 - do not add independent `setInterval` loops outside React Query;
 - do not poll mock data;

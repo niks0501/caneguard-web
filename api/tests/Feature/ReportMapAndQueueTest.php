@@ -71,6 +71,20 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('metadata.located_count', 1)
             ->assertJsonPath('metadata.unlocated_count', 1);
 
+        $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
+            'date_from' => '2026-08-13',
+            'date_to' => '2026-08-13',
+            'predicted_label' => Report::LABEL_RUST,
+            'barangay' => 'Mabini',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.count', 2)
+            ->assertJsonPath('data.items.0.uuid', $located->uuid)
+            ->assertJsonPath('data.items.0.final_latitude', 10.1234567)
+            ->assertJsonPath('data.items.0.final_longitude', 122.9876543)
+            ->assertJsonPath('data.items.1.final_latitude', null)
+            ->assertJsonPath('data.items.1.final_longitude', null);
+
         $this->getJson('/api/v1/reports/map?status='.Report::STATUS_RESOLVED)
             ->assertOk()
             ->assertJsonCount(1, 'features')

@@ -167,6 +167,30 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('reports', 12);
+        $this->assertSame(2, Report::query()
+            ->whereNotNull('final_latitude')
+            ->whereNotNull('final_longitude')
+            ->count());
+        $this->assertSame(10, Report::query()
+            ->where(function ($query) {
+                $query
+                    ->whereNull('final_latitude')
+                    ->orWhereNull('final_longitude');
+            })
+            ->count());
+        $locatedDemoReport = Report::query()
+            ->where('reference_code', 'CG-2026-0002')
+            ->firstOrFail();
+        $this->assertSame('14.0667000', $locatedDemoReport->final_latitude);
+        $this->assertSame('120.6319000', $locatedDemoReport->final_longitude);
+        $this->assertSame('gps', $locatedDemoReport->location_source);
+        $manualDemoReport = Report::query()
+            ->where('reference_code', 'CG-2026-0007')
+            ->firstOrFail();
+        $this->assertSame('14.0710000', $manualDemoReport->final_latitude);
+        $this->assertSame('120.6350000', $manualDemoReport->final_longitude);
+        $this->assertSame('manual_map', $manualDemoReport->location_source);
+        $this->assertNull($manualDemoReport->gps_accuracy);
         $this->assertDatabaseCount('report_class_scores', 36);
         $this->assertSame(Report::labels(), Report::query()
             ->distinct()

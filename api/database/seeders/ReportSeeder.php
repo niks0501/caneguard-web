@@ -39,8 +39,25 @@ class ReportSeeder extends Seeder
             'San Isidro',
             'San Roque',
         ];
+        // These explicit values come from the shared mobile field-report fixtures.
+        // Null entries preserve reports without a valid location.
+        $locations = [
+            1 => null,
+            2 => ['latitude' => 14.0667, 'longitude' => 120.6319, 'source' => 'gps', 'accuracy' => 4.2],
+            3 => null,
+            4 => null,
+            5 => null,
+            6 => null,
+            7 => ['latitude' => 14.0710, 'longitude' => 120.6350, 'source' => 'manual_map', 'accuracy' => null],
+            8 => null,
+            9 => null,
+            10 => null,
+            11 => null,
+            12 => null,
+        ];
 
         foreach (range(1, 12) as $number) {
+            $location = $locations[$number];
             $label = $labels[($number - 1) % count($labels)];
             $status = $statuses[($number - 1) % count($statuses)];
             $submittedAt = CarbonImmutable::create(
@@ -72,6 +89,10 @@ class ReportSeeder extends Seeder
                         $number,
                     ),
                     'barangay' => $barangays[($number - 1) % count($barangays)],
+                    'final_latitude' => $location['latitude'] ?? null,
+                    'final_longitude' => $location['longitude'] ?? null,
+                    'location_source' => $location['source'] ?? null,
+                    'gps_accuracy' => $location['accuracy'] ?? null,
                     'image_path' => $path,
                     'image_mime_type' => 'image/png',
                     'image_size_bytes' => strlen($image),

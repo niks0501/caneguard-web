@@ -25,7 +25,7 @@ As MAO/SRA-side personnel, I want the field-validation workspace to clearly show
 `.env.example` currently includes:
 
 ```env
-VITE_REPORT_REFRESH_MS=15000
+VITE_REPORT_REFRESH_MS=600000
 VITE_MAPTILER_KEY=
 ```
 
@@ -157,7 +157,7 @@ Replace the fixed initial-only experience with data-aware framing:
 - one located point → center on it at a useful local zoom;
 - multiple located points → `fitBounds()` with padding and a reasonable `maxZoom`.
 
-**Important UX rule:** do not snap the user's map back every 15 seconds when P0D polling refetches data.
+**Important UX rule:** do not snap the user's map back on each P0D polling refresh.
 
 Best-practice behavior:
 
