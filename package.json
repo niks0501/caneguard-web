@@ -18,6 +18,12 @@
     "api:format:check": "cd api && vendor/bin/pint --test",
     "api:migrate": "php api/artisan migrate",
     "api:seed": "php api/artisan db:seed",
+    "contract:artifact": "node scripts/validate-mobile-report-upload-v1.mjs",
+    "contract:config": "node scripts/resolve-mobile-report-upload-gate-config.mjs",
+    "contract:consumer": "node scripts/run-laravel-mobile-report-upload-consumer-contract.mjs",
+    "contract:producer": "node scripts/run-mobile-report-upload-producer-contract.mjs",
+    "contract:gate": "npm run contract:artifact && npm run contract:config && npm run contract:consumer && npm run contract:producer",
+    "contract:test": "node --test scripts/validate-mobile-report-upload-v1.node-test.mjs scripts/resolve-mobile-report-upload-gate-config.node-test.mjs scripts/mobile-report-upload-contract-workflow.node-test.mjs",
     "check:web": "npm run lint && npm run typecheck && npm run test && npm run build",
     "check:api": "npm run api:test && npm run api:format:check",
     "check:all": "npm run check:web && npm run check:api"
