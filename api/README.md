@@ -29,6 +29,12 @@ The endpoint implementation is covered by `tests/Feature/MobileReportStatusTest.
 
 This README intentionally does not duplicate the response schema so the versioned contract has one source of truth.
 
+## Mobile report upload contract
+
+The canonical v1 multipart upload contract is maintained at [`../docs/contracts/mobile-report-upload-v1.md`](../docs/contracts/mobile-report-upload-v1.md), with its machine-readable source at [`../docs/contracts/mobile-report-upload-v1.json`](../docs/contracts/mobile-report-upload-v1.json).
+
+The Laravel request compiles its validation boundary from that artifact through `App\Contracts\MobileReportUploadContract`.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

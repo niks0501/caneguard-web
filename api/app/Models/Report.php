@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\MobileReportUploadContract;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -93,11 +94,7 @@ class Report extends Model
      */
     public static function labels(): array
     {
-        return [
-            self::LABEL_HEALTHY,
-            self::LABEL_MOSAIC,
-            self::LABEL_RUST,
-        ];
+        return MobileReportUploadContract::enumValues('predicted_label');
     }
 
     /**

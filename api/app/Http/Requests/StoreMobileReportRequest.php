@@ -2,54 +2,17 @@
 
 namespace App\Http\Requests;
 
+use App\Contracts\MobileReportUploadContract;
 use App\Models\Report;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\File;
 
 class StoreMobileReportRequest extends ApiFormRequest
 {
     protected function prepareForValidation(): void
     {
-        if (! $this->has('quality_warnings')) {
-            $this->merge(['quality_warnings' => []]);
-        }
+        $normalized = MobileReportUploadContract::normalization($this);
 
-        $nullableFields = [
-            'sugarcane_variety',
-            'crop_age',
-            'cane_class',
-            'affected_area_hectares',
-            'affected_portion_percent',
-            'field_notes',
-            'mismatch_reported',
-            'reporter_suspected_condition',
-            'reporter_observation_text',
-            'farmer_or_farm_owner_name',
-            'province',
-            'municipality',
-            'final_latitude',
-            'final_longitude',
-            'location_source',
-            'gps_accuracy',
-            'observed_at',
-            'scan_record_client_uuid',
-        ];
-        $emptyFields = [];
-
-        foreach ($nullableFields as $field) {
-            if ($this->input($field) === '') {
-                $emptyFields[$field] = null;
-            }
-        }
-
-        if ($emptyFields !== []) {
-            $this->merge($emptyFields);
-        }
-
-        if ($this->input('mismatch_reported') === 'true') {
-            $this->merge(['mismatch_reported' => true]);
-        } elseif ($this->input('mismatch_reported') === 'false') {
-            $this->merge(['mismatch_reported' => false]);
+        if ($normalized !== []) {
+            $this->merge($normalized);
         }
     }
 
@@ -60,96 +23,6 @@ class StoreMobileReportRequest extends ApiFormRequest
 
     public function rules(): array
     {
-        return [
-            'client_uuid' => ['required', 'uuid'],
-            'image' => [
-                'required',
-                File::image()
-                    ->types(['jpg', 'jpeg', 'png', 'webp'])
-                    ->max(10 * 1024),
-            ],
-            'image_source_type' => [
-                'required',
-                Rule::in(['camera', 'gallery']),
-            ],
-            'source_width' => ['nullable', 'integer', 'min:1', 'max:50000'],
-            'source_height' => ['nullable', 'integer', 'min:1', 'max:50000'],
-            'predicted_label' => ['required', Rule::in(Report::labels())],
-            'confidence' => ['required', 'numeric', 'between:0,1'],
-            'class_scores' => [
-                'required',
-                'array',
-                'size:3',
-                'required_array_keys:healthy,mosaic,rust',
-            ],
-            'class_scores.healthy' => ['required', 'numeric', 'between:0,1'],
-            'class_scores.mosaic' => ['required', 'numeric', 'between:0,1'],
-            'class_scores.rust' => ['required', 'numeric', 'between:0,1'],
-            'symptom_keys' => ['required', 'array', 'min:1'],
-            'symptom_keys.*' => [
-                'string',
-                'distinct',
-                Rule::in(['mosaic', 'rust', 'none', 'unable-to-tell']),
-            ],
-            'checklist_consistency' => ['required', 'string', 'max:40'],
-            'reported_severity' => ['nullable', 'string', 'max:20'],
-            'mismatch_reported' => ['nullable', 'boolean'],
-            'reporter_suspected_condition' => ['nullable', 'string', 'max:120'],
-            'reporter_observation_text' => ['nullable', 'string', 'max:1000'],
-            'quality_warnings' => ['present', 'array'],
-            'quality_warnings.*' => [
-                'string',
-                'distinct',
-                Rule::in([
-                    'low-resolution',
-                    'too-dark',
-                    'too-bright',
-                    'low-contrast',
-                ]),
-            ],
-            'barangay' => ['required', 'string', 'max:120'],
-            'farmer_or_farm_owner_name' => ['nullable', 'string', 'max:160'],
-            'province' => ['nullable', 'string', 'max:120'],
-            'municipality' => ['nullable', 'string', 'max:120'],
-            'final_latitude' => [
-                'nullable',
-                'numeric',
-                'between:-90,90',
-                'required_with:final_longitude,location_source',
-            ],
-            'final_longitude' => [
-                'nullable',
-                'numeric',
-                'between:-180,180',
-                'required_with:final_latitude,location_source',
-            ],
-            'location_source' => [
-                'nullable',
-                Rule::in(['gps', 'manual_map']),
-                'required_with:final_latitude,final_longitude',
-            ],
-            'gps_accuracy' => [
-                'nullable',
-                'numeric',
-                'min:0',
-                'required_if:location_source,gps',
-                Rule::prohibitedIf(
-                    fn (): bool => $this->input('location_source') !== 'gps',
-                ),
-            ],
-            'observed_at' => ['nullable', 'date'],
-            'scan_record_client_uuid' => ['nullable', 'uuid'],
-            'sugarcane_variety' => ['nullable', 'string', 'max:100'],
-            'crop_age' => ['nullable', 'string', 'max:100'],
-            'cane_class' => ['nullable', 'string', 'max:100'],
-            'affected_area_hectares' => ['nullable', 'numeric', 'gt:0'],
-            'affected_portion_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'field_notes' => ['nullable', 'string', 'max:5000'],
-            'model_version' => ['required', 'string', 'max:100'],
-            'preprocess_ms' => ['required', 'numeric', 'min:0', 'max:999999999'],
-            'inference_ms' => ['required', 'numeric', 'min:0', 'max:999999999'],
-            'total_ms' => ['required', 'numeric', 'min:0', 'max:999999999'],
-            'captured_at' => ['required', 'date'],
-        ];
+        return MobileReportUploadContract::rules($this);
     }
 }

@@ -44,6 +44,10 @@ with `VITE_REPORT_REFRESH_MS` in `.env.local` when needed.
 The canonical v1 mobile report review-status wire contract is documented in
 [docs/contracts/mobile-report-status-v1.md](docs/contracts/mobile-report-status-v1.md).
 
+The canonical v1 mobile report upload contract is documented in
+[docs/contracts/mobile-report-upload-v1.md](docs/contracts/mobile-report-upload-v1.md), with the machine-readable source at
+[docs/contracts/mobile-report-upload-v1.json](docs/contracts/mobile-report-upload-v1.json).
+
 Create MySQL databases named `caneguard` and `caneguard_test` with
 `utf8mb4_unicode_ci`, then grant a dedicated local `caneguard_app` user access
 to both.
