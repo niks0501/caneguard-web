@@ -1,0 +1,131 @@
+name: Mobile report upload contract gate (trusted)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mobile-report-upload-contract.yml
+      - .github/workflows/mobile-report-upload-contract-trusted.yml
+      - ci/mobile-report-upload-gate.json
+      - docs/contracts/mobile-report-upload-v1.json
+      - docs/contracts/mobile-report-upload-v1.md
+      - docs/testing/mobile-report-upload-contract-gate.md
+      - scripts/assert-git-revision.mjs
+      - scripts/mobile-report-upload-contract-workflow.node-test.mjs
+      - scripts/resolve-mobile-report-upload-gate-config.mjs
+      - scripts/resolve-mobile-report-upload-gate-config.node-test.mjs
+      - scripts/run-laravel-mobile-report-upload-consumer-contract.mjs
+      - scripts/run-mobile-report-upload-producer-contract.mjs
+      - scripts/validate-mobile-report-upload-v1.mjs
+      - scripts/validate-mobile-report-upload-v1.node-test.mjs
+      - package.json
+      - package-lock.json
+      - api/composer.json
+      - api/composer.lock
+      - api/app/Actions/Reports/PersistReport.php
+      - api/app/Actions/Reports/StoreReport.php
+      - api/app/Contracts/MobileReportUploadContract.php
+      - api/app/Http/Controllers/Api/V1/MobileReportController.php
+      - api/app/Http/Requests/StoreMobileReportRequest.php
+      - api/app/Models/Report.php
+      - api/app/Policies/ReportPolicy.php
+      - api/database/migrations/**
+      - api/routes/api.php
+      - api/tests/Feature/MobileReportUploadContractTest.php
+      - api/tests/Feature/MobileReportUploadTest.php
+      - api/tests/MySql/MobileReportSecurityContractMySqlTest.php
+  workflow_dispatch:
+    inputs:
+      mobile_ref:
+        description: Exact 40-character mobile commit SHA to test
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-report-upload-contract-trusted-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trusted-cross-repository-gate:
+    name: mobile upload contract gate (trusted)
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WEB_REF: ${{ github.sha }}
+      MOBILE_REF_INPUT: ${{ inputs.mobile_ref }}
+    steps:
+      - name: Checkout exact web revision without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node without repository credentials
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Validate exact web revision
+        run: node scripts/assert-git-revision.mjs "$WEB_REF"
+
+      - name: Validate canonical artifact
+        run: npm run contract:artifact
+
+      - name: Validate and resolve exact mobile revision
+        id: gate-config
+        run: npm run contract:config
+
+      - name: Validate gate helper tests
+        run: npm run contract:test
+
+      - name: Install Laravel test dependencies
+        run: composer install --working-dir=api --no-interaction --no-progress --prefer-dist
+
+      - name: Validate Laravel consumer boundary
+        run: npm run contract:consumer
+
+      # This is the only step that receives the cross-repository secret.
+      # This workflow is intentionally absent from pull_request and is reviewed on main before use.
+      - name: Checkout exact mobile revision with read-only token
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: niks0501/caneguard-mobile
+          ref: ${{ steps.gate-config.outputs.mobile_ref }}
+          token: ${{ secrets.CANEGUARD_MOBILE_READ_TOKEN }}
+          path: .ci/caneguard-mobile
+          persist-credentials: false
+
+      - name: Validate exact mobile revision
+        run: node scripts/assert-git-revision.mjs "${{ steps.gate-config.outputs.mobile_ref }}" "$GITHUB_WORKSPACE/.ci/caneguard-mobile"
+
+      - name: Install focused mobile test dependencies without lifecycle scripts
+        working-directory: .ci/caneguard-mobile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Validate mobile producer domain against web artifact
+        env:
+          MOBILE_REPO_DIR: ${{ github.workspace }}/.ci/caneguard-mobile
+          MOBILE_REF: ${{ steps.gate-config.outputs.mobile_ref }}
+          CONTRACT_ARTIFACT: ${{ github.workspace }}/docs/contracts/mobile-report-upload-v1.json
+        run: npm run contract:producer
+
+      - name: Publish sanitized gate evidence
+        env:
+          MOBILE_REF: ${{ steps.gate-config.outputs.mobile_ref }}
+        run: |
+          artifact_sha256="$(sha256sum docs/contracts/mobile-report-upload-v1.json | awk '{print $1}')"
+          {
+            echo '### Cross-repository upload contract gate'
+            echo
+            echo "- Web revision: $WEB_REF"
+            echo "- Mobile revision: $MOBILE_REF"
+            echo "- Canonical artifact SHA-256: $artifact_sha256"
+            echo '- Producer result: PASS, mobile Jest contract test evaluated the web artifact.'
+            echo '- Consumer result: PASS, Laravel feature contract test accepted the v1 boundary.'
+            echo '- Secret handling: the read-only token was supplied only to the pinned checkout action and was not exported to test processes.'
+          } >> "$GITHUB_STEP_SUMMARY"

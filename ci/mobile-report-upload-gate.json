@@ -1,0 +1,6 @@
+{
+  "mobile_repository": "niks0501/caneguard-mobile",
+  "mobile_ref": "592267f55f983b3f6ff4bbed9702c541f9327cda",
+  "artifact_path": "docs/contracts/mobile-report-upload-v1.json",
+  "producer_test_path": "src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts"
+}

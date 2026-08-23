@@ -1,0 +1,86 @@
+name: Mobile report upload contract web boundary
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mobile-report-upload-contract.yml
+      - .github/workflows/mobile-report-upload-contract-trusted.yml
+      - ci/mobile-report-upload-gate.json
+      - docs/contracts/mobile-report-upload-v1.json
+      - docs/contracts/mobile-report-upload-v1.md
+      - docs/testing/mobile-report-upload-contract-gate.md
+      - scripts/assert-git-revision.mjs
+      - scripts/mobile-report-upload-contract-workflow.node-test.mjs
+      - scripts/resolve-mobile-report-upload-gate-config.mjs
+      - scripts/resolve-mobile-report-upload-gate-config.node-test.mjs
+      - scripts/run-laravel-mobile-report-upload-consumer-contract.mjs
+      - scripts/run-mobile-report-upload-producer-contract.mjs
+      - scripts/validate-mobile-report-upload-v1.mjs
+      - scripts/validate-mobile-report-upload-v1.node-test.mjs
+      - package.json
+      - package-lock.json
+      - api/composer.json
+      - api/composer.lock
+      - api/app/Actions/Reports/PersistReport.php
+      - api/app/Actions/Reports/StoreReport.php
+      - api/app/Contracts/MobileReportUploadContract.php
+      - api/app/Http/Controllers/Api/V1/MobileReportController.php
+      - api/app/Http/Requests/StoreMobileReportRequest.php
+      - api/app/Models/Report.php
+      - api/app/Policies/ReportPolicy.php
+      - api/database/migrations/**
+      - api/routes/api.php
+      - api/tests/Feature/MobileReportUploadContractTest.php
+      - api/tests/Feature/MobileReportUploadTest.php
+      - api/tests/MySql/MobileReportSecurityContractMySqlTest.php
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-report-upload-contract-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-boundary:
+    name: upload contract web boundary (PR)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout web revision without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node without repository credentials
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Validate canonical artifact
+        run: npm run contract:artifact
+
+      - name: Validate pinned revision configuration
+        run: npm run contract:config
+
+      - name: Validate gate helper tests
+        run: npm run contract:test
+
+      - name: Install Laravel test dependencies
+        run: composer install --working-dir=api --no-interaction --no-progress --prefer-dist
+
+      - name: Validate Laravel consumer boundary
+        run: npm run contract:consumer
+
+      - name: Explain trusted cross-repository follow-up
+        run: |
+          {
+            echo '### Upload contract PR boundary'
+            echo
+            echo 'Artifact and Laravel consumer checks passed without private mobile repository credentials.'
+            echo 'The cross-repository producer check runs from the separate trusted workflow only on a push to main or an explicit workflow dispatch from main.'
+            echo 'A mobile producer revision must be recorded as a full SHA in ci/mobile-report-upload-gate.json or supplied to workflow_dispatch before P0F.'
+          } >> "$GITHUB_STEP_SUMMARY"

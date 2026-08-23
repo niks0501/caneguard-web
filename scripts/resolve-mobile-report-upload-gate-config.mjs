@@ -1,0 +1,117 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const DEFAULT_CONFIG_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../ci/mobile-report-upload-gate.json',
+);
+const EXPECTED_MOBILE_REPOSITORY = 'niks0501/caneguard-mobile';
+const EXPECTED_ARTIFACT_PATH = 'docs/contracts/mobile-report-upload-v1.json';
+const EXPECTED_PRODUCER_TEST_PATH =
+  'src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts';
+const FULL_SHA = /^[0-9a-f]{40}$/i;
+
+export class GateConfigValidationError extends Error {
+  constructor(message) {
+    super(`[config] ${message}`);
+    this.name = 'GateConfigValidationError';
+    this.category = 'config';
+  }
+}
+
+export async function readGateConfig(configPath = DEFAULT_CONFIG_PATH) {
+  let contents;
+  try {
+    contents = await readFile(configPath, 'utf8');
+  } catch (error) {
+    throw new GateConfigValidationError(
+      `could not read ${configPath}: ${error.message}`,
+    );
+  }
+
+  let config;
+  try {
+    config = JSON.parse(contents);
+  } catch (error) {
+    throw new GateConfigValidationError(
+      `contains invalid JSON: ${error.message}`,
+    );
+  }
+
+  if (config?.mobile_repository !== EXPECTED_MOBILE_REPOSITORY) {
+    throw new GateConfigValidationError(
+      `mobile_repository must be ${EXPECTED_MOBILE_REPOSITORY}`,
+    );
+  }
+  if (!FULL_SHA.test(config?.mobile_ref ?? '')) {
+    throw new GateConfigValidationError(
+      'mobile_ref must be an exact 40-character commit SHA',
+    );
+  }
+  if (config.artifact_path !== EXPECTED_ARTIFACT_PATH) {
+    throw new GateConfigValidationError(
+      `artifact_path must be ${EXPECTED_ARTIFACT_PATH}`,
+    );
+  }
+  if (config.producer_test_path !== EXPECTED_PRODUCER_TEST_PATH) {
+    throw new GateConfigValidationError(
+      `producer_test_path must be ${EXPECTED_PRODUCER_TEST_PATH}`,
+    );
+  }
+
+  return config;
+}
+
+export function resolveMobileRef(config, override = '') {
+  const mobileRef = override === '' ? config.mobile_ref : override;
+  if (!FULL_SHA.test(mobileRef)) {
+    throw new GateConfigValidationError(
+      'the selected mobile_ref must be an exact 40-character commit SHA',
+    );
+  }
+  return mobileRef.toLowerCase();
+}
+
+async function main() {
+  const configPath = process.argv[2] ?? DEFAULT_CONFIG_PATH;
+  const config = await readGateConfig(configPath);
+  const mobileRef = resolveMobileRef(config, process.env.MOBILE_REF_INPUT ?? '');
+  const output = {
+    mobile_repository: config.mobile_repository,
+    mobile_ref: mobileRef,
+    artifact_path: config.artifact_path,
+    producer_test_path: config.producer_test_path,
+  };
+
+  if (process.env.GITHUB_OUTPUT) {
+    const lines = Object.entries(output).map(([key, value]) => `${key}=${value}`);
+    await import('node:fs/promises').then(({ appendFile }) =>
+      appendFile(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`),
+    );
+  }
+
+  console.log(`[config] PASS ${configPath}`);
+  console.log(`[config] mobile repository: ${output.mobile_repository}`);
+  console.log(`[config] mobile revision: ${output.mobile_ref}`);
+  console.log(`[config] canonical artifact: ${output.artifact_path}`);
+  console.log(`[config] producer test: ${output.producer_test_path}`);
+}
+
+if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(error instanceof GateConfigValidationError
+      ? error.message
+      : `[config] ${error.message}`);
+    process.exitCode = 1;
+  }
+}
+
+export {
+  DEFAULT_CONFIG_PATH,
+  EXPECTED_ARTIFACT_PATH,
+  EXPECTED_MOBILE_REPOSITORY,
+  EXPECTED_PRODUCER_TEST_PATH,
+};

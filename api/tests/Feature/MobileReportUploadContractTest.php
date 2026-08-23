@@ -155,6 +155,42 @@ class MobileReportUploadContractTest extends TestCase
         $this->assertSame($expectedFields, $compiledFields);
     }
 
+    public function test_every_declared_enum_value_is_accepted_by_the_laravel_boundary(): void
+    {
+        Storage::fake('local');
+        $token = $this->fieldReporterToken();
+        $enumFields = array_filter(
+            MobileReportUploadContract::definition()['fields'],
+            fn (array $field): bool => isset($field['enum']),
+        );
+
+        foreach ($enumFields as $fieldName => $field) {
+            foreach ($field['enum'] as $value) {
+                $overrides = match ($fieldName) {
+                    'location_source' => [
+                        'location_source' => $value,
+                        'final_latitude' => 14,
+                        'final_longitude' => 120,
+                        ...($value === 'gps' ? ['gps_accuracy' => 4] : []),
+                    ],
+                    'quality_warnings' => ['quality_warnings' => [$value]],
+                    'symptom_keys' => ['symptom_keys' => [$value]],
+                    default => [$fieldName => $value],
+                };
+
+                $this->postUpload($token, $overrides)->assertCreated();
+            }
+        }
+
+        $this->assertDatabaseCount(
+            'reports',
+            array_sum(array_map(
+                fn (array $field): int => count($field['enum']),
+                $enumFields,
+            )),
+        );
+    }
+
     public function test_declared_text_boundaries_are_accepted_and_the_next_character_is_rejected(): void
     {
         Storage::fake('local');
