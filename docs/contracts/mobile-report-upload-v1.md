@@ -44,6 +44,33 @@ The API stores the uploaded image MIME type and byte size as server-derived meta
 
 The API does not accept HEIC, HEIF, AVIF, or GIF as v1 image formats.
 
+## Image roles and legacy compatibility
+
+CaneGuard keeps three image roles distinct throughout the mobile report lifecycle.
+
+- The source scan image is the original camera or gallery asset captured or selected on the device.
+- The inference image is the normalized image representation passed to the on-device model.
+- The submission image is the upload derivative placed in the multipart `image` part sent to this API.
+
+The API receives only the submission image as `image`; the source scan image and inference image are not additional v1 multipart fields.
+
+Generated mobile submission derivatives target 9 MiB or less, or `9,437,184` bytes, so the producer stays below the API hard maximum while leaving room for multipart transport overhead.
+
+New submissions using unsupported image formats are rejected at the v1 boundary.
+The API does not silently convert HEIC, HEIF, AVIF, or GIF uploads.
+
+A legacy local record whose source image uses an unsupported format may be repaired by the mobile producer before submission by generating a JPEG submission derivative.
+This repair changes only the transmitted derivative; it does not rewrite the source scan image, change the inference image, or change the report's disease or review semantics.
+
+The mobile producer's accepted submission domain must remain a subset of the artifact domain, and the artifact domain must remain inside the Laravel request domain:
+
+```text
+mobile producer domain ⊆ mobile-report-upload-v1 ⊆ Laravel accepted domain
+```
+
+The fast trusted contract gate checks this relationship at the artifact, producer, and Laravel consumer boundaries.
+It supplements rather than replaces P0F, whose separate role is to prove the complete Mobile -> API -> Web -> API -> Mobile system flow.
+
 ## Validation boundary
 
 The Laravel request compiles its validation rules from the JSON artifact through `App\Contracts\MobileReportUploadContract`.
