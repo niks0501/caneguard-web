@@ -148,6 +148,25 @@ describe("FieldValidationMapPage", () => {
     expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
   });
 
+  it("keeps cached map data and the queue usable when the queue refresh fails", () => {
+    vi.mocked(useFieldValidationQueue).mockReturnValue(
+      queryResult(queueData, {
+        error: new ApiError("Unavailable", { status: 503 }),
+        isError: true,
+        isRefetchError: true,
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue/i);
+    expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Open Report" })[0]).toHaveAttribute(
+      "href",
+      "/reports/report-1",
+    );
+  });
+
   it("keeps cached data visible after a refresh error", () => {
     vi.mocked(useFieldValidationMap).mockReturnValue(
       queryResult(mapData, {

@@ -48,6 +48,10 @@ The canonical v1 mobile report upload contract is documented in
 [docs/contracts/mobile-report-upload-v1.md](docs/contracts/mobile-report-upload-v1.md), with the machine-readable source at
 [docs/contracts/mobile-report-upload-v1.json](docs/contracts/mobile-report-upload-v1.json).
 
+Mobile UI synchronization is implemented by the CaneGuard mobile producer against this web-owned upload and status contract.
+The upload contract documents the separate source scan, inference, and submission image roles, the 10 MiB API hard limit, the 9 MiB generated-submission target, legacy JPEG repair, and the mobile-producer subset rule.
+The fast trusted contract gate supplements, rather than replaces, the separate P0F full-system acceptance flow.
+
 Create MySQL databases named `caneguard` and `caneguard_test` with
 `utf8mb4_unicode_ci`, then grant a dedicated local `caneguard_app` user access
 to both.
@@ -114,10 +118,26 @@ npm run check:all
 npm run api:test:mysql
 ```
 
-The API checks use Laravel feature tests and Pint. The web test suite is added
-with the web API infrastructure phase. The MySQL schema suite is read-only,
-refuses to target any database other than `caneguard_test`, and expects the
-latest migrations to have already run.
+The API checks use Laravel feature tests and Pint. The web test suite covers
+map framing, independent map and queue failures, and cached refresh failures.
+The MySQL schema suite is read-only, refuses to target any database other than
+`caneguard_test`, and expects the latest migrations to have already run.
+The focused upload contract checks are documented in
+[docs/testing/mobile-report-upload-contract-gate.md](docs/testing/mobile-report-upload-contract-gate.md).
+The executable Web map and queue regression evidence is documented in
+[docs/testing/web-map-queue-regression.md](docs/testing/web-map-queue-regression.md).
+
+For the local Web/API portion of the upload gate, run:
+
+```bash
+npm run contract:artifact
+npm run contract:config
+npm run contract:test
+npm run contract:consumer
+```
+
+The producer check and complete cross-repository gate additionally require an
+exact mobile checkout as described in the contract-gate documentation.
 
 ## Presentation commands
 
@@ -194,8 +214,9 @@ cannot inherit that shell environment, set `fieldToken` as a secret and
 The token ability is descriptive; the field-reporter role and server-side
 policy remain the authorization boundary. The supplied image is synthetic
 demo evidence, not diagnostic ground truth. Do not commit, paste, or
-screen-record the token. Mobile UI sync is not implemented; the Bruno request
-is the honest submission client for this release.
+screen-record the token. The Bruno request is an API-boundary smoke client for
+this Web/API rehearsal; it does not replace the mobile producer's implemented
+synchronization flow.
 
 Follow this order during the live demonstration:
 
