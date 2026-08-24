@@ -1,300 +1,427 @@
-# CaneGuard Web Monorepo
+# CaneGuard Web + API
 
-CaneGuard is a local defense prototype for municipal agriculture staff to
-review submitted sugarcane field observations. Model output is decision
-support, not a diagnosis.
+CaneGuard is a local decision-support system for municipal agriculture staff reviewing sugarcane field observations.
+AI output is decision support only, not a diagnosis.
 
-## Repository architecture
+This repository, `caneguard-web`, contains the React web workspace at the repository root and the Laravel API in `api/`.
+The companion [CaneGuard Mobile repository](https://github.com/niks0501/caneguard-mobile) is a separate private repository for the Android-first Expo and React Native field app.
+The mobile app captures observations, stores finalized reports offline, and synchronizes them with this API.
 
-This repository contains two applications with separate runtime boundaries:
+## Architecture and local services
 
-- React 19, TypeScript, and Vite at the repository root
-- Laravel 13 and Sanctum in `api/`
-
-There is one root Git repository. Do not initialize another repository inside
-`api/`, move the React application, or expose API/database secrets through
-`VITE_` variables.
-
-## Requirements
-
-- Node.js and npm compatible with Vite 8
-- PHP 8.3–8.5 with PDO MySQL
-- Composer
-- MySQL 8.4 LTS
-
-## Web setup
-
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
+```text
+MySQL 127.0.0.1:3306
+        ^
+        | Laravel API and Sanctum authentication
+        | 127.0.0.1:8000
+        ^                         ^
+        |                         |
+React Web localhost:5173    Android development build
+Sanctum cookie session        bearer token via ADB reverse
 ```
 
-The web runs at `http://localhost:5173`. Values prefixed with `VITE_` are
-public browser configuration.
-Set `VITE_MAPTILER_KEY` in `.env.local` to the browser-visible MapTiler key used
-by the authenticated field-validation map.
-Without a key, the workspace keeps its report table fallback visible and does
-not load the hosted basemap.
-API-backed operational views refresh every 10 minutes by default; override this
-with `VITE_REPORT_REFRESH_MS` in `.env.local` when needed.
+- The Web app uses Vite, React, TypeScript, and `VITE_API_BASE_URL`.
+- The API uses Laravel 13, Sanctum, MySQL, database-backed sessions and cache, and local report-image storage.
+- Web authentication uses Sanctum cookies and the configured CORS and stateful-domain values.
+- Mobile authentication uses a Sanctum bearer token and the `/api/v1/mobile/*` routes.
+- The root `npm run api:dev` script starts the API on `127.0.0.1:8000`.
+- The root `npm run dev` script starts the Web app on Vite's default local URL, `http://localhost:5173`.
+- The API health endpoint is `GET http://127.0.0.1:8000/api/health`.
 
-## API and MySQL setup
+Start services in this order every day: MySQL, API, Web, ADB reverse, Metro, then the Android development build.
+The database service is managed by your local MySQL installation because this repository does not define a database service command.
 
-The canonical v1 mobile report review-status wire contract is documented in
-[docs/contracts/mobile-report-status-v1.md](docs/contracts/mobile-report-status-v1.md).
+## Prerequisites
 
-The canonical v1 mobile report upload contract is documented in
-[docs/contracts/mobile-report-upload-v1.md](docs/contracts/mobile-report-upload-v1.md), with the machine-readable source at
-[docs/contracts/mobile-report-upload-v1.json](docs/contracts/mobile-report-upload-v1.json).
+These requirements come from the checked-in package, Composer, environment, and Mobile repository files.
 
-Mobile UI synchronization is implemented by the CaneGuard mobile producer against this web-owned upload and status contract.
-The upload contract documents the separate source scan, inference, and submission image roles, the 10 MiB API hard limit, the 9 MiB generated-submission target, legacy JPEG repair, and the mobile-producer subset rule.
-The fast trusted contract gate supplements, rather than replaces, the separate P0F full-system acceptance flow.
+- Git and access to both private GitHub repositories.
+- Node.js and npm compatible with the checked-in root and Mobile lockfiles.
+- PHP satisfying `api/composer.json`'s `^8.3` constraint, Composer, and PDO MySQL.
+- A MySQL service reachable at `127.0.0.1:3306` with `utf8mb4` support.
+- An Android device or emulator and `adb` for the native workflow.
+- An installed Expo development build for the full Mobile app.
+  Expo Go is not sufficient because the app uses native TensorFlow Lite and other native modules.
+- An authenticated EAS CLI satisfying the Mobile repository's `eas.json` CLI requirement of `>= 21.2.0` when you need to build a development APK.
 
-Create MySQL databases named `caneguard` and `caneguard_test` with
-`utf8mb4_unicode_ci`, then grant a dedicated local `caneguard_app` user access
-to both.
+The root Web package uses Vite 8.
+The Mobile package pins Expo `~57.0.11`, React Native `0.86.2`, and its native dependencies in its package files.
+Do not add a version to this guide when the repository does not declare one.
+
+## Placeholders, private access, and secrets
+
+Commands below use angle-bracket placeholders that must be replaced before running.
+`<mysql-admin-user>` is a local MySQL account allowed to create databases and users.
+`<local-db-password>` is a password you choose for the local `caneguard_app` account and then put in `api/.env` as `DB_PASSWORD`.
+`<local-field-reporter-password>`, `<local-reviewer-password>`, and `<local-admin-password>` are local passwords you choose for the seeded demo accounts.
+`<apk-path>` is the path to the development APK produced by EAS.
+
+Both repositories are private.
+Authenticate your Git client with GitHub before cloning and do not put a token, password, or credential in a clone URL.
+All passwords in this guide are placeholders for local values.
+Never commit `api/.env`, the Web `.env.local`, the Mobile `.env`, tokens, or real personal data.
+
+## 1. Clone the two repositories side by side
+
+The commands below create `$HOME/src/caneguard` as the shared parent directory.
 
 ```bash
+# Parent directory: $HOME/src/caneguard
+mkdir -p "$HOME/src/caneguard"
+cd "$HOME/src/caneguard"
+git clone https://github.com/niks0501/caneguard-web.git caneguard-web
+git clone https://github.com/niks0501/caneguard-mobile.git caneguard-mobile
+```
+
+The resulting layout is:
+
+```text
+$HOME/src/caneguard/
+├── caneguard-web/
+└── caneguard-mobile/
+```
+
+The Web/API checkout is one Git repository.
+Do not initialize or clone another repository inside its `api/` directory.
+Keep the Web/API and Mobile directories side by side for the optional cross-repository contract gate.
+The Mobile repository URL is [https://github.com/niks0501/caneguard-mobile](https://github.com/niks0501/caneguard-mobile).
+
+## 2. One-time Web and API setup
+
+Run the following from the Web/API repository root.
+
+```bash
+# Web/API repository: $HOME/src/caneguard/caneguard-web
+cd "$HOME/src/caneguard/caneguard-web"
+npm ci
 npm run api:install
+cp .env.example .env.local
 cp api/.env.example api/.env
+```
+
+`npm run api:install` is a root script that runs Composer in `api/`.
+The `api/package.json` `dev` and `build` scripts are for the Laravel Vite asset package and are not the API server startup command.
+
+### Configure the Web environment
+
+The copied `.env.local` already contains the local API defaults.
+Verify these values before starting Vite:
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000
+VITE_DATA_SOURCE=api
+VITE_REPORT_REFRESH_MS=600000
+VITE_MAPTILER_KEY=
+```
+
+`VITE_MAPTILER_KEY` is optional browser configuration for the hosted basemap.
+All `VITE_*` values are public browser configuration and must never contain API passwords or tokens.
+
+### Configure the API environment
+
+The copied `api/.env` already contains the local Web, Sanctum, and MySQL defaults.
+Set the local database password and all three local demo passwords.
+Keep these values only in `api/.env`.
+
+```dotenv
+APP_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:5173
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+SANCTUM_STATEFUL_DOMAINS=localhost:5173,127.0.0.1:5173
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=caneguard
+DB_USERNAME=caneguard_app
+DB_PASSWORD=<local-db-password>
+DB_CHARSET=utf8mb4
+DB_COLLATION=utf8mb4_unicode_ci
+CANEGUARD_FIELD_PASSWORD=<local-field-reporter-password>
+CANEGUARD_REVIEWER_PASSWORD=<local-reviewer-password>
+CANEGUARD_ADMIN_PASSWORD=<local-admin-password>
+```
+
+`APP_KEY` is generated by the next step and should not be filled with a copied value.
+The copied API example uses database-backed sessions, cache, and queues, so the database migrations must run before the first login.
+
+### Create the local MySQL databases and user
+
+Run this SQL in a local MySQL administrative session.
+Replace `<mysql-admin-user>` and `<local-db-password>` before running the commands.
+
+```bash
+# MySQL client: no repository working directory
+mysql -u <mysql-admin-user> -p
+```
+
+```sql
+CREATE DATABASE IF NOT EXISTS `caneguard`
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS `caneguard_test`
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'caneguard_app'@'127.0.0.1'
+  IDENTIFIED BY '<local-db-password>';
+GRANT ALL PRIVILEGES ON `caneguard`.*
+  TO 'caneguard_app'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON `caneguard_test`.*
+  TO 'caneguard_app'@'127.0.0.1';
+FLUSH PRIVILEGES;
+```
+
+Use the same `<local-db-password>` in `api/.env`.
+If the local MySQL user already exists, keep its existing password or update it through your local MySQL administration process before continuing.
+
+### Migrate and seed
+
+Run the application migration and seed from the Web/API repository root.
+
+```bash
+# Web/API repository: $HOME/src/caneguard/caneguard-web
+cd "$HOME/src/caneguard/caneguard-web"
 php api/artisan key:generate
 php api/artisan migrate
 php api/artisan db:seed
 ```
 
-For an existing installation created before private evidence storage, put the
-application in maintenance mode and run the migration before serving this
-release:
+The seed creates the local demo accounts and synthetic report data.
+The accounts are `field@caneguard.test`, `mao@caneguard.test`, and `admin@caneguard.test`.
+Use the local passwords you set in `CANEGUARD_FIELD_PASSWORD`, `CANEGUARD_REVIEWER_PASSWORD`, and `CANEGUARD_ADMIN_PASSWORD`.
+The Web accepts the reviewer and admin roles, while Mobile synchronization requires the field-reporter role.
+
+Prepare the separate MySQL schema used by the read-only MySQL test suite.
+Do not seed this database for the normal onboarding flow.
 
 ```bash
-php api/artisan down
-php api/artisan reports:secure-images
-php api/artisan reports:secure-images --remove-public
-php api/artisan up
+# Web/API repository: $HOME/src/caneguard/caneguard-web
+cd "$HOME/src/caneguard/caneguard-web"
+DB_DATABASE=caneguard_test php api/artisan migrate --force
 ```
 
-The first command copies and verifies every report image. The second removes
-only verified public copies and the legacy `public/storage` symlink. To roll
-back before the second command, keep using the public copies. After removal,
-restore from the private disk or a backup before recreating a public link.
-Do not switch traffic to this release until the copy-and-verify command passes;
-the authorized image endpoint intentionally reads private storage only.
+## 3. One-time Mobile companion setup
 
-Set the database password and the three local demo account passwords only in
-`api/.env`. Never commit that file. The seeded accounts are:
-
-- `field@caneguard.test`
-- `mao@caneguard.test`
-- `admin@caneguard.test`
-
-## Local development
-
-Run the applications in separate terminals:
+Run the following from the separate Mobile repository.
 
 ```bash
-npm run dev
+# Mobile repository: $HOME/src/caneguard/caneguard-mobile
+cd "$HOME/src/caneguard/caneguard-mobile"
+npm ci
+cp .env.example .env
 ```
 
+For the default local Android workflow, keep the Mobile environment at:
+
+```dotenv
+EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+```
+
+The Mobile API client requires an absolute `http` or `https` URL without credentials.
+Development builds may use `http`.
+Restart Metro after changing `.env` because Expo public environment values are bundled into JavaScript.
+
+If a compatible development APK is not installed yet, build it with the existing development profile and install the resulting APK.
+
 ```bash
+# Mobile repository: $HOME/src/caneguard/caneguard-mobile
+cd "$HOME/src/caneguard/caneguard-mobile"
+eas build --platform android --profile development
+adb install <apk-path>
+```
+
+Replace `<apk-path>` with the actual APK path before running `adb install`.
+The development profile produces an internal Android APK and enables the development client.
+Do not use Expo Go for the full native workflow.
+
+## 4. Every-day startup order
+
+Use separate terminals and keep each long-running command open.
+
+### 1. Start MySQL
+
+Start the local MySQL service using the service manager for your installation.
+There is no MySQL start script in this repository.
+
+### 2. Start the API
+
+```bash
+# Terminal 1, Web/API repository: $HOME/src/caneguard/caneguard-web
+cd "$HOME/src/caneguard/caneguard-web"
 npm run api:dev
 ```
 
-The API runs at `http://localhost:8000`. Its readiness endpoint is
-`GET http://localhost:8000/api/health`. Authenticated report endpoints use the
-`/api/v1` prefix; browser requests use Sanctum cookies, while mobile-compatible
-submission and status requests use Sanctum bearer tokens.
-
-For the primary wireless Android development-build connection workflow, see
-[Physical Android API connectivity](docs/development/physical-android-api.md).
-
-## Verification
+The API binds to `127.0.0.1:8000`.
+Verify it before starting the clients:
 
 ```bash
+# Any terminal
+curl http://127.0.0.1:8000/api/health
+```
+
+A healthy response has HTTP 200 and reports `data.status` as `ok`, with both `database` and `storage` checks as `ready`.
+
+### 3. Start the Web app
+
+```bash
+# Terminal 2, Web/API repository: $HOME/src/caneguard/caneguard-web
+cd "$HOME/src/caneguard/caneguard-web"
+npm run dev
+```
+
+Open `http://localhost:5173` after Vite reports that it is ready.
+
+### 4. Connect Android to the local API without a developer-specific IP
+
+The team default is ADB reverse.
+It maps the Android device's `127.0.0.1:8000` to the host's API loopback port, so no LAN address is checked into `.env` or this README.
+
+```bash
+# Terminal 3, any directory with adb access
+adb devices
+adb reverse tcp:8000 tcp:8000
+adb reverse --list
+```
+
+The reverse listing should include `tcp:8000 tcp:8000`.
+Keep the Mobile `.env` value at `http://127.0.0.1:8000` when using this mapping.
+Keep Wi-Fi enabled when wireless ADB is controlling the phone.
+
+For the reviewed fallback and its local-network safety constraints, see [Physical Android API connectivity](docs/development/physical-android-api.md).
+Do not expose the loopback development server publicly or commit a developer's LAN address.
+
+### 5. Start Metro
+
+```bash
+# Terminal 4, Mobile repository: $HOME/src/caneguard/caneguard-mobile
+cd "$HOME/src/caneguard/caneguard-mobile"
+npm run start -- --dev-client
+```
+
+### 6. Launch the Android development build
+
+With the development APK installed and Metro ready, open the installed CaneGuard Mobile development build on the Android device or emulator.
+The Mobile repository also provides this Expo launcher script when a device or emulator is attached:
+
+```bash
+# Mobile repository: $HOME/src/caneguard/caneguard-mobile
+cd "$HOME/src/caneguard/caneguard-mobile"
+npm run android
+```
+
+Use the installed development build, not Expo Go.
+
+## 5. Fast end-to-end smoke checklist
+
+Use only the local demo passwords from `api/.env`.
+Do not use real farmer or production data.
+
+1. Confirm `curl http://127.0.0.1:8000/api/health` reports `ok`, `database: ready`, and `storage: ready`.
+2. Open `http://localhost:5173` and sign in as `mao@caneguard.test` with the local reviewer password.
+3. Confirm the Web dashboard loads seeded report data and the authenticated session survives a refresh.
+4. Open the Android development build and sign in as `field@caneguard.test` with the local field-reporter password.
+5. Create a valid field report, complete its required fields and location, finalize it locally, and trigger Mobile synchronization.
+6. Refresh the Web dashboard, open the synchronized report, and save a reviewer status and note.
+7. Return to Mobile, refresh or trigger its normal status synchronization, and confirm the report reflects the Web review.
+
+This path proves the local API, Web authentication, Mobile bearer authentication, report upload, Web review, and Mobile status synchronization are using the same API and database.
+
+## Troubleshooting
+
+### API health is unavailable
+
+Check that MySQL is running and that `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_HOST`, and `DB_PORT` in `api/.env` match the local account.
+Run `php api/artisan migrate` against the application database if migrations have not been applied.
+The health endpoint requires both the database and local storage checks to be ready.
+
+### Web login or CORS fails
+
+Confirm that the Web URL is `http://localhost:5173` and that `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, and `SANCTUM_STATEFUL_DOMAINS` in `api/.env` contain the matching values.
+Restart the API and Vite processes after changing environment files.
+The Web client uses cookies and credentials, not a bearer token.
+
+### Mobile says the server is unavailable
+
+Confirm that `adb devices` shows the device as `device` and that `adb reverse --list` includes `tcp:8000 tcp:8000`.
+Re-run `adb reverse tcp:8000 tcp:8000` while the device is connected.
+Confirm that Mobile `.env` contains `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` and restart Metro and the development build after changing it.
+If the device remains controllable by wireless ADB but the API is unavailable, fix the API process or reverse mapping before changing the app code.
+
+### Seeding fails with a missing password error
+
+Set all three `CANEGUARD_*_PASSWORD` values in `api/.env` and run `php api/artisan db:seed` again.
+The seeder intentionally refuses to create demo users with empty passwords.
+
+### MySQL validation tests fail because tables are missing
+
+The MySQL suite targets `caneguard_test` and expects its latest migrations to already exist.
+Run `DB_DATABASE=caneguard_test php api/artisan migrate --force` and then rerun the suite.
+Do not point the read-only schema tests at a shared or production database.
+
+### Metro or the native runtime is stale
+
+Restart Metro after Mobile `.env` changes.
+Reinstall or rebuild the development APK when native dependencies or native configuration change.
+Expo Go cannot validate the TensorFlow Lite, camera, filesystem, SQLite, or synchronization behavior used by this app.
+
+## Validation commands
+
+Run the Web/API checks from the Web/API repository root.
+
+```bash
+# Web/API repository: $HOME/src/caneguard/caneguard-web
+cd "$HOME/src/caneguard/caneguard-web"
 npm run check:web
 npm run check:api
 npm run check:all
 npm run api:test:mysql
 ```
 
-The API checks use Laravel feature tests and Pint. The web test suite covers
-map framing, independent map and queue failures, and cached refresh failures.
-The MySQL schema suite is read-only, refuses to target any database other than
-`caneguard_test`, and expects the latest migrations to have already run.
-The focused upload contract checks are documented in
-[docs/testing/mobile-report-upload-contract-gate.md](docs/testing/mobile-report-upload-contract-gate.md).
-The executable Web map and queue regression evidence is documented in
-[docs/testing/web-map-queue-regression.md](docs/testing/web-map-queue-regression.md).
+`npm run check:all` runs the Web lint, typecheck, tests, and build, followed by the API feature tests and Pint format check.
+`npm run api:test:mysql` is read-only and requires the separately migrated `caneguard_test` database.
 
-For the local Web/API portion of the upload gate, run:
+Run the local Web/API side of the upload contract gate when changing the upload boundary.
 
 ```bash
+# Web/API repository: $HOME/src/caneguard/caneguard-web
+cd "$HOME/src/caneguard/caneguard-web"
 npm run contract:artifact
 npm run contract:config
 npm run contract:test
 npm run contract:consumer
 ```
 
-The producer check and complete cross-repository gate additionally require an
-exact mobile checkout as described in the contract-gate documentation.
-
-## Presentation commands
-
-Set `APP_DEBUG=false` in the uncommitted `api/.env` before the presentation,
-confirm the MySQL service is already running, and explicitly keep this local
-rehearsal on `caneguard_test`:
+Run the Mobile checks from the Mobile repository root.
 
 ```bash
-npm ci
-npm run check:all
-DB_CONNECTION=mysql DB_DATABASE=caneguard_test \
-  php api/artisan migrate:status
-php api/artisan route:list
-DB_CONNECTION=mysql DB_DATABASE=caneguard_test \
-  npm run api:dev
-npm run dev
+# Mobile repository: $HOME/src/caneguard/caneguard-mobile
+cd "$HOME/src/caneguard/caneguard-mobile"
+npm run lint
+npm run typecheck
+npm test
+npm run db:check
+npm run e2e:doctor
 ```
 
-Keep MySQL running on port `3306`, the API on `8000`, and the web on `5173`.
-Both development servers remain bound to loopback. Present from the same
-machine or by screen sharing. Do not expose the repository-root Vite
-development server to a LAN: it is a development tool, not a hardened file
-server. A future LAN presentation requires an isolated built-asset document
-root plus an explicitly reviewed API binding, CORS/Sanctum cookie policy, and
-host-firewall configuration.
-
-## Release rehearsal
-
-Run the MySQL contract and whole-flow release test only against
-`caneguard_test`. The test refuses any other database, wraps its records in a
-transaction, and removes its uploaded image:
+Run the Mobile Maestro suite only when a fresh compatible development build, Metro session, API environment, and Android device or emulator are available.
 
 ```bash
-npm run api:test:mysql
-cd api
-vendor/bin/phpunit --configuration=phpunit.mysql.xml \
-  --filter ReleaseDemoFlowMySqlTest
-vendor/bin/phpunit --configuration=phpunit.mysql.xml \
-  --filter ReleaseDemoFlowMySqlTest
+# Mobile repository: $HOME/src/caneguard/caneguard-mobile
+cd "$HOME/src/caneguard/caneguard-mobile"
+npm run e2e
 ```
 
-The two explicit runs are the release rehearsal. Each run logs in, loads the
-dashboard, submits a prepared mobile-compatible report through a separate
-bearer-token client, refreshes the queue, opens and reviews the report, reads
-it again to prove persistence, and logs out.
+## Advanced contracts and full-system acceptance
 
-For the live presentation, first issue a dedicated field-reporter token that
-expires after 30 minutes without printing it to the terminal:
+The canonical Mobile upload and review-status contracts live in [the Web/API contracts directory](docs/contracts).
+The fast cross-repository upload gate can evaluate an exact clean Mobile checkout with `MOBILE_REPO_DIR="$HOME/src/caneguard/caneguard-mobile" npm run contract:gate`.
+The gate requires the exact Mobile commit pinned in `ci/mobile-report-upload-gate.json` and does not replace a device flow.
 
-```bash
-umask 077
-token_file="$(mktemp /tmp/caneguard-field-token-XXXXXXXX)"
-TOKEN_FILE="$token_file" \
-DB_CONNECTION=mysql DB_DATABASE=caneguard_test \
-php api/artisan tinker --execute='
-$user = App\Models\User::where("email", "field@caneguard.test")->firstOrFail();
-$user->tokens()->where("name", "caneguard-release-demo")->delete();
-$token = $user->createToken(
-    "caneguard-release-demo",
-    ["report:submit"],
-    now()->addMinutes(30),
-)->plainTextToken;
-file_put_contents((string) getenv("TOKEN_FILE"), $token);
-'
-IFS= read -r CANEGUARD_FIELD_TOKEN < "$token_file"
-export CANEGUARD_FIELD_TOKEN
-export CANEGUARD_DEMO_IMAGE="$PWD/api/database/seeders/assets/synthetic-sugarcane-rust.png"
-```
+P0F is the separate full-system acceptance path for Android development build -> API -> Web review -> API status -> originating Mobile report.
+Use [the P0F acceptance gate](docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0F-CROSS-SYSTEM-ACCEPTANCE-GATE.md) after the fast checks pass.
 
-Only after exporting the variables, launch Bruno from that same process
-environment, open `demo/bruno`, and select Local. If the desktop launcher
-cannot inherit that shell environment, set `fieldToken` as a secret and
-`imagePath` through Bruno's environment UI for this session instead.
-The token ability is descriptive; the field-reporter role and server-side
-policy remain the authorization boundary. The supplied image is synthetic
-demo evidence, not diagnostic ground truth. Do not commit, paste, or
-screen-record the token. The Bruno request is an API-boundary smoke client for
-this Web/API rehearsal; it does not replace the mobile producer's implemented
-synchronization flow.
+## Further references
 
-Follow this order during the live demonstration:
-
-1. Log in as the reviewer.
-2. Show the dashboard.
-3. Submit the prepared report through Bruno.
-4. Refresh and open the submitted report.
-5. Review the evidence and mark it For Field Validation with a neutral note.
-6. Refresh the browser and confirm the saved review.
-7. Log out.
-
-Immediately revoke and remove the presentation token:
-
-```bash
-DB_CONNECTION=mysql DB_DATABASE=caneguard_test \
-php api/artisan tinker --execute='
-$user = App\Models\User::where("email", "field@caneguard.test")->firstOrFail();
-$user->tokens()->where("name", "caneguard-release-demo")->delete();
-echo $user->tokens()->where("name", "caneguard-release-demo")->exists()
-    ? "token-still-present"
-    : "token-revoked";
-'
-unset CANEGUARD_FIELD_TOKEN
-rm -f -- "$token_file"
-unset token_file
-```
-
-## Rehearsal backup and rollback
-
-The local presentation above uses `caneguard_test`, so its backup must target
-that same database. Create a unique staging directory outside the repository
-with restrictive permissions. The database client option file must also be
-private and must never be added to Git:
-
-```bash
-umask 077
-release_dir="$(mktemp -d /tmp/caneguard-rehearsal-XXXXXXXX)"
-mysqldump --defaults-extra-file=/private/path/mysql-client.cnf \
-  --single-transaction --routines --triggers \
-  --databases caneguard_test \
-  > "$release_dir/caneguard_test.sql"
-tar -czf "$release_dir/private-evidence.tar.gz" \
-  -C api/storage/app private
-tar -czf "$release_dir/web-build.tar.gz" dist
-git bundle create "$release_dir/source.bundle" --all
-tar -czf "$release_dir/bruno.tar.gz" demo/bruno
-cp api/database/seeders/assets/synthetic-sugarcane-rust.png \
-  "$release_dir/rehearsal-image.png"
-(
-  cd "$release_dir"
-  find . -type f ! -name SHA256SUMS -print0 \
-    | sort -z \
-    | xargs -0 sha256sum > SHA256SUMS
-)
-```
-
-`/tmp` is staging only. Copy the completed directory to durable,
-access-controlled storage and verify the checksum manifest there. Keep the
-rehearsal dump, evidence archive, built web assets, source bundle, Bruno
-request, test image, approved screenshots or recording, and checksum manifest
-together. Add a `CREDENTIALS-REFERENCE.txt` stating that no credential is
-stored in the artifact, that demo passwords remain in ignored `api/.env`, and
-that the named 30-minute token was revoked. Never place a password, token, or
-database option file in the release directory; private credentials remain
-separate.
-
-To roll back this local rehearsal, stop its servers, restore source from the
-bundle, restore the matching `caneguard_test` dump and private-evidence archive,
-rebuild, rerun `npm run check:all`, and verify `/api/health` before resuming the
-rehearsal. Database or evidence restore is destructive and must be approved
-for the exact target first.
-
-The `caneguard_test` dump is not a production backup. Before any future live
-deployment, resolve and confirm the actual database and evidence-storage
-targets, obtain approval for those exact targets, create and restore-test a
-separate backup, then reference that backup in the deployment rollback plan.
-Never use the rehearsal dump to roll back a different database.
-
-After two successful rehearsals, freeze dependencies and features. Permit only
-critical fixes, and rerun both the full automated gate and the two rehearsal
-runs after every such fix.
+- [Physical Android API connectivity](docs/development/physical-android-api.md)
+- [Mobile report upload contract](docs/contracts/mobile-report-upload-v1.md)
+- [Mobile report review-status contract](docs/contracts/mobile-report-status-v1.md)
+- [Mobile upload contract gate](docs/testing/mobile-report-upload-contract-gate.md)
+- [Web map and queue regression evidence](docs/testing/web-map-queue-regression.md)
+- [CaneGuard Mobile repository](https://github.com/niks0501/caneguard-mobile)
