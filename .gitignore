@@ -59,6 +59,9 @@ graphify-out/cache/
 .env.local
 .env.*.local
 
+# QA staging runtime, credentials, worktree, service state, and logs
+/.qa-staging/*
+!/.qa-staging/staging.env.example
 
 
 # >>> AkiDev project-local runtime >>>
