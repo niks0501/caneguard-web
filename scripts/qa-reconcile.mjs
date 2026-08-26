@@ -712,6 +712,7 @@ function main(argv) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  console.warn("[deprecated] qa-reconcile is retired. Use the simple npm run staging workflow.");
   try {
     main(process.argv.slice(2));
   } catch (error) {
