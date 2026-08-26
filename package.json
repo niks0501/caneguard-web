@@ -18,6 +18,8 @@
     "api:format:check": "cd api && vendor/bin/pint --test",
     "qa:staging": "node scripts/qa-staging.mjs",
     "qa:staging:test": "node --test scripts/qa-staging.node-test.mjs",
+    "qa:open": "node scripts/qa-open.mjs",
+    "qa:open:test": "node --test scripts/qa-open.node-test.mjs",
     "api:migrate": "php api/artisan migrate",
     "api:seed": "php api/artisan db:seed",
     "contract:artifact": "node scripts/validate-mobile-report-upload-v1.mjs",
