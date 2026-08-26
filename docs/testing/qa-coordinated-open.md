@@ -3,6 +3,7 @@
 `npm run qa:open` opens a fixed CaneGuard candidate only after the Web/API, Mobile, staging, public ingress, EAS, and device-preparation gates pass.
 
 When human QA finishes, use [qa-cycle-closure.md](./qa-cycle-closure.md) to approve or abandon the cycle.
+For a complete synthetic rehearsal and acceptance traceability matrix, use [qa-cycle-rehearsal.md](./qa-cycle-rehearsal.md).
 
 The command operates on two explicitly named repositories.
 It creates the same `qa/YYYY-MM-DD-NN` branch in `caneguard-web` and `caneguard-mobile` directly from the supplied full commit SHAs.

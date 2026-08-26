@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1787708801.7020235,
-    "ast_hash": "0d4886f0d92a0b0395cbe49e2cf55937",
+    "mtime": 1787712909.697075,
+    "ast_hash": "f14d4fb2cd6e9d31908abf1c020f5f8f",
     "semantic_hash": ""
   },
   "index.html": {
@@ -3220,8 +3220,8 @@
     "semantic_hash": ""
   },
   "docs/testing/qa-coordinated-open.md": {
-    "mtime": 1787709765.2137985,
-    "ast_hash": "992e7f238accaa697a30ce709e3e9bf6",
+    "mtime": 1787712909.697075,
+    "ast_hash": "f89ad3d43edf9558725a8d38355c704c",
     "semantic_hash": ""
   },
   "scripts/qa-reconcile.mjs": {
@@ -3240,18 +3240,23 @@
     "semantic_hash": ""
   },
   "scripts/qa-close.mjs": {
-    "mtime": 1787710479.061639,
-    "ast_hash": "c5c6513ea646785f7d875430cfbdae92",
+    "mtime": 1787710697.9775872,
+    "ast_hash": "92cbae95a78a7223d1311d569585511b",
     "semantic_hash": ""
   },
   "scripts/qa-close.node-test.mjs": {
-    "mtime": 1787710342.2256672,
-    "ast_hash": "c6e89c02ff24dce958e3a49d927f5a80",
+    "mtime": 1787710745.2290192,
+    "ast_hash": "82de26d011f5e9f79debe40ae7577e52",
     "semantic_hash": ""
   },
   "docs/testing/qa-cycle-closure.md": {
     "mtime": 1787709757.1497974,
     "ast_hash": "9820d780a0b17675ab8a60343521f942",
+    "semantic_hash": ""
+  },
+  "docs/testing/qa-cycle-rehearsal.md": {
+    "mtime": 1787712895.4130554,
+    "ast_hash": "48280e59d9fa8ee8cc324d1686af698b",
     "semantic_hash": ""
   }
 }
