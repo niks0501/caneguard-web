@@ -50,6 +50,7 @@ const CONFIG_PLACEHOLDER = /^(?:<[^>]+>|replace[-_ ]?me|change[-_ ]?me)$/i;
 const PRIVATE_BIND_HOST = "127.0.0.1";
 const FUNNEL_PORTS = new Set(["443", "8443", "10000"]);
 const NPM_COMMAND = process.platform === "win32" ? "npm.cmd" : "npm";
+const TEST_API_BASE_URL = "http://localhost:8000";
 const SEEDED_REPORT_CLIENT_UUID = "30000000-0000-4000-8000-000000000001";
 const REQUIRED_KEYS = [
   "QA_BRANCH",
@@ -424,10 +425,19 @@ function buildConfidenceEnvironment(config) {
   return environment;
 }
 
-function runConfidenceCommand(config, worktree, args) {
+export function buildWebCheckEnvironment(config) {
+  const environment = buildConfidenceEnvironment(config);
+  environment.VITE_API_BASE_URL = TEST_API_BASE_URL;
+  environment.VITE_MAPTILER_KEY = "";
+  return environment;
+}
+
+function runConfidenceCommand(config, worktree, args, { webCheck = false } = {}) {
   const result = spawnSync(NPM_COMMAND, args, {
     cwd: worktree,
-    env: buildConfidenceEnvironment(config),
+    env: webCheck
+      ? buildWebCheckEnvironment(config)
+      : buildConfidenceEnvironment(config),
     stdio: "inherit",
   });
 
@@ -545,6 +555,21 @@ function assertNoDevelopmentEnv(worktree) {
     throw new Error(
       `Remove development environment files from the QA worktree before starting: ${present.join(", ")}. ` +
         "Use .qa-staging/staging.env as the only runtime source.",
+    );
+  }
+}
+
+export function assertStagingDependencies(worktree) {
+  const requiredPaths = [
+    join(worktree, "node_modules"),
+    join(worktree, "api", "vendor", "autoload.php"),
+  ];
+  const missingPaths = requiredPaths.filter((path) => !existsSync(path));
+
+  if (missingPaths.length > 0) {
+    throw new Error(
+      `QA staging dependencies are missing: ${missingPaths.join(", ")}. ` +
+        "Run npm run staging -- checkout, then cd .qa-staging/worktree && npm ci && composer install --working-dir=api before rerunning npm run staging.",
     );
   }
 }
@@ -1273,6 +1298,7 @@ async function runAutomatedConfidenceChecks(config, worktree) {
     {
       label: "Web lint, typecheck, tests, build, and API tests",
       args: ["run", "check:all"],
+      webCheck: true,
     },
     {
       label: "mobile report-upload contract artifact",
@@ -1292,7 +1318,7 @@ async function runAutomatedConfidenceChecks(config, worktree) {
   for (const check of checks) {
     results.push(
       await runConfidenceCheck(check.label, () =>
-        runConfidenceCommand(config, worktree, check.args),
+        runConfidenceCommand(config, worktree, check.args, { webCheck: check.webCheck }),
       ),
     );
   }
@@ -1302,6 +1328,7 @@ async function runAutomatedConfidenceChecks(config, worktree) {
 async function runSimpleStaging(config, paths) {
   ensureCheckout(config, paths);
   assertNoDevelopmentEnv(paths.worktree);
+  assertStagingDependencies(paths.worktree);
 
   console.log(`[staging] Using manually selected branch ${config.QA_BRANCH}.`);
   console.log(`[staging] Resetting isolated database ${config.DB_DATABASE}.`);
@@ -1456,6 +1483,9 @@ async function main(argv) {
 
   ensureCheckout(config, paths);
   assertNoDevelopmentEnv(paths.worktree);
+  if (command === "cycle" || command === "start") {
+    assertStagingDependencies(paths.worktree);
+  }
   if (command === "ready") {
     await checkReadiness(config, readinessUrl(config), paths.worktree);
     console.log("QA staging ready: private health, seeded users/reports, and mobile upload exchange passed.");

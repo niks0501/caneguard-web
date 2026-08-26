@@ -1,12 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   EXPECTED_SEEDED_REFERENCE_CODE,
   EXPECTED_SEEDED_REPORT_COUNT,
+  assertStagingDependencies,
   buildFunnelStartArgs,
   buildFunnelStopArgs,
   buildRuntimeEnv,
+  buildWebCheckEnvironment,
   funnelStatusHasTarget,
   readinessUrl,
   parseEnvFile,
@@ -145,6 +150,39 @@ test("runtime environment overrides inherited development values", () => {
   assert.equal(runtime.DB_CONNECTION, "mysql");
   assert.equal(runtime.VITE_DATA_SOURCE, "api");
   assert.equal(runtime.APP_ENV, "qa-staging");
+});
+
+test("web confidence checks use local test defaults instead of the public staging origin", () => {
+  const config = validConfig();
+  config.VITE_MAPTILER_KEY = "staging-map-key";
+  const environment = buildWebCheckEnvironment(config);
+
+  assert.equal(environment.APP_KEY, config.APP_KEY);
+  assert.equal(environment.VITE_API_BASE_URL, "http://localhost:8000");
+  assert.equal(environment.VITE_DATA_SOURCE, "api");
+  assert.equal(environment.VITE_MAPTILER_KEY, "");
+  assert.equal(buildRuntimeEnv(config).VITE_API_BASE_URL, config.VITE_API_BASE_URL);
+  assert.equal(buildRuntimeEnv(config).VITE_MAPTILER_KEY, "staging-map-key");
+});
+
+test("reports actionable dependency setup instructions before PHP starts", () => {
+  const worktree = mkdtempSync(join(tmpdir(), "caneguard-qa-staging-"));
+  mkdirSync(join(worktree, "node_modules"));
+  mkdirSync(join(worktree, "api"));
+
+  try {
+    assert.throws(
+      () => assertStagingDependencies(worktree),
+      (error) =>
+        error instanceof Error &&
+        error.message.includes("api/vendor/autoload.php") &&
+        error.message.includes("Run npm run staging -- checkout") &&
+        error.message.includes("npm ci") &&
+        error.message.includes("composer install"),
+    );
+  } finally {
+    rmSync(worktree, { recursive: true, force: true });
+  }
 });
 
 test("readiness uses the existing deterministic seeded report contract", () => {
