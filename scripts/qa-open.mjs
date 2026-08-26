@@ -579,6 +579,13 @@ function initialRecord({ qaId, webRepo, mobileRepo, webCommit, mobileCommit, rec
       mobile: { name: EXPECTED_REPOSITORIES.mobile, path: mobileRepo, branch: qaId, commit: mobileCommit },
     },
     recordPath,
+    reconciliation: {
+      recordPath: join(
+        dirname(recordPath),
+        `${qaId.replace(/^qa\//, "")}-reconciliation.json`,
+      ),
+      status: "REQUIRED_BEFORE_CLOSURE",
+    },
     staging: { endpoint: null, database: "caneguard_staging", configPath: null },
     mobile: { target: null, delivery: null, identity: null, artifactUrl: null },
     gates: {},
@@ -870,6 +877,7 @@ export function formatQaSummary(record) {
   ];
   if (record.failedGate) lines.push(`Failed gate: ${record.failedGate} - ${record.failure}`);
   lines.push(`Release record: ${record.recordPath}`);
+  lines.push(`Reconciliation record: ${record.reconciliation?.recordPath ?? "not created until a QA fix is found"}`);
   return lines.join("\n");
 }
 

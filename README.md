@@ -421,6 +421,7 @@ Use [the P0F acceptance gate](docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0F-CRO
 
 - [Deterministic local QA staging](docs/testing/qa-local-staging.md)
 - [Coordinated QA cycle opening](docs/testing/qa-coordinated-open.md)
+- [QA fix reconciliation](docs/testing/qa-fix-reconciliation.md)
 - [Physical Android API connectivity](docs/development/physical-android-api.md)
 - [Mobile report upload contract](docs/contracts/mobile-report-upload-v1.md)
 - [Mobile report review-status contract](docs/contracts/mobile-report-status-v1.md)
