@@ -134,6 +134,25 @@ function defaultRecordPath(repo, qaId) {
   );
 }
 
+function assertCycleNotTerminal(repo, qaId) {
+  const releaseRecordPath = join(
+    repo,
+    ".qa-staging",
+    "qa-cycles",
+    `${qaId.replace(/^qa\//, "")}.json`,
+  );
+  if (!existsSync(releaseRecordPath)) return;
+  let record;
+  try {
+    record = JSON.parse(readFileSync(releaseRecordPath, "utf8"));
+  } catch (error) {
+    fail("cycle", `could not read the QA cycle release record: ${error.message}`);
+  }
+  if (new Set(["APPROVED", "ABANDONED"]).has(record?.status)) {
+    fail("cycle", `QA cycle ${qaId} is terminal as ${record.status}; reconciliation cannot be changed`);
+  }
+}
+
 function branchRefCandidates(branch) {
   return [`refs/heads/${branch}`, `refs/remotes/origin/${branch}`];
 }
@@ -228,6 +247,7 @@ export function beginReconciliation(input) {
     repo,
     input.recordPath ?? defaultRecordPath(repo, qaId),
   );
+  assertCycleNotTerminal(repo, qaId);
   const sourceBranch = input.origin === "main" ? resolveMain(repo) : resolveBranch(repo, qaBranch, "qa-history");
   const sourceCommit = assertCommitOnRef(
     repo,
@@ -360,6 +380,7 @@ function updateRecord(record, recordPath) {
 export function reconcileFix(input) {
   const { repo, path } = recordPathFromInput(input);
   const record = readRecord(path, repo);
+  assertCycleNotTerminal(repo, record.qaId);
   const fix = getFix(record, input.fixId);
   const hasMain = input.mainCommit !== undefined;
   const hasQa = input.qaCommit !== undefined;
@@ -426,6 +447,7 @@ function branchHead(repo, branch, gate) {
 export function recordRetest(input) {
   const { repo, path } = recordPathFromInput(input);
   const record = readRecord(path, repo);
+  assertCycleNotTerminal(repo, record.qaId);
   const fix = getFix(record, input.fixId);
   const result = safeString(input.result, "retest result").toLowerCase();
   if (!new Set(["pass", "fail"]).has(result)) fail("retest", "retest result must be pass or fail");

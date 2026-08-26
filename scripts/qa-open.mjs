@@ -5,6 +5,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   writeFileSync,
@@ -194,11 +195,29 @@ function existingQaNumbers(repo, date) {
   return numbers;
 }
 
+function existingQaRecordNumbers(repo, date) {
+  const recordRoot = join(repo, ".qa-staging", "qa-cycles");
+  let entries;
+  try {
+    entries = readdirSync(recordRoot, { withFileTypes: true });
+  } catch {
+    return new Set();
+  }
+  const numbers = new Set();
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const match = entry.name.match(new RegExp(`^${date}-(\\d{2})\\.json$`));
+    if (match) numbers.add(Number(match[1]));
+  }
+  return numbers;
+}
+
 export function nextQaId(date, repositories) {
   if (!QA_DATE.test(date)) fail("qa-id", `date must use YYYY-MM-DD: ${date}`);
   const used = new Set();
   for (const repo of repositories) {
     for (const number of existingQaNumbers(repo, date)) used.add(number);
+    for (const number of existingQaRecordNumbers(repo, date)) used.add(number);
   }
   for (let number = 1; number <= 99; number += 1) {
     if (!used.has(number)) return `qa/${date}-${String(number).padStart(2, "0")}`;
@@ -587,7 +606,14 @@ function initialRecord({ qaId, webRepo, mobileRepo, webCommit, mobileCommit, rec
       status: "REQUIRED_BEFORE_CLOSURE",
     },
     staging: { endpoint: null, database: "caneguard_staging", configPath: null },
-    mobile: { target: null, delivery: null, identity: null, artifactUrl: null },
+    mobile: {
+      target: null,
+      delivery: null,
+      identity: null,
+      artifactUrl: null,
+      sourceCommit: null,
+      apiBaseUrl: null,
+    },
     gates: {},
     failedGate: null,
     failure: null,
@@ -686,6 +712,9 @@ export function openQaCycle(input, dependencies = {}) {
   if (!isInside(mobileRepo, options.mobileTarget)) {
     fail("mobile-target", `Mobile QA target configuration must be inside ${mobileRepo}`);
   }
+  if (existsSync(recordPath)) {
+    fail("qa-id", `QA cycle record already exists at ${recordPath}; choose a new QA ID`);
+  }
   const record = initialRecord({
     qaId,
     webRepo,
@@ -714,6 +743,7 @@ export function openQaCycle(input, dependencies = {}) {
       const result = readStagingConfig(options.stagingConfig, branch);
       record.staging.endpoint = result.config.QA_PUBLIC_URL;
       record.staging.configPath = options.stagingConfig;
+      record.staging.worktreePath = result.config.QA_WORKTREE_PATH;
       return {
         endpoint: result.config.QA_PUBLIC_URL,
         database: result.config.DB_DATABASE,
@@ -741,6 +771,8 @@ export function openQaCycle(input, dependencies = {}) {
       environment: mobileEvidence.environment,
       channel: mobileEvidence.channel,
     };
+    record.mobile.sourceCommit = mobileEvidence.sourceCommit ?? mobileCommit;
+    record.mobile.apiBaseUrl = mobileEvidence.apiBaseUrl ?? staging.endpoint;
     record.mobile.artifactUrl = mobileEvidence.artifactUrl;
     save();
 

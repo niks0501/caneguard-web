@@ -20,6 +20,8 @@
     "qa:staging:test": "node --test scripts/qa-staging.node-test.mjs",
     "qa:open": "node scripts/qa-open.mjs",
     "qa:open:test": "node --test scripts/qa-open.node-test.mjs",
+    "qa:close": "node scripts/qa-close.mjs",
+    "qa:close:test": "node --test scripts/qa-close.node-test.mjs",
     "qa:reconcile": "node scripts/qa-reconcile.mjs",
     "qa:reconcile:test": "node --test scripts/qa-reconcile.node-test.mjs",
     "api:migrate": "php api/artisan migrate",
