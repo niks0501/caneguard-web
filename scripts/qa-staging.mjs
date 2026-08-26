@@ -773,6 +773,7 @@ function resetStagingStorage(worktree) {
   mkdirSync(storageRoot, { recursive: true, mode: 0o700 });
 
   for (const entry of readdirSync(storageRoot)) {
+    if (entry === ".gitignore") continue;
     rmSync(join(storageRoot, entry), { recursive: true, force: true });
   }
 }
