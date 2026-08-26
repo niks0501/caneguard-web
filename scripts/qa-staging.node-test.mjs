@@ -4,7 +4,11 @@ import assert from "node:assert/strict";
 import {
   EXPECTED_SEEDED_REFERENCE_CODE,
   EXPECTED_SEEDED_REPORT_COUNT,
+  buildFunnelStartArgs,
+  buildFunnelStopArgs,
   buildRuntimeEnv,
+  funnelStatusHasTarget,
+  readinessUrl,
   parseEnvFile,
   validateStagingConfig,
 } from "./qa-staging.mjs";
@@ -18,19 +22,23 @@ function validConfig() {
     QA_API_URL: "http://127.0.0.1:18000",
     QA_WEB_HOST: "127.0.0.1",
     QA_WEB_PORT: "15173",
-    QA_WEB_URL: "http://127.0.0.1:15173",
+    QA_WEB_URL: "https://qa-device.example.ts.net",
+    QA_PUBLIC_URL: "https://qa-device.example.ts.net",
+    QA_FUNNEL_PORT: "443",
     APP_NAME: "CaneGuard",
     APP_ENV: "qa-staging",
     APP_KEY: "base64:qa-only-key",
     APP_DEBUG: "false",
     APP_MAINTENANCE_DRIVER: "file",
     APP_MAINTENANCE_STORE: "database",
-    APP_URL: "http://127.0.0.1:18000",
-    FRONTEND_URL: "http://127.0.0.1:15173",
-    CORS_ALLOWED_ORIGINS: "http://127.0.0.1:15173",
-    SANCTUM_STATEFUL_DOMAINS: "127.0.0.1:15173",
+    APP_URL: "https://qa-device.example.ts.net",
+    FRONTEND_URL: "https://qa-device.example.ts.net",
+    CORS_ALLOWED_ORIGINS: "https://qa-device.example.ts.net",
+    SANCTUM_STATEFUL_DOMAINS: "qa-device.example.ts.net",
     SESSION_DRIVER: "database",
-    SESSION_DOMAIN: "127.0.0.1",
+    SESSION_DOMAIN: "",
+    SESSION_SECURE_COOKIE: "true",
+    SESSION_SAME_SITE: "lax",
     FILESYSTEM_DISK: "local",
     QUEUE_CONNECTION: "database",
     CACHE_STORE: "database",
@@ -43,7 +51,7 @@ function validConfig() {
     CANEGUARD_FIELD_PASSWORD: "field-password",
     CANEGUARD_REVIEWER_PASSWORD: "reviewer-password",
     CANEGUARD_ADMIN_PASSWORD: "admin-password",
-    VITE_API_BASE_URL: "http://127.0.0.1:18000",
+    VITE_API_BASE_URL: "https://qa-device.example.ts.net",
     VITE_DATA_SOURCE: "api",
   };
 }
@@ -66,6 +74,42 @@ test("rejects malformed environment lines", () => {
 
 test("accepts the isolated staging database and candidate configuration", () => {
   assert.deepEqual(validateStagingConfig(validConfig()), []);
+});
+
+test("uses one public origin and a private API proxy target", () => {
+  const config = validConfig();
+  assert.equal(config.QA_PUBLIC_URL, config.QA_WEB_URL);
+  assert.equal(config.VITE_API_BASE_URL, config.QA_PUBLIC_URL);
+
+  const runtime = buildRuntimeEnv(config);
+  assert.equal(runtime.QA_API_PROXY_TARGET, config.QA_API_URL);
+  assert.equal(readinessUrl(config), config.QA_API_URL);
+  assert.equal(readinessUrl(config, "public"), config.QA_PUBLIC_URL);
+  assert.deepEqual(buildFunnelStartArgs(config), [
+    "funnel",
+    "--bg",
+    "--https=443",
+    "127.0.0.1:15173",
+  ]);
+  assert.deepEqual(buildFunnelStopArgs("443"), ["funnel", "--https=443", "off"]);
+  assert.equal(
+    funnelStatusHasTarget(
+      { Web: { "https://qa-device.example.ts.net:443": { Proxy: "http://127.0.0.1:15173" } } },
+      "127.0.0.1:15173",
+    ),
+    true,
+  );
+  assert.equal(funnelStatusHasTarget({ Web: { Proxy: "http://127.0.0.1:19000" } }, "127.0.0.1:15173"), false);
+});
+
+test("rejects public origin mismatches and non-private service bindings", () => {
+  const config = validConfig();
+  config.QA_PUBLIC_URL = "https://other.example.ts.net";
+  config.QA_WEB_HOST = "0.0.0.0";
+
+  const errors = validateStagingConfig(config);
+  assert.ok(errors.includes("QA_WEB_URL must match QA_PUBLIC_URL"));
+  assert.ok(errors.includes("QA_WEB_HOST must be 127.0.0.1 to keep local staging private"));
 });
 
 test("rejects development database, non-qa branch, and missing credentials", () => {

@@ -47,6 +47,8 @@ const CONFIG_EXAMPLE_PATH = join(
 const STATE_PATH = join(SCRIPT_ROOT, ".qa-staging", "state.json");
 const LOG_PATH = join(SCRIPT_ROOT, ".qa-staging", "logs");
 const CONFIG_PLACEHOLDER = /^(?:<[^>]+>|replace[-_ ]?me|change[-_ ]?me)$/i;
+const PRIVATE_BIND_HOST = "127.0.0.1";
+const FUNNEL_PORTS = new Set(["443", "8443", "10000"]);
 const REQUIRED_KEYS = [
   "QA_BRANCH",
   "QA_WORKTREE_PATH",
@@ -56,6 +58,8 @@ const REQUIRED_KEYS = [
   "QA_WEB_HOST",
   "QA_WEB_PORT",
   "QA_WEB_URL",
+  "QA_PUBLIC_URL",
+  "QA_FUNNEL_PORT",
   "APP_NAME",
   "APP_ENV",
   "APP_KEY",
@@ -67,7 +71,8 @@ const REQUIRED_KEYS = [
   "CORS_ALLOWED_ORIGINS",
   "SANCTUM_STATEFUL_DOMAINS",
   "SESSION_DRIVER",
-  "SESSION_DOMAIN",
+  "SESSION_SECURE_COOKIE",
+  "SESSION_SAME_SITE",
   "FILESYSTEM_DISK",
   "QUEUE_CONNECTION",
   "CACHE_STORE",
@@ -199,6 +204,28 @@ function isPort(value) {
   return Number.isInteger(port) && port >= 1 && port <= 65535;
 }
 
+function isHttpsOrigin(value) {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.pathname === "/" &&
+      url.search === "" &&
+      url.hash === ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+function originHost(value) {
+  try {
+    return new URL(value).host;
+  } catch {
+    return null;
+  }
+}
+
 function isSafeQaBranch(branch) {
   return (
     /^qa\/[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(branch) &&
@@ -235,9 +262,19 @@ export function validateStagingConfig(config) {
     }
   }
 
-  for (const key of ["QA_API_PORT", "QA_WEB_PORT", "DB_PORT"]) {
+  for (const key of ["QA_API_PORT", "QA_WEB_PORT", "DB_PORT", "QA_FUNNEL_PORT"]) {
     if (config[key] && !isPort(config[key])) {
       errors.push(`${key} must be a TCP port between 1 and 65535`);
+    }
+  }
+
+  if (config.QA_FUNNEL_PORT && !FUNNEL_PORTS.has(String(config.QA_FUNNEL_PORT))) {
+    errors.push("QA_FUNNEL_PORT must be one of 443, 8443, or 10000 for Tailscale Funnel");
+  }
+
+  for (const key of ["QA_API_HOST", "QA_WEB_HOST", "DB_HOST"]) {
+    if (config[key] && config[key] !== PRIVATE_BIND_HOST) {
+      errors.push(`${key} must be ${PRIVATE_BIND_HOST} to keep local staging private`);
     }
   }
 
@@ -261,6 +298,23 @@ export function validateStagingConfig(config) {
     errors.push("VITE_DATA_SOURCE must be api for QA staging");
   }
 
+  if (config.QA_PUBLIC_URL && !isHttpsOrigin(config.QA_PUBLIC_URL)) {
+    errors.push("QA_PUBLIC_URL must be a public HTTPS origin without a path");
+  }
+
+  if (config.QA_PUBLIC_URL && config.QA_WEB_URL && config.QA_PUBLIC_URL !== config.QA_WEB_URL) {
+    errors.push("QA_WEB_URL must match QA_PUBLIC_URL");
+  }
+
+  if (
+    config.QA_API_URL &&
+    config.QA_API_HOST &&
+    config.QA_API_PORT &&
+    config.QA_API_URL !== `http://${config.QA_API_HOST}:${config.QA_API_PORT}`
+  ) {
+    errors.push("QA_API_URL must match the private QA API host and port");
+  }
+
   const requiredRuntimeValues = [
     ["APP_MAINTENANCE_DRIVER", "file"],
     ["SESSION_DRIVER", "database"],
@@ -275,9 +329,10 @@ export function validateStagingConfig(config) {
   }
 
   const urlPairs = [
-    ["QA_API_URL", "APP_URL"],
-    ["QA_API_URL", "VITE_API_BASE_URL"],
-    ["QA_WEB_URL", "FRONTEND_URL"],
+    ["QA_PUBLIC_URL", "APP_URL"],
+    ["QA_PUBLIC_URL", "FRONTEND_URL"],
+    ["QA_PUBLIC_URL", "CORS_ALLOWED_ORIGINS"],
+    ["QA_PUBLIC_URL", "VITE_API_BASE_URL"],
   ];
   for (const [left, right] of urlPairs) {
     if (config[left] && config[right] && config[left] !== config[right]) {
@@ -293,15 +348,23 @@ export function validateStagingConfig(config) {
     errors.push("CORS_ALLOWED_ORIGINS must match QA_WEB_URL");
   }
 
+  const publicHost = originHost(config.QA_PUBLIC_URL ?? "");
   if (
-    config.QA_WEB_URL &&
+    publicHost &&
     config.SANCTUM_STATEFUL_DOMAINS &&
-    !config.SANCTUM_STATEFUL_DOMAINS.split(",").some((domain) =>
-      config.QA_WEB_URL.startsWith(`http://${domain.trim()}`) ||
-      config.QA_WEB_URL.startsWith(`https://${domain.trim()}`),
-    )
+    !config.SANCTUM_STATEFUL_DOMAINS.split(",").some((domain) => domain.trim() === publicHost)
   ) {
-    errors.push("SANCTUM_STATEFUL_DOMAINS must include the QA web host and port");
+    errors.push("SANCTUM_STATEFUL_DOMAINS must include the public Funnel host and port");
+  }
+
+  if (config.SESSION_DOMAIN) {
+    errors.push("SESSION_DOMAIN must be empty so the public origin receives a host-only cookie");
+  }
+  if (config.SESSION_SECURE_COOKIE && config.SESSION_SECURE_COOKIE !== "true") {
+    errors.push("SESSION_SECURE_COOKIE must be true for the public HTTPS origin");
+  }
+  if (config.SESSION_SAME_SITE && config.SESSION_SAME_SITE !== "lax") {
+    errors.push("SESSION_SAME_SITE must be lax for the public QA workspace");
   }
 
   if (config.APP_KEY && !config.APP_KEY.startsWith("base64:")) {
@@ -327,6 +390,8 @@ export function buildRuntimeEnv(config, inherited = process.env) {
   runtimeEnv.DB_CONNECTION = "mysql";
   runtimeEnv.APP_DEBUG = "false";
   runtimeEnv.VITE_DATA_SOURCE = "api";
+  runtimeEnv.QA_API_PROXY_TARGET = config.QA_API_URL;
+  runtimeEnv.QA_PUBLIC_URL = config.QA_PUBLIC_URL;
 
   return runtimeEnv;
 }
@@ -492,6 +557,38 @@ function loadState() {
   }
 }
 
+function writeState(state) {
+  writePrivateFile(
+    STATE_PATH,
+    `${JSON.stringify(state, null, 2)}\n`,
+  );
+}
+
+export function buildFunnelStartArgs(config) {
+  return [
+    "funnel",
+    "--bg",
+    `--https=${config.QA_FUNNEL_PORT}`,
+    `${config.QA_WEB_HOST}:${config.QA_WEB_PORT}`,
+  ];
+}
+
+export function buildFunnelStopArgs(port) {
+  return ["funnel", `--https=${port}`, "off"];
+}
+
+function runTailscale(args) {
+  try {
+    execFileSync("tailscale", args, {
+      cwd: SCRIPT_ROOT,
+      stdio: "inherit",
+    });
+  } catch (error) {
+    const details = error?.stderr?.toString().trim();
+    throw new Error(details || `tailscale ${args.join(" ")} failed`);
+  }
+}
+
 function processIsAlive(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
@@ -502,31 +599,142 @@ function processIsAlive(pid) {
   }
 }
 
-function killGroup(pid, signal) {
-  if (!processIsAlive(pid)) return;
+function processGroupIsAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
-    process.kill(-pid, signal);
+    process.kill(-pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function processStartTime(pid) {
+  if (!processIsAlive(pid)) return null;
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    const commandEnd = stat.lastIndexOf(")");
+    const fields = stat.slice(commandEnd + 2).trim().split(/\s+/);
+    return fields[19] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function processIdentity(pid) {
+  const startTime = processStartTime(pid);
+  return startTime ? { startTime } : null;
+}
+
+function processMatchesIdentity(service) {
+  return Boolean(
+    service?.identity?.startTime &&
+      processStartTime(service.pid) === service.identity.startTime,
+  );
+}
+
+function killGroup(service, signal) {
+  const leaderAlive = processIsAlive(service?.pid);
+  if (!leaderAlive) {
+    if (processGroupIsAlive(service?.pid)) {
+      throw new Error(
+        `Refusing to signal QA process group for PID ${service.pid}: group leader exited before cleanup`,
+      );
+    }
+    return;
+  }
+  if (!processMatchesIdentity(service)) {
+    throw new Error(
+      `Refusing to signal QA process group for PID ${service.pid}: process identity changed or cannot be verified`,
+    );
+  }
+  try {
+    process.kill(-service.pid, signal);
   } catch (error) {
     if (error?.code !== "ESRCH") throw error;
   }
+}
+
+function normalizedFunnelTarget(value) {
+  return value.trim().replace(/\/$/, "").replace(/^http:\/\//, "");
+}
+
+export function funnelStatusHasTarget(status, target) {
+  const expected = normalizedFunnelTarget(target);
+  const candidates = new Set([expected, `http://${expected}`]);
+  const visit = (value) => {
+    if (typeof value === "string") {
+      return candidates.has(value.replace(/\/$/, ""));
+    }
+    if (Array.isArray(value)) return value.some(visit);
+    if (value && typeof value === "object") return Object.values(value).some(visit);
+    return false;
+  };
+  return visit(status);
+}
+
+function readFunnelStatus() {
+  try {
+    const output = execFileSync("tailscale", ["funnel", "status", "--json"], {
+      cwd: SCRIPT_ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return JSON.parse(output);
+  } catch (error) {
+    const details = error?.stderr?.toString().trim();
+    throw new Error(details || `tailscale funnel status --json failed`);
+  }
+}
+
+function stopFunnel() {
+  const state = loadState();
+  if (!state?.funnel) return false;
+
+  const status = readFunnelStatus();
+  if (!funnelStatusHasTarget(status, state.funnel.target)) {
+    throw new Error(
+      `Refusing to stop Funnel port ${state.funnel.port}: current Funnel target does not match ${state.funnel.target}`,
+    );
+  }
+
+  runTailscale(buildFunnelStopArgs(state.funnel.port));
+  const { funnel: _funnel, ...remainingState } = state;
+  if (remainingState.api || remainingState.web) {
+    writeState(remainingState);
+  } else {
+    rmSync(STATE_PATH, { force: true });
+  }
+  return true;
 }
 
 async function stopServices() {
   const state = loadState();
   if (!state) return false;
 
-  for (const service of [state.web, state.api]) {
-    killGroup(service?.pid, "SIGTERM");
+  const activeServices = [state.web, state.api].filter(
+    (service) => processIsAlive(service?.pid) || processGroupIsAlive(service?.pid),
+  );
+  if (activeServices.some((service) => !processMatchesIdentity(service))) {
+    throw new Error(
+      "Refusing to stop QA services because a live process identity cannot be verified from state.json",
+    );
+  }
+
+  for (const service of activeServices) {
+    killGroup(service, "SIGTERM");
   }
 
   const deadline = Date.now() + 3000;
   while (Date.now() < deadline) {
-    if (![state.web?.pid, state.api?.pid].some(processIsAlive)) break;
+    if (!activeServices.some((service) =>
+      processIsAlive(service?.pid) || processGroupIsAlive(service?.pid),
+    )) break;
     await sleep(100);
   }
 
-  for (const service of [state.web, state.api]) {
-    killGroup(service?.pid, "SIGKILL");
+  for (const service of activeServices) {
+    killGroup(service, "SIGKILL");
   }
 
   rmSync(STATE_PATH, { force: true });
@@ -544,11 +752,17 @@ function spawnService(name, command, args, cwd, env, logPath) {
   });
   closeSync(logFd);
 
+  const identity = processIdentity(child.pid);
+  if (!identity) {
+    child.kill("SIGTERM");
+    throw new Error(`Could not record a safe identity for QA ${name} service PID ${child.pid}`);
+  }
+
   child.unref();
   child.once("error", (error) => {
     console.error(`QA ${name} service failed to start: ${error.message}`);
   });
-  return child.pid;
+  return { pid: child.pid, identity };
 }
 
 function resetStagingStorage(worktree) {
@@ -570,10 +784,11 @@ async function startServices(config, paths) {
       "QA staging services are already running. Run ready or stop before starting again.",
     );
   }
-  if (existing) rmSync(STATE_PATH, { force: true });
+  if (existing?.funnel) stopFunnel();
+  if (pathExists(STATE_PATH)) rmSync(STATE_PATH, { force: true });
 
   const env = buildRuntimeEnv(config);
-  const apiPid = spawnService(
+  const api = spawnService(
     "API",
     "php",
     [
@@ -591,7 +806,7 @@ async function startServices(config, paths) {
     env,
     join(paths.logs, "api.log"),
   );
-  const webPid = spawnService(
+  const web = spawnService(
     "Web",
     "npm",
     [
@@ -609,21 +824,14 @@ async function startServices(config, paths) {
     join(paths.logs, "web.log"),
   );
 
-  writePrivateFile(
-    STATE_PATH,
-    `${JSON.stringify(
-      {
-        version: 1,
-        branch: config.QA_BRANCH,
-        worktree: paths.worktree,
-        api: { pid: apiPid },
-        web: { pid: webPid },
-        startedAt: new Date().toISOString(),
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  writeState({
+    version: 2,
+    branch: config.QA_BRANCH,
+    worktree: paths.worktree,
+    api,
+    web,
+    startedAt: new Date().toISOString(),
+  });
 }
 
 async function requestJson(url, options = {}) {
@@ -667,10 +875,14 @@ function cookieHeader(cookieJar) {
   return [...cookieJar.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
 }
 
-async function webLogin(config, email, password) {
+export function readinessUrl(config, boundary = "local") {
+  return boundary === "public" ? config.QA_PUBLIC_URL : config.QA_API_URL;
+}
+
+async function webLogin(config, email, password, apiBaseUrl) {
   const cookieJar = new Map();
-  const csrf = await requestJson(`${config.QA_API_URL}/sanctum/csrf-cookie`, {
-    headers: { Origin: config.QA_WEB_URL },
+  const csrf = await requestJson(`${apiBaseUrl}/sanctum/csrf-cookie`, {
+    headers: { Origin: config.QA_PUBLIC_URL },
   });
   mergeCookies(cookieJar, csrf.response);
   if (csrf.response.status !== 204) {
@@ -680,11 +892,11 @@ async function webLogin(config, email, password) {
   const xsrf = cookieJar.get("XSRF-TOKEN");
   if (!xsrf) throw new Error("CSRF cookie endpoint did not return XSRF-TOKEN");
 
-  const login = await requestJson(`${config.QA_API_URL}/login`, {
+  const login = await requestJson(`${apiBaseUrl}/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Origin: config.QA_WEB_URL,
+      Origin: config.QA_PUBLIC_URL,
       Cookie: cookieHeader(cookieJar),
       "X-XSRF-TOKEN": decodeURIComponent(xsrf),
     },
@@ -698,21 +910,21 @@ async function webLogin(config, email, password) {
   return cookieJar;
 }
 
-async function webGet(config, cookieJar, path) {
-  return requestJson(`${config.QA_API_URL}${path}`, {
+async function webGet(config, cookieJar, path, apiBaseUrl) {
+  return requestJson(`${apiBaseUrl}${path}`, {
     headers: {
-      Origin: config.QA_WEB_URL,
+      Origin: config.QA_PUBLIC_URL,
       Cookie: cookieHeader(cookieJar),
     },
   });
 }
 
-async function webLogout(config, cookieJar) {
+async function webLogout(config, cookieJar, apiBaseUrl) {
   const xsrf = cookieJar.get("XSRF-TOKEN");
-  const logout = await requestJson(`${config.QA_API_URL}/logout`, {
+  const logout = await requestJson(`${apiBaseUrl}/logout`, {
     method: "POST",
     headers: {
-      Origin: config.QA_WEB_URL,
+      Origin: config.QA_PUBLIC_URL,
       Cookie: cookieHeader(cookieJar),
       ...(xsrf ? { "X-XSRF-TOKEN": decodeURIComponent(xsrf) } : {}),
     },
@@ -722,20 +934,20 @@ async function webLogout(config, cookieJar) {
   }
 }
 
-async function checkSeededWebUser(config, user) {
-  const cookies = await webLogin(config, user.email, config[user.passwordKey]);
-  const me = await webGet(config, cookies, "/api/v1/me");
+async function checkSeededWebUser(config, user, apiBaseUrl) {
+  const cookies = await webLogin(config, user.email, config[user.passwordKey], apiBaseUrl);
+  const me = await webGet(config, cookies, "/api/v1/me", apiBaseUrl);
   if (me.response.status !== 200 || me.body?.user?.email !== user.email) {
     throw new Error(`seeded web authentication did not restore ${user.email}`);
   }
   if (me.body?.user?.role !== user.role) {
     throw new Error(`seeded web authentication returned the wrong role for ${user.email}`);
   }
-  await webLogout(config, cookies);
+  await webLogout(config, cookies, apiBaseUrl);
 }
 
-async function checkSeededFieldReporter(config) {
-  const login = await requestJson(`${config.QA_API_URL}/api/v1/mobile/auth/login`, {
+async function checkSeededFieldReporter(config, apiBaseUrl) {
+  const login = await requestJson(`${apiBaseUrl}/api/v1/mobile/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -748,7 +960,7 @@ async function checkSeededFieldReporter(config) {
     throw new Error("seeded field reporter mobile authentication failed");
   }
 
-  const me = await requestJson(`${config.QA_API_URL}/api/v1/mobile/auth/me`, {
+  const me = await requestJson(`${apiBaseUrl}/api/v1/mobile/auth/me`, {
     headers: { Authorization: `Bearer ${login.body.token}` },
   });
   if (
@@ -759,7 +971,7 @@ async function checkSeededFieldReporter(config) {
     throw new Error("seeded field reporter mobile session was not restored");
   }
 
-  const logout = await requestJson(`${config.QA_API_URL}/api/v1/mobile/auth/logout`, {
+  const logout = await requestJson(`${apiBaseUrl}/api/v1/mobile/auth/logout`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${login.body.token}` },
   });
@@ -768,8 +980,8 @@ async function checkSeededFieldReporter(config) {
   }
 }
 
-async function checkReadiness(config) {
-  const health = await requestJson(`${config.QA_API_URL}/api/health`);
+async function checkReadiness(config, apiBaseUrl) {
+  const health = await requestJson(`${apiBaseUrl}/api/health`);
   if (
     health.response.status !== 200 ||
     health.body?.data?.status !== "ok" ||
@@ -779,16 +991,22 @@ async function checkReadiness(config) {
     throw new Error("API health is not ready with database and storage checks");
   }
 
-  await checkSeededFieldReporter(config);
-  await checkSeededWebUser(config, SEEDED_USERS.reviewer);
-  await checkSeededWebUser(config, SEEDED_USERS.administrator);
+  await checkSeededFieldReporter(config, apiBaseUrl);
+  await checkSeededWebUser(config, SEEDED_USERS.reviewer, apiBaseUrl);
+  await checkSeededWebUser(config, SEEDED_USERS.administrator, apiBaseUrl);
 
   const reviewerCookies = await webLogin(
     config,
     SEEDED_USERS.reviewer.email,
     config[SEEDED_USERS.reviewer.passwordKey],
+    apiBaseUrl,
   );
-  const dashboard = await webGet(config, reviewerCookies, "/api/v1/dashboard/summary");
+  const dashboard = await webGet(
+    config,
+    reviewerCookies,
+    "/api/v1/dashboard/summary",
+    apiBaseUrl,
+  );
   if (
     dashboard.response.status !== 200 ||
     dashboard.body?.data?.counts?.total_submitted !== EXPECTED_SEEDED_REPORT_COUNT ||
@@ -803,8 +1021,9 @@ async function checkReadiness(config) {
     config,
     reviewerCookies,
     `/api/v1/reports?search=${encodeURIComponent(EXPECTED_SEEDED_REFERENCE_CODE)}`,
+    apiBaseUrl,
   );
-  await webLogout(config, reviewerCookies);
+  await webLogout(config, reviewerCookies, apiBaseUrl);
   if (
     report.response.status !== 200 ||
     report.body?.meta?.total !== 1 ||
@@ -814,12 +1033,12 @@ async function checkReadiness(config) {
   }
 }
 
-async function waitForReadiness(config, timeoutMs = 30000) {
+async function waitForReadiness(config, apiBaseUrl, timeoutMs = 30000) {
   const deadline = Date.now() + timeoutMs;
   let lastError = null;
   while (Date.now() < deadline) {
     try {
-      await checkReadiness(config);
+      await checkReadiness(config, apiBaseUrl);
       return;
     } catch (error) {
       lastError = error;
@@ -842,6 +1061,39 @@ function runArtisan(config, worktree, args) {
   }
 }
 
+function assertServicesRunning() {
+  const state = loadState();
+  if (!state || !processIsAlive(state.api?.pid) || !processIsAlive(state.web?.pid)) {
+    throw new Error("QA staging API and Web services must be running before starting the public Funnel");
+  }
+  return state;
+}
+
+async function startFunnel(config) {
+  const state = assertServicesRunning();
+  if (state.funnel) {
+    throw new Error("The QA public Funnel is already tracked as running; run public-stop first");
+  }
+
+  runTailscale(buildFunnelStartArgs(config));
+  writeState({
+    ...state,
+    funnel: {
+      url: config.QA_PUBLIC_URL,
+      port: config.QA_FUNNEL_PORT,
+      target: `${config.QA_WEB_HOST}:${config.QA_WEB_PORT}`,
+      startedAt: new Date().toISOString(),
+    },
+  });
+
+  try {
+    await waitForReadiness(config, readinessUrl(config, "public"));
+  } catch (error) {
+    stopFunnel();
+    throw new Error(`public Funnel readiness failed: ${error.message}`);
+  }
+}
+
 function initConfig(configPath) {
   if (pathExists(configPath)) {
     throw new Error(`Refusing to overwrite existing QA staging configuration: ${configPath}`);
@@ -856,11 +1108,11 @@ function initConfig(configPath) {
   );
   writePrivateFile(configPath, contents);
   console.log(`Created ignored QA staging configuration at ${configPath}.`);
-  console.log("Edit QA_BRANCH, DB_PASSWORD, and all three CANEGUARD_*_PASSWORD values before starting.");
+  console.log("Edit QA_BRANCH, QA_PUBLIC_URL and matching public-origin values, DB_PASSWORD, and all three CANEGUARD_*_PASSWORD values before starting.");
 }
 
 function printHelp() {
-  console.log(`Usage: npm run qa:staging -- <command> [--config path]\n\nCommands:\n  init      Create the ignored persistent staging.env from the example.\n  checkout  Add or verify the configured qa/* branch worktree.\n  cycle     Stop services, reset caneguard_staging, migrate, seed, and start.\n  start     Start the selected worktree without resetting its database.\n  ready     Check API health, all seeded authentication, and seeded reports.\n  stop      Stop QA API and Web services without deleting the database.\n  status    Show selected worktree and service state without secrets.\n\nThe default runtime configuration is .qa-staging/staging.env.\nDevelopment .env files are never used as a fallback.`);
+  console.log(`Usage: npm run qa:staging -- <command> [--config path]\n\nCommands:\n  init          Create the ignored persistent staging.env from the example.\n  checkout      Add or verify the configured qa/* branch worktree.\n  cycle         Stop services, reset caneguard_staging, migrate, seed, and start.\n  start         Start the selected worktree without resetting its database.\n  ready         Check private API health, seeded authentication, and seeded reports.\n  public-start  Start Tailscale Funnel for the Web port and run public smoke checks.\n  public-ready  Run health, seeded authentication, and report checks through Funnel.\n  public-stop   Stop the tracked Tailscale Funnel and retain staging services.\n  stop          Stop Funnel and QA API/Web services without deleting the database.\n  status        Show selected worktree, origin, and service state without secrets.\n\nThe default runtime configuration is .qa-staging/staging.env.\nTailscale Funnel is the canonical public HTTPS boundary; the API remains private behind the Web proxy.\nDevelopment .env files are never used as a fallback.`);
 }
 
 async function main(argv) {
@@ -875,12 +1127,22 @@ async function main(argv) {
     initConfig(configPath);
     return;
   }
-  if (command === "stop") {
-    const stopped = await stopServices();
+  if (command === "public-stop") {
+    const stopped = stopFunnel();
     console.log(
       stopped
-        ? "QA services stopped; caneguard_staging was retained."
-        : "QA services were not running; caneguard_staging was retained.",
+        ? "Tailscale Funnel stopped; QA services and caneguard_staging were retained."
+        : "No tracked Tailscale Funnel was running; QA services and caneguard_staging were retained.",
+    );
+    return;
+  }
+  if (command === "stop") {
+    const funnelStopped = stopFunnel();
+    const servicesStopped = await stopServices();
+    console.log(
+      funnelStopped || servicesStopped
+        ? "Tailscale Funnel and QA services stopped; caneguard_staging was retained."
+        : "QA Funnel and services were not running; caneguard_staging was retained.",
     );
     return;
   }
@@ -901,29 +1163,43 @@ async function main(argv) {
     console.log(`Candidate: ${config.QA_BRANCH}`);
     console.log(`Worktree: ${paths.worktree}`);
     console.log(`Database: ${config.DB_DATABASE}`);
-    console.log(`API: ${config.QA_API_URL}`);
-    console.log(`Web: ${config.QA_WEB_URL}`);
+    console.log(`Private API: ${config.QA_API_URL}`);
+    console.log(`Public origin: ${config.QA_PUBLIC_URL}`);
+    console.log(`Web proxy target: ${config.QA_API_URL}`);
     console.log(
       state
-        ? `Services: API ${processIsAlive(state.api?.pid) ? "running" : "stopped"}, Web ${processIsAlive(state.web?.pid) ? "running" : "stopped"}`
-        : "Services: stopped",
+        ? `Services: API ${processIsAlive(state.api?.pid) ? "running" : "stopped"}, Web ${processIsAlive(state.web?.pid) ? "running" : "stopped"}, Funnel ${state.funnel ? "running" : "stopped"}`
+        : "Services: stopped, Funnel stopped",
     );
     return;
   }
 
-  if (!["cycle", "start", "ready"].includes(command)) {
+  if (command === "public-ready") {
+    await waitForReadiness(config, readinessUrl(config, "public"));
+    console.log(`Public QA smoke checks passed through ${config.QA_PUBLIC_URL}.`);
+    return;
+  }
+
+  if (!["cycle", "start", "ready", "public-start"].includes(command)) {
     throw new Error(`Unknown QA staging command: ${command}`);
   }
 
   ensureCheckout(config, paths);
   assertNoDevelopmentEnv(paths.worktree);
   if (command === "ready") {
-    await checkReadiness(config);
-    console.log("QA staging ready: API health, seeded authentication, and seeded reports passed.");
+    await checkReadiness(config, readinessUrl(config));
+    console.log("QA staging ready: private API health, seeded authentication, and seeded reports passed.");
+    return;
+  }
+  if (command === "public-start") {
+    await startFunnel(config);
+    console.log(`Public QA staging ready at ${config.QA_PUBLIC_URL} using Tailscale Funnel.`);
+    console.log("Run npm run qa:staging -- stop when finished; the staging database is retained.");
     return;
   }
 
   if (command === "cycle") {
+    stopFunnel();
     await stopServices();
     resetStagingStorage(paths.worktree);
     runArtisan(config, paths.worktree, ["config:clear"]);
@@ -934,7 +1210,7 @@ async function main(argv) {
 
   try {
     await startServices(config, paths);
-    await waitForReadiness(config);
+    await waitForReadiness(config, readinessUrl(config));
   } catch (error) {
     await stopServices();
     throw error;
