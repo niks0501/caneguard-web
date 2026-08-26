@@ -298,6 +298,92 @@ EXPO_PUBLIC_QA_MODE=true
 Replace the example origin with the value from `.qa-staging/staging.env`.
 Keep `EXPO_PUBLIC_QA_MODE=true` for the QA build.
 
+### Mobile pre-build checklist
+
+Complete this checklist after updating `.env.qa.local` and before running the EAS build.
+Do not build or install the APK until the phone can load the public health URL.
+
+#### Before building
+
+- [ ] Keep the phone and staging host on the same network, or confirm that the phone is reachable through ADB.
+
+  When using ADB to inspect or install the APK, run:
+
+  ```bash
+  adb devices
+  ```
+
+  Enable USB debugging on the phone when using `adb install`.
+  An ADB-connected phone must appear with the state `device`.
+
+- [ ] Confirm that this machine appears in Tailscale and that Funnel is configured for the public QA origin.
+
+  ```bash
+  tailscale status
+  tailscale funnel status
+  ```
+
+  The Funnel URL must be the exact `QA_PUBLIC_URL`, such as `https://device.tailnet.ts.net`.
+
+- [ ] Test the public API from the phone before starting any build.
+  Open this URL in the phone's browser, replacing the example origin with the exact `QA_PUBLIC_URL`.
+
+  ```text
+  https://device.tailnet.ts.net/api/health
+  ```
+
+  Expect JSON with `data.status` set to `ok`, `data.checks.database` set to `ready`, and `data.checks.storage` set to `ready`.
+  If the phone cannot load the URL, fix Tailscale or Funnel first.
+  Do not build the APK yet.
+
+- [ ] Confirm the Mobile QA environment from the `caneguard-mobile` repository root.
+
+  ```bash
+  test -f .env.qa.local
+  grep -E '^EXPO_PUBLIC_(API_BASE_URL|QA_MODE)=' .env.qa.local
+  ```
+
+  `EXPO_PUBLIC_API_BASE_URL` must match the Web `QA_PUBLIC_URL` character for character.
+  Use the same HTTPS origin with no trailing slash.
+  `EXPO_PUBLIC_QA_MODE` must be `true`.
+
+  ```dotenv
+  EXPO_PUBLIC_API_BASE_URL=https://device.tailnet.ts.net
+  EXPO_PUBLIC_QA_MODE=true
+  ```
+
+  Replace the example origin with the exact Web `QA_PUBLIC_URL`.
+  If the Funnel hostname changed since the last build, rebuild the APK because the URL is baked in at build time.
+
+- [ ] Confirm that the existing EAS QA profile and Expo account are correct.
+
+  ```bash
+  cat eas.json
+  eas whoami
+  ```
+
+  Confirm that `build.qa` is intact, uses the existing `qa` channel and Preview EAS environment, and produces the Android APK for internal QA.
+  Confirm that `eas whoami` reports the Expo account that owns the Mobile project's EAS project.
+  Do not create a second profile.
+
+#### Before installing
+
+- [ ] On the phone, uninstall the previous CaneGuard QA APK, or clear its app data/storage.
+  Stale authentication state or the local database can break a clean baseline.
+- [ ] Confirm that the phone has enough free storage.
+- [ ] Grant Android's `Install unknown apps` permission to the browser or installer that will open the APK.
+- [ ] After the EAS build submits, keep the build ID and build details URL from the command output for teammate reference.
+  `npm run staging` does not require an EAS build ID or evidence file.
+  Keep the EAS details URL and artifact/install link because they are needed to retrieve and install the APK.
+
+#### After installing
+
+- [ ] Open the APK and log in as `field@caneguard.test` with the password stored in `CANEGUARD_FIELD_PASSWORD`.
+- [ ] Submit and sync one report.
+- [ ] Open the Web reviewer dashboard at the same `QA_PUBLIC_URL`.
+  Log in as `mao@caneguard.test` with the password stored in `CANEGUARD_REVIEWER_PASSWORD`.
+  Confirm that the submitted report appears in the reviewer dashboard.
+
 ## 6. Build the EAS QA Android APK
 
 Run these commands from the companion `caneguard-mobile` repository.
