@@ -937,10 +937,11 @@ async function webLogout(config, cookieJar, apiBaseUrl) {
 async function checkSeededWebUser(config, user, apiBaseUrl) {
   const cookies = await webLogin(config, user.email, config[user.passwordKey], apiBaseUrl);
   const me = await webGet(config, cookies, "/api/v1/me", apiBaseUrl);
-  if (me.response.status !== 200 || me.body?.user?.email !== user.email) {
+  const meUser = me.body?.user ?? me.body?.data;
+  if (me.response.status !== 200 || meUser?.email !== user.email) {
     throw new Error(`seeded web authentication did not restore ${user.email}: HTTP ${me.response.status} ${JSON.stringify(me.body)}`);
   }
-  if (me.body?.user?.role !== user.role) {
+  if (meUser?.role !== user.role) {
     throw new Error(`seeded web authentication returned the wrong role for ${user.email}: ${JSON.stringify(me.body)}`);
   }
   await webLogout(config, cookies, apiBaseUrl);
