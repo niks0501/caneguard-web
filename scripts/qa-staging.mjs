@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import {
   closeSync,
@@ -49,6 +49,8 @@ const LOG_PATH = join(SCRIPT_ROOT, ".qa-staging", "logs");
 const CONFIG_PLACEHOLDER = /^(?:<[^>]+>|replace[-_ ]?me|change[-_ ]?me)$/i;
 const PRIVATE_BIND_HOST = "127.0.0.1";
 const FUNNEL_PORTS = new Set(["443", "8443", "10000"]);
+const NPM_COMMAND = process.platform === "win32" ? "npm.cmd" : "npm";
+const SEEDED_REPORT_CLIENT_UUID = "30000000-0000-4000-8000-000000000001";
 const REQUIRED_KEYS = [
   "QA_BRANCH",
   "QA_WORKTREE_PATH",
@@ -226,12 +228,19 @@ function originHost(value) {
   }
 }
 
-function isSafeQaBranch(branch) {
+function isSafeStagingBranch(branch) {
+  if (!branch || branch === "main" || branch === "master") return false;
+
   return (
-    /^qa\/[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(branch) &&
+    /^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(branch) &&
     !branch.includes("..") &&
     !branch.endsWith("/") &&
-    !branch.includes("//")
+    !branch.endsWith(".") &&
+    !branch.includes("//") &&
+    !branch.includes("@{") &&
+    !branch.split("/").some(
+      (part) => part.startsWith(".") || part.endsWith(".lock"),
+    )
   );
 }
 
@@ -244,8 +253,10 @@ export function validateStagingConfig(config) {
     }
   }
 
-  if (config.QA_BRANCH && !isSafeQaBranch(config.QA_BRANCH)) {
-    errors.push("QA_BRANCH must name a safe qa/* branch");
+  if (config.QA_BRANCH && !isSafeStagingBranch(config.QA_BRANCH)) {
+    errors.push(
+      "QA_BRANCH must name a safe non-main staging branch (for example staging or qa/2026-08-27-02)",
+    );
   }
 
   if (config.QA_WORKTREE_PATH) {
@@ -396,6 +407,40 @@ export function buildRuntimeEnv(config, inherited = process.env) {
   return runtimeEnv;
 }
 
+function buildConfidenceEnvironment(config) {
+  const environment = {};
+
+  for (const key of ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL"]) {
+    if (process.env[key]) environment[key] = process.env[key];
+  }
+
+  environment.CI = "true";
+  environment.APP_KEY = config.APP_KEY;
+  environment.VITE_API_BASE_URL = config.QA_PUBLIC_URL;
+  environment.VITE_DATA_SOURCE = "api";
+  environment.VITE_REPORT_REFRESH_MS = config.VITE_REPORT_REFRESH_MS ?? "600000";
+  environment.VITE_MAPTILER_KEY = config.VITE_MAPTILER_KEY ?? "";
+
+  return environment;
+}
+
+function runConfidenceCommand(config, worktree, args) {
+  const result = spawnSync(NPM_COMMAND, args, {
+    cwd: worktree,
+    env: buildConfidenceEnvironment(config),
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    throw new Error(`could not start ${NPM_COMMAND}: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      `${NPM_COMMAND} ${args.join(" ")} failed with exit code ${result.status ?? "unknown"}`,
+    );
+  }
+}
+
 function assertPrivateConfigFile(configPath) {
   const fileStat = lstatSync(configPath);
   if (fileStat.isSymbolicLink() || !fileStat.isFile()) {
@@ -410,7 +455,7 @@ function readConfig(configPath) {
   if (!existsSync(configPath)) {
     throw new Error(
       `QA staging configuration is missing at ${configPath}. Run ` +
-        "npm run qa:staging -- init, then fill every credential before starting.",
+        "npm run staging -- init, then fill every credential before starting.",
     );
   }
 
@@ -876,6 +921,99 @@ function cookieHeader(cookieJar) {
   return [...cookieJar.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
 }
 
+async function checkApiHealth(apiBaseUrl) {
+  const health = await requestJson(`${apiBaseUrl}/api/health`);
+  if (
+    health.response.status !== 200 ||
+    health.body?.data?.status !== "ok" ||
+    health.body?.data?.checks?.database !== "ready" ||
+    health.body?.data?.checks?.storage !== "ready"
+  ) {
+    throw new Error(
+      `API health is not ready: HTTP ${health.response.status} ${JSON.stringify(health.body)}`,
+    );
+  }
+}
+
+function buildMobileUploadForm(worktree) {
+  const imagePath = join(worktree, "api", "database", "seeders", "assets", "synthetic-sugarcane-rust.png");
+  if (!existsSync(imagePath)) {
+    throw new Error(`staging upload smoke image is missing at ${imagePath}`);
+  }
+
+  const form = new FormData();
+  const append = (name, value) => form.append(name, String(value));
+
+  append("client_uuid", SEEDED_REPORT_CLIENT_UUID);
+  append("image_source_type", "camera");
+  append("source_width", 1);
+  append("source_height", 1);
+  append("predicted_label", "rust");
+  append("confidence", 0.82);
+  append("class_scores[healthy]", 0.08);
+  append("class_scores[mosaic]", 0.1);
+  append("class_scores[rust]", 0.82);
+  append("symptom_keys[]", "rust");
+  append("checklist_consistency", "consistent");
+  append("reported_severity", "moderate");
+  append("quality_warnings[]", "low-resolution");
+  append("barangay", "Mabini");
+  append("model_version", "caneguard-mobile-v1.0.0");
+  append("preprocess_ms", 12.5);
+  append("inference_ms", 95.75);
+  append("total_ms", 122.25);
+  append("captured_at", "2026-07-20T10:00:00.456+08:00");
+  form.append(
+    "image",
+    new Blob([readFileSync(imagePath)], { type: "image/png" }),
+    "staging-confidence.png",
+  );
+
+  return form;
+}
+
+async function checkSeededMobileReportUpload(config, apiBaseUrl, worktree) {
+  const login = await requestJson(`${apiBaseUrl}/api/v1/mobile/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: SEEDED_USERS.fieldReporter.email,
+      password: config[SEEDED_USERS.fieldReporter.passwordKey],
+      device_name: "qa-staging-confidence",
+    }),
+  });
+  if (login.response.status !== 200 || typeof login.body?.token !== "string") {
+    throw new Error(
+      `mobile upload smoke login failed: HTTP ${login.response.status} ${JSON.stringify(login.body)}`,
+    );
+  }
+
+  const upload = await requestJson(`${apiBaseUrl}/api/v1/mobile/reports`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${login.body.token}`,
+    },
+    body: buildMobileUploadForm(worktree),
+  });
+  if (
+    ![200, 201].includes(upload.response.status) ||
+    upload.body?.data?.identity?.reference_code !== EXPECTED_SEEDED_REFERENCE_CODE ||
+    upload.body?.data?.identity?.client_uuid !== SEEDED_REPORT_CLIENT_UUID
+  ) {
+    throw new Error(
+      `mobile report upload smoke failed: HTTP ${upload.response.status} ${JSON.stringify(upload.body)}`,
+    );
+  }
+
+  const logout = await requestJson(`${apiBaseUrl}/api/v1/mobile/auth/logout`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${login.body.token}` },
+  });
+  if (logout.response.status !== 204) {
+    throw new Error(`mobile upload smoke logout returned HTTP ${logout.response.status}`);
+  }
+}
+
 export function readinessUrl(config, boundary = "local") {
   return boundary === "public" ? config.QA_PUBLIC_URL : config.QA_API_URL;
 }
@@ -982,17 +1120,8 @@ async function checkSeededFieldReporter(config, apiBaseUrl) {
   }
 }
 
-async function checkReadiness(config, apiBaseUrl) {
-  const health = await requestJson(`${apiBaseUrl}/api/health`);
-  if (
-    health.response.status !== 200 ||
-    health.body?.data?.status !== "ok" ||
-    health.body?.data?.checks?.database !== "ready" ||
-    health.body?.data?.checks?.storage !== "ready"
-  ) {
-    throw new Error("API health is not ready with database and storage checks");
-  }
-
+async function checkReadiness(config, apiBaseUrl, worktree = stagingPaths(config).worktree) {
+  await checkApiHealth(apiBaseUrl);
   await checkSeededFieldReporter(config, apiBaseUrl);
   await checkSeededWebUser(config, SEEDED_USERS.reviewer, apiBaseUrl);
   await checkSeededWebUser(config, SEEDED_USERS.administrator, apiBaseUrl);
@@ -1033,14 +1162,21 @@ async function checkReadiness(config, apiBaseUrl) {
   ) {
     throw new Error(`seeded report ${EXPECTED_SEEDED_REFERENCE_CODE} was not available`);
   }
+
+  await checkSeededMobileReportUpload(config, apiBaseUrl, worktree);
 }
 
-async function waitForReadiness(config, apiBaseUrl, timeoutMs = 60000) {
+async function waitForReadiness(
+  config,
+  apiBaseUrl,
+  timeoutMs = 60000,
+  worktree = stagingPaths(config).worktree,
+) {
   const deadline = Date.now() + timeoutMs;
   let lastError = null;
   while (Date.now() < deadline) {
     try {
-      await checkReadiness(config, apiBaseUrl);
+      await checkReadiness(config, apiBaseUrl, worktree);
       return;
     } catch (error) {
       lastError = error;
@@ -1049,6 +1185,23 @@ async function waitForReadiness(config, apiBaseUrl, timeoutMs = 60000) {
     }
   }
   throw new Error(`QA staging readiness timed out: ${lastError?.message ?? "unknown error"}`);
+}
+
+async function waitForHealth(apiBaseUrl, timeoutMs = 60000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+
+  while (Date.now() < deadline) {
+    try {
+      await checkApiHealth(apiBaseUrl);
+      return;
+    } catch (error) {
+      lastError = error;
+      await sleep(1000);
+    }
+  }
+
+  throw new Error(`QA staging API health timed out: ${lastError?.message ?? "unknown error"}`);
 }
 
 function runArtisan(config, worktree, args) {
@@ -1072,7 +1225,7 @@ function assertServicesRunning() {
   return state;
 }
 
-async function startFunnel(config) {
+async function startFunnel(config, { runChecks = true } = {}) {
   const state = assertServicesRunning();
   if (state.funnel) {
     throw new Error("The QA public Funnel is already tracked as running; run public-stop first");
@@ -1089,12 +1242,121 @@ async function startFunnel(config) {
     },
   });
 
+  if (!runChecks) return;
+
   try {
-    await waitForReadiness(config, readinessUrl(config, "public"));
+    await waitForReadiness(
+      config,
+      readinessUrl(config, "public"),
+      60000,
+      stagingPaths(config).worktree,
+    );
   } catch (error) {
     stopFunnel();
     throw new Error(`public Funnel readiness failed: ${error.message}`);
   }
+}
+
+async function runConfidenceCheck(label, action) {
+  try {
+    await action();
+    console.log(`[staging] PASS ${label}`);
+    return { label, passed: true };
+  } catch (error) {
+    console.error(`[staging] FAIL ${label}: ${error.message}`);
+    return { label, passed: false, error: error.message };
+  }
+}
+
+async function runAutomatedConfidenceChecks(config, worktree) {
+  const checks = [
+    {
+      label: "Web lint, typecheck, tests, build, and API tests",
+      args: ["run", "check:all"],
+    },
+    {
+      label: "mobile report-upload contract artifact",
+      args: ["run", "contract:artifact"],
+    },
+    {
+      label: "Laravel mobile report-upload contract tests",
+      args: ["run", "contract:consumer"],
+    },
+    {
+      label: "staging contract helper tests",
+      args: ["run", "contract:test"],
+    },
+  ];
+
+  const results = [];
+  for (const check of checks) {
+    results.push(
+      await runConfidenceCheck(check.label, () =>
+        runConfidenceCommand(config, worktree, check.args),
+      ),
+    );
+  }
+  return results;
+}
+
+async function runSimpleStaging(config, paths) {
+  ensureCheckout(config, paths);
+  assertNoDevelopmentEnv(paths.worktree);
+
+  console.log(`[staging] Using manually selected branch ${config.QA_BRANCH}.`);
+  console.log(`[staging] Resetting isolated database ${config.DB_DATABASE}.`);
+
+  stopFunnel();
+  await stopServices();
+  resetStagingStorage(paths.worktree);
+  runArtisan(config, paths.worktree, ["config:clear"]);
+  runArtisan(config, paths.worktree, ["migrate:fresh", "--seed", "--force"]);
+  try {
+    runArtisan(config, paths.worktree, ["cache:clear"]);
+  } catch {
+    console.warn("[staging] cache:clear was unavailable; continuing with a fresh database.");
+  }
+
+  try {
+    await startServices(config, paths);
+    await waitForHealth(config.QA_API_URL);
+    await startFunnel(config, { runChecks: false });
+  } catch (error) {
+    try {
+      stopFunnel();
+      await stopServices();
+    } catch (cleanupError) {
+      throw new Error(`${error.message}; cleanup failed: ${cleanupError.message}`);
+    }
+    throw error;
+  }
+
+  const results = [];
+  results.push(
+    await runConfidenceCheck("private API and seeded data", () =>
+      waitForReadiness(config, config.QA_API_URL, 60000, paths.worktree),
+    ),
+  );
+  results.push(
+    await runConfidenceCheck(`Funnel and APK/API exchange at ${config.QA_PUBLIC_URL}`, () =>
+      waitForReadiness(config, config.QA_PUBLIC_URL, 60000, paths.worktree),
+    ),
+  );
+  results.push(...await runAutomatedConfidenceChecks(config, paths.worktree));
+
+  const failures = results.filter((result) => !result.passed);
+  if (failures.length > 0) {
+    console.error(
+      `[staging] CONFIDENCE FAIL: ${failures.length} check(s) failed. `
+        + "Staging remains running for investigation; use npm run staging -- stop when finished.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`[staging] CONFIDENCE PASS: ${config.QA_BRANCH} is ready at ${config.QA_PUBLIC_URL}.`);
+  console.log("[staging] EAS evidence is optional. Point the Preview APK at the same public URL.");
+  console.log("[staging] Run npm run staging -- stop when finished; caneguard_staging is retained.");
 }
 
 function initConfig(configPath) {
@@ -1111,15 +1373,15 @@ function initConfig(configPath) {
   );
   writePrivateFile(configPath, contents);
   console.log(`Created ignored QA staging configuration at ${configPath}.`);
-  console.log("Edit QA_BRANCH, QA_PUBLIC_URL and matching public-origin values, DB_PASSWORD, and all three CANEGUARD_*_PASSWORD values before starting.");
+  console.log("Create and push the staging branch, then edit QA_BRANCH, QA_PUBLIC_URL and matching public-origin values, DB_PASSWORD, and all three CANEGUARD_*_PASSWORD values before starting.");
 }
 
 function printHelp() {
-  console.log(`Usage: npm run qa:staging -- <command> [--config path]\n\nCommands:\n  init          Create the ignored persistent staging.env from the example.\n  checkout      Add or verify the configured qa/* branch worktree.\n  cycle         Stop services, reset caneguard_staging, migrate, seed, and start.\n  start         Start the selected worktree without resetting its database.\n  ready         Check private API health, seeded authentication, and seeded reports.\n  public-start  Start Tailscale Funnel for the Web port and run public smoke checks.\n  public-ready  Run health, seeded authentication, and report checks through Funnel.\n  public-stop   Stop the tracked Tailscale Funnel and retain staging services.\n  stop          Stop Funnel and QA API/Web services without deleting the database.\n  status        Show selected worktree, origin, and service state without secrets.\n\nThe default runtime configuration is .qa-staging/staging.env.\nTailscale Funnel is the canonical public HTTPS boundary; the API remains private behind the Web proxy.\nDevelopment .env files are never used as a fallback.`);
+  console.log(`Usage: npm run staging [-- <command>] [--config path]\n\nCommands:\n  run           Reset, seed, start, Funnel, and run the full confidence suite (default).\n  init          Create the ignored persistent staging.env from the example.\n  checkout      Add or verify the manually selected staging branch worktree.\n  cycle         Reset caneguard_staging, migrate, seed, and start without Funnel.\n  start         Start the selected worktree without resetting its database.\n  ready         Check private health, seeded users/reports, and mobile upload exchange.\n  public-start  Start Tailscale Funnel and run public confidence checks.\n  public-ready  Run health, seeded users/reports, and mobile upload through Funnel.\n  public-stop   Stop the tracked Tailscale Funnel and retain staging services.\n  stop          Stop Funnel and API/Web services without deleting the database.\n  status        Show selected branch, origin, and service state without secrets.\n\nWith no command, npm run staging runs the simple workflow.\nThe default runtime configuration is .qa-staging/staging.env.\nTailscale Funnel is the canonical public HTTPS boundary; the API remains private behind the Web proxy.\nDevelopment .env files are never used as a fallback.`);
 }
 
 async function main(argv) {
-  const [command = "help", ...args] = argv;
+  const [command = "run", ...args] = argv;
   const configPath = configPathFromArgs(args);
 
   if (command === "help" || command === "--help" || command === "-h") {
@@ -1178,8 +1440,13 @@ async function main(argv) {
   }
 
   if (command === "public-ready") {
-    await waitForReadiness(config, readinessUrl(config, "public"));
+    await waitForReadiness(config, readinessUrl(config, "public"), 60000, paths.worktree);
     console.log(`Public QA smoke checks passed through ${config.QA_PUBLIC_URL}.`);
+    return;
+  }
+
+  if (command === "run") {
+    await runSimpleStaging(config, paths);
     return;
   }
 
@@ -1190,14 +1457,14 @@ async function main(argv) {
   ensureCheckout(config, paths);
   assertNoDevelopmentEnv(paths.worktree);
   if (command === "ready") {
-    await checkReadiness(config, readinessUrl(config));
-    console.log("QA staging ready: private API health, seeded authentication, and seeded reports passed.");
+    await checkReadiness(config, readinessUrl(config), paths.worktree);
+    console.log("QA staging ready: private health, seeded users/reports, and mobile upload exchange passed.");
     return;
   }
   if (command === "public-start") {
     await startFunnel(config);
     console.log(`Public QA staging ready at ${config.QA_PUBLIC_URL} using Tailscale Funnel.`);
-    console.log("Run npm run qa:staging -- stop when finished; the staging database is retained.");
+    console.log("Run npm run staging -- stop when finished; the staging database is retained.");
     return;
   }
 
@@ -1221,7 +1488,7 @@ async function main(argv) {
   }
 
   console.log(`QA staging ready at ${config.QA_WEB_URL} using ${config.QA_BRANCH}.`);
-  console.log("Run npm run qa:staging -- stop when finished; the staging database is retained for the next cycle.");
+  console.log("Run npm run staging -- stop when finished; the staging database is retained for the next cycle.");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

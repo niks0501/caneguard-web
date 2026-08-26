@@ -112,14 +112,22 @@ test("rejects public origin mismatches and non-private service bindings", () => 
   assert.ok(errors.includes("QA_WEB_HOST must be 127.0.0.1 to keep local staging private"));
 });
 
-test("rejects development database, non-qa branch, and missing credentials", () => {
+test("accepts manually selected feature branches but rejects the development branch", () => {
+  const config = validConfig();
+  config.QA_BRANCH = "feature1";
+  assert.deepEqual(validateStagingConfig(config), []);
+
+  config.QA_BRANCH = "main";
+  const errors = validateStagingConfig(config);
+  assert.ok(errors.some((error) => error.startsWith("QA_BRANCH must name a safe non-main staging branch")));
+});
+
+test("rejects a development database and missing credentials", () => {
   const config = validConfig();
   config.DB_DATABASE = "caneguard";
-  config.QA_BRANCH = "main";
   config.CANEGUARD_ADMIN_PASSWORD = "";
 
   const errors = validateStagingConfig(config);
-  assert.ok(errors.includes("QA_BRANCH must name a safe qa/* branch"));
   assert.ok(errors.includes("DB_DATABASE must be exactly caneguard_staging"));
   assert.ok(errors.includes("CANEGUARD_ADMIN_PASSWORD must be set"));
 });

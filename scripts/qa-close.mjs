@@ -1200,6 +1200,7 @@ async function main(argv) {
 }
 
 if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
+  console.warn("[deprecated] qa-close is retired. Use npm run staging -- stop; staging data is retained.");
   main(process.argv.slice(2)).catch((error) => {
     console.error(`[qa-close] ${error.message}`);
     process.exitCode = 1;

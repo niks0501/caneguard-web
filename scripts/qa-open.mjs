@@ -991,6 +991,7 @@ reports QA OPEN only when every gate passes. It never records human QA approval.
 }
 
 if (pathResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  console.warn("[deprecated] qa-open is retired. Create the staging branch yourself and run npm run staging.");
   try {
     const parsed = parseArgs(process.argv.slice(2));
     if (parsed.help) {
