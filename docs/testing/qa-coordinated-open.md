@@ -98,7 +98,9 @@ The opening workflow never copies secrets into a branch or replaces the developm
 
 ## Output and failure behavior
 
-A successful run writes an ignored JSON release record below `.qa-staging/qa-cycles/` and prints:
+A successful run writes an ignored JSON release record below `.qa-staging/qa-cycles/` and points to the sibling reconciliation record that must be created before closure.
+The reconciliation record is created by the separate `qa:reconcile begin` command when a QA defect is found.
+The opening command prints:
 
 - the QA ID;
 - the `caneguard-web` Web/API commit;
