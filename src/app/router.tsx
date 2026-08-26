@@ -1,13 +1,20 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { RequireAuth } from "../auth/RequireAuth";
 import { AppShell } from "../components/layout/AppShell";
 import { CaseReviewPage } from "../pages/CaseReviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
-import { FieldValidationMapPage } from "../pages/FieldValidationMapPage";
+import { LoadingState } from "../components/ui/States";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SubmittedReportsPage } from "../pages/SubmittedReportsPage";
 import { LoginPage } from "../pages/LoginPage";
 import { routes } from "./routes";
+
+const FieldValidationMapPage = lazy(() =>
+  import("../pages/FieldValidationMapPage").then(({ FieldValidationMapPage }) => ({
+    default: FieldValidationMapPage,
+  })),
+);
 
 export function AppRouter() {
   return (
@@ -18,7 +25,14 @@ export function AppRouter() {
           <Route index element={<Navigate replace to={routes.dashboard} />} />
           <Route element={<AppShell />}>
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="map" element={<FieldValidationMapPage />} />
+            <Route
+              path="map"
+              element={(
+                <Suspense fallback={<LoadingState message="Loading the field-validation workspace..." />}>
+                  <FieldValidationMapPage />
+                </Suspense>
+              )}
+            />
             <Route path="reports" element={<SubmittedReportsPage />} />
             <Route path="reports/:reportId" element={<CaseReviewPage />} />
           </Route>

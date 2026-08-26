@@ -91,7 +91,7 @@ describe("ServerStatus", () => {
   });
 
   it("does not report a server connection while the browser is offline", () => {
-    renderStatus("offline-status", () => Promise.resolve(), {
+    renderStatus("offline-status", () => Promise.resolve({ ok: true }), {
       ...connected,
       networkStatus: "unavailable",
       apiReachability: "unreachable",

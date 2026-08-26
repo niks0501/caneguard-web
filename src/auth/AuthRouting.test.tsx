@@ -6,6 +6,12 @@ import { paginatedReportsDto } from "../test/fixtures";
 import { server } from "../test/server";
 
 const baseUrl = "http://localhost:8000";
+const healthyApiResponse = {
+  data: {
+    status: "ok",
+    checks: { database: "ready", storage: "ready" },
+  },
+};
 const webUser = {
   uuid: "user-1",
   name: "Review User",
@@ -13,8 +19,17 @@ const webUser = {
   role: "reviewer",
 };
 
+function installApiHealthHandler() {
+  server.use(
+    http.get(`${baseUrl}/api/health`, () =>
+      HttpResponse.json(healthyApiResponse),
+    ),
+  );
+}
+
 async function renderApp(path: string) {
   vi.stubEnv("VITE_DATA_SOURCE", "api");
+  installApiHealthHandler();
   window.history.pushState({}, "", path);
   const [{ AppProviders }, { default: App }] = await Promise.all([
     import("../app/AppProviders"),
@@ -97,6 +112,11 @@ describe("authenticated routing", () => {
 
     expect(
       await screen.findByRole("link", { name: "Open CG-2026-0001" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("status", {
+        name: "Connectivity: Network Available; CaneGuard server Connected",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Review User")).toHaveTextContent("RU");
   });
