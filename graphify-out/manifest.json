@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1787710537.7336137,
-    "ast_hash": "2d812c5af17e2bf2628c4a24010bf3d0",
+    "mtime": 1787712909.697075,
+    "ast_hash": "f14d4fb2cd6e9d31908abf1c020f5f8f",
     "semantic_hash": ""
   },
   "index.html": {
@@ -3220,8 +3220,8 @@
     "semantic_hash": ""
   },
   "docs/testing/qa-coordinated-open.md": {
-    "mtime": 1787709765.2137985,
-    "ast_hash": "992e7f238accaa697a30ce709e3e9bf6",
+    "mtime": 1787712909.697075,
+    "ast_hash": "f89ad3d43edf9558725a8d38355c704c",
     "semantic_hash": ""
   },
   "scripts/qa-reconcile.mjs": {
@@ -3252,6 +3252,11 @@
   "docs/testing/qa-cycle-closure.md": {
     "mtime": 1787709757.1497974,
     "ast_hash": "9820d780a0b17675ab8a60343521f942",
+    "semantic_hash": ""
+  },
+  "docs/testing/qa-cycle-rehearsal.md": {
+    "mtime": 1787713502.612973,
+    "ast_hash": "478d52b33b5b3915a473476e55fdf7db",
     "semantic_hash": ""
   }
 }
