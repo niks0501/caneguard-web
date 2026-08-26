@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   chmodSync,
+  mkdirSync,
   mkdtempSync,
   rmSync,
   writeFileSync,
@@ -89,6 +90,19 @@ test("chooses the first unused cycle number across both repositories", () => {
     git(webRepo, ["branch", "qa/2026-08-26-01", webCommit]);
     git(mobileRepo, ["branch", "qa/2026-08-26-02", mobileCommit]);
     assert.equal(nextQaId("2026-08-26", [webRepo, mobileRepo]), "qa/2026-08-26-03");
+  } finally {
+    cleanup(webRepo, mobileRepo);
+  }
+});
+
+test("does not reuse a cycle number reserved by an abandoned release record", () => {
+  const webRepo = makeRepo("web-reserved-cycle", "web");
+  const mobileRepo = makeRepo("mobile-reserved-cycle", "mobile");
+  try {
+    const recordRoot = join(webRepo, ".qa-staging", "qa-cycles");
+    mkdirSync(recordRoot, { recursive: true });
+    writeFileSync(join(recordRoot, "2026-08-26-01.json"), '{"status":"ABANDONED"}\n');
+    assert.equal(nextQaId("2026-08-26", [webRepo, mobileRepo]), "qa/2026-08-26-02");
   } finally {
     cleanup(webRepo, mobileRepo);
   }

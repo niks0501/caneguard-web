@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -253,6 +253,29 @@ test("requires the active QA branch and exact history commits", () => {
         evidence: "incorrect history",
       }),
       /main history commit .* is not reachable from refs\/heads\/main/,
+    );
+  } finally {
+    cleanup(fixture.repo);
+  }
+});
+
+test("does not add reconciliation after a cycle becomes terminal", () => {
+  const fixture = makeRepo();
+  try {
+    const releaseRoot = join(fixture.repo, ".qa-staging", "qa-cycles");
+    mkdirSync(releaseRoot, { recursive: true });
+    writeFileSync(join(releaseRoot, "2026-08-26-01.json"), '{"status":"APPROVED"}\n');
+    assert.throws(
+      () => beginReconciliation({
+        repo: fixture.repo,
+        qaId: "qa/2026-08-26-01",
+        qaBranch: fixture.qaBranch,
+        origin: "qa",
+        sourceCommit: fixture.baseline,
+        fixId: "QA-23",
+        summary: "late fix",
+      }),
+      /is terminal as APPROVED/,
     );
   } finally {
     cleanup(fixture.repo);

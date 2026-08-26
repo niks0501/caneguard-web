@@ -2,6 +2,8 @@
 
 `npm run qa:open` opens a fixed CaneGuard candidate only after the Web/API, Mobile, staging, public ingress, EAS, and device-preparation gates pass.
 
+When human QA finishes, use [qa-cycle-closure.md](./qa-cycle-closure.md) to approve or abandon the cycle.
+
 The command operates on two explicitly named repositories.
 It creates the same `qa/YYYY-MM-DD-NN` branch in `caneguard-web` and `caneguard-mobile` directly from the supplied full commit SHAs.
 A branch is created even when its selected commit is unchanged from the repository's `main`.
@@ -118,6 +120,7 @@ No failed run is reported as `QA OPEN`.
 
 When QA ends, stop public ingress and services with the existing command.
 The staging database is intentionally retained until the next cycle.
+For the terminal approval or abandonment decision and the discoverable GitHub release record, follow [qa-cycle-closure.md](./qa-cycle-closure.md).
 
 ```bash
 npm run qa:staging -- stop

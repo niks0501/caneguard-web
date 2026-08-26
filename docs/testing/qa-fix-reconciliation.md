@@ -227,4 +227,5 @@ npm run qa:reconcile -- check \
 
 A zero exit status means reconciliation evidence is ready for a separate human QA decision.
 It does not mark QA approved, record an approver, close the cycle, merge a pull request, or delete a branch.
+Use [qa-cycle-closure.md](./qa-cycle-closure.md) to record the explicit approval or abandonment decision and apply the matching branch policy.
 A cycle must not be recorded as successfully closed while this check is blocked.
