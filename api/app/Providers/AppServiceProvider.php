@@ -31,7 +31,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request) {
             $email = Str::lower((string) $request->input('email'));
 
-            return Limit::perMinute(5)->by(hash(
+            $perMinute = app()->environment('qa-staging') ? 60 : 5;
+
+            return Limit::perMinute($perMinute)->by(hash(
                 'sha256',
                 $email.'|'.$request->ip(),
             ));

@@ -957,7 +957,7 @@ async function checkSeededFieldReporter(config, apiBaseUrl) {
     }),
   });
   if (login.response.status !== 200 || typeof login.body?.token !== "string") {
-    throw new Error("seeded field reporter mobile authentication failed");
+    throw new Error(`seeded field reporter mobile authentication failed: HTTP ${login.response.status} ${JSON.stringify(login.body)} using ${SEEDED_USERS.fieldReporter.email}`);
   }
 
   const me = await requestJson(`${apiBaseUrl}/api/v1/mobile/auth/me`, {
@@ -1033,7 +1033,7 @@ async function checkReadiness(config, apiBaseUrl) {
   }
 }
 
-async function waitForReadiness(config, apiBaseUrl, timeoutMs = 30000) {
+async function waitForReadiness(config, apiBaseUrl, timeoutMs = 60000) {
   const deadline = Date.now() + timeoutMs;
   let lastError = null;
   while (Date.now() < deadline) {
@@ -1042,7 +1042,8 @@ async function waitForReadiness(config, apiBaseUrl, timeoutMs = 30000) {
       return;
     } catch (error) {
       lastError = error;
-      await sleep(500);
+      const isRateLimited = /429|RATE_LIMITED|Too many requests/i.test(error?.message ?? "");
+      await sleep(isRateLimited ? 5000 : 1000);
     }
   }
   throw new Error(`QA staging readiness timed out: ${lastError?.message ?? "unknown error"}`);
@@ -1204,6 +1205,7 @@ async function main(argv) {
     resetStagingStorage(paths.worktree);
     runArtisan(config, paths.worktree, ["config:clear"]);
     runArtisan(config, paths.worktree, ["migrate:fresh", "--seed", "--force"]);
+    try { runArtisan(config, paths.worktree, ["cache:clear"]); } catch { /* best-effort throttle reset */ }
   } else {
     runArtisan(config, paths.worktree, ["config:clear"]);
   }

@@ -13,7 +13,7 @@ import {
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseEnvFile, validateStagingConfig } from "./qa-staging.mjs";
+import { buildRuntimeEnv, parseEnvFile, validateStagingConfig } from "./qa-staging.mjs";
 
 export const FULL_SHA = /^[0-9a-f]{40}$/i;
 export const QA_ID = /^qa\/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$/;
@@ -749,6 +749,7 @@ export function openQaCycle(input, dependencies = {}) {
         database: result.config.DB_DATABASE,
         worktreePath: result.config.QA_WORKTREE_PATH,
         branchBeforeSelection: result.config.QA_BRANCH,
+        config: result.config,
       };
     }, recordPath);
 
@@ -835,11 +836,12 @@ export function openQaCycle(input, dependencies = {}) {
     }, recordPath);
 
     runGate(record, "automated-web-api", () => {
-      runNpmScript(stagingWorktree, ["run", "check:all"], commandEnvironment, "automated-web-api");
+      const automatedEnv = { ...commandEnvironment, APP_KEY: staging.config.APP_KEY };
+      runNpmScript(stagingWorktree, ["run", "check:all"], automatedEnv, "automated-web-api");
       runNpmScript(
         stagingWorktree,
         ["run", "contract:producer", "--", "--mobile-dir", mobileWorktree, "--mobile-ref", mobileCommit],
-        commandEnvironment,
+        automatedEnv,
         "automated-web-api",
       );
       return ["npm run check:all", "npm run contract:producer -- --mobile-dir <Mobile candidate> --mobile-ref <Mobile SHA>"];
