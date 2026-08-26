@@ -3185,13 +3185,13 @@
     "semantic_hash": ""
   },
   "scripts/qa-staging.mjs": {
-    "mtime": 1787738648.5182664,
-    "ast_hash": "28606c62e478d1a14e675b547ad2d909",
+    "mtime": 1787743941.9054525,
+    "ast_hash": "d93ac0c1704aa2dcdc617fc494a01606",
     "semantic_hash": ""
   },
   "scripts/qa-staging.node-test.mjs": {
-    "mtime": 1787737893.9926834,
-    "ast_hash": "ab722ac1d52fb7e27c0e71c4787d4fac",
+    "mtime": 1787744330.0057476,
+    "ast_hash": "067e58a9b58d2f93f372616975342e09",
     "semantic_hash": ""
   },
   "docs/testing/qa-local-staging.md": {
@@ -3260,8 +3260,8 @@
     "semantic_hash": ""
   },
   "docs/staging.md": {
-    "mtime": 1787737981.6893303,
-    "ast_hash": "f3fb652b8e9f8b46f1bff125a60871d8",
+    "mtime": 1787744382.1057982,
+    "ast_hash": "2fd82489822a051727e20405f1bc065c",
     "semantic_hash": ""
   }
 }
