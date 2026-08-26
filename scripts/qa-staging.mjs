@@ -886,7 +886,7 @@ async function webLogin(config, email, password, apiBaseUrl) {
   });
   mergeCookies(cookieJar, csrf.response);
   if (csrf.response.status !== 204) {
-    throw new Error(`CSRF cookie endpoint returned HTTP ${csrf.response.status}`);
+    throw new Error(`CSRF cookie endpoint returned HTTP ${csrf.response.status} ${JSON.stringify(csrf.body)}`);
   }
 
   const xsrf = cookieJar.get("XSRF-TOKEN");
@@ -904,7 +904,7 @@ async function webLogin(config, email, password, apiBaseUrl) {
   });
   mergeCookies(cookieJar, login.response);
   if (login.response.status !== 204) {
-    throw new Error(`seeded web login for ${email} returned HTTP ${login.response.status}`);
+    throw new Error(`seeded web login for ${email} returned HTTP ${login.response.status} ${JSON.stringify(login.body)}`);
   }
 
   return cookieJar;
@@ -938,10 +938,10 @@ async function checkSeededWebUser(config, user, apiBaseUrl) {
   const cookies = await webLogin(config, user.email, config[user.passwordKey], apiBaseUrl);
   const me = await webGet(config, cookies, "/api/v1/me", apiBaseUrl);
   if (me.response.status !== 200 || me.body?.user?.email !== user.email) {
-    throw new Error(`seeded web authentication did not restore ${user.email}`);
+    throw new Error(`seeded web authentication did not restore ${user.email}: HTTP ${me.response.status} ${JSON.stringify(me.body)}`);
   }
   if (me.body?.user?.role !== user.role) {
-    throw new Error(`seeded web authentication returned the wrong role for ${user.email}`);
+    throw new Error(`seeded web authentication returned the wrong role for ${user.email}: ${JSON.stringify(me.body)}`);
   }
   await webLogout(config, cookies, apiBaseUrl);
 }
