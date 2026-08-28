@@ -51,6 +51,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the roles that can use the Web office workspace.
+     *
+     * @return array<int, string>
+     */
+    public static function webRoles(): array
+    {
+        return [
+            self::ROLE_REVIEWER,
+            self::ROLE_ADMIN,
+        ];
+    }
+
+    public function isWebUser(): bool
+    {
+        return in_array($this->role, self::webRoles(), true);
+    }
+
+    /**
      * @return HasMany<Report, $this>
      */
     public function submittedReports(): HasMany

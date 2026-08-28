@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Outlet } from "react-router";
 import { X } from "lucide-react";
 import { AppSidebar } from "../navigation/AppSidebar";
+import { useRealtimeInvalidation } from "../../hooks/useRealtimeInvalidation";
 import { AppHeader } from "./AppHeader";
 
 export function AppShell() {
   const [isNavigationOpen, setNavigationOpen] = useState(false);
+  const realtime = useRealtimeInvalidation();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerPanelRef = useRef<HTMLDivElement>(null);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
@@ -91,6 +93,7 @@ export function AppShell() {
         <AppHeader
           menuButtonRef={menuButtonRef}
           onOpenMenu={() => setNavigationOpen(true)}
+          realtimeStatus={realtime.status}
         />
         <main><Outlet /></main>
       </div>

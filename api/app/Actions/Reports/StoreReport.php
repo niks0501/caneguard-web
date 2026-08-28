@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Actions\Notifications\BroadcastNewCaseSubmitted;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -16,6 +17,7 @@ class StoreReport
 {
     public function __construct(
         private readonly PersistReport $persistReport,
+        private readonly BroadcastNewCaseSubmitted $broadcastNewCaseSubmitted,
     ) {}
 
     /**
@@ -66,6 +68,8 @@ class StoreReport
 
             throw $exception;
         }
+
+        $this->broadcastNewCaseSubmitted->handle($report);
 
         return [
             'report' => $this->load($report),

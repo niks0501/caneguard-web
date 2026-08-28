@@ -25,10 +25,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $user = $request->user();
 
-        if (! in_array($user?->role, [
-            User::ROLE_REVIEWER,
-            User::ROLE_ADMIN,
-        ], true)) {
+        if (! in_array($user?->role, User::webRoles(), true)) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

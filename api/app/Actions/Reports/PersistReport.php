@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Actions\Notifications\CreateNewCaseNotifications;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -10,6 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class PersistReport
 {
+    public function __construct(
+        private readonly CreateNewCaseNotifications $createNewCaseNotifications,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -95,6 +100,8 @@ class PersistReport
                     ->map(fn (string $key) => ['warning_key' => $key])
                     ->all(),
             );
+
+            $this->createNewCaseNotifications->handle($report);
 
             return $report;
         }, attempts: 3);
