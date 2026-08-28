@@ -59,7 +59,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as ReturnType<typeof useFieldReporters>);
+  vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(useReport).mockReturnValue(queryResult());
   vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult());
 });
