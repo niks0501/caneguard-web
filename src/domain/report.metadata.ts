@@ -1,4 +1,5 @@
 import type {
+  ActionTaken,
   AuthorityClassifiedCondition,
   DiseaseKey,
   ImageStatus,
@@ -28,6 +29,13 @@ export const reviewStatusLabels: Record<ReviewStatus, string> = {
   verified_by_staff: "Verified by staff",
   unable_to_verify: "Unable to verify",
   resolved: "Resolved",
+};
+
+export const actionTakenLabels: Record<ActionTaken, string> = {
+  advisory_provided: "Advisory provided",
+  technical_assistance_provided: "Technical assistance provided",
+  referred_for_expert_validation: "Referred for expert validation",
+  no_further_action_required: "No further action required",
 };
 
 export const submitterRoleLabels: Record<SubmitterRole, string> = {

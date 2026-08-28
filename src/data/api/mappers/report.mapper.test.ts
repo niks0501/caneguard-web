@@ -67,6 +67,8 @@ describe("report mappers", () => {
     expect(report.reporterSuspectedCondition).toBe("smut");
     expect(report.reporterObservationText).toContain("Dark whip-like growths");
     expect(report.authorityClassifiedCondition).toBeNull();
+    expect(report.actionTaken).toBeUndefined();
+    expect(report.metadataCorrectionAudits).toEqual([]);
     expect(report.lifecycle).toEqual({
       caseState: "open",
       verificationOutcome: "not_determined",
@@ -87,6 +89,42 @@ describe("report mappers", () => {
 
     expect(report.lifecycle?.caseState).toBe("open");
     expect(report.lifecycle?.verificationOutcome).toBe("not_determined");
+  });
+
+  it("maps an audited metadata correction without changing submitted evidence", () => {
+    const report = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          audit: {
+            metadata_corrections: [
+              {
+                id: 4,
+                field: "barangay",
+                original_value: "Mabini",
+                corrected_value: "Poblacion",
+                actor: { uuid: "reviewer-1", name: "Maria Reviewer" },
+                created_at: "2026-07-20T10:30:00.000Z",
+                reason: "The location sheet had a transcription error.",
+              },
+            ],
+          },
+        },
+      }).data,
+    );
+
+    expect(report.metadataCorrectionAudits).toEqual([
+      {
+        id: 4,
+        field: "barangay",
+        originalValue: "Mabini",
+        correctedValue: "Poblacion",
+        actorName: "Maria Reviewer",
+        createdAt: "2026-07-20T10:30:00.000Z",
+        reason: "The location sheet had a transcription error.",
+      },
+    ]);
+    expect(report.predictedDisease).toBe("rust");
   });
 
   it("maps an authority classification without changing the model result", () => {

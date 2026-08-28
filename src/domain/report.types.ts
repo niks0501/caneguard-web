@@ -33,6 +33,12 @@ export type ReferralState =
   | "referred"
   | "expert_response_received";
 
+export type ActionTaken =
+  | "advisory_provided"
+  | "technical_assistance_provided"
+  | "referred_for_expert_validation"
+  | "no_further_action_required";
+
 export interface ReportLifecycle {
   caseState: CaseState;
   verificationOutcome: VerificationOutcome;
@@ -99,12 +105,24 @@ export interface DiseaseReport {
   reporterSuspectedCondition?: string | null;
   reporterObservationText?: string | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
+  actionTaken?: ActionTaken | null;
   lifecycle?: ReportLifecycle;
   reviewNotes?: string;
   reviewedBy?: string;
   reviewedAt?: string;
   reviewVersion?: number;
   updatedAt?: string;
+  metadataCorrectionAudits?: ReportAudit[];
+}
+
+export interface ReportAudit {
+  id: number;
+  field: string;
+  originalValue: unknown;
+  correctedValue: unknown;
+  actorName: string;
+  createdAt: string;
+  reason: string;
 }
 
 export interface ReportFilters {

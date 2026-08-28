@@ -95,6 +95,7 @@ class StoreReport
             'classScores',
             'symptoms',
             'qualityWarnings',
+            'audits.actor',
         ]);
     }
 

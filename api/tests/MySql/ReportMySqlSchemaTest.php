@@ -61,6 +61,8 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertColumn($columns, 'verification_outcome', 'varchar', 32);
         $this->assertColumn($columns, 'field_validation_state', 'varchar', 32);
         $this->assertColumn($columns, 'referral_state', 'varchar', 32);
+        $this->assertColumn($columns, 'action_taken', 'varchar', 64);
+        $this->assertNullable($columns, 'action_taken');
         $this->assertSame('NO', $columns->get('case_state')->IS_NULLABLE);
         $this->assertSame('open', $columns->get('case_state')->COLUMN_DEFAULT);
         $this->assertSame('not_determined', $columns->get('verification_outcome')->COLUMN_DEFAULT);

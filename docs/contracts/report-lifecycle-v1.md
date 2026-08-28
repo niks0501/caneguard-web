@@ -42,3 +42,44 @@ Reviewer-facing report resources expose the dimensions in a `lifecycle` object.
 The existing Mobile authority-status endpoint remains unchanged and continues to return the exact five-value `review_status` snapshot.
 
 The lifecycle migration does not modify report identity, submitted evidence, image references, AI evidence, timestamps, or authority-review evidence.
+
+## Explicit office review v1
+
+`PATCH /api/v1/reports/{report}/review` accepts independent review fields.
+
+The supported lifecycle fields are `case_state` and `verification_outcome`.
+
+The supported office action field is `action_taken`.
+
+`action_taken` is nullable until an office user explicitly records one of these values:
+
+- `advisory_provided`
+- `technical_assistance_provided`
+- `referred_for_expert_validation`
+- `no_further_action_required`
+
+The request may update one or more of these fields without changing omitted fields.
+
+`case_state` must be set explicitly to `closed`; a `verified` outcome does not close a case.
+
+Reviewer and admin authorization is enforced by the API for all office review and correction writes.
+
+The legacy `status` request field remains accepted for older clients.
+
+When independent fields are used, `review.status` is a safe compatibility projection.
+
+Open cases project to `submitted_unverified` or `for_field_validation` when field-validation progress is already present.
+
+Closed cases project to `verified_by_staff`, `unable_to_verify`, or `resolved` according to their verification outcome.
+
+## Evidence integrity and operational corrections
+
+Synchronized AI, image, timestamp, reporter identity, model, and submitted observation evidence cannot be updated or deleted through the report models.
+
+Operational metadata corrections use `metadata_corrections` and a required `correction_reason` in the review request.
+
+The correctable operational fields are location and triage metadata such as barangay, farmer or farm owner, province, municipality, affected area, affected portion, and GPS metadata.
+
+Each correction is stored in `report_audits` with the field, original value, corrected value, actor, server timestamp, and reason.
+
+Reviewer-facing detail resources expose these records under `audit.metadata_corrections`.

@@ -69,5 +69,7 @@ Legacy status values are mapped without reopening completed
 See [`docs/contracts/report-lifecycle-v1.md`](../../docs/contracts/report-lifecycle-v1.md)
 for the values and mapping.
 
-This P1 contract adds no push notifications, unread state, replies, immutable
-history, referral workflow, analytics, optional report fields, or new endpoint.
+This Mobile status contract adds no push notifications, unread state, replies,
+referral workflow, analytics, optional report fields, or new endpoint.
+Reviewer-facing report details may expose the separate operational correction
+history described in the lifecycle contract.

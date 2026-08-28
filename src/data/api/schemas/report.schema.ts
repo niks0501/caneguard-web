@@ -36,6 +36,12 @@ export const referralStateSchema = z.enum([
   "referred",
   "expert_response_received",
 ]);
+export const actionTakenSchema = z.enum([
+  "advisory_provided",
+  "technical_assistance_provided",
+  "referred_for_expert_validation",
+  "no_further_action_required",
+]);
 export const reportLifecycleSchema = z.object({
   case_state: caseStateSchema,
   verification_outcome: verificationOutcomeSchema,
@@ -133,9 +139,23 @@ export const reportDetailSchema = z.object({
     status: reviewStatusSchema,
     notes: z.string().nullable(),
     authority_classified_condition: authorityClassifiedConditionSchema.nullable(),
+    action_taken: actionTakenSchema.nullable().optional(),
     reviewer: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
     reviewed_at: z.iso.datetime({ offset: true }).nullable(),
   }),
+  audit: z.object({
+    metadata_corrections: z.array(
+      z.object({
+        id: z.number().int().positive(),
+        field: z.string(),
+        original_value: z.unknown().nullable(),
+        corrected_value: z.unknown().nullable(),
+        actor: userSchema.pick({ uuid: true, name: true }),
+        created_at: z.iso.datetime({ offset: true }),
+        reason: z.string(),
+      }),
+    ),
+  }).optional(),
   lifecycle: reportLifecycleSchema.optional(),
   version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),

@@ -633,18 +633,18 @@ class MobileReportUploadTest extends TestCase
         $clientUuid = fake()->uuid();
         $reviewer = User::factory()->reviewer()->create();
         $reviewedAt = now()->subMinute()->setMicrosecond(123000);
+        $imagePath = 'reports/existing-review.png';
         $report = Report::factory()->create([
             'reporter_id' => $reporter,
             'client_uuid' => $clientUuid,
+            'image_path' => $imagePath,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'review_notes' => 'Keep this current snapshot.',
             'reviewer_id' => $reviewer,
             'reviewed_at' => $reviewedAt,
             'lock_version' => 4,
         ]);
-        $imagePath = 'reports/existing-review.png';
         Storage::disk('local')->put($imagePath, 'existing-image');
-        $report->update(['image_path' => $imagePath]);
         $before = $report->fresh();
 
         $this->withToken($token)
