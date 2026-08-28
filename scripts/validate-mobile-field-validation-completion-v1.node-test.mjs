@@ -45,6 +45,13 @@ test('rejects a required fresh photo', () => {
       ...valid,
       fields: { ...valid.fields, fresh_photo: { ...valid.fields.fresh_photo, required: true } },
     }),
-    (error) => error.issues.includes('fresh_photo must remain optional'),
+    (error) => {
+      return (
+        typeof error === 'object'
+        && error !== null
+        && Array.isArray(error.issues)
+        && error.issues.includes('fresh_photo must remain optional')
+      );
+    },
   );
 });
