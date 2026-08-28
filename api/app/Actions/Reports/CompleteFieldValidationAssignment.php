@@ -30,63 +30,77 @@ class CompleteFieldValidationAssignment
         array $data,
         ?UploadedFile $freshPhoto,
     ): array {
-        $existing = $assignment->completion()->first();
-        if ($existing) {
-            if ((string) $existing->client_uuid === (string) $data['client_uuid']) {
-                return $this->loadResult($assignment, $existing, false);
-            }
-
-            throw new FieldValidationCompletionConflict(
-                'This assignment already has a different completed validation.',
-            );
-        }
-
-        $locked = FieldValidationAssignment::query()
-            ->with('report')
-            ->lockForUpdate()
-            ->findOrFail($assignment->getKey());
-        $report = $locked->report;
-        $lifecycle = $report->lifecycleSnapshot();
-
-        if ($locked->assignee_id !== $user->getKey()) {
-            throw new FieldValidationCompletionConflict(
-                'This assignment does not belong to the authenticated field reporter.',
-            );
-        }
-        if ($lifecycle['case_state'] !== Report::CASE_STATE_OPEN) {
-            throw new FieldValidationCompletionConflict(
-                'Only open cases can receive field validation evidence.',
-            );
-        }
-        if ($lifecycle['field_validation_state'] === Report::FIELD_VALIDATION_STATE_COMPLETED) {
-            throw new FieldValidationCompletionConflict(
-                'This assignment is already marked completed.',
-            );
-        }
-
         $completionUuid = (string) Str::uuid7();
         $photoPath = null;
-        if ($freshPhoto) {
-            $extension = $freshPhoto->guessExtension() ?: 'jpg';
-            $photoPath = Storage::disk('local')->putFileAs(
-                'field-validation/'.$locked->uuid,
-                $freshPhoto,
-                $completionUuid.'.'.$extension,
-            );
-            if (! is_string($photoPath)) {
-                throw new RuntimeException('The field validation photo could not be stored.');
-            }
-        }
 
         try {
-            $completion = DB::transaction(function () use (
+            $result = DB::transaction(function () use (
                 $data,
-                $locked,
-                $photoPath,
+                $assignment,
                 $completionUuid,
-                $report,
                 $freshPhoto,
-            ): FieldValidationCompletion {
+                $user,
+                &$photoPath,
+            ): array {
+                // The completion check and lifecycle mutation must share the
+                // assignment lock. Otherwise two requests can both pass the
+                // check before either completion is persisted.
+                // Review mutations lock the report before its assignment.
+                // Keep the same order here so completion and review serialize
+                // instead of observing different lifecycle snapshots.
+                $report = Report::query()
+                    ->lockForUpdate()
+                    ->findOrFail($assignment->report_id);
+                $locked = FieldValidationAssignment::query()
+                    ->lockForUpdate()
+                    ->findOrFail($assignment->getKey());
+                $locked->setRelation('report', $report);
+                if ($locked->assignee_id !== $user->getKey()) {
+                    throw new FieldValidationCompletionConflict(
+                        'This assignment does not belong to the authenticated field reporter.',
+                    );
+                }
+
+                $existing = $locked->completion()->first();
+                if ($existing) {
+                    if ((string) $existing->client_uuid === (string) $data['client_uuid']) {
+                        return [
+                            'assignment' => $locked,
+                            'completion' => $existing,
+                            'created' => false,
+                        ];
+                    }
+
+                    throw new FieldValidationCompletionConflict(
+                        'This assignment already has a different completed validation.',
+                    );
+                }
+
+                $lifecycle = $report->lifecycleSnapshot();
+
+                if ($lifecycle['case_state'] !== Report::CASE_STATE_OPEN) {
+                    throw new FieldValidationCompletionConflict(
+                        'Only open cases can receive field validation evidence.',
+                    );
+                }
+                if ($lifecycle['field_validation_state'] === Report::FIELD_VALIDATION_STATE_COMPLETED) {
+                    throw new FieldValidationCompletionConflict(
+                        'This assignment is already marked completed.',
+                    );
+                }
+
+                if ($freshPhoto && $photoPath === null) {
+                    $extension = $freshPhoto->guessExtension() ?: 'jpg';
+                    $photoPath = Storage::disk('local')->putFileAs(
+                        'field-validation/'.$locked->uuid,
+                        $freshPhoto,
+                        $completionUuid.'.'.$extension,
+                    );
+                    if (! is_string($photoPath)) {
+                        throw new RuntimeException('The field validation photo could not be stored.');
+                    }
+                }
+
                 $completion = $locked->completion()->create([
                     'uuid' => $completionUuid,
                     'client_uuid' => $data['client_uuid'],
@@ -115,7 +129,11 @@ class CompleteFieldValidationAssignment
                 $locked->touch();
                 $this->notifications->fieldValidationCompleted($locked, $completion);
 
-                return $completion;
+                return [
+                    'assignment' => $locked,
+                    'completion' => $completion,
+                    'created' => true,
+                ];
             }, attempts: 3);
         } catch (Throwable $exception) {
             if ($photoPath) {
@@ -124,7 +142,15 @@ class CompleteFieldValidationAssignment
             throw $exception;
         }
 
-        return $this->loadResult($locked, $completion, true);
+        if (! $result['created'] && $photoPath) {
+            $this->deleteFailedPhoto($photoPath);
+        }
+
+        return $this->loadResult(
+            $result['assignment'],
+            $result['completion'],
+            $result['created'],
+        );
     }
 
     /**

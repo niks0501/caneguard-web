@@ -14,6 +14,18 @@ const EXPECTED_ASSIGNMENT_ARTIFACT_PATH =
   'docs/contracts/mobile-field-validation-assignment-v1.json';
 const EXPECTED_ASSIGNMENT_PRODUCER_TEST_PATH =
   'src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.contract.test.ts';
+const EXPECTED_COMPLETION_ARTIFACT_PATH =
+  'docs/contracts/mobile-field-validation-completion-v1.json';
+const EXPECTED_COMPLETION_PRODUCER_TEST_PATH =
+  'src/features/assignments/api/__tests__/mobileFieldValidationCompletion.contract.test.ts';
+const EXPECTED_NOTIFICATION_ARTIFACT_PATH =
+  'docs/contracts/mobile-notifications-v1.json';
+const EXPECTED_NOTIFICATION_PRODUCER_TEST_PATH =
+  'src/features/notifications/api/__tests__/mobileNotificationsApi.contract.test.ts';
+const EXPECTED_LIFECYCLE_ARTIFACT_PATH =
+  'docs/contracts/report-lifecycle-v1.json';
+const EXPECTED_LIFECYCLE_PRODUCER_TEST_PATH =
+  'src/features/lifecycle/__tests__/reportLifecycleContract.test.ts';
 const FULL_SHA = /^[0-9a-f]{40}$/i;
 
 export class GateConfigValidationError extends Error {
@@ -73,6 +85,36 @@ export async function readGateConfig(configPath = DEFAULT_CONFIG_PATH) {
       `assignment_producer_test_path must be ${EXPECTED_ASSIGNMENT_PRODUCER_TEST_PATH}`,
     );
   }
+  if (config.completion_artifact_path !== EXPECTED_COMPLETION_ARTIFACT_PATH) {
+    throw new GateConfigValidationError(
+      `completion_artifact_path must be ${EXPECTED_COMPLETION_ARTIFACT_PATH}`,
+    );
+  }
+  if (config.completion_producer_test_path !== EXPECTED_COMPLETION_PRODUCER_TEST_PATH) {
+    throw new GateConfigValidationError(
+      `completion_producer_test_path must be ${EXPECTED_COMPLETION_PRODUCER_TEST_PATH}`,
+    );
+  }
+  if (config.notification_artifact_path !== EXPECTED_NOTIFICATION_ARTIFACT_PATH) {
+    throw new GateConfigValidationError(
+      `notification_artifact_path must be ${EXPECTED_NOTIFICATION_ARTIFACT_PATH}`,
+    );
+  }
+  if (config.notification_producer_test_path !== EXPECTED_NOTIFICATION_PRODUCER_TEST_PATH) {
+    throw new GateConfigValidationError(
+      `notification_producer_test_path must be ${EXPECTED_NOTIFICATION_PRODUCER_TEST_PATH}`,
+    );
+  }
+  if (config.lifecycle_artifact_path !== EXPECTED_LIFECYCLE_ARTIFACT_PATH) {
+    throw new GateConfigValidationError(
+      `lifecycle_artifact_path must be ${EXPECTED_LIFECYCLE_ARTIFACT_PATH}`,
+    );
+  }
+  if (config.lifecycle_producer_test_path !== EXPECTED_LIFECYCLE_PRODUCER_TEST_PATH) {
+    throw new GateConfigValidationError(
+      `lifecycle_producer_test_path must be ${EXPECTED_LIFECYCLE_PRODUCER_TEST_PATH}`,
+    );
+  }
 
   return config;
 }
@@ -98,6 +140,12 @@ async function main() {
     producer_test_path: config.producer_test_path,
     assignment_artifact_path: config.assignment_artifact_path,
     assignment_producer_test_path: config.assignment_producer_test_path,
+    completion_artifact_path: config.completion_artifact_path,
+    completion_producer_test_path: config.completion_producer_test_path,
+    notification_artifact_path: config.notification_artifact_path,
+    notification_producer_test_path: config.notification_producer_test_path,
+    lifecycle_artifact_path: config.lifecycle_artifact_path,
+    lifecycle_producer_test_path: config.lifecycle_producer_test_path,
   };
 
   if (process.env.GITHUB_OUTPUT) {
@@ -114,6 +162,12 @@ async function main() {
   console.log(`[config] upload producer test: ${output.producer_test_path}`);
   console.log(`[config] assignment artifact: ${output.assignment_artifact_path}`);
   console.log(`[config] assignment producer test: ${output.assignment_producer_test_path}`);
+  console.log(`[config] completion artifact: ${output.completion_artifact_path}`);
+  console.log(`[config] completion producer test: ${output.completion_producer_test_path}`);
+  console.log(`[config] notification artifact: ${output.notification_artifact_path}`);
+  console.log(`[config] notification producer test: ${output.notification_producer_test_path}`);
+  console.log(`[config] lifecycle artifact: ${output.lifecycle_artifact_path}`);
+  console.log(`[config] lifecycle producer test: ${output.lifecycle_producer_test_path}`);
 }
 
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
@@ -134,4 +188,10 @@ export {
   EXPECTED_PRODUCER_TEST_PATH,
   EXPECTED_ASSIGNMENT_ARTIFACT_PATH,
   EXPECTED_ASSIGNMENT_PRODUCER_TEST_PATH,
+  EXPECTED_COMPLETION_ARTIFACT_PATH,
+  EXPECTED_COMPLETION_PRODUCER_TEST_PATH,
+  EXPECTED_NOTIFICATION_ARTIFACT_PATH,
+  EXPECTED_NOTIFICATION_PRODUCER_TEST_PATH,
+  EXPECTED_LIFECYCLE_ARTIFACT_PATH,
+  EXPECTED_LIFECYCLE_PRODUCER_TEST_PATH,
 };

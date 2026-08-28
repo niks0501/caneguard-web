@@ -1,0 +1,138 @@
+{
+  "schema": "caneguard.phase1-lifecycle-evidence",
+  "schema_version": 1,
+  "evidence_class": "automated_local_stack",
+  "status": "PASS_WITH_GAPS",
+  "started_at": "2026-08-28T17:55:20.591Z",
+  "completed_at": "2026-08-28T17:55:25.717Z",
+  "web_revision": "909abb9af396c633f79fd6c26149c7bbc847d8ad",
+  "web_worktree_dirty": true,
+  "mobile_revision": "913e96b5f695407f6100f524345c37c2d8aab80c",
+  "mobile_worktree_dirty": false,
+  "mobile_dependencies_available": false,
+  "stack": {
+    "api": "Laravel HTTP server",
+    "database": "temporary SQLite database",
+    "transport": "Mobile-shaped HTTP requests from Node fetch"
+  },
+  "physical_device": false,
+  "maestro": "not_run",
+  "trusted_contract_gate": "blocked_mobile_dependencies",
+  "simulated_boundaries": [
+    "Mobile authentication and HTTP transport are simulated by this Node harness.",
+    "The optional Mobile SQLite reopen seam uses a temporary file; this API flow does not exercise a physical app process restart.",
+    "No Android or iOS runtime, physical device, production service, or remote network is exercised."
+  ],
+  "contract_artifacts": [
+    {
+      "path": "docs/contracts/mobile-report-upload-v1.json",
+      "contract": "mobile-report-upload-v1",
+      "version": 1,
+      "sha256": "5372b1557e2e2780c3545aace09824df4b5aef6131c2e3387fa736d71d26054e"
+    },
+    {
+      "path": "docs/contracts/mobile-field-validation-assignment-v1.json",
+      "contract": "mobile-field-validation-assignment-v1",
+      "version": 1,
+      "sha256": "bfd2aed6e81941a1d8f3b1b3be718a7e8ea1f4035413282b6aab5f4d9a4f3cd1"
+    },
+    {
+      "path": "docs/contracts/mobile-field-validation-completion-v1.json",
+      "contract": "mobile-field-validation-completion-v1",
+      "version": 1,
+      "sha256": "28b35ea86bcb6bef98590b22bca26366c3a9aaf3bd5ef0eda5f2408514802f24"
+    },
+    {
+      "path": "docs/contracts/mobile-notifications-v1.json",
+      "contract": "mobile-notifications-v1",
+      "version": 1,
+      "sha256": "fbaa54e9831e70bcfcb77477d07245fb642c652e41864ffe832d96d68502ad59"
+    },
+    {
+      "path": "docs/contracts/report-lifecycle-v1.json",
+      "contract": "report-lifecycle-v1",
+      "version": 1,
+      "sha256": "1530664c51f372094d875729174428c1413998474f4ab55c08020ad5fa5ad30b"
+    }
+  ],
+  "steps": [
+    {
+      "name": "canonical contract artifacts",
+      "status": "PASS",
+      "duration_ms": 4,
+      "details": "All linked v1 artifacts passed structural validation."
+    },
+    {
+      "name": "Mobile source artifact alignment",
+      "status": "PASS",
+      "duration_ms": 3,
+      "details": "All Mobile reference artifacts match (913e96b5f695407f6100f524345c37c2d8aab80c)."
+    },
+    {
+      "name": "local API health and seeded users",
+      "status": "PASS",
+      "duration_ms": 225,
+      "details": "Temporary SQLite database and seeded demo users are ready."
+    },
+    {
+      "name": "Mobile report submission",
+      "status": "PASS",
+      "duration_ms": 329,
+      "details": "Created CG-20260828-D7546E7D with an open, unverified lifecycle."
+    },
+    {
+      "name": "Reviewer assignment to the field reporter",
+      "status": "PASS",
+      "duration_ms": 247,
+      "details": "Assigned 01a04983-211a-723b-8036-9862b9590558 without closing or verifying the case."
+    },
+    {
+      "name": "Mobile assignment and attention feed",
+      "status": "PASS",
+      "duration_ms": 28,
+      "details": "The field reporter received owner-scoped assignment work and attention."
+    },
+    {
+      "name": "Mobile field validation completion",
+      "status": "PASS",
+      "duration_ms": 24,
+      "details": "Completion evidence synced to the API while the case remained open and unverified."
+    },
+    {
+      "name": "Reviewer completion attention",
+      "status": "PASS",
+      "duration_ms": 11,
+      "details": "Office users received field validation completion attention."
+    },
+    {
+      "name": "Reviewer final disposition",
+      "status": "PASS",
+      "duration_ms": 37,
+      "details": "Reviewer-only disposition closed and verified the completed case."
+    },
+    {
+      "name": "Mobile final attention refresh",
+      "status": "PASS",
+      "duration_ms": 12,
+      "details": "The field reporter received the final office review attention event."
+    },
+    {
+      "name": "Lifecycle transition safety invariants",
+      "status": "PASS",
+      "duration_ms": 0,
+      "details": "Field completion did not verify or close the case; only final office disposition did."
+    },
+    {
+      "name": "Mobile automated seam acceptance",
+      "status": "SKIPPED",
+      "details": "Mobile dependencies are not installed; no dependency installation was attempted."
+    }
+  ],
+  "limitations": [
+    "This artifact is automated local-stack evidence only and must not be reported as physical-device or Maestro evidence.",
+    "Captain-owned Maestro execution remains a separate handoff after the local stack and trusted contract gates pass.",
+    "The Mobile app seam test is run only when an existing Mobile node_modules installation is available; this harness never installs dependencies.",
+    "A dirty working tree is local development evidence only; trusted gates require exact clean committed revisions.",
+    "The trusted cross-repository producer gate remains separate from this local-stack harness and requires the pinned clean Mobile revision plus installed Mobile Jest dependencies."
+  ]
+}

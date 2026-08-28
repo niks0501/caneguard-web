@@ -262,13 +262,24 @@ class NotificationTest extends TestCase
             'assigned_by_id' => $reviewer->getKey(),
             'target_visit_date' => null,
         ]);
+        $closedReport = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'case_state' => Report::CASE_STATE_CLOSED,
+        ]);
+        $closedAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $closedReport->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => now()->subDay()->toDateString(),
+        ]);
         Sanctum::actingAs($assignee, ['notification:read']);
 
         $this->getJson('/api/v1/mobile/notifications')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.event_type', FollowUpDueNotification::EVENT_TYPE)
-            ->assertJsonPath('data.0.assignment_uuid', $assignment->uuid);
+            ->assertJsonPath('data.0.assignment_uuid', $assignment->uuid)
+            ->assertJsonMissing(['assignment_uuid' => $closedAssignment->uuid]);
         $this->getJson('/api/v1/mobile/notifications')
             ->assertOk()
             ->assertJsonCount(1, 'data');

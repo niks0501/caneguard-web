@@ -69,7 +69,7 @@ class ReviewReportController extends Controller
 
                 $assignmentSelected = ($data['field_validation_state'] ?? null)
                     === Report::FIELD_VALIDATION_STATE_ASSIGNED
-                    || array_key_exists('field_validation_assignee_uuid', $data);
+                    || filled($data['field_validation_assignee_uuid'] ?? null);
                 if ($assignmentSelected) {
                     $lifecycle['field_validation_state'] = Report::FIELD_VALIDATION_STATE_ASSIGNED;
                 } elseif (array_key_exists('field_validation_state', $data)) {
@@ -107,8 +107,16 @@ class ReviewReportController extends Controller
                 === Report::FIELD_VALIDATION_STATE_UNASSIGNED
                 && array_key_exists('field_validation_state', $reviewUpdate);
             $assignmentForNotification = null;
-            $existingAssignment = null;
+            $existingAssignment = $locked->fieldValidationAssignment()->first();
             $assignmentWasChanged = false;
+
+            if (($assignmentSelected || $assignmentRemoved)
+                && $existingAssignment?->completion()->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'field_validation_state' => 'Completed validation evidence cannot be reassigned or removed.',
+                ]);
+            }
 
             foreach ([
                 'notes' => 'review_notes',
@@ -139,7 +147,6 @@ class ReviewReportController extends Controller
                     ->where('uuid', $data['field_validation_assignee_uuid'])
                     ->where('role', User::ROLE_FIELD_REPORTER)
                     ->firstOrFail();
-                $existingAssignment = $locked->fieldValidationAssignment()->first();
                 $targetVisitDate = array_key_exists('field_validation_target_date', $data)
                     ? $data['field_validation_target_date']
                     : $existingAssignment?->target_visit_date?->format('Y-m-d');

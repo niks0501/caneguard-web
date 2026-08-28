@@ -1305,8 +1305,32 @@ async function runAutomatedConfidenceChecks(config, worktree) {
       args: ["run", "contract:artifact"],
     },
     {
+      label: "mobile field-validation completion contract artifact",
+      args: ["run", "contract:completion-artifact"],
+    },
+    {
+      label: "Phase 1 notification artifact",
+      args: ["run", "contract:notification-artifact"],
+    },
+    {
+      label: "Phase 1 lifecycle artifact",
+      args: ["run", "contract:lifecycle-artifact"],
+    },
+    {
       label: "Laravel mobile report-upload contract tests",
       args: ["run", "contract:consumer"],
+    },
+    {
+      label: "Laravel mobile field-validation completion contract tests",
+      args: ["run", "contract:completion-consumer"],
+    },
+    {
+      label: "Laravel Phase 1 notification consumer tests",
+      args: ["run", "contract:notification-consumer"],
+    },
+    {
+      label: "Laravel Phase 1 lifecycle consumer tests",
+      args: ["run", "contract:lifecycle-consumer"],
     },
     {
       label: "staging contract helper tests",

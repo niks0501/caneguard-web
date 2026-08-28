@@ -122,11 +122,13 @@ class CreateLifecycleNotifications
             ->whereNotNull('target_visit_date')
             ->whereDate('target_visit_date', '<', $today->toDateString())
             ->whereHas('report', function ($query): void {
-                $query->where(
-                    'field_validation_state',
-                    '!=',
-                    Report::FIELD_VALIDATION_STATE_COMPLETED,
-                );
+                $query
+                    ->where('case_state', Report::CASE_STATE_OPEN)
+                    ->where(
+                        'field_validation_state',
+                        '!=',
+                        Report::FIELD_VALIDATION_STATE_COMPLETED,
+                    );
             })
             ->with(['report', 'assignee'])
             ->each(function (FieldValidationAssignment $assignment) use (&$created): void {
