@@ -1,4 +1,4 @@
-name: Mobile report upload contract web boundary
+name: Mobile report lifecycle contract web boundary
 
 on:
   pull_request:
@@ -12,7 +12,15 @@ on:
       - docs/contracts/mobile-report-upload-v1.md
       - docs/contracts/mobile-field-validation-assignment-v1.json
       - docs/contracts/mobile-field-validation-assignment-v1.md
+      - docs/contracts/mobile-field-validation-completion-v1.json
+      - docs/contracts/mobile-field-validation-completion-v1.md
+      - docs/contracts/mobile-notifications-v1.json
+      - docs/contracts/mobile-notifications-v1.md
+      - docs/contracts/report-lifecycle-v1.json
+      - docs/contracts/report-lifecycle-v1.md
+      - docs/evidence/phase1-lifecycle/**
       - docs/testing/mobile-report-upload-contract-gate.md
+      - docs/testing/phase1-lifecycle-acceptance.md
       - scripts/assert-git-revision.mjs
       - scripts/mobile-report-upload-contract-workflow.node-test.mjs
       - scripts/resolve-mobile-report-upload-gate-config.mjs
@@ -20,33 +28,81 @@ on:
       - scripts/run-laravel-mobile-report-upload-consumer-contract.mjs
       - scripts/run-mobile-report-upload-producer-contract.mjs
       - scripts/run-laravel-mobile-field-validation-assignment-consumer-contract.mjs
+      - scripts/run-laravel-mobile-field-validation-completion-consumer-contract.mjs
+      - scripts/run-laravel-mobile-notification-consumer-contract.mjs
+      - scripts/run-laravel-report-lifecycle-consumer-contract.mjs
       - scripts/run-mobile-field-validation-assignment-producer-contract.mjs
+      - scripts/run-mobile-field-validation-completion-producer-contract.mjs
+      - scripts/run-mobile-notification-producer-contract.mjs
+      - scripts/run-report-lifecycle-producer-contract.mjs
+      - scripts/run-phase1-lifecycle-acceptance.mjs
       - scripts/validate-mobile-report-upload-v1.mjs
       - scripts/validate-mobile-field-validation-assignment-v1.mjs
+      - scripts/validate-mobile-field-validation-completion-v1.mjs
+      - scripts/validate-mobile-field-validation-completion-v1.node-test.mjs
+      - scripts/validate-mobile-notifications-v1.mjs
+      - scripts/validate-report-lifecycle-v1.mjs
       - scripts/validate-mobile-report-upload-v1.node-test.mjs
       - scripts/validate-mobile-field-validation-assignment-v1.node-test.mjs
+      - scripts/validate-mobile-field-validation-completion-v1.node-test.mjs
+      - scripts/validate-mobile-notifications-v1.node-test.mjs
+      - scripts/validate-report-lifecycle-v1.node-test.mjs
+      - scripts/phase1-lifecycle-acceptance.node-test.mjs
       - package.json
       - package-lock.json
       - api/composer.json
       - api/composer.lock
+      - api/app/Actions/Notifications/**
+      - api/app/Actions/Reports/CompleteFieldValidationAssignment.php
+      - api/app/Actions/Reports/ApplyReportFilters.php
+      - api/app/Actions/Reports/QueryFieldValidationQueue.php
       - api/app/Actions/Reports/PersistReport.php
       - api/app/Actions/Reports/StoreReport.php
       - api/app/Contracts/MobileReportUploadContract.php
       - api/app/Contracts/MobileFieldValidationAssignmentContract.php
+      - api/app/Contracts/MobileFieldValidationCompletionContract.php
+      - api/app/Contracts/MobileNotificationContract.php
+      - api/app/Contracts/ReportLifecycleContract.php
       - api/app/Http/Controllers/Api/V1/MobileReportController.php
       - api/app/Http/Controllers/Api/V1/FieldReporterController.php
       - api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php
+      - api/app/Http/Controllers/Api/V1/MobileFieldValidationCompletionController.php
+      - api/app/Http/Controllers/Api/V1/MobileNotificationController.php
+      - api/app/Http/Controllers/Api/V1/NotificationController.php
+      - api/app/Http/Controllers/Api/V1/ReviewReportController.php
+      - api/app/Http/Controllers/Api/V1/FieldValidationQueueController.php
+      - api/app/Http/Resources/ReportResource.php
+      - api/app/Http/Resources/ReportListResource.php
+      - api/app/Http/Resources/MapReportResource.php
+      - api/app/Http/Resources/FieldValidationQueueResource.php
+      - api/app/Http/Resources/FieldValidationAssignmentResource.php
+      - api/app/Http/Resources/FieldValidationCompletionResource.php
+      - api/app/Http/Resources/MobileFieldValidationAssignmentResource.php
+      - api/app/Http/Resources/MobileNotificationResource.php
+      - api/app/Http/Resources/NotificationResource.php
+      - api/app/Http/Requests/MobileFieldValidationCompletionRequest.php
+      - api/app/Http/Requests/MobileNotificationRequest.php
       - api/app/Http/Requests/StoreMobileReportRequest.php
       - api/app/Http/Requests/MobileFieldValidationAssignmentRequest.php
+      - api/app/Http/Requests/FieldValidationQueueRequest.php
+      - api/app/Http/Requests/ListNotificationsRequest.php
+      - api/app/Http/Requests/NotificationMutationRequest.php
       - api/app/Http/Requests/ReviewReportRequest.php
       - api/app/Models/Report.php
       - api/app/Models/FieldValidationAssignment.php
+      - api/app/Models/FieldValidationCompletion.php
       - api/app/Policies/ReportPolicy.php
+      - api/app/Notifications/**
+      - api/app/Events/CaseAttentionChanged.php
+      - api/app/Events/NewCaseSubmitted.php
       - api/database/migrations/**
       - api/routes/api.php
+      - api/routes/channels.php
       - api/tests/Feature/MobileReportUploadContractTest.php
       - api/tests/Feature/FieldValidationAssignmentTest.php
       - api/tests/Feature/MobileReportUploadTest.php
+      - api/tests/Feature/NotificationTest.php
+      - api/tests/Feature/ReportLifecycleContractTest.php
       - api/tests/MySql/MobileReportSecurityContractMySqlTest.php
 
 permissions:
@@ -58,7 +114,7 @@ concurrency:
 
 jobs:
   web-boundary:
-    name: upload contract web boundary (PR)
+    name: lifecycle contract web boundary (PR)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -77,6 +133,9 @@ jobs:
         run: |
           npm run contract:artifact
           npm run contract:assignment-artifact
+          npm run contract:completion-artifact
+          npm run contract:notification-artifact
+          npm run contract:lifecycle-artifact
 
       - name: Validate pinned revision configuration
         run: npm run contract:config
@@ -91,13 +150,16 @@ jobs:
         run: |
           npm run contract:consumer
           npm run contract:assignment-consumer
+          npm run contract:completion-consumer
+          npm run contract:notification-consumer
+          npm run contract:lifecycle-consumer
 
       - name: Explain trusted cross-repository follow-up
         run: |
           {
-            echo '### Mobile report and assignment contract PR boundary'
+            echo '### Mobile lifecycle contract PR boundary'
             echo
-            echo 'Upload and assignment artifacts plus Laravel consumer checks passed without private mobile repository credentials.'
+            echo 'Upload, assignment, completion, notification, and lifecycle artifacts plus Laravel consumer checks passed without private mobile repository credentials.'
             echo 'The cross-repository producer check runs from the separate trusted workflow only on a push to main or an explicit workflow dispatch from main.'
             echo 'A mobile producer revision must be recorded as a full SHA in ci/mobile-report-upload-gate.json or supplied to workflow_dispatch before P0F.'
           } >> "$GITHUB_STEP_SUMMARY"

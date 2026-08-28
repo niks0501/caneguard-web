@@ -1,12 +1,12 @@
 {
   "eslint.config.js": {
-    "mtime": 1786594624.5248845,
-    "ast_hash": "d4a1a3cbed4e032dd22ea2d07c56f869",
+    "mtime": 1787921744.8109343,
+    "ast_hash": "349039f291224cb85569b3748c25bd8e",
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1787737719.1473966,
-    "ast_hash": "5da0d5d2a3dfc02508c14f9468559095",
+    "mtime": 1787933654.5284982,
+    "ast_hash": "f3ce6a9f8b7346dac704edab43caf8d4",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -25,13 +25,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/AppHeader.tsx": {
-    "mtime": 1787063595.4106035,
-    "ast_hash": "914da5517c4bcb6765fa5f873b7e97a5",
+    "mtime": 1787904043.552894,
+    "ast_hash": "6ddc17cfa4e0da88b6bce670b84fdb7b",
     "semantic_hash": ""
   },
   "src/components/layout/AppShell.tsx": {
-    "mtime": 1787064119.1938486,
-    "ast_hash": "9d52832d263c8c6abccef35fb3ea92dc",
+    "mtime": 1787904043.552894,
+    "ast_hash": "76cd2534028a123eb6585c51161c1e52",
     "semantic_hash": ""
   },
   "src/components/layout/Page.tsx": {
@@ -115,13 +115,13 @@
     "semantic_hash": ""
   },
   "src/domain/report.types.ts": {
-    "mtime": 1787900998.5623674,
-    "ast_hash": "9e1c710013eed2d25d9dc1151c723dcd",
+    "mtime": 1787906921.9933784,
+    "ast_hash": "dd6266f31d60754aa9fd99992cbb8720",
     "semantic_hash": ""
   },
   "src/domain/review.types.ts": {
-    "mtime": 1787901007.7768576,
-    "ast_hash": "786c0bd48edd65bc7994f9d3e68f5012",
+    "mtime": 1787906866.335087,
+    "ast_hash": "fa7e4f91f4232144ee30723151913111",
     "semantic_hash": ""
   },
   "src/domain/user.types.ts": {
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.tsx": {
-    "mtime": 1787901294.0881608,
-    "ast_hash": "0e95a41c974841337101edf37fa56fb2",
+    "mtime": 1787906970.8102825,
+    "ast_hash": "99e50eaa07ce43b22f33265eb82b3027",
     "semantic_hash": ""
   },
   "src/pages/NotFoundPage.tsx": {
@@ -175,13 +175,13 @@
     "semantic_hash": "f9cb81ddcea69ffdab672fc8c48dca66"
   },
   "vite.config.ts": {
-    "mtime": 1787704192.3750265,
-    "ast_hash": "0382dfa78d79d3a14fea8c80796bbdfc",
+    "mtime": 1787922123.5039275,
+    "ast_hash": "e739a4ff6df331d92c0b8fac3cb7c237",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1787737988.7653792,
-    "ast_hash": "b4617a1044af5d51bb20f18071aa2497",
+    "mtime": 1787904043.5367126,
+    "ast_hash": "168916f837db7907a5c4557992a9e214",
     "semantic_hash": ""
   },
   "index.html": {
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "api/app/Models/User.php": {
-    "mtime": 1786594624.5141187,
-    "ast_hash": "dfd9bd148286e26df64b25aefed7d22d",
+    "mtime": 1787906583.511216,
+    "ast_hash": "214f0bf9b8a212b195e4e8be2cdfd6cf",
     "semantic_hash": ""
   },
   "api/app/Providers/AppServiceProvider.php": {
@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "api/bootstrap/app.php": {
-    "mtime": 1786594624.5141187,
-    "ast_hash": "3ea324ffec9a26245509879b5e7e8080",
+    "mtime": 1787904043.5408893,
+    "ast_hash": "3b34a7b24290bd84ae39ce87ecf902e2",
     "semantic_hash": ""
   },
   "api/bootstrap/providers.php": {
@@ -250,8 +250,8 @@
     "semantic_hash": ""
   },
   "api/composer.json": {
-    "mtime": 1786594624.5146267,
-    "ast_hash": "7ae77f09d1ee8c5a874507192eebd009",
+    "mtime": 1787904043.5408893,
+    "ast_hash": "a62308dd92f81271a8ea5fd2621689e9",
     "semantic_hash": ""
   },
   "api/config/app.php": {
@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "api/config/cors.php": {
-    "mtime": 1786594624.5154476,
-    "ast_hash": "8482d2ca4343621c1a2062d9a3c9befc",
+    "mtime": 1787904043.5448034,
+    "ast_hash": "0f98016c68244334beddbfbbb2aba985",
     "semantic_hash": ""
   },
   "api/config/database.php": {
@@ -370,8 +370,8 @@
     "semantic_hash": ""
   },
   "api/routes/api.php": {
-    "mtime": 1786899827.9188488,
-    "ast_hash": "15d71998c9b1dcdd8f3f7e47e7ab82df",
+    "mtime": 1787920639.3440986,
+    "ast_hash": "c1c8306ce9c24978283b4624f3f11e2f",
     "semantic_hash": ""
   },
   "api/routes/console.php": {
@@ -420,8 +420,8 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/StoreReport.php": {
-    "mtime": 1787900886.6505883,
-    "ast_hash": "8398a9f0e9f277dc3324ef9aabe7448b",
+    "mtime": 1787904043.5408893,
+    "ast_hash": "4a9178241af45d4d575095c6644f8985",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/DashboardSummaryController.php": {
@@ -440,13 +440,13 @@
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/ReportController.php": {
-    "mtime": 1787900886.6505883,
-    "ast_hash": "b8306edc7240ac612e23bd797955ce1c",
+    "mtime": 1787920048.554534,
+    "ast_hash": "00d31977ba71f1b6805ba43eb60af024",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/ReviewReportController.php": {
-    "mtime": 1787902005.8717062,
-    "ast_hash": "50b6a7f061adb8cdd4284cabba820946",
+    "mtime": 1787935162.472295,
+    "ast_hash": "8c4780dee8034d615aae37a69d8fd0a4",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/ApiFormRequest.php": {
@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/ReviewReportRequest.php": {
-    "mtime": 1787902194.612136,
-    "ast_hash": "5d017f84ae5ac8f410688194398f3d4f",
+    "mtime": 1787908912.6900015,
+    "ast_hash": "6fc3f036602d59e938e1305419c2d798",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/StoreMobileReportRequest.php": {
@@ -485,8 +485,8 @@
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportResource.php": {
-    "mtime": 1787900879.8413877,
-    "ast_hash": "e81a008aa0a4aa1d46a4f25915edd472",
+    "mtime": 1787906780.6111815,
+    "ast_hash": "f50e670a55842dd5735aa5263b27d68c",
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportStatusResource.php": {
@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "api/app/Models/Report.php": {
-    "mtime": 1787902114.3750856,
-    "ast_hash": "8d75c8296389f8237b21348b23c49ef2",
+    "mtime": 1787931919.8762312,
+    "ast_hash": "15d91b42fc9385a043327e9b321fed26",
     "semantic_hash": ""
   },
   "api/app/Models/ReportClassScore.php": {
@@ -550,8 +550,8 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/PersistReport.php": {
-    "mtime": 1787897001.6761622,
-    "ast_hash": "bf45076d93d9ef59143e107d0ac5e1f2",
+    "mtime": 1787904043.5408893,
+    "ast_hash": "c9986563b9d528d1110dac9a56e757a4",
     "semantic_hash": ""
   },
   "api/tests/Feature/DemoUserSeederTest.php": {
@@ -590,8 +590,8 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/ReviewReportTest.php": {
-    "mtime": 1787900983.8897192,
-    "ast_hash": "bc09b051c5d2c9ff22a9977ef9a4ebdd",
+    "mtime": 1787907586.250792,
+    "ast_hash": "63c4a2121fea35441ab1103d3876e481",
     "semantic_hash": ""
   },
   "api/tests/Feature/SanctumInstallationTest.php": {
@@ -645,13 +645,13 @@
     "semantic_hash": ""
   },
   "src/config/env.test.ts": {
-    "mtime": 1787396257.4178019,
-    "ast_hash": "5d2eb4de7a20c99cbe273d3987cf57c1",
+    "mtime": 1787904043.552894,
+    "ast_hash": "80f3e53960f84f5ea3bed7f2d3b82058",
     "semantic_hash": ""
   },
   "src/config/env.ts": {
-    "mtime": 1787396251.9661577,
-    "ast_hash": "ae323de3028bd0b98e91b8e80032fb00",
+    "mtime": 1787904043.552894,
+    "ast_hash": "7d604d237a10c2becc7489441aa25bfe",
     "semantic_hash": ""
   },
   "src/data/api/ApiDashboardRepository.test.ts": {
@@ -665,13 +665,13 @@
     "semantic_hash": ""
   },
   "src/data/api/ApiReportsRepository.test.ts": {
-    "mtime": 1787901417.2126234,
-    "ast_hash": "d19851d32f72b6390413002facd82f61",
+    "mtime": 1787908654.4524655,
+    "ast_hash": "490aba39d095e3b6015fc14a31518416",
     "semantic_hash": ""
   },
   "src/data/api/ApiReportsRepository.ts": {
-    "mtime": 1787901048.803347,
-    "ast_hash": "e54c223bf5e8abd5fe267e36af9d3016",
+    "mtime": 1787906873.4992683,
+    "ast_hash": "78a8d3e1f2f5f49913fc3894d19200f2",
     "semantic_hash": ""
   },
   "src/data/api/mappers/dashboard.mapper.ts": {
@@ -685,8 +685,8 @@
     "semantic_hash": ""
   },
   "src/data/api/mappers/report.mapper.ts": {
-    "mtime": 1787901026.1454825,
-    "ast_hash": "5ba005f0beef2c6c4cf34f9a762c8022",
+    "mtime": 1787906932.3000708,
+    "ast_hash": "94946a43ba9abe703b6ceb9f9cbf1bb5",
     "semantic_hash": ""
   },
   "src/data/api/schemas/common.schema.test.ts": {
@@ -710,8 +710,8 @@
     "semantic_hash": ""
   },
   "src/data/api/schemas/report.schema.ts": {
-    "mtime": 1787901019.2544818,
-    "ast_hash": "1b0e368815e0da97b8f8952619c460d0",
+    "mtime": 1787906854.6530347,
+    "ast_hash": "080a5b7a0f3d9fbd8f345a1e2afebb3b",
     "semantic_hash": ""
   },
   "src/data/contracts/DashboardRepository.ts": {
@@ -775,8 +775,8 @@
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Auth/LoginController.php": {
-    "mtime": 1786594624.5130382,
-    "ast_hash": "e67a25c47acdbf4c8ac36d69198135f1",
+    "mtime": 1787904043.5408893,
+    "ast_hash": "68d6bfbc89795f2d626cc03cd1fb174e",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Auth/LogoutController.php": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/AuthenticatedUserRequest.php": {
-    "mtime": 1786594624.5136502,
-    "ast_hash": "8024d78e24966c704832f770e80932d1",
+    "mtime": 1787904043.5408893,
+    "ast_hash": "9aa65b9acff441d2ca764689fb0f28cf",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/LoginRequest.php": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.test.tsx": {
-    "mtime": 1787901442.376473,
-    "ast_hash": "eee3390b48fb051078d0512940fce5eb",
+    "mtime": 1787916168.8390577,
+    "ast_hash": "b697eddca960502f9ed1064be55f0cd5",
     "semantic_hash": ""
   },
   "api/database/migrations/2026_07_27_020000_add_lock_version_to_reports_table.php": {
@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "api/tests/MySql/ReleaseDemoFlowMySqlTest.php": {
-    "mtime": 1786594624.5240314,
-    "ast_hash": "6cbcf15c4c5dfa5fa31d31dda2eff13b",
+    "mtime": 1787907597.5670168,
+    "ast_hash": "3d0a1023d7e08985dbbf82d0d9ede3f3",
     "semantic_hash": ""
   },
   "demo/bruno/bruno.json": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/MobileAuthController.php": {
-    "mtime": 1786594624.5130382,
-    "ast_hash": "054f8dc5f63c7bac9f7358e32118394b",
+    "mtime": 1787920642.680106,
+    "ast_hash": "e6af72ac54cc0a8ba512dd9bdcc0464e",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/MobileLoginRequest.php": {
@@ -980,13 +980,13 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/MobileAuthenticationTest.php": {
-    "mtime": 1786594624.5240314,
-    "ast_hash": "d55ce9b55b64255f999f638970caad76",
+    "mtime": 1787921430.750124,
+    "ast_hash": "a31235864dc424471baaaf35b3e0a309",
     "semantic_hash": ""
   },
   "api/tests/MySql/MobileReportSecurityContractMySqlTest.php": {
-    "mtime": 1786598435.466907,
-    "ast_hash": "91a72fdd5e62b3f2c0fcdb2f8fdf2393",
+    "mtime": 1787907593.3149784,
+    "ast_hash": "2f5a0b442e447ec4507622050af6e6ef",
     "semantic_hash": ""
   },
   ".agents/rules/backend.md": {
@@ -1300,8 +1300,8 @@
     "semantic_hash": ""
   },
   "src/domain/fieldValidation.types.ts": {
-    "mtime": 1787897123.1204932,
-    "ast_hash": "4ca97e76cd0bf26b1dc4bba916a6e597",
+    "mtime": 1787906881.6956134,
+    "ast_hash": "4d1a85f841a330718f31c95912d00921",
     "semantic_hash": ""
   },
   "src/hooks/fieldValidationQueries.ts": {
@@ -2685,8 +2685,8 @@
     "semantic_hash": ""
   },
   "ci/mobile-report-upload-gate.json": {
-    "mtime": 1787503623.5889504,
-    "ast_hash": "1745faf7558be7403663cae2c093d714",
+    "mtime": 1787935278.6925867,
+    "ast_hash": "5d7d371d933704575039f409c0eafb3e",
     "semantic_hash": ""
   },
   "docs/contracts/examples/mobile-report-status-v1.json": {
@@ -2695,8 +2695,8 @@
     "semantic_hash": ""
   },
   "docs/contracts/mobile-report-upload-v1.json": {
-    "mtime": 1787493926.1542766,
-    "ast_hash": "e1e5b4809154555ce4fde2fe255f275a",
+    "mtime": 1787931744.7637825,
+    "ast_hash": "3c1d6ba953561ed603f5ca47c8ca9a3e",
     "semantic_hash": ""
   },
   "scripts/assert-git-revision.mjs": {
@@ -2705,18 +2705,18 @@
     "semantic_hash": ""
   },
   "scripts/mobile-report-upload-contract-workflow.node-test.mjs": {
-    "mtime": 1787505359.9320142,
-    "ast_hash": "a4276b7ba75d4ce29a193793e81b34b9",
+    "mtime": 1787936789.6171517,
+    "ast_hash": "616dd8278bff4a2cdc4e8ec19de29cb0",
     "semantic_hash": ""
   },
   "scripts/resolve-mobile-report-upload-gate-config.mjs": {
-    "mtime": 1787505052.314151,
-    "ast_hash": "f7a5a46d110189503f2594b61e11398a",
+    "mtime": 1787932197.712931,
+    "ast_hash": "483e73dc7211acae88e3d4d81ece70ed",
     "semantic_hash": ""
   },
   "scripts/resolve-mobile-report-upload-gate-config.node-test.mjs": {
-    "mtime": 1787505069.691143,
-    "ast_hash": "e1b6da22ac9e0436f26c2df519ffdb6d",
+    "mtime": 1787932191.128917,
+    "ast_hash": "a58036b513e04af11d8a677f44e90841",
     "semantic_hash": ""
   },
   "scripts/run-laravel-mobile-report-upload-consumer-contract.mjs": {
@@ -2755,13 +2755,13 @@
     "semantic_hash": ""
   },
   ".github/workflows/mobile-report-upload-contract-trusted.yml": {
-    "mtime": 1787505533.706524,
-    "ast_hash": "91f9011b66b18e893dd62b9e47403753",
+    "mtime": 1787936778.800832,
+    "ast_hash": "2764ae5d4cdc744288418617a50271d7",
     "semantic_hash": ""
   },
   ".github/workflows/mobile-report-upload-contract.yml": {
-    "mtime": 1787505528.0459108,
-    "ast_hash": "9fb9845bfe070e127ab5a80ec4a87e1c",
+    "mtime": 1787936768.8525524,
+    "ast_hash": "a0531be51db79a5e8a7e50a97321389c",
     "semantic_hash": ""
   },
   ".opencode/skills/impeccable/SKILL.md": {
@@ -3175,8 +3175,8 @@
     "semantic_hash": ""
   },
   "docs/testing/mobile-report-upload-contract-gate.md": {
-    "mtime": 1787505048.4783773,
-    "ast_hash": "de5e24cb1efeb0fd0e5c4322aa77dd14",
+    "mtime": 1787936181.602808,
+    "ast_hash": "03efb34d5a67b659e31408668aa9f64e",
     "semantic_hash": ""
   },
   "docs/testing/web-map-queue-regression.md": {
@@ -3185,8 +3185,8 @@
     "semantic_hash": ""
   },
   "scripts/qa-staging.mjs": {
-    "mtime": 1787743941.9054525,
-    "ast_hash": "d93ac0c1704aa2dcdc617fc494a01606",
+    "mtime": 1787933130.0752528,
+    "ast_hash": "804c4ab43582b87febc4d86e5bbb113a",
     "semantic_hash": ""
   },
   "scripts/qa-staging.node-test.mjs": {
@@ -4315,8 +4315,8 @@
     "semantic_hash": ""
   },
   "docs/contracts/report-lifecycle-v1.md": {
-    "mtime": 1787901494.4748015,
-    "ast_hash": "97b1746ea5b2bc1c2694d27b5adaca6b",
+    "mtime": 1787935250.6045175,
+    "ast_hash": "1d664a48f6aac5c8d703fae6d5fc7418",
     "semantic_hash": ""
   },
   "api/app/Models/ReportAudit.php": {
@@ -4327,6 +4327,1746 @@
   "api/database/migrations/2026_08_29_000000_add_report_review_actions_and_audits.php": {
     "mtime": 1787900688.1457367,
     "ast_hash": "0ad33bb8fc63119ccc1b3a1754ca7455",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Notifications/BroadcastCaseAttentionChanged.php": {
+    "mtime": 1787921389.2180068,
+    "ast_hash": "0d977c3d52395f599497e9a059c3326f",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Notifications/BroadcastNewCaseSubmitted.php": {
+    "mtime": 1787904043.5367126,
+    "ast_hash": "ae94ec1da7fa8eb48c2f84c1f798d8d3",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Notifications/CreateLifecycleNotifications.php": {
+    "mtime": 1787934362.6263106,
+    "ast_hash": "978b8dd0ea09277605f75bf02de5f82c",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Notifications/CreateNewCaseNotifications.php": {
+    "mtime": 1787904043.5408893,
+    "ast_hash": "357310c3cb0d09f6e393a51c5f4a2216",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Reports/CompleteFieldValidationAssignment.php": {
+    "mtime": 1787935204.0523987,
+    "ast_hash": "f2d5a8d83cefb31b5c168cd250199c46",
+    "semantic_hash": ""
+  },
+  "api/app/Contracts/MobileFieldValidationAssignmentContract.php": {
+    "mtime": 1787906632.4384825,
+    "ast_hash": "785efcf110924d8d8a9b8ce7c41e19f7",
+    "semantic_hash": ""
+  },
+  "api/app/Contracts/MobileFieldValidationCompletionContract.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "37f364813b98fce48c020e4d500680c2",
+    "semantic_hash": ""
+  },
+  "api/app/Contracts/MobileNotificationContract.php": {
+    "mtime": 1787920581.0559444,
+    "ast_hash": "c44cbcf65ae0673cc16dac90f899b023",
+    "semantic_hash": ""
+  },
+  "api/app/Contracts/ReportLifecycleContract.php": {
+    "mtime": 1787936813.0098178,
+    "ast_hash": "6d59f95d0ea2a1cb1617f09840db5076",
+    "semantic_hash": ""
+  },
+  "api/app/Events/CaseAttentionChanged.php": {
+    "mtime": 1787920453.316785,
+    "ast_hash": "95eb32ae0749bbab417ce1c4c3290f52",
+    "semantic_hash": ""
+  },
+  "api/app/Events/NewCaseSubmitted.php": {
+    "mtime": 1787904043.5408893,
+    "ast_hash": "653b0d19b14bb7be21c73e4003f92dd8",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/FieldReporterController.php": {
+    "mtime": 1787906671.590486,
+    "ast_hash": "b0c56864d7566f792829e4c353162bd1",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php": {
+    "mtime": 1787909813.1546934,
+    "ast_hash": "bb186d5921628754da3258e078c12a0a",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/MobileFieldValidationCompletionController.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "e23b34a671fde017b9a8ffa7e4291d79",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/MobileNotificationController.php": {
+    "mtime": 1787920620.012021,
+    "ast_hash": "64912a67bbb407b549d6202309a73001",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/NotificationController.php": {
+    "mtime": 1787920566.143907,
+    "ast_hash": "22de47a6094104fa68a3187b7ee3fe0d",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/FieldReporterListRequest.php": {
+    "mtime": 1787906636.7506056,
+    "ast_hash": "f507c13bc1211217665f31e3dd9becd3",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/ListNotificationsRequest.php": {
+    "mtime": 1787904043.5408893,
+    "ast_hash": "ee35890bcade947e66a8a6c3d384dae7",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/MobileFieldValidationAssignmentRequest.php": {
+    "mtime": 1787906647.347141,
+    "ast_hash": "497dd3182ad68b6fe8dca2d8c065dadd",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/MobileFieldValidationCompletionRequest.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "382e0f32735b9a7a00a6414bb05cadaf",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/MobileNotificationRequest.php": {
+    "mtime": 1787920620.012021,
+    "ast_hash": "07afdaf29e4d11cc1201b7d754c5121f",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/NotificationMutationRequest.php": {
+    "mtime": 1787904043.5408893,
+    "ast_hash": "84bc3c4645f01ff0bdb53d5e460bbb87",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/FieldReporterResource.php": {
+    "mtime": 1787906675.8839386,
+    "ast_hash": "1120a428d1767b9f7d5812fd61a182ee",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/FieldValidationAssignmentResource.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "20df1fba03f1a95ea93c5b35bd72290f",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/FieldValidationCompletionResource.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "89a868ae917b79b777fcd10fc6c743f1",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/MobileFieldValidationAssignmentResource.php": {
+    "mtime": 1787906706.0265605,
+    "ast_hash": "4a99109e80772804e81bc058392aab2c",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/MobileNotificationResource.php": {
+    "mtime": 1787920620.012021,
+    "ast_hash": "04a7179c06a20f144c850a2403b45f23",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/NotificationResource.php": {
+    "mtime": 1787920549.7558653,
+    "ast_hash": "1807c122792f0cb2b877fa645902682a",
+    "semantic_hash": ""
+  },
+  "api/app/Models/FieldValidationAssignment.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "c8b91f913ba3f2e898eb7e8dbef5adae",
+    "semantic_hash": ""
+  },
+  "api/app/Models/FieldValidationCompletion.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "b295418d5f66a30c526c36b06b2894e0",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/CaseAttentionNotification.php": {
+    "mtime": 1787920453.3132563,
+    "ast_hash": "0da09d8382d28b4c837700117f638317",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/FieldValidationAssignedNotification.php": {
+    "mtime": 1787921290.9137566,
+    "ast_hash": "eb33d329f96dd64726949c05a7a41445",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/FieldValidationAssignmentChangedNotification.php": {
+    "mtime": 1787920453.3156064,
+    "ast_hash": "08742a6dd9b97d9f75a5e7f8dc590254",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/FieldValidationCompletedNotification.php": {
+    "mtime": 1787920453.316785,
+    "ast_hash": "82d22612121069c767405a3eb196913f",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/FollowUpDueNotification.php": {
+    "mtime": 1787920453.316785,
+    "ast_hash": "1a56696d4a21f9a07fe2705953f0c6d6",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/NewCaseSubmittedNotification.php": {
+    "mtime": 1787904043.5408893,
+    "ast_hash": "910aa4c30a3b00b5f8b2cddf689add3a",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/NotificationId.php": {
+    "mtime": 1787920453.3132563,
+    "ast_hash": "609e2ac3286a94dbf06bfadd87d3a9a6",
+    "semantic_hash": ""
+  },
+  "api/app/Notifications/OfficeReviewCompletedNotification.php": {
+    "mtime": 1787921280.1377354,
+    "ast_hash": "84e0cb481e1f4e07ef8b75e2dff9b34c",
+    "semantic_hash": ""
+  },
+  "api/config/broadcasting.php": {
+    "mtime": 1787904043.5448034,
+    "ast_hash": "2bc2c256d444913daaf9cdf3ef3c75dd",
+    "semantic_hash": ""
+  },
+  "api/config/reverb.php": {
+    "mtime": 1787904043.5448034,
+    "ast_hash": "fa17f3159037facd8bc600d5f2909b16",
+    "semantic_hash": ""
+  },
+  "api/database/factories/FieldValidationAssignmentFactory.php": {
+    "mtime": 1787906569.4731684,
+    "ast_hash": "2872bfbd963e4452f555c60693c392ff",
+    "semantic_hash": ""
+  },
+  "api/database/factories/FieldValidationCompletionFactory.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "10bb2f4bfdf821279120612c2826e8ad",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/2026_08_17_000000_create_notifications_table.php": {
+    "mtime": 1787904043.5448034,
+    "ast_hash": "75800f998afa43f1a07de168c56b0362",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/2026_08_30_000000_create_field_validation_assignments_table.php": {
+    "mtime": 1787906552.7712574,
+    "ast_hash": "d7bf01ae58b48a52b0811c95c1d46352",
+    "semantic_hash": ""
+  },
+  "api/database/migrations/2026_08_31_000000_create_field_validation_completions_table.php": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "92b2295398cc8000a86193ebe7a7e4ce",
+    "semantic_hash": ""
+  },
+  "api/routes/channels.php": {
+    "mtime": 1787904043.5448034,
+    "ast_hash": "ccc9fc7c6d8e27225629fb9c4b3ee8a5",
+    "semantic_hash": ""
+  },
+  "api/tests/Feature/FieldValidationAssignmentTest.php": {
+    "mtime": 1787935174.1723223,
+    "ast_hash": "1ae68cf03c60332dbf9c86417ea96945",
+    "semantic_hash": ""
+  },
+  "api/tests/Feature/NotificationTest.php": {
+    "mtime": 1787934372.7103262,
+    "ast_hash": "df2245eb41faedc03a30ec3662b6fa38",
+    "semantic_hash": ""
+  },
+  "api/tests/Feature/ReportLifecycleContractTest.php": {
+    "mtime": 1787935235.6564808,
+    "ast_hash": "79a884d4f16ed486e81b010d6750c84d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/activity.test.tsx": {
+    "mtime": 1787931089.241534,
+    "ast_hash": "ee06b95a3cacf3b6ce90c68b82269943",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/analysis-result.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "ecef457c0b38ecfe5b005de85ba9d616",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/auth-bootstrap.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "03c59bc481a69fb3fafc20ab00fff6e7",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/field-report.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "ae2aabc60cb67b5ed293dddf0bfdb1fd",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/field-validation.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "460daaa888525e3310a809a7881eb200",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/home.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "e744d004de95e873eb4b207adda7b1c8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/image-preview.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "57e704f4427675e995117bfd5b0f8097",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/manual-map.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "a9e6c1c95ac6e67e30fe7844c416073d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/model-debug.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "7a500dbd77c55171c0215702aaaaec41",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/model-smoke-test.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "60062997f658a1ae2e46d346b967dd4b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/record-details.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "2350f3224fd412f68e2f9fd11d83c307",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/records.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "b13e6aa3b3843a81a0733ea5f28d5b1c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/register.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "171b4116232e50391f8a8881039f18fc",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/reports.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "f3427b3abbb46cc8919a6097604adc8d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/scan.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "f730ace9943d792fe8f06e4063f5d84c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/settings.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "7299aa2fd28829d7a839584e80eb8cb9",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/__tests__/symptom-checklist.test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "7b82d180cde80d69e665588ae7b33dfa",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/_layout.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "1fd9ca4eeb1d687a2a733f43c48ab044",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/activity.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "1c3928da90489122138a8114df892219",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/analysis-result.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "1bfa91df5cabf2e9ab5b05ad88b67543",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/field-report.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "526ca01e71661e6a7321f99cd3205d17",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/field-validation.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "16d3917931e4f1552c5b9d9fb104c530",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/home.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "43e4f00fff5adfcd470315aba4c22a8d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/image-preview.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "a270d48207e82499f2ea8352c7af260b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/index.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "966569a5e33735396419aad1c760f0a2",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/login.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "90be0d1278169f2d658c92f408742f2b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/manual-map.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "a42734197f78e3791ff40507523f305b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/model-debug.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "5bcd8e0b31443de8258c2c2c39ed120b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/model-smoke-test.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "2b80ba17ccdbcea3a5298d8537343b28",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/record-details.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "a6791a1495434b51cb25afba8acd336a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/records.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "e22e396710bfa7435d4145e1c0f541f8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/register.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "9751e077fa2bf091d6bcceeb2563a194",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/reports.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "aa2a6914f6e6f210b1f7544fcb29338d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/scan.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "42c149a4bb9960f76f0aa0d46713b61b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/settings.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "2963f8d6150cf0d71181ab9c5ce7602d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/storage-debug.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "62d1116d823117deb36cf2d01062e0b8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/app/symptom-checklist.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "208aed7b68ff3482e76e65f32f932f7f",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/themed-text.tsx": {
+    "mtime": 1787931089.2422621,
+    "ast_hash": "41869b896e1e9f3472f5c2183af58918",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/themed-view.tsx": {
+    "mtime": 1787931089.2450488,
+    "ast_hash": "f935dbbcf5a5067a417ea7b329727653",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/AppButton.tsx": {
+    "mtime": 1787931089.2450488,
+    "ast_hash": "0cecc0b36891fa0f8c007bf321c8a044",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/AppCard.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "bf4f974779365da9dc03c96e079d4bf3",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/BottomNav.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "52d9c66585bf09dcb1978b945898ad81",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/BrandedScreenHeader.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "5fd3c3674fb82d2db34dd36cf2530ed4",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/DisclosureSection.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "60e1887248e8ae248620a230ac28cd9d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/DiseaseBadge.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "6590063c2ea6c958697a560412bf7721",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/DiseasePill.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "16462ec60db638f024072bb762072306",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/ProgressBar.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "d4ca1cade7bba01041fa437ae59c7815",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/RecordCard.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "b138595d7dc582ae0974ce2441929e16",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/ScreenContainer.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "245b26d5b1a03dd4f5e746806103302a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/ScreenHeader.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "3fc7a21b13e1121cd8a1b67288c28f8d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/StatusChip.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "e44b363db5acd8959c08a0587d93e91a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/SummaryTile.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "8c8da428e40563f4d9a6ce15cdf512e4",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/SymptomChecklistItem.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "edb2327835f9fcab209d0b4baffa6b52",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/SyncStatusPanel.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "083d216e51f0fca06e14bf7eade6eb52",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/SyncStatusRow.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "44fada15aec7a0ccf05da8de327fc106",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/TextField.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "1334d2fa84bd67a2930ee469c053cdb0",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/__tests__/shared-ui.test.tsx": {
+    "mtime": 1787931089.2454708,
+    "ast_hash": "12359fae80a24016614a461419c79297",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/components/ui/__tests__/sync-status.test.tsx": {
+    "mtime": 1787931089.2462804,
+    "ast_hash": "d1c7ccc9cad69ea892e9ed6da2eda44e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/config/__tests__/env.test.ts": {
+    "mtime": 1787931089.2465463,
+    "ast_hash": "828bfc6923c44e3ca3703969e18bd1a6",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/config/env.ts": {
+    "mtime": 1787931089.2465463,
+    "ast_hash": "b006a760b8b8eb2ddf908c37bb831a3e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/constants/theme.ts": {
+    "mtime": 1787931089.2465463,
+    "ast_hash": "d012c7b7a2ee2874151418177558a4d1",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/DatabaseProvider.tsx": {
+    "mtime": 1787931089.2465463,
+    "ast_hash": "8e284e21a7968ec78bdef729e795abcc",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/__tests__/DatabaseProvider.test.tsx": {
+    "mtime": 1787931089.2475617,
+    "ast_hash": "6967ff028d57e7df01111897973f882a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/__tests__/database.test.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "9eadca3a70d47b70b1ecb926cf3c235c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/__tests__/errors.test.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "3b39a120c63e9f85bd0c2c1df0345778",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/__tests__/migrations.test.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "2b2d0e38df61bac8f46e690429ce21a2",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/database.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "2ea1cb06413074564bbb324f29a46b10",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/errors.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "42865ca3811cc75d87cc90aa88062f5b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/index.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "39dcf8a6323d550abaa2e22b17daa758",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/schema.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "924b343df37247c260c7f6784eadb48e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/database/useStorageDiagnostics.ts": {
+    "mtime": 1787931089.2476687,
+    "ast_hash": "e8b239133c1fdeea8fccf8761b1b4653",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/activity/components/ActivityScreen.tsx": {
+    "mtime": 1787931089.2481778,
+    "ast_hash": "7f0c64c549a900399b65609258f1a98c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/activity/components/AssignmentCard.tsx": {
+    "mtime": 1787931089.248393,
+    "ast_hash": "83edd5bde8e882ac6e464744a58fe195",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/activity/domain/__tests__/activityTypes.test.ts": {
+    "mtime": 1787931089.2486238,
+    "ast_hash": "7012b4bb1b41e9ee0c6e9c99c115f4df",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/activity/domain/activityTypes.ts": {
+    "mtime": 1787931089.2486238,
+    "ast_hash": "271aa9430e09768ae0b4cfedd917af40",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/api/__fixtures__/mobileFieldValidationAssignmentsV1.ts": {
+    "mtime": 1787931089.24886,
+    "ast_hash": "cd9441b5300a47bc6ec1fd707d3870c8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.contract.test.ts": {
+    "mtime": 1787931089.24886,
+    "ast_hash": "048343ee9be0dccfdd6a6169b6965e3a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.test.ts": {
+    "mtime": 1787931089.2496107,
+    "ast_hash": "640faa4842a443f72e4e11cce96b4fa2",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/api/__tests__/mobileFieldValidationCompletion.contract.test.ts": {
+    "mtime": 1787931089.2496107,
+    "ast_hash": "92b0ac2acad57fe2aded84e8aa4281fa",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/api/mobileFieldValidationAssignmentsApi.ts": {
+    "mtime": 1787931089.2496107,
+    "ast_hash": "d99e5b089a62627452c31471b8fae206",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/api/mobileFieldValidationCompletionApi.ts": {
+    "mtime": 1787931089.2496107,
+    "ast_hash": "8e3b48c9ca319b14fb4abf594352ee9d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/api/mobileFieldValidationCompletionMapper.ts": {
+    "mtime": 1787931089.2496107,
+    "ast_hash": "ffe2f13d2c55c9db8247d59a497ae03d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/data/__tests__/assignmentCacheRepository.test.ts": {
+    "mtime": 1787931089.250172,
+    "ast_hash": "45c67fb6911392fca19d56c5ad09c3e8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/data/__tests__/fieldValidationCompletionRepository.test.ts": {
+    "mtime": 1787931089.2502887,
+    "ast_hash": "15e7d28bdd12755db7a26cd004abbc58",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/data/assignmentCacheRepository.ts": {
+    "mtime": 1787931089.2502887,
+    "ast_hash": "4b35743c2d9b1b7d678213760389da69",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/data/fieldValidationCompletionRepository.ts": {
+    "mtime": 1787931089.2502887,
+    "ast_hash": "8f4090bc961be67935024bee26276862",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/domain/assignmentTypes.ts": {
+    "mtime": 1787931089.2502887,
+    "ast_hash": "87372d2939f9b336ec2bcca9477a0a83",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/domain/fieldValidationCompletionTypes.ts": {
+    "mtime": 1787931089.250603,
+    "ast_hash": "cb4f594145ab62a50c443e9fc4d03d83",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/domain/fieldValidationCompletionValidation.ts": {
+    "mtime": 1787931089.250603,
+    "ast_hash": "d8f5cb1842d80331a5c94c3096dcffaa",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/hooks/useFieldValidationAssignment.ts": {
+    "mtime": 1787931089.250603,
+    "ast_hash": "996b2e75f34061ccc4206ff92169d383",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/hooks/useFieldValidationAssignments.ts": {
+    "mtime": 1787931089.250856,
+    "ast_hash": "70e774184f02c90de2c60c1851e6ff76",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/services/__tests__/syncFieldValidationCompletion.test.ts": {
+    "mtime": 1787931089.2511044,
+    "ast_hash": "f158c0f0d59f7cea1ecedab67fffbe47",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/services/fieldValidationPhotoStorage.ts": {
+    "mtime": 1787931089.2511044,
+    "ast_hash": "2134d448ec2dc9d050a919d0161c7bde",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/services/refreshFieldValidationAssignments.ts": {
+    "mtime": 1787931089.2511044,
+    "ast_hash": "93ce05a6d83fe836d8681373a2735295",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/services/syncFieldValidationCompletion.ts": {
+    "mtime": 1787931089.2511044,
+    "ast_hash": "d6936d00a0584e3010896c1d570f5bca",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/assignments/services/syncPendingFieldValidationCompletions.ts": {
+    "mtime": 1787931089.2511044,
+    "ast_hash": "97929495cae8b994caed0e8239683454",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/api/__tests__/mobileAuthApi.test.ts": {
+    "mtime": 1787931089.2515433,
+    "ast_hash": "53bee7f534c15fde13b943ae956ef4e6",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/api/mobileAuthApi.ts": {
+    "mtime": 1787931089.2515433,
+    "ast_hash": "6ed1438e43c90a45e9e577b12eaa29d5",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/hooks/useAuth.ts": {
+    "mtime": 1787931089.2515433,
+    "ast_hash": "a1c2ac5a77d9eaa466e0f4b077568b25",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/providers/AuthProvider.tsx": {
+    "mtime": 1787931089.2515433,
+    "ast_hash": "43e676bb4809e4cd6f1a0221a6296335",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/providers/__tests__/AuthProvider.test.tsx": {
+    "mtime": 1787931089.252697,
+    "ast_hash": "fd955f5b326f0966a8c2fc3e521b4e25",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/services/__tests__/tokenStore.test.ts": {
+    "mtime": 1787931089.2529447,
+    "ast_hash": "702ddce5a260ff4162a6b93e67dde5a3",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/services/tokenStore.ts": {
+    "mtime": 1787931089.2529447,
+    "ast_hash": "df11faf6029512ec05de3abe176b013c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/auth/types.ts": {
+    "mtime": 1787931089.2529447,
+    "ast_hash": "e4d1f951af7873819384c21f73c83cbf",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/checklist/__tests__/checklistConsistency.test.ts": {
+    "mtime": 1787931089.2534134,
+    "ast_hash": "607fbe4e009bde337d89b3efac5d2544",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/checklist/checklistConsistency.ts": {
+    "mtime": 1787931089.2534134,
+    "ast_hash": "53aab60e55f0ef3cf0fbe961ea116af7",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/constants/__tests__/diseaseCatalog.test.ts": {
+    "mtime": 1787931089.2538385,
+    "ast_hash": "689ee03e5f3c6378a638f43ae3bb0f08",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/constants/__tests__/modelContract.test.ts": {
+    "mtime": 1787931089.253875,
+    "ast_hash": "b9b2e1f949129231a436edad02a445d7",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/constants/diseaseCatalog.ts": {
+    "mtime": 1787931089.253875,
+    "ast_hash": "a7015704b158f22bb99503fa17233a3a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/constants/modelContract.ts": {
+    "mtime": 1787931089.253875,
+    "ast_hash": "303b6d8eea93178e26f77c842a1e8cee",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/context/ScanSessionProvider.tsx": {
+    "mtime": 1787931089.253875,
+    "ast_hash": "4404cfbef74a2cbb767ccc83bef64caa",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/context/__tests__/ScanSessionProvider.test.tsx": {
+    "mtime": 1787931089.2543292,
+    "ast_hash": "36f72ff31bf3523db3e52284a64a8a55",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/context/__tests__/scanSessionReducer.test.ts": {
+    "mtime": 1787931089.2543645,
+    "ast_hash": "87f1cadce036c9bfe3cc647f70a0cde3",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/context/__tests__/sessionErrors.test.ts": {
+    "mtime": 1787931089.2543645,
+    "ast_hash": "0c5c2228e4cf7ff94970d91223ef4d30",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/context/scanSessionReducer.ts": {
+    "mtime": 1787931089.2543645,
+    "ast_hash": "a3c60a1cc14a988d53a61ba4c5c25000",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/context/sessionErrors.ts": {
+    "mtime": 1787931089.2543645,
+    "ast_hash": "0fc74b229adfa5e6c2c9c6f15b6085db",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/context/useScanSession.ts": {
+    "mtime": 1787931089.2543645,
+    "ast_hash": "80e58ed53d82b4ce21908c8af842bc87",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/errors/detectionError.ts": {
+    "mtime": 1787931089.2543645,
+    "ast_hash": "fd628681e99c1f80d3797565a7433934",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/imagePicker/__tests__/readPickerOutcome.test.ts": {
+    "mtime": 1787931089.2551649,
+    "ast_hash": "fe17f1e7c50904e2f2da5813b3a8098b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/imagePicker/readPickerOutcome.ts": {
+    "mtime": 1787931089.2551649,
+    "ast_hash": "ae491db28f00f2b3ef66682328cd7ff6",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/__tests__/postprocessOutput.test.ts": {
+    "mtime": 1787931089.2555094,
+    "ast_hash": "95ef21514a9c160b49316c7b7b71fb03",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/__tests__/runInference.test.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "84945c74fcf4f19ee330150710c6b600",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/__tests__/softmax.test.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "c23116a0687a55fc7185d4e74e28e941",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/__tests__/useCaneGuardModel.test.tsx": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "c01de7e931da5cf55e854fc46663f00e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/__tests__/validateModelContract.test.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "65ce94cd46ad3a969f106e2947308da3",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/inferenceErrors.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "b7239de84628885be6c10c5fef621c16",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/postprocessOutput.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "c7ded53e49fb64bfadbf9276385954d1",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/runInference.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "8b13a182e33efbd5890c98b84c1266d0",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/softmax.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "452761d75fe58124dbb5e7ef31d7f31e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/useCaneGuardModel.tsx": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "3f1822a68d95e6223517b1153a025d3c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/useCaneGuardModel.web.tsx": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "67c0eb2e5674889f105556e19254b905",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/model/validateModelContract.ts": {
+    "mtime": 1787931089.255551,
+    "ast_hash": "c4ee4e2d702d8be52e6ce3b6aa0b1baf",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/__tests__/compareParityReference.test.ts": {
+    "mtime": 1787931089.256459,
+    "ast_hash": "8ca492f7adf213e1ab4ec5e1662f9539",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/__tests__/createInputTensor.test.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "70b8fef49bfdeef81d416784014955a6",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/__tests__/decodeAndColor.test.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "6be3cf8db9a34e64bedc2144f258a856",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/__tests__/preprocessImage.test.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "7796c5d7c31ac53a722da9f0d821d281",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/compareParityReference.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "fd28346d14704c500da19cd891490c7e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/createInputTensor.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "403ed0d5acd5373d658c332d29cf0e06",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/decodeJpeg.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "16392ab258b897a05bd1748324dfcc2e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/preprocessImage.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "40a009b3ba004831070071149d11e322",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/preprocessingErrors.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "cd97419111ede9dc114687e120bed68f",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/preprocessing/rgbaToRgb.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "72153d62054e6c8069e6b950491d2368",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/types.ts": {
+    "mtime": 1787931089.2565048,
+    "ast_hash": "313d9cb37b585189dbf7b1f9674baa51",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/validation/__tests__/assessImageQuality.test.ts": {
+    "mtime": 1787931089.2570016,
+    "ast_hash": "02deb47e24ebf32f6984a5732089ef34",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/validation/assessImageQuality.ts": {
+    "mtime": 1787931089.2570016,
+    "ast_hash": "32981a6805fdda8d95439f62e72894e4",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/detection/validation/imageQualityThresholds.ts": {
+    "mtime": 1787931089.2570016,
+    "ast_hash": "0e1656023a8edef325768a3798d89b77",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/lifecycle/__tests__/phase1LifecycleAcceptance.test.ts": {
+    "mtime": 1787935924.9941347,
+    "ast_hash": "64f0f64f5e893bc3cd20e28968c7362d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/lifecycle/__tests__/reportLifecycleContract.test.ts": {
+    "mtime": 1787935245.800505,
+    "ast_hash": "eadeadc0abc6b84d096b4953cf5eb257",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/api/__fixtures__/mobileNotificationsV1.ts": {
+    "mtime": 1787931089.2573144,
+    "ast_hash": "28a608c2102aa2b5c9b4557355c97f46",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/api/__tests__/mobileNotificationsApi.contract.test.ts": {
+    "mtime": 1787931089.2573144,
+    "ast_hash": "ab8c668eb0dbc6d02794aaf3ce9efaf3",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/api/__tests__/mobileNotificationsApi.test.ts": {
+    "mtime": 1787931089.2582078,
+    "ast_hash": "6a4f2257db3f5f08ac7426eceb0b707c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/api/mobileNotificationsApi.ts": {
+    "mtime": 1787931089.2582078,
+    "ast_hash": "d443434a41ac970886c027c8de2c5f83",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/components/MobileAttentionLifecycle.tsx": {
+    "mtime": 1787931089.2582078,
+    "ast_hash": "dbef3da4a401b2defc673bdada5d3764",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/components/NotificationInbox.tsx": {
+    "mtime": 1787931089.2585375,
+    "ast_hash": "aaa8bf3f71d5f252d4d9ea18da1105de",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/data/__tests__/notificationCacheRepository.test.ts": {
+    "mtime": 1787931089.2587867,
+    "ast_hash": "9ad3e32f807c54111d9306b39e090f87",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/data/notificationCacheRepository.ts": {
+    "mtime": 1787931089.2587867,
+    "ast_hash": "22836eec186961d75d7fd60bbd3b61fa",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/domain/notificationTypes.ts": {
+    "mtime": 1787931089.2587867,
+    "ast_hash": "edf0dd7b01a14c14124a42e31056689d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/hooks/__tests__/useMobileNotifications.test.tsx": {
+    "mtime": 1787931089.2602613,
+    "ast_hash": "5981b512c82efc8ba9297f3878fde665",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/hooks/useMobileNotifications.ts": {
+    "mtime": 1787931089.2602613,
+    "ast_hash": "8358f067e3f90f34dcf61ee9fecf11b7",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/services/__tests__/refreshMobileNotifications.test.ts": {
+    "mtime": 1787931089.261071,
+    "ast_hash": "c865e88a73d17e1773e7dfc4dba47e15",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/notifications/services/refreshMobileNotifications.ts": {
+    "mtime": 1787931089.261071,
+    "ast_hash": "93485872c99308925b2ef32abd2e28a4",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/data/__tests__/scanRecordWriteRepository.test.ts": {
+    "mtime": 1787931089.2615433,
+    "ast_hash": "ce623278d1c882ffe111b777d46f5759",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/data/repositoryContracts.ts": {
+    "mtime": 1787931089.2615433,
+    "ast_hash": "9fed4cd7736468a8aca1ee25b5e563a8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/data/scanRecordRepository.ts": {
+    "mtime": 1787931089.2615433,
+    "ast_hash": "194868cb1166adfcbe57ae7bd2acdb95",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/data/scanRecordWriteRepository.ts": {
+    "mtime": 1787931089.2615433,
+    "ast_hash": "4ee1a0eca53e4034753702b7dff609ad",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/data/submissionImageRepository.ts": {
+    "mtime": 1787931089.2615433,
+    "ast_hash": "2bda8f2bf5aab69f1cdeaba127481761",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/domain/__tests__/recordValidation.test.ts": {
+    "mtime": 1787931089.2621584,
+    "ast_hash": "15e62bb36158edced1afd921d4acda96",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/domain/recordMappers.ts": {
+    "mtime": 1787931089.2621584,
+    "ast_hash": "e2c970beba418a64257b812be1f79e97",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/domain/recordTypes.ts": {
+    "mtime": 1787931089.2621584,
+    "ast_hash": "67ed89c6853430817324163af1dd76b4",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/domain/recordValidation.ts": {
+    "mtime": 1787931089.2621584,
+    "ast_hash": "30bf7fdf86fec36175601b0f0d40d1b1",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/hooks/__tests__/useRecords.test.tsx": {
+    "mtime": 1787931089.2626514,
+    "ast_hash": "9261611aad047a98658cb7f52ac52867",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/hooks/__tests__/useSaveCompletedScan.test.tsx": {
+    "mtime": 1787931089.2627885,
+    "ast_hash": "0244acfe65ede37fe94ec4717a47e4c1",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/hooks/useRecords.ts": {
+    "mtime": 1787931089.2627885,
+    "ast_hash": "94971dc1a23ed569f9395edc4f3b2429",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/hooks/useSaveCompletedScan.ts": {
+    "mtime": 1787931089.2627885,
+    "ast_hash": "49034da9b267afd44519c1eb2067cd4e",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/__tests__/deleteScanRecord.test.ts": {
+    "mtime": 1787931089.2631962,
+    "ast_hash": "2bb6bfbeff149f677f0362253e9fd898",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/__tests__/saveCompletedScan.test.ts": {
+    "mtime": 1787931089.2632635,
+    "ast_hash": "0993780f9ceae34ec608e6e30a8d6b43",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/__tests__/scanImageStorage.test.ts": {
+    "mtime": 1787931089.2632635,
+    "ast_hash": "c639f690d1edb4441d0a05c9ec342d69",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/__tests__/submissionImageStorage.test.ts": {
+    "mtime": 1787931089.2632635,
+    "ast_hash": "819cecf031556cbf1bbdb1689c11fc96",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/deleteScanRecord.ts": {
+    "mtime": 1787931089.2632635,
+    "ast_hash": "69c304b2ecfdbb078857e64b789dbe0b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/saveCompletedScan.ts": {
+    "mtime": 1787931089.2632635,
+    "ast_hash": "b6618027cebb1bf610131d064e9a6c46",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/scanImageStorage.ts": {
+    "mtime": 1787931089.2632635,
+    "ast_hash": "1e7e364507e7e6c55b368acd0d2211b5",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/records/services/submissionImageStorage.ts": {
+    "mtime": 1787931089.2632635,
+    "ast_hash": "7c2df90fa2b7c56ae3915d2701c5b3aa",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/api/__fixtures__/mobileReportStatusesV1.ts": {
+    "mtime": 1787931089.2638438,
+    "ast_hash": "0152f6165ef0f0432ee684fc5f7e02cf",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/api/__tests__/mobileReportStatusesApi.test.ts": {
+    "mtime": 1787931089.2638438,
+    "ast_hash": "66447c393069ea7b03f14d777ba4ccd3",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/api/mobileReportStatusesApi.ts": {
+    "mtime": 1787931089.2638438,
+    "ast_hash": "3df1ba674c7305b8e074234f52c67fc0",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/components/BarangayPicker.tsx": {
+    "mtime": 1787931089.2638438,
+    "ast_hash": "c6a20739db2bca968e4fc80ec14a83e7",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/components/RegionPicker.tsx": {
+    "mtime": 1787931089.2643847,
+    "ast_hash": "aebf47c4dc7d1982b3fc0df0be66f094",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/components/__tests__/online-map-picker.test.tsx": {
+    "mtime": 1787931089.2643847,
+    "ast_hash": "69add7ddc7ad2dce60669c041b132922",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/components/online-map-picker.tsx": {
+    "mtime": 1787931089.2643847,
+    "ast_hash": "f7fa5776638a8da55a330fc3f0415d15",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/components/use-manual-map-gestures.ts": {
+    "mtime": 1787931089.2643847,
+    "ast_hash": "44fd651ab0fffdf06af5d4b0124c63ff",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/data/__tests__/fieldReportRepository.test.ts": {
+    "mtime": 1787931089.264951,
+    "ast_hash": "b0f89e341b6d25637672e6c857cc9ef0",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/data/__tests__/fieldReportReviewRepository.test.ts": {
+    "mtime": 1787931089.2650855,
+    "ast_hash": "971076e0554a680872113eb584cfb185",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/data/fieldReportRepository.ts": {
+    "mtime": 1787931089.2650855,
+    "ast_hash": "6f16b15372749fee399710e76dbb6e68",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/data/fieldReportReviewRepository.ts": {
+    "mtime": 1787931089.2650855,
+    "ast_hash": "95fcf0051c1c02ef7888ec2661bd141f",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/data/fieldReportSyncRepository.ts": {
+    "mtime": 1787931089.2650855,
+    "ast_hash": "2b401d558b7f077f26aebcbe31bb5df2",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/data/reportRepository.ts": {
+    "mtime": 1787931089.2650855,
+    "ast_hash": "6827d7b5de76de2ab85b0bf1c6181a34",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/__tests__/decimalInput.test.ts": {
+    "mtime": 1787931089.266295,
+    "ast_hash": "02ef453c63a784945c5c4ea3d7812fb8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/__tests__/fieldReportValidation.test.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "41621659530e1ac4b66daca66458c8e3",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/__tests__/manualMap.test.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "9709b8e39d1ad09c44e7b87fa1737aa5",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/__tests__/reportReviewTypes.test.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "f49a84f6f0d08fc87cbceb776c1b8513",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/decimalInput.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "1c438257340d282cbf56b3f7014cddc9",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/fieldReportTypes.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "68ee50c154d27b6d2e04b59404d4b847",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/fieldReportValidation.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "6a27e8ffac42c7fd939dfdd854d4a75d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/manualMap.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "a912a68ab7617f72d1d3f40bda10e7b8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/domain/reportReviewTypes.ts": {
+    "mtime": 1787931089.2663937,
+    "ast_hash": "dca5a89d366120357c5431d5cc747444",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/hooks/__tests__/useAuthorityReviewStatus.test.tsx": {
+    "mtime": 1787931089.2672143,
+    "ast_hash": "1c2440f971737272d76c30dc50d9677a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/hooks/__tests__/useFieldReportDraft.test.tsx": {
+    "mtime": 1787931089.2673242,
+    "ast_hash": "7481a27bba64f82b4fb2c58be2fc2b8c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/hooks/__tests__/useLocalReport.test.tsx": {
+    "mtime": 1787931089.2673242,
+    "ast_hash": "cd710c1a2f61a8e1169c7f95d3c8a8e5",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/hooks/useAuthorityReviewStatus.ts": {
+    "mtime": 1787931089.2673242,
+    "ast_hash": "a1db258036da9960801aa68ce8daa7a5",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/hooks/useFieldReportDraft.ts": {
+    "mtime": 1787931089.2673242,
+    "ast_hash": "1be314d48e6d40512b5a3e673890662b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/hooks/useLocalReport.ts": {
+    "mtime": 1787931089.2673242,
+    "ast_hash": "04d677e34182f30524c2bb6b9745d608",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/hooks/useLocationReferenceData.ts": {
+    "mtime": 1787931089.2673242,
+    "ast_hash": "e4a0e9cff6d5933461da9fdf68e6853d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/__tests__/nasugbuSeed.test.ts": {
+    "mtime": 1787931089.2678516,
+    "ast_hash": "aa5727dcc66f0dcba281b6c0539e6dd6",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/__tests__/referenceDataApi.test.ts": {
+    "mtime": 1787931089.2679167,
+    "ast_hash": "3e52e92c785f8076f2e618bc606f789a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/__tests__/referenceDataService.test.ts": {
+    "mtime": 1787931089.2679167,
+    "ast_hash": "ddb7b41a56056545a441dcc0f69f7ce8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/nasugbuSeed.ts": {
+    "mtime": 1787931089.2679167,
+    "ast_hash": "0ec0eca59527e5a1de14bfc30da3f5e0",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/referenceDataApi.ts": {
+    "mtime": 1787931089.2679167,
+    "ast_hash": "4898eb170f05e70280f67f56d97279f8",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/referenceDataCache.ts": {
+    "mtime": 1787931089.2679167,
+    "ast_hash": "ce4a12086600d449c3e8f9fb6c253c15",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/referenceDataService.ts": {
+    "mtime": 1787931089.2679167,
+    "ast_hash": "bb7f7399c8d6dc2b4091b2af92912559",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/referenceData/referenceDataTypes.ts": {
+    "mtime": 1787931089.2679167,
+    "ast_hash": "fd0a722473f64ed328863d0b6f7f2041",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/services/__tests__/captureGpsLocation.test.ts": {
+    "mtime": 1787931089.2683814,
+    "ast_hash": "9257313d790d44f2552a454babc3ea0b",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/services/__tests__/refreshAuthorityReviewStatus.test.ts": {
+    "mtime": 1787931089.2684345,
+    "ast_hash": "254c78a5aad99f171a656eee46ec3d5a",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/services/captureGpsLocation.ts": {
+    "mtime": 1787931089.2684345,
+    "ast_hash": "6950ced14b67922a68385ff6c3e35d41",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/services/expoForegroundLocationClient.ts": {
+    "mtime": 1787931089.2684345,
+    "ast_hash": "7e77628cfef8adc57a148e90fd758587",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/reports/services/refreshAuthorityReviewStatus.ts": {
+    "mtime": 1787931089.2684345,
+    "ast_hash": "36610fc998a2eb7119c8105a12f2c2fa",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/shared/api/__tests__/apiClient.test.ts": {
+    "mtime": 1787931089.268942,
+    "ast_hash": "2bc8e15ff2533d453332aba1db8b681d",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/shared/api/apiClient.ts": {
+    "mtime": 1787931089.268942,
+    "ast_hash": "2d743b49ff9be317cf260d6ca1d31b69",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/api/__tests__/mobileReportsApi.test.ts": {
+    "mtime": 1787931089.2698283,
+    "ast_hash": "482597ed1b6c6c9fd34467ca5f9cfd87",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/api/mobileReportsApi.ts": {
+    "mtime": 1787931089.2698283,
+    "ast_hash": "d2db4c47334d4b00ab45ccdbe9e8dfe5",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/constants/mobileReportUploadContract.ts": {
+    "mtime": 1787931089.2698283,
+    "ast_hash": "ea5edfa5f1ead919c07cd9d000fc43c1",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/errors/__tests__/syncErrors.test.ts": {
+    "mtime": 1787931089.2715776,
+    "ast_hash": "64290e29004497b1ee703fe66648e5ff",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/errors/syncErrors.ts": {
+    "mtime": 1787931089.2715776,
+    "ast_hash": "99226feca5601f98c436a69e7e78a2ce",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/hooks/useSync.ts": {
+    "mtime": 1787931089.2715776,
+    "ast_hash": "f7448f0dfc66a61a5bfa9613dc63ecf7",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/hooks/useSyncRecordsRevision.ts": {
+    "mtime": 1787931089.272055,
+    "ast_hash": "b16d25306a2ab5558f88d66c98afb1e1",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts": {
+    "mtime": 1787931089.2724988,
+    "ast_hash": "368bc6e176cba05f95e4968321051cc1",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/mappers/__tests__/reportMultipartMapper.test.ts": {
+    "mtime": 1787931089.2726867,
+    "ast_hash": "6dfac45506460beffed283fee9293612",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/mappers/reportMultipartMapper.ts": {
+    "mtime": 1787931089.2726867,
+    "ast_hash": "878b41890276cae0df950e48d4c7048c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/providers/SyncProvider.tsx": {
+    "mtime": 1787931089.2726867,
+    "ast_hash": "13effb8e173904ab41c7abd29f1ace6c",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/providers/__tests__/SyncProvider.test.tsx": {
+    "mtime": 1787931089.2742238,
+    "ast_hash": "6289cc517cc205d9082e171f2ce74016",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/services/__tests__/syncFieldReport.test.ts": {
+    "mtime": 1787931089.2748194,
+    "ast_hash": "6daecfda7081895216fc5a0d7f57d424",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/services/__tests__/syncPendingFieldReports.test.ts": {
+    "mtime": 1787931089.274912,
+    "ast_hash": "3111da54cd6a59581724c7d618ba6278",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/services/syncEvents.ts": {
+    "mtime": 1787931089.274912,
+    "ast_hash": "43099423f244e3bd40c383a2f37c55bd",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/services/syncFieldReport.ts": {
+    "mtime": 1787931089.274912,
+    "ast_hash": "06fdd093fa9df70702b68ba900883669",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/features/sync/services/syncPendingFieldReports.ts": {
+    "mtime": 1787931089.274912,
+    "ast_hash": "3e1b0ac8729b56ddf210c868ba3b02d0",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/global.d.ts": {
+    "mtime": 1787931089.274912,
+    "ast_hash": "77c5097fbf0b3cc8710ee9416ce251bc",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/hooks/use-color-scheme.ts": {
+    "mtime": 1787931089.274912,
+    "ast_hash": "6f3444fcb9c7013a839a7832be518831",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/hooks/use-color-scheme.web.ts": {
+    "mtime": 1787931089.2752786,
+    "ast_hash": "abbbd8e6cbe2d4dc498915afc89547e7",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/hooks/use-theme.ts": {
+    "mtime": 1787931089.2752786,
+    "ast_hash": "e154399f383d200dfac9a590d11318bc",
+    "semantic_hash": ""
+  },
+  "caneguard-mobile/src/providers/ThemePreferenceProvider.tsx": {
+    "mtime": 1787931089.2752786,
+    "ast_hash": "838ac090c67925b7ee871cc42351c17c",
+    "semantic_hash": ""
+  },
+  "docs/contracts/mobile-field-validation-assignment-v1.json": {
+    "mtime": 1787907034.45014,
+    "ast_hash": "584f2b2e6bbae063c89664aef6c952cf",
+    "semantic_hash": ""
+  },
+  "docs/contracts/mobile-field-validation-completion-v1.json": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "d16c8032ce9e94255f20035c7b74df31",
+    "semantic_hash": ""
+  },
+  "docs/contracts/mobile-notifications-v1.json": {
+    "mtime": 1787920620.020021,
+    "ast_hash": "be5594d5d6a7472e9800ad26f79e36be",
+    "semantic_hash": ""
+  },
+  "docs/contracts/report-lifecycle-v1.json": {
+    "mtime": 1787935215.7164257,
+    "ast_hash": "217f959970de1b8ae5c02836cb36f930",
+    "semantic_hash": ""
+  },
+  "docs/evidence/phase1-lifecycle/local-stack-acceptance.json": {
+    "mtime": 1787936100.6026156,
+    "ast_hash": "7b69be5e0c4f62ddecb10e9c0c3e0048",
+    "semantic_hash": ""
+  },
+  "scripts/run-laravel-mobile-field-validation-assignment-consumer-contract.mjs": {
+    "mtime": 1787907726.4342463,
+    "ast_hash": "1d41b07db0afe6aac261b156174d1dec",
+    "semantic_hash": ""
+  },
+  "scripts/run-laravel-mobile-field-validation-completion-consumer-contract.mjs": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "64356c03ee77f8fb2da7809e231a1b91",
+    "semantic_hash": ""
+  },
+  "scripts/run-laravel-mobile-notification-consumer-contract.mjs": {
+    "mtime": 1787932117.8407168,
+    "ast_hash": "d292d7962b1a258042da5ebdce744cf9",
+    "semantic_hash": ""
+  },
+  "scripts/run-laravel-report-lifecycle-consumer-contract.mjs": {
+    "mtime": 1787932125.6927304,
+    "ast_hash": "5864c06e1da639b59be2221f3904f0a8",
+    "semantic_hash": ""
+  },
+  "scripts/run-mobile-field-validation-assignment-producer-contract.mjs": {
+    "mtime": 1787907758.6028209,
+    "ast_hash": "aaf4593a0d4b557a3156953ca02054d1",
+    "semantic_hash": ""
+  },
+  "scripts/run-mobile-field-validation-completion-producer-contract.mjs": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "b199ddea26ceeb08a294cd87c7948f5e",
+    "semantic_hash": ""
+  },
+  "scripts/run-mobile-notification-producer-contract.mjs": {
+    "mtime": 1787932076.148619,
+    "ast_hash": "303b20c687b0b61b0777bf4be12b5d8d",
+    "semantic_hash": ""
+  },
+  "scripts/run-phase1-lifecycle-acceptance.mjs": {
+    "mtime": 1787936075.9425583,
+    "ast_hash": "13f10440ae9d197646fdce082f9cc579",
+    "semantic_hash": ""
+  },
+  "scripts/run-report-lifecycle-producer-contract.mjs": {
+    "mtime": 1787932109.4847002,
+    "ast_hash": "d9e33403364336f2a259bba1c81ef9cb",
+    "semantic_hash": ""
+  },
+  "scripts/validate-mobile-field-validation-assignment-v1.mjs": {
+    "mtime": 1787906836.6019568,
+    "ast_hash": "da55151b6c1e11cb77b9edf06a512319",
+    "semantic_hash": ""
+  },
+  "scripts/validate-mobile-field-validation-assignment-v1.node-test.mjs": {
+    "mtime": 1787907717.8100603,
+    "ast_hash": "a60669e68326fa5908fa9e52c7ac5521",
+    "semantic_hash": ""
+  },
+  "scripts/validate-mobile-field-validation-completion-v1.mjs": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "38865790664ad28f951975bdcc450cd1",
+    "semantic_hash": ""
+  },
+  "scripts/validate-mobile-field-validation-completion-v1.node-test.mjs": {
+    "mtime": 1787932974.35887,
+    "ast_hash": "499b04eac1db4ef3036c58f66e32b0fa",
+    "semantic_hash": ""
+  },
+  "scripts/validate-mobile-notifications-v1.mjs": {
+    "mtime": 1787931817.6919513,
+    "ast_hash": "a05d7d0c98bdda64fe62418c6ad9f8ad",
+    "semantic_hash": ""
+  },
+  "scripts/validate-mobile-notifications-v1.node-test.mjs": {
+    "mtime": 1787932979.2388802,
+    "ast_hash": "c0711bb61de1f8863a04033c37a13f0f",
+    "semantic_hash": ""
+  },
+  "scripts/validate-report-lifecycle-v1.mjs": {
+    "mtime": 1787936806.5576322,
+    "ast_hash": "66d5ffd27c6e134f23fd4f1acd5ac1b8",
+    "semantic_hash": ""
+  },
+  "scripts/validate-report-lifecycle-v1.node-test.mjs": {
+    "mtime": 1787935240.072492,
+    "ast_hash": "fe83aa88d8d84dd12f2c2802d18f504e",
+    "semantic_hash": ""
+  },
+  "src/components/layout/NotificationBell.test.tsx": {
+    "mtime": 1787904043.552894,
+    "ast_hash": "d4878755978a615545e7e83672915421",
+    "semantic_hash": ""
+  },
+  "src/components/layout/NotificationBell.tsx": {
+    "mtime": 1787904043.552894,
+    "ast_hash": "01c8ab27fdcdee949d9497711a428d85",
+    "semantic_hash": ""
+  },
+  "src/components/layout/RealtimeStatus.tsx": {
+    "mtime": 1787904043.552894,
+    "ast_hash": "100e0d485929919eabff3d06781bc028",
+    "semantic_hash": ""
+  },
+  "src/data/api/ApiFieldReportersRepository.ts": {
+    "mtime": 1787906890.9896204,
+    "ast_hash": "c7754a918e43f19f9af22d628da45069",
+    "semantic_hash": ""
+  },
+  "src/data/api/ApiNotificationsRepository.test.ts": {
+    "mtime": 1787904043.552894,
+    "ast_hash": "d458924c9e1fc916f067447d7404fbe8",
+    "semantic_hash": ""
+  },
+  "src/data/api/ApiNotificationsRepository.ts": {
+    "mtime": 1787904043.552894,
+    "ast_hash": "be56d5164425ddba64bc3f2c7ff1accd",
+    "semantic_hash": ""
+  },
+  "src/data/api/mappers/notification.mapper.ts": {
+    "mtime": 1787904043.552894,
+    "ast_hash": "e41b6fc78417be4049a8ee362dd463b8",
+    "semantic_hash": ""
+  },
+  "src/data/api/schemas/notification.schema.ts": {
+    "mtime": 1787920556.2438827,
+    "ast_hash": "807dbb974a36e1cce4f44074fe8444c7",
+    "semantic_hash": ""
+  },
+  "src/data/contracts/FieldReportersRepository.ts": {
+    "mtime": 1787906884.8395693,
+    "ast_hash": "e2b8dda155d759567ca4c111e3418d5e",
+    "semantic_hash": ""
+  },
+  "src/data/contracts/NotificationsRepository.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "c45569e1f1dfcabf5c15c31925b2b256",
+    "semantic_hash": ""
+  },
+  "src/data/mock/MockNotificationsRepository.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "b15a9052e249d15933c506c96590e07c",
+    "semantic_hash": ""
+  },
+  "src/domain/notification.types.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "ae99e91abb40a938eb17c21314a5ea54",
+    "semantic_hash": ""
+  },
+  "src/hooks/fieldReporterQueries.ts": {
+    "mtime": 1787906899.8666399,
+    "ast_hash": "ef22f79be55ca6a9e24fd9a866cfc163",
+    "semantic_hash": ""
+  },
+  "src/hooks/notificationQueries.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "68c1b59b13d66ba399c2f04237123e8f",
+    "semantic_hash": ""
+  },
+  "src/hooks/realtimeInvalidation.test.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "b6b278c03527edd9ca958077891e813c",
+    "semantic_hash": ""
+  },
+  "src/hooks/realtimeInvalidation.ts": {
+    "mtime": 1787921414.298076,
+    "ast_hash": "1edd86c3d572e987c730176c0bc778fb",
+    "semantic_hash": ""
+  },
+  "src/hooks/useFieldReporters.ts": {
+    "mtime": 1787906905.0141976,
+    "ast_hash": "d13ce1ca0ef906187f2ed851a4fa40b3",
+    "semantic_hash": ""
+  },
+  "src/hooks/useNotifications.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "cbd6329da60240d2550cd11c799e196a",
+    "semantic_hash": ""
+  },
+  "src/hooks/useRealtimeInvalidation.test.tsx": {
+    "mtime": 1787922199.9641178,
+    "ast_hash": "7a0a421f195fe6a3786869a5c11d2f7b",
+    "semantic_hash": ""
+  },
+  "src/hooks/useRealtimeInvalidation.ts": {
+    "mtime": 1787921420.2460852,
+    "ast_hash": "45e99daff62248e781927af357188115",
+    "semantic_hash": ""
+  },
+  "src/realtime/echo.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "3c75de3249f452387002b30f285b0a86",
+    "semantic_hash": ""
+  },
+  "src/services/fieldReporters.service.ts": {
+    "mtime": 1787906895.2587411,
+    "ast_hash": "fad746652b58ae960a2e7e59e8761172",
+    "semantic_hash": ""
+  },
+  "src/services/notifications.service.ts": {
+    "mtime": 1787904043.5569396,
+    "ast_hash": "2c8c186d8970645752163ae6afe365d3",
+    "semantic_hash": ""
+  },
+  "docs/contracts/mobile-field-validation-assignment-v1.md": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "e635033f7edb00c2bfa676fdaa639dfd",
+    "semantic_hash": ""
+  },
+  "docs/contracts/mobile-field-validation-completion-v1.md": {
+    "mtime": 1787920048.554534,
+    "ast_hash": "90ede865c7ebbd59387204a29e12f8b2",
+    "semantic_hash": ""
+  },
+  "docs/contracts/mobile-notifications-v1.md": {
+    "mtime": 1787922838.513704,
+    "ast_hash": "6b967e8c93a109ec8d55526bc94338df",
+    "semantic_hash": ""
+  },
+  "docs/testing/phase1-lifecycle-acceptance.md": {
+    "mtime": 1787936090.8545775,
+    "ast_hash": "7dd583ce7ea83cbd871d68ff91819d82",
+    "semantic_hash": ""
+  },
+  "scripts/phase1-lifecycle-acceptance.node-test.mjs": {
+    "mtime": 1787933648.3365002,
+    "ast_hash": "cda473f1f897818b008d873d680d3fe4",
     "semantic_hash": ""
   }
 }

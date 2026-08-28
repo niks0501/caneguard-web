@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\MobileFieldValidationAssignmentContract;
 use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\FieldValidationAssignment;
+use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -238,6 +239,67 @@ class FieldValidationAssignmentTest extends TestCase
         $this->getJson('/api/v1/mobile/assignments')
             ->assertOk()
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_reviewer_can_clear_an_assignment_with_an_explicit_null_assignee(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'field_validation_assignee_uuid' => null,
+            'expected_version' => 0,
+        ])->assertOk()
+            ->assertJsonPath(
+                'data.lifecycle.field_validation_state',
+                Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            );
+
+        $this->assertDatabaseMissing('field_validation_assignments', [
+            'id' => $assignment->getKey(),
+        ]);
+    }
+
+    public function test_completed_validation_evidence_cannot_be_reassigned_or_removed(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $completion = FieldValidationCompletion::factory()->create([
+            'assignment_id' => $assignment->getKey(),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'field_validation_assignee_uuid' => null,
+            'expected_version' => 0,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('field_validation_state');
+
+        $this->assertDatabaseHas('field_validation_assignments', [
+            'id' => $assignment->getKey(),
+        ]);
+        $this->assertDatabaseHas('field_validation_completions', [
+            'id' => $completion->getKey(),
+        ]);
     }
 
     public function test_field_reporter_can_complete_an_assignment_and_the_case_returns_to_review(): void

@@ -1,15 +1,16 @@
-# Mobile report and assignment contract gate
+# Mobile lifecycle contract gate
 
-The mobile contract gate checks the web-owned upload and field-validation assignment artifacts against the Laravel boundaries and the Mobile producer.
+The mobile contract gate checks web-owned upload, assignment, completion, notification, and lifecycle artifacts against the Laravel consumers and the Mobile producers.
 
 The upload contract proves that the Mobile multipart producer and Laravel upload request agree.
 The assignment contract proves that the owner-scoped Mobile assignment feed and its cached producer parser agree.
-
-The assignment contract is read-only in this ticket.
-Field-validation completion and sync-back remain T07.
+The completion contract proves that Mobile completion evidence maps to the Laravel multipart boundary.
+The notification contract proves that attention payloads and checkpoints remain owner-scoped and parseable.
+The lifecycle contract proves that independent state dimensions and legacy projections remain aligned without making field evidence or AI output authoritative.
 
 The gate does not run device tests, Maestro, or the P0F full-system acceptance flow.
-P0F remains the separate Mobile -> API -> Web -> API -> Mobile release proof.
+The local-stack acceptance harness is separate and records automated evidence explicitly as non-device evidence.
+Captain-owned Maestro execution remains the later physical-runtime handoff.
 
 ## What the gate runs
 
@@ -17,13 +18,23 @@ P0F remains the separate Mobile -> API -> Web -> API -> Mobile release proof.
 
 `contract:assignment-artifact` validates the assignment artifact identity, owner-scoped JSON envelope, item fields, assignment states, and pagination checkpoint.
 
-`contract:consumer` runs `MobileReportUploadContractTest` against the upload request boundary.
+`contract:completion-artifact` validates the completion multipart artifact.
 
-`contract:assignment-consumer` runs `FieldValidationAssignmentTest` against assignment authorization, ownership, and response behavior.
+`contract:notification-artifact` validates the owner-scoped notification envelope and fields.
 
-`contract:producer` runs the focused upload producer test from the selected Mobile revision.
+`contract:lifecycle-artifact` validates lifecycle dimensions, legacy projections, transition rules, and linked payload contracts.
 
-`contract:assignment-producer` runs the focused assignment parser producer test from the same selected Mobile revision.
+`contract:consumer`, `contract:assignment-consumer`, and `contract:completion-consumer` run the corresponding Laravel feature boundaries.
+
+`contract:notification-consumer` runs the Laravel notification boundary tests.
+
+`contract:lifecycle-consumer` runs the Laravel test that reads the canonical lifecycle artifact through the API model.
+
+`contract:producer`, `contract:assignment-producer`, and `contract:completion-producer` run focused Mobile producer tests from the selected revision.
+
+`contract:notification-producer` evaluates the Mobile notification parser against the Web-owned artifact.
+
+`contract:lifecycle-producer` evaluates Mobile review projections and assignment states against the Web-owned lifecycle artifact.
 
 Each side has a separate workflow step and a category prefix:
 
@@ -42,6 +53,9 @@ A pull request runs artifact and Laravel web-boundary checks without private Mob
 
 A push to `main` on a relevant contract or Laravel path runs the complete producer and consumer gate against the full-SHA Mobile revision in `ci/mobile-report-upload-gate.json`.
 
+The committed Mobile pin is updated only after the Mobile lifecycle producer commit is clean and pushed.
+The local evidence file records whether the exact pinned revision was verified instead of treating a dirty checkout as trusted evidence.
+
 A trusted workflow dispatch from `main` requires an exact 40-character `mobile_ref` input.
 
 The workflow never follows a moving branch in the private Mobile repository.
@@ -51,20 +65,26 @@ The producer tests receive only an allowlisted environment and never receive a G
 
 ## Local deterministic commands
 
-Run the artifact and helper tests:
+Run all artifact and helper tests:
 
 ```bash
+npm run contract:test
 npm run contract:artifact
 npm run contract:assignment-artifact
+npm run contract:completion-artifact
+npm run contract:notification-artifact
+npm run contract:lifecycle-artifact
 npm run contract:config
-npm run contract:test
 ```
 
-Run both Laravel consumer boundaries:
+Run the Laravel consumer boundaries:
 
 ```bash
 npm run contract:consumer
 npm run contract:assignment-consumer
+npm run contract:completion-consumer
+npm run contract:notification-consumer
+npm run contract:lifecycle-consumer
 ```
 
 Run the assignment producer check with an already checked-out clean Mobile repository:
@@ -73,6 +93,14 @@ Run the assignment producer check with an already checked-out clean Mobile repos
 MOBILE_REPO_DIR=/path/to/caneguard-mobile \
   MOBILE_REF=<full-mobile-commit-sha> \
   npm run contract:assignment-producer
+```
+
+Run the completion, notification, and lifecycle producer checks from that same clean exact revision with their corresponding artifact environment variables.
+
+```bash
+MOBILE_REPO_DIR=/path/to/caneguard-mobile MOBILE_REF=<full-mobile-commit-sha> npm run contract:completion-producer
+MOBILE_REPO_DIR=/path/to/caneguard-mobile MOBILE_REF=<full-mobile-commit-sha> npm run contract:notification-producer
+MOBILE_REPO_DIR=/path/to/caneguard-mobile MOBILE_REF=<full-mobile-commit-sha> npm run contract:lifecycle-producer
 ```
 
 The producer commands refuse dirty checkouts, moving branches, and revision mismatches.
@@ -93,4 +121,5 @@ If `[consumer]` fails, read the named Laravel boundary assertion.
 If `[revision]` fails, correct the full SHA input rather than rerunning with a branch name.
 
 A passing pull-request web-boundary check is not a substitute for the trusted cross-repository result.
-P0F must use recorded Web and Mobile SHAs, artifact digests, and passing trusted gates before full-system acceptance begins.
+A passing local-stack harness is also not a substitute for a physical device or Maestro result.
+P0F must use recorded Web and Mobile SHAs, artifact digests, and passing trusted gates before the captain begins the physical-runtime handoff.

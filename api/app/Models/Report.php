@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\MobileReportUploadContract;
+use App\Contracts\ReportLifecycleContract;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -233,10 +234,7 @@ class Report extends Model
      */
     public static function caseStates(): array
     {
-        return [
-            self::CASE_STATE_OPEN,
-            self::CASE_STATE_CLOSED,
-        ];
+        return ReportLifecycleContract::values('case_state');
     }
 
     /**
@@ -244,11 +242,7 @@ class Report extends Model
      */
     public static function verificationOutcomes(): array
     {
-        return [
-            self::VERIFICATION_OUTCOME_NOT_DETERMINED,
-            self::VERIFICATION_OUTCOME_VERIFIED,
-            self::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY,
-        ];
+        return ReportLifecycleContract::values('verification_outcome');
     }
 
     /**
@@ -256,12 +250,7 @@ class Report extends Model
      */
     public static function fieldValidationStates(): array
     {
-        return [
-            self::FIELD_VALIDATION_STATE_UNASSIGNED,
-            self::FIELD_VALIDATION_STATE_ASSIGNED,
-            self::FIELD_VALIDATION_STATE_IN_PROGRESS,
-            self::FIELD_VALIDATION_STATE_COMPLETED,
-        ];
+        return ReportLifecycleContract::values('field_validation_state');
     }
 
     /**
@@ -269,11 +258,7 @@ class Report extends Model
      */
     public static function referralStates(): array
     {
-        return [
-            self::REFERRAL_STATE_NOT_REFERRED,
-            self::REFERRAL_STATE_REFERRED,
-            self::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
-        ];
+        return ReportLifecycleContract::values('referral_state');
     }
 
     /**
@@ -325,22 +310,7 @@ class Report extends Model
      */
     public static function lifecycleForReviewStatus(string $reviewStatus): array
     {
-        return match ($reviewStatus) {
-            self::STATUS_VERIFIED_BY_STAFF => self::closedLifecycle(
-                self::VERIFICATION_OUTCOME_VERIFIED,
-            ),
-            self::STATUS_UNABLE_TO_VERIFY => self::closedLifecycle(
-                self::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY,
-            ),
-            self::STATUS_RESOLVED => self::closedLifecycle(
-                self::VERIFICATION_OUTCOME_NOT_DETERMINED,
-            ),
-            self::STATUS_SUBMITTED_UNVERIFIED,
-            self::STATUS_FOR_FIELD_VALIDATION => self::openLifecycle(),
-            default => self::closedLifecycle(
-                self::VERIFICATION_OUTCOME_NOT_DETERMINED,
-            ),
-        };
+        return ReportLifecycleContract::legacyProjection($reviewStatus);
     }
 
     /**
@@ -362,32 +332,6 @@ class Report extends Model
             'field_validation_state' => $this->field_validation_state
                 ?? $defaults['field_validation_state'],
             'referral_state' => $this->referral_state ?? $defaults['referral_state'],
-        ];
-    }
-
-    /**
-     * @return array{case_state: string, verification_outcome: string, field_validation_state: string, referral_state: string}
-     */
-    private static function openLifecycle(): array
-    {
-        return [
-            'case_state' => self::CASE_STATE_OPEN,
-            'verification_outcome' => self::VERIFICATION_OUTCOME_NOT_DETERMINED,
-            'field_validation_state' => self::FIELD_VALIDATION_STATE_UNASSIGNED,
-            'referral_state' => self::REFERRAL_STATE_NOT_REFERRED,
-        ];
-    }
-
-    /**
-     * @return array{case_state: string, verification_outcome: string, field_validation_state: string, referral_state: string}
-     */
-    private static function closedLifecycle(string $verificationOutcome): array
-    {
-        return [
-            'case_state' => self::CASE_STATE_CLOSED,
-            'verification_outcome' => $verificationOutcome,
-            'field_validation_state' => self::FIELD_VALIDATION_STATE_UNASSIGNED,
-            'referral_state' => self::REFERRAL_STATE_NOT_REFERRED,
         ];
     }
 
