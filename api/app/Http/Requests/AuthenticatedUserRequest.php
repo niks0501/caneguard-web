@@ -8,10 +8,7 @@ class AuthenticatedUserRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return in_array($this->user()?->role, [
-            User::ROLE_REVIEWER,
-            User::ROLE_ADMIN,
-        ], true);
+        return in_array($this->user()?->role, User::webRoles(), true);
     }
 
     public function rules(): array

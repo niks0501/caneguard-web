@@ -1,7 +1,10 @@
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import type { RefObject } from "react";
 import { useLocation } from "react-router";
 import { useAuth } from "../../auth/useAuth";
+import type { RealtimeStatus } from "../../hooks/useRealtimeInvalidation";
+import { NotificationBell } from "./NotificationBell";
+import { RealtimeStatus as RealtimeStatusIndicator } from "./RealtimeStatus";
 import { ServerStatus } from "./ServerStatus";
 
 function initials(name: string) {
@@ -16,9 +19,11 @@ function initials(name: string) {
 export function AppHeader({
   onOpenMenu,
   menuButtonRef,
+  realtimeStatus = "disabled",
 }: {
   onOpenMenu: () => void;
   menuButtonRef?: RefObject<HTMLButtonElement | null>;
+  realtimeStatus?: RealtimeStatus;
 }) {
   const location = useLocation();
   const auth = useAuth();
@@ -50,15 +55,13 @@ export function AppHeader({
       </div>
       <div className="app-header__actions">
         <ServerStatus />
+        <RealtimeStatusIndicator status={realtimeStatus} />
         <div className="header-search" aria-hidden="true">
           <Search aria-hidden="true" />
           <span>Search reports</span>
           <kbd>/</kbd>
         </div>
-        <div className="header-icon header-notifications" aria-hidden="true">
-          <Bell aria-hidden="true" />
-          <span className="notification-dot" />
-        </div>
+        <NotificationBell enabled={auth.status === "authenticated"} />
         <span className="avatar" aria-label={auth.user?.name}>
           {initials(auth.user?.name ?? "CaneGuard user")}
         </span>

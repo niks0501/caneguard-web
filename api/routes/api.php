@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\MapReportController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
 use App\Http\Controllers\Api\V1\MobileReportController;
 use App\Http\Controllers\Api\V1\MobileReportStatusController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
@@ -23,6 +24,9 @@ Route::get('/v1/reference/locations', LocationReferenceController::class);
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/me', AuthenticatedUserController::class);
     Route::get('/dashboard/summary', DashboardSummaryController::class);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/map', MapReportController::class)
         ->name('api.v1.reports.map');

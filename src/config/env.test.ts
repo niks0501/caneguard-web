@@ -8,6 +8,11 @@ describe("parseEnv", () => {
       dataSource: "api",
       reportRefreshMs: 600_000,
       mapTilerKey: "",
+      realtimeEnabled: true,
+      reverbAppKey: "",
+      reverbHost: "localhost",
+      reverbPort: 8080,
+      reverbScheme: "http",
     });
   });
 
@@ -24,6 +29,11 @@ describe("parseEnv", () => {
       dataSource: "mock",
       reportRefreshMs: 30_000,
       mapTilerKey: "test-map-key",
+      realtimeEnabled: true,
+      reverbAppKey: "",
+      reverbHost: "localhost",
+      reverbPort: 8080,
+      reverbScheme: "http",
     });
   });
 
