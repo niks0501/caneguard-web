@@ -1,0 +1,6 @@
+# Optional project-local UI/UX skill selection.
+# This file is informational and is not part of .akidev/config tool routing.
+platform=web
+surface=product
+with_threejs=0
+skills=impeccable,awesome-design-md
