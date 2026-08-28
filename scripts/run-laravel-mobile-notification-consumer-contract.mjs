@@ -9,7 +9,7 @@ const repositoryRoot = path.resolve(
 const phpCommand = process.platform === 'win32' ? 'php.exe' : 'php';
 const result = spawnSync(
   phpCommand,
-  ['artisan', 'test', '--filter=NotificationTest'],
+  ['artisan', 'test', '--filter=/^.*\\\\NotificationTest(::.*)?$/'],
   {
     cwd: path.join(repositoryRoot, 'api'),
     stdio: 'inherit',
