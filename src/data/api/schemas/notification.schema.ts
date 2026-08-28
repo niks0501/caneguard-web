@@ -9,6 +9,7 @@ export const notificationSchema = z.object({
     uuid: z.string().nullable(),
     reference_code: z.string().nullable(),
   }),
+  assignment_uuid: z.string().nullable().optional(),
   is_read: z.boolean(),
   read_at: z.string().nullable(),
   created_at: z.string().nullable(),

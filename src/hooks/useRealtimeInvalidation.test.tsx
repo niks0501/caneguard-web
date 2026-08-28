@@ -106,6 +106,10 @@ describe("useRealtimeInvalidation", () => {
       ".case.submitted",
       expect.any(Function),
     );
+    expect(channel.listen).toHaveBeenCalledWith(
+      ".case.attention_changed",
+      expect.any(Function),
+    );
     act(() => connectionChange?.("connected"));
     expect(screen.getByTestId("realtime-status")).toHaveTextContent("connected");
 
