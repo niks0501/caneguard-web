@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'uuid',
@@ -38,6 +39,14 @@ class FieldValidationAssignment extends Model
     }
 
     /**
+     * @return HasOne<FieldValidationCompletion, $this>
+     */
+    public function completion(): HasOne
+    {
+        return $this->hasOne(FieldValidationCompletion::class, 'assignment_id');
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function assignee(): BelongsTo
@@ -51,6 +60,11 @@ class FieldValidationAssignment extends Model
     public function assignedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_by_id');
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
     }
 
     protected function casts(): array

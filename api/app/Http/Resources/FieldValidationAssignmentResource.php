@@ -22,6 +22,10 @@ class FieldValidationAssignmentResource extends JsonResource
             'target_visit_date' => $this->target_visit_date?->format('Y-m-d'),
             'activated_at' => $this->activated_at->utc()->toISOString(),
             'updated_at' => $this->updated_at->utc()->toISOString(),
+            'completion' => $this->when(
+                $this->relationLoaded('completion') && $this->completion,
+                fn () => (new FieldValidationCompletionResource($this->completion))->resolve($request),
+            ),
         ];
     }
 }

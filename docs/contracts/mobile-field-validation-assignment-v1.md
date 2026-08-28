@@ -21,5 +21,4 @@ A failed refresh must leave the last valid local snapshot available.
 
 The `case` object contains the original report identity, submitter-independent field context, observation dates, possible AI result, and confidence needed to render assigned work and support the later T07 completion contract.
 
-This contract does not define field-validation completion or synchronization back to the API.
-Those behaviors belong to T07.
+Field-validation completion and synchronization back to the API use the separate `mobile-field-validation-completion-v1` contract.
