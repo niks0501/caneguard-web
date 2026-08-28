@@ -79,6 +79,10 @@ class PersistReport
                     : null,
                 'submitted_at' => now()->utc(),
                 'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
             ]);
 
             $report->classScores()->createMany(

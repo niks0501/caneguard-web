@@ -52,6 +52,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'captured_at',
     'submitted_at',
     'review_status',
+    'case_state',
+    'verification_outcome',
+    'field_validation_state',
+    'referral_state',
     'review_notes',
     'authority_classified_condition',
     'reviewer_id',
@@ -89,6 +93,44 @@ class Report extends Model
 
     public const STATUS_RESOLVED = 'resolved';
 
+    public const CASE_STATE_OPEN = 'open';
+
+    public const CASE_STATE_CLOSED = 'closed';
+
+    public const VERIFICATION_OUTCOME_NOT_DETERMINED = 'not_determined';
+
+    public const VERIFICATION_OUTCOME_VERIFIED = 'verified';
+
+    public const VERIFICATION_OUTCOME_UNABLE_TO_VERIFY = 'unable_to_verify';
+
+    public const FIELD_VALIDATION_STATE_UNASSIGNED = 'unassigned';
+
+    public const FIELD_VALIDATION_STATE_ASSIGNED = 'assigned';
+
+    public const FIELD_VALIDATION_STATE_IN_PROGRESS = 'in_progress';
+
+    public const FIELD_VALIDATION_STATE_COMPLETED = 'completed';
+
+    public const REFERRAL_STATE_NOT_REFERRED = 'not_referred';
+
+    public const REFERRAL_STATE_REFERRED = 'referred';
+
+    public const REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED = 'expert_response_received';
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $report): void {
+            $reviewStatus = $report->getAttribute('review_status')
+                ?? self::STATUS_SUBMITTED_UNVERIFIED;
+
+            foreach (self::lifecycleForReviewStatus((string) $reviewStatus) as $attribute => $value) {
+                if ($report->getAttribute($attribute) === null) {
+                    $report->setAttribute($attribute, $value);
+                }
+            }
+        });
+    }
+
     /**
      * @return array<int, string>
      */
@@ -121,6 +163,132 @@ class Report extends Model
             self::STATUS_VERIFIED_BY_STAFF,
             self::STATUS_UNABLE_TO_VERIFY,
             self::STATUS_RESOLVED,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function caseStates(): array
+    {
+        return [
+            self::CASE_STATE_OPEN,
+            self::CASE_STATE_CLOSED,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function verificationOutcomes(): array
+    {
+        return [
+            self::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            self::VERIFICATION_OUTCOME_VERIFIED,
+            self::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function fieldValidationStates(): array
+    {
+        return [
+            self::FIELD_VALIDATION_STATE_UNASSIGNED,
+            self::FIELD_VALIDATION_STATE_ASSIGNED,
+            self::FIELD_VALIDATION_STATE_IN_PROGRESS,
+            self::FIELD_VALIDATION_STATE_COMPLETED,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function referralStates(): array
+    {
+        return [
+            self::REFERRAL_STATE_NOT_REFERRED,
+            self::REFERRAL_STATE_REFERRED,
+            self::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+        ];
+    }
+
+    /**
+     * Translate the legacy flat status into independent lifecycle dimensions.
+     *
+     * This mapping is intentionally conservative for `resolved`: resolution
+     * records closure, but does not invent a verification outcome that the old
+     * status did not store. Unknown legacy values are treated as closed so a
+     * malformed historical row cannot create a new work item.
+     *
+     * @return array{case_state: string, verification_outcome: string, field_validation_state: string, referral_state: string}
+     */
+    public static function lifecycleForReviewStatus(string $reviewStatus): array
+    {
+        return match ($reviewStatus) {
+            self::STATUS_VERIFIED_BY_STAFF => self::closedLifecycle(
+                self::VERIFICATION_OUTCOME_VERIFIED,
+            ),
+            self::STATUS_UNABLE_TO_VERIFY => self::closedLifecycle(
+                self::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY,
+            ),
+            self::STATUS_RESOLVED => self::closedLifecycle(
+                self::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            ),
+            self::STATUS_SUBMITTED_UNVERIFIED,
+            self::STATUS_FOR_FIELD_VALIDATION => self::openLifecycle(),
+            default => self::closedLifecycle(
+                self::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            ),
+        };
+    }
+
+    /**
+     * Return lifecycle values with a compatibility fallback for records read
+     * while an older schema or partially backfilled data is still present.
+     *
+     * @return array{case_state: string, verification_outcome: string, field_validation_state: string, referral_state: string}
+     */
+    public function lifecycleSnapshot(): array
+    {
+        $defaults = self::lifecycleForReviewStatus(
+            (string) ($this->review_status ?? self::STATUS_SUBMITTED_UNVERIFIED),
+        );
+
+        return [
+            'case_state' => $this->case_state ?? $defaults['case_state'],
+            'verification_outcome' => $this->verification_outcome
+                ?? $defaults['verification_outcome'],
+            'field_validation_state' => $this->field_validation_state
+                ?? $defaults['field_validation_state'],
+            'referral_state' => $this->referral_state ?? $defaults['referral_state'],
+        ];
+    }
+
+    /**
+     * @return array{case_state: string, verification_outcome: string, field_validation_state: string, referral_state: string}
+     */
+    private static function openLifecycle(): array
+    {
+        return [
+            'case_state' => self::CASE_STATE_OPEN,
+            'verification_outcome' => self::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => self::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'referral_state' => self::REFERRAL_STATE_NOT_REFERRED,
+        ];
+    }
+
+    /**
+     * @return array{case_state: string, verification_outcome: string, field_validation_state: string, referral_state: string}
+     */
+    private static function closedLifecycle(string $verificationOutcome): array
+    {
+        return [
+            'case_state' => self::CASE_STATE_CLOSED,
+            'verification_outcome' => $verificationOutcome,
+            'field_validation_state' => self::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'referral_state' => self::REFERRAL_STATE_NOT_REFERRED,
         ];
     }
 

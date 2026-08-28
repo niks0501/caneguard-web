@@ -86,20 +86,30 @@ class ReportFactory extends Factory
 
     public function configure(): static
     {
-        return $this->afterCreating(function (Report $report) {
-            $scores = collect(Report::labels())
-                ->map(fn (string $label) => [
-                    'label' => $label,
-                    'score' => $label === $report->predicted_label ? $report->confidence : 0.05,
-                ])
-                ->all();
+        return $this
+            ->afterMaking(function (Report $report): void {
+                foreach (Report::lifecycleForReviewStatus($report->review_status) as $attribute => $value) {
+                    if ($report->getAttribute($attribute) === null) {
+                        $report->setAttribute($attribute, $value);
+                    }
+                }
+            })
+            ->afterCreating(function (Report $report): void {
+                $scores = collect(Report::labels())
+                    ->map(fn (string $label) => [
+                        'label' => $label,
+                        'score' => $label === $report->predicted_label
+                            ? $report->confidence
+                            : 0.05,
+                    ])
+                    ->all();
 
-            $report->classScores()->createMany($scores);
-            $report->symptoms()->create([
-                'symptom_key' => $report->predicted_label === Report::LABEL_HEALTHY
-                    ? 'none'
-                    : $report->predicted_label,
-            ]);
-        });
+                $report->classScores()->createMany($scores);
+                $report->symptoms()->create([
+                    'symptom_key' => $report->predicted_label === Report::LABEL_HEALTHY
+                        ? 'none'
+                        : $report->predicted_label,
+                ]);
+            });
     }
 }

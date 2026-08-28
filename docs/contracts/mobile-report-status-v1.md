@@ -108,4 +108,6 @@ The producer is `api/app/Http/Controllers/Api/V1/MobileReportStatusController.ph
 
 `api/tests/Feature/MobileReportStatusTest.php` covers authentication, owner scoping, authorization, the five status values, exact serialized fields, checkpoint pagination, and reviewer identity omission.
 
-This v1 contract does not introduce an API version change, database migration, review-history endpoint, or mobile user-interface behavior.
+The server may store additional lifecycle dimensions beside `review_status`, but this v1 contract does not expose them or change its exact response shape.
+
+This v1 contract does not introduce an API version change, review-history endpoint, or mobile user-interface behavior.

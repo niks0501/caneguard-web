@@ -26,12 +26,15 @@ class ReviewReportController extends Controller
                 409,
             );
 
+            $legacyLifecycle = Report::lifecycleForReviewStatus($data['status']);
             $reviewUpdate = [
                 'review_status' => $data['status'],
                 'review_notes' => $data['notes'] ?? null,
                 'reviewer_id' => $request->user()->getKey(),
                 'reviewed_at' => now(),
                 'lock_version' => $locked->lock_version + 1,
+                'case_state' => $legacyLifecycle['case_state'],
+                'verification_outcome' => $legacyLifecycle['verification_outcome'],
             ];
 
             if (array_key_exists('authority_classified_condition', $data)) {

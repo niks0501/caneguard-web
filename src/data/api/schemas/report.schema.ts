@@ -19,6 +19,29 @@ export const reviewStatusSchema = z.enum([
   "unable_to_verify",
   "resolved",
 ]);
+export const caseStateSchema = z.enum(["open", "closed"]);
+export const verificationOutcomeSchema = z.enum([
+  "not_determined",
+  "verified",
+  "unable_to_verify",
+]);
+export const fieldValidationStateSchema = z.enum([
+  "unassigned",
+  "assigned",
+  "in_progress",
+  "completed",
+]);
+export const referralStateSchema = z.enum([
+  "not_referred",
+  "referred",
+  "expert_response_received",
+]);
+export const reportLifecycleSchema = z.object({
+  case_state: caseStateSchema,
+  verification_outcome: verificationOutcomeSchema,
+  field_validation_state: fieldValidationStateSchema,
+  referral_state: referralStateSchema,
+});
 
 export const reportListItemSchema = z.object({
   uuid: z.string(),
@@ -33,6 +56,7 @@ export const reportListItemSchema = z.object({
   predicted_label: diseaseKeySchema,
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
+  lifecycle: reportLifecycleSchema.optional(),
   mismatch_reported: z.boolean().nullable(),
   image_url: z.string(),
 });
@@ -112,6 +136,7 @@ export const reportDetailSchema = z.object({
     reviewer: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
     reviewed_at: z.iso.datetime({ offset: true }).nullable(),
   }),
+  lifecycle: reportLifecycleSchema.optional(),
   version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),
 });
@@ -122,6 +147,7 @@ export const reportDetailResponseSchema = z.object({
 
 export const reviewResponseSchema = reportDetailResponseSchema;
 
+export type ReportLifecycleDto = z.infer<typeof reportLifecycleSchema>;
 export type ReportListItemDto = z.infer<typeof reportListItemSchema>;
 export type ReportListResponseDto = z.infer<typeof reportListResponseSchema>;
 export type ReportDetailDto = z.infer<typeof reportDetailSchema>;

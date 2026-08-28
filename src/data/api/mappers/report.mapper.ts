@@ -4,6 +4,7 @@ import type {
   ReportListItemDto,
   ReportListResponseDto,
 } from "../schemas/report.schema";
+import { mapReportLifecycle } from "./lifecycle.mapper";
 
 const humanize = (value: string) =>
   value
@@ -30,6 +31,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     imageStatus: dto.image_url ? "available" : "unavailable",
     symptoms: [],
     reviewStatus: dto.review_status,
+    lifecycle: mapReportLifecycle(dto.lifecycle, dto.review_status),
   };
 }
 
@@ -83,6 +85,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     reporterObservationText: dto.reporter_observation.reporter_observation_text,
     authorityClassifiedCondition: dto.review.authority_classified_condition,
     reviewStatus: dto.review.status,
+    lifecycle: mapReportLifecycle(dto.lifecycle, dto.review.status),
     reviewNotes: dto.review.notes ?? undefined,
     reviewedBy: dto.review.reviewer?.name,
     reviewedAt: dto.review.reviewed_at ?? undefined,

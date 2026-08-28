@@ -20,6 +20,7 @@ class FieldValidationQueueResource extends JsonResource
             'predicted_label' => $this->predicted_label,
             'confidence' => (float) $this->confidence,
             'review_status' => $this->review_status,
+            'lifecycle' => $this->resource->lifecycleSnapshot(),
             'final_latitude' => $this->final_latitude === null
                 ? null
                 : (float) $this->final_latitude,
