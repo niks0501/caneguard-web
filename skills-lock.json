@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "awesome-design-md": {
+      "source": "bighardperson/computer-science-skills-collection",
+      "sourceType": "github",
+      "skillPath": "skills/awesome-design-md/SKILL.md",
+      "computedHash": "83dd073b2e7568683c33210792d81cec9af69b587462be7a73d547b699c71725"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "fcca0e64a46392a83c4d43766d21f2b0b2a0c584278e0cb4fb9739019b87bcb5"
+    }
+  }
+}
