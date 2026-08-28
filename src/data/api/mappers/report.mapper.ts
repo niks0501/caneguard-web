@@ -21,6 +21,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     municipality: dto.municipality ?? undefined,
     observedAt: dto.observed_at ?? undefined,
     submittedByName: dto.reporter.name,
+    submitterUuid: dto.reporter.uuid,
     submitterRole: "field_reporter",
     capturedAt: dto.captured_at,
     submittedAt: dto.submitted_at,
@@ -44,6 +45,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     province: dto.observations.province ?? undefined,
     municipality: dto.observations.municipality ?? undefined,
     submittedByName: dto.reporter.name,
+    submitterUuid: dto.reporter.uuid,
     submitterRole: "field_reporter",
     capturedAt: dto.timestamps.captured_at,
     observedAt: dto.timestamps.observed_at ?? undefined,
@@ -85,6 +87,16 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     reporterObservationText: dto.reporter_observation.reporter_observation_text,
     authorityClassifiedCondition: dto.review.authority_classified_condition,
     actionTaken: dto.review.action_taken ?? undefined,
+    fieldValidationAssignment: dto.field_validation_assignment
+      ? {
+          uuid: dto.field_validation_assignment.uuid,
+          assignee: dto.field_validation_assignment.assignee,
+          assignedBy: dto.field_validation_assignment.assigned_by,
+          targetVisitDate: dto.field_validation_assignment.target_visit_date ?? undefined,
+          activatedAt: dto.field_validation_assignment.activated_at,
+          updatedAt: dto.field_validation_assignment.updated_at,
+        }
+      : dto.field_validation_assignment,
     metadataCorrectionAudits: dto.audit?.metadata_corrections.map((audit) => ({
       id: audit.id,
       field: audit.field,

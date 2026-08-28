@@ -10,6 +10,8 @@ on:
       - ci/mobile-report-upload-gate.json
       - docs/contracts/mobile-report-upload-v1.json
       - docs/contracts/mobile-report-upload-v1.md
+      - docs/contracts/mobile-field-validation-assignment-v1.json
+      - docs/contracts/mobile-field-validation-assignment-v1.md
       - docs/testing/mobile-report-upload-contract-gate.md
       - scripts/assert-git-revision.mjs
       - scripts/mobile-report-upload-contract-workflow.node-test.mjs
@@ -17,8 +19,12 @@ on:
       - scripts/resolve-mobile-report-upload-gate-config.node-test.mjs
       - scripts/run-laravel-mobile-report-upload-consumer-contract.mjs
       - scripts/run-mobile-report-upload-producer-contract.mjs
+      - scripts/run-laravel-mobile-field-validation-assignment-consumer-contract.mjs
+      - scripts/run-mobile-field-validation-assignment-producer-contract.mjs
       - scripts/validate-mobile-report-upload-v1.mjs
+      - scripts/validate-mobile-field-validation-assignment-v1.mjs
       - scripts/validate-mobile-report-upload-v1.node-test.mjs
+      - scripts/validate-mobile-field-validation-assignment-v1.node-test.mjs
       - package.json
       - package-lock.json
       - api/composer.json
@@ -26,13 +32,20 @@ on:
       - api/app/Actions/Reports/PersistReport.php
       - api/app/Actions/Reports/StoreReport.php
       - api/app/Contracts/MobileReportUploadContract.php
+      - api/app/Contracts/MobileFieldValidationAssignmentContract.php
       - api/app/Http/Controllers/Api/V1/MobileReportController.php
+      - api/app/Http/Controllers/Api/V1/FieldReporterController.php
+      - api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php
       - api/app/Http/Requests/StoreMobileReportRequest.php
+      - api/app/Http/Requests/MobileFieldValidationAssignmentRequest.php
+      - api/app/Http/Requests/ReviewReportRequest.php
       - api/app/Models/Report.php
+      - api/app/Models/FieldValidationAssignment.php
       - api/app/Policies/ReportPolicy.php
       - api/database/migrations/**
       - api/routes/api.php
       - api/tests/Feature/MobileReportUploadContractTest.php
+      - api/tests/Feature/FieldValidationAssignmentTest.php
       - api/tests/Feature/MobileReportUploadTest.php
       - api/tests/MySql/MobileReportSecurityContractMySqlTest.php
 
@@ -60,8 +73,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate canonical artifact
-        run: npm run contract:artifact
+      - name: Validate canonical artifacts
+        run: |
+          npm run contract:artifact
+          npm run contract:assignment-artifact
 
       - name: Validate pinned revision configuration
         run: npm run contract:config
@@ -72,15 +87,17 @@ jobs:
       - name: Install Laravel test dependencies
         run: composer install --working-dir=api --no-interaction --no-progress --prefer-dist
 
-      - name: Validate Laravel consumer boundary
-        run: npm run contract:consumer
+      - name: Validate Laravel consumer boundaries
+        run: |
+          npm run contract:consumer
+          npm run contract:assignment-consumer
 
       - name: Explain trusted cross-repository follow-up
         run: |
           {
-            echo '### Upload contract PR boundary'
+            echo '### Mobile report and assignment contract PR boundary'
             echo
-            echo 'Artifact and Laravel consumer checks passed without private mobile repository credentials.'
+            echo 'Upload and assignment artifacts plus Laravel consumer checks passed without private mobile repository credentials.'
             echo 'The cross-repository producer check runs from the separate trusted workflow only on a push to main or an explicit workflow dispatch from main.'
             echo 'A mobile producer revision must be recorded as a full SHA in ci/mobile-report-upload-gate.json or supplied to workflow_dispatch before P0F.'
           } >> "$GITHUB_STEP_SUMMARY"

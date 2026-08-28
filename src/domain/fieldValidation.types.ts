@@ -5,6 +5,11 @@ import type {
   ReviewStatus,
 } from "./report.types";
 
+export interface FieldReporter {
+  uuid: string;
+  name: string;
+}
+
 export interface FieldValidationFilters {
   status?: ReviewStatus;
   disease?: DiseaseKey;

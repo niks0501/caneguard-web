@@ -39,6 +39,15 @@ export type ActionTaken =
   | "referred_for_expert_validation"
   | "no_further_action_required";
 
+export interface FieldValidationAssignment {
+  uuid: string;
+  assignee: { uuid: string; name: string };
+  assignedBy: { uuid: string; name: string };
+  targetVisitDate?: string;
+  activatedAt: string;
+  updatedAt: string;
+}
+
 export interface ReportLifecycle {
   caseState: CaseState;
   verificationOutcome: VerificationOutcome;
@@ -65,6 +74,7 @@ export interface DiseaseReport {
   municipality?: string;
   farmReference?: string;
   submittedByName: string;
+  submitterUuid?: string;
   submitterRole: SubmitterRole;
   capturedAt: string;
   observedAt?: string;
@@ -106,6 +116,7 @@ export interface DiseaseReport {
   reporterObservationText?: string | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   actionTaken?: ActionTaken | null;
+  fieldValidationAssignment?: FieldValidationAssignment | null;
   lifecycle?: ReportLifecycle;
   reviewNotes?: string;
   reviewedBy?: string;

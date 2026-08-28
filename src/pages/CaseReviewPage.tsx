@@ -34,6 +34,7 @@ import type {
   AuthorityClassifiedCondition,
   CaseState,
   DiseaseReport,
+  FieldValidationState,
   VerificationOutcome,
 } from "../domain/report.types";
 import type {
@@ -41,6 +42,7 @@ import type {
   ReportReviewInput,
 } from "../domain/review.types";
 import { legacyLifecycleForReviewStatus } from "../data/api/mappers/lifecycle.mapper";
+import { useFieldReporters } from "../hooks/useFieldReporters";
 import { useReport, useUpdateReportReview } from "../hooks/useReports";
 import { formatDateTime } from "../lib/formatters";
 
@@ -129,6 +131,14 @@ export function CaseReviewPage() {
   const [caseStateOverride, setCaseStateOverride] = useState<CaseState | undefined>(
     undefined,
   );
+  const [fieldValidationStateOverride, setFieldValidationStateOverride] = useState<
+    FieldValidationState | undefined
+  >(undefined);
+  const [fieldValidationAssigneeOverride, setFieldValidationAssigneeOverride] =
+    useState<string | null | undefined>(undefined);
+  const [fieldValidationTargetDateOverride, setFieldValidationTargetDateOverride] =
+    useState<string | null | undefined>(undefined);
+  const [fieldValidationTouched, setFieldValidationTouched] = useState(false);
   const [metadataDraftOverride, setMetadataDraftOverride] = useState<MetadataDraft | null>(
     null,
   );
@@ -137,6 +147,7 @@ export function CaseReviewPage() {
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
   const reportQuery = useReport(reportId);
+  const fieldReportersQuery = useFieldReporters();
   const reviewMutation = useUpdateReportReview(reportId);
   const report = reportQuery.data;
   const lifecycle = report
@@ -157,6 +168,20 @@ export function CaseReviewPage() {
         ? ""
         : lifecycle?.verificationOutcome ?? "";
   const selectedCaseState = caseStateOverride ?? lifecycle?.caseState ?? "open";
+  const selectedFieldValidationState =
+    fieldValidationStateOverride ?? lifecycle?.fieldValidationState ?? "unassigned";
+  const selectedFieldValidationAssignee =
+    fieldValidationAssigneeOverride !== undefined
+      ? fieldValidationAssigneeOverride ?? ""
+      : report?.fieldValidationAssignment?.assignee.uuid ?? "";
+  const selectedFieldValidationTargetDate =
+    fieldValidationTargetDateOverride !== undefined
+      ? fieldValidationTargetDateOverride ?? ""
+      : report?.fieldValidationAssignment?.targetVisitDate ?? "";
+  const fieldValidationError =
+    selectedFieldValidationState === "assigned" && !selectedFieldValidationAssignee
+      ? "Select a field reporter before saving field validation."
+      : null;
   const metadataDraft = report
     ? metadataDraftOverride ?? metadataDraftFor(report)
     : undefined;
@@ -178,6 +203,7 @@ export function CaseReviewPage() {
   const hasReviewInput =
     selectedAction !== null ||
     verificationOverride !== undefined ||
+    fieldValidationTouched ||
     caseStateOverride !== undefined ||
     authorityClassificationOverride !== undefined ||
     notesOverride !== null ||
@@ -222,6 +248,7 @@ export function CaseReviewPage() {
       !hasReviewInput ||
       noteError ||
       correctionError ||
+      fieldValidationError ||
       report?.reviewVersion === undefined
     ) return;
 
@@ -233,6 +260,19 @@ export function CaseReviewPage() {
           ? undefined
           : verificationOverride || "not_determined",
       actionTaken: actionTouched ? selectedAction : undefined,
+      fieldValidationState: fieldValidationTouched
+        ? selectedFieldValidationState
+        : undefined,
+      fieldValidationAssigneeUuid: fieldValidationTouched
+        ? selectedFieldValidationState === "assigned"
+          ? selectedFieldValidationAssignee || null
+          : null
+        : undefined,
+      fieldValidationTargetDate: fieldValidationTouched
+        ? selectedFieldValidationState === "assigned"
+          ? selectedFieldValidationTargetDate || null
+          : null
+        : undefined,
       caseState: caseStateOverride,
       metadataCorrections,
       correctionReason: metadataCorrections ? correctionReason : undefined,
@@ -487,6 +527,69 @@ export function CaseReviewPage() {
               <option value="unable_to_verify">Unable to verify</option>
             </SelectFilter>
             <p className="authority-classification-help">Verification is recorded separately from the office action and case closure.</p>
+            <SelectFilter
+              label="Field validation"
+              value={selectedFieldValidationState}
+              onChange={(event) => {
+                const nextState = event.target.value as FieldValidationState;
+                setFieldValidationStateOverride(nextState);
+                setFieldValidationTouched(true);
+                if (nextState === "unassigned") {
+                  setFieldValidationAssigneeOverride(null);
+                  setFieldValidationTargetDateOverride(null);
+                }
+                setSubmitted(false);
+                reviewMutation.reset();
+              }}
+            >
+              <option value="unassigned">No field validation needed</option>
+              <option value="assigned">Assign field validation</option>
+            </SelectFilter>
+            <p className="authority-classification-help">An assignment activates immediately. Choose a field reporter; a target visit date is optional.</p>
+            {selectedFieldValidationState === "assigned" ? (
+              <>
+                <SelectFilter
+                  label="Field reporter assignee"
+                  value={selectedFieldValidationAssignee}
+                  onChange={(event) => {
+                    setFieldValidationAssigneeOverride(event.target.value || null);
+                    setFieldValidationTouched(true);
+                    setSubmitted(false);
+                    reviewMutation.reset();
+                  }}
+                >
+                  <option value="">Select a field reporter</option>
+                  {(fieldReportersQuery.data ?? []).map((fieldReporter) => (
+                    <option value={fieldReporter.uuid} key={fieldReporter.uuid}>
+                      {fieldReporter.name}
+                    </option>
+                  ))}
+                </SelectFilter>
+                <label className="select-filter" htmlFor="field-validation-target-date">
+                  <span>Target visit date (optional)</span>
+                  <input
+                    id="field-validation-target-date"
+                    type="date"
+                    value={selectedFieldValidationTargetDate}
+                    onChange={(event) => {
+                      setFieldValidationTargetDateOverride(event.target.value || null);
+                      setFieldValidationTouched(true);
+                      setSubmitted(false);
+                      reviewMutation.reset();
+                    }}
+                  />
+                </label>
+                {selectedFieldValidationAssignee === report.submitterUuid ? (
+                  <p className="authority-classification-help" role="status">
+                    Same person: the original submitter is also the field validator.
+                  </p>
+                ) : null}
+                {fieldReportersQuery.isError ? (
+                  <p className="form-error" role="alert">Eligible field reporters could not be loaded. Try again before assigning.</p>
+                ) : null}
+              </>
+            ) : null}
+            {submitted && fieldValidationError ? <p className="form-error" role="alert">{fieldValidationError}</p> : null}
             <SelectFilter
               label="Case state"
               value={selectedCaseState}

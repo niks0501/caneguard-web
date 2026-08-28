@@ -10,6 +10,8 @@ on:
       - ci/mobile-report-upload-gate.json
       - docs/contracts/mobile-report-upload-v1.json
       - docs/contracts/mobile-report-upload-v1.md
+      - docs/contracts/mobile-field-validation-assignment-v1.json
+      - docs/contracts/mobile-field-validation-assignment-v1.md
       - docs/testing/mobile-report-upload-contract-gate.md
       - scripts/assert-git-revision.mjs
       - scripts/mobile-report-upload-contract-workflow.node-test.mjs
@@ -17,8 +19,12 @@ on:
       - scripts/resolve-mobile-report-upload-gate-config.node-test.mjs
       - scripts/run-laravel-mobile-report-upload-consumer-contract.mjs
       - scripts/run-mobile-report-upload-producer-contract.mjs
+      - scripts/run-laravel-mobile-field-validation-assignment-consumer-contract.mjs
+      - scripts/run-mobile-field-validation-assignment-producer-contract.mjs
       - scripts/validate-mobile-report-upload-v1.mjs
+      - scripts/validate-mobile-field-validation-assignment-v1.mjs
       - scripts/validate-mobile-report-upload-v1.node-test.mjs
+      - scripts/validate-mobile-field-validation-assignment-v1.node-test.mjs
       - package.json
       - package-lock.json
       - api/composer.json
@@ -26,13 +32,20 @@ on:
       - api/app/Actions/Reports/PersistReport.php
       - api/app/Actions/Reports/StoreReport.php
       - api/app/Contracts/MobileReportUploadContract.php
+      - api/app/Contracts/MobileFieldValidationAssignmentContract.php
       - api/app/Http/Controllers/Api/V1/MobileReportController.php
+      - api/app/Http/Controllers/Api/V1/FieldReporterController.php
+      - api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php
       - api/app/Http/Requests/StoreMobileReportRequest.php
+      - api/app/Http/Requests/MobileFieldValidationAssignmentRequest.php
+      - api/app/Http/Requests/ReviewReportRequest.php
       - api/app/Models/Report.php
+      - api/app/Models/FieldValidationAssignment.php
       - api/app/Policies/ReportPolicy.php
       - api/database/migrations/**
       - api/routes/api.php
       - api/tests/Feature/MobileReportUploadContractTest.php
+      - api/tests/Feature/FieldValidationAssignmentTest.php
       - api/tests/Feature/MobileReportUploadTest.php
       - api/tests/MySql/MobileReportSecurityContractMySqlTest.php
   workflow_dispatch:
@@ -51,7 +64,7 @@ concurrency:
 
 jobs:
   trusted-cross-repository-gate:
-    name: mobile upload contract gate (trusted)
+    name: mobile report and assignment contract gate (trusted)
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -73,8 +86,10 @@ jobs:
       - name: Validate exact web revision
         run: node scripts/assert-git-revision.mjs "$WEB_REF"
 
-      - name: Validate canonical artifact
-        run: npm run contract:artifact
+      - name: Validate canonical artifacts
+        run: |
+          npm run contract:artifact
+          npm run contract:assignment-artifact
 
       - name: Validate and resolve exact mobile revision
         id: gate-config
@@ -86,8 +101,10 @@ jobs:
       - name: Install Laravel test dependencies
         run: composer install --working-dir=api --no-interaction --no-progress --prefer-dist
 
-      - name: Validate Laravel consumer boundary
-        run: npm run contract:consumer
+      - name: Validate Laravel consumer boundaries
+        run: |
+          npm run contract:consumer
+          npm run contract:assignment-consumer
 
       # This is the only step that receives the cross-repository secret.
       # This workflow is intentionally absent from pull_request and is reviewed on main before use.
@@ -114,18 +131,27 @@ jobs:
           CONTRACT_ARTIFACT: ${{ github.workspace }}/docs/contracts/mobile-report-upload-v1.json
         run: npm run contract:producer
 
+      - name: Validate assignment producer domain against web artifact
+        env:
+          MOBILE_REPO_DIR: ${{ github.workspace }}/.ci/caneguard-mobile
+          MOBILE_REF: ${{ steps.gate-config.outputs.mobile_ref }}
+          ASSIGNMENT_CONTRACT_ARTIFACT: ${{ github.workspace }}/docs/contracts/mobile-field-validation-assignment-v1.json
+        run: npm run contract:assignment-producer
+
       - name: Publish sanitized gate evidence
         env:
           MOBILE_REF: ${{ steps.gate-config.outputs.mobile_ref }}
         run: |
           artifact_sha256="$(sha256sum docs/contracts/mobile-report-upload-v1.json | awk '{print $1}')"
+          assignment_artifact_sha256="$(sha256sum docs/contracts/mobile-field-validation-assignment-v1.json | awk '{print $1}')"
           {
             echo '### Cross-repository upload contract gate'
             echo
             echo "- Web revision: $WEB_REF"
             echo "- Mobile revision: $MOBILE_REF"
-            echo "- Canonical artifact SHA-256: $artifact_sha256"
-            echo '- Producer result: PASS, mobile Jest contract test evaluated the web artifact.'
-            echo '- Consumer result: PASS, Laravel feature contract test accepted the v1 boundary.'
+            echo "- Upload artifact SHA-256: $artifact_sha256"
+            echo "- Assignment artifact SHA-256: $assignment_artifact_sha256"
+            echo '- Producer result: PASS, mobile Jest contract tests evaluated both web artifacts.'
+            echo '- Consumer result: PASS, Laravel feature contract tests accepted both v1 boundaries.'
             echo '- Secret handling: the read-only token was supplied only to the pinned checkout action and was not exported to test processes.'
           } >> "$GITHUB_STEP_SUMMARY"

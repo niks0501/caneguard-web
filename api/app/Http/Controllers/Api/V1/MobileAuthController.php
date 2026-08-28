@@ -19,6 +19,7 @@ class MobileAuthController extends Controller
     private const TOKEN_ABILITIES = [
         'report:submit',
         'report:status',
+        'assignment:read',
     ];
 
     private const TOKEN_NAME_PREFIX = 'caneguard-mobile:';

@@ -48,6 +48,14 @@ export const reportLifecycleSchema = z.object({
   field_validation_state: fieldValidationStateSchema,
   referral_state: referralStateSchema,
 });
+export const fieldValidationAssignmentSchema = z.object({
+  uuid: z.string(),
+  assignee: userSchema.pick({ uuid: true, name: true }),
+  assigned_by: userSchema.pick({ uuid: true, name: true }),
+  target_visit_date: z.string().nullable(),
+  activated_at: z.iso.datetime({ offset: true }),
+  updated_at: z.iso.datetime({ offset: true }),
+});
 
 export const reportListItemSchema = z.object({
   uuid: z.string(),
@@ -157,6 +165,7 @@ export const reportDetailSchema = z.object({
     ),
   }).optional(),
   lifecycle: reportLifecycleSchema.optional(),
+  field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),
 });

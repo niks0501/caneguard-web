@@ -2,6 +2,7 @@ import type {
   ActionTaken,
   AuthorityClassifiedCondition,
   CaseState,
+  FieldValidationState,
   ReviewStatus,
   VerificationOutcome,
 } from "./report.types";
@@ -27,6 +28,9 @@ export interface ReportReviewInput {
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   verificationOutcome?: VerificationOutcome;
   actionTaken?: ActionTaken | null;
+  fieldValidationState?: FieldValidationState;
+  fieldValidationAssigneeUuid?: string | null;
+  fieldValidationTargetDate?: string | null;
   caseState?: CaseState;
   metadataCorrections?: OperationalMetadataCorrections;
   correctionReason?: string;

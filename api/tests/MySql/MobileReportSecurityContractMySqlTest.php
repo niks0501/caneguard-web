@@ -38,6 +38,7 @@ class MobileReportSecurityContractMySqlTest extends TestCase
         $this->withToken($reviewerToken)
             ->patchJson("/api/v1/reports/{$report->uuid}/review", [
                 'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+                'field_validation_assignee_uuid' => $reporter->uuid,
                 'notes' => 'MySQL persistence contract note.',
                 'expected_version' => 0,
             ])
@@ -195,6 +196,7 @@ class MobileReportSecurityContractMySqlTest extends TestCase
         Sanctum::actingAs($reviewer);
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_assignee_uuid' => $report->reporter->uuid,
             'notes' => 'Reviewer mutation.',
             'expected_version' => 0,
         ])->assertOk();

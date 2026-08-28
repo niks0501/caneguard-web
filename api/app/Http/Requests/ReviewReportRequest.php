@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Report;
+use App\Models\User;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
@@ -43,6 +44,24 @@ class ReviewReportRequest extends ApiFormRequest
             'verification_outcome' => [
                 'sometimes',
                 Rule::in(Report::verificationOutcomes()),
+            ],
+            'field_validation_state' => [
+                'sometimes',
+                Rule::in([
+                    Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                    Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                ]),
+            ],
+            'field_validation_assignee_uuid' => [
+                'sometimes',
+                'nullable',
+                'uuid',
+                Rule::exists('users', 'uuid'),
+            ],
+            'field_validation_target_date' => [
+                'sometimes',
+                'nullable',
+                'date_format:Y-m-d',
             ],
             'action_taken' => [
                 'sometimes',
@@ -137,6 +156,9 @@ class ReviewReportRequest extends ApiFormRequest
                 'notes',
                 'authority_classified_condition',
                 'verification_outcome',
+                'field_validation_state',
+                'field_validation_assignee_uuid',
+                'field_validation_target_date',
                 'action_taken',
                 'case_state',
                 'metadata_corrections',
@@ -149,6 +171,45 @@ class ReviewReportRequest extends ApiFormRequest
                 $validator->errors()->add(
                     'review',
                     'Choose at least one review field to update.',
+                );
+            }
+
+            $assignmentSelected = $this->input('field_validation_state') === Report::FIELD_VALIDATION_STATE_ASSIGNED
+                || $this->input('status') === Report::STATUS_FOR_FIELD_VALIDATION
+                || filled($this->input('field_validation_assignee_uuid'));
+
+            if ($assignmentSelected && blank($this->input('field_validation_assignee_uuid'))) {
+                $validator->errors()->add(
+                    'field_validation_assignee_uuid',
+                    'An eligible field reporter is required when field validation is selected.',
+                );
+            }
+
+            if (
+                $assignmentSelected
+                && filled($this->input('field_validation_assignee_uuid'))
+                && ! User::query()
+                    ->where('uuid', $this->input('field_validation_assignee_uuid'))
+                    ->where('role', User::ROLE_FIELD_REPORTER)
+                    ->exists()
+            ) {
+                $validator->errors()->add(
+                    'field_validation_assignee_uuid',
+                    'The selected assignee must be a field reporter.',
+                );
+            }
+
+            $report = $this->route('report');
+            $requestedCaseState = $this->input(
+                'case_state',
+                $report instanceof Report
+                    ? $report->lifecycleSnapshot()['case_state']
+                    : null,
+            );
+            if ($assignmentSelected && $requestedCaseState !== Report::CASE_STATE_OPEN) {
+                $validator->errors()->add(
+                    'field_validation_state',
+                    'Only open cases can be assigned for field validation.',
                 );
             }
 
