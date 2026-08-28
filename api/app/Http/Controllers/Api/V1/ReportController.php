@@ -30,6 +30,7 @@ class ReportController extends Controller
             'reviewer',
             'fieldValidationAssignment.assignee',
             'fieldValidationAssignment.assignedBy',
+            'fieldValidationAssignment.completion',
             'classScores',
             'symptoms',
             'qualityWarnings',

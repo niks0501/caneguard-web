@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Contracts\MobileFieldValidationAssignmentContract;
+use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -235,6 +238,191 @@ class FieldValidationAssignmentTest extends TestCase
         $this->getJson('/api/v1/mobile/assignments')
             ->assertOk()
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_field_reporter_can_complete_an_assignment_and_the_case_returns_to_review(): void
+    {
+        Storage::fake('local');
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'reporter_id' => User::factory()->fieldReporter()->create()->getKey(),
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $clientUuid = fake()->uuid();
+        $payload = [
+            'client_uuid' => $clientUuid,
+            'field_observation' => 'Fresh observation from the assigned visit.',
+            'field_finding' => 'The field finding is preserved as separate evidence.',
+            'action_taken' => 'Provided field guidance and recorded the next action.',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'low_accuracy',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+            'gps_latitude' => 14.0667,
+            'gps_longitude' => 120.6319,
+            'gps_accuracy' => 38,
+        ];
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $response = $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $payload);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.completion.client_uuid', $clientUuid)
+            ->assertJsonPath('data.completion.field_observation', $payload['field_observation'])
+            ->assertJsonPath('data.completion.gps.outcome', 'low_accuracy')
+            ->assertJsonPath('data.assignment.field_validation_state', Report::FIELD_VALIDATION_STATE_COMPLETED)
+            ->assertJsonPath('data.case.case_state', Report::CASE_STATE_OPEN)
+            ->assertJsonPath('data.case.verification_outcome', Report::VERIFICATION_OUTCOME_NOT_DETERMINED);
+
+        $this->assertDatabaseHas('field_validation_completions', [
+            'assignment_id' => $assignment->getKey(),
+            'client_uuid' => $clientUuid,
+            'field_finding' => $payload['field_finding'],
+            'action_taken' => $payload['action_taken'],
+            'gps_outcome' => 'low_accuracy',
+        ]);
+        $this->assertSame(
+            Report::FIELD_VALIDATION_STATE_COMPLETED,
+            $report->fresh()->field_validation_state,
+        );
+        $this->assertSame(Report::CASE_STATE_OPEN, $report->fresh()->case_state);
+        $this->assertSame(
+            Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            $report->fresh()->verification_outcome,
+        );
+
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $payload)
+            ->assertOk()
+            ->assertJsonPath('data.completion.client_uuid', $clientUuid);
+        $this->assertDatabaseCount('field_validation_completions', 1);
+
+        Sanctum::actingAs($reviewer);
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.field_validation_assignment.completion.field_finding', $payload['field_finding'])
+            ->assertJsonPath('data.lifecycle.field_validation_state', Report::FIELD_VALIDATION_STATE_COMPLETED)
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
+            ->assertJsonPath('data.lifecycle.verification_outcome', Report::VERIFICATION_OUTCOME_NOT_DETERMINED);
+    }
+
+    public function test_completion_requires_assignment_ownership_and_completion_ability(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $other = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $payload = [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'permission_denied',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ];
+
+        Sanctum::actingAs($other, ['assignment:complete']);
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $payload)
+            ->assertForbidden();
+
+        Sanctum::actingAs($assignee, ['assignment:read']);
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $payload)
+            ->assertForbidden();
+        $this->assertDatabaseCount('field_validation_completions', 0);
+    }
+
+    public function test_completion_requires_all_field_evidence_but_allows_an_unavailable_gps_attempt_and_no_photo(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $base = [
+            'client_uuid' => fake()->uuid(),
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ];
+
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $base)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['field_observation', 'field_finding', 'action_taken']);
+
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            ...$base,
+            'field_observation' => 'Observation',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.completion.fresh_photo.available', false)
+            ->assertJsonPath('data.completion.gps.outcome', 'unavailable');
+    }
+
+    public function test_completion_accepts_a_fresh_photo_and_contract_matches_the_route(): void
+    {
+        Storage::fake('local');
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+
+        $response = $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation with a fresh photo.',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'permission_denied',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+            'fresh_photo' => UploadedFile::fake()->image('validation.jpg', 1, 1),
+        ]);
+
+        $response->assertCreated()->assertJsonPath('data.completion.fresh_photo.available', true);
+        $this->assertDatabaseHas('field_validation_completions', [
+            'assignment_id' => $assignment->getKey(),
+            'fresh_photo_mime_type' => 'image/jpeg',
+        ]);
+        Storage::disk('local')->assertExists(
+            FieldValidationAssignment::query()->findOrFail($assignment->getKey())->completion->fresh_photo_path,
+        );
+
+        $contract = MobileFieldValidationCompletionContract::definition();
+        $this->assertSame('POST', $contract['wire']['method']);
+        $this->assertSame('/api/v1/mobile/assignments/{assignment}/completion', $contract['wire']['path']);
+        $this->assertSame(
+            ['client_uuid', 'field_observation', 'field_finding', 'action_taken', 'visited_at', 'gps_outcome', 'gps_attempted_at', 'gps_latitude', 'gps_longitude', 'gps_accuracy', 'fresh_photo'],
+            array_keys($contract['fields']),
+        );
     }
 
     public function test_assignment_contract_artifact_matches_the_mobile_response_boundary(): void
