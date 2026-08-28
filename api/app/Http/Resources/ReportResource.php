@@ -94,6 +94,7 @@ class ReportResource extends JsonResource
                 'status' => $this->review_status,
                 'notes' => $this->review_notes,
                 'authority_classified_condition' => $this->authority_classified_condition,
+                'action_taken' => $this->action_taken,
                 'reviewer' => $this->when($this->reviewer, fn () => [
                     'uuid' => $this->reviewer->uuid,
                     'name' => $this->reviewer->name,
@@ -101,6 +102,22 @@ class ReportResource extends JsonResource
                 'reviewed_at' => $this->reviewed_at?->utc()->toISOString(),
             ],
             'lifecycle' => $this->resource->lifecycleSnapshot(),
+            'audit' => [
+                'metadata_corrections' => $this->audits
+                    ->map(fn ($audit) => [
+                        'id' => $audit->getKey(),
+                        'field' => $audit->field,
+                        'original_value' => $audit->original_value,
+                        'corrected_value' => $audit->corrected_value,
+                        'actor' => [
+                            'uuid' => $audit->actor->uuid,
+                            'name' => $audit->actor->name,
+                        ],
+                        'created_at' => $audit->created_at->utc()->toISOString(),
+                        'reason' => $audit->reason,
+                    ])
+                    ->values(),
+            ],
             'version' => $this->lock_version,
             'updated_at' => $this->updated_at->utc()->toISOString(),
         ];

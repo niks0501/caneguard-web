@@ -1588,6 +1588,64 @@ blockquote {
   line-height: 1.4;
 }
 
+.metadata-correction {
+  margin: 18px 0;
+  padding: 12px;
+  background: #fafcfa;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.metadata-correction summary {
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.metadata-correction-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.metadata-correction .select-filter {
+  height: 44px;
+}
+
+.metadata-correction .text-area {
+  margin-top: 12px;
+}
+
+.metadata-audit-history {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.metadata-audit-history > strong {
+  font-size: 10px;
+}
+
+.metadata-audit-history ol {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.metadata-audit-history li {
+  display: grid;
+  gap: 2px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.metadata-audit-history small {
+  color: var(--color-muted);
+  font-size: 9px;
+}
+
 .text-area {
   display: grid;
   margin-bottom: 14px;

@@ -56,6 +56,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'verification_outcome',
     'field_validation_state',
     'referral_state',
+    'action_taken',
     'review_notes',
     'authority_classified_condition',
     'reviewer_id',
@@ -117,6 +118,52 @@ class Report extends Model
 
     public const REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED = 'expert_response_received';
 
+    public const ACTION_ADVISORY_PROVIDED = 'advisory_provided';
+
+    public const ACTION_TECHNICAL_ASSISTANCE_PROVIDED = 'technical_assistance_provided';
+
+    public const ACTION_REFERRED_FOR_EXPERT_VALIDATION = 'referred_for_expert_validation';
+
+    public const ACTION_NO_FURTHER_ACTION_REQUIRED = 'no_further_action_required';
+
+    /**
+     * Evidence submitted by Mobile is immutable after the report is created.
+     * Operational metadata uses the explicit audited correction path instead.
+     *
+     * @return array<int, string>
+     */
+    public static function immutableEvidenceAttributes(): array
+    {
+        return [
+            'uuid',
+            'reference_code',
+            'reporter_id',
+            'client_uuid',
+            'scan_record_client_uuid',
+            'image_path',
+            'image_mime_type',
+            'image_size_bytes',
+            'image_source_type',
+            'source_width',
+            'source_height',
+            'predicted_label',
+            'confidence',
+            'checklist_consistency',
+            'reported_severity',
+            'model_version',
+            'preprocess_ms',
+            'inference_ms',
+            'total_ms',
+            'captured_at',
+            'observed_at',
+            'submitted_at',
+            'mismatch_reported',
+            'reporter_suspected_condition',
+            'field_notes',
+            'reporter_observation_text',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $report): void {
@@ -127,6 +174,20 @@ class Report extends Model
                 if ($report->getAttribute($attribute) === null) {
                     $report->setAttribute($attribute, $value);
                 }
+            }
+        });
+
+        static::updating(function (self $report): void {
+            $changedEvidence = array_values(array_intersect(
+                array_keys($report->getDirty()),
+                self::immutableEvidenceAttributes(),
+            ));
+
+            if ($changedEvidence !== []) {
+                throw new \LogicException(
+                    'Synchronized report evidence is immutable: '
+                    .implode(', ', $changedEvidence),
+                );
             }
         });
     }
@@ -212,6 +273,43 @@ class Report extends Model
             self::REFERRAL_STATE_REFERRED,
             self::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function actionTakenValues(): array
+    {
+        return [
+            self::ACTION_ADVISORY_PROVIDED,
+            self::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
+            self::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+            self::ACTION_NO_FURTHER_ACTION_REQUIRED,
+        ];
+    }
+
+    /**
+     * Translate independent lifecycle dimensions into a safe legacy status.
+     *
+     * Open cases never appear completed to an older client. Field-validation
+     * progress remains visible when possible, while referral and action data
+     * fall back to the open submitted status because legacy clients cannot
+     * represent those dimensions.
+     */
+    public static function legacyReviewStatusForLifecycle(array $lifecycle): string
+    {
+        if (($lifecycle['case_state'] ?? null) === self::CASE_STATE_CLOSED) {
+            return match ($lifecycle['verification_outcome'] ?? null) {
+                self::VERIFICATION_OUTCOME_VERIFIED => self::STATUS_VERIFIED_BY_STAFF,
+                self::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY => self::STATUS_UNABLE_TO_VERIFY,
+                default => self::STATUS_RESOLVED,
+            };
+        }
+
+        return ($lifecycle['field_validation_state'] ?? self::FIELD_VALIDATION_STATE_UNASSIGNED)
+            === self::FIELD_VALIDATION_STATE_UNASSIGNED
+            ? self::STATUS_SUBMITTED_UNVERIFIED
+            : self::STATUS_FOR_FIELD_VALIDATION;
     }
 
     /**
@@ -343,6 +441,16 @@ class Report extends Model
     public function qualityWarnings(): HasMany
     {
         return $this->hasMany(ReportQualityWarning::class);
+    }
+
+    /**
+     * @return HasMany<ReportAudit, $this>
+     */
+    public function audits(): HasMany
+    {
+        return $this->hasMany(ReportAudit::class)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
     }
 
     /**

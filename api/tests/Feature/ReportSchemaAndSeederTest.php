@@ -62,6 +62,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'verification_outcome',
             'field_validation_state',
             'referral_state',
+            'action_taken',
             'review_notes',
             'authority_classified_condition',
             'reviewer_id',
@@ -71,6 +72,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertTrue(Schema::hasTable('report_class_scores'));
         $this->assertTrue(Schema::hasTable('report_symptoms'));
         $this->assertTrue(Schema::hasTable('report_quality_warnings'));
+        $this->assertTrue(Schema::hasTable('report_audits'));
     }
 
     public function test_report_factory_supports_smart_field_values_and_casts_them(): void

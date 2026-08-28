@@ -94,8 +94,12 @@ export const reportDetailDto = {
     status: "submitted_unverified",
     notes: null,
     authority_classified_condition: null,
+    action_taken: null,
     reviewer: null,
     reviewed_at: null,
+  },
+  audit: {
+    metadata_corrections: [],
   },
   lifecycle: {
     case_state: "open",

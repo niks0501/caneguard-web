@@ -82,14 +82,48 @@ export class ApiReportsRepository implements ReportsRepository {
     reportId: string,
     input: ReportReviewInput,
   ): Promise<DiseaseReport> {
+    const payload: Record<string, unknown> = {
+      expected_version: input.expectedVersion,
+    };
+
+    if (input.status !== undefined) payload.status = input.status;
+    if (input.notes !== undefined) {
+      payload.notes = input.notes?.trim() || null;
+    }
+    if (input.authorityClassifiedCondition !== undefined) {
+      payload.authority_classified_condition = input.authorityClassifiedCondition;
+    }
+    if (input.verificationOutcome !== undefined) {
+      payload.verification_outcome = input.verificationOutcome;
+    }
+    if (input.actionTaken !== undefined) {
+      payload.action_taken = input.actionTaken;
+    }
+    if (input.caseState !== undefined) payload.case_state = input.caseState;
+    if (input.metadataCorrections !== undefined) {
+      payload.metadata_corrections = {
+        barangay: input.metadataCorrections.barangay,
+        farmer_or_farm_owner_name:
+          input.metadataCorrections.farmerOrFarmOwnerName,
+        province: input.metadataCorrections.province,
+        municipality: input.metadataCorrections.municipality,
+        affected_area_hectares:
+          input.metadataCorrections.affectedAreaHectares,
+        affected_portion_percent:
+          input.metadataCorrections.affectedPortionPercent,
+        final_latitude: input.metadataCorrections.finalLatitude,
+        final_longitude: input.metadataCorrections.finalLongitude,
+        location_source: input.metadataCorrections.locationSource,
+        gps_accuracy: input.metadataCorrections.gpsAccuracy,
+      };
+    }
+    if (input.correctionReason !== undefined) {
+      payload.correction_reason = input.correctionReason.trim() || null;
+    }
+
     const response = await this.client.patch(
       `/api/v1/reports/${encodeURIComponent(reportId)}/review`,
-      {
-        status: input.status,
-        notes: input.notes.trim() || null,
-        authority_classified_condition: input.authorityClassifiedCondition,
-        expected_version: input.expectedVersion,
-      },
+      payload,
     );
 
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);

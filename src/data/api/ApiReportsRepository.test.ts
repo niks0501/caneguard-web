@@ -44,7 +44,65 @@ describe("ApiReportsRepository", () => {
     expect(result.reports[0].referenceCode).toBe("CG-2026-0001");
   });
 
-  it("loads detail, writes reviews, and treats 404 as missing", async () => {
+  it("sends independent review decisions and correction reasons", async () => {
+    server.use(
+      http.patch(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/review`,
+        async ({ request }) => {
+          expect(await request.json()).toEqual({
+            expected_version: reportDetailDto.version,
+            notes: "Advisory recorded.",
+            authority_classified_condition: "smut",
+            verification_outcome: "verified",
+            action_taken: "advisory_provided",
+            case_state: "open",
+            metadata_corrections: {
+              barangay: "Poblacion",
+              affected_area_hectares: 12.5,
+            },
+            correction_reason: "The field sheet was transcribed incorrectly.",
+          });
+          return HttpResponse.json({
+            data: {
+              ...reportDetailDto,
+              review: {
+                ...reportDetailDto.review,
+                action_taken: "advisory_provided",
+              },
+              lifecycle: {
+                ...reportDetailDto.lifecycle,
+                verification_outcome: "verified",
+              },
+            },
+          });
+        },
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    await expect(
+      repository.updateReview(reportDetailDto.identity.uuid, {
+        notes: " Advisory recorded. ",
+        authorityClassifiedCondition: "smut",
+        verificationOutcome: "verified",
+        actionTaken: "advisory_provided",
+        caseState: "open",
+        metadataCorrections: {
+          barangay: "Poblacion",
+          affectedAreaHectares: 12.5,
+        },
+        correctionReason: " The field sheet was transcribed incorrectly. ",
+        expectedVersion: reportDetailDto.version,
+      }),
+    ).resolves.toMatchObject({
+      actionTaken: "advisory_provided",
+      lifecycle: { verificationOutcome: "verified" },
+    });
+  });
+
+  it("loads detail, writes legacy reviews, and treats 404 as missing", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}`, () =>
         HttpResponse.json({ data: reportDetailDto }),

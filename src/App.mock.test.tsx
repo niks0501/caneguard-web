@@ -60,14 +60,14 @@ describe("mock data mode", () => {
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("radio", { name: /Verified by staff/ }),
+      screen.getByRole("radio", { name: /Advisory provided/ }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Save review action" }),
+      screen.getByRole("button", { name: "Save explicit review" }),
     );
 
     expect(
-      await screen.findByText("CG-2026-0718 was updated to Verified by staff."),
+      await screen.findByText(/CG-2026-0718 - Action recorded: Advisory provided\./),
     ).toBeInTheDocument();
   });
 });

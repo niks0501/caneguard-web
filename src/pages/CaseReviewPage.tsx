@@ -24,58 +24,170 @@ import { Button } from "../components/ui/Button";
 import { SelectFilter, TextArea } from "../components/ui/FormControls";
 import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/States";
 import {
+  actionTakenLabels,
   imageStatusLabels,
   authorityClassifiedConditionLabels,
-  reviewStatusLabels,
   submitterRoleLabels,
 } from "../domain/report.metadata";
 import type {
+  ActionTaken,
   AuthorityClassifiedCondition,
-  ReviewStatus,
+  CaseState,
+  DiseaseReport,
+  VerificationOutcome,
 } from "../domain/report.types";
+import type {
+  OperationalMetadataCorrections,
+  ReportReviewInput,
+} from "../domain/review.types";
+import { legacyLifecycleForReviewStatus } from "../data/api/mappers/lifecycle.mapper";
 import { useReport, useUpdateReportReview } from "../hooks/useReports";
 import { formatDateTime } from "../lib/formatters";
 
-type ReviewAction = Exclude<ReviewStatus, "submitted_unverified">;
+type ReviewAction = ActionTaken;
+
+type MetadataDraft = {
+  barangay: string;
+  farmerOrFarmOwnerName: string;
+  province: string;
+  municipality: string;
+  affectedAreaHectares: string;
+  affectedPortionPercent: string;
+};
 
 const actions: Array<{ value: ReviewAction; description: string }> = [
-  { value: "for_field_validation", description: "Flag this report for an on-site observation." },
-  { value: "verified_by_staff", description: "Record that staff verified the submitted evidence." },
-  { value: "unable_to_verify", description: "Record that the available evidence is insufficient." },
-  { value: "resolved", description: "Complete office review of this submission." },
+  { value: "advisory_provided", description: "Record guidance provided to the field contact." },
+  { value: "technical_assistance_provided", description: "Record practical technical assistance delivered." },
+  { value: "referred_for_expert_validation", description: "Record that the case was sent for expert validation." },
+  { value: "no_further_action_required", description: "Record that no further office action is required." },
 ];
+
+const verificationOutcomeLabels: Record<VerificationOutcome, string> = {
+  not_determined: "Not determined",
+  verified: "Verified",
+  unable_to_verify: "Unable to verify",
+};
+
+function metadataDraftFor(report: DiseaseReport): MetadataDraft {
+  return {
+    barangay: report.barangay,
+    farmerOrFarmOwnerName: report.farmerOrFarmOwnerName ?? "",
+    province: report.province ?? "",
+    municipality: report.municipality ?? "",
+    affectedAreaHectares: report.affectedAreaHectares?.toString() ?? "",
+    affectedPortionPercent: report.affectedPortionPercent?.toString() ?? "",
+  };
+}
+
+function numberOrNull(value: string): number | null {
+  return value.trim() === "" ? null : Number(value);
+}
+
+function metadataCorrectionsFor(
+  report: DiseaseReport,
+  draft: MetadataDraft,
+): OperationalMetadataCorrections | undefined {
+  const corrections: OperationalMetadataCorrections = {};
+
+  if (draft.barangay !== report.barangay) corrections.barangay = draft.barangay;
+  if (draft.farmerOrFarmOwnerName !== (report.farmerOrFarmOwnerName ?? "")) {
+    corrections.farmerOrFarmOwnerName = draft.farmerOrFarmOwnerName || null;
+  }
+  if (draft.province !== (report.province ?? "")) {
+    corrections.province = draft.province || null;
+  }
+  if (draft.municipality !== (report.municipality ?? "")) {
+    corrections.municipality = draft.municipality || null;
+  }
+  if (
+    numberOrNull(draft.affectedAreaHectares) !==
+    (report.affectedAreaHectares ?? null)
+  ) {
+    corrections.affectedAreaHectares = numberOrNull(draft.affectedAreaHectares);
+  }
+  if (
+    numberOrNull(draft.affectedPortionPercent) !==
+    (report.affectedPortionPercent ?? null)
+  ) {
+    corrections.affectedPortionPercent = numberOrNull(draft.affectedPortionPercent);
+  }
+
+  return Object.keys(corrections).length ? corrections : undefined;
+}
 
 export function CaseReviewPage() {
   const { reportId = "" } = useParams();
   const navigate = useNavigate();
   const [notesOverride, setNotesOverride] = useState<string | null>(null);
   const [actionOverride, setActionOverride] = useState<ReviewAction | null>(null);
+  const [actionTouched, setActionTouched] = useState(false);
   const [authorityClassificationOverride, setAuthorityClassificationOverride] =
     useState<AuthorityClassifiedCondition | null | undefined>(undefined);
+  const [verificationOverride, setVerificationOverride] = useState<
+    VerificationOutcome | "" | undefined
+  >(undefined);
+  const [caseStateOverride, setCaseStateOverride] = useState<CaseState | undefined>(
+    undefined,
+  );
+  const [metadataDraftOverride, setMetadataDraftOverride] = useState<MetadataDraft | null>(
+    null,
+  );
+  const [correctionReason, setCorrectionReason] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
   const reportQuery = useReport(reportId);
   const reviewMutation = useUpdateReportReview(reportId);
   const report = reportQuery.data;
-  const persistedAction = report?.reviewStatus;
+  const lifecycle = report
+    ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus)
+    : undefined;
   const notes = notesOverride ?? report?.reviewNotes ?? "";
-  const selectedAction: ReviewAction =
-    actionOverride ??
-    (persistedAction && persistedAction !== "submitted_unverified"
-      ? persistedAction
-      : "verified_by_staff");
+  const selectedAction = actionTouched
+    ? actionOverride
+    : report?.actionTaken ?? null;
   const selectedAuthorityClassification =
     authorityClassificationOverride !== undefined
       ? authorityClassificationOverride
       : report?.authorityClassifiedCondition ?? null;
+  const selectedVerificationOutcome =
+    verificationOverride !== undefined
+      ? verificationOverride
+      : lifecycle?.verificationOutcome === "not_determined"
+        ? ""
+        : lifecycle?.verificationOutcome ?? "";
+  const selectedCaseState = caseStateOverride ?? lifecycle?.caseState ?? "open";
+  const metadataDraft = report
+    ? metadataDraftOverride ?? metadataDraftFor(report)
+    : undefined;
+  const metadataCorrections =
+    report && metadataDraft
+      ? metadataCorrectionsFor(report, metadataDraft)
+      : undefined;
   const trimmedNotes = notes.trim();
   const noteError =
     trimmedNotes.length > 1000
       ? "Review notes must be 1,000 characters or fewer."
-      : selectedAction === "unable_to_verify" && !trimmedNotes
+      : selectedVerificationOutcome === "unable_to_verify" && !trimmedNotes
         ? "Add a note explaining why the evidence cannot be verified."
         : null;
+  const correctionError =
+    metadataCorrections && !correctionReason.trim()
+      ? "Add a reason for the operational metadata correction."
+      : null;
+  const hasReviewInput =
+    selectedAction !== null ||
+    verificationOverride !== undefined ||
+    caseStateOverride !== undefined ||
+    authorityClassificationOverride !== undefined ||
+    notesOverride !== null ||
+    metadataCorrections !== undefined;
+  const updateMetadataDraft = (field: keyof MetadataDraft, value: string) => {
+    if (!metadataDraft) return;
+    setMetadataDraftOverride({ ...metadataDraft, [field]: value });
+    setSubmitted(false);
+    reviewMutation.reset();
+  };
   const mutationError =
     reviewMutation.error instanceof ApiError ? reviewMutation.error : null;
   const serverNoteError = mutationError?.errors?.notes?.[0];
@@ -106,18 +218,35 @@ export function CaseReviewPage() {
 
   const saveReview = async () => {
     setSubmitted(true);
-    if (noteError || report?.reviewVersion === undefined) return;
+    if (
+      !hasReviewInput ||
+      noteError ||
+      correctionError ||
+      report?.reviewVersion === undefined
+    ) return;
+
+    const input: ReportReviewInput = {
+      notes,
+      authorityClassifiedCondition: selectedAuthorityClassification,
+      verificationOutcome:
+        verificationOverride === undefined
+          ? undefined
+          : verificationOverride || "not_determined",
+      actionTaken: actionTouched ? selectedAction : undefined,
+      caseState: caseStateOverride,
+      metadataCorrections,
+      correctionReason: metadataCorrections ? correctionReason : undefined,
+      expectedVersion: report.reviewVersion,
+    };
 
     try {
-      await reviewMutation.mutateAsync({
-        status: selectedAction,
-        notes,
-        authorityClassifiedCondition: selectedAuthorityClassification,
-        expectedVersion: report.reviewVersion,
-      });
+      await reviewMutation.mutateAsync(input);
+      const notice = selectedAction
+        ? `Action recorded: ${actionTakenLabels[selectedAction]}.`
+        : "The office review was updated.";
       navigate(routes.reports, {
         state: {
-          notice: `${report?.referenceCode ?? reportId} was updated to ${reviewStatusLabels[selectedAction]}.`,
+          notice: `${report?.referenceCode ?? reportId} - ${notice}`,
         },
       });
     } catch {
@@ -177,8 +306,18 @@ export function CaseReviewPage() {
           </strong>
         </div>
         <div className="review-summary__item">
+          <span className="review-summary__label">Verification outcome</span>
+          <strong>{selectedVerificationOutcome
+            ? verificationOutcomeLabels[selectedVerificationOutcome]
+            : "No verification decision"}</strong>
+        </div>
+        <div className="review-summary__item">
+          <span className="review-summary__label">Case state</span>
+          <strong>{selectedCaseState === "closed" ? "Closed" : "Open"}</strong>
+        </div>
+        <div className="review-summary__item">
           <span className="review-summary__label">Selected response</span>
-          <strong>{reviewStatusLabels[selectedAction]}</strong>
+          <strong>{selectedAction ? actionTakenLabels[selectedAction] : "No office action selected"}</strong>
         </div>
       </section>
 
@@ -312,7 +451,7 @@ export function CaseReviewPage() {
           </section>
 
           <section className="review-card office-review" aria-labelledby="office-review-heading">
-            <div className="section-heading"><div><p className="eyebrow">Office response</p><h2 id="office-review-heading">Record review action</h2></div><CheckCircle2 aria-hidden="true" /></div>
+            <div className="section-heading"><div><p className="eyebrow">Office response</p><h2 id="office-review-heading">Record explicit review</h2></div><CheckCircle2 aria-hidden="true" /></div>
             <SelectFilter
               label="Authority classification"
               value={selectedAuthorityClassification ?? ""}
@@ -333,18 +472,75 @@ export function CaseReviewPage() {
             {report.authorityClassifiedCondition && report.reviewedBy ? (
               <p className="authority-provenance">Last classified by {report.reviewedBy}{report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.</p>
             ) : null}
+            <SelectFilter
+              label="Verification outcome"
+              value={selectedVerificationOutcome}
+              onChange={(event) => {
+                setVerificationOverride(event.target.value as VerificationOutcome | "");
+                setSubmitted(false);
+                reviewMutation.reset();
+              }}
+            >
+              <option value="">No verification decision</option>
+              <option value="not_determined">Not determined</option>
+              <option value="verified">Verified</option>
+              <option value="unable_to_verify">Unable to verify</option>
+            </SelectFilter>
+            <p className="authority-classification-help">Verification is recorded separately from the office action and case closure.</p>
+            <SelectFilter
+              label="Case state"
+              value={selectedCaseState}
+              onChange={(event) => {
+                setCaseStateOverride(event.target.value as CaseState);
+                setSubmitted(false);
+                reviewMutation.reset();
+              }}
+            >
+              <option value="open">Open - office handling continues</option>
+              <option value="closed">Closed - office handling is complete</option>
+            </SelectFilter>
+            <p className="authority-classification-help">Closing a case is an explicit office decision. Verification never closes it automatically.</p>
             <fieldset className="review-actions">
-              <legend>Select an action</legend>
+              <legend>Action taken - choose explicitly</legend>
               {actions.map((action) => (
                 <label className={selectedAction === action.value ? "is-selected" : ""} key={action.value}>
-                  <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} onChange={() => { setActionOverride(action.value); setSubmitted(false); reviewMutation.reset(); }} />
-                  <span><strong>{reviewStatusLabels[action.value]}</strong><small>{action.description}</small></span>
+                  <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} onChange={() => { setActionOverride(action.value); setActionTouched(true); setSubmitted(false); reviewMutation.reset(); }} />
+                  <span><strong>{actionTakenLabels[action.value]}</strong><small>{action.description}</small></span>
                 </label>
               ))}
             </fieldset>
+            <p className="authority-classification-help">No action is selected until you choose one. A field reporter may provide visit details, but only office authority can save this disposition.</p>
             <TextArea id="review-notes" label="Review notes" hint="Use neutral, observable language. Notes are saved with the review." rows={5} maxLength={1000} value={notes} onChange={(event) => { setNotesOverride(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Add context for this office response..." />
             <p className="review-note-count">{notes.length}/1,000</p>
+            <details className="metadata-correction">
+              <summary>Correct operational metadata</summary>
+              <p className="authority-classification-help">Corrections preserve the submitted value, corrected value, actor, timestamp, and reason. Submitted AI and observation evidence cannot be edited here.</p>
+              <div className="metadata-correction-grid">
+                <label className="select-filter" htmlFor="correction-barangay"><span>Barangay</span><input id="correction-barangay" value={metadataDraft?.barangay ?? ""} onChange={(event) => updateMetadataDraft("barangay", event.target.value)} /></label>
+                <label className="select-filter" htmlFor="correction-farmer"><span>Farmer or farm owner</span><input id="correction-farmer" value={metadataDraft?.farmerOrFarmOwnerName ?? ""} onChange={(event) => updateMetadataDraft("farmerOrFarmOwnerName", event.target.value)} /></label>
+                <label className="select-filter" htmlFor="correction-province"><span>Province</span><input id="correction-province" value={metadataDraft?.province ?? ""} onChange={(event) => updateMetadataDraft("province", event.target.value)} /></label>
+                <label className="select-filter" htmlFor="correction-municipality"><span>Municipality</span><input id="correction-municipality" value={metadataDraft?.municipality ?? ""} onChange={(event) => updateMetadataDraft("municipality", event.target.value)} /></label>
+                <label className="select-filter" htmlFor="correction-area"><span>Affected area (ha)</span><input id="correction-area" type="number" min="0" step="0.01" value={metadataDraft?.affectedAreaHectares ?? ""} onChange={(event) => updateMetadataDraft("affectedAreaHectares", event.target.value)} /></label>
+                <label className="select-filter" htmlFor="correction-portion"><span>Affected portion (%)</span><input id="correction-portion" type="number" min="0" max="100" step="0.01" value={metadataDraft?.affectedPortionPercent ?? ""} onChange={(event) => updateMetadataDraft("affectedPortionPercent", event.target.value)} /></label>
+              </div>
+              <TextArea id="correction-reason" label="Correction reason" hint="Required when an operational value changes." rows={3} maxLength={1000} value={correctionReason} onChange={(event) => { setCorrectionReason(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Explain the source of the correction..." />
+              {report.metadataCorrectionAudits?.length ? (
+                <div className="metadata-audit-history">
+                  <strong>Correction history</strong>
+                  <ol>
+                    {report.metadataCorrectionAudits.map((audit) => (
+                      <li key={audit.id}>
+                        <span>{audit.field.replaceAll("_", " ")}: {String(audit.originalValue ?? "Not provided")} to {String(audit.correctedValue ?? "Not provided")}</span>
+                        <small>{audit.actorName} on {formatDateTime(audit.createdAt)} - {audit.reason}</small>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : <p className="authority-classification-help">No operational metadata corrections recorded.</p>}
+            </details>
+            {submitted && !hasReviewInput ? <p className="form-error" role="alert">Choose an office action or another review field before saving.</p> : null}
             {submitted && noteError ? <p className="form-error" role="alert">{noteError}</p> : null}
+            {submitted && correctionError ? <p className="form-error" role="alert">{correctionError}</p> : null}
             {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
             {conflict ? (
               <div className="review-conflict" role="alert">
@@ -358,7 +554,7 @@ export function CaseReviewPage() {
             {malformedMutationResponse ? <p className="form-error" role="alert">The server returned an unexpected response. Refresh the report before trying again.</p> : null}
             {reviewMutation.isError && !conflict && !serverNoteError && !mutationRateLimited && !mutationForbidden && !mutationValidation && !malformedMutationResponse ? <p className="form-error" role="alert">The review service is unavailable. No review change was confirmed.</p> : null}
             <Button type="button" icon={<Save aria-hidden="true" />} disabled={reviewMutation.isPending} onClick={saveReview}>
-              {reviewMutation.isPending ? "Saving review..." : "Save review action"}
+              {reviewMutation.isPending ? "Saving review..." : "Save explicit review"}
             </Button>
           </section>
         </aside>

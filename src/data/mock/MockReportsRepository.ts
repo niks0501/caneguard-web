@@ -6,6 +6,10 @@ import type {
 } from "../../domain/report.types";
 import type { ReportReviewInput } from "../../domain/review.types";
 import { diseaseLabels } from "../../domain/report.metadata";
+import {
+  legacyLifecycleForReviewStatus,
+  legacyReviewStatusForLifecycle,
+} from "../api/mappers/lifecycle.mapper";
 import { mockReports } from "./mockReports";
 
 const cloneReport = (report: DiseaseReport): DiseaseReport => ({
@@ -105,11 +109,37 @@ export class MockReportsRepository implements ReportsRepository {
     }
 
     const current = this.reports[index];
+    const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
+    const legacyLifecycle = input.status
+      ? legacyLifecycleForReviewStatus(input.status)
+      : lifecycle;
+    const nextLifecycle =
+      input.status && input.caseState === undefined && input.verificationOutcome === undefined
+        ? {
+            ...lifecycle,
+            caseState: legacyLifecycle.caseState,
+            verificationOutcome: legacyLifecycle.verificationOutcome,
+          }
+        : {
+            ...lifecycle,
+            caseState: input.caseState ?? lifecycle.caseState,
+            verificationOutcome:
+              input.verificationOutcome ?? lifecycle.verificationOutcome,
+          };
     const updated: DiseaseReport = {
       ...current,
-      reviewStatus: input.status,
-      reviewNotes: input.notes.trim() || undefined,
-      authorityClassifiedCondition: input.authorityClassifiedCondition,
+      reviewStatus: input.status ?? legacyReviewStatusForLifecycle(nextLifecycle),
+      reviewNotes:
+        input.notes === undefined
+          ? current.reviewNotes
+          : input.notes?.trim() || undefined,
+      authorityClassifiedCondition:
+        input.authorityClassifiedCondition === undefined
+          ? current.authorityClassifiedCondition
+          : input.authorityClassifiedCondition,
+      actionTaken:
+        input.actionTaken === undefined ? current.actionTaken : input.actionTaken,
+      lifecycle: nextLifecycle,
       reviewedAt: new Date().toISOString(),
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       updatedAt: new Date().toISOString(),

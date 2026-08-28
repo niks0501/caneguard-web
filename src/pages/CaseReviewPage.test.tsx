@@ -142,6 +142,18 @@ describe("CaseReviewPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not select an office action or verification outcome automatically", () => {
+    renderPage();
+
+    expect(
+      screen
+        .getAllByRole("radio")
+        .every((radio) => !(radio as HTMLInputElement).checked),
+    ).toBe(true);
+    expect(screen.getByLabelText("Verification outcome")).toHaveValue("");
+    expect(screen.getByText("No office action selected")).toBeInTheDocument();
+  });
+
   it("requires a note when evidence cannot be verified", async () => {
     const mutateAsync = vi.fn();
     vi.mocked(useUpdateReportReview).mockReturnValue(
@@ -150,11 +162,12 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(
-      screen.getByRole("radio", { name: /Unable to verify/ }),
+    await user.selectOptions(
+      screen.getByLabelText("Verification outcome"),
+      "unable_to_verify",
     );
     await user.click(
-      screen.getByRole("button", { name: "Save review action" }),
+      screen.getByRole("button", { name: "Save explicit review" }),
     );
 
     expect(
@@ -180,13 +193,20 @@ describe("CaseReviewPage", () => {
       "Field evidence reviewed.",
     );
     await user.click(
-      screen.getByRole("button", { name: "Save review action" }),
+      screen.getByRole("radio", { name: /Advisory provided/ }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Save explicit review" }),
     );
 
     expect(mutateAsync).toHaveBeenCalledWith({
-      status: "verified_by_staff",
       notes: "Field evidence reviewed.",
       authorityClassifiedCondition: "smut",
+      verificationOutcome: undefined,
+      actionTaken: "advisory_provided",
+      caseState: undefined,
+      metadataCorrections: undefined,
+      correctionReason: undefined,
       expectedVersion: report.reviewVersion,
     });
     expect(

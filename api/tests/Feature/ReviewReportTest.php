@@ -313,6 +313,157 @@ class ReviewReportTest extends TestCase
         $this->assertArrayNotHasKey('reviewer', $mobile->json('data.0'));
     }
 
+    public function test_reviewer_can_record_independent_lifecycle_decisions_and_audited_corrections(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Original Farmer',
+            'affected_area_hectares' => 10.5,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'notes' => 'Advisory provided while the case remains open for monitoring.',
+            'metadata_corrections' => [
+                'barangay' => 'Poblacion',
+                'farmer_or_farm_owner_name' => 'Corrected Farmer',
+                'affected_area_hectares' => 12.25,
+            ],
+            'correction_reason' => 'The submitted location sheet contained a transcription error.',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
+            ->assertJsonPath(
+                'data.lifecycle.verification_outcome',
+                Report::VERIFICATION_OUTCOME_VERIFIED,
+            )
+            ->assertJsonPath('data.review.action_taken', Report::ACTION_ADVISORY_PROVIDED)
+            ->assertJsonPath('data.review.status', Report::STATUS_SUBMITTED_UNVERIFIED)
+            ->assertJsonPath('data.version', 1)
+            ->assertJsonPath('data.audit.metadata_corrections.0.actor.uuid', $reviewer->uuid);
+
+        $updated = $report->fresh();
+        $this->assertSame(Report::CASE_STATE_OPEN, $updated->case_state);
+        $this->assertSame(Report::VERIFICATION_OUTCOME_VERIFIED, $updated->verification_outcome);
+        $this->assertSame(Report::ACTION_ADVISORY_PROVIDED, $updated->action_taken);
+        $this->assertSame(Report::STATUS_SUBMITTED_UNVERIFIED, $updated->review_status);
+        $this->assertSame('Poblacion', $updated->barangay);
+        $this->assertSame('Corrected Farmer', $updated->farmer_or_farm_owner_name);
+        $this->assertSame('12.25', $updated->affected_area_hectares);
+
+        $audits = $updated->audits()->with('actor')->get();
+        $this->assertCount(3, $audits);
+        $barangayAudit = $audits->firstWhere('field', 'barangay');
+        $this->assertNotNull($barangayAudit);
+        $this->assertSame('Mabini', $barangayAudit->original_value);
+        $this->assertSame('Poblacion', $barangayAudit->corrected_value);
+        $this->assertSame($reviewer->getKey(), $barangayAudit->actor_id);
+        $this->assertSame(
+            'The submitted location sheet contained a transcription error.',
+            $barangayAudit->reason,
+        );
+        $this->assertNotNull($barangayAudit->created_at);
+    }
+
+    public function test_verification_does_not_close_a_case_until_closure_is_explicit(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
+            ->assertJsonPath('data.lifecycle.verification_outcome', Report::VERIFICATION_OUTCOME_VERIFIED)
+            ->assertJsonPath('data.review.status', Report::STATUS_SUBMITTED_UNVERIFIED);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_CLOSED)
+            ->assertJsonPath('data.lifecycle.verification_outcome', Report::VERIFICATION_OUTCOME_VERIFIED)
+            ->assertJsonPath('data.review.status', Report::STATUS_VERIFIED_BY_STAFF);
+    }
+
+    public function test_review_requires_an_explicit_field_and_does_not_default_to_verification(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'expected_version' => 0,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('review');
+
+        $this->assertSame(Report::VERIFICATION_OUTCOME_NOT_DETERMINED, $report->fresh()->verification_outcome);
+        $this->assertNull($report->fresh()->action_taken);
+    }
+
+    public function test_field_reporter_cannot_submit_an_independent_final_disposition(): void
+    {
+        $fieldReporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create();
+
+        Sanctum::actingAs($fieldReporter);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'action_taken' => Report::ACTION_NO_FURTHER_ACTION_REQUIRED,
+            'expected_version' => 0,
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+
+        $this->assertSame(Report::CASE_STATE_OPEN, $report->fresh()->case_state);
+    }
+
+    public function test_synchronized_report_evidence_and_nested_observations_are_immutable(): void
+    {
+        $report = Report::factory()->create([
+            'predicted_label' => Report::LABEL_RUST,
+        ]);
+        $score = $report->classScores()->firstOrFail();
+        $symptom = $report->symptoms()->firstOrFail();
+
+        try {
+            $report->update(['predicted_label' => Report::LABEL_MOSAIC]);
+            $this->fail('Expected the submitted model result to be immutable.');
+        } catch (\LogicException) {
+            $this->addToAssertionCount(1);
+        }
+
+        try {
+            $score->update(['score' => 0.01]);
+            $this->fail('Expected the submitted class score to be immutable.');
+        } catch (\LogicException) {
+            $this->addToAssertionCount(1);
+        }
+
+        try {
+            $symptom->delete();
+            $this->fail('Expected the submitted symptom observation to be immutable.');
+        } catch (\LogicException) {
+            $this->addToAssertionCount(1);
+        }
+    }
+
     public function test_stale_review_is_rejected_without_overwriting_changes(): void
     {
         Sanctum::actingAs(User::factory()->reviewer()->create());
