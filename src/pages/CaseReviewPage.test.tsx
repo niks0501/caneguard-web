@@ -7,12 +7,16 @@ import { ApiError } from "../api/ApiError";
 import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
 import { reportDetailDto } from "../test/fixtures";
+import { useFieldReporters } from "../hooks/useFieldReporters";
 import { useReport, useUpdateReportReview } from "../hooks/useReports";
 import { CaseReviewPage } from "./CaseReviewPage";
 
 vi.mock("../hooks/useReports", () => ({
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
+}));
+vi.mock("../hooks/useFieldReporters", () => ({
+  useFieldReporters: vi.fn(() => ({ data: [], isError: false })),
 }));
 
 const report = mapReportDetail(
@@ -55,6 +59,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as ReturnType<typeof useFieldReporters>);
   vi.mocked(useReport).mockReturnValue(queryResult());
   vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult());
 });
@@ -154,6 +159,44 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText("No office action selected")).toBeInTheDocument();
   });
 
+  it("requires a field reporter when field validation is selected", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn();
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText("Field validation"), "assigned");
+    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+
+    expect(screen.getByText(/Select a field reporter before saving/i)).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("saves an immediate assignment with an optional target date and same-person warning", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useFieldReporters).mockReturnValue({
+      data: [{ uuid: report.submitterUuid!, name: report.submittedByName }],
+      isError: false,
+    } as ReturnType<typeof useFieldReporters>);
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText("Field validation"), "assigned");
+    await user.selectOptions(
+      screen.getByLabelText("Field reporter assignee"),
+      report.submitterUuid!,
+    );
+    expect(screen.getByText(/original submitter is also the field validator/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      fieldValidationState: "assigned",
+      fieldValidationAssigneeUuid: report.submitterUuid,
+      fieldValidationTargetDate: null,
+    }));
+  });
+
   it("requires a note when evidence cannot be verified", async () => {
     const mutateAsync = vi.fn();
     vi.mocked(useUpdateReportReview).mockReturnValue(
@@ -204,6 +247,9 @@ describe("CaseReviewPage", () => {
       authorityClassifiedCondition: "smut",
       verificationOutcome: undefined,
       actionTaken: "advisory_provided",
+      fieldValidationState: undefined,
+      fieldValidationAssigneeUuid: undefined,
+      fieldValidationTargetDate: undefined,
       caseState: undefined,
       metadataCorrections: undefined,
       correctionReason: undefined,

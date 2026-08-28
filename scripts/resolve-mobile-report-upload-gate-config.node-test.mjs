@@ -21,6 +21,9 @@ async function configFixture(overrides = {}) {
     artifact_path: 'docs/contracts/mobile-report-upload-v1.json',
     producer_test_path:
       'src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts',
+    assignment_artifact_path: 'docs/contracts/mobile-field-validation-assignment-v1.json',
+    assignment_producer_test_path:
+      'src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.contract.test.ts',
     ...overrides,
   }));
   return { directory, configPath };

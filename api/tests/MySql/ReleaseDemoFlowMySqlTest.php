@@ -100,6 +100,7 @@ class ReleaseDemoFlowMySqlTest extends TestCase
         $note = 'Release rehearsal: schedule an on-site field observation.';
         $this->patchJson("/api/v1/reports/{$reportUuid}/review", [
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_assignee_uuid' => $fieldReporter->uuid,
             'notes' => $note,
             'expected_version' => $version,
         ])

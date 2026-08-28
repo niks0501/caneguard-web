@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldValidationQueueController;
+use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MapReportController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
@@ -24,6 +26,7 @@ Route::get('/v1/reference/locations', LocationReferenceController::class);
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/me', AuthenticatedUserController::class);
     Route::get('/dashboard/summary', DashboardSummaryController::class);
+    Route::get('/field-reporters', FieldReporterController::class);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
@@ -44,4 +47,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         ->middleware(['abilities:report:submit', 'throttle:30,1']);
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware('abilities:report:status');
+    Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
+        ->middleware('abilities:assignment:read');
 });

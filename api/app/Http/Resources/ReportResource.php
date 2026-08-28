@@ -102,6 +102,12 @@ class ReportResource extends JsonResource
                 'reviewed_at' => $this->reviewed_at?->utc()->toISOString(),
             ],
             'lifecycle' => $this->resource->lifecycleSnapshot(),
+            'field_validation_assignment' => $this->when(
+                $this->relationLoaded('fieldValidationAssignment'),
+                fn () => $this->fieldValidationAssignment
+                    ? (new FieldValidationAssignmentResource($this->fieldValidationAssignment))->resolve($request)
+                    : null,
+            ),
             'audit' => [
                 'metadata_corrections' => $this->audits
                     ->map(fn ($audit) => [

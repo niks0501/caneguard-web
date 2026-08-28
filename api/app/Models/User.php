@@ -85,6 +85,22 @@ class User extends Authenticatable
     }
 
     /**
+     * @return HasMany<FieldValidationAssignment, $this>
+     */
+    public function fieldValidationAssignments(): HasMany
+    {
+        return $this->hasMany(FieldValidationAssignment::class, 'assignee_id');
+    }
+
+    /**
+     * @return HasMany<FieldValidationAssignment, $this>
+     */
+    public function createdFieldValidationAssignments(): HasMany
+    {
+        return $this->hasMany(FieldValidationAssignment::class, 'assigned_by_id');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

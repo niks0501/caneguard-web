@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'uuid',
@@ -417,6 +418,14 @@ class Report extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewer_id');
+    }
+
+    /**
+     * @return HasOne<FieldValidationAssignment, $this>
+     */
+    public function fieldValidationAssignment(): HasOne
+    {
+        return $this->hasOne(FieldValidationAssignment::class);
     }
 
     /**

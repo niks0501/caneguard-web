@@ -10,6 +10,10 @@ const EXPECTED_MOBILE_REPOSITORY = 'niks0501/caneguard-mobile';
 const EXPECTED_ARTIFACT_PATH = 'docs/contracts/mobile-report-upload-v1.json';
 const EXPECTED_PRODUCER_TEST_PATH =
   'src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts';
+const EXPECTED_ASSIGNMENT_ARTIFACT_PATH =
+  'docs/contracts/mobile-field-validation-assignment-v1.json';
+const EXPECTED_ASSIGNMENT_PRODUCER_TEST_PATH =
+  'src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.contract.test.ts';
 const FULL_SHA = /^[0-9a-f]{40}$/i;
 
 export class GateConfigValidationError extends Error {
@@ -59,6 +63,16 @@ export async function readGateConfig(configPath = DEFAULT_CONFIG_PATH) {
       `producer_test_path must be ${EXPECTED_PRODUCER_TEST_PATH}`,
     );
   }
+  if (config.assignment_artifact_path !== EXPECTED_ASSIGNMENT_ARTIFACT_PATH) {
+    throw new GateConfigValidationError(
+      `assignment_artifact_path must be ${EXPECTED_ASSIGNMENT_ARTIFACT_PATH}`,
+    );
+  }
+  if (config.assignment_producer_test_path !== EXPECTED_ASSIGNMENT_PRODUCER_TEST_PATH) {
+    throw new GateConfigValidationError(
+      `assignment_producer_test_path must be ${EXPECTED_ASSIGNMENT_PRODUCER_TEST_PATH}`,
+    );
+  }
 
   return config;
 }
@@ -82,6 +96,8 @@ async function main() {
     mobile_ref: mobileRef,
     artifact_path: config.artifact_path,
     producer_test_path: config.producer_test_path,
+    assignment_artifact_path: config.assignment_artifact_path,
+    assignment_producer_test_path: config.assignment_producer_test_path,
   };
 
   if (process.env.GITHUB_OUTPUT) {
@@ -94,8 +110,10 @@ async function main() {
   console.log(`[config] PASS ${configPath}`);
   console.log(`[config] mobile repository: ${output.mobile_repository}`);
   console.log(`[config] mobile revision: ${output.mobile_ref}`);
-  console.log(`[config] canonical artifact: ${output.artifact_path}`);
-  console.log(`[config] producer test: ${output.producer_test_path}`);
+  console.log(`[config] canonical upload artifact: ${output.artifact_path}`);
+  console.log(`[config] upload producer test: ${output.producer_test_path}`);
+  console.log(`[config] assignment artifact: ${output.assignment_artifact_path}`);
+  console.log(`[config] assignment producer test: ${output.assignment_producer_test_path}`);
 }
 
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
@@ -114,4 +132,6 @@ export {
   EXPECTED_ARTIFACT_PATH,
   EXPECTED_MOBILE_REPOSITORY,
   EXPECTED_PRODUCER_TEST_PATH,
+  EXPECTED_ASSIGNMENT_ARTIFACT_PATH,
+  EXPECTED_ASSIGNMENT_PRODUCER_TEST_PATH,
 };

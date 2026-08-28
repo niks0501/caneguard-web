@@ -102,6 +102,52 @@ describe("ApiReportsRepository", () => {
     });
   });
 
+  it("sends field validation assignment input and maps the assignment snapshot", async () => {
+    server.use(
+      http.patch(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/review`,
+        async ({ request }) => {
+          expect(await request.json()).toEqual({
+            field_validation_state: "assigned",
+            field_validation_assignee_uuid: reportDetailDto.reporter.uuid,
+            field_validation_target_date: null,
+            expected_version: reportDetailDto.version,
+          });
+          return HttpResponse.json({
+            data: {
+              ...reportDetailDto,
+              lifecycle: { ...reportDetailDto.lifecycle, field_validation_state: "assigned" },
+              field_validation_assignment: {
+                uuid: "3fbd7f77-7d6b-4eb0-a1c7-b673f5a2f39f",
+                assignee: reportDetailDto.reporter,
+                assigned_by: { uuid: "a7c6e31a-e1d6-443f-a2f2-cf73541e7a0f", name: "Reviewer" },
+                target_visit_date: null,
+                activated_at: "2026-08-13T12:00:00.000Z",
+                updated_at: "2026-08-13T12:00:00.000Z",
+              },
+            },
+          });
+        },
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    await expect(repository.updateReview(reportDetailDto.identity.uuid, {
+      fieldValidationState: "assigned",
+      fieldValidationAssigneeUuid: reportDetailDto.reporter.uuid,
+      fieldValidationTargetDate: null,
+      expectedVersion: reportDetailDto.version,
+    })).resolves.toMatchObject({
+      fieldValidationAssignment: {
+        assignee: { uuid: reportDetailDto.reporter.uuid },
+        targetVisitDate: undefined,
+      },
+      lifecycle: { fieldValidationState: "assigned" },
+    });
+  });
+
   it("loads detail, writes legacy reviews, and treats 404 as missing", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}`, () =>

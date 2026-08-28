@@ -53,6 +53,15 @@ test('keeps workflow self-changes and model label changes in the trigger scope',
   assert.equal(occurrences(`${workflowPath}-trusted.yml`, trustedWorkflow), 1);
   assert.equal(occurrences('api/app/Models/Report.php', safeWorkflow), 1);
   assert.equal(occurrences('api/app/Models/Report.php', trustedWorkflow), 1);
+  for (const path of [
+    'docs/contracts/mobile-field-validation-assignment-v1.json',
+    'scripts/validate-mobile-field-validation-assignment-v1.mjs',
+    'api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php',
+    'api/tests/Feature/FieldValidationAssignmentTest.php',
+  ]) {
+    assert(safeWorkflow.includes(path), `${path} safe trigger`);
+    assert(trustedWorkflow.includes(path), `${path} trusted trigger`);
+  }
   assert.equal(occurrences('api/app/Policies/ReportPolicy.php', safeWorkflow), 1);
   assert.equal(occurrences('api/app/Policies/ReportPolicy.php', trustedWorkflow), 1);
   assert.equal(occurrences('docs/testing/mobile-report-upload-contract-gate.md', safeWorkflow), 1);

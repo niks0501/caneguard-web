@@ -99,6 +99,15 @@ export class ApiReportsRepository implements ReportsRepository {
     if (input.actionTaken !== undefined) {
       payload.action_taken = input.actionTaken;
     }
+    if (input.fieldValidationState !== undefined) {
+      payload.field_validation_state = input.fieldValidationState;
+    }
+    if (input.fieldValidationAssigneeUuid !== undefined) {
+      payload.field_validation_assignee_uuid = input.fieldValidationAssigneeUuid;
+    }
+    if (input.fieldValidationTargetDate !== undefined) {
+      payload.field_validation_target_date = input.fieldValidationTargetDate;
+    }
     if (input.caseState !== undefined) payload.case_state = input.caseState;
     if (input.metadataCorrections !== undefined) {
       payload.metadata_corrections = {

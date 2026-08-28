@@ -37,7 +37,7 @@ class MobileAuthenticationTest extends TestCase
         $this->assertNotNull($accessToken);
         $this->assertSame('caneguard-mobile:Test Android', $accessToken->name);
         $this->assertSame(
-            ['report:submit', 'report:status'],
+            ['report:submit', 'report:status', 'assignment:read'],
             $accessToken->abilities,
         );
 

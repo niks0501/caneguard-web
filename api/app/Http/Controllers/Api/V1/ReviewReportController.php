@@ -7,7 +7,9 @@ use App\Http\Requests\ReviewReportRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use App\Models\ReportAudit;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ReviewReportController extends Controller
 {
@@ -36,6 +38,9 @@ class ReviewReportController extends Controller
             $hasIndependentLifecycle = collect([
                 'case_state',
                 'verification_outcome',
+                'field_validation_state',
+                'field_validation_assignee_uuid',
+                'field_validation_target_date',
                 'action_taken',
             ])->contains(
                 fn (string $key): bool => array_key_exists($key, $data),
@@ -60,18 +65,45 @@ class ReviewReportController extends Controller
                     }
                 }
 
+                $assignmentSelected = ($data['field_validation_state'] ?? null)
+                    === Report::FIELD_VALIDATION_STATE_ASSIGNED
+                    || array_key_exists('field_validation_assignee_uuid', $data);
+                if ($assignmentSelected) {
+                    $lifecycle['field_validation_state'] = Report::FIELD_VALIDATION_STATE_ASSIGNED;
+                } elseif (array_key_exists('field_validation_state', $data)) {
+                    $lifecycle['field_validation_state'] = $data['field_validation_state'];
+                }
+
                 $reviewUpdate = [
                     'review_status' => Report::legacyReviewStatusForLifecycle($lifecycle),
                 ];
 
-                if (array_key_exists('case_state', $data)) {
-                    $reviewUpdate['case_state'] = $data['case_state'];
-                }
-
-                if (array_key_exists('verification_outcome', $data)) {
-                    $reviewUpdate['verification_outcome'] = $data['verification_outcome'];
+                foreach ([
+                    'case_state',
+                    'verification_outcome',
+                    'field_validation_state',
+                ] as $dimension) {
+                    if (array_key_exists($dimension, $data)
+                        || ($dimension === 'field_validation_state' && $assignmentSelected)
+                    ) {
+                        $reviewUpdate[$dimension] = $lifecycle[$dimension];
+                    }
                 }
             }
+
+            $assignmentSelected = ($reviewUpdate['field_validation_state'] ?? null)
+                === Report::FIELD_VALIDATION_STATE_ASSIGNED;
+            if ($assignmentSelected
+                && ($reviewUpdate['case_state'] ?? $locked->lifecycleSnapshot()['case_state'])
+                    !== Report::CASE_STATE_OPEN
+            ) {
+                throw ValidationException::withMessages([
+                    'field_validation_state' => 'Only open cases can be assigned for field validation.',
+                ]);
+            }
+            $assignmentRemoved = ($reviewUpdate['field_validation_state'] ?? null)
+                === Report::FIELD_VALIDATION_STATE_UNASSIGNED
+                && array_key_exists('field_validation_state', $reviewUpdate);
 
             foreach ([
                 'notes' => 'review_notes',
@@ -97,12 +129,35 @@ class ReviewReportController extends Controller
 
             $locked->update($reviewUpdate);
 
+            if ($assignmentSelected) {
+                $assignee = User::query()
+                    ->where('uuid', $data['field_validation_assignee_uuid'])
+                    ->where('role', User::ROLE_FIELD_REPORTER)
+                    ->firstOrFail();
+                $existingAssignment = $locked->fieldValidationAssignment()->first();
+                $locked->fieldValidationAssignment()->updateOrCreate(
+                    [],
+                    [
+                        'assignee_id' => $assignee->getKey(),
+                        'assigned_by_id' => $request->user()->getKey(),
+                        'target_visit_date' => array_key_exists('field_validation_target_date', $data)
+                            ? $data['field_validation_target_date']
+                            : $existingAssignment?->target_visit_date,
+                        'activated_at' => $existingAssignment?->activated_at ?? $reviewUpdate['reviewed_at'],
+                    ],
+                );
+            } elseif ($assignmentRemoved) {
+                $locked->fieldValidationAssignment()->delete();
+            }
+
             return $locked;
         }, attempts: 3);
 
         return new ReportResource($updated->load([
             'reporter',
             'reviewer',
+            'fieldValidationAssignment.assignee',
+            'fieldValidationAssignment.assignedBy',
             'classScores',
             'symptoms',
             'qualityWarnings',

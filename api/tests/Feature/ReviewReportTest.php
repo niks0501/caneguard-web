@@ -22,6 +22,7 @@ class ReviewReportTest extends TestCase
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_assignee_uuid' => $report->reporter->uuid,
             'notes' => 'Inspect the field and compare visible symptoms.',
             'expected_version' => 0,
         ])
@@ -59,6 +60,7 @@ class ReviewReportTest extends TestCase
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_assignee_uuid' => $report->reporter->uuid,
             'notes' => 'Authority review requested for visible whip-like growth.',
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
             'expected_version' => 0,
@@ -277,6 +279,7 @@ class ReviewReportTest extends TestCase
 
         $response = $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_assignee_uuid' => $reporter->uuid,
             'notes' => 'Persist this exact current note.',
             'expected_version' => 0,
         ])->assertOk();

@@ -28,6 +28,8 @@ class ReportController extends Controller
         return new ReportResource($report->load([
             'reporter',
             'reviewer',
+            'fieldValidationAssignment.assignee',
+            'fieldValidationAssignment.assignedBy',
             'classScores',
             'symptoms',
             'qualityWarnings',
