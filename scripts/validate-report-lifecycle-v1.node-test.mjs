@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   DIMENSION_NAMES,
   DIMENSION_VALUES,
+  LifecycleContractArtifactError,
   validateReportLifecycleArtifact,
 } from './validate-report-lifecycle-v1.mjs';
 
@@ -63,7 +64,8 @@ test('rejects lifecycle authority that treats AI evidence as verification', () =
       rules: { ...valid.rules, ai_evidence_role: 'authority_verification' },
     }),
     (error) =>
-      Array.isArray(error?.issues)
+      error instanceof LifecycleContractArtifactError
+      && Array.isArray(error.issues)
       && error.issues.includes('rules.ai_evidence_role must be decision_support_only'),
   );
 });

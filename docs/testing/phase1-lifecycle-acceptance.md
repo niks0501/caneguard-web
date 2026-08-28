@@ -6,6 +6,9 @@ It creates a temporary copy of the API source, uses a temporary SQLite database,
 
 The harness does not modify the repository API database, development storage, environment files, or running services.
 
+It prefers a directory link for the temporary API dependencies and contract documentation.
+If the host blocks symlinks or junctions, it falls back to copying those directories into the temporary stack.
+
 ## Run the local-stack proof
 
 Run the following command from the Web repository root.
@@ -17,6 +20,8 @@ npm run phase1:acceptance -- --mobile-dir /path/to/caneguard-mobile
 The harness automatically discovers `caneguard-mobile` beside or inside the Web checkout when `--mobile-dir` is omitted.
 
 Use `PHASE1_EVIDENCE_PATH` or `--output` to select a different evidence file.
+
+The temporary stack uses the host runtime's temporary-directory resolution, including Windows `TEMP` and `TMP` conventions.
 
 The harness never installs Mobile dependencies.
 

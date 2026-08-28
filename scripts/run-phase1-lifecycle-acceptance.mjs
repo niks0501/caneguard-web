@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -421,8 +422,16 @@ async function createTemporaryApi() {
     recursive: true,
     filter: (source) => shouldCopyApiPath(source),
   });
-  await symlink(path.join(API_SOURCE, 'vendor'), path.join(tempApi, 'vendor'), 'dir');
-  await symlink(path.join(REPOSITORY_ROOT, 'docs'), path.join(tempRoot, 'docs'), 'dir');
+  await linkOrCopyDirectory(
+    path.join(API_SOURCE, 'vendor'),
+    path.join(tempApi, 'vendor'),
+    'Laravel vendor dependencies',
+  );
+  await linkOrCopyDirectory(
+    path.join(REPOSITORY_ROOT, 'docs'),
+    path.join(tempRoot, 'docs'),
+    'contract documentation',
+  );
   await mkdir(path.join(tempApi, 'storage/app/private'), { recursive: true, mode: 0o700 });
   await mkdir(path.join(tempApi, 'storage/framework/cache/data'), { recursive: true });
   await mkdir(path.join(tempApi, 'storage/framework/sessions'), { recursive: true });
@@ -433,7 +442,37 @@ async function createTemporaryApi() {
 }
 
 function requireTempDirectory() {
-  return process.env.TMPDIR ?? '/tmp/';
+  return tmpdir();
+}
+
+async function linkOrCopyDirectory(
+  source,
+  target,
+  label,
+  {
+    link = symlink,
+    copy = cp,
+    platform = process.platform,
+  } = {},
+) {
+  try {
+    await link(source, target, platform === 'win32' ? 'junction' : 'dir');
+    return 'symlink';
+  } catch (linkError) {
+    try {
+      await copy(source, target, { recursive: true });
+      return 'copy';
+    } catch (copyError) {
+      const describeError = (error) => (
+        `${error?.code ? `${error.code}: ` : ''}${error?.message ?? String(error)}`
+      );
+      throw new Phase1AcceptanceError(
+        `${label} could not be linked or copied. `
+          + `Link failed: ${describeError(linkError)}. `
+          + `Copy fallback failed: ${describeError(copyError)}.`,
+      );
+    }
+  }
 }
 
 async function getFreePort() {
@@ -789,10 +828,14 @@ function runMobileSeamTest(mobileDir) {
   }
 }
 
-function safeTestEnvironment() {
+function safeTestEnvironment(source = process.env, platform = process.platform) {
+  const allowedKeys = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL'];
+  if (platform === 'win32') {
+    allowedKeys.push('TEMP', 'TMP', 'USERPROFILE', 'SystemRoot');
+  }
   const environment = {};
-  for (const key of ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL']) {
-    if (process.env[key]) environment[key] = process.env[key];
+  for (const key of allowedKeys) {
+    if (source[key]) environment[key] = source[key];
   }
   environment.CI = 'true';
   return environment;
@@ -889,6 +932,7 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
 export {
   DEFAULT_EVIDENCE_PATH,
   MOBILE_TEST_PATH,
+  linkOrCopyDirectory,
   parseArgs,
   resolveMobileDirectory,
   safeTestEnvironment,

@@ -128,10 +128,14 @@ async function runProducerTest(directory, testPath) {
   }
 }
 
-function safeTestEnvironment() {
+function safeTestEnvironment(source = process.env, platform = process.platform) {
+  const allowedKeys = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL'];
+  if (platform === 'win32') {
+    allowedKeys.push('TEMP', 'TMP', 'USERPROFILE', 'SystemRoot');
+  }
   const environment = {};
-  for (const key of ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL']) {
-    if (process.env[key]) environment[key] = process.env[key];
+  for (const key of allowedKeys) {
+    if (source[key]) environment[key] = source[key];
   }
   environment.CI = 'true';
   return environment;
