@@ -52,6 +52,9 @@ test('rejects a notification artifact with an unsafe envelope checkpoint', () =>
       ...valid,
       envelope: { ...valid.envelope, checkpoint: 'meta.sync_before' },
     }),
-    (error) => error.issues.includes('envelope.checkpoint must be sync.before'),
+    (error) =>
+      error instanceof Error &&
+      Array.isArray(error.issues) &&
+      error.issues.includes('envelope.checkpoint must be sync.before'),
   );
 });
