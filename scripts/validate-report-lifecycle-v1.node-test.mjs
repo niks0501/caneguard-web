@@ -62,6 +62,8 @@ test('rejects lifecycle authority that treats AI evidence as verification', () =
       ...valid,
       rules: { ...valid.rules, ai_evidence_role: 'authority_verification' },
     }),
-    (error) => error.issues.includes('rules.ai_evidence_role must be decision_support_only'),
+    (error) =>
+      Array.isArray(error?.issues)
+      && error.issues.includes('rules.ai_evidence_role must be decision_support_only'),
   );
 });
