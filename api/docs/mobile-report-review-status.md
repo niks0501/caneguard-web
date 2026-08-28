@@ -57,5 +57,17 @@ A repeated mobile submission with the same `(reporter_id, client_uuid)` returns
 that existing report and its server UUID. It must not reset or overwrite its
 review status, note, reviewer, reviewed time, or lock version.
 
+The API may store `case_state`, `verification_outcome`, `field_validation_state`,
+and `referral_state` alongside `review_status`.
+
+These dimensions are exposed by reviewer-facing report resources, but are
+intentionally omitted from the exact Mobile status snapshot.
+
+Legacy status values are mapped without reopening completed
+`verified_by_staff`, `unable_to_verify`, or `resolved` records.
+
+See [`docs/contracts/report-lifecycle-v1.md`](../../docs/contracts/report-lifecycle-v1.md)
+for the values and mapping.
+
 This P1 contract adds no push notifications, unread state, replies, immutable
 history, referral workflow, analytics, optional report fields, or new endpoint.

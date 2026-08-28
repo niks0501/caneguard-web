@@ -20,6 +20,12 @@ describe("report mappers", () => {
       municipality: "Bago",
       observedAt: "2026-07-20T09:58:00.000Z",
       reviewStatus: "submitted_unverified",
+      lifecycle: {
+        caseState: "open",
+        verificationOutcome: "not_determined",
+        fieldValidationState: "unassigned",
+        referralState: "not_referred",
+      },
       mismatchReported: true,
     });
   });
@@ -61,8 +67,26 @@ describe("report mappers", () => {
     expect(report.reporterSuspectedCondition).toBe("smut");
     expect(report.reporterObservationText).toContain("Dark whip-like growths");
     expect(report.authorityClassifiedCondition).toBeNull();
+    expect(report.lifecycle).toEqual({
+      caseState: "open",
+      verificationOutcome: "not_determined",
+      fieldValidationState: "unassigned",
+      referralState: "not_referred",
+    });
     expect(report.updatedAt).toBe(reportDetailDto.updated_at);
     expect(report.reviewVersion).toBe(0);
+  });
+
+  it("derives lifecycle dimensions when an older API omits them", () => {
+    const legacyDetail = Object.fromEntries(
+      Object.entries(reportDetailDto).filter(([key]) => key !== "lifecycle"),
+    );
+    const report = mapReportDetail(
+      reportDetailResponseSchema.parse({ data: legacyDetail }).data,
+    );
+
+    expect(report.lifecycle?.caseState).toBe("open");
+    expect(report.lifecycle?.verificationOutcome).toBe("not_determined");
   });
 
   it("maps an authority classification without changing the model result", () => {

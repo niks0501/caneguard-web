@@ -57,6 +57,15 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertColumn($columns, 'image_source_type', 'varchar', 20);
         $this->assertColumn($columns, 'predicted_label', 'varchar', 32);
         $this->assertColumn($columns, 'review_status', 'varchar', 40);
+        $this->assertColumn($columns, 'case_state', 'varchar', 16);
+        $this->assertColumn($columns, 'verification_outcome', 'varchar', 32);
+        $this->assertColumn($columns, 'field_validation_state', 'varchar', 32);
+        $this->assertColumn($columns, 'referral_state', 'varchar', 32);
+        $this->assertSame('NO', $columns->get('case_state')->IS_NULLABLE);
+        $this->assertSame('open', $columns->get('case_state')->COLUMN_DEFAULT);
+        $this->assertSame('not_determined', $columns->get('verification_outcome')->COLUMN_DEFAULT);
+        $this->assertSame('unassigned', $columns->get('field_validation_state')->COLUMN_DEFAULT);
+        $this->assertSame('not_referred', $columns->get('referral_state')->COLUMN_DEFAULT);
         $this->assertDecimal($columns, 'confidence', 8, 7);
         $this->assertDecimal($columns, 'affected_area_hectares', 12, 2);
         $this->assertDecimal($columns, 'affected_portion_percent', 5, 2);
@@ -131,6 +140,16 @@ class ReportMySqlSchemaTest extends TestCase
             $indexes,
             'reports_review_status_submitted_at_index',
             'review_status,submitted_at',
+        );
+        $this->assertIndex(
+            $indexes,
+            'reports_case_state_submitted_at_index',
+            'case_state,submitted_at',
+        );
+        $this->assertIndex(
+            $indexes,
+            'reports_field_validation_state_submitted_at_index',
+            'field_validation_state,submitted_at',
         );
         $this->assertIndex(
             $indexes,

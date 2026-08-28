@@ -25,6 +25,7 @@ class ReportListResource extends JsonResource
             'predicted_label' => $this->predicted_label,
             'confidence' => (float) $this->confidence,
             'review_status' => $this->review_status,
+            'lifecycle' => $this->resource->lifecycleSnapshot(),
             'mismatch_reported' => $this->mismatch_reported,
             'image_url' => route(
                 'api.v1.reports.image',

@@ -58,6 +58,10 @@ class ReportSchemaAndSeederTest extends TestCase
             'captured_at',
             'submitted_at',
             'review_status',
+            'case_state',
+            'verification_outcome',
+            'field_validation_state',
+            'referral_state',
             'review_notes',
             'authority_classified_condition',
             'reviewer_id',
@@ -119,6 +123,16 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('smut', $report->reporter_suspected_condition);
         $this->assertSame('Dark whip-like growths are visible.', $report->reporter_observation_text);
         $this->assertSame(Report::AUTHORITY_CONDITION_SMUT, $report->authority_classified_condition);
+        $this->assertSame(Report::CASE_STATE_OPEN, $report->case_state);
+        $this->assertSame(
+            Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            $report->verification_outcome,
+        );
+        $this->assertSame(
+            Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            $report->field_validation_state,
+        );
+        $this->assertSame(Report::REFERRAL_STATE_NOT_REFERRED, $report->referral_state);
     }
 
     public function test_legacy_report_values_can_leave_new_contract_fields_null(): void
@@ -208,6 +222,27 @@ class ReportSchemaAndSeederTest extends TestCase
             ->sort()
             ->values()
             ->all());
+        $this->assertSame(
+            Report::lifecycleForReviewStatus(Report::STATUS_SUBMITTED_UNVERIFIED),
+            Report::query()
+                ->where('review_status', Report::STATUS_SUBMITTED_UNVERIFIED)
+                ->firstOrFail()
+                ->lifecycleSnapshot(),
+        );
+        $this->assertSame(
+            Report::lifecycleForReviewStatus(Report::STATUS_VERIFIED_BY_STAFF),
+            Report::query()
+                ->where('review_status', Report::STATUS_VERIFIED_BY_STAFF)
+                ->firstOrFail()
+                ->lifecycleSnapshot(),
+        );
+        $this->assertSame(
+            Report::lifecycleForReviewStatus(Report::STATUS_RESOLVED),
+            Report::query()
+                ->where('review_status', Report::STATUS_RESOLVED)
+                ->firstOrFail()
+                ->lifecycleSnapshot(),
+        );
 
         $files = Storage::disk('local')->allFiles('seeded');
         $this->assertCount(12, $files);

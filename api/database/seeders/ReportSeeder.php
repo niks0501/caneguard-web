@@ -112,6 +112,7 @@ class ReportSeeder extends Seeder
                     'captured_at' => $submittedAt->subMinutes(20 + $number),
                     'submitted_at' => $submittedAt,
                     'review_status' => $status,
+                    ...Report::lifecycleForReviewStatus($status),
                     'review_notes' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
                         ? null
                         : 'Seeded office review for demonstration.',
