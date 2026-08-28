@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { diseaseKeySchema, reviewStatusSchema } from "./report.schema";
+import {
+  diseaseKeySchema,
+  reportLifecycleSchema,
+  reviewStatusSchema,
+} from "./report.schema";
 
 const nullableLocationSourceSchema = z
   .enum(["gps", "manual_map"])
@@ -16,6 +20,7 @@ const sharedItemFields = {
   predicted_label: diseaseKeySchema,
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
+  lifecycle: reportLifecycleSchema.optional(),
   final_latitude: z.number().min(-90).max(90).nullable(),
   final_longitude: z.number().min(-180).max(180).nullable(),
   location_source: nullableLocationSourceSchema,
@@ -35,6 +40,7 @@ export const mapFeaturePropertiesSchema = z.object({
   predicted_label: diseaseKeySchema,
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
+  lifecycle: reportLifecycleSchema.optional(),
   location_source: nullableLocationSourceSchema,
   gps_accuracy: z.number().nonnegative().nullable(),
   affected_area_hectares: z.number().positive().nullable(),

@@ -15,6 +15,31 @@ export type ReviewStatus =
   | "unable_to_verify"
   | "resolved";
 
+export type CaseState = "open" | "closed";
+
+export type VerificationOutcome =
+  | "not_determined"
+  | "verified"
+  | "unable_to_verify";
+
+export type FieldValidationState =
+  | "unassigned"
+  | "assigned"
+  | "in_progress"
+  | "completed";
+
+export type ReferralState =
+  | "not_referred"
+  | "referred"
+  | "expert_response_received";
+
+export interface ReportLifecycle {
+  caseState: CaseState;
+  verificationOutcome: VerificationOutcome;
+  fieldValidationState: FieldValidationState;
+  referralState: ReferralState;
+}
+
 export type SubmitterRole = "field_reporter" | "reviewer" | "admin";
 
 export type ImageStatus = "available" | "pending_sync" | "unavailable";
@@ -74,6 +99,7 @@ export interface DiseaseReport {
   reporterSuspectedCondition?: string | null;
   reporterObservationText?: string | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
+  lifecycle?: ReportLifecycle;
   reviewNotes?: string;
   reviewedBy?: string;
   reviewedAt?: string;

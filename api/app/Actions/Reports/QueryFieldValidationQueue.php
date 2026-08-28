@@ -42,6 +42,10 @@ class QueryFieldValidationQueue
                 'affected_area_hectares',
                 'affected_portion_percent',
                 'review_status',
+                'case_state',
+                'verification_outcome',
+                'field_validation_state',
+                'referral_state',
             ])
             ->orderByRaw('CASE WHEN observed_at IS NULL THEN 1 ELSE 0 END ASC')
             ->orderBy('observed_at')

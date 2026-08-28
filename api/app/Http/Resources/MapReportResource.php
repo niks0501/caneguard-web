@@ -30,6 +30,7 @@ class MapReportResource extends JsonResource
                 'predicted_label' => $this->predicted_label,
                 'confidence' => (float) $this->confidence,
                 'review_status' => $this->review_status,
+                'lifecycle' => $this->resource->lifecycleSnapshot(),
                 'location_source' => $this->location_source,
                 'gps_accuracy' => $this->gps_accuracy === null
                     ? null

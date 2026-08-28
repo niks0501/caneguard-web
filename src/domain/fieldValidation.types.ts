@@ -1,4 +1,9 @@
-import type { DiseaseKey, LocationSource, ReviewStatus } from "./report.types";
+import type {
+  DiseaseKey,
+  LocationSource,
+  ReportLifecycle,
+  ReviewStatus,
+} from "./report.types";
 
 export interface FieldValidationFilters {
   status?: ReviewStatus;
@@ -19,6 +24,7 @@ export interface FieldValidationMapProperties {
   predictedDisease: DiseaseKey;
   confidence: number;
   reviewStatus: ReviewStatus;
+  lifecycle?: ReportLifecycle;
   locationSource: LocationSource | null;
   gpsAccuracy: number | null;
   affectedAreaHectares: number | null;
@@ -56,6 +62,7 @@ export interface FieldValidationQueueItem {
   predictedDisease: DiseaseKey;
   confidence: number;
   reviewStatus: ReviewStatus;
+  lifecycle?: ReportLifecycle;
   finalLatitude: number | null;
   finalLongitude: number | null;
   locationSource: LocationSource | null;

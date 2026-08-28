@@ -8,6 +8,7 @@ import type {
   FieldValidationQueueItemDto,
   MapResponseDto,
 } from "../schemas/fieldValidation.schema";
+import { mapReportLifecycle } from "./lifecycle.mapper";
 
 function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueItem {
   return {
@@ -21,6 +22,7 @@ function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueIte
     predictedDisease: dto.predicted_label,
     confidence: dto.confidence,
     reviewStatus: dto.review_status,
+    lifecycle: mapReportLifecycle(dto.lifecycle, dto.review_status),
     finalLatitude: dto.final_latitude,
     finalLongitude: dto.final_longitude,
     locationSource: dto.location_source,
@@ -46,6 +48,10 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
       predictedDisease: feature.properties.predicted_label,
       confidence: feature.properties.confidence,
       reviewStatus: feature.properties.review_status,
+      lifecycle: mapReportLifecycle(
+        feature.properties.lifecycle,
+        feature.properties.review_status,
+      ),
       locationSource: feature.properties.location_source,
       gpsAccuracy: feature.properties.gps_accuracy,
       affectedAreaHectares: feature.properties.affected_area_hectares,

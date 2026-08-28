@@ -53,6 +53,10 @@ class QueryMapReports
                 'affected_area_hectares',
                 'affected_portion_percent',
                 'review_status',
+                'case_state',
+                'verification_outcome',
+                'field_validation_state',
+                'referral_state',
             ])
             ->orderBy('id')
             ->get();

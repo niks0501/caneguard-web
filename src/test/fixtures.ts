@@ -14,6 +14,12 @@ export const reportListItemDto = {
   predicted_label: "rust",
   confidence: 0.93,
   review_status: "submitted_unverified",
+  lifecycle: {
+    case_state: "open",
+    verification_outcome: "not_determined",
+    field_validation_state: "unassigned",
+    referral_state: "not_referred",
+  },
   mismatch_reported: true,
   image_url:
     "https://api.caneguard.test/api/v1/reports/7e8c2e48-a2d4-4aca-9a50-9ca460fd7a7f/image",
@@ -90,6 +96,12 @@ export const reportDetailDto = {
     authority_classified_condition: null,
     reviewer: null,
     reviewed_at: null,
+  },
+  lifecycle: {
+    case_state: "open",
+    verification_outcome: "not_determined",
+    field_validation_state: "unassigned",
+    referral_state: "not_referred",
   },
   version: 0,
   updated_at: "2026-07-20T10:00:00.000Z",
