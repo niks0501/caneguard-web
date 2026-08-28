@@ -2,12 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MobileNotificationContract;
+use App\Events\CaseAttentionChanged;
 use App\Events\NewCaseSubmitted;
+use App\Models\FieldValidationAssignment;
+use App\Models\Report;
 use App\Models\User;
+use App\Notifications\FieldValidationAssignedNotification;
+use App\Notifications\FieldValidationAssignmentChangedNotification;
+use App\Notifications\FieldValidationCompletedNotification;
+use App\Notifications\FollowUpDueNotification;
 use App\Notifications\NewCaseSubmittedNotification;
+use App\Notifications\OfficeReviewCompletedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -132,6 +142,218 @@ class NotificationTest extends TestCase
 
         Sanctum::actingAs($fieldReporter);
         $this->getJson('/api/v1/notifications')->assertForbidden();
+    }
+
+    public function test_assignment_creation_and_material_changes_notify_only_the_current_assignee(): void
+    {
+        Event::fake([CaseAttentionChanged::class]);
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $otherAssignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'field_validation_assignee_uuid' => $assignee->uuid,
+            'field_validation_target_date' => '2026-09-01',
+            'expected_version' => 0,
+        ])->assertOk();
+
+        $this->assertCount(1, $assignee->notifications()->get());
+        $notification = $assignee->notifications()->sole();
+        $this->assertSame(FieldValidationAssignedNotification::class, $notification->type);
+        $this->assertSame('field_validation_assigned', $notification->data['event_type']);
+        $this->assertSame('2026-09-01', $notification->data['target_visit_date']);
+        $this->assertCount(0, $otherAssignee->notifications()->get());
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'field_validation_assignee_uuid' => $assignee->uuid,
+            'field_validation_target_date' => '2026-09-01',
+            'expected_version' => 1,
+        ])->assertOk();
+        $this->assertCount(1, $assignee->notifications()->get());
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'field_validation_assignee_uuid' => $assignee->uuid,
+            'field_validation_target_date' => '2026-09-02',
+            'expected_version' => 2,
+        ])->assertOk();
+
+        $this->assertCount(2, $assignee->notifications()->get());
+        $this->assertTrue(
+            $assignee->notifications()->get()->contains(
+                fn (DatabaseNotification $item): bool => $item->type === FieldValidationAssignmentChangedNotification::class,
+            ),
+        );
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'field_validation_assignee_uuid' => $otherAssignee->uuid,
+            'field_validation_target_date' => '2026-09-03',
+            'expected_version' => 3,
+        ])->assertOk();
+
+        $this->assertCount(1, $otherAssignee->notifications()->get());
+        $this->assertCount(2, $assignee->notifications()->get());
+        Event::assertDispatchedTimes(CaseAttentionChanged::class, 3);
+    }
+
+    public function test_field_validation_completion_notifies_all_office_users_and_not_the_field_reporter(): void
+    {
+        Storage::fake('local');
+        Event::fake([CaseAttentionChanged::class]);
+        $reviewer = User::factory()->reviewer()->create();
+        $admin = User::factory()->admin()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Fresh observation.',
+            'field_finding' => 'Field finding.',
+            'action_taken' => 'Guidance provided.',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ])->assertCreated();
+
+        foreach ([$reviewer, $admin] as $recipient) {
+            $notification = $recipient->notifications()->sole();
+            $this->assertSame(FieldValidationCompletedNotification::class, $notification->type);
+            $this->assertSame($assignment->uuid, $notification->data['assignment_uuid']);
+        }
+        $this->assertCount(0, $assignee->notifications()->get());
+        Event::assertDispatchedTimes(CaseAttentionChanged::class, 2);
+    }
+
+    public function test_follow_up_due_is_derived_only_from_an_overdue_target_date_and_is_idempotent(): void
+    {
+        $assignee = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->reviewer()->create();
+        $admin = User::factory()->admin()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'case_state' => Report::CASE_STATE_OPEN,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => now()->subDay()->toDateString(),
+        ]);
+        $noDateReport = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'case_state' => Report::CASE_STATE_OPEN,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $noDateReport->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => null,
+        ]);
+        Sanctum::actingAs($assignee, ['notification:read']);
+
+        $this->getJson('/api/v1/mobile/notifications')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.event_type', FollowUpDueNotification::EVENT_TYPE)
+            ->assertJsonPath('data.0.assignment_uuid', $assignment->uuid);
+        $this->getJson('/api/v1/mobile/notifications')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        Sanctum::actingAs($reviewer);
+        $this->getJson('/api/v1/notifications')
+            ->assertOk()
+            ->assertJsonFragment(['event_type' => FollowUpDueNotification::EVENT_TYPE]);
+        $this->assertCount(1, $reviewer->notifications()->get());
+        $this->assertCount(1, $admin->notifications()->get());
+    }
+
+    public function test_final_office_review_notifies_submitter_and_validator_but_metadata_corrections_are_quiet(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $submitter = User::factory()->fieldReporter()->create();
+        $validator = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'reporter_id' => $submitter,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $validator->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'expected_version' => 0,
+        ])->assertOk();
+
+        foreach ([$submitter, $validator] as $recipient) {
+            $notification = $recipient->notifications()->sole();
+            $this->assertSame(OfficeReviewCompletedNotification::class, $notification->type);
+            $this->assertSame($report->uuid, $notification->data['report_uuid']);
+        }
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'metadata_corrections' => ['barangay' => 'Poblacion'],
+            'correction_reason' => 'Corrected the office transcription.',
+            'expected_version' => 1,
+        ])->assertOk();
+        $this->assertCount(1, $submitter->notifications()->get());
+        $this->assertCount(1, $validator->notifications()->get());
+    }
+
+    public function test_mobile_notification_feed_is_owner_scoped_and_preserves_server_read_state(): void
+    {
+        $owner = User::factory()->fieldReporter()->create();
+        $other = User::factory()->fieldReporter()->create();
+        $notification = $this->createNotification($owner, 'CG-20260817-MOBILE');
+        $token = $owner->createToken('notification-read', ['notification:read'])->plainTextToken;
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/mobile/notifications')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [['id', 'event_type', 'case', 'assignment_uuid', 'is_read', 'read_at', 'created_at']],
+                'links',
+                'meta',
+                'sync' => ['before'],
+            ])
+            ->assertJsonPath('data.0.id', $notification->id)
+            ->assertJsonPath('data.0.is_read', false);
+        $this->assertSame(
+            array_keys(MobileNotificationContract::definition()['fields']),
+            array_keys($response->json('data.0')),
+        );
+
+        $notification->markAsRead();
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.is_read', true)
+            ->assertJsonPath('data.0.read_at', $notification->fresh()->read_at->utc()->toISOString());
+
+        $otherToken = $other->createToken('notification-owner', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+        $this->withToken($otherToken)
+            ->getJson('/api/v1/mobile/notifications')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
     }
 
     public function test_private_channel_authorization_requires_the_matching_web_user_role(): void

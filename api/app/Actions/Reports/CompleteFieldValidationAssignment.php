@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Actions\Notifications\CreateLifecycleNotifications;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
@@ -15,6 +16,10 @@ use Throwable;
 
 class CompleteFieldValidationAssignment
 {
+    public function __construct(
+        private readonly CreateLifecycleNotifications $notifications,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $data
      * @return array{assignment: FieldValidationAssignment, completion: FieldValidationCompletion, created: bool, report: Report}
@@ -108,6 +113,7 @@ class CompleteFieldValidationAssignment
                     'lock_version' => $report->lock_version + 1,
                 ]);
                 $locked->touch();
+                $this->notifications->fieldValidationCompleted($locked, $completion);
 
                 return $completion;
             }, attempts: 3);

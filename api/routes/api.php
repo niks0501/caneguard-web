@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\MapReportController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationCompletionController;
+use App\Http\Controllers\Api\V1\MobileNotificationController;
 use App\Http\Controllers\Api\V1\MobileReportController;
 use App\Http\Controllers\Api\V1\MobileReportStatusController;
 use App\Http\Controllers\Api\V1\NotificationController;
@@ -50,6 +51,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         ->middleware('abilities:report:status');
     Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
         ->middleware('abilities:assignment:read');
+    Route::get('/mobile/notifications', MobileNotificationController::class)
+        ->middleware('abilities:notification:read');
     Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
         ->middleware(['abilities:assignment:complete', 'throttle:30,1']);
 });

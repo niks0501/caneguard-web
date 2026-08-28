@@ -6,6 +6,7 @@ import { createEchoClient } from "../realtime/echo";
 import {
   domainsFromRealtimePayload,
   invalidateRealtimeQueries,
+  realtimeAttentionEventName,
   realtimeEventName,
 } from "./realtimeInvalidation";
 
@@ -40,12 +41,14 @@ export function useRealtimeInvalidation() {
       echo = createEchoClient();
       const channelName = `users.${userUuid}`;
       const channel = echo.private(channelName);
-      channel.listen(realtimeEventName, (payload: unknown) => {
+      const invalidateFromRealtime = (payload: unknown) => {
         void invalidateRealtimeQueries(
           queryClient,
           domainsFromRealtimePayload(payload),
         );
-      });
+      };
+      channel.listen(realtimeEventName, invalidateFromRealtime);
+      channel.listen(realtimeAttentionEventName, invalidateFromRealtime);
       channel.error(() => setConnectionStatus("degraded"));
 
       const unsubscribeConnection = echo.connector.onConnectionChange(

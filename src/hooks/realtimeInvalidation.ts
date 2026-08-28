@@ -5,6 +5,7 @@ import { reportKeys } from "./reportQueries";
 import { dashboardKeys } from "./useDashboard";
 
 export const realtimeEventName = ".case.submitted";
+export const realtimeAttentionEventName = ".case.attention_changed";
 
 const defaultDomains = [
   "reports",
