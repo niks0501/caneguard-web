@@ -13,6 +13,40 @@ describe("report API schemas", () => {
     ).toBe(reportDetailDto.identity.uuid);
   });
 
+  it("accepts possible-match and canonical-linkage response fields", () => {
+    const linked = {
+      ...reportDetailDto,
+      duplicate_linkage: {
+        is_duplicate: true,
+        canonical_case: {
+          uuid: "canonical-report",
+          reference_code: "CG-2026-0002",
+          submitted_at: "2026-07-20T10:00:00.000Z",
+        },
+        linked_by: { uuid: "reviewer-1", name: "Maria Reviewer" },
+        linked_at: "2026-07-20T11:00:00.000Z",
+        reason: "The cases may describe the same field observation.",
+      },
+      audit: {
+        metadata_corrections: [],
+        duplicate_linkages: [
+          {
+            id: 10,
+            canonical_case_uuid: "canonical-report",
+            actor: { uuid: "reviewer-1", name: "Maria Reviewer" },
+            created_at: "2026-07-20T11:00:00.000Z",
+            reason: "The cases may describe the same field observation.",
+          },
+        ],
+      },
+    };
+
+    expect(
+      reportDetailResponseSchema.parse({ data: linked }).data.duplicate_linkage
+        ?.canonical_case?.reference_code,
+    ).toBe("CG-2026-0002");
+  });
+
   it("accepts nullable capture metadata from the database contract", () => {
     const nullableMetadata = {
       ...reportDetailDto,

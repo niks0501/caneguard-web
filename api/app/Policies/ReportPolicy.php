@@ -11,7 +11,7 @@ class ReportPolicy
     {
         if (
             $user->role === User::ROLE_ADMIN
-            && in_array($ability, ['viewAny', 'view', 'review'], true)
+            && in_array($ability, ['viewAny', 'view', 'review', 'linkDuplicate'], true)
         ) {
             return true;
         }
@@ -40,6 +40,11 @@ class ReportPolicy
     }
 
     public function review(User $user, Report $report): bool
+    {
+        return $user->role === User::ROLE_REVIEWER;
+    }
+
+    public function linkDuplicate(User $user, Report $report): bool
     {
         return $user->role === User::ROLE_REVIEWER;
     }

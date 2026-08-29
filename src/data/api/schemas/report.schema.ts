@@ -36,6 +36,47 @@ export const referralStateSchema = z.enum([
   "referred",
   "expert_response_received",
 ]);
+export const canonicalCaseSchema = z.object({
+  uuid: z.string(),
+  reference_code: z.string(),
+  submitted_at: z.iso.datetime({ offset: true }),
+});
+export const duplicateLinkageSchema = z.object({
+  is_duplicate: z.boolean(),
+  canonical_case: canonicalCaseSchema.nullable(),
+  linked_by: userSchema.pick({ uuid: true, name: true }).nullable(),
+  linked_at: z.iso.datetime({ offset: true }).nullable(),
+  reason: z.string().nullable(),
+});
+export const possibleMatchBasisSchema = z.enum([
+  "same_condition",
+  "nearby_location",
+  "recent_submission",
+]);
+export const possibleRecentMatchSchema = z.object({
+  case: z.object({
+    uuid: z.string(),
+    reference_code: z.string(),
+    submitted_at: z.iso.datetime({ offset: true }),
+  }),
+  match: z.object({
+    condition: diseaseKeySchema,
+    distance_meters: z.number().nonnegative(),
+    basis: z.array(possibleMatchBasisSchema),
+  }),
+  message: z.string(),
+});
+export const possibleRecentMatchesResponseSchema = z.object({
+  data: z.array(possibleRecentMatchSchema),
+  message: z.string(),
+  meta: z.object({
+    possible_match: z.boolean(),
+    can_submit: z.boolean(),
+    assessment: z.enum(["condition_and_location", "location_unavailable"]),
+    recent_window_hours: z.number().int().positive(),
+    location_radius_meters: z.number().positive(),
+  }),
+});
 export const actionTakenSchema = z.enum([
   "advisory_provided",
   "technical_assistance_provided",
@@ -151,6 +192,7 @@ export const reportDetailSchema = z.object({
     reviewer: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
     reviewed_at: z.iso.datetime({ offset: true }).nullable(),
   }),
+  duplicate_linkage: duplicateLinkageSchema.optional(),
   audit: z.object({
     metadata_corrections: z.array(
       z.object({
@@ -163,6 +205,15 @@ export const reportDetailSchema = z.object({
         reason: z.string(),
       }),
     ),
+    duplicate_linkages: z.array(
+      z.object({
+        id: z.number().int().positive(),
+        canonical_case_uuid: z.string(),
+        actor: userSchema.pick({ uuid: true, name: true }),
+        created_at: z.iso.datetime({ offset: true }),
+        reason: z.string(),
+      }),
+    ).optional(),
   }).optional(),
   lifecycle: reportLifecycleSchema.optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
@@ -180,3 +231,7 @@ export type ReportLifecycleDto = z.infer<typeof reportLifecycleSchema>;
 export type ReportListItemDto = z.infer<typeof reportListItemSchema>;
 export type ReportListResponseDto = z.infer<typeof reportListResponseSchema>;
 export type ReportDetailDto = z.infer<typeof reportDetailSchema>;
+export type PossibleRecentMatchDto = z.infer<typeof possibleRecentMatchSchema>;
+export type PossibleRecentMatchesResponseDto = z.infer<
+  typeof possibleRecentMatchesResponseSchema
+>;

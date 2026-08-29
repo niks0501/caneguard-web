@@ -92,6 +92,7 @@ class StoreReport
         return $report->load([
             'reporter',
             'reviewer',
+            'canonicalReport',
             'classScores',
             'symptoms',
             'qualityWarnings',

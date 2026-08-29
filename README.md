@@ -440,6 +440,7 @@ Use [the P0F acceptance gate](docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0F-CRO
 - [Physical Android API connectivity](docs/development/physical-android-api.md)
 - [Mobile report upload contract](docs/contracts/mobile-report-upload-v1.md)
 - [Mobile report review-status contract](docs/contracts/mobile-report-status-v1.md)
+- [Mobile duplicate assistance contract](docs/contracts/mobile-duplicate-assistance-v1.md)
 - [Mobile upload contract gate](docs/testing/mobile-report-upload-contract-gate.md)
 - [Web map and queue regression evidence](docs/testing/web-map-queue-regression.md)
 - [CaneGuard Mobile repository](https://github.com/niks0501/caneguard-mobile)
