@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { paginatedReportsDto, reportDetailDto } from "../../../test/fixtures";
+import {
+  paginatedReportsDto,
+  reportDetailDto,
+  reportReferralDto,
+} from "../../../test/fixtures";
 import { reportDetailResponseSchema } from "../schemas/report.schema";
 import {
   mapPaginationMeta,
@@ -77,6 +81,33 @@ describe("report mappers", () => {
     });
     expect(report.updatedAt).toBe(reportDetailDto.updated_at);
     expect(report.reviewVersion).toBe(0);
+  });
+
+  it("maps the referral lifecycle and preserves the office snapshot", () => {
+    const report = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          referral: reportReferralDto,
+          lifecycle: { ...reportDetailDto.lifecycle, referral_state: "referred" },
+        },
+      }).data,
+    );
+
+    expect(report.referral).toMatchObject({
+      destination: "Regional crop protection office",
+      reference: "SRA-2026-0042",
+      referralDate: "2026-09-04",
+      note: "Please review the mismatch.",
+      officeContext: {
+        caseState: "open",
+        verificationOutcome: "not_determined",
+        actionTaken: "referred_for_expert_validation",
+        notes: "The office is awaiting expert input.",
+        reviewer: { name: "Maria Reviewer" },
+      },
+    });
+    expect(report.lifecycle?.referralState).toBe("referred");
   });
 
   it("maps canonical linkage without changing submitted model evidence", () => {

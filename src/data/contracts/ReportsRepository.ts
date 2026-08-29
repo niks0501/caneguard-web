@@ -6,6 +6,8 @@ import type {
 } from "../../domain/report.types";
 import type {
   DuplicateLinkInput,
+  ExpertReferralResponseInput,
+  ReportReferralInput,
   ReportReviewInput,
 } from "../../domain/review.types";
 
@@ -16,6 +18,14 @@ export interface ReportsRepository {
   updateReview(
     reportId: string,
     input: ReportReviewInput,
+  ): Promise<DiseaseReport>;
+  recordReferral(
+    reportId: string,
+    input: ReportReferralInput,
+  ): Promise<DiseaseReport>;
+  recordExpertReferralResponse(
+    reportId: string,
+    input: ExpertReferralResponseInput,
   ): Promise<DiseaseReport>;
   linkDuplicate(
     reportId: string,

@@ -41,6 +41,31 @@ export type ActionTaken =
   | "referred_for_expert_validation"
   | "no_further_action_required";
 
+export interface ReferralOfficeContext {
+  caseState: CaseState;
+  verificationOutcome: VerificationOutcome;
+  fieldValidationState: FieldValidationState;
+  actionTaken?: ActionTaken | null;
+  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
+  notes?: string | null;
+  reviewer?: { uuid: string; name: string } | null;
+  reviewedAt?: string | null;
+}
+
+export interface ReportReferral {
+  destination: string;
+  reference: string;
+  referralDate: string;
+  note?: string | null;
+  responseDate?: string | null;
+  responseNote?: string | null;
+  responseFinding?: string | null;
+  referredBy?: { uuid: string; name: string } | null;
+  responseRecordedBy?: { uuid: string; name: string } | null;
+  responseRecordedAt?: string | null;
+  officeContext: ReferralOfficeContext;
+}
+
 export type PossibleMatchBasis =
   | "same_condition"
   | "nearby_location"
@@ -80,6 +105,7 @@ export interface CanonicalCaseLink {
   linkedBy: { uuid: string; name: string } | null;
   linkedAt?: string;
   reason?: string;
+
 }
 
 export interface FieldValidationAssignment {
@@ -160,6 +186,7 @@ export interface DiseaseReport {
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   actionTaken?: ActionTaken | null;
   fieldValidationAssignment?: FieldValidationAssignment | null;
+  referral?: ReportReferral | null;
   lifecycle?: ReportLifecycle;
   reviewNotes?: string;
   reviewedBy?: string;

@@ -7,6 +7,7 @@ use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\CaseAttentionNotification;
+use App\Notifications\ExpertReferralResponseReceivedNotification;
 use App\Notifications\FieldValidationAssignedNotification;
 use App\Notifications\FieldValidationAssignmentChangedNotification;
 use App\Notifications\FieldValidationCompletedNotification;
@@ -83,6 +84,30 @@ class CreateLifecycleNotifications
                     ),
                 );
                 $this->broadcast->handle($recipient, FieldValidationCompletedNotification::EVENT_TYPE);
+            });
+    }
+
+    public function expertReferralResponseReceived(Report $report): void
+    {
+        $report->loadMissing(['referral']);
+        $responseDate = $report->referral?->response_date?->format('Y-m-d');
+        if ($responseDate === null) {
+            return;
+        }
+
+        User::query()
+            ->whereIn('role', User::webRoles())
+            ->get()
+            ->each(function (User $recipient) use ($report, $responseDate): void {
+                $notification = new ExpertReferralResponseReceivedNotification(
+                    $recipient->uuid,
+                    $report->uuid,
+                    $report->reference_code,
+                    $responseDate,
+                    (string) $report->lock_version,
+                );
+                $this->send($recipient, $notification);
+                $this->broadcast->handle($recipient, ExpertReferralResponseReceivedNotification::EVENT_TYPE);
             });
     }
 

@@ -20,9 +20,30 @@ export interface OperationalMetadataCorrections {
   gpsAccuracy?: number | null;
 }
 
+export interface ReportReferralInput {
+  destination: string;
+  reference: string;
+  referralDate: string;
+  note?: string | null;
+  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
+  verificationOutcome?: VerificationOutcome;
+  officeNotes?: string | null;
+  expectedVersion: number;
+}
+
+export interface ExpertReferralResponseInput {
+  responseDate: string;
+  responseNote?: string | null;
+  responseFinding?: string | null;
+  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
+  verificationOutcome?: VerificationOutcome;
+  expectedVersion: number;
+}
+
 export interface DuplicateLinkInput {
   canonicalReportUuid: string;
   reason?: string;
+
 }
 
 export interface ReportReviewInput {

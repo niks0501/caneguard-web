@@ -111,6 +111,35 @@ export const reportDetailDto = {
   updated_at: "2026-07-20T10:00:00.000Z",
 } as const;
 
+export const reportReferralDto = {
+  destination: "Regional crop protection office",
+  reference: "SRA-2026-0042",
+  referral_date: "2026-09-04",
+  note: "Please review the mismatch.",
+  response_date: null,
+  response_note: null,
+  response_finding: null,
+  referred_by: {
+    uuid: "a7c6e31a-e1d6-443f-a2f2-cf73541e7a0f",
+    name: "Maria Reviewer",
+  },
+  response_recorded_by: null,
+  response_recorded_at: null,
+  office_context: {
+    case_state: "open",
+    verification_outcome: "not_determined",
+    field_validation_state: "unassigned",
+    action_taken: "referred_for_expert_validation",
+    authority_classified_condition: null,
+    notes: "The office is awaiting expert input.",
+    reviewer: {
+      uuid: "a7c6e31a-e1d6-443f-a2f2-cf73541e7a0f",
+      name: "Maria Reviewer",
+    },
+    reviewed_at: "2026-09-04T10:00:00.000Z",
+  },
+} as const;
+
 export const paginatedReportsDto = {
   data: [reportListItemDto],
   links: {

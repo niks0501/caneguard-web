@@ -4,13 +4,16 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { ZodError } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
+import { env } from "../config/env";
 import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
-import { reportDetailDto } from "../test/fixtures";
+import { reportDetailDto, reportReferralDto } from "../test/fixtures";
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
   useLinkDuplicateReport,
   usePossibleRecentMatches,
+  useRecordExpertReferralResponse,
+  useRecordReportReferral,
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
@@ -19,6 +22,8 @@ import { CaseReviewPage } from "./CaseReviewPage";
 vi.mock("../hooks/useReports", () => ({
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
+  useRecordExpertReferralResponse: vi.fn(),
+  useRecordReportReferral: vi.fn(),
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
 }));
@@ -28,6 +33,20 @@ vi.mock("../hooks/useFieldReporters", () => ({
 
 const report = mapReportDetail(
   reportDetailResponseSchema.parse({ data: reportDetailDto }).data,
+);
+const referredReport = mapReportDetail(
+  reportDetailResponseSchema.parse({
+    data: {
+      ...reportDetailDto,
+      lifecycle: { ...reportDetailDto.lifecycle, referral_state: "referred" },
+      review: {
+        ...reportDetailDto.review,
+        action_taken: "referred_for_expert_validation",
+      },
+      referral: reportReferralDto,
+      version: 1,
+    },
+  }).data,
 );
 
 function queryResult(overrides: Record<string, unknown> = {}) {
@@ -52,6 +71,10 @@ function mutationResult(overrides: Record<string, unknown> = {}) {
     reset: vi.fn(),
     ...overrides,
   } as unknown as ReturnType<typeof useUpdateReportReview>;
+}
+
+function referralMutationResult(overrides: Record<string, unknown> = {}) {
+  return mutationResult(overrides) as unknown as ReturnType<typeof useRecordReportReferral>;
 }
 
 function duplicateMutationResult(overrides: Record<string, unknown> = {}) {
@@ -90,6 +113,8 @@ function renderPage() {
 beforeEach(() => {
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
+  vi.mocked(useRecordExpertReferralResponse).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useRecordExpertReferralResponse>);
+  vi.mocked(useRecordReportReferral).mockReturnValue(referralMutationResult());
   vi.mocked(useReport).mockReturnValue(queryResult());
   vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult());
   vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult());
@@ -483,6 +508,72 @@ describe("CaseReviewPage", () => {
     expect(
       screen.getByText(/server returned an unexpected response/i),
     ).toBeInTheDocument();
+  });
+
+  it("records a referral through the dedicated lifecycle workflow", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(referredReport);
+    vi.mocked(useRecordReportReferral).mockReturnValue(
+      referralMutationResult({ mutateAsync }),
+    );
+    renderPage();
+
+    await user.type(screen.getByLabelText("Expert destination"), " Regional office ");
+    await user.type(screen.getByLabelText("Referral reference"), " SRA-2026-0042 ");
+    await user.type(screen.getByLabelText("Referral date"), "2026-09-04");
+    await user.type(screen.getByLabelText(/Referral note \(optional\)/), " Review the mismatch. ");
+    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      destination: " Regional office ",
+      reference: " SRA-2026-0042 ",
+      referralDate: "2026-09-04",
+      note: " Review the mismatch. ",
+      expectedVersion: report.reviewVersion,
+    });
+    expect(
+      await screen.findByText(/Expert referral recorded/i),
+    ).toBeInTheDocument();
+  });
+
+  it("records an expert response without closing the case", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue({
+      ...referredReport,
+      lifecycle: {
+        ...referredReport.lifecycle!,
+        referralState: "expert_response_received",
+      },
+    });
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: referredReport }));
+    vi.mocked(useRecordExpertReferralResponse).mockReturnValue(
+      referralMutationResult({ mutateAsync }) as unknown as ReturnType<typeof useRecordExpertReferralResponse>,
+    );
+    renderPage();
+
+    expect(screen.getByText("Awaiting expert input")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Expert response date"), "2026-09-08");
+    await user.type(screen.getByLabelText("Expert response note"), " Response received. ");
+    await user.type(screen.getByLabelText("Expert finding (optional)"), " Finding recorded. ");
+    await user.selectOptions(screen.getByLabelText("Authority finding after response"), "smut");
+    await user.selectOptions(screen.getByLabelText("Verification outcome after response"), "verified");
+    await user.click(screen.getByRole("button", { name: "Record expert response" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      responseDate: "2026-09-08",
+      responseNote: " Response received. ",
+      responseFinding: " Finding recorded. ",
+      authorityClassifiedCondition: "smut",
+      verificationOutcome: "verified",
+      expectedVersion: referredReport.reviewVersion,
+    });
+    expect(screen.getByText(/Review the updated authority finding/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Print \/ download referral summary/i }),
+    ).toHaveAttribute(
+      "href",
+      `${env.apiBaseUrl}/api/v1/reports/${referredReport.uuid}/referral/summary`,
+    );
   });
 
   it("distinguishes missing, forbidden, and rate-limited reports", () => {

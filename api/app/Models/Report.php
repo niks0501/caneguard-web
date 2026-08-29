@@ -410,6 +410,14 @@ class Report extends Model
     }
 
     /**
+     * @return HasOne<ReportReferral, $this>
+     */
+    public function referral(): HasOne
+    {
+        return $this->hasOne(ReportReferral::class);
+    }
+
+    /**
      * @return HasMany<ReportClassScore, $this>
      */
     public function classScores(): HasMany

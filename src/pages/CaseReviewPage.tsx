@@ -20,6 +20,7 @@ import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { ConfidenceDisplay } from "../components/reports/ConfidenceDisplay";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
+import { ReferralWorkflow } from "../components/reports/ReferralWorkflow";
 import { DiseaseBadge, ReviewStatusBadge } from "../components/reports/ReportBadges";
 import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
 import { Button } from "../components/ui/Button";
@@ -67,7 +68,7 @@ type MetadataDraft = {
 const actions: Array<{ value: ReviewAction; description: string }> = [
   { value: "advisory_provided", description: "Record guidance provided to the field contact." },
   { value: "technical_assistance_provided", description: "Record practical technical assistance delivered." },
-  { value: "referred_for_expert_validation", description: "Record that the case was sent for expert validation." },
+  { value: "referred_for_expert_validation", description: "Use the Referral lifecycle section below to capture the expert handoff." },
   { value: "no_further_action_required", description: "Record that no further office action is required." },
 ];
 
@@ -206,6 +207,7 @@ export function CaseReviewPage() {
   const lifecycle = report
     ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus)
     : undefined;
+  const referralPending = lifecycle?.referralState === "referred";
   const notes = notesOverride ?? report?.reviewNotes ?? "";
   const selectedAction = actionTouched
     ? actionOverride
@@ -818,14 +820,19 @@ export function CaseReviewPage() {
             <p className="authority-classification-help">Closing a case is an explicit office decision. Verification never closes it automatically.</p>
             <fieldset className="review-actions">
               <legend>Action taken - choose explicitly</legend>
-              {actions.map((action) => (
-                <label className={selectedAction === action.value ? "is-selected" : ""} key={action.value}>
-                  <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} onChange={() => { setActionOverride(action.value); setActionTouched(true); setSubmitted(false); reviewMutation.reset(); }} />
-                  <span><strong>{actionTakenLabels[action.value]}</strong><small>{action.description}</small></span>
-                </label>
-              ))}
+              {actions.map((action) => {
+                const referralAction = action.value === "referred_for_expert_validation";
+                const actionDisabled = referralPending || referralAction;
+
+                return (
+                  <label className={`${selectedAction === action.value ? "is-selected " : ""}${actionDisabled ? "is-disabled" : ""}`} key={action.value}>
+                    <input type="radio" name="review-action" value={action.value} checked={selectedAction === action.value} disabled={actionDisabled} onChange={() => { setActionOverride(action.value); setActionTouched(true); setSubmitted(false); reviewMutation.reset(); }} />
+                    <span><strong>{actionTakenLabels[action.value]}</strong><small>{action.description}</small></span>
+                  </label>
+                );
+              })}
             </fieldset>
-            <p className="authority-classification-help">No action is selected until you choose one. A field reporter may provide visit details, but only office authority can save this disposition.</p>
+            <p className="authority-classification-help">{referralPending ? "The referral action remains active until an expert response is recorded." : "No action is selected until you choose one."} A field reporter may provide visit details, but only office authority can save this disposition.</p>
             <TextArea id="review-notes" label="Review notes" hint="Use neutral, observable language. Notes are saved with the review." rows={5} maxLength={1000} value={notes} onChange={(event) => { setNotesOverride(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Add context for this office response..." />
             <p className="review-note-count">{notes.length}/1,000</p>
             <details className="metadata-correction">
@@ -873,6 +880,7 @@ export function CaseReviewPage() {
               {reviewMutation.isPending ? "Saving review..." : "Save explicit review"}
             </Button>
           </section>
+          <ReferralWorkflow report={report} />
         </aside>
       </div>
     </PageContent>

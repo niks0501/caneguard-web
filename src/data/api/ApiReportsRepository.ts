@@ -10,6 +10,8 @@ import type {
 } from "../../domain/report.types";
 import type {
   DuplicateLinkInput,
+  ExpertReferralResponseInput,
+  ReportReferralInput,
   ReportReviewInput,
 } from "../../domain/review.types";
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
@@ -150,6 +152,62 @@ export class ApiReportsRepository implements ReportsRepository {
 
     const response = await this.client.patch(
       `/api/v1/reports/${encodeURIComponent(reportId)}/review`,
+      payload,
+    );
+
+    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async recordReferral(
+    reportId: string,
+    input: ReportReferralInput,
+  ): Promise<DiseaseReport> {
+    const payload: Record<string, unknown> = {
+      destination: input.destination.trim(),
+      reference: input.reference.trim(),
+      referral_date: input.referralDate,
+      note: input.note?.trim() || null,
+      expected_version: input.expectedVersion,
+    };
+
+    if (input.authorityClassifiedCondition !== undefined) {
+      payload.authority_classified_condition = input.authorityClassifiedCondition;
+    }
+    if (input.verificationOutcome !== undefined) {
+      payload.verification_outcome = input.verificationOutcome;
+    }
+    if (input.officeNotes !== undefined) {
+      payload.office_notes = input.officeNotes?.trim() || null;
+    }
+
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/referral`,
+      payload,
+    );
+
+    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async recordExpertReferralResponse(
+    reportId: string,
+    input: ExpertReferralResponseInput,
+  ): Promise<DiseaseReport> {
+    const payload: Record<string, unknown> = {
+      response_date: input.responseDate,
+      response_note: input.responseNote?.trim() || null,
+      response_finding: input.responseFinding?.trim() || null,
+      expected_version: input.expectedVersion,
+    };
+
+    if (input.authorityClassifiedCondition !== undefined) {
+      payload.authority_classified_condition = input.authorityClassifiedCondition;
+    }
+    if (input.verificationOutcome !== undefined) {
+      payload.verification_outcome = input.verificationOutcome;
+    }
+
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/response`,
       payload,
     );
 

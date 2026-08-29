@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ReportFilters } from "../domain/report.types";
+import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import type {
   DuplicateLinkInput,
+  ExpertReferralResponseInput,
+  ReportReferralInput,
   ReportReviewInput,
 } from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
@@ -24,32 +26,49 @@ export function useReport(reportId: string) {
   return useQuery(reportQueryOptions(reportId));
 }
 
+function useReportMutation<TInput>(
+  reportId: string,
+  mutationFn: (input: TInput) => Promise<DiseaseReport>,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn,
+    onSuccess: (report) => {
+      queryClient.setQueryData(reportKeys.detail(reportId), report);
+      return invalidateReportDependentQueries(queryClient, { reportId });
+    },
+  });
+}
+
 export function usePossibleRecentMatches(reportId: string) {
   return useQuery(possibleRecentMatchesQueryOptions(reportId));
 }
 
 export function useUpdateReportReview(reportId: string) {
-  const queryClient = useQueryClient();
+  return useReportMutation<ReportReviewInput>(
+    reportId,
+    (input) => reportsRepository.updateReview(reportId, input),
+  );
+}
 
-  return useMutation({
-    mutationFn: (input: ReportReviewInput) =>
-      reportsRepository.updateReview(reportId, input),
-    onSuccess: (report) => {
-      queryClient.setQueryData(reportKeys.detail(reportId), report);
-      return invalidateReportDependentQueries(queryClient, { reportId });
-    },
-  });
+export function useRecordReportReferral(reportId: string) {
+  return useReportMutation<ReportReferralInput>(
+    reportId,
+    (input) => reportsRepository.recordReferral(reportId, input),
+  );
+}
+
+export function useRecordExpertReferralResponse(reportId: string) {
+  return useReportMutation<ExpertReferralResponseInput>(
+    reportId,
+    (input) => reportsRepository.recordExpertReferralResponse(reportId, input),
+  );
 }
 
 export function useLinkDuplicateReport(reportId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: DuplicateLinkInput) =>
-      reportsRepository.linkDuplicate(reportId, input),
-    onSuccess: (report) => {
-      queryClient.setQueryData(reportKeys.detail(reportId), report);
-      return invalidateReportDependentQueries(queryClient, { reportId });
-    },
-  });
+  return useReportMutation<DuplicateLinkInput>(
+    reportId,
+    (input) => reportsRepository.linkDuplicate(reportId, input),
+  );
 }
