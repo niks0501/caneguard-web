@@ -106,6 +106,21 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
       createdAt: audit.created_at,
       reason: audit.reason,
     })),
+    canonicalLinkage: dto.duplicate_linkage
+      ? {
+          isDuplicate: dto.duplicate_linkage.is_duplicate,
+          canonicalCase: dto.duplicate_linkage.canonical_case
+            ? {
+                uuid: dto.duplicate_linkage.canonical_case.uuid,
+                referenceCode: dto.duplicate_linkage.canonical_case.reference_code,
+                submittedAt: dto.duplicate_linkage.canonical_case.submitted_at,
+              }
+            : null,
+          linkedBy: dto.duplicate_linkage.linked_by,
+          linkedAt: dto.duplicate_linkage.linked_at ?? undefined,
+          reason: dto.duplicate_linkage.reason ?? undefined,
+        }
+      : undefined,
     reviewStatus: dto.review.status,
     lifecycle: mapReportLifecycle(dto.lifecycle, dto.review.status),
     reviewNotes: dto.review.notes ?? undefined,

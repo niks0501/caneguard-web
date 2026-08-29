@@ -20,6 +20,10 @@ export function invalidateReportDependentQueries(
   if (reportId) {
     invalidations.unshift(
       queryClient.invalidateQueries({
+        queryKey: reportKeys.possibleMatches(reportId),
+        exact: true,
+      }),
+      queryClient.invalidateQueries({
         queryKey: reportKeys.detail(reportId),
         exact: true,
       }),

@@ -44,6 +44,97 @@ describe("ApiReportsRepository", () => {
     expect(result.reports[0].referenceCode).toBe("CG-2026-0001");
   });
 
+  it("maps explicit possible recent-match assistance", async () => {
+    server.use(
+      http.get(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/possible-matches`,
+        () =>
+          HttpResponse.json({
+            data: [
+              {
+                case: {
+                  uuid: "canonical-report",
+                  reference_code: "CG-2026-0002",
+                  submitted_at: "2026-07-20T10:00:00.000Z",
+                },
+                match: {
+                  condition: "rust",
+                  distance_meters: 12.4,
+                  basis: ["same_condition", "nearby_location", "recent_submission"],
+                },
+                message: "Possible recent match. Compare this case before deciding.",
+              },
+            ],
+            message: "Possible recent matches found. Compare the submitted evidence before deciding.",
+            meta: {
+              possible_match: true,
+              can_submit: true,
+              assessment: "condition_and_location",
+              recent_window_hours: 72,
+              location_radius_meters: 100,
+            },
+          }),
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    await expect(
+      repository.getPossibleRecentMatches(reportDetailDto.identity.uuid),
+    ).resolves.toMatchObject({
+      possibleMatch: true,
+      canSubmit: true,
+      matches: [{ referenceCode: "CG-2026-0002", distanceMeters: 12.4 }],
+    });
+  });
+
+  it("links a possible duplicate through the explicit canonical-link endpoint", async () => {
+    server.use(
+      http.post(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/duplicate-link`,
+        async ({ request }) => {
+          expect(await request.json()).toEqual({
+            canonical_report_uuid: "canonical-report",
+            reason: "The cases may describe the same field observation.",
+          });
+          return HttpResponse.json({
+            data: {
+              ...reportDetailDto,
+              duplicate_linkage: {
+                is_duplicate: true,
+                canonical_case: {
+                  uuid: "canonical-report",
+                  reference_code: "CG-2026-0002",
+                  submitted_at: "2026-07-20T10:00:00.000Z",
+                },
+                linked_by: { uuid: "reviewer-1", name: "Reviewer" },
+                linked_at: "2026-07-20T11:00:00.000Z",
+                reason: "The cases may describe the same field observation.",
+              },
+            },
+          });
+        },
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    await expect(
+      repository.linkDuplicate(reportDetailDto.identity.uuid, {
+        canonicalReportUuid: "canonical-report",
+        reason: " The cases may describe the same field observation. ",
+      }),
+    ).resolves.toMatchObject({
+      canonicalLinkage: {
+        isDuplicate: true,
+        canonicalCase: { referenceCode: "CG-2026-0002" },
+        reason: "The cases may describe the same field observation.",
+      },
+    });
+  });
+
   it("sends independent review decisions and correction reasons", async () => {
     server.use(
       http.patch(

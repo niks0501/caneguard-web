@@ -95,6 +95,12 @@ class ReportMySqlSchemaTest extends TestCase
             $columns->get('lock_version')->COLUMN_TYPE,
         );
         $this->assertSame('0', $columns->get('lock_version')->COLUMN_DEFAULT);
+        $this->assertSame('bigint', $columns->get('canonical_report_id')->DATA_TYPE);
+        $this->assertStringContainsString(
+            'unsigned',
+            $columns->get('canonical_report_id')->COLUMN_TYPE,
+        );
+        $this->assertNullable($columns, 'canonical_report_id');
         $this->assertStringContainsString(
             'unsigned',
             $columns->get('image_size_bytes')->COLUMN_TYPE,
@@ -168,6 +174,11 @@ class ReportMySqlSchemaTest extends TestCase
             'reports_reporter_id_updated_at_index',
             'reporter_id,updated_at',
         );
+        $this->assertIndex(
+            $indexes,
+            'reports_canonical_report_id_submitted_at_index',
+            'canonical_report_id,submitted_at',
+        );
 
         $foreignKeys = DB::table('information_schema.key_column_usage')
             ->where('table_schema', 'caneguard_test')
@@ -184,6 +195,10 @@ class ReportMySqlSchemaTest extends TestCase
             'users',
             $foreignKeys->get('reviewer_id')->REFERENCED_TABLE_NAME,
         );
+        $this->assertSame(
+            'reports',
+            $foreignKeys->get('canonical_report_id')->REFERENCED_TABLE_NAME,
+        );
 
         $deleteRules = DB::table('information_schema.referential_constraints')
             ->where('constraint_schema', 'caneguard_test')
@@ -197,6 +212,10 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertSame(
             'SET NULL',
             $deleteRules->get('reports_reviewer_id_foreign'),
+        );
+        $this->assertSame(
+            'SET NULL',
+            $deleteRules->get('reports_canonical_report_id_foreign'),
         );
 
         $childPrimaryKeys = [

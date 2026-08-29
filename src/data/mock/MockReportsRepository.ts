@@ -2,9 +2,13 @@ import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type {
   DiseaseReport,
   PaginatedReports,
+  PossibleRecentMatches,
   ReportFilters,
 } from "../../domain/report.types";
-import type { ReportReviewInput } from "../../domain/review.types";
+import type {
+  DuplicateLinkInput,
+  ReportReviewInput,
+} from "../../domain/review.types";
 import { diseaseLabels } from "../../domain/report.metadata";
 import {
   legacyLifecycleForReviewStatus,
@@ -99,6 +103,20 @@ export class MockReportsRepository implements ReportsRepository {
     return report ? cloneReport(report) : null;
   }
 
+  async getPossibleRecentMatches(
+    _reportId: string,
+  ): Promise<PossibleRecentMatches> {
+    return {
+      matches: [],
+      message: "No possible recent match was found for this case.",
+      possibleMatch: false,
+      canSubmit: true,
+      assessment: "location_unavailable",
+      recentWindowHours: 72,
+      locationRadiusMeters: 100,
+    };
+  }
+
   async updateReview(
     reportId: string,
     input: ReportReviewInput,
@@ -145,6 +163,47 @@ export class MockReportsRepository implements ReportsRepository {
       updatedAt: new Date().toISOString(),
     };
     this.reports[index] = updated;
+    return cloneReport(updated);
+  }
+
+  async linkDuplicate(
+    reportId: string,
+    input: DuplicateLinkInput,
+  ): Promise<DiseaseReport> {
+    const duplicateIndex = this.reports.findIndex((report) => report.uuid === reportId);
+    const canonical = this.reports.find(
+      (report) => report.uuid === input.canonicalReportUuid,
+    );
+    if (duplicateIndex === -1 || !canonical) {
+      throw new Error("The selected report was not found.");
+    }
+
+    const current = this.reports[duplicateIndex];
+    if (current.canonicalLinkage?.isDuplicate) {
+      return cloneReport(current);
+    }
+
+    const now = new Date().toISOString();
+    const updated: DiseaseReport = {
+      ...current,
+      canonicalLinkage: {
+        isDuplicate: true,
+        canonicalCase: {
+          uuid: canonical.uuid,
+          referenceCode: canonical.referenceCode,
+          submittedAt: canonical.submittedAt,
+        },
+        linkedBy: {
+          uuid: "00000000-0000-4000-8000-000000000100",
+          name: "Maria Santos",
+        },
+        linkedAt: now,
+        reason: input.reason?.trim() || "Possible duplicate linkage recorded after authorized review.",
+      },
+      reviewVersion: (current.reviewVersion ?? 0) + 1,
+      updatedAt: now,
+    };
+    this.reports[duplicateIndex] = updated;
     return cloneReport(updated);
   }
 }

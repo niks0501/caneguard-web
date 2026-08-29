@@ -39,6 +39,47 @@ export type ActionTaken =
   | "referred_for_expert_validation"
   | "no_further_action_required";
 
+export type PossibleMatchBasis =
+  | "same_condition"
+  | "nearby_location"
+  | "recent_submission";
+
+export type PossibleMatchAssessment =
+  | "condition_and_location"
+  | "location_unavailable";
+
+export interface PossibleRecentMatch {
+  uuid: string;
+  referenceCode: string;
+  submittedAt: string;
+  condition: DiseaseKey;
+  distanceMeters: number;
+  basis: PossibleMatchBasis[];
+  message: string;
+}
+
+export interface PossibleRecentMatches {
+  matches: PossibleRecentMatch[];
+  message: string;
+  possibleMatch: boolean;
+  canSubmit: boolean;
+  assessment: PossibleMatchAssessment;
+  recentWindowHours: number;
+  locationRadiusMeters: number;
+}
+
+export interface CanonicalCaseLink {
+  isDuplicate: boolean;
+  canonicalCase: {
+    uuid: string;
+    referenceCode: string;
+    submittedAt: string;
+  } | null;
+  linkedBy: { uuid: string; name: string } | null;
+  linkedAt?: string;
+  reason?: string;
+}
+
 export interface FieldValidationAssignment {
   uuid: string;
   assignee: { uuid: string; name: string };
@@ -124,6 +165,7 @@ export interface DiseaseReport {
   reviewVersion?: number;
   updatedAt?: string;
   metadataCorrectionAudits?: ReportAudit[];
+  canonicalLinkage?: CanonicalCaseLink;
 }
 
 export interface ReportAudit {

@@ -8,10 +8,17 @@ import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
 import { reportDetailDto } from "../test/fixtures";
 import { useFieldReporters } from "../hooks/useFieldReporters";
-import { useReport, useUpdateReportReview } from "../hooks/useReports";
+import {
+  useLinkDuplicateReport,
+  usePossibleRecentMatches,
+  useReport,
+  useUpdateReportReview,
+} from "../hooks/useReports";
 import { CaseReviewPage } from "./CaseReviewPage";
 
 vi.mock("../hooks/useReports", () => ({
+  useLinkDuplicateReport: vi.fn(),
+  usePossibleRecentMatches: vi.fn(),
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
 }));
@@ -47,6 +54,24 @@ function mutationResult(overrides: Record<string, unknown> = {}) {
   } as unknown as ReturnType<typeof useUpdateReportReview>;
 }
 
+function possibleMatchesResult(overrides: Record<string, unknown> = {}) {
+  return {
+    data: {
+      matches: [],
+      message: "No possible recent match was found for this case.",
+      possibleMatch: false,
+      canSubmit: true,
+      assessment: "condition_and_location",
+      recentWindowHours: 72,
+      locationRadiusMeters: 100,
+    },
+    error: null,
+    isError: false,
+    isPending: false,
+    ...overrides,
+  } as unknown as ReturnType<typeof usePossibleRecentMatches>;
+}
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={[`/reports/${report.uuid}`]}>
@@ -60,7 +85,9 @@ function renderPage() {
 
 beforeEach(() => {
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
+  vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
   vi.mocked(useReport).mockReturnValue(queryResult());
+  vi.mocked(useLinkDuplicateReport).mockReturnValue(mutationResult() as ReturnType<typeof useLinkDuplicateReport>);
   vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult());
 });
 
@@ -157,6 +184,93 @@ describe("CaseReviewPage", () => {
     ).toBe(true);
     expect(screen.getByLabelText("Verification outcome")).toHaveValue("");
     expect(screen.getByText("No office action selected")).toBeInTheDocument();
+  });
+
+  it("keeps possible matching advisory and explicit linkage separate", async () => {
+    const user = userEvent.setup();
+    const match = {
+      uuid: "canonical-report",
+      referenceCode: "CG-2026-0002",
+      submittedAt: "2026-07-20T10:00:00.000Z",
+      condition: "rust" as const,
+      distanceMeters: 12.4,
+      basis: ["same_condition", "nearby_location", "recent_submission"] as const,
+      message: "Possible recent match. Compare this case before deciding.",
+    };
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(usePossibleRecentMatches).mockReturnValue(
+      possibleMatchesResult({
+        data: {
+          matches: [match],
+          message: "Possible recent matches found.",
+          possibleMatch: true,
+          canSubmit: true,
+          assessment: "condition_and_location",
+          recentWindowHours: 72,
+          locationRadiusMeters: 100,
+        },
+      }),
+    );
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(
+      mutationResult({ mutateAsync }) as ReturnType<typeof useLinkDuplicateReport>,
+    );
+    renderPage();
+
+    expect(screen.getByText(/nothing is merged, deleted, or blocked automatically/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Use as canonical" }));
+    expect(screen.getByLabelText("Canonical case UUID")).toHaveValue("canonical-report");
+    await user.type(
+      screen.getByLabelText("Link reason (optional)"),
+      " The cases may describe the same field observation. ",
+    );
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      canonicalReportUuid: "canonical-report",
+      reason: "The cases may describe the same field observation.",
+    });
+    expect(await screen.findByText(/submitted record remains preserved/i)).toBeInTheDocument();
+  });
+
+  it("requires a canonical case before explicit linkage", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn();
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(
+      mutationResult({ mutateAsync }) as ReturnType<typeof useLinkDuplicateReport>,
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+
+    expect(screen.getByText(/enter a canonical case UUID/i)).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("shows the preserved relationship after a case is linked", () => {
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({
+        data: {
+          ...report,
+          canonicalLinkage: {
+            isDuplicate: true,
+            canonicalCase: {
+              uuid: "canonical-report",
+              referenceCode: "CG-2026-0002",
+              submittedAt: "2026-07-20T10:00:00.000Z",
+            },
+            linkedBy: { uuid: "reviewer-1", name: "Maria Reviewer" },
+            linkedAt: "2026-07-20T11:00:00.000Z",
+            reason: "The cases may describe the same field observation.",
+          },
+        },
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByText("Linked as a possible duplicate")).toBeInTheDocument();
+    expect(screen.getByText(/Canonical case CG-2026-0002/)).toBeInTheDocument();
+    expect(screen.getByText(/submitted record and its audit history remain preserved/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Link as possible duplicate" })).not.toBeInTheDocument();
   });
 
   it("requires a field reporter when field validation is selected", async () => {
