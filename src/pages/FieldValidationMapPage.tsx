@@ -87,6 +87,12 @@ function FilterChips({
   onRemove: (key: keyof FieldValidationFilters) => void;
 }) {
   const chips: Array<{ key: keyof FieldValidationFilters; label: string }> = [];
+  if (filters.queue) {
+    chips.push({
+      key: "queue",
+      label: filters.queue === "follow_up_due" ? "Queue: Follow-up due" : "Queue: Needs visit",
+    });
+  }
   if (filters.dateFrom) chips.push({ key: "dateFrom", label: `From ${filters.dateFrom}` });
   if (filters.dateTo) chips.push({ key: "dateTo", label: `To ${filters.dateTo}` });
   if (filters.disease) chips.push({ key: "disease", label: diseaseLabels[filters.disease] });
@@ -127,6 +133,7 @@ export function FieldValidationMapPage() {
   const mapInitialError = mapAccessDenied || (mapQuery.isError && !hasMapCachedData);
   const queueInitialError = queueAccessDenied || (queueQuery.isError && !hasQueueCachedData);
   const mapFrameKey = JSON.stringify(appliedFilters);
+  const isFollowUpDue = appliedFilters.queue === "follow_up_due";
 
   const applyFilters = (draft: FieldValidationFilters) => {
     setSearchParams(writeMapUrl({
@@ -153,8 +160,10 @@ export function FieldValidationMapPage() {
     <PageContent className="page-content--field-validation">
       <PageHeader
         eyebrow="Field operations"
-        title="Field-validation map"
-        description="Locate submitted observations and prioritize the oldest reports awaiting an on-site validation. Possible AI results are decision support, not staff confirmation."
+        title={isFollowUpDue ? "Follow-up due workspace" : "Field-validation map"}
+        description={isFollowUpDue
+          ? "Review open cases whose target visit date has passed while field validation remains incomplete. Possible AI results are decision support, not staff confirmation."
+          : "Locate submitted observations and prioritize the oldest reports awaiting an on-site validation. Possible AI results are decision support, not staff confirmation."}
         actions={(
           <Button
             variant="secondary"

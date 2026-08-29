@@ -118,7 +118,7 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.id', $observedInRange->uuid);
     }
 
-    public function test_field_validation_queue_is_fixed_oldest_first_and_shares_non_status_filters(): void
+    public function test_field_validation_queue_defaults_to_needs_visit_oldest_first_and_shares_non_status_filters(): void
     {
         $reviewer = User::factory()->reviewer()->create();
         $oldest = Report::factory()->create([

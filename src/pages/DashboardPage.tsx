@@ -1,25 +1,28 @@
 import {
   ArrowRight,
-  BadgeCheck,
+  CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   CircleHelp,
   Clock3,
   FileStack,
-  MapPin,
   RefreshCw,
   Rows3,
+  ShieldCheck,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
+import { OperationalQueueCard } from "../components/dashboard/OperationalQueueCard";
 import { SecondaryMetric } from "../components/dashboard/SecondaryMetric";
 import { PageContent, PageHeader } from "../components/layout/Page";
-import { MetricCard } from "../components/reports/MetricCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
 import { useDashboard } from "../hooks/useDashboard";
+import type { OperationalQueue } from "../domain/operationalQueue";
 
 function formatRefreshTime(timestamp: number) {
   if (!timestamp) return "Not refreshed yet";
@@ -31,9 +34,44 @@ function formatRefreshTime(timestamp: number) {
   }).format(timestamp);
 }
 
+const queueCopy: Record<OperationalQueue, {
+  label: string;
+  description: string;
+  icon: ReactNode;
+  href: string;
+}> = {
+  needs_review: {
+    label: "Needs Review",
+    description: "Open cases waiting for an office review decision.",
+    icon: <ShieldCheck aria-hidden="true" />,
+    href: routes.reportQueue("needs_review"),
+  },
+  needs_visit: {
+    label: "Needs Visit",
+    description: "Open cases with field validation still incomplete.",
+    icon: <ClipboardCheck aria-hidden="true" />,
+    href: routes.fieldValidationQueue("needs_visit"),
+  },
+  follow_up_due: {
+    label: "Follow-up Due",
+    description: "Target visit date passed; validation remains incomplete.",
+    icon: <CalendarClock aria-hidden="true" />,
+    href: routes.fieldValidationQueue("follow_up_due"),
+  },
+};
+
+const queueOrder: OperationalQueue[] = [
+  "needs_review",
+  "needs_visit",
+  "follow_up_due",
+];
+
 export function DashboardPage() {
   const dashboard = useDashboard();
   const summary = dashboard.data;
+  const firstActiveQueue = summary
+    ? queueOrder.find((queue) => (summary.queues?.[queue] ?? 0) > 0)
+    : undefined;
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
   const isRateLimited =
@@ -103,37 +141,75 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="dashboard-metrics-band" aria-label="Report metrics">
-        <section className="dashboard-primary-metrics" aria-label="Report overview">
-          <MetricCard
-            label="Submitted–unverified"
-            value={String(summary.counts.submitted_unverified)}
-            context="Awaiting staff review"
-            icon={<Clock3 aria-hidden="true" />}
-            priority="primary"
-          />
-          <MetricCard
-            label="For field validation"
-            value={String(summary.counts.for_field_validation)}
-            context="Requires an on-site follow-up"
-            icon={<MapPin aria-hidden="true" />}
-            priority="primary"
-          />
-          <MetricCard
+      <section className="dashboard-operational-section" aria-labelledby="operational-queues-heading">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="eyebrow">Work requiring attention</p>
+            <h2 id="operational-queues-heading">Operational queues</h2>
+          </div>
+          <span>Start with the queue that needs action today.</span>
+        </div>
+        <div className="dashboard-operational-queues">
+          {queueOrder.map((queue) => {
+            const copy = queueCopy[queue];
+            return (
+              <OperationalQueueCard
+                key={queue}
+                queue={queue}
+                label={copy.label}
+                count={summary.queues?.[queue] ?? 0}
+                description={copy.description}
+                href={copy.href}
+                icon={copy.icon}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="dashboard-next-action" aria-labelledby="next-action-heading">
+        <div className="dashboard-next-action__icon"><ArrowRight aria-hidden="true" /></div>
+        <div>
+          <p className="eyebrow">Next safe action</p>
+          <h2 id="next-action-heading">
+            {firstActiveQueue
+              ? `Start with ${queueCopy[firstActiveQueue].label}`
+              : "No operational queue is waiting"}
+          </h2>
+          <p>
+            {firstActiveQueue
+              ? "Open the first active queue to review current work without losing the submitted evidence context."
+              : "Historical totals and recent submissions remain available below for context."}
+          </p>
+        </div>
+        <Link
+          className="dashboard-next-action__link"
+          to={queueCopy[firstActiveQueue ?? "needs_review"].href}
+        >
+          <span>Open priority queue</span>
+          <ArrowRight aria-hidden="true" />
+        </Link>
+      </section>
+
+      <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="eyebrow">Historical context</p>
+            <h2>Report totals</h2>
+          </div>
+          <span>Descriptive totals, not today&apos;s work queue.</span>
+        </div>
+        <section className="dashboard-secondary-row" aria-label="Historical report status totals">
+          <SecondaryMetric
             label="Total submitted"
-            value={String(summary.totalSubmitted)}
-            context="All synchronized field reports"
+            value={summary.totalSubmitted}
             icon={<FileStack aria-hidden="true" />}
           />
-          <MetricCard
+          <SecondaryMetric
             label="Verified by staff"
-            value={String(summary.counts.verified_by_staff)}
-            context="Evidence reviewed by staff"
-            icon={<BadgeCheck aria-hidden="true" />}
+            value={summary.counts.verified_by_staff}
+            icon={<CheckCircle2 aria-hidden="true" />}
           />
-        </section>
-
-        <section className="dashboard-secondary-row" aria-label="Additional report status totals">
           <SecondaryMetric
             label="Unable to verify"
             value={summary.counts.unable_to_verify}
@@ -142,7 +218,7 @@ export function DashboardPage() {
           <SecondaryMetric
             label="Resolved"
             value={summary.counts.resolved}
-            icon={<CheckCircle2 aria-hidden="true" />}
+            icon={<Clock3 aria-hidden="true" />}
           />
           <p className="dashboard-refreshed" aria-live="polite">
             <RefreshCw aria-hidden="true" />
@@ -150,27 +226,6 @@ export function DashboardPage() {
             <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
           </p>
         </section>
-      </section>
-
-      <section className="dashboard-next-action" aria-labelledby="next-action-heading">
-        <div className="dashboard-next-action__icon"><MapPin aria-hidden="true" /></div>
-        <div>
-          <p className="eyebrow">Next safe action</p>
-          <h2 id="next-action-heading">
-            {summary.counts.for_field_validation > 0
-              ? "Start with the oldest field validation"
-              : "Review the submitted report queue"}
-          </h2>
-          <p>
-            {summary.counts.for_field_validation > 0
-              ? `${summary.counts.for_field_validation} report${summary.counts.for_field_validation === 1 ? " is" : "s are"} waiting for an on-site follow-up. The field workspace keeps the oldest observation first.`
-              : "Use the submitted report queue to choose the next review action without losing evidence context."}
-          </p>
-        </div>
-        <Link className="dashboard-next-action__link" to={summary.counts.for_field_validation > 0 ? routes.map : routes.reports}>
-          <span>{summary.counts.for_field_validation > 0 ? "Open field queue" : "Open report queue"}</span>
-          <ArrowRight aria-hidden="true" />
-        </Link>
       </section>
 
       <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">

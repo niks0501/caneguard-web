@@ -1,3 +1,5 @@
+import type { OperationalQueue } from "./operationalQueue";
+
 export type DiseaseKey = "healthy" | "mosaic" | "rust";
 
 export type AuthorityClassifiedCondition =
@@ -179,6 +181,7 @@ export interface ReportAudit {
 }
 
 export interface ReportFilters {
+  queue?: OperationalQueue;
   search?: string;
   status?: ReviewStatus | "all";
   disease?: DiseaseKey | "all";

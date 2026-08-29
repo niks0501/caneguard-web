@@ -15,7 +15,10 @@ function queueItemMeta(item: FieldValidationQueueItem) {
   const affectedPortion = item.affectedPortionPercent === null
     ? "Portion not provided"
     : `${item.affectedPortionPercent}% of portion`;
-  return `${affectedArea} · ${affectedPortion}`;
+  const targetDate = item.targetVisitDate
+    ? `Target visit ${item.targetVisitDate}`
+    : "No target date";
+  return `${targetDate} · ${affectedArea} · ${affectedPortion}`;
 }
 
 function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem; featured?: boolean }) {
@@ -49,12 +52,18 @@ export function FieldValidationQueuePanel({
 }: {
   data: FieldValidationQueueData;
 }) {
+  const isFollowUpDue = data.queue === "follow_up_due";
+  const title = isFollowUpDue ? "Follow-up due" : "Field validations needed";
+  const description = isFollowUpDue
+    ? "Target visit dates have passed and field validation is still incomplete."
+    : "Open cases requiring field validation, including legacy visits without a target date.";
+
   return (
     <aside className="validation-queue-panel" aria-labelledby="field-validation-queue-heading">
       <div className="validation-queue-panel__heading">
         <div>
           <p className="eyebrow">Operational queue</p>
-          <h2 id="field-validation-queue-heading">Field validations needed</h2>
+          <h2 id="field-validation-queue-heading">{title}</h2>
         </div>
         <div className="validation-queue-panel__heading-meta">
           <span className="queue-priority-badge">Oldest first</span>
@@ -62,11 +71,11 @@ export function FieldValidationQueuePanel({
         </div>
       </div>
       <p className="validation-queue-panel__description">
-        Fixed to reports awaiting field validation. The map review-state filter does not change this queue.
+        {description} The map review-state filter does not change this queue.
       </p>
       {data.oldest ? (
         <div className="validation-queue-panel__oldest">
-          <p className="eyebrow">Oldest observation</p>
+          <p className="eyebrow">{isFollowUpDue ? "Oldest target date" : "Oldest observation"}</p>
           <QueueItem item={data.oldest} featured />
         </div>
       ) : (
@@ -78,7 +87,7 @@ export function FieldValidationQueuePanel({
       )}
       {data.items.length > 1 ? (
         <div className="validation-queue-panel__list">
-          <p className="eyebrow">Next visits</p>
+          <p className="eyebrow">{isFollowUpDue ? "Next overdue visits" : "Next visits"}</p>
           {data.items.slice(1).map((item) => (
             <QueueItem item={item} key={item.uuid} />
           ))}

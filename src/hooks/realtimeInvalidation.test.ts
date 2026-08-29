@@ -37,6 +37,31 @@ describe("real-time invalidation", () => {
     ).toBe(false);
   });
 
+  it("refreshes the dashboard query that owns operational queue counts", async () => {
+    const client = queryClient();
+    client.setQueryData(dashboardKeys.summary(), {
+      queues: { needs_review: 1, needs_visit: 0, follow_up_due: 0 },
+    });
+
+    await invalidateRealtimeQueries(client, ["dashboard"]);
+
+    expect(client.getQueryState(dashboardKeys.summary())?.isInvalidated).toBe(true);
+  });
+
+  it("invalidates filtered field-validation queues for operational signals", async () => {
+    const client = queryClient();
+    client.setQueryData(fieldValidationKeys.queue({ queue: "follow_up_due" }), {
+      count: 1,
+      items: [],
+    });
+
+    await invalidateRealtimeQueries(client, ["field-validation"]);
+
+    expect(
+      client.getQueryState(fieldValidationKeys.queue({ queue: "follow_up_due" }))?.isInvalidated,
+    ).toBe(true);
+  });
+
   it("falls back to the operational domains for an incomplete signal", () => {
     expect(domainsFromRealtimePayload({})).toEqual([
       "reports",

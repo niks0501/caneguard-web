@@ -48,6 +48,7 @@ const mapData: FieldValidationMapData = {
 };
 
 const queueData: FieldValidationQueueData = {
+  queue: "needs_visit",
   count: 1,
   oldest: {
     uuid: "report-1",
@@ -102,7 +103,7 @@ beforeEach(() => {
 });
 
 describe("FieldValidationMapPage", () => {
-  it("renders the map fallback, coverage warning, fixed queue, and report links", () => {
+  it("renders the map fallback, coverage warning, operational queue, and report links", () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "Field-validation map" })).toBeInTheDocument();
@@ -221,7 +222,7 @@ describe("FieldValidationMapPage", () => {
     expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
   });
 
-  it("applies draft filters to the URL without changing the fixed queue scope", async () => {
+  it("applies draft filters to the URL without changing the queue scope", async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -238,6 +239,20 @@ describe("FieldValidationMapPage", () => {
     );
     expect(useFieldValidationQueue).toHaveBeenLastCalledWith(
       expect.objectContaining({ disease: "rust", barangay: "Mabini", status: undefined }),
+      { enabled: true },
+    );
+  });
+
+  it("preserves the follow-up-due queue in the filtered workspace", () => {
+    vi.mocked(useFieldValidationQueue).mockReturnValue(
+      queryResult({ ...queueData, queue: "follow_up_due" }),
+    );
+    renderPage("/map?queue=follow_up_due");
+
+    expect(screen.getByRole("heading", { name: "Follow-up due workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Follow-up due" })).toBeInTheDocument();
+    expect(useFieldValidationQueue).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: "follow_up_due" }),
       { enabled: true },
     );
   });

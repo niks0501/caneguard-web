@@ -97,6 +97,12 @@ class Report extends Model
 
     public const STATUS_RESOLVED = 'resolved';
 
+    public const QUEUE_NEEDS_REVIEW = 'needs_review';
+
+    public const QUEUE_NEEDS_VISIT = 'needs_visit';
+
+    public const QUEUE_FOLLOW_UP_DUE = 'follow_up_due';
+
     public const CASE_STATE_OPEN = 'open';
 
     public const CASE_STATE_CLOSED = 'closed';
@@ -229,6 +235,18 @@ class Report extends Model
             self::STATUS_VERIFIED_BY_STAFF,
             self::STATUS_UNABLE_TO_VERIFY,
             self::STATUS_RESOLVED,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function operationalQueues(): array
+    {
+        return [
+            self::QUEUE_NEEDS_REVIEW,
+            self::QUEUE_NEEDS_VISIT,
+            self::QUEUE_FOLLOW_UP_DUE,
         ];
     }
 

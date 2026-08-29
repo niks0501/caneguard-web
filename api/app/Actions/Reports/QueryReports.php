@@ -9,6 +9,7 @@ class QueryReports
 {
     public function __construct(
         private readonly ApplyReportFilters $applyReportFilters,
+        private readonly ApplyOperationalQueueFilter $applyOperationalQueueFilter,
     ) {}
 
     /**
@@ -19,6 +20,9 @@ class QueryReports
     {
         $query = Report::query()->with(['reporter', 'reviewer']);
         $this->applyReportFilters->handle($query, $filters, 'submitted_at');
+        if (isset($filters['queue'])) {
+            $this->applyOperationalQueueFilter->handle($query, $filters['queue']);
+        }
 
         [$column, $direction] = match ($filters['sort'] ?? '-submitted_at') {
             'submitted_at' => ['submitted_at', 'asc'],
