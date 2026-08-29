@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -308,7 +309,7 @@ class DuplicateAssistanceTest extends TestCase
     {
         return [
             'client_uuid' => fake()->uuid(),
-            'image' => \Illuminate\Http\UploadedFile::fake()->image('new-case.png'),
+            'image' => UploadedFile::fake()->image('new-case.png'),
             'image_source_type' => 'camera',
             'source_width' => 100,
             'source_height' => 100,

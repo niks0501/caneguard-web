@@ -54,6 +54,10 @@ function mutationResult(overrides: Record<string, unknown> = {}) {
   } as unknown as ReturnType<typeof useUpdateReportReview>;
 }
 
+function duplicateMutationResult(overrides: Record<string, unknown> = {}) {
+  return mutationResult(overrides) as unknown as ReturnType<typeof useLinkDuplicateReport>;
+}
+
 function possibleMatchesResult(overrides: Record<string, unknown> = {}) {
   return {
     data: {
@@ -87,7 +91,7 @@ beforeEach(() => {
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
   vi.mocked(useReport).mockReturnValue(queryResult());
-  vi.mocked(useLinkDuplicateReport).mockReturnValue(mutationResult() as ReturnType<typeof useLinkDuplicateReport>);
+  vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult());
   vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult());
 });
 
@@ -212,7 +216,7 @@ describe("CaseReviewPage", () => {
       }),
     );
     vi.mocked(useLinkDuplicateReport).mockReturnValue(
-      mutationResult({ mutateAsync }) as ReturnType<typeof useLinkDuplicateReport>,
+      duplicateMutationResult({ mutateAsync }),
     );
     renderPage();
 
@@ -220,7 +224,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Use as canonical" }));
     expect(screen.getByLabelText("Canonical case UUID")).toHaveValue("canonical-report");
     await user.type(
-      screen.getByLabelText("Link reason (optional)"),
+      screen.getByLabelText(/^Link reason \(optional\)/),
       " The cases may describe the same field observation. ",
     );
     await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
@@ -236,7 +240,7 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn();
     vi.mocked(useLinkDuplicateReport).mockReturnValue(
-      mutationResult({ mutateAsync }) as ReturnType<typeof useLinkDuplicateReport>,
+      duplicateMutationResult({ mutateAsync }),
     );
     renderPage();
 

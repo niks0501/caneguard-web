@@ -103,9 +103,7 @@ export class MockReportsRepository implements ReportsRepository {
     return report ? cloneReport(report) : null;
   }
 
-  async getPossibleRecentMatches(
-    _reportId: string,
-  ): Promise<PossibleRecentMatches> {
+  async getPossibleRecentMatches(): Promise<PossibleRecentMatches> {
     return {
       matches: [],
       message: "No possible recent match was found for this case.",
