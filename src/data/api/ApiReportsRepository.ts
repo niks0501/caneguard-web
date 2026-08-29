@@ -5,19 +5,23 @@ import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type {
   DiseaseReport,
   PaginatedReports,
+  PossibleRecentMatches,
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  DuplicateLinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
 } from "../../domain/review.types";
+import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
 import {
   mapPaginationMeta,
   mapReportDetail,
   mapReportListItem,
 } from "./mappers/report.mapper";
 import {
+  possibleRecentMatchesResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
   reviewResponseSchema,
@@ -34,6 +38,7 @@ function toQueryParams(filters: ReportFilters = {}) {
   return {
     page: filters.page,
     per_page: filters.perPage,
+    queue: filters.queue,
     search: filters.search?.trim() || undefined,
     status:
       filters.status && filters.status !== "all" ? filters.status : undefined,
@@ -80,6 +85,17 @@ export class ApiReportsRepository implements ReportsRepository {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;
     }
+  }
+
+  async getPossibleRecentMatches(
+    reportId: string,
+  ): Promise<PossibleRecentMatches> {
+    const response = await this.client.get(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/possible-matches`,
+    );
+    return mapPossibleRecentMatches(
+      possibleRecentMatchesResponseSchema.parse(response.data),
+    );
   }
 
   async updateReview(
@@ -193,6 +209,21 @@ export class ApiReportsRepository implements ReportsRepository {
     const response = await this.client.post(
       `/api/v1/reports/${encodeURIComponent(reportId)}/referral/response`,
       payload,
+    );
+
+    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async linkDuplicate(
+    reportId: string,
+    input: DuplicateLinkInput,
+  ): Promise<DiseaseReport> {
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/duplicate-link`,
+      {
+        canonical_report_uuid: input.canonicalReportUuid,
+        reason: input.reason?.trim() || undefined,
+      },
     );
 
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);

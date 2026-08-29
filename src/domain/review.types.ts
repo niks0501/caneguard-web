@@ -40,6 +40,12 @@ export interface ExpertReferralResponseInput {
   expectedVersion: number;
 }
 
+export interface DuplicateLinkInput {
+  canonicalReportUuid: string;
+  reason?: string;
+
+}
+
 export interface ReportReviewInput {
   // Kept for older Web clients while the independent lifecycle contract rolls
   // out. New callers should use the fields below.

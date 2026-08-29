@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\User;
 use App\Notifications\ExpertReferralResponseReceivedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -329,6 +330,37 @@ class ReportReferralTest extends TestCase
             ->assertSee('Office context captured before external review.')
             ->assertSee('SRA-2026-0099')
             ->assertSee(route('api.v1.reports.image', ['report' => $report->uuid]), false);
+    }
+
+    public function test_authenticated_web_session_can_open_the_html_referral_summary(): void
+    {
+        Storage::fake('local');
+        $reviewer = User::factory()->reviewer()->create([
+            'password' => 'correct-password',
+        ]);
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Regional crop protection office',
+            'reference' => 'SRA-2026-0100',
+            'referral_date' => '2026-09-04',
+            'expected_version' => 0,
+        ])->assertCreated();
+
+        Auth::forgetGuards();
+        Auth::shouldUse('web');
+        $this->get('/sanctum/csrf-cookie')->assertNoContent();
+        $this->postJson('/login', [
+            'email' => $reviewer->email,
+            'password' => 'correct-password',
+        ])->assertNoContent();
+
+        $this->get("/api/v1/reports/{$report->uuid}/referral/summary")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
+            ->assertSee('Referral summary - '.$report->reference_code)
+            ->assertSee('SRA-2026-0100');
     }
 
     public function test_referral_summary_requires_a_referral_and_report_view_authority(): void

@@ -58,6 +58,12 @@ function isMalformedDataError(error: unknown) {
   return error instanceof ZodError;
 }
 
+const queueLabels = {
+  needs_review: "Needs Review",
+  needs_visit: "Needs Visit",
+  follow_up_due: "Follow-up Due",
+} as const;
+
 export function SubmittedReportsPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,6 +86,9 @@ export function SubmittedReportsPage() {
   });
   const reports = reportsQuery.data?.reports ?? [];
   const meta = reportsQuery.data?.meta;
+  const activeQueueLabel = urlState.filters.queue
+    ? queueLabels[urlState.filters.queue]
+    : undefined;
 
   useEffect(() => {
     if (
@@ -180,15 +189,17 @@ export function SubmittedReportsPage() {
       >
         <div className="workspace-heading">
           <div>
-            <p className="eyebrow">Work queue</p>
-            <h2 id="report-table-heading">Recent submissions</h2>
+            <p className="eyebrow">{activeQueueLabel ?? "Work queue"}</p>
+            <h2 id="report-table-heading">{activeQueueLabel ?? "Recent submissions"}</h2>
           </div>
           <span>
-            {meta && hasDisplayableData
-              ? `${meta.total} matching ${
-                  meta.total === 1 ? "report" : "reports"
-                }`
-              : "Server-filtered queue"}
+            {activeQueueLabel
+              ? "Filtered operational workspace"
+              : meta && hasDisplayableData
+                ? `${meta.total} matching ${
+                    meta.total === 1 ? "report" : "reports"
+                  }`
+                : "Server-filtered queue"}
           </span>
         </div>
 

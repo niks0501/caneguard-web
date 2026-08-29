@@ -64,6 +64,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'reviewer_id',
     'reviewed_at',
     'lock_version',
+    'canonical_report_id',
 ])]
 class Report extends Model
 {
@@ -96,6 +97,12 @@ class Report extends Model
 
     public const STATUS_RESOLVED = 'resolved';
 
+    public const QUEUE_NEEDS_REVIEW = 'needs_review';
+
+    public const QUEUE_NEEDS_VISIT = 'needs_visit';
+
+    public const QUEUE_FOLLOW_UP_DUE = 'follow_up_due';
+
     public const CASE_STATE_OPEN = 'open';
 
     public const CASE_STATE_CLOSED = 'closed';
@@ -127,6 +134,8 @@ class Report extends Model
     public const ACTION_REFERRED_FOR_EXPERT_VALIDATION = 'referred_for_expert_validation';
 
     public const ACTION_NO_FURTHER_ACTION_REQUIRED = 'no_further_action_required';
+
+    public const AUDIT_FIELD_CANONICAL_REPORT = 'canonical_report_id';
 
     /**
      * Evidence submitted by Mobile is immutable after the report is created.
@@ -226,6 +235,18 @@ class Report extends Model
             self::STATUS_VERIFIED_BY_STAFF,
             self::STATUS_UNABLE_TO_VERIFY,
             self::STATUS_RESOLVED,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function operationalQueues(): array
+    {
+        return [
+            self::QUEUE_NEEDS_REVIEW,
+            self::QUEUE_NEEDS_VISIT,
+            self::QUEUE_FOLLOW_UP_DUE,
         ];
     }
 
@@ -362,6 +383,22 @@ class Report extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewer_id');
+    }
+
+    /**
+     * @return BelongsTo<Report, $this>
+     */
+    public function canonicalReport(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'canonical_report_id');
+    }
+
+    /**
+     * @return HasMany<Report, $this>
+     */
+    public function duplicateReports(): HasMany
+    {
+        return $this->hasMany(self::class, 'canonical_report_id');
     }
 
     /**

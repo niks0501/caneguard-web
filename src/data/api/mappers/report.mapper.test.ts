@@ -110,6 +110,40 @@ describe("report mappers", () => {
     expect(report.lifecycle?.referralState).toBe("referred");
   });
 
+  it("maps canonical linkage without changing submitted model evidence", () => {
+    const linked = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          duplicate_linkage: {
+            is_duplicate: true,
+            canonical_case: {
+              uuid: "canonical-report",
+              reference_code: "CG-2026-0002",
+              submitted_at: "2026-07-20T10:00:00.000Z",
+            },
+            linked_by: { uuid: "reviewer-1", name: "Maria Reviewer" },
+            linked_at: "2026-07-20T11:00:00.000Z",
+            reason: "The cases may describe the same field observation.",
+          },
+        },
+      }).data,
+    );
+
+    expect(linked.canonicalLinkage).toEqual({
+      isDuplicate: true,
+      canonicalCase: {
+        uuid: "canonical-report",
+        referenceCode: "CG-2026-0002",
+        submittedAt: "2026-07-20T10:00:00.000Z",
+      },
+      linkedBy: { uuid: "reviewer-1", name: "Maria Reviewer" },
+      linkedAt: "2026-07-20T11:00:00.000Z",
+      reason: "The cases may describe the same field observation.",
+    });
+    expect(linked.predictedDisease).toBe("rust");
+  });
+
   it("derives lifecycle dimensions when an older API omits them", () => {
     const legacyDetail = Object.fromEntries(
       Object.entries(reportDetailDto).filter(([key]) => key !== "lifecycle"),

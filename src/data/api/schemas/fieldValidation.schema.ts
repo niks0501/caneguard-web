@@ -21,6 +21,7 @@ const sharedItemFields = {
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
   lifecycle: reportLifecycleSchema.optional(),
+  target_visit_date: z.iso.date().nullable().optional(),
   final_latitude: z.number().min(-90).max(90).nullable(),
   final_longitude: z.number().min(-180).max(180).nullable(),
   location_source: nullableLocationSourceSchema,
@@ -74,6 +75,7 @@ export const fieldValidationQueueItemSchema = z.object(sharedItemFields);
 
 export const fieldValidationQueueResponseSchema = z.object({
   data: z.object({
+    queue: z.enum(["needs_visit", "follow_up_due"]).optional(),
     count: z.number().int().nonnegative(),
     oldest: fieldValidationQueueItemSchema.nullable(),
     items: z.array(fieldValidationQueueItemSchema),

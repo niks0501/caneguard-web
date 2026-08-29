@@ -240,6 +240,7 @@ class ReviewReportController extends Controller
         return new ReportResource($updated->load([
             'reporter',
             'reviewer',
+            'canonicalReport',
             'fieldValidationAssignment.assignee',
             'fieldValidationAssignment.assignedBy',
             'classScores',

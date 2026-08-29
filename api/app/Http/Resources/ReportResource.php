@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Report;
+use App\Models\ReportAudit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -102,6 +104,7 @@ class ReportResource extends JsonResource
                 'reviewed_at' => $this->reviewed_at?->utc()->toISOString(),
             ],
             'lifecycle' => $this->resource->lifecycleSnapshot(),
+            'duplicate_linkage' => $this->duplicateLinkage(),
             'field_validation_assignment' => $this->when(
                 $this->relationLoaded('fieldValidationAssignment'),
                 fn () => $this->fieldValidationAssignment
@@ -144,7 +147,8 @@ class ReportResource extends JsonResource
             ),
             'audit' => [
                 'metadata_corrections' => $this->audits
-                    ->map(fn ($audit) => [
+                    ->filter(fn (ReportAudit $audit): bool => $audit->field !== Report::AUDIT_FIELD_CANONICAL_REPORT)
+                    ->map(fn (ReportAudit $audit) => [
                         'id' => $audit->getKey(),
                         'field' => $audit->field,
                         'original_value' => $audit->original_value,
@@ -157,9 +161,50 @@ class ReportResource extends JsonResource
                         'reason' => $audit->reason,
                     ])
                     ->values(),
+                'duplicate_linkages' => $this->audits
+                    ->filter(fn (ReportAudit $audit): bool => $audit->field === Report::AUDIT_FIELD_CANONICAL_REPORT)
+                    ->map(fn (ReportAudit $audit) => [
+                        'id' => $audit->getKey(),
+                        'canonical_case_uuid' => $audit->corrected_value,
+                        'actor' => [
+                            'uuid' => $audit->actor->uuid,
+                            'name' => $audit->actor->name,
+                        ],
+                        'created_at' => $audit->created_at->utc()->toISOString(),
+                        'reason' => $audit->reason,
+                    ])
+                    ->values(),
             ],
             'version' => $this->lock_version,
             'updated_at' => $this->updated_at->utc()->toISOString(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function duplicateLinkage(): array
+    {
+        $linkAudit = $this->relationLoaded('audits')
+            ? $this->audits->firstWhere('field', Report::AUDIT_FIELD_CANONICAL_REPORT)
+            : null;
+        $canonical = $this->relationLoaded('canonicalReport')
+            ? $this->canonicalReport
+            : null;
+
+        return [
+            'is_duplicate' => $this->canonical_report_id !== null,
+            'canonical_case' => $canonical ? [
+                'uuid' => $canonical->uuid,
+                'reference_code' => $canonical->reference_code,
+                'submitted_at' => $canonical->submitted_at->utc()->toISOString(),
+            ] : null,
+            'linked_by' => $linkAudit?->actor ? [
+                'uuid' => $linkAudit->actor->uuid,
+                'name' => $linkAudit->actor->name,
+            ] : null,
+            'linked_at' => $linkAudit?->created_at?->utc()->toISOString(),
+            'reason' => $linkAudit?->reason,
         ];
     }
 }

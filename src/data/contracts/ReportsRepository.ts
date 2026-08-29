@@ -1,9 +1,11 @@
 import type {
   DiseaseReport,
   PaginatedReports,
+  PossibleRecentMatches,
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  DuplicateLinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -12,6 +14,7 @@ import type {
 export interface ReportsRepository {
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
   getReportById(reportId: string): Promise<DiseaseReport | null>;
+  getPossibleRecentMatches(reportId: string): Promise<PossibleRecentMatches>;
   updateReview(
     reportId: string,
     input: ReportReviewInput,
@@ -23,5 +26,9 @@ export interface ReportsRepository {
   recordExpertReferralResponse(
     reportId: string,
     input: ExpertReferralResponseInput,
+  ): Promise<DiseaseReport>;
+  linkDuplicate(
+    reportId: string,
+    input: DuplicateLinkInput,
   ): Promise<DiseaseReport>;
 }

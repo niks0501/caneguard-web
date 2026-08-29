@@ -4,6 +4,7 @@ import type {
   ReportFilters,
   ReviewStatus,
 } from "../domain/report.types";
+import { operationalQueueValues } from "../domain/operationalQueue";
 
 export const reportListPageSize = 15;
 
@@ -14,6 +15,7 @@ const statusSchema = z.enum([
   "unable_to_verify",
   "resolved",
 ]);
+const queueSchema = z.enum(operationalQueueValues);
 const diseaseSchema = z.enum(["healthy", "mosaic", "rust"]);
 const sortSchema = z.enum([
   "newest",
@@ -38,6 +40,7 @@ export function parseReportListUrl(
   searchParams: URLSearchParams,
 ): ReportListUrlState {
   const rawPage = optionalValue(searchParams, "page");
+  const rawQueue = optionalValue(searchParams, "queue");
   const rawSearch = optionalValue(searchParams, "search");
   const rawStatus = optionalValue(searchParams, "status");
   const rawDisease = optionalValue(searchParams, "predicted_label");
@@ -48,6 +51,7 @@ export function parseReportListUrl(
 
   const page =
     rawPage && /^\d+$/.test(rawPage) ? Number.parseInt(rawPage, 10) : 1;
+  const queue = rawQueue ? queueSchema.safeParse(rawQueue) : null;
   const status = rawStatus ? statusSchema.safeParse(rawStatus) : null;
   const disease = rawDisease ? diseaseSchema.safeParse(rawDisease) : null;
   const sort = rawSort ? sortSchema.safeParse(rawSort) : null;
@@ -60,6 +64,7 @@ export function parseReportListUrl(
         page < 1)) ||
     (rawSearch?.length ?? 0) > 120 ||
     (rawBarangay?.length ?? 0) > 120 ||
+    Boolean(queue && !queue.success) ||
     Boolean(status && !status.success) ||
     Boolean(disease && !disease.success) ||
     Boolean(sort && !sort.success) ||
@@ -71,6 +76,7 @@ export function parseReportListUrl(
     filters: {
       page,
       perPage: reportListPageSize,
+      ...(queue?.success ? { queue: queue.data } : {}),
       search: rawSearch,
       status: status?.success
         ? (status.data as ReviewStatus)
@@ -84,7 +90,8 @@ export function parseReportListUrl(
       sort: sort?.success ? sort.data : "newest",
     },
     hasActiveFilters: Boolean(
-      rawSearch ||
+      rawQueue ||
+        rawSearch ||
         rawStatus ||
         rawDisease ||
         rawBarangay ||

@@ -2,9 +2,11 @@ import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type {
   DiseaseReport,
   PaginatedReports,
+  PossibleRecentMatches,
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  DuplicateLinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -49,6 +51,12 @@ export class MockReportsRepository implements ReportsRepository {
           !filters?.status ||
           filters.status === "all" ||
           report.reviewStatus === filters.status;
+        const matchesQueue =
+          !filters?.queue ||
+          (filters.queue === "needs_review" &&
+            report.reviewStatus === "submitted_unverified") ||
+          (filters.queue === "needs_visit" &&
+            report.reviewStatus === "for_field_validation");
         const matchesDisease =
           !filters?.disease ||
           filters.disease === "all" ||
@@ -66,6 +74,7 @@ export class MockReportsRepository implements ReportsRepository {
         return (
           matchesSearch &&
           matchesStatus &&
+          matchesQueue &&
           matchesDisease &&
           matchesBarangay &&
           matchesDateFrom &&
@@ -107,6 +116,18 @@ export class MockReportsRepository implements ReportsRepository {
   async getReportById(reportId: string): Promise<DiseaseReport | null> {
     const report = this.reports.find((item) => item.uuid === reportId);
     return report ? cloneReport(report) : null;
+  }
+
+  async getPossibleRecentMatches(): Promise<PossibleRecentMatches> {
+    return {
+      matches: [],
+      message: "No possible recent match was found for this case.",
+      possibleMatch: false,
+      canSubmit: true,
+      assessment: "location_unavailable",
+      recentWindowHours: 72,
+      locationRadiusMeters: 100,
+    };
   }
 
   async updateReview(
@@ -258,6 +279,47 @@ export class MockReportsRepository implements ReportsRepository {
       updatedAt: now,
     };
     this.reports[index] = updated;
+    return cloneReport(updated);
+  }
+
+  async linkDuplicate(
+    reportId: string,
+    input: DuplicateLinkInput,
+  ): Promise<DiseaseReport> {
+    const duplicateIndex = this.reports.findIndex((report) => report.uuid === reportId);
+    const canonical = this.reports.find(
+      (report) => report.uuid === input.canonicalReportUuid,
+    );
+    if (duplicateIndex === -1 || !canonical) {
+      throw new Error("The selected report was not found.");
+    }
+
+    const current = this.reports[duplicateIndex];
+    if (current.canonicalLinkage?.isDuplicate) {
+      return cloneReport(current);
+    }
+
+    const now = new Date().toISOString();
+    const updated: DiseaseReport = {
+      ...current,
+      canonicalLinkage: {
+        isDuplicate: true,
+        canonicalCase: {
+          uuid: canonical.uuid,
+          referenceCode: canonical.referenceCode,
+          submittedAt: canonical.submittedAt,
+        },
+        linkedBy: {
+          uuid: "00000000-0000-4000-8000-000000000100",
+          name: "Maria Santos",
+        },
+        linkedAt: now,
+        reason: input.reason?.trim() || "Possible duplicate linkage recorded after authorized review.",
+      },
+      reviewVersion: (current.reviewVersion ?? 0) + 1,
+      updatedAt: now,
+    };
+    this.reports[duplicateIndex] = updated;
     return cloneReport(updated);
   }
 }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -273,7 +274,137 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.counts.verified_by_staff', 1)
             ->assertJsonPath('data.counts.unable_to_verify', 1)
             ->assertJsonPath('data.counts.resolved', 1)
+            ->assertJsonPath('data.queues.needs_review', 3)
+            ->assertJsonPath('data.queues.needs_visit', 1)
+            ->assertJsonPath('data.queues.follow_up_due', 0)
             ->assertJsonCount(5, 'data.recent_reports');
+    }
+
+    public function test_operational_report_queues_share_lifecycle_and_target_date_semantics(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-10 09:00:00');
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            $assignee = User::factory()->fieldReporter()->create();
+            $needsReview = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-REVIEW',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
+                'action_taken' => null,
+                'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+            ]);
+            $needsVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-VISIT',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            FieldValidationAssignment::factory()->create([
+                'report_id' => $needsVisit->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => '2026-09-09',
+            ]);
+            $completedVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-COMPLETED',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            FieldValidationAssignment::factory()->create([
+                'report_id' => $completedVisit->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => '2026-09-01',
+            ]);
+            $todayVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-TODAY',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            FieldValidationAssignment::factory()->create([
+                'report_id' => $todayVisit->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => '2026-09-10',
+            ]);
+            $noDateVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-NO-DATE',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            FieldValidationAssignment::factory()->create([
+                'report_id' => $noDateVisit->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => null,
+            ]);
+            $closedVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CLOSED',
+                'case_state' => Report::CASE_STATE_CLOSED,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            FieldValidationAssignment::factory()->create([
+                'report_id' => $closedVisit->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => '2026-09-01',
+            ]);
+
+            Sanctum::actingAs($reviewer);
+
+            $this->getJson('/api/v1/reports?queue=needs_review')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 2)
+                ->assertJsonFragment(['reference_code' => $needsReview->reference_code])
+                ->assertJsonFragment(['reference_code' => $completedVisit->reference_code])
+                ->assertJsonMissing(['reference_code' => $needsVisit->reference_code]);
+
+            $this->getJson('/api/v1/reports?queue=needs_visit')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 3)
+                ->assertJsonFragment(['reference_code' => $needsVisit->reference_code])
+                ->assertJsonFragment(['reference_code' => $todayVisit->reference_code])
+                ->assertJsonFragment(['reference_code' => $noDateVisit->reference_code])
+                ->assertJsonMissing(['reference_code' => $completedVisit->reference_code]);
+
+            $this->getJson('/api/v1/reports?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 1)
+                ->assertJsonFragment(['reference_code' => $needsVisit->reference_code])
+                ->assertJsonMissing(['reference_code' => $todayVisit->reference_code])
+                ->assertJsonMissing(['reference_code' => $noDateVisit->reference_code])
+                ->assertJsonMissing(['reference_code' => $closedVisit->reference_code]);
+
+            $this->getJson('/api/v1/reports/map?queue=needs_visit')
+                ->assertOk()
+                ->assertJsonPath('metadata.total_count', 3)
+                ->assertJsonPath('metadata.located_count', 3);
+
+            $this->getJson('/api/v1/reports/map?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('metadata.total_count', 1)
+                ->assertJsonPath('features.0.properties.reference_code', $needsVisit->reference_code);
+
+            $this->getJson('/api/v1/reports/field-validation-queue?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('data.queue', Report::QUEUE_FOLLOW_UP_DUE)
+                ->assertJsonPath('data.count', 1)
+                ->assertJsonPath('data.items.0.reference_code', $needsVisit->reference_code)
+                ->assertJsonPath('data.items.0.target_visit_date', '2026-09-09');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_report_queue_rejects_unauthenticated_and_wrong_role_users(): void

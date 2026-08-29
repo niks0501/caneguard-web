@@ -1,3 +1,5 @@
+import type { OperationalQueue } from "./operationalQueue";
+
 export type DiseaseKey = "healthy" | "mosaic" | "rust";
 
 export type AuthorityClassifiedCondition =
@@ -62,6 +64,48 @@ export interface ReportReferral {
   responseRecordedBy?: { uuid: string; name: string } | null;
   responseRecordedAt?: string | null;
   officeContext: ReferralOfficeContext;
+}
+
+export type PossibleMatchBasis =
+  | "same_condition"
+  | "nearby_location"
+  | "recent_submission";
+
+export type PossibleMatchAssessment =
+  | "condition_and_location"
+  | "location_unavailable";
+
+export interface PossibleRecentMatch {
+  uuid: string;
+  referenceCode: string;
+  submittedAt: string;
+  condition: DiseaseKey;
+  distanceMeters: number;
+  basis: PossibleMatchBasis[];
+  message: string;
+}
+
+export interface PossibleRecentMatches {
+  matches: PossibleRecentMatch[];
+  message: string;
+  possibleMatch: boolean;
+  canSubmit: boolean;
+  assessment: PossibleMatchAssessment;
+  recentWindowHours: number;
+  locationRadiusMeters: number;
+}
+
+export interface CanonicalCaseLink {
+  isDuplicate: boolean;
+  canonicalCase: {
+    uuid: string;
+    referenceCode: string;
+    submittedAt: string;
+  } | null;
+  linkedBy: { uuid: string; name: string } | null;
+  linkedAt?: string;
+  reason?: string;
+
 }
 
 export interface FieldValidationAssignment {
@@ -150,6 +194,7 @@ export interface DiseaseReport {
   reviewVersion?: number;
   updatedAt?: string;
   metadataCorrectionAudits?: ReportAudit[];
+  canonicalLinkage?: CanonicalCaseLink;
 }
 
 export interface ReportAudit {
@@ -163,6 +208,7 @@ export interface ReportAudit {
 }
 
 export interface ReportFilters {
+  queue?: OperationalQueue;
   search?: string;
   status?: ReviewStatus | "all";
   disease?: DiseaseKey | "all";

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -9,21 +10,24 @@ class QueryFieldValidationQueue
 {
     public function __construct(
         private readonly ApplyReportFilters $applyReportFilters,
+        private readonly ApplyOperationalQueueFilter $applyOperationalQueueFilter,
     ) {}
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return array{items: Collection<int, Report>, count: int}
+     * @return array{queue: string, items: Collection<int, Report>, count: int}
      */
     public function handle(array $filters): array
     {
-        $query = Report::query()
-            ->where('review_status', Report::STATUS_FOR_FIELD_VALIDATION);
-        $query = $this->applyReportFilters->handle($query, $filters, 'observed_at');
+        $queue = $filters['queue'] ?? Report::QUEUE_NEEDS_VISIT;
+        $query = Report::query();
+        $this->applyOperationalQueueFilter->handle($query, $queue);
+        $this->applyReportFilters->handle($query, $filters, 'observed_at');
 
         $count = (clone $query)->count('reports.id');
         $limit = (int) ($filters['limit'] ?? 50);
         $items = $query
+            ->with('fieldValidationAssignment')
             ->select([
                 'id',
                 'uuid',
@@ -47,6 +51,13 @@ class QueryFieldValidationQueue
                 'field_validation_state',
                 'referral_state',
             ])
+            ->when(
+                $queue === Report::QUEUE_FOLLOW_UP_DUE,
+                fn ($query) => $query->orderBy(
+                    FieldValidationAssignment::select('target_visit_date')
+                        ->whereColumn('report_id', 'reports.id'),
+                ),
+            )
             ->orderByRaw('CASE WHEN observed_at IS NULL THEN 1 ELSE 0 END ASC')
             ->orderBy('observed_at')
             ->orderBy('submitted_at')
@@ -55,6 +66,7 @@ class QueryFieldValidationQueue
             ->get();
 
         return [
+            'queue' => $queue,
             'items' => $items,
             'count' => $count,
         ];

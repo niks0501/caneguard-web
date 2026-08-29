@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import type {
+  DuplicateLinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
 } from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
 import {
+  possibleRecentMatchesQueryOptions,
   reportKeys,
   reportQueryOptions,
   reportsQueryOptions,
@@ -39,6 +41,10 @@ function useReportMutation<TInput>(
   });
 }
 
+export function usePossibleRecentMatches(reportId: string) {
+  return useQuery(possibleRecentMatchesQueryOptions(reportId));
+}
+
 export function useUpdateReportReview(reportId: string) {
   return useReportMutation<ReportReviewInput>(
     reportId,
@@ -57,5 +63,12 @@ export function useRecordExpertReferralResponse(reportId: string) {
   return useReportMutation<ExpertReferralResponseInput>(
     reportId,
     (input) => reportsRepository.recordExpertReferralResponse(reportId, input),
+  );
+}
+
+export function useLinkDuplicateReport(reportId: string) {
+  return useReportMutation<DuplicateLinkInput>(
+    reportId,
+    (input) => reportsRepository.linkDuplicate(reportId, input),
   );
 }

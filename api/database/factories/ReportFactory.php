@@ -80,6 +80,7 @@ class ReportFactory extends Factory
             'captured_at' => $capturedAt,
             'submitted_at' => fake()->dateTimeBetween($capturedAt, 'now'),
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+            'lock_version' => 0,
             'action_taken' => null,
             'authority_classified_condition' => null,
         ];

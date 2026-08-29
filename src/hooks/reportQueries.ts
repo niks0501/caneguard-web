@@ -11,6 +11,8 @@ export const reportKeys = {
   details: () => [...reportKeys.all, "detail"] as const,
   detail: (reportId: string) =>
     [...reportKeys.details(), reportId] as const,
+  possibleMatches: (reportId: string) =>
+    [...reportKeys.detail(reportId), "possible-matches"] as const,
 };
 
 export const reportsQueryOptions = (
@@ -29,5 +31,12 @@ export const reportQueryOptions = (reportId: string) =>
   queryOptions({
     queryKey: reportKeys.detail(reportId),
     queryFn: () => reportsRepository.getReportById(reportId),
+    enabled: Boolean(reportId),
+  });
+
+export const possibleRecentMatchesQueryOptions = (reportId: string) =>
+  queryOptions({
+    queryKey: reportKeys.possibleMatches(reportId),
+    queryFn: () => reportsRepository.getPossibleRecentMatches(reportId),
     enabled: Boolean(reportId),
   });
