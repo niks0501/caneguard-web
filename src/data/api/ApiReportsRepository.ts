@@ -30,6 +30,7 @@ function toQueryParams(filters: ReportFilters = {}) {
   return {
     page: filters.page,
     per_page: filters.perPage,
+    queue: filters.queue,
     search: filters.search?.trim() || undefined,
     status:
       filters.status && filters.status !== "all" ? filters.status : undefined,

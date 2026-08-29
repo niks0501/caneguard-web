@@ -23,6 +23,7 @@ function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueIte
     confidence: dto.confidence,
     reviewStatus: dto.review_status,
     lifecycle: mapReportLifecycle(dto.lifecycle, dto.review_status),
+    targetVisitDate: dto.target_visit_date ?? null,
     finalLatitude: dto.final_latitude,
     finalLongitude: dto.final_longitude,
     locationSource: dto.location_source,
@@ -72,6 +73,7 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
 
 export function mapFieldValidationQueue(
   data: {
+    queue?: "needs_visit" | "follow_up_due";
     count: number;
     oldest: FieldValidationQueueItemDto | null;
     items: FieldValidationQueueItemDto[];
@@ -79,6 +81,7 @@ export function mapFieldValidationQueue(
 ): FieldValidationQueueData {
   const items = data.items.map(mapQueueItem);
   return {
+    queue: data.queue,
     count: data.count,
     oldest: data.oldest ? mapQueueItem(data.oldest) : null,
     items,

@@ -117,6 +117,45 @@ function metadataCorrectionsFor(
   return Object.keys(corrections).length ? corrections : undefined;
 }
 
+const checklistConsistencyLabels: Record<string, string> = {
+  consistent: "Consistent with the possible AI result",
+  inconsistent: "Differs from the possible AI result",
+  inconclusive: "Inconclusive against the possible AI result",
+};
+
+function checklistConsistencyLabel(value?: string) {
+  return value
+    ? checklistConsistencyLabels[value] ?? value.replaceAll("_", " ")
+    : "Not provided";
+}
+
+function symptomAgreementFor(report: DiseaseReport) {
+  return report.checklistConsistency
+    ? checklistConsistencyLabel(report.checklistConsistency)
+    : "Not provided";
+}
+
+function reporterComparisonFor(report: DiseaseReport) {
+  if (report.mismatchReported === true) {
+    return "Disagrees with the possible AI result";
+  }
+  if (report.mismatchReported === false) {
+    return "Agrees with the possible AI result";
+  }
+  return "Not collected";
+}
+
+function symptomAgreementToneFor(report: DiseaseReport) {
+  if (report.mismatchReported === true || report.checklistConsistency === "inconsistent") {
+    return "inconsistent";
+  }
+  if (report.checklistConsistency === "inconclusive") return "inconclusive";
+  if (report.mismatchReported === false || report.checklistConsistency === "consistent") {
+    return "consistent";
+  }
+  return "unknown";
+}
+
 export function CaseReviewPage() {
   const { reportId = "" } = useParams();
   const navigate = useNavigate();
@@ -383,10 +422,39 @@ export function CaseReviewPage() {
               <span>Captured {formatDateTime(report.capturedAt)}</span>
               <span>Submitted {formatDateTime(report.submittedAt)}</span>
             </div>
-            <dl className="evidence-properties">
-              <DetailField label="File type">{report.imageMimeType ?? "Unavailable"}</DetailField>
-              <DetailField label="Image size">{report.imageSizeBytes ? `${Math.round(report.imageSizeBytes / 1024)} KB` : "Unavailable"}</DetailField>
-              <DetailField label="Dimensions">{report.sourceWidth && report.sourceHeight ? `${report.sourceWidth} × ${report.sourceHeight}` : "Not provided"}</DetailField>
+            <div className="review-essential-result" aria-label="Possible AI result">
+              <div className="review-essential-result__heading">
+                <div>
+                  <p className="eyebrow">Decision support</p>
+                  <h3>Possible AI result</h3>
+                </div>
+                <DiseaseBadge disease={report.predictedDisease} />
+              </div>
+              <ConfidenceDisplay confidence={report.confidence} />
+              <p><strong>Decision-support only.</strong> Compare this possible result with the symptom responses, reporter observation, and field context. It is not a diagnosis.</p>
+            </div>
+            <dl className="review-essential-context">
+              <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
+              <DetailField label="Farmer or farm owner">{report.farmerOrFarmOwnerName ?? "Not provided"}</DetailField>
+              <DetailField label="Barangay">{report.barangay}</DetailField>
+              <DetailField label="Municipality">{report.municipality ?? "Not provided"}</DetailField>
+              <DetailField label="Province">{report.province ?? "Not provided"}</DetailField>
+              <DetailField label="Coordinates">
+                {report.finalLatitude !== undefined && report.finalLongitude !== undefined
+                  ? `${report.finalLatitude}, ${report.finalLongitude}`
+                  : "Not provided"}
+              </DetailField>
+              <DetailField label="Location source">
+                {report.locationSource === "gps"
+                  ? "GPS"
+                  : report.locationSource === "manual_map"
+                    ? "Manual map"
+                    : "Not provided"}
+              </DetailField>
+              <DetailField label="GPS accuracy">{report.gpsAccuracy !== undefined ? `${report.gpsAccuracy} m` : "Not provided"}</DetailField>
+              <DetailField label="Affected area">{report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : "Not provided"}</DetailField>
+              <DetailField label="Affected portion">{report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : "Not provided"}</DetailField>
+              <DetailField label="Reporter">{report.submittedByName}</DetailField>
             </dl>
             <div className="quality-summary">
               <strong>Image quality checks</strong>
@@ -398,6 +466,12 @@ export function CaseReviewPage() {
 
           <section className="review-card" aria-labelledby="symptoms-heading">
             <div className="section-heading"><div><p className="eyebrow">Guided observation</p><h2 id="symptoms-heading">Submitted symptom responses</h2></div><ClipboardList aria-hidden="true" /></div>
+            <div className={`symptom-agreement symptom-agreement--${symptomAgreementToneFor(report)}`} role="status">
+              <span>Symptom agreement</span>
+              <strong>Checklist responses: {symptomAgreementFor(report)}</strong>
+              <span className="symptom-agreement__reporter">Reporter observation: {reporterComparisonFor(report)}</span>
+              <p>Checklist consistency and reporter mismatch are separate signals for review.</p>
+            </div>
             <ul className="symptom-list">
               {report.symptoms.map((response) => <SymptomResponseItem response={response} key={response.id} />)}
             </ul>
@@ -411,29 +485,7 @@ export function CaseReviewPage() {
               <DetailField label="Sugarcane variety">{report.sugarcaneVariety ?? "Not provided"}</DetailField>
               <DetailField label="Crop age">{report.cropAge ?? "Not provided"}</DetailField>
               <DetailField label="Cane class">{report.caneClass ?? "Not provided"}</DetailField>
-              <DetailField label="Affected area">{report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : "Not provided"}</DetailField>
-              <DetailField label="Affected portion">{report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : "Not provided"}</DetailField>
               <DetailField label="Field notes">{report.fieldNotes ?? "Not provided"}</DetailField>
-              <DetailField label="Farmer or farm owner">{report.farmerOrFarmOwnerName ?? "Not provided"}</DetailField>
-              <DetailField label="Province">{report.province ?? "Not provided"}</DetailField>
-              <DetailField label="Municipality">{report.municipality ?? "Not provided"}</DetailField>
-              <DetailField label="Final location">
-                {report.finalLatitude !== undefined && report.finalLongitude !== undefined
-                  ? `${report.finalLatitude}, ${report.finalLongitude}`
-                  : "Not provided"}
-              </DetailField>
-              <DetailField label="Location source">
-                {report.locationSource === "gps"
-                  ? "GPS"
-                  : report.locationSource === "manual_map"
-                    ? "Manual map"
-                    : "Not provided"}
-              </DetailField>
-              <DetailField label="GPS accuracy">
-                {report.gpsAccuracy !== undefined ? `${report.gpsAccuracy} m` : "Not provided"}
-              </DetailField>
-              <DetailField label="Barangay">{report.barangay}</DetailField>
-              <DetailField label="Reporter">{report.submittedByName}</DetailField>
             </dl>
           </section>
         </div>
@@ -454,33 +506,41 @@ export function CaseReviewPage() {
             </dl>
           </section>
 
-          <section className="review-card model-card">
-            <div className="section-heading"><div><p className="eyebrow">Model decision support</p><h2>Image assessment</h2></div><ScanLine aria-hidden="true" /></div>
-            <DiseaseBadge disease={report.predictedDisease} />
-            <ConfidenceDisplay confidence={report.confidence} />
-            <div className="model-breakdown">
-              {(report.classScores ?? []).map((score) => (
-                <div key={score.label}>
-                  <span>{score.label}</span>
-                  <strong>{Math.round(score.score * 100)}%</strong>
-                </div>
-              ))}
+          <details className="review-card technical-evidence">
+            <summary>
+              <span>
+                <span className="eyebrow">Additional evidence</span>
+                <strong>Technical Evidence</strong>
+              </span>
+              <ScanLine aria-hidden="true" />
+            </summary>
+            <div className="technical-evidence__content">
+              <p className="technical-evidence__description">Model, processing, and image details remain available for audit without leading the operational review.</p>
+              <div className="model-breakdown">
+                {(report.classScores ?? []).map((score) => (
+                  <div key={score.label}>
+                    <span>{score.label}</span>
+                    <strong>{Math.round(score.score * 100)}%</strong>
+                  </div>
+                ))}
+              </div>
+              <dl className="detail-list model-metadata">
+                <DetailField label="Model version">{report.modelVersion ?? "Unavailable"}</DetailField>
+                <DetailField label="Total processing">{report.processingTimingsMs ? `${report.processingTimingsMs.total} ms` : "Unavailable"}</DetailField>
+                <DetailField label="Preprocess">{report.processingTimingsMs ? `${report.processingTimingsMs.preprocess} ms` : "Unavailable"}</DetailField>
+                <DetailField label="Inference">{report.processingTimingsMs ? `${report.processingTimingsMs.inference} ms` : "Unavailable"}</DetailField>
+                <DetailField label="Image source">{report.imageSourceType ?? "Unavailable"}</DetailField>
+                <DetailField label="File type">{report.imageMimeType ?? "Unavailable"}</DetailField>
+                <DetailField label="Image size">{report.imageSizeBytes ? `${Math.round(report.imageSizeBytes / 1024)} KB` : "Unavailable"}</DetailField>
+                <DetailField label="Dimensions">{report.sourceWidth && report.sourceHeight ? `${report.sourceWidth} × ${report.sourceHeight}` : "Not provided"}</DetailField>
+              </dl>
+              <div className="decision-reminder"><Info aria-hidden="true" /><p><strong>Decision-support only</strong><span>This result is not a diagnosis. Compare it with the submitted observations and field context.</span></p></div>
             </div>
-            <dl className="detail-list model-metadata">
-              <DetailField label="Model version">{report.modelVersion ?? "Unavailable"}</DetailField>
-              <DetailField label="Total processing">{report.processingTimingsMs ? `${report.processingTimingsMs.total} ms` : "Unavailable"}</DetailField>
-              <DetailField label="Preprocess">{report.processingTimingsMs ? `${report.processingTimingsMs.preprocess} ms` : "Unavailable"}</DetailField>
-              <DetailField label="Inference">{report.processingTimingsMs ? `${report.processingTimingsMs.inference} ms` : "Unavailable"}</DetailField>
-            </dl>
-            <div className="decision-reminder"><Info aria-hidden="true" /><p><strong>Decision-support only</strong><span>This result is not a diagnosis. Compare it with the submitted observations and field context.</span></p></div>
-          </section>
+          </details>
 
           <section className="review-card">
             <div className="section-heading"><div><p className="eyebrow">Submission details</p><h2>Report context</h2></div><MapPin aria-hidden="true" /></div>
             <dl className="detail-list">
-              <DetailField label="Barangay">{report.barangay}</DetailField>
-              <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
-              <DetailField label="Submitted by">{report.submittedByName}</DetailField>
               <DetailField label="Submitter role">{submitterRoleLabels[report.submitterRole]}</DetailField>
               <DetailField label="Observed at">{report.observedAt ? formatDateTime(report.observedAt) : "Not provided"}</DetailField>
               <DetailField label="Submitted at">{formatDateTime(report.submittedAt)}</DetailField>

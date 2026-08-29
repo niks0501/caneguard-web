@@ -9,6 +9,7 @@ describe("parseReportListUrl", () => {
     const state = parseReportListUrl(
       new URLSearchParams({
         page: "2",
+        queue: "needs_review",
         search: "CG-2026",
         status: "submitted_unverified",
         predicted_label: "rust",
@@ -23,6 +24,7 @@ describe("parseReportListUrl", () => {
       filters: {
         page: 2,
         perPage: reportListPageSize,
+        queue: "needs_review",
         search: "CG-2026",
         status: "submitted_unverified",
         disease: "rust",
@@ -40,6 +42,7 @@ describe("parseReportListUrl", () => {
     ["page=0"],
     ["page=not-a-number"],
     ["status=confirmed"],
+    ["queue=not-a-queue"],
     ["predicted_label=smut"],
     ["date_from=2026-07-31&date_to=2026-07-01"],
     ["date_from=2026-02-30"],

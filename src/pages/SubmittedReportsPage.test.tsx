@@ -102,6 +102,17 @@ describe("SubmittedReportsPage", () => {
     ).toHaveTextContent("Open");
   });
 
+  it("opens an operational queue as a filtered report workspace", () => {
+    renderPage("/reports?queue=needs_review");
+
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: "needs_review", page: 1 }),
+      { enabled: true },
+    );
+    expect(screen.getByRole("heading", { name: "Needs Review" })).toBeInTheDocument();
+    expect(screen.getByText("Filtered operational workspace")).toBeInTheDocument();
+  });
+
   it("stores filter and page changes in the URL and resets the page", async () => {
     const user = userEvent.setup();
     renderPage("/reports?page=3&status=resolved");

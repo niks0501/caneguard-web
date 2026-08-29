@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Reports\ApplyOperationalQueueFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardSummaryRequest;
 use App\Http\Resources\ReportListResource;
@@ -10,8 +11,10 @@ use Illuminate\Http\JsonResponse;
 
 class DashboardSummaryController extends Controller
 {
-    public function __invoke(DashboardSummaryRequest $request): JsonResponse
-    {
+    public function __invoke(
+        DashboardSummaryRequest $request,
+        ApplyOperationalQueueFilter $applyOperationalQueueFilter,
+    ): JsonResponse {
         $counts = array_fill_keys(Report::reviewStatuses(), 0);
 
         Report::query()
@@ -21,6 +24,13 @@ class DashboardSummaryController extends Controller
             ->each(function (int $count, string $status) use (&$counts) {
                 $counts[$status] = $count;
             });
+
+        $queueCounts = [];
+        foreach (Report::operationalQueues() as $queue) {
+            $queueCounts[$queue] = $applyOperationalQueueFilter
+                ->handle(Report::query(), $queue)
+                ->count('reports.id');
+        }
 
         $recentReports = Report::query()
             ->with(['reporter', 'reviewer'])
@@ -34,6 +44,7 @@ class DashboardSummaryController extends Controller
                     'total_submitted' => array_sum($counts),
                     ...$counts,
                 ],
+                'queues' => $queueCounts,
                 'recent_reports' => ReportListResource::collection($recentReports)
                     ->resolve($request),
             ],

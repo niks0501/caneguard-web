@@ -12,6 +12,7 @@ const statusSchema = z.enum([
   "unable_to_verify",
   "resolved",
 ]);
+const queueSchema = z.enum(["needs_visit", "follow_up_due"]);
 const diseaseSchema = z.enum(["healthy", "mosaic", "rust"]);
 const dateSchema = z.iso.date();
 
@@ -27,11 +28,13 @@ function optionalValue(searchParams: URLSearchParams, key: string) {
 }
 
 export function parseMapUrl(searchParams: URLSearchParams): MapUrlState {
+  const rawQueue = optionalValue(searchParams, "queue");
   const rawStatus = optionalValue(searchParams, "status");
   const rawDisease = optionalValue(searchParams, "predicted_label");
   const rawBarangay = optionalValue(searchParams, "barangay");
   const rawDateFrom = optionalValue(searchParams, "date_from");
   const rawDateTo = optionalValue(searchParams, "date_to");
+  const queue = rawQueue ? queueSchema.safeParse(rawQueue) : null;
   const status = rawStatus ? statusSchema.safeParse(rawStatus) : null;
   const disease = rawDisease ? diseaseSchema.safeParse(rawDisease) : null;
   const dateFrom = rawDateFrom ? dateSchema.safeParse(rawDateFrom) : null;
@@ -39,6 +42,7 @@ export function parseMapUrl(searchParams: URLSearchParams): MapUrlState {
 
   return {
     filters: {
+      ...(queue?.success ? { queue: queue.data } : {}),
       status: status?.success ? (status.data as ReviewStatus) : undefined,
       disease: disease?.success ? (disease.data as DiseaseKey) : undefined,
       barangay: rawBarangay,
@@ -46,10 +50,11 @@ export function parseMapUrl(searchParams: URLSearchParams): MapUrlState {
       dateTo: dateTo?.success ? dateTo.data : undefined,
     },
     hasActiveFilters: Boolean(
-      rawStatus || rawDisease || rawBarangay || rawDateFrom || rawDateTo,
+      rawQueue || rawStatus || rawDisease || rawBarangay || rawDateFrom || rawDateTo,
     ),
     invalid:
       (rawBarangay?.length ?? 0) > 120 ||
+      Boolean(queue && !queue.success) ||
       Boolean(status && !status.success) ||
       Boolean(disease && !disease.success) ||
       Boolean(dateFrom && !dateFrom.success) ||
@@ -62,6 +67,7 @@ export function writeMapUrl(
   filters: FieldValidationFilters,
 ): URLSearchParams {
   const searchParams = new URLSearchParams();
+  if (filters.queue) searchParams.set("queue", filters.queue);
   if (filters.status) searchParams.set("status", filters.status);
   if (filters.disease) searchParams.set("predicted_label", filters.disease);
   if (filters.barangay?.trim()) {

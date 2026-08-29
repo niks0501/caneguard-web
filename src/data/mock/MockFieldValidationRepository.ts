@@ -30,6 +30,7 @@ function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
     predictedDisease: report.predictedDisease,
     confidence: report.confidence,
     reviewStatus: report.reviewStatus,
+    targetVisitDate: null,
     finalLatitude: report.finalLatitude ?? null,
     finalLongitude: report.finalLongitude ?? null,
     locationSource: report.locationSource ?? null,
@@ -46,6 +47,9 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
         (filters.status
           ? report.reviewStatus === filters.status
           : report.reviewStatus !== "resolved") &&
+        (filters.queue === "needs_visit"
+          ? report.reviewStatus === "for_field_validation"
+          : filters.queue !== "follow_up_due") &&
         matchesFilters(report, filters),
     );
     const located = reports.filter(
@@ -92,6 +96,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
       .filter(
         (report) =>
           report.reviewStatus === "for_field_validation" &&
+          filters.queue !== "follow_up_due" &&
           matchesFilters(report, filters),
       )
       .sort((first, second) => {
@@ -110,6 +115,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
       .map(toQueueItem);
 
     return {
+      queue: filters.queue ?? "needs_visit",
       count: items.length,
       oldest: items[0] ?? null,
       items: items.slice(0, 50),

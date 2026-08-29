@@ -20,6 +20,7 @@ function toQueryParams(
   includeStatus = true,
 ) {
   return {
+    queue: filters.queue,
     status: includeStatus ? filters.status : undefined,
     predicted_label: filters.disease,
     barangay: filters.barangay?.trim() || undefined,

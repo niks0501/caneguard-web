@@ -10,8 +10,10 @@ final class ReportFilterRules
     /**
      * @return array<string, array<int, mixed>>
      */
-    public static function rules(bool $includeStatus = true): array
-    {
+    public static function rules(
+        bool $includeStatus = true,
+        bool $includeQueue = true,
+    ): array {
         $rules = [
             'predicted_label' => ['sometimes', Rule::in(Report::labels())],
             'barangay' => ['sometimes', 'string', 'max:120'],
@@ -25,6 +27,10 @@ final class ReportFilterRules
 
         if ($includeStatus) {
             $rules['status'] = ['sometimes', Rule::in(Report::reviewStatuses())];
+        }
+
+        if ($includeQueue) {
+            $rules['queue'] = ['sometimes', Rule::in(Report::operationalQueues())];
         }
 
         return $rules;

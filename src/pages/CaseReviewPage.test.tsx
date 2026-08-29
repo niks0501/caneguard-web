@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { ZodError } from "zod";
@@ -73,7 +73,9 @@ describe("CaseReviewPage", () => {
       name: `Submitted sugarcane evidence for ${report.referenceCode}`,
     });
     expect(image).toHaveAttribute("src", report.imageUrl);
-    expect(screen.getByText(report.modelVersion!)).toBeInTheDocument();
+    const technicalEvidence = screen.getByText("Technical Evidence").closest("details");
+    expect(technicalEvidence).not.toHaveAttribute("open");
+    expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
     expect(screen.getAllByText("93%").length).toBeGreaterThan(0);
     expect(screen.getByText("Checklist consistency")).toBeInTheDocument();
     expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
@@ -92,7 +94,10 @@ describe("CaseReviewPage", () => {
     expect(
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Decision-support only")).toBeInTheDocument();
+    expect(screen.getByText("Decision-support only.")).toBeInTheDocument();
+    expect(screen.getByText("Symptom agreement")).toBeInTheDocument();
+    expect(screen.getByText("Checklist responses: Consistent with the possible AI result")).toBeInTheDocument();
+    expect(screen.getByText("Reporter observation: Disagrees with the possible AI result")).toBeInTheDocument();
     expect(screen.getByText("Reporter flagged AI mismatch")).toBeInTheDocument();
     const reviewSummary = screen.getByRole("region", { name: "Choose the next safe action" });
     expect(reviewSummary).toHaveTextContent("Selected response");
@@ -119,6 +124,10 @@ describe("CaseReviewPage", () => {
         name: `Submitted sugarcane evidence for ${report.referenceCode}`,
       }),
     ).toBeInTheDocument();
+
+    await user.click(screen.getByText("Technical Evidence"));
+    expect(technicalEvidence).toHaveAttribute("open");
+    expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
   });
 
   it("distinguishes an unasked mismatch state from an explicit no", () => {
