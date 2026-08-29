@@ -24,6 +24,12 @@ function installApiHealthHandler() {
     http.get(`${baseUrl}/api/health`, () =>
       HttpResponse.json(healthyApiResponse),
     ),
+    http.get(`${baseUrl}/api/v1/notifications`, () =>
+      HttpResponse.json({
+        data: [],
+        meta: { unread_count: 0, returned_count: 0 },
+      }),
+    ),
   );
 }
 

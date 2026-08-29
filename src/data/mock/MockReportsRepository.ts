@@ -4,7 +4,11 @@ import type {
   PaginatedReports,
   ReportFilters,
 } from "../../domain/report.types";
-import type { ReportReviewInput } from "../../domain/review.types";
+import type {
+  ExpertReferralResponseInput,
+  ReportReferralInput,
+  ReportReviewInput,
+} from "../../domain/review.types";
 import { diseaseLabels } from "../../domain/report.metadata";
 import {
   legacyLifecycleForReviewStatus,
@@ -17,6 +21,12 @@ const cloneReport = (report: DiseaseReport): DiseaseReport => ({
   updatedAt: report.updatedAt ?? report.submittedAt,
   reviewVersion: report.reviewVersion ?? 0,
   symptoms: report.symptoms.map((symptom) => ({ ...symptom })),
+  referral: report.referral
+    ? {
+        ...report.referral,
+        officeContext: { ...report.referral.officeContext },
+      }
+    : report.referral,
 });
 
 export class MockReportsRepository implements ReportsRepository {
@@ -143,6 +153,109 @@ export class MockReportsRepository implements ReportsRepository {
       reviewedAt: new Date().toISOString(),
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       updatedAt: new Date().toISOString(),
+    };
+    this.reports[index] = updated;
+    return cloneReport(updated);
+  }
+
+  async recordReferral(
+    reportId: string,
+    input: ReportReferralInput,
+  ): Promise<DiseaseReport> {
+    const index = this.reports.findIndex((report) => report.uuid === reportId);
+    if (index === -1) throw new Error(`Report ${reportId} was not found.`);
+
+    const current = this.reports[index];
+    const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
+    const now = new Date().toISOString();
+    const nextLifecycle = { ...lifecycle, referralState: "referred" as const };
+    const updated: DiseaseReport = {
+      ...current,
+      actionTaken: "referred_for_expert_validation",
+      authorityClassifiedCondition:
+        input.authorityClassifiedCondition === undefined
+          ? current.authorityClassifiedCondition
+          : input.authorityClassifiedCondition,
+      reviewNotes:
+        input.officeNotes === undefined
+          ? current.reviewNotes
+          : input.officeNotes?.trim() || undefined,
+      reviewStatus: legacyReviewStatusForLifecycle(nextLifecycle),
+      lifecycle: nextLifecycle,
+      referral: {
+        destination: input.destination.trim(),
+        reference: input.reference.trim(),
+        referralDate: input.referralDate,
+        note: input.note?.trim() || null,
+        officeContext: {
+          caseState: lifecycle.caseState,
+          verificationOutcome:
+            input.verificationOutcome ?? lifecycle.verificationOutcome,
+          fieldValidationState: lifecycle.fieldValidationState,
+          actionTaken: "referred_for_expert_validation",
+          authorityClassifiedCondition:
+            input.authorityClassifiedCondition === undefined
+              ? current.authorityClassifiedCondition
+              : input.authorityClassifiedCondition,
+          notes:
+            input.officeNotes === undefined
+              ? current.reviewNotes ?? null
+              : input.officeNotes?.trim() || null,
+          reviewer: null,
+          reviewedAt: now,
+        },
+      },
+      reviewVersion: (current.reviewVersion ?? 0) + 1,
+      reviewedAt: now,
+      updatedAt: now,
+    };
+    updated.lifecycle = {
+      ...nextLifecycle,
+      verificationOutcome:
+        input.verificationOutcome ?? lifecycle.verificationOutcome,
+    };
+    this.reports[index] = updated;
+    return cloneReport(updated);
+  }
+
+  async recordExpertReferralResponse(
+    reportId: string,
+    input: ExpertReferralResponseInput,
+  ): Promise<DiseaseReport> {
+    const index = this.reports.findIndex((report) => report.uuid === reportId);
+    if (index === -1) throw new Error(`Report ${reportId} was not found.`);
+
+    const current = this.reports[index];
+    if (!current.referral) throw new Error("The report has no referral.");
+    const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
+    const now = new Date().toISOString();
+    const updated: DiseaseReport = {
+      ...current,
+      authorityClassifiedCondition:
+        input.authorityClassifiedCondition === undefined
+          ? current.authorityClassifiedCondition
+          : input.authorityClassifiedCondition,
+      reviewStatus: legacyReviewStatusForLifecycle({
+        ...lifecycle,
+        verificationOutcome:
+          input.verificationOutcome ?? lifecycle.verificationOutcome,
+      }),
+      lifecycle: {
+        ...lifecycle,
+        verificationOutcome:
+          input.verificationOutcome ?? lifecycle.verificationOutcome,
+        referralState: "expert_response_received",
+      },
+      referral: {
+        ...current.referral,
+        responseDate: input.responseDate,
+        responseNote: input.responseNote?.trim() || null,
+        responseFinding: input.responseFinding?.trim() || null,
+        responseRecordedAt: now,
+      },
+      reviewVersion: (current.reviewVersion ?? 0) + 1,
+      reviewedAt: now,
+      updatedAt: now,
     };
     this.reports[index] = updated;
     return cloneReport(updated);

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\ExpertReferralResponseController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldValidationQueueController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
@@ -14,8 +15,10 @@ use App\Http\Controllers\Api\V1\MobileNotificationController;
 use App\Http\Controllers\Api\V1\MobileReportController;
 use App\Http\Controllers\Api\V1\MobileReportStatusController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\ReferralSummaryController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportImageController;
+use App\Http\Controllers\Api\V1\ReportReferralController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +42,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         ->name('api.v1.reports.field-validation-queue');
     Route::get('/reports/{report}/image', ReportImageController::class)
         ->name('api.v1.reports.image');
+    Route::get('/reports/{report}/referral/summary', ReferralSummaryController::class)
+        ->name('api.v1.reports.referral.summary');
+    Route::get('/reports/{report}/referral-summary', ReferralSummaryController::class)
+        ->name('api.v1.reports.referral-summary');
+    Route::post('/reports/{report}/referral', [ReportReferralController::class, 'store']);
+    Route::post('/reports/{report}/referral/response', ExpertReferralResponseController::class);
     Route::get('/reports/{report}', [ReportController::class, 'show']);
     Route::patch('/reports/{report}/review', ReviewReportController::class);
 

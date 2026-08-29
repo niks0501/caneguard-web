@@ -108,6 +108,40 @@ class ReportResource extends JsonResource
                     ? (new FieldValidationAssignmentResource($this->fieldValidationAssignment))->resolve($request)
                     : null,
             ),
+            'referral' => $this->when(
+                $this->relationLoaded('referral'),
+                fn () => $this->referral ? [
+                    'destination' => $this->referral->destination,
+                    'reference' => $this->referral->reference,
+                    'referral_date' => $this->referral->referral_date?->format('Y-m-d'),
+                    'note' => $this->referral->note,
+                    'response_date' => $this->referral->response_date?->format('Y-m-d'),
+                    'response_note' => $this->referral->response_note,
+                    'response_finding' => $this->referral->response_finding,
+                    'referred_by' => $this->referral->referredBy ? [
+                        'uuid' => $this->referral->referredBy->uuid,
+                        'name' => $this->referral->referredBy->name,
+                    ] : null,
+                    'response_recorded_by' => $this->referral->responseRecordedBy ? [
+                        'uuid' => $this->referral->responseRecordedBy->uuid,
+                        'name' => $this->referral->responseRecordedBy->name,
+                    ] : null,
+                    'office_context' => [
+                        'case_state' => $this->referral->office_case_state,
+                        'verification_outcome' => $this->referral->office_verification_outcome,
+                        'field_validation_state' => $this->referral->office_field_validation_state,
+                        'action_taken' => $this->referral->office_action_taken,
+                        'authority_classified_condition' => $this->referral->office_authority_classified_condition,
+                        'notes' => $this->referral->office_review_notes,
+                        'reviewer' => $this->referral->officeReviewer ? [
+                            'uuid' => $this->referral->officeReviewer->uuid,
+                            'name' => $this->referral->officeReviewer->name,
+                        ] : null,
+                        'reviewed_at' => $this->referral->office_reviewed_at?->utc()->toISOString(),
+                    ],
+                    'response_recorded_at' => $this->referral->response_recorded_at?->utc()->toISOString(),
+                ] : null,
+            ),
             'audit' => [
                 'metadata_corrections' => $this->audits
                     ->map(fn ($audit) => [

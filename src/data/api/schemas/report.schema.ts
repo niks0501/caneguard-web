@@ -57,6 +57,31 @@ export const fieldValidationAssignmentSchema = z.object({
   updated_at: z.iso.datetime({ offset: true }),
 });
 
+const referralPersonSchema = userSchema.pick({ uuid: true, name: true });
+export const referralOfficeContextSchema = z.object({
+  case_state: caseStateSchema,
+  verification_outcome: verificationOutcomeSchema,
+  field_validation_state: fieldValidationStateSchema,
+  action_taken: actionTakenSchema.nullable(),
+  authority_classified_condition: authorityClassifiedConditionSchema.nullable(),
+  notes: z.string().nullable(),
+  reviewer: referralPersonSchema.nullable(),
+  reviewed_at: z.iso.datetime({ offset: true }).nullable(),
+});
+export const reportReferralSchema = z.object({
+  destination: z.string(),
+  reference: z.string(),
+  referral_date: z.string(),
+  note: z.string().nullable(),
+  response_date: z.string().nullable(),
+  response_note: z.string().nullable(),
+  response_finding: z.string().nullable(),
+  referred_by: referralPersonSchema.nullable(),
+  response_recorded_by: referralPersonSchema.nullable(),
+  response_recorded_at: z.iso.datetime({ offset: true }).nullable(),
+  office_context: referralOfficeContextSchema,
+});
+
 export const reportListItemSchema = z.object({
   uuid: z.string(),
   reference_code: z.string(),
@@ -166,6 +191,7 @@ export const reportDetailSchema = z.object({
   }).optional(),
   lifecycle: reportLifecycleSchema.optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
+  referral: reportReferralSchema.nullable().optional(),
   version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),
 });

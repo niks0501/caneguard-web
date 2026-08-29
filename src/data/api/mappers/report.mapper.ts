@@ -97,6 +97,31 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
           updatedAt: dto.field_validation_assignment.updated_at,
         }
       : dto.field_validation_assignment,
+    referral: dto.referral
+      ? {
+          destination: dto.referral.destination,
+          reference: dto.referral.reference,
+          referralDate: dto.referral.referral_date,
+          note: dto.referral.note,
+          responseDate: dto.referral.response_date,
+          responseNote: dto.referral.response_note,
+          responseFinding: dto.referral.response_finding,
+          referredBy: dto.referral.referred_by,
+          responseRecordedBy: dto.referral.response_recorded_by,
+          responseRecordedAt: dto.referral.response_recorded_at,
+          officeContext: {
+            caseState: dto.referral.office_context.case_state,
+            verificationOutcome: dto.referral.office_context.verification_outcome,
+            fieldValidationState: dto.referral.office_context.field_validation_state,
+            actionTaken: dto.referral.office_context.action_taken,
+            authorityClassifiedCondition:
+              dto.referral.office_context.authority_classified_condition,
+            notes: dto.referral.office_context.notes,
+            reviewer: dto.referral.office_context.reviewer,
+            reviewedAt: dto.referral.office_context.reviewed_at,
+          },
+        }
+      : dto.referral,
     metadataCorrectionAudits: dto.audit?.metadata_corrections.map((audit) => ({
       id: audit.id,
       field: audit.field,

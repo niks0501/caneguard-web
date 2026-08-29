@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Report;
 use App\Models\ReportClassScore;
+use App\Models\ReportReferral;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -73,6 +74,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertTrue(Schema::hasTable('report_symptoms'));
         $this->assertTrue(Schema::hasTable('report_quality_warnings'));
         $this->assertTrue(Schema::hasTable('report_audits'));
+        $this->assertTrue(Schema::hasTable('report_referrals'));
     }
 
     public function test_report_factory_supports_smart_field_values_and_casts_them(): void
@@ -135,6 +137,21 @@ class ReportSchemaAndSeederTest extends TestCase
             $report->field_validation_state,
         );
         $this->assertSame(Report::REFERRAL_STATE_NOT_REFERRED, $report->referral_state);
+    }
+
+    public function test_report_referral_factory_preserves_the_handoff_fields(): void
+    {
+        $referral = ReportReferral::factory()->create([
+            'destination' => 'Expert office',
+            'reference' => 'REF-123',
+            'referral_date' => '2026-09-04',
+            'note' => 'Review the evidence.',
+        ]);
+
+        $this->assertSame('Expert office', $referral->destination);
+        $this->assertSame('REF-123', $referral->reference);
+        $this->assertSame('2026-09-04', $referral->referral_date->format('Y-m-d'));
+        $this->assertSame('Review the evidence.', $referral->note);
     }
 
     public function test_legacy_report_values_can_leave_new_contract_fields_null(): void

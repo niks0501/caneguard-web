@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ReportFilters } from "../domain/report.types";
-import type { ReportReviewInput } from "../domain/review.types";
+import type { DiseaseReport, ReportFilters } from "../domain/report.types";
+import type {
+  ExpertReferralResponseInput,
+  ReportReferralInput,
+  ReportReviewInput,
+} from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
 import {
   reportKeys,
@@ -20,15 +24,38 @@ export function useReport(reportId: string) {
   return useQuery(reportQueryOptions(reportId));
 }
 
-export function useUpdateReportReview(reportId: string) {
+function useReportMutation<TInput>(
+  reportId: string,
+  mutationFn: (input: TInput) => Promise<DiseaseReport>,
+) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: ReportReviewInput) =>
-      reportsRepository.updateReview(reportId, input),
+    mutationFn,
     onSuccess: (report) => {
       queryClient.setQueryData(reportKeys.detail(reportId), report);
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });
+}
+
+export function useUpdateReportReview(reportId: string) {
+  return useReportMutation<ReportReviewInput>(
+    reportId,
+    (input) => reportsRepository.updateReview(reportId, input),
+  );
+}
+
+export function useRecordReportReferral(reportId: string) {
+  return useReportMutation<ReportReferralInput>(
+    reportId,
+    (input) => reportsRepository.recordReferral(reportId, input),
+  );
+}
+
+export function useRecordExpertReferralResponse(reportId: string) {
+  return useReportMutation<ExpertReferralResponseInput>(
+    reportId,
+    (input) => reportsRepository.recordExpertReferralResponse(reportId, input),
+  );
 }

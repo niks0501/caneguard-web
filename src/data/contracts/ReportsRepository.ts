@@ -3,7 +3,11 @@ import type {
   PaginatedReports,
   ReportFilters,
 } from "../../domain/report.types";
-import type { ReportReviewInput } from "../../domain/review.types";
+import type {
+  ExpertReferralResponseInput,
+  ReportReferralInput,
+  ReportReviewInput,
+} from "../../domain/review.types";
 
 export interface ReportsRepository {
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
@@ -11,5 +15,13 @@ export interface ReportsRepository {
   updateReview(
     reportId: string,
     input: ReportReviewInput,
+  ): Promise<DiseaseReport>;
+  recordReferral(
+    reportId: string,
+    input: ReportReferralInput,
+  ): Promise<DiseaseReport>;
+  recordExpertReferralResponse(
+    reportId: string,
+    input: ExpertReferralResponseInput,
   ): Promise<DiseaseReport>;
 }

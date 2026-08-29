@@ -68,6 +68,28 @@ class ReviewReportRequest extends ApiFormRequest
                 'nullable',
                 Rule::in(Report::actionTakenValues()),
             ],
+            'referral_destination' => [
+                'sometimes',
+                'string',
+                'max:160',
+                'not_regex:/^\\s*$/',
+            ],
+            'referral_reference' => [
+                'sometimes',
+                'string',
+                'max:160',
+                'not_regex:/^\\s*$/',
+            ],
+            'referral_date' => [
+                'sometimes',
+                'date',
+            ],
+            'referral_note' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:1000',
+            ],
             'case_state' => [
                 'sometimes',
                 Rule::in(Report::caseStates()),
@@ -160,6 +182,10 @@ class ReviewReportRequest extends ApiFormRequest
                 'field_validation_assignee_uuid',
                 'field_validation_target_date',
                 'action_taken',
+                'referral_destination',
+                'referral_reference',
+                'referral_date',
+                'referral_note',
                 'case_state',
                 'metadata_corrections',
             ];
@@ -220,6 +246,67 @@ class ReviewReportRequest extends ApiFormRequest
                 $validator->errors()->add(
                     'notes',
                     'The notes field is required when verification cannot be completed.',
+                );
+            }
+
+            $referralFields = [
+                'referral_destination',
+                'referral_reference',
+                'referral_date',
+                'referral_note',
+            ];
+            $hasReferralFields = collect($referralFields)
+                ->contains(fn (string $key): bool => array_key_exists($key, $this->all()));
+            $report = $this->route('report');
+            $referralState = $report instanceof Report
+                ? $report->lifecycleSnapshot()['referral_state']
+                : Report::REFERRAL_STATE_NOT_REFERRED;
+            $selectingReferral = $this->input('action_taken') === Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION;
+
+            if ($referralState === Report::REFERRAL_STATE_NOT_REFERRED
+                && $selectingReferral
+                && $this->input('case_state') === Report::CASE_STATE_CLOSED
+            ) {
+                $validator->errors()->add(
+                    'case_state',
+                    'A referral must remain open while expert input is pending.',
+                );
+            }
+
+            if ($referralState === Report::REFERRAL_STATE_NOT_REFERRED
+                && ($selectingReferral || $hasReferralFields)
+            ) {
+                if (! $selectingReferral) {
+                    $validator->errors()->add(
+                        'action_taken',
+                        'Select referred for expert validation when recording referral details.',
+                    );
+                }
+                foreach ([
+                    'referral_destination' => 'A referral destination is required.',
+                    'referral_reference' => 'A referral reference is required.',
+                    'referral_date' => 'A referral date is required.',
+                ] as $field => $message) {
+                    if (blank($this->input($field))) {
+                        $validator->errors()->add($field, trim($message));
+                    }
+                }
+            }
+
+            if ($referralState === Report::REFERRAL_STATE_REFERRED
+                && array_key_exists('action_taken', $this->all())
+                && $this->input('action_taken') !== Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION
+            ) {
+                $validator->errors()->add(
+                    'action_taken',
+                    'The referral action remains active until an expert response is recorded.',
+                );
+            }
+
+            if ($referralState !== Report::REFERRAL_STATE_NOT_REFERRED && $hasReferralFields) {
+                $validator->errors()->add(
+                    'referral',
+                    'Referral details cannot be replaced after the handoff is recorded.',
                 );
             }
         });

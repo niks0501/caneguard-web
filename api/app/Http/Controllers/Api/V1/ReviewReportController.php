@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Notifications\CreateLifecycleNotifications;
+use App\Actions\Reports\RecordReportReferral;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewReportRequest;
 use App\Http\Resources\ReportResource;
@@ -24,8 +25,50 @@ class ReviewReportController extends Controller
         ReviewReportRequest $request,
         Report $report,
         CreateLifecycleNotifications $notifications,
+        RecordReportReferral $recordReferral,
     ): ReportResource {
         $data = $request->validated();
+
+        if ($this->isNewReferral($report, $data)) {
+            $referralData = [
+                'destination' => trim($data['referral_destination']),
+                'reference' => trim($data['referral_reference']),
+                'referral_date' => $data['referral_date'],
+                'note' => isset($data['referral_note'])
+                    ? trim((string) $data['referral_note'])
+                    : null,
+                'expected_version' => $data['expected_version'],
+            ];
+            foreach ([
+                'notes' => 'office_notes',
+                'authority_classified_condition' => 'authority_classified_condition',
+                'verification_outcome' => 'verification_outcome',
+            ] as $input => $key) {
+                if (array_key_exists($input, $data)) {
+                    $referralData[$key] = $data[$input];
+                }
+            }
+
+            $updated = $recordReferral->handle(
+                $request->user(),
+                $report,
+                $referralData,
+            );
+
+            return new ReportResource($updated->load([
+                'reporter',
+                'reviewer',
+                'fieldValidationAssignment.assignee',
+                'fieldValidationAssignment.assignedBy',
+                'classScores',
+                'symptoms',
+                'qualityWarnings',
+                'referral.referredBy',
+                'referral.responseRecordedBy',
+                'referral.officeReviewer',
+                'audits.actor',
+            ]));
+        }
 
         $updated = DB::transaction(function () use ($request, $report, $data, $notifications): Report {
             $locked = Report::query()
@@ -91,6 +134,16 @@ class ReviewReportController extends Controller
                         $reviewUpdate[$dimension] = $lifecycle[$dimension];
                     }
                 }
+            }
+
+            $reviewLifecycle = $locked->lifecycleSnapshot();
+            if (($reviewUpdate['case_state'] ?? $reviewLifecycle['case_state']) === Report::CASE_STATE_CLOSED
+                && $reviewLifecycle['referral_state'] === Report::REFERRAL_STATE_REFERRED
+                && $locked->referral()->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'case_state' => 'A referred case must remain open until an expert response is recorded.',
+                ]);
             }
 
             $assignmentSelected = ($reviewUpdate['field_validation_state'] ?? null)
@@ -192,8 +245,17 @@ class ReviewReportController extends Controller
             'classScores',
             'symptoms',
             'qualityWarnings',
+            'referral.referredBy',
+            'referral.responseRecordedBy',
+            'referral.officeReviewer',
             'audits.actor',
         ]));
+    }
+
+    private function isNewReferral(Report $report, array $data): bool
+    {
+        return ($data['action_taken'] ?? null) === Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION
+            && $report->lifecycleSnapshot()['referral_state'] === Report::REFERRAL_STATE_NOT_REFERRED;
     }
 
     /**
@@ -224,7 +286,8 @@ class ReviewReportController extends Controller
         }
 
         return array_key_exists('action_taken', $data)
-            && $data['action_taken'] !== null;
+            && $data['action_taken'] !== null
+            && $data['action_taken'] !== Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION;
     }
 
     /**
