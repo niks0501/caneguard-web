@@ -9,6 +9,7 @@ class QueryMapReports
 {
     public function __construct(
         private readonly ApplyReportFilters $applyReportFilters,
+        private readonly ApplyOperationalQueueFilter $applyOperationalQueueFilter,
     ) {}
 
     /**
@@ -23,7 +24,9 @@ class QueryMapReports
             'observed_at',
         );
 
-        if (! array_key_exists('status', $filters)) {
+        if (isset($filters['queue'])) {
+            $this->applyOperationalQueueFilter->handle($query, $filters['queue']);
+        } elseif (! array_key_exists('status', $filters)) {
             $query->where('review_status', '!=', Report::STATUS_RESOLVED);
         }
 

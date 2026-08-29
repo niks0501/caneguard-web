@@ -4,6 +4,7 @@ import type {
   ReportLifecycle,
   ReviewStatus,
 } from "./report.types";
+import type { FieldValidationQueue } from "./operationalQueue";
 
 export interface FieldReporter {
   uuid: string;
@@ -11,6 +12,7 @@ export interface FieldReporter {
 }
 
 export interface FieldValidationFilters {
+  queue?: FieldValidationQueue;
   status?: ReviewStatus;
   disease?: DiseaseKey;
   barangay?: string;
@@ -68,6 +70,7 @@ export interface FieldValidationQueueItem {
   confidence: number;
   reviewStatus: ReviewStatus;
   lifecycle?: ReportLifecycle;
+  targetVisitDate?: string | null;
   finalLatitude: number | null;
   finalLongitude: number | null;
   locationSource: LocationSource | null;
@@ -77,6 +80,7 @@ export interface FieldValidationQueueItem {
 }
 
 export interface FieldValidationQueueData {
+  queue?: FieldValidationQueue;
   count: number;
   oldest: FieldValidationQueueItem | null;
   items: FieldValidationQueueItem[];

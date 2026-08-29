@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { reportListItemSchema } from "./report.schema";
 
+const dashboardQueueCountsSchema = z.object({
+  needs_review: z.number().int().nonnegative(),
+  needs_visit: z.number().int().nonnegative(),
+  follow_up_due: z.number().int().nonnegative(),
+});
+
 export const dashboardResponseSchema = z.object({
   data: z.object({
     counts: z.object({
@@ -11,6 +17,7 @@ export const dashboardResponseSchema = z.object({
       unable_to_verify: z.number().int().nonnegative(),
       resolved: z.number().int().nonnegative(),
     }),
+    queues: dashboardQueueCountsSchema.optional(),
     recent_reports: z.array(reportListItemSchema),
   }),
 });

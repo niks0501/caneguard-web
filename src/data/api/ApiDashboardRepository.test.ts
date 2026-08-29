@@ -20,6 +20,11 @@ describe("ApiDashboardRepository", () => {
               unable_to_verify: 1,
               resolved: 1,
             },
+            queues: {
+              needs_review: 1,
+              needs_visit: 2,
+              follow_up_due: 1,
+            },
             recent_reports: [reportListItemDto],
           },
         }),
@@ -31,6 +36,7 @@ describe("ApiDashboardRepository", () => {
 
     await expect(repository.getSummary()).resolves.toMatchObject({
       totalSubmitted: 5,
+      queues: { needs_review: 1, needs_visit: 2, follow_up_due: 1 },
       counts: { submitted_unverified: 1, resolved: 1 },
       recentReports: [{ referenceCode: "CG-2026-0001" }],
     });

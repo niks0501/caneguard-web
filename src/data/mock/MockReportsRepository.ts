@@ -39,6 +39,12 @@ export class MockReportsRepository implements ReportsRepository {
           !filters?.status ||
           filters.status === "all" ||
           report.reviewStatus === filters.status;
+        const matchesQueue =
+          !filters?.queue ||
+          (filters.queue === "needs_review" &&
+            report.reviewStatus === "submitted_unverified") ||
+          (filters.queue === "needs_visit" &&
+            report.reviewStatus === "for_field_validation");
         const matchesDisease =
           !filters?.disease ||
           filters.disease === "all" ||
@@ -56,6 +62,7 @@ export class MockReportsRepository implements ReportsRepository {
         return (
           matchesSearch &&
           matchesStatus &&
+          matchesQueue &&
           matchesDisease &&
           matchesBarangay &&
           matchesDateFrom &&

@@ -16,6 +16,7 @@ describe("ApiReportsRepository", () => {
         expect(query.get("per_page")).toBe("25");
         expect(query.get("search")).toBe("CG-2026");
         expect(query.get("status")).toBe("submitted_unverified");
+        expect(query.get("queue")).toBe("needs_review");
         expect(query.get("predicted_label")).toBe("rust");
         expect(query.get("barangay")).toBe("Mabini");
         expect(query.get("date_from")).toBe("2026-07-01");
@@ -32,6 +33,7 @@ describe("ApiReportsRepository", () => {
       page: 2,
       perPage: 25,
       search: " CG-2026 ",
+      queue: "needs_review",
       status: "submitted_unverified",
       disease: "rust",
       barangay: "Mabini",
