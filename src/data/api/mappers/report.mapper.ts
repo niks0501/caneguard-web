@@ -95,6 +95,14 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
           targetVisitDate: dto.field_validation_assignment.target_visit_date ?? undefined,
           activatedAt: dto.field_validation_assignment.activated_at,
           updatedAt: dto.field_validation_assignment.updated_at,
+          completion: dto.field_validation_assignment.completion
+            ? {
+                fieldObservation:
+                  dto.field_validation_assignment.completion.field_observation,
+                fieldFinding: dto.field_validation_assignment.completion.field_finding,
+                actionTaken: dto.field_validation_assignment.completion.action_taken,
+              }
+            : undefined,
         }
       : dto.field_validation_assignment,
     referral: dto.referral

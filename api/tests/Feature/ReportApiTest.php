@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\FieldValidationAssignment;
+use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -209,6 +210,53 @@ class ReportApiTest extends TestCase
         $this->getJson('/api/v1/reports/not-a-real-uuid')
             ->assertNotFound()
             ->assertJsonPath('code', 'NOT_FOUND');
+    }
+
+    public function test_report_detail_includes_completed_field_validation_evidence_for_reviewers(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        FieldValidationCompletion::factory()->create([
+            'assignment_id' => $assignment->getKey(),
+            'field_observation' => 'Fresh observation from the assigned validation visit.',
+            'field_finding' => 'The field finding is preserved as separate evidence.',
+            'action_taken' => 'Provided field guidance and recorded the next action.',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath(
+                'data.field_validation_assignment.completion.field_observation',
+                'Fresh observation from the assigned validation visit.',
+            )
+            ->assertJsonPath(
+                'data.field_validation_assignment.completion.field_finding',
+                'The field finding is preserved as separate evidence.',
+            )
+            ->assertJsonPath(
+                'data.field_validation_assignment.completion.action_taken',
+                'Provided field guidance and recorded the next action.',
+            )
+            ->assertJsonPath(
+                'data.lifecycle.field_validation_state',
+                Report::FIELD_VALIDATION_STATE_COMPLETED,
+            )
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
+            ->assertJsonPath(
+                'data.lifecycle.verification_outcome',
+                Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            );
     }
 
     public function test_report_image_is_private_and_policy_authorized(): void

@@ -7,7 +7,11 @@ import { ApiError } from "../api/ApiError";
 import { env } from "../config/env";
 import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
-import { reportDetailDto, reportReferralDto } from "../test/fixtures";
+import {
+  completedFieldValidationAssignmentDto,
+  reportDetailDto,
+  reportReferralDto,
+} from "../test/fixtures";
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
   useLinkDuplicateReport,
@@ -164,6 +168,9 @@ describe("CaseReviewPage", () => {
     expect(screen.getByLabelText("Authority classification")).toHaveValue("");
     expect(screen.getByText("Observed at")).toBeInTheDocument();
     expect(screen.getByText("Submitted at")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Completed field validation" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.error(image);
     expect(
@@ -184,6 +191,66 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByText("Technical Evidence"));
     expect(technicalEvidence).toHaveAttribute("open");
     expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
+  });
+
+  it("renders completed field validation evidence in the case review", () => {
+    const completedReport = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          lifecycle: {
+            ...reportDetailDto.lifecycle,
+            field_validation_state: "completed",
+          },
+          field_validation_assignment: completedFieldValidationAssignmentDto,
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: completedReport }));
+    renderPage();
+
+    const evidence = screen.getByRole("region", {
+      name: "Completed field validation",
+    });
+    expect(within(evidence).getByText("Field validation")).toBeInTheDocument();
+    expect(
+      within(evidence).getByText(
+        "Fresh observation from the assigned validation visit.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(evidence).getByText(
+        "The field finding is preserved as separate evidence.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(evidence).getByText("Provided field guidance and recorded the next action."),
+    ).toBeInTheDocument();
+    expect(
+      within(evidence).getByText(/read-only here and does not verify or close the case/i),
+    ).toBeInTheDocument();
+  });
+
+  it("does not render field validation evidence when completion data is absent", () => {
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({
+        data: {
+          ...report,
+          fieldValidationAssignment: {
+            uuid: "assignment-without-completion",
+            assignee: { uuid: "field-reporter", name: "Field Reporter" },
+            assignedBy: { uuid: "reviewer", name: "Reviewer" },
+            activatedAt: "2026-08-13T12:00:00.000Z",
+            updatedAt: "2026-08-13T12:00:00.000Z",
+          },
+        },
+      }),
+    );
+    renderPage();
+
+    expect(
+      screen.queryByRole("heading", { name: "Completed field validation" }),
+    ).not.toBeInTheDocument();
   });
 
   it("distinguishes an unasked mismatch state from an explicit no", () => {
