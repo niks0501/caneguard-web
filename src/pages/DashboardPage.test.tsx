@@ -107,6 +107,50 @@ describe("DashboardPage", () => {
     ).toHaveAttribute("href", "/reports?queue=needs_review");
   });
 
+  it("renders monthly case summaries with an operational-statistics boundary", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: {
+          ...summary,
+          monthlySummary: {
+            month: "2026-07",
+            period: { from: "2026-07-01", to: "2026-07-31" },
+            reportedCases: 4,
+            casesByBarangay: [{ barangay: "Mabini", reportedCases: 3 }],
+            casesByPossibleCondition: [{ possibleCondition: "rust", reportedCases: 2 }],
+            estimatedAffectedHectares: 3.75,
+            fieldValidationCounts: {
+              unassigned: 1,
+              assigned: 1,
+              inProgress: 0,
+              completed: 2,
+              requiringValidation: 1,
+            },
+            closedCases: 2,
+            reviewTime: {
+              source: "submitted_at_to_reviewed_at",
+              reviewedCases: 2,
+              averageHours: 30,
+              medianHours: 30,
+              minHours: 6,
+              maxHours: 54,
+            },
+          },
+        },
+      }),
+    );
+    renderDashboard();
+
+    expect(screen.getByRole("region", { name: "Monthly case summary" })).toHaveTextContent(
+      "operational case counts, not population-level disease statistics",
+    );
+    const monthly = within(
+      screen.getByRole("region", { name: "Monthly case summary" }),
+    );
+    expect(monthly.getByText("3 reported cases")).toBeInTheDocument();
+    expect(monthly.getByText("Possible rust")).toBeInTheDocument();
+  });
+
   it("refreshes on demand and links to the full queue", async () => {
     const refetch = vi.fn();
     vi.mocked(useDashboard).mockReturnValue(dashboardResult({ refetch }));

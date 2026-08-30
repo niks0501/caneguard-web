@@ -4,13 +4,14 @@ import { getOperationalQueryRefreshOptions } from "./queryRefresh";
 
 export const dashboardKeys = {
   all: ["dashboard"] as const,
-  summary: () => [...dashboardKeys.all, "summary"] as const,
+  summary: (month?: string) =>
+    [...dashboardKeys.all, "summary", month ?? "current"] as const,
 };
 
-export function useDashboard() {
+export function useDashboard(month?: string) {
   return useQuery({
-    queryKey: dashboardKeys.summary(),
-    queryFn: () => dashboardRepository.getSummary(),
+    queryKey: dashboardKeys.summary(month),
+    queryFn: () => dashboardRepository.getSummary(month),
     ...getOperationalQueryRefreshOptions(),
   });
 }

@@ -4,7 +4,7 @@ import {
   useMemo,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ClipboardCheck, RefreshCw } from "lucide-react";
+import { ClipboardCheck, Download, RefreshCw } from "lucide-react";
 import {
   useLocation,
   useSearchParams,
@@ -28,7 +28,7 @@ import {
 } from "../domain/report.metadata";
 import type { ReportFilters } from "../domain/report.types";
 import { reportKeys } from "../hooks/reportQueries";
-import { useReports } from "../hooks/useReports";
+import { useExportReports, useReports } from "../hooks/useReports";
 import {
   parseReportListUrl,
 } from "./reportListUrlState";
@@ -81,9 +81,18 @@ export function SubmittedReportsPage() {
     }),
     [deferredSearch, urlState.filters],
   );
+  const exportFilters = useMemo<ReportFilters>(
+    () => ({
+      ...urlState.filters,
+      search: urlState.filters.search?.trim() || undefined,
+      barangay: urlState.filters.barangay?.trim() || undefined,
+    }),
+    [urlState.filters],
+  );
   const reportsQuery = useReports(queryFilters, {
     enabled: !urlState.invalid,
   });
+  const exportReports = useExportReports();
   const reports = reportsQuery.data?.reports ?? [];
   const meta = reportsQuery.data?.meta;
   const activeQueueLabel = urlState.filters.queue
@@ -131,6 +140,24 @@ export function SubmittedReportsPage() {
     setSearchParams(new URLSearchParams());
   };
 
+  const handleExport = async () => {
+    try {
+      const blob = await exportReports.mutateAsync(exportFilters);
+      if (typeof URL.createObjectURL !== "function") return;
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "caneguard-case-export.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      // The mutation state renders the actionable export error message.
+    }
+  };
+
   const refreshQueue = () =>
     queryClient.invalidateQueries({
       queryKey: reportKeys.list(queryFilters),
@@ -155,7 +182,21 @@ export function SubmittedReportsPage() {
         eyebrow="Case monitoring"
         title="Submitted reports"
         description="Review field observations and decide the appropriate municipal follow-up."
-        actions={
+        actions={(
+          <>
+          <Button
+            variant="secondary"
+            icon={<Download aria-hidden="true" />}
+            disabled={
+              exportReports.isPending ||
+              reportsQuery.isFetching ||
+              urlState.invalid ||
+              !hasDisplayableData
+            }
+            onClick={() => void handleExport()}
+          >
+            {exportReports.isPending ? "Preparing CSV" : "Export CSV"}
+          </Button>
           <Button
             variant="secondary"
             icon={
@@ -173,13 +214,19 @@ export function SubmittedReportsPage() {
           >
             {reportsQuery.isFetching ? "Refreshing queue" : "Refresh queue"}
           </Button>
-        }
+          </>
+        )}
       />
 
       {reviewNotice ? (
         <div className="success-banner" role="status">
           <ClipboardCheck aria-hidden="true" />
           {reviewNotice}
+        </div>
+      ) : null}
+      {exportReports.isError ? (
+        <div className="dashboard-refresh-warning" role="alert">
+          The filtered case export could not be downloaded. The report queue remains available.
         </div>
       ) : null}
 

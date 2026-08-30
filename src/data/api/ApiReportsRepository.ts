@@ -34,10 +34,13 @@ const sortValues = {
   confidence_asc: "confidence",
 } as const;
 
-function toQueryParams(filters: ReportFilters = {}) {
+function toQueryParams(
+  filters: ReportFilters = {},
+  includePagination = true,
+) {
   return {
-    page: filters.page,
-    per_page: filters.perPage,
+    page: includePagination ? filters.page : undefined,
+    per_page: includePagination ? filters.perPage : undefined,
     queue: filters.queue,
     search: filters.search?.trim() || undefined,
     status:
@@ -73,6 +76,15 @@ export class ApiReportsRepository implements ReportsRepository {
       reports: dto.data.map(mapReportListItem),
       meta: mapPaginationMeta(dto.meta),
     };
+  }
+
+  async exportReports(filters?: ReportFilters): Promise<Blob> {
+    const response = await this.client.get("/api/v1/reports/export", {
+      params: toQueryParams(filters, false),
+      responseType: "blob",
+    });
+
+    return response.data;
   }
 
   async getReportById(reportId: string): Promise<DiseaseReport | null> {

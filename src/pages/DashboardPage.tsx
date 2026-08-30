@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ArrowRight,
   CalendarClock,
@@ -16,6 +17,7 @@ import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
+import { MonthlyCaseSummary } from "../components/dashboard/MonthlyCaseSummary";
 import { OperationalQueueCard } from "../components/dashboard/OperationalQueueCard";
 import { SecondaryMetric } from "../components/dashboard/SecondaryMetric";
 import { PageContent, PageHeader } from "../components/layout/Page";
@@ -67,7 +69,10 @@ const queueOrder: OperationalQueue[] = [
 ];
 
 export function DashboardPage() {
-  const dashboard = useDashboard();
+  const [summaryMonth, setSummaryMonth] = useState(() =>
+    new Date().toISOString().slice(0, 7),
+  );
+  const dashboard = useDashboard(summaryMonth);
   const summary = dashboard.data;
   const firstActiveQueue = summary
     ? queueOrder.find((queue) => (summary.queues?.[queue] ?? 0) > 0)
@@ -190,6 +195,14 @@ export function DashboardPage() {
           <ArrowRight aria-hidden="true" />
         </Link>
       </section>
+
+      {summary.monthlySummary ? (
+        <MonthlyCaseSummary
+          summary={summary.monthlySummary}
+          month={summaryMonth}
+          onMonthChange={setSummaryMonth}
+        />
+      ) : null}
 
       <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
         <div className="dashboard-section-heading">

@@ -7,10 +7,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { createQueryClient } from "../app/queryClient";
 import { mockReports } from "../data/mock/mockReports";
-import { useReports } from "../hooks/useReports";
+import { useExportReports, useReports } from "../hooks/useReports";
 import { SubmittedReportsPage } from "./SubmittedReportsPage";
 
 vi.mock("../hooks/useReports", () => ({
+  useExportReports: vi.fn(),
   useReports: vi.fn(),
 }));
 
@@ -63,6 +64,11 @@ function renderPage(initialEntry = "/reports") {
 
 beforeEach(() => {
   vi.mocked(useReports).mockReturnValue(reportsResult());
+  vi.mocked(useExportReports).mockReturnValue({
+    isError: false,
+    isPending: false,
+    mutateAsync: vi.fn().mockResolvedValue(new Blob(["csv"])),
+  } as unknown as ReturnType<typeof useExportReports>);
 });
 
 describe("SubmittedReportsPage", () => {
@@ -111,6 +117,39 @@ describe("SubmittedReportsPage", () => {
     );
     expect(screen.getByRole("heading", { name: "Needs Review" })).toBeInTheDocument();
     expect(screen.getByText("Filtered operational workspace")).toBeInTheDocument();
+  });
+
+  it("exports the active filters without changing the report workspace", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(new Blob(["csv"]));
+    vi.mocked(useExportReports).mockReturnValue({
+      isError: false,
+      isPending: false,
+      mutateAsync,
+    } as unknown as ReturnType<typeof useExportReports>);
+    const createObjectUrl = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
+    const revokeObjectUrl = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const clickLink = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    renderPage(
+      "/reports?status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27",
+    );
+    await user.click(screen.getByRole("button", { name: "Export CSV" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      page: 1,
+      perPage: 15,
+      status: "submitted_unverified",
+      disease: "rust",
+      barangay: "Mabini",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-27",
+    }));
+    expect(createObjectUrl).toHaveBeenCalledOnce();
+    expect(screen.getByRole("heading", { name: "Recent submissions" })).toBeInTheDocument();
+    createObjectUrl.mockRestore();
+    revokeObjectUrl.mockRestore();
+    clickLink.mockRestore();
   });
 
   it("stores filter and page changes in the URL and resets the page", async () => {

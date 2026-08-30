@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Reports\ApplyOperationalQueueFilter;
+use App\Actions\Reports\BuildMonthlyReportSummary;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardSummaryRequest;
 use App\Http\Resources\ReportListResource;
@@ -14,6 +15,7 @@ class DashboardSummaryController extends Controller
     public function __invoke(
         DashboardSummaryRequest $request,
         ApplyOperationalQueueFilter $applyOperationalQueueFilter,
+        BuildMonthlyReportSummary $buildMonthlyReportSummary,
     ): JsonResponse {
         $counts = array_fill_keys(Report::reviewStatuses(), 0);
 
@@ -47,6 +49,9 @@ class DashboardSummaryController extends Controller
                 'queues' => $queueCounts,
                 'recent_reports' => ReportListResource::collection($recentReports)
                     ->resolve($request),
+                'monthly_summary' => $buildMonthlyReportSummary->handle(
+                    $request->validated()['month'] ?? null,
+                ),
             ],
         ]);
     }
