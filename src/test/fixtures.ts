@@ -111,6 +111,44 @@ export const reportDetailDto = {
   updated_at: "2026-07-20T10:00:00.000Z",
 } as const;
 
+export const completedFieldValidationAssignmentDto = {
+  uuid: "3fbd7f77-7d6b-4eb0-a1c7-b673f5a2f39f",
+  assignee: {
+    uuid: reportDetailDto.reporter.uuid,
+    name: reportDetailDto.reporter.name,
+  },
+  assigned_by: {
+    uuid: "a7c6e31a-e1d6-443f-a2f2-cf73541e7a0f",
+    name: "Maria Reviewer",
+  },
+  target_visit_date: "2026-08-13",
+  activated_at: "2026-08-13T12:00:00.000Z",
+  updated_at: "2026-08-14T12:00:00.000Z",
+  completion: {
+    uuid: "f4c6d8e0-2a4b-4c6d-8e0f-2a4b6c8d0e1f",
+    client_uuid: "e1f2a3b4-c5d6-47e8-9f0a-1b2c3d4e5f60",
+    assignment_uuid: "3fbd7f77-7d6b-4eb0-a1c7-b673f5a2f39f",
+    field_observation: "Fresh observation from the assigned validation visit.",
+    field_finding: "The field finding is preserved as separate evidence.",
+    action_taken: "Provided field guidance and recorded the next action.",
+    visited_at: "2026-08-14T09:30:00.000Z",
+    gps: {
+      outcome: "resolved",
+      attempted_at: "2026-08-14T09:29:55.000Z",
+      latitude: 14.0667,
+      longitude: 120.6319,
+      accuracy: 4.25,
+    },
+    fresh_photo: {
+      available: false,
+      mime_type: null,
+      size_bytes: null,
+    },
+    created_at: "2026-08-14T09:30:00.000Z",
+    updated_at: "2026-08-14T09:30:00.000Z",
+  },
+} as const;
+
 export const reportReferralDto = {
   destination: "Regional crop protection office",
   reference: "SRA-2026-0042",

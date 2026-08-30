@@ -108,6 +108,12 @@ export interface CanonicalCaseLink {
 
 }
 
+export interface FieldValidationCompletion {
+  fieldObservation: string;
+  fieldFinding: string;
+  actionTaken: string;
+}
+
 export interface FieldValidationAssignment {
   uuid: string;
   assignee: { uuid: string; name: string };
@@ -115,6 +121,7 @@ export interface FieldValidationAssignment {
   targetVisitDate?: string;
   activatedAt: string;
   updatedAt: string;
+  completion?: FieldValidationCompletion;
 }
 
 export interface ReportLifecycle {

@@ -1459,6 +1459,14 @@ textarea:focus-visible {
   border-top-color: var(--color-disease-rust);
 }
 
+.field-validation-evidence-card {
+  border-top: 4px solid var(--color-primary-light);
+}
+
+.field-validation-evidence-card .section-heading > svg {
+  color: var(--color-primary);
+}
+
 .model-card {
   border-top-color: var(--color-accent-dark);
 }

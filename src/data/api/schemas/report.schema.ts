@@ -89,6 +89,35 @@ export const reportLifecycleSchema = z.object({
   field_validation_state: fieldValidationStateSchema,
   referral_state: referralStateSchema,
 });
+export const fieldValidationCompletionSchema = z.object({
+  uuid: z.string(),
+  client_uuid: z.string(),
+  assignment_uuid: z.string(),
+  field_observation: z.string(),
+  field_finding: z.string(),
+  action_taken: z.string(),
+  visited_at: z.iso.datetime({ offset: true }),
+  gps: z.object({
+    outcome: z.enum([
+      "resolved",
+      "low_accuracy",
+      "permission_denied",
+      "unavailable",
+      "error",
+    ]),
+    attempted_at: z.iso.datetime({ offset: true }),
+    latitude: z.number().min(-90).max(90).nullable(),
+    longitude: z.number().min(-180).max(180).nullable(),
+    accuracy: z.number().nonnegative().nullable(),
+  }),
+  fresh_photo: z.object({
+    available: z.boolean(),
+    mime_type: z.string().nullable(),
+    size_bytes: z.number().int().nonnegative().nullable(),
+  }),
+  created_at: z.iso.datetime({ offset: true }),
+  updated_at: z.iso.datetime({ offset: true }),
+});
 export const fieldValidationAssignmentSchema = z.object({
   uuid: z.string(),
   assignee: userSchema.pick({ uuid: true, name: true }),
@@ -96,6 +125,7 @@ export const fieldValidationAssignmentSchema = z.object({
   target_visit_date: z.string().nullable(),
   activated_at: z.iso.datetime({ offset: true }),
   updated_at: z.iso.datetime({ offset: true }),
+  completion: fieldValidationCompletionSchema.optional(),
 });
 
 const referralPersonSchema = userSchema.pick({ uuid: true, name: true });

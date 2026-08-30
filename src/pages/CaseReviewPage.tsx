@@ -554,6 +554,35 @@ export function CaseReviewPage() {
             </dl>
           </section>
 
+          {report.fieldValidationAssignment?.completion ? (
+            <section
+              className="review-card field-validation-evidence-card"
+              aria-labelledby="field-validation-evidence-heading"
+            >
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Field validation</p>
+                  <h2 id="field-validation-evidence-heading">Completed field validation</h2>
+                </div>
+                <ClipboardList aria-hidden="true" />
+              </div>
+              <p className="authority-classification-help">
+                This submitted field evidence is read-only here and does not verify or close the case.
+              </p>
+              <dl className="detail-list reporter-observation-details">
+                <DetailField label="Observation">
+                  {report.fieldValidationAssignment.completion.fieldObservation}
+                </DetailField>
+                <DetailField label="Finding">
+                  {report.fieldValidationAssignment.completion.fieldFinding}
+                </DetailField>
+                <DetailField label="Action taken">
+                  {report.fieldValidationAssignment.completion.actionTaken}
+                </DetailField>
+              </dl>
+            </section>
+          ) : null}
+
           <details className="review-card technical-evidence">
             <summary>
               <span>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  completedFieldValidationAssignmentDto,
   paginatedReportsDto,
   reportDetailDto,
   reportReferralDto,
@@ -81,6 +82,28 @@ describe("report mappers", () => {
     });
     expect(report.updatedAt).toBe(reportDetailDto.updated_at);
     expect(report.reviewVersion).toBe(0);
+  });
+
+  it("maps completed field validation evidence into the review model", () => {
+    const report = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          lifecycle: {
+            ...reportDetailDto.lifecycle,
+            field_validation_state: "completed",
+          },
+          field_validation_assignment: completedFieldValidationAssignmentDto,
+        },
+      }).data,
+    );
+
+    expect(report.fieldValidationAssignment?.completion).toEqual({
+      fieldObservation:
+        "Fresh observation from the assigned validation visit.",
+      fieldFinding: "The field finding is preserved as separate evidence.",
+      actionTaken: "Provided field guidance and recorded the next action.",
+    });
   });
 
   it("maps the referral lifecycle and preserves the office snapshot", () => {
