@@ -79,12 +79,17 @@ export class ApiReportsRepository implements ReportsRepository {
   }
 
   async exportReports(filters?: ReportFilters): Promise<Blob> {
-    const response = await this.client.get("/api/v1/reports/export", {
+    const response = await this.client.get<ArrayBuffer>("/api/v1/reports/export", {
       params: toQueryParams(filters, false),
-      responseType: "blob",
+      responseType: "arraybuffer",
     });
 
-    return response.data;
+    const contentType = response.headers["content-type"];
+    return new Blob([response.data], {
+      type: typeof contentType === "string"
+        ? contentType
+        : "text/csv;charset=utf-8",
+    });
   }
 
   async getReportById(reportId: string): Promise<DiseaseReport | null> {

@@ -64,7 +64,10 @@ describe("ApiReportsRepository", () => {
         expect(query.get("date_from")).toBe("2026-07-01");
         expect(query.get("date_to")).toBe("2026-07-27");
         expect(query.get("sort")).toBe("-submitted_at");
-        return HttpResponse.text("case_reference,reported_cases\\nCG-2026-0001,1");
+        const csv = "case_reference,reported_cases\\nCG-2026-0001,1";
+        return HttpResponse.arrayBuffer(new TextEncoder().encode(csv).buffer, {
+          headers: { "Content-Type": "text/csv; charset=UTF-8" },
+        });
       }),
     );
     const repository = new ApiReportsRepository(
@@ -85,6 +88,7 @@ describe("ApiReportsRepository", () => {
     });
 
     expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toContain("text/csv");
     await expect(result.text()).resolves.toContain("CG-2026-0001");
   });
 
