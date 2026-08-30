@@ -31,6 +31,35 @@ const cloneReport = (report: DiseaseReport): DiseaseReport => ({
     : report.referral,
 });
 
+const exportHeaders = [
+  "case_reference",
+  "submitted_date",
+  "barangay",
+  "farmer_or_farm_reference",
+  "possible_ai_condition",
+  "affected_area_hectares",
+  "affected_portion_percent",
+  "verification_outcome",
+  "case_state",
+  "field_validation_state",
+  "field_validator",
+  "assigned_by",
+  "target_visit_date",
+  "action_taken",
+  "referral_state",
+  "referral_destination",
+  "referral_reference",
+  "referral_date",
+  "expert_response_date",
+];
+
+function csvCell(value: unknown): string {
+  const cell = value === null || value === undefined ? "" : String(value);
+  return /[",\\r\\n]/.test(cell)
+    ? `"${cell.replaceAll('"', '""')}"`
+    : cell;
+}
+
 export class MockReportsRepository implements ReportsRepository {
   private reports = mockReports.map(cloneReport);
 
@@ -111,6 +140,42 @@ export class MockReportsRepository implements ReportsRepository {
         total: filtered.length,
       },
     };
+  }
+
+  async exportReports(filters?: ReportFilters): Promise<Blob> {
+    const result = await this.listReports({
+      ...filters,
+      page: 1,
+      perPage: Math.max(this.reports.length, 1),
+    });
+    const rows = result.reports.map((report) => {
+      const lifecycle = report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus);
+      return [
+        report.referenceCode,
+        report.submittedAt.slice(0, 10),
+        report.barangay,
+        report.farmerOrFarmOwnerName ?? report.farmReference,
+        `Possible ${report.predictedDisease}`,
+        report.affectedAreaHectares,
+        report.affectedPortionPercent,
+        lifecycle.verificationOutcome,
+        lifecycle.caseState,
+        lifecycle.fieldValidationState,
+        report.fieldValidationAssignment?.assignee.name,
+        report.fieldValidationAssignment?.assignedBy.name,
+        report.fieldValidationAssignment?.targetVisitDate,
+        report.actionTaken,
+        lifecycle.referralState,
+        report.referral?.destination,
+        report.referral?.reference,
+        report.referral?.referralDate,
+        report.referral?.responseDate,
+      ].map(csvCell).join(",");
+    });
+
+    return new Blob([
+      [exportHeaders.join(","), ...rows].join("\\r\\n"),
+    ], { type: "text/csv;charset=utf-8" });
   }
 
   async getReportById(reportId: string): Promise<DiseaseReport | null> {

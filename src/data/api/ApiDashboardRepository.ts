@@ -12,8 +12,10 @@ export class ApiDashboardRepository implements DashboardRepository {
     this.client = client;
   }
 
-  async getSummary(): Promise<DashboardSummary> {
-    const response = await this.client.get("/api/v1/dashboard/summary");
+  async getSummary(month?: string): Promise<DashboardSummary> {
+    const response = await this.client.get("/api/v1/dashboard/summary", {
+      params: month ? { month } : undefined,
+    });
     return mapDashboard(dashboardResponseSchema.parse(response.data));
   }
 }

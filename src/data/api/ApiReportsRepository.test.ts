@@ -50,6 +50,48 @@ describe("ApiReportsRepository", () => {
     expect(result.reports[0].referenceCode).toBe("CG-2026-0001");
   });
 
+  it("requests a filter-scoped CSV without pagination parameters", async () => {
+    server.use(
+      http.get(`${baseUrl}/api/v1/reports/export`, ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        expect(query.get("page")).toBeNull();
+        expect(query.get("per_page")).toBeNull();
+        expect(query.get("queue")).toBe("needs_review");
+        expect(query.get("search")).toBe("CG-2026");
+        expect(query.get("status")).toBe("submitted_unverified");
+        expect(query.get("predicted_label")).toBe("rust");
+        expect(query.get("barangay")).toBe("Mabini");
+        expect(query.get("date_from")).toBe("2026-07-01");
+        expect(query.get("date_to")).toBe("2026-07-27");
+        expect(query.get("sort")).toBe("-submitted_at");
+        const csv = "case_reference,reported_cases\\nCG-2026-0001,1";
+        return HttpResponse.arrayBuffer(new TextEncoder().encode(csv).buffer, {
+          headers: { "Content-Type": "text/csv; charset=UTF-8" },
+        });
+      }),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    const result = await repository.exportReports({
+      page: 3,
+      perPage: 25,
+      queue: "needs_review",
+      search: " CG-2026 ",
+      status: "submitted_unverified",
+      disease: "rust",
+      barangay: "Mabini",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-27",
+      sort: "newest",
+    });
+
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toContain("text/csv");
+    await expect(result.text()).resolves.toContain("CG-2026-0001");
+  });
+
   it("maps explicit possible recent-match assistance", async () => {
     server.use(
       http.get(

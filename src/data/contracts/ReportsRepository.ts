@@ -13,6 +13,7 @@ import type {
 
 export interface ReportsRepository {
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
+  exportReports(filters?: ReportFilters): Promise<Blob>;
   getReportById(reportId: string): Promise<DiseaseReport | null>;
   getPossibleRecentMatches(reportId: string): Promise<PossibleRecentMatches>;
   updateReview(

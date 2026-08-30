@@ -16,9 +16,11 @@ use App\Http\Controllers\Api\V1\MobileNotificationController;
 use App\Http\Controllers\Api\V1\MobilePossibleRecentMatchesController;
 use App\Http\Controllers\Api\V1\MobileReportController;
 use App\Http\Controllers\Api\V1\MobileReportStatusController;
+use App\Http\Controllers\Api\V1\MonthlyReportSummaryController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ReferralSummaryController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ReportExportController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReportReferralController;
@@ -39,6 +41,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::get('/reports', [ReportController::class, 'index']);
+    Route::get('/reports/export', ReportExportController::class)
+        ->name('api.v1.reports.export');
+    Route::get('/reports/summary', MonthlyReportSummaryController::class)
+        ->name('api.v1.reports.summary');
     Route::get('/reports/map', MapReportController::class)
         ->name('api.v1.reports.map');
     Route::get('/reports/field-validation-queue', FieldValidationQueueController::class)

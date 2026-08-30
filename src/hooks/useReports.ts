@@ -22,6 +22,12 @@ export function useReports(
   return useQuery(reportsQueryOptions(filters, options));
 }
 
+export function useExportReports() {
+  return useMutation({
+    mutationFn: (filters: ReportFilters) => reportsRepository.exportReports(filters),
+  });
+}
+
 export function useReport(reportId: string) {
   return useQuery(reportQueryOptions(reportId));
 }

@@ -1,0 +1,154 @@
+import type { MonthlyCaseSummary as MonthlyCaseSummaryData } from "../../domain/dashboard.types";
+
+function countLabel(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function possibleConditionLabel(condition: string) {
+  return `Possible ${condition.replaceAll("_", " ")}`;
+}
+
+function metricValue(value: number | null, suffix = "") {
+  return value === null ? "Not available" : `${value}${suffix}`;
+}
+
+export function MonthlyCaseSummary({
+  summary,
+  month,
+  onMonthChange,
+}: {
+  summary: MonthlyCaseSummaryData;
+  month: string;
+  onMonthChange: (month: string) => void;
+}) {
+  return (
+    <section
+      className="dashboard-monthly-summary"
+      aria-labelledby="monthly-case-summary-heading"
+    >
+      <div className="dashboard-section-heading dashboard-monthly-summary__heading">
+        <div>
+          <p className="eyebrow">Descriptive analytics</p>
+          <h2 id="monthly-case-summary-heading">Monthly case summary</h2>
+        </div>
+        <label className="select-filter dashboard-month-selector">
+          <span>Summary month</span>
+          <input
+            type="month"
+            value={month}
+            aria-label="Summary month"
+            onChange={(event) => {
+              if (event.target.value) onMonthChange(event.target.value);
+            }}
+          />
+        </label>
+      </div>
+
+      <p className="dashboard-monthly-summary__notice">
+        Reported cases and estimated affected area from submitted cases for {summary.month}.
+        These are operational case counts, not population-level disease statistics.
+      </p>
+
+      <div className="dashboard-monthly-summary__metrics">
+        <div>
+          <span>Reported cases</span>
+          <strong>{summary.reportedCases}</strong>
+        </div>
+        <div>
+          <span>Estimated affected area</span>
+          <strong>{summary.estimatedAffectedHectares} ha</strong>
+        </div>
+        <div>
+          <span>Requiring field validation</span>
+          <strong>{summary.fieldValidationCounts.requiringValidation}</strong>
+        </div>
+        <div>
+          <span>Closed cases</span>
+          <strong>{summary.closedCases}</strong>
+        </div>
+      </div>
+
+      <div className="dashboard-monthly-summary__grid">
+        <section aria-labelledby="monthly-barangay-heading">
+          <div className="monthly-summary-subheading">
+            <h3 id="monthly-barangay-heading">Cases by barangay</h3>
+            <span>Reported cases</span>
+          </div>
+          {summary.casesByBarangay.length === 0 ? (
+            <p className="monthly-summary-empty">No reported cases in this month.</p>
+          ) : (
+            <ul className="monthly-summary-list">
+              {summary.casesByBarangay.map((item) => (
+                <li key={item.barangay}>
+                  <span>{item.barangay}</span>
+                  <strong>{countLabel(item.reportedCases, "reported case")}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section aria-labelledby="monthly-condition-heading">
+          <div className="monthly-summary-subheading">
+            <h3 id="monthly-condition-heading">Cases by possible condition</h3>
+            <span>AI result, decision support only</span>
+          </div>
+          {summary.casesByPossibleCondition.length === 0 ? (
+            <p className="monthly-summary-empty">No reported cases in this month.</p>
+          ) : (
+            <ul className="monthly-summary-list">
+              {summary.casesByPossibleCondition.map((item) => (
+                <li key={item.possibleCondition}>
+                  <span>{possibleConditionLabel(item.possibleCondition)}</span>
+                  <strong>{countLabel(item.reportedCases, "reported case")}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section aria-labelledby="monthly-validation-heading">
+          <div className="monthly-summary-subheading">
+            <h3 id="monthly-validation-heading">Field-validation counts</h3>
+            <span>Operational workflow state</span>
+          </div>
+          <dl className="monthly-summary-definition-list">
+            <div><dt>No assignment</dt><dd>{summary.fieldValidationCounts.unassigned}</dd></div>
+            <div><dt>Assigned</dt><dd>{summary.fieldValidationCounts.assigned}</dd></div>
+            <div><dt>In progress</dt><dd>{summary.fieldValidationCounts.inProgress}</dd></div>
+            <div><dt>Completed</dt><dd>{summary.fieldValidationCounts.completed}</dd></div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="monthly-review-time-heading">
+          <div className="monthly-summary-subheading">
+            <h3 id="monthly-review-time-heading">Review time</h3>
+            <span>Submitted to office review</span>
+          </div>
+          <dl className="monthly-summary-definition-list">
+            <div>
+              <dt>Cases with supported timing</dt>
+              <dd>{summary.reviewTime.reviewedCases}</dd>
+            </div>
+            <div>
+              <dt>Average</dt>
+              <dd>{metricValue(summary.reviewTime.averageHours, " hours")}</dd>
+            </div>
+            <div>
+              <dt>Median</dt>
+              <dd>{metricValue(summary.reviewTime.medianHours, " hours")}</dd>
+            </div>
+            <div>
+              <dt>Range</dt>
+              <dd>
+                {summary.reviewTime.minHours === null || summary.reviewTime.maxHours === null
+                  ? "Not available"
+                  : `${summary.reviewTime.minHours}-${summary.reviewTime.maxHours} hours`}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    </section>
+  );
+}
