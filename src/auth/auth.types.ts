@@ -12,6 +12,20 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface RegistrationCredentials {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation?: string;
+}
+
+export interface PasswordResetCredentials {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation?: string;
+}
+
 export type AuthStatus =
   | "loading"
   | "authenticated"

@@ -25,6 +25,17 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $user = $request->user();
 
+        if (! $user?->hasVerifiedEmail()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'message' => 'Verify your email address before signing in.',
+                'code' => 'EMAIL_NOT_VERIFIED',
+            ], 403);
+        }
+
         if (! in_array($user?->role, User::webRoles(), true)) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();

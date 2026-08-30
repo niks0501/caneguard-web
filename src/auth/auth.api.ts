@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { axiosClient } from "../api/axiosClient";
-import type { AppUser, LoginCredentials, WebRole } from "./auth.types";
+import type {
+  AppUser,
+  LoginCredentials,
+  PasswordResetCredentials,
+  RegistrationCredentials,
+  WebRole,
+} from "./auth.types";
 
 const userResponseSchema = z.object({
   data: z.object({
@@ -8,6 +14,21 @@ const userResponseSchema = z.object({
     name: z.string(),
     email: z.email(),
     role: z.enum(["field_reporter", "reviewer", "admin"]),
+  }),
+});
+
+const authActionResponseSchema = z.object({
+  message: z.string(),
+  code: z.string(),
+});
+
+const registrationResponseSchema = authActionResponseSchema.extend({
+  user: z.object({
+    uuid: z.string(),
+    name: z.string(),
+    email: z.email(),
+    role: z.literal("field_reporter"),
+    email_verified: z.boolean(),
   }),
 });
 
@@ -20,6 +41,48 @@ export async function loginRequest(
 ): Promise<void> {
   await initializeCsrf();
   await axiosClient.post("/login", credentials);
+}
+
+export async function registerRequest(
+  credentials: RegistrationCredentials,
+) {
+  await initializeCsrf();
+  const response = await axiosClient.post("/register", credentials);
+  return registrationResponseSchema.parse(response.data);
+}
+
+export async function resendVerificationRequest(email: string) {
+  await initializeCsrf();
+  const response = await axiosClient.post("/email/verification-notification", {
+    email,
+  });
+  return authActionResponseSchema.parse(response.data);
+}
+
+export async function verifyEmailRequest(
+  id: string,
+  hash: string,
+  params: { expires: string; signature: string },
+) {
+  const response = await axiosClient.get(
+    `/email/verify/${encodeURIComponent(id)}/${encodeURIComponent(hash)}`,
+    { params },
+  );
+  return authActionResponseSchema.parse(response.data);
+}
+
+export async function forgotPasswordRequest(email: string) {
+  await initializeCsrf();
+  const response = await axiosClient.post("/forgot-password", { email });
+  return authActionResponseSchema.parse(response.data);
+}
+
+export async function resetPasswordRequest(
+  credentials: PasswordResetCredentials,
+) {
+  await initializeCsrf();
+  const response = await axiosClient.post("/reset-password", credentials);
+  return authActionResponseSchema.parse(response.data);
 }
 
 export async function getCurrentUser(): Promise<AppUser> {

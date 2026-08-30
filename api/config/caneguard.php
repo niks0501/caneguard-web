@@ -2,6 +2,39 @@
 
 return [
     'legacy_public_storage_link' => public_path('storage'),
+    'auth' => [
+        'verification_url' => env(
+            'CANEGUARD_VERIFICATION_URL',
+            rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/').'/verify-email',
+        ),
+        'password_reset_url' => env(
+            'CANEGUARD_PASSWORD_RESET_URL',
+            rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/').'/reset-password',
+        ),
+        'password_min_length' => max(15, (int) env('CANEGUARD_PASSWORD_MIN_LENGTH', 15)),
+        'password_max_length' => max(64, (int) env('CANEGUARD_PASSWORD_MAX_LENGTH', 128)),
+        'mobile_token_lifetime_minutes' => (int) env('CANEGUARD_MOBILE_TOKEN_LIFETIME_MINUTES', 60 * 24 * 7),
+        'compromised_password_hashes' => array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'trim',
+                        array_merge(
+                            [
+                                'abf7aad6438836dbe526aa231abde2d0eef74d42',
+                                '7e13c003a8256cd421055563c5da6571d50713c9',
+                                '65cc4c0b6cf9c56e2a2d801df1b99dc933db9991',
+                            ],
+                            explode(',', (string) env('CANEGUARD_COMPROMISED_PASSWORD_HASHES', '')),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ],
+    'security_audit' => [
+        'retention_days' => (int) env('CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS', 2555),
+    ],
     'demo_users' => [
         'field_reporter_password' => env('CANEGUARD_FIELD_PASSWORD'),
         'reviewer_password' => env('CANEGUARD_REVIEWER_PASSWORD'),

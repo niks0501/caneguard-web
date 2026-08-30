@@ -25,12 +25,12 @@ class MobileAuthenticationTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('token_type', 'Bearer')
-            ->assertJsonPath('expires_at', null)
             ->assertJsonPath('user.uuid', $reporter->uuid)
             ->assertJsonPath('user.name', $reporter->name)
             ->assertJsonPath('user.email', $reporter->email)
             ->assertJsonPath('user.role', User::ROLE_FIELD_REPORTER);
 
+        $this->assertNotNull($response->json('expires_at'));
         $plainTextToken = $response->json('token');
         $accessToken = PersonalAccessToken::findToken($plainTextToken);
 

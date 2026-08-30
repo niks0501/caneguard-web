@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\V1\AdminUserRoleController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\ExpertReferralResponseController;
@@ -25,6 +26,9 @@ use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReportReferralController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
+use App\Http\Controllers\Auth\ChangeEmailController;
+use App\Http\Controllers\Auth\ChangePasswordController;
+use App\Http\Controllers\Auth\DisableBiometricController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
@@ -33,8 +37,16 @@ Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
     ->middleware('throttle:login');
 Route::get('/v1/reference/locations', LocationReferenceController::class);
 
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/me', AuthenticatedUserController::class);
+    Route::post('/auth/password', ChangePasswordController::class)
+        ->name('api.v1.auth.password');
+    Route::patch('/auth/email', ChangeEmailController::class)
+        ->name('api.v1.auth.email');
+    Route::post('/auth/biometric/disable', DisableBiometricController::class)
+        ->name('api.v1.auth.biometric.disable');
+    Route::patch('/admin/users/{user:uuid}/role', AdminUserRoleController::class)
+        ->name('api.v1.admin.users.role');
     Route::get('/dashboard/summary', DashboardSummaryController::class);
     Route::get('/field-reporters', FieldReporterController::class);
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -66,20 +78,25 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/reports/{report}/duplicate-link', LinkDuplicateReportController::class)
         ->name('api.v1.reports.duplicate-link');
 
-    Route::get('/mobile/auth/me', [MobileAuthController::class, 'me']);
-    Route::delete('/mobile/auth/logout', [MobileAuthController::class, 'logout']);
+    Route::get('/mobile/auth/me', [MobileAuthController::class, 'me'])
+        ->middleware('mobile.token');
+    Route::post('/mobile/auth/enroll', [MobileAuthController::class, 'enroll'])
+        ->middleware('mobile.token')
+        ->name('api.v1.mobile.auth.enroll');
+    Route::delete('/mobile/auth/logout', [MobileAuthController::class, 'logout'])
+        ->middleware('mobile.token');
 
     Route::get('/mobile/reports/possible-matches', MobilePossibleRecentMatchesController::class)
-        ->middleware('abilities:report:submit')
+        ->middleware(['mobile.token', 'abilities:report:submit'])
         ->name('api.v1.mobile.reports.possible-matches');
     Route::post('/mobile/reports', [MobileReportController::class, 'store'])
-        ->middleware(['abilities:report:submit', 'throttle:30,1']);
+        ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1']);
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
-        ->middleware('abilities:report:status');
+        ->middleware(['mobile.token', 'abilities:report:status']);
     Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
-        ->middleware('abilities:assignment:read');
+        ->middleware(['mobile.token', 'abilities:assignment:read']);
     Route::get('/mobile/notifications', MobileNotificationController::class)
-        ->middleware('abilities:notification:read');
+        ->middleware(['mobile.token', 'abilities:notification:read']);
     Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
-        ->middleware(['abilities:assignment:complete', 'throttle:30,1']);
+        ->middleware(['mobile.token', 'abilities:assignment:complete', 'throttle:30,1']);
 });

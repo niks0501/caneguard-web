@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff, LockKeyhole, ShieldCheck, Sprout } from "lucide-react";
-import { Navigate, useLocation, useNavigate } from "react-router";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { WebRoleError } from "../auth/auth.api";
@@ -37,6 +37,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [requiresVerification, setRequiresVerification] = useState(false);
 
   if (auth.status === "loading") {
     return (
@@ -54,6 +55,7 @@ export function LoginPage() {
     event.preventDefault();
     setSubmitting(true);
     setErrorMessage(null);
+    setRequiresVerification(false);
 
     try {
       await auth.login({ email, password });
@@ -65,6 +67,12 @@ export function LoginPage() {
         setErrorMessage(
           "Too many sign-in attempts. Wait a minute before trying again.",
         );
+      } else if (
+        error instanceof ApiError &&
+        error.code === "EMAIL_NOT_VERIFIED"
+      ) {
+        setErrorMessage("Verify your email address before signing in.");
+        setRequiresVerification(true);
       } else if (
         (error instanceof ApiError && error.status === 403) ||
         error instanceof WebRoleError
@@ -119,6 +127,11 @@ export function LoginPage() {
           {errorMessage ? (
             <p className="login-notice login-notice--error" role="alert">{errorMessage}</p>
           ) : null}
+          {requiresVerification ? (
+            <Link className="login-notice__link" to={routes.verifyEmail}>
+              Resend verification email
+            </Link>
+          ) : null}
         </div>
 
         <form className="login-form" onSubmit={submit}>
@@ -156,14 +169,19 @@ export function LoginPage() {
               </button>
             </span>
           </label>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </Button>
+          <div className="login-form__actions">
+            <Link className="auth-inline-link" to={routes.forgotPassword}>
+              Forgot password?
+            </Link>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Signing in..." : "Sign in"}
+            </Button>
+          </div>
         </form>
 
         <p className="login-support">
-          No public registration is available. Contact the CaneGuard administrator
-          if you need workspace access.
+          Field reporters can <Link to={routes.register}>create an account</Link>.
+          Staff workspace access remains limited to reviewer and administrator accounts.
         </p>
       </section>
       <aside className="login-visual" aria-label="CaneGuard decision support">
