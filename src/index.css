@@ -1,4 +1,7 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./**/*.{js,jsx,ts,tsx}";
+
 @import "./styles/tokens.css";
 @import "./styles/field-validation.css";
 

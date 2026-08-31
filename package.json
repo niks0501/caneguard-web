@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:vite-source-safety": "node --test scripts/vite-tailwind-source-safety.node-test.mjs",
     "test:watch": "vitest",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -49,7 +50,7 @@
     "contract:test": "node --test scripts/validate-mobile-report-upload-v1.node-test.mjs scripts/validate-mobile-field-validation-assignment-v1.node-test.mjs scripts/validate-mobile-field-validation-completion-v1.node-test.mjs scripts/validate-mobile-notifications-v1.node-test.mjs scripts/validate-report-lifecycle-v1.node-test.mjs scripts/phase1-lifecycle-acceptance.node-test.mjs scripts/resolve-mobile-report-upload-gate-config.node-test.mjs scripts/mobile-report-upload-contract-workflow.node-test.mjs",
     "phase1:acceptance": "node scripts/run-phase1-lifecycle-acceptance.mjs",
     "phase1:acceptance:test": "node --test scripts/phase1-lifecycle-acceptance.node-test.mjs",
-    "check:web": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "check:web": "npm run lint && npm run typecheck && npm run test && npm run test:vite-source-safety && npm run build",
     "check:api": "npm run api:test && npm run api:format:check",
     "check:all": "npm run check:web && npm run check:api"
   },
