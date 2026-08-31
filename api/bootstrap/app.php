@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureMobileTokenFresh;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -7,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
@@ -29,14 +31,28 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
+            'mobile.token' => EnsureMobileTokenFresh::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (
+            InvalidSignatureException $exception,
+            Request $request,
+        ) {
+            if (! $request->is('email/verify/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => 'The verification link is invalid or expired.',
+                'code' => 'INVALID_VERIFICATION_LINK',
+            ], 403);
+        });
+        $exceptions->render(function (
             AuthenticationException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 
@@ -49,7 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AuthorizationException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 
@@ -62,7 +78,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ModelNotFoundException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 
@@ -75,7 +91,7 @@ return Application::configure(basePath: dirname(__DIR__))
             NotFoundHttpException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 
@@ -88,7 +104,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ValidationException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 
@@ -102,7 +118,7 @@ return Application::configure(basePath: dirname(__DIR__))
             TokenMismatchException $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 
@@ -115,7 +131,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HttpExceptionInterface $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 
@@ -144,7 +160,7 @@ return Application::configure(basePath: dirname(__DIR__))
             Throwable $exception,
             Request $request,
         ) {
-            if (! $request->is('api/*', 'login', 'logout')) {
+            if (! $request->is('api/*', 'login', 'logout', 'register', 'email/*', 'forgot-password', 'reset-password')) {
                 return null;
             }
 

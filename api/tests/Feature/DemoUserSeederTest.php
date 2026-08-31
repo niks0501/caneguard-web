@@ -29,6 +29,7 @@ class DemoUserSeederTest extends TestCase
             'email' => 'field@caneguard.test',
             'role' => User::ROLE_FIELD_REPORTER,
         ]);
+        $this->assertNotNull(User::query()->where('email', 'field@caneguard.test')->value('email_verified_at'));
         $this->assertDatabaseHas('users', [
             'email' => 'mao@caneguard.test',
             'role' => User::ROLE_REVIEWER,

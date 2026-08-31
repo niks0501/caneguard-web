@@ -8,6 +8,10 @@ import { LoadingState } from "../components/ui/States";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SubmittedReportsPage } from "../pages/SubmittedReportsPage";
 import { LoginPage } from "../pages/LoginPage";
+import { RegisterPage } from "../pages/RegisterPage";
+import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "../pages/ResetPasswordPage";
+import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 import { routes } from "./routes";
 
 const FieldValidationMapPage = lazy(() =>
@@ -21,6 +25,10 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route path="verify-email" element={<VerifyEmailPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route element={<RequireAuth />}>
           <Route index element={<Navigate replace to={routes.dashboard} />} />
           <Route element={<AppShell />}>

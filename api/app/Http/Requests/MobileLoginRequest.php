@@ -16,7 +16,8 @@ class MobileLoginRequest extends ApiFormRequest
         return [
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'max:255'],
-            'device_name' => ['required', 'string', 'max:120'],
+            'device_name' => ['required', 'string', 'max:120', 'not_regex:/[\r\n]/'],
+            'device_id' => ['sometimes', 'nullable', 'string', 'max:191', 'not_regex:/^\s*$/'],
         ];
     }
 
@@ -25,6 +26,9 @@ class MobileLoginRequest extends ApiFormRequest
         $this->merge([
             'email' => Str::lower(trim((string) $this->input('email'))),
             'device_name' => trim((string) $this->input('device_name')),
+            'device_id' => filled($this->input('device_id'))
+                ? trim((string) $this->input('device_id'))
+                : null,
         ]);
     }
 }

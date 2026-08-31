@@ -21,18 +21,21 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Field Reporter',
                 'email' => 'field@caneguard.test',
                 'role' => User::ROLE_FIELD_REPORTER,
+                'email_verified_at' => now(),
                 'password' => config('caneguard.demo_users.field_reporter_password'),
             ],
             [
                 'name' => 'MAO Reviewer',
                 'email' => 'mao@caneguard.test',
                 'role' => User::ROLE_REVIEWER,
+                'email_verified_at' => now(),
                 'password' => config('caneguard.demo_users.reviewer_password'),
             ],
             [
                 'name' => 'CaneGuard Administrator',
                 'email' => 'admin@caneguard.test',
                 'role' => User::ROLE_ADMIN,
+                'email_verified_at' => now(),
                 'password' => config('caneguard.demo_users.admin_password'),
             ],
         ];
@@ -46,10 +49,16 @@ class DatabaseSeeder extends Seeder
         }
 
         foreach ($users as $user) {
-            User::query()->updateOrCreate(
+            $attributes = $user;
+            unset($attributes['email_verified_at']);
+
+            $seededUser = User::query()->updateOrCreate(
                 ['email' => $user['email']],
-                $user,
+                $attributes,
             );
+            $seededUser->forceFill([
+                'email_verified_at' => $user['email_verified_at'],
+            ])->save();
         }
 
         $this->call(ReportSeeder::class);
