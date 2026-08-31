@@ -36,8 +36,15 @@ dist-ssr
 # OpenCode local dependencies
 .opencode/node_modules/
 
-# Generated Graphify cache
+# Generated Graphify cache and extraction intermediates
 graphify-out/cache/
+graphify-out/.graphify_ast.json
+graphify-out/.graphify_chunk_*.json
+graphify-out/.graphify_detect.json
+graphify-out/.graphify_extract.json
+graphify-out/.graphify_python
+graphify-out/.graphify_semantic*.json
+graphify-out/.graphify_uncached.txt
 
 # Laravel application
 /api/.env
