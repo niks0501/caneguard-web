@@ -137,7 +137,7 @@ A successful login or enrollment returns this shape:
 {
   "token": "<bearer-token-returned-once>",
   "token_type": "Bearer",
-  "expires_at": "<iso-8601-time>",
+  "expires_at": null,
   "user": {
     "uuid": "<user-uuid>",
     "name": "<user-name>",
@@ -149,17 +149,15 @@ A successful login or enrollment returns this shape:
 
 The token retains the existing abilities `report:submit`, `report:status`, `assignment:read`, `assignment:complete`, and `notification:read`.
 
-Each newly issued Mobile token expires seven days after issuance.
+Newly issued Mobile tokens have no automatic expiry. The `expires_at` field remains in the response for compatibility and is `null` for these sessions.
 
-Token expiry is fixed and is not extended by use.
+A mobile token remains valid until the current token is explicitly logged out, the account's authentication is revoked, or the token is otherwise deleted. Requests continue to honor an explicit `expires_at` when one is present, and an expired bearer token returns `401 UNAUTHENTICATED`.
 
 A fresh password login or enrollment replaces the token for that device identity only.
 
 Password reset, password change, email change, biometric disablement, and role change revoke all tokens for the affected account.
 
 Mobile logout revokes only the current token.
-
-Expired bearer tokens return `401 UNAUTHENTICATED`.
 
 ## Security audit
 

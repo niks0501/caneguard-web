@@ -3,7 +3,6 @@
 namespace App\Actions\Auth;
 
 use App\Models\User;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Laravel\Sanctum\NewAccessToken;
@@ -36,9 +35,8 @@ final class IssueMobileToken
         }
 
         $tokenName = self::TOKEN_NAME_PREFIX.$deviceName;
-        $expiresAt = Carbon::now()->addMinutes(
-            (int) config('caneguard.auth.mobile_token_lifetime_minutes', 10080),
-        );
+        // Mobile sessions are revoked explicitly, not by a fixed time window.
+        $expiresAt = null;
 
         return DB::transaction(function () use ($deviceId, $expiresAt, $tokenName, $user): NewAccessToken {
             User::query()->whereKey($user->getKey())->lockForUpdate()->first();

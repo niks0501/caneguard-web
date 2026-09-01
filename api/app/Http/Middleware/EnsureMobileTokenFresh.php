@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Models\PersonalAccessToken;
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Http\Request;
@@ -27,22 +26,10 @@ class EnsureMobileTokenFresh
         }
 
         $expiresAt = $token->expires_at;
-        $createdAt = $token->created_at;
 
-        if (($expiresAt === null || $expiresAt === false) && ! $createdAt instanceof CarbonInterface) {
-            $rawCreatedAt = $token->getRawOriginal('created_at');
-            $createdAt = is_string($rawCreatedAt) && $rawCreatedAt !== ''
-                ? Carbon::parse($rawCreatedAt)
-                : null;
-        }
-
-        if (($expiresAt === null || $expiresAt === false) && $createdAt instanceof CarbonInterface) {
-            $expiresAt = $createdAt->copy()->addMinutes(
-                (int) config('caneguard.auth.mobile_token_lifetime_minutes', 10080),
-            );
-        }
-
-        if (! $expiresAt instanceof CarbonInterface || $expiresAt->isPast()) {
+        // A null expiry is the deliberate non-expiring mobile-session contract.
+        // Sanctum still rejects tokens with an explicit expired timestamp.
+        if ($expiresAt !== null && (! $expiresAt instanceof CarbonInterface || $expiresAt->isPast())) {
             return response()->json([
                 'message' => 'Unauthenticated.',
                 'code' => 'UNAUTHENTICATED',
