@@ -13,7 +13,6 @@ return [
         ),
         'password_min_length' => max(15, (int) env('CANEGUARD_PASSWORD_MIN_LENGTH', 15)),
         'password_max_length' => max(64, (int) env('CANEGUARD_PASSWORD_MAX_LENGTH', 128)),
-        'mobile_token_lifetime_minutes' => (int) env('CANEGUARD_MOBILE_TOKEN_LIFETIME_MINUTES', 60 * 24 * 7),
         'compromised_password_hashes' => array_values(
             array_unique(
                 array_filter(

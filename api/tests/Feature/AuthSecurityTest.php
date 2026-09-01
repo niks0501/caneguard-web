@@ -270,7 +270,7 @@ class AuthSecurityTest extends TestCase
         $this->assertDatabaseMissing('sessions', ['id' => 'active-session']);
     }
 
-    public function test_mobile_tokens_have_per_device_expiry_and_fresh_login_rotates_one_device(): void
+    public function test_mobile_tokens_do_not_expire_and_fresh_login_rotates_one_device(): void
     {
         $user = User::factory()->fieldReporter()->create([
             'password' => 'A field reporter passphrase',
@@ -295,20 +295,21 @@ class AuthSecurityTest extends TestCase
         $this->assertNotNull(PersonalAccessToken::findToken($other));
         $accessToken = PersonalAccessToken::findToken($second);
         $this->assertSame('primary-device-id', $accessToken?->device_id);
-        $this->assertNotNull($accessToken?->expires_at);
-        $this->assertTrue($accessToken->expires_at->between(
-            now()->addDays(7)->subMinute(),
-            now()->addDays(7)->addMinute(),
-        ));
+        $this->assertNull($accessToken?->expires_at);
 
         $accessToken?->forceFill([
-            'expires_at' => null,
             'created_at' => now()->subDays(8),
         ])->save();
         $this->withToken($second)
             ->getJson('/api/v1/mobile/auth/me')
-            ->assertUnauthorized()
-            ->assertJsonPath('code', 'UNAUTHENTICATED');
+            ->assertOk()
+            ->assertJsonPath('user.uuid', $user->uuid);
+
+        $this->withToken($second)
+            ->deleteJson('/api/v1/mobile/auth/logout')
+            ->assertNoContent();
+        $this->assertNull(PersonalAccessToken::findToken($second));
+        $this->assertNotNull(PersonalAccessToken::findToken($other));
     }
 
     public function test_password_change_requires_step_up_and_revokes_authentication(): void
@@ -373,12 +374,14 @@ class AuthSecurityTest extends TestCase
             'device_id' => 'second-device',
         ])->assertUnprocessable()->assertJsonPath('code', 'STEP_UP_REQUIRED');
 
-        $second = $this->withToken($first)->postJson('/api/v1/mobile/auth/enroll', [
+        $enrollment = $this->withToken($first)->postJson('/api/v1/mobile/auth/enroll', [
             'current_password' => 'A field reporter passphrase',
             'device_name' => 'Second Android',
             'device_id' => 'second-device',
-        ])->assertOk()->json('token');
+        ])->assertOk();
+        $second = $enrollment->json('token');
 
+        $this->assertNull($enrollment->json('expires_at'));
         $this->assertNotNull(PersonalAccessToken::findToken($first));
         $this->assertNotNull(PersonalAccessToken::findToken($second));
         $this->assertDatabaseHas('security_audits', [

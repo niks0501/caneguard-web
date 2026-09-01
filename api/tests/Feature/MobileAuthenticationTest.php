@@ -30,7 +30,7 @@ class MobileAuthenticationTest extends TestCase
             ->assertJsonPath('user.email', $reporter->email)
             ->assertJsonPath('user.role', User::ROLE_FIELD_REPORTER);
 
-        $this->assertNotNull($response->json('expires_at'));
+        $this->assertNull($response->json('expires_at'));
         $plainTextToken = $response->json('token');
         $accessToken = PersonalAccessToken::findToken($plainTextToken);
 
@@ -40,6 +40,7 @@ class MobileAuthenticationTest extends TestCase
             ['report:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read'],
             $accessToken->abilities,
         );
+        $this->assertNull($accessToken->expires_at);
 
         $this->withToken($plainTextToken)
             ->getJson('/api/v1/mobile/auth/me')
