@@ -207,7 +207,7 @@ When working in Expo:
 - account for permissions and app lifecycle;
 - avoid unnecessary native modules;
 - keep device/network/offline behavior in mind;
-- use Maestro/agent-device/manual device verification when workflow behavior requires it.
+- use agent-device or manual device verification when workflow behavior requires it.
 
 ## API implementation
 

@@ -14,6 +14,10 @@ Ensure temporary connectivity/server failures delay synchronization rather than 
 
 This P0 directly supports CaneGuard's offline-first field-report workflow.
 
+> **Current mobile automation:** The companion Mobile repository owns device automation.
+>
+> Follow its [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md) for current device-flow commands and evidence.
+
 ## User story
 
 As a field reporter working with weak or intermittent connectivity, I want finalized reports to remain safe on the device and retry automatically when temporary failures recover, without repeatedly retrying reports that require my correction.
@@ -207,7 +211,7 @@ Keep Wi-Fi ON and wireless ADB connected.
 5. Restart Laravel without changing phone network state.
 6. Observe whether the report automatically retries.
 
-This reproduces the "server recovers but NetInfo never changed" case without breaking Maestro.
+This reproduces the "server recovers but NetInfo never changed" case without disconnecting the device flow.
 
 Actual phone Wi-Fi-off/on acceptance is in the separate manual document.
 
@@ -430,12 +434,11 @@ No Wi-Fi radio toggle belongs in this automated plan.
 npm run typecheck
 npm run lint
 npm test
-npm run e2e:doctor
 ```
 
 Run narrow sync tests while iterating, then full Jest.
 
-P0F will run the actual Maestro suite.
+P0F owns the current Mobile device suite; follow the Mobile repository's current guide for its preflight and commands.
 
 ## Acceptance criteria
 

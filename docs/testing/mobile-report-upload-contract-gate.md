@@ -8,9 +8,9 @@ The completion contract proves that Mobile completion evidence maps to the Larav
 The notification contract proves that attention payloads and checkpoints remain owner-scoped and parseable.
 The lifecycle contract proves that independent state dimensions and legacy projections remain aligned without making field evidence or AI output authoritative.
 
-The gate does not run device tests, Maestro, or the P0F full-system acceptance flow.
+The gate does not run device flows or the P0F full-system acceptance flow.
 The local-stack acceptance harness is separate and records automated evidence explicitly as non-device evidence.
-Captain-owned Maestro execution remains the later physical-runtime handoff.
+Mobile device acceptance is owned by the companion [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md).
 
 ## What the gate runs
 
@@ -121,5 +121,5 @@ If `[consumer]` fails, read the named Laravel boundary assertion.
 If `[revision]` fails, correct the full SHA input rather than rerunning with a branch name.
 
 A passing pull-request web-boundary check is not a substitute for the trusted cross-repository result.
-A passing local-stack harness is also not a substitute for a physical device or Maestro result.
+A passing local-stack harness is also not a substitute for a physical-device result.
 P0F must use recorded Web and Mobile SHAs, artifact digests, and passing trusted gates before the captain begins the physical-runtime handoff.

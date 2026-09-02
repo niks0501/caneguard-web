@@ -14,6 +14,10 @@ Prove that P0A–P0E work together as one system: Android development build → 
 
 P0F is a **release/stabilization gate**, not a new product feature.
 
+> **Current mobile automation:** Mobile device acceptance is owned by the companion [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md).
+>
+> This Web repository documents the cross-system boundary here but does not configure or run that mobile tooling.
+
 ## User story
 
 As the CaneGuard project team, we want one repeatable acceptance process proving the complete field-report workflow so we can detect integration defects that isolated mobile, API, or web test suites miss.
@@ -34,7 +38,7 @@ P0F validates:
 - queue draining;
 - graceful map/provider degradation.
 
-**Actual Wi-Fi OFF/ON tests are excluded from automated Maestro execution because the current device uses wireless ADB.** They are mandatory but live in:
+**Actual Wi-Fi OFF/ON tests are excluded from automated device-flow execution because the current device uses wireless ADB.** They are mandatory but live in:
 
 ```text
 MANUAL-WIFI-OFFLINE-RECOVERY-TEST.md
@@ -47,7 +51,7 @@ flowchart LR
     J[Mobile Jest / provider tests] --> G[Automated code gates]
     L[Laravel feature tests] --> G
     V[Web Vitest] --> G
-    G --> M[Maestro on Android development build]
+    G --> M[Mobile device flow on Android development build]
     M --> A[Laravel API]
     A --> W[CaneGuard Web]
     W --> A2[Review API]
@@ -56,11 +60,11 @@ flowchart LR
     H[Human Wi-Fi manual test] --> R
 ```
 
-Use the right tool for each layer. Do not force every scenario into Maestro.
+Use the right tool for each layer. Do not force every scenario into the mobile device flow.
 
 ## Why hybrid testing is the best practical approach
 
-Maestro is strong for Android UI flow and uses ADB. With wireless debugging, disabling Wi-Fi would destroy the control channel. Laravel/PHPUnit is stronger for API authorization/persistence. Vitest is stronger for React Query and map state behavior.
+The Mobile device flow is strong for Android UI and uses ADB. With wireless debugging, disabling Wi-Fi would destroy the control channel. Laravel/PHPUnit is stronger for API authorization/persistence. Vitest is stronger for React Query and map state behavior.
 
 Adding Playwright, Appium, or a new orchestration framework solely for this P0 would increase maintenance without materially improving capstone evidence. The full-system acceptance run may contain a small operator-assisted web review step if no browser E2E framework already exists.
 
@@ -76,7 +80,7 @@ Before P0F starts:
 - valid local MapTiler key for the positive map case;
 - physical Android development build installed;
 - wireless ADB paired and connected;
-- Maestro doctor passes;
+- the Mobile device preflight passes according to the current companion-repository guide;
 - mobile API route verified;
 - Laravel health endpoint responds;
 - web app points to the same Laravel environment.
@@ -93,16 +97,11 @@ From `caneguard-mobile`:
 npm run typecheck
 npm run lint
 npm test
-npm run e2e:doctor
 ```
 
-Then the relevant Maestro suite:
+Then run the relevant Mobile device suite according to the current companion-repository guide.
 
-```bash
-npm run e2e
-```
-
-If the entire existing `.maestro` suite is too broad during iteration, run the specific flow using `npm run e2e:flow -- <flow-file>` according to existing repository convention.
+The Web/API repository does not duplicate Mobile device-flow commands here.
 
 ### Web/API
 
@@ -131,7 +130,7 @@ Verify:
 Laravel health -> PASS
 Web -> same API -> PASS
 Android -> same API -> PASS
-Wireless ADB / Maestro -> connected
+Wireless ADB / mobile device flow -> connected
 ```
 
 Record the repository commits in the acceptance evidence.
@@ -241,7 +240,7 @@ Mobile -> API -> Web -> API -> Mobile
 
 ### A. API server unavailable while Wi-Fi remains ON
 
-This is safe for wireless Maestro.
+This is safe for wireless device automation.
 
 1. Keep wireless ADB connected.
 2. Stop Laravel.
@@ -323,20 +322,13 @@ Prove both:
 - external mobile report appears by polling;
 - same-browser review updates map/queue via invalidation, not by waiting for the next poll.
 
-## Maestro scope
+## Mobile device-flow scope
 
-Recommended Maestro flows should focus on stable mobile UI tasks:
+Recommended Mobile device flows should focus on stable UI tasks.
 
-```text
-.maestro/
-  p0f-auth-smoke.yaml
-  p0f-create-finalize-sync.yaml
-  p0f-authority-status-refresh.yaml
-```
+Keep those flows in the companion Mobile repository's current workspace and adapt names to its existing convention instead of duplicating them here.
 
-Adapt names to existing repository convention instead of duplicating existing flows.
-
-Maestro should not:
+Mobile device automation should not:
 
 - turn Wi-Fi off while using wireless ADB;
 - modify database files directly;
@@ -401,7 +393,7 @@ P0F passes only when:
 - [ ] Mobile typecheck/lint/Jest pass.
 - [ ] Web lint/typecheck/Vitest/build pass.
 - [ ] Laravel tests and formatting check pass.
-- [ ] Maestro tooling doctor passes on the physical device.
+- [ ] Mobile device preflight passes on the physical device according to the companion-repository guide.
 - [ ] Canonical Mobile → API → Web → API → Mobile workflow succeeds.
 - [ ] Laravel persists exactly one report for a retried/duplicated client submission.
 - [ ] New mobile report appears on open web operational views without hard reload.
@@ -434,7 +426,7 @@ P0F itself should not become a dumping ground for production hacks.
 Prefer test/evidence commits after production fixes are already separated:
 
 ```text
-test(e2e): add P0 stabilization Maestro flows
+test(e2e): add P0 stabilization device flows
 docs(test): add cross-system acceptance procedure
 ```
 

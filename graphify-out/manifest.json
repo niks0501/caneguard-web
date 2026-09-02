@@ -216,9 +216,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1788202079.028489,
-    "seen": 1788271115.2413557,
-    "ast_hash": "c1fed87f4f54b00aef84d53471115753",
+    "mtime": 1788326797.5706673,
+    "seen": 1788327150.6412892,
+    "ast_hash": "554dbeab5fc98272b478adf035f39f31",
     "semantic_hash": ""
   },
   "index.html": {
@@ -1253,12 +1253,6 @@
     "ast_hash": "9cbbce7b98ce68a731189084e18a28fa",
     "semantic_hash": ""
   },
-  ".agents/skills/maestro-runtime-verification/SKILL.md": {
-    "mtime": 1787701027.6605835,
-    "seen": 1788271115.2411845,
-    "ast_hash": "c141e0dd9c02fb82ae95ffeec24472c2",
-    "semantic_hash": ""
-  },
   ".agents/skills/plan-feature/SKILL.md": {
     "mtime": 1787701027.6605835,
     "seen": 1788271115.2411861,
@@ -1290,9 +1284,9 @@
     "semantic_hash": ""
   },
   ".agents/skills/verification/SKILL.md": {
-    "mtime": 1787701027.6605835,
-    "seen": 1788271115.2411942,
-    "ast_hash": "e51b6d111ce5361329039e8c023a5a5d",
+    "mtime": 1788326405.694348,
+    "seen": 1788327150.64122,
+    "ast_hash": "ddf139849fbce55be5240603a75ec638",
     "semantic_hash": ""
   },
   ".opencode/agents/orchestrator-architect.md": {
@@ -1308,9 +1302,9 @@
     "semantic_hash": ""
   },
   ".opencode/agents/orchestrator-implementer.md": {
-    "mtime": 1787701027.6658506,
-    "seen": 1788271115.2412045,
-    "ast_hash": "9ad389934d1bf764c1767c2896af8641",
+    "mtime": 1788326405.909251,
+    "seen": 1788327150.6412246,
+    "ast_hash": "76e3300c0cda1c4788e3700b9329f8f5",
     "semantic_hash": ""
   },
   ".opencode/agents/orchestrator-reviewer.md": {
@@ -1320,9 +1314,9 @@
     "semantic_hash": ""
   },
   ".opencode/agents/orchestrator.md": {
-    "mtime": 1787701027.6658506,
-    "seen": 1788271115.2412076,
-    "ast_hash": "37cfdc9dee148d67fc61bc30a89934f5",
+    "mtime": 1788326405.9490936,
+    "seen": 1788327150.641226,
+    "ast_hash": "c6caa7e22654af9f28256f9ac5450ae9",
     "semantic_hash": ""
   },
   ".opencode/commands/architect.md": {
@@ -1356,9 +1350,9 @@
     "semantic_hash": ""
   },
   "PROJECT_CONTEXT.md": {
-    "mtime": 1787701027.710377,
-    "seen": 1788271115.2413511,
-    "ast_hash": "807b39335cc5410c6468877158a87edf",
+    "mtime": 1788326785.2146728,
+    "seen": 1788327150.6412876,
+    "ast_hash": "f19b3447d02f8217070935e5df6f604d",
     "semantic_hash": ""
   },
   "PROJECT_STACK.md": {
@@ -1386,9 +1380,9 @@
     "semantic_hash": ""
   },
   ".agents/skills/akidev-tool-routing/SKILL.md": {
-    "mtime": 1787701027.6605835,
-    "seen": 1788271115.2405443,
-    "ast_hash": "24f5ec30b6352947fcaff0cec08122fb",
+    "mtime": 1788326405.9740477,
+    "seen": 1788327150.6411197,
+    "ast_hash": "c159317495b2d76027cddc8322fb5108",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/LocationReferenceController.php": {
@@ -1620,9 +1614,9 @@
     "semantic_hash": ""
   },
   "docs/CaneGuard_P0A-P0F_Stabilization_Plans/MANUAL-WIFI-OFFLINE-RECOVERY-TEST.md": {
-    "mtime": 1787701027.733231,
-    "seen": 1788271115.2413692,
-    "ast_hash": "9eb1e60e0674837f610bff4367b1941a",
+    "mtime": 1788326822.1746747,
+    "seen": 1788327150.6412945,
+    "ast_hash": "76c7c09bc9fbc6d22da8752215652ca8",
     "semantic_hash": ""
   },
   "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0A-CANONICAL-MOBILE-API-STATUS-CONTRACT.md": {
@@ -1632,9 +1626,9 @@
     "semantic_hash": ""
   },
   "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0B-PHYSICAL-DEVICE-API-CONNECTIVITY.md": {
-    "mtime": 1787701027.7336738,
-    "seen": 1788271115.2413726,
-    "ast_hash": "766fe4f47b1c9a09352e345c5b9f20e0",
+    "mtime": 1788326838.426683,
+    "seen": 1788327150.641296,
+    "ast_hash": "dd6f553094429d08b4fb0c8fc69c8834",
     "semantic_hash": ""
   },
   "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0C-FIELD-VALIDATION-MAP-RELIABILITY.md": {
@@ -1650,15 +1644,15 @@
     "semantic_hash": ""
   },
   "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0E-RESILIENT-OFFLINE-SYNC.md": {
-    "mtime": 1787701027.7336738,
-    "seen": 1788271115.2413785,
-    "ast_hash": "adf303ff97093e812400b43281391f76",
+    "mtime": 1788326969.5706398,
+    "seen": 1788327150.6412983,
+    "ast_hash": "873f5534f121e89234f4b26dd6650445",
     "semantic_hash": ""
   },
   "docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0F-CROSS-SYSTEM-ACCEPTANCE-GATE.md": {
-    "mtime": 1787701027.7336738,
-    "seen": 1788271115.2413807,
-    "ast_hash": "3ccabfe6dab9ec52424d035269924fc8",
+    "mtime": 1788326925.5146513,
+    "seen": 1788327150.641299,
+    "ast_hash": "93217ee313453ab6514990d74f4cf820",
     "semantic_hash": ""
   },
   "docs/screenshots/caneguard-redesign/case-review-desktop.png": {
@@ -1908,9 +1902,9 @@
     "semantic_hash": ""
   },
   "docs/development/physical-android-api.md": {
-    "mtime": 1787701027.7358632,
-    "seen": 1788271115.2414002,
-    "ast_hash": "e209eec4f8f8b8f86202fbe045d32041",
+    "mtime": 1788326858.5466619,
+    "seen": 1788327150.641306,
+    "ast_hash": "bc39ad294673d4e263d1824a52527d92",
     "semantic_hash": ""
   },
   ".opencode/skills/impeccable/scripts/command-metadata.json": {
@@ -3810,9 +3804,9 @@
     "semantic_hash": ""
   },
   "docs/testing/mobile-report-upload-contract-gate.md": {
-    "mtime": 1787987240.3630784,
-    "seen": 1788271115.241408,
-    "ast_hash": "7708784aca28db3773d48d5ed92daa4f",
+    "mtime": 1788326867.1906533,
+    "seen": 1788327150.641308,
+    "ast_hash": "eeb1daef6c12082dd86dd4a3723cbfc8",
     "semantic_hash": ""
   },
   "docs/testing/web-map-queue-regression.md": {
@@ -5562,9 +5556,9 @@
     "semantic_hash": ""
   },
   "scripts/run-phase1-lifecycle-acceptance.mjs": {
-    "mtime": 1787987240.523099,
-    "seen": 1788271115.24027,
-    "ast_hash": "e92019bc2ff92046b49faa9b6457ef55",
+    "mtime": 1788327103.218646,
+    "seen": 1788327150.640973,
+    "ast_hash": "90e3fe84f18c94fb898eb63135c75644",
     "semantic_hash": ""
   },
   "scripts/run-report-lifecycle-producer-contract.mjs": {
@@ -5778,9 +5772,9 @@
     "semantic_hash": ""
   },
   "docs/testing/phase1-lifecycle-acceptance.md": {
-    "mtime": 1787987240.3630784,
-    "seen": 1788271115.24141,
-    "ast_hash": "271e248d219a6d1706c24e06eef98cb6",
+    "mtime": 1788326983.818654,
+    "seen": 1788327150.6413088,
+    "ast_hash": "7ef019c21a8aa27ffb9ebd6c301775a9",
     "semantic_hash": ""
   },
   "scripts/phase1-lifecycle-acceptance.node-test.mjs": {
@@ -6294,9 +6288,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1788202079.0244884,
-    "seen": 1788271115.241343,
-    "ast_hash": "941d7d07d42857080c8e6c79f8348bb7",
+    "mtime": 1788326760.2266755,
+    "seen": 1788327150.6412852,
+    "ast_hash": "7783dd99b40c975b32d3b596f10e9b63",
     "semantic_hash": ""
   },
   "docs/contracts/auth-v1.md": {
