@@ -12,10 +12,6 @@ project_doc_max_bytes = 32768
 enabled = true
 max_concurrent_threads_per_session = 4
 
-
-
-# AkiDev manages only this project-local MCP block.
-
 # AkiDev manages only this project-local MCP block.
 # >>> AKIDEV MCP START
 # No AkiDev MCP integrations selected.

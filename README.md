@@ -52,9 +52,9 @@ The Mobile package currently declares Expo `~57.0.18` and React Native `0.86.3`;
 Use MySQL 8.4 LTS as the current Mobile-compatible baseline, with InnoDB, `utf8mb4_unicode_ci`, and session time zone `+00:00` for the MySQL validation suite.
 Do not add a version to this guide when the repository does not declare one.
 
-Maestro is optional.
-If you run `npm run e2e:doctor`, install Java 17 or newer and make the `maestro` command available on `PATH`.
-Java and Maestro are not required for normal Web/API setup or ordinary Mobile development-server work.
+Mobile device setup and acceptance are owned by the companion Mobile repository.
+See its [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md) for current device prerequisites and commands.
+This Web/API repository does not install or run mobile device tooling.
 
 ## Placeholders, private access, and secrets
 
@@ -427,7 +427,7 @@ npm run contract:lifecycle-consumer
 
 The optional producer checks and `npm run contract:gate` require a clean Mobile checkout at the exact full SHA in `ci/mobile-report-upload-gate.json`, not merely the Mobile `main` branch.
 They temporarily replace the matching contract artifact in that checkout and restore it after each focused check.
-They do not run device tests, Maestro, or the P0F acceptance flow.
+They do not run device flows or the P0F acceptance flow.
 See [Mobile lifecycle contract gate](docs/testing/mobile-report-upload-contract-gate.md) for the exact producer commands and failure categories.
 
 Run the Mobile fast checks from the Mobile repository root:
@@ -441,15 +441,9 @@ npm test
 npm run db:check
 ```
 
-Maestro verification is optional and is not part of normal onboarding.
-If the optional tools are installed, `npm run e2e:doctor` checks for Java 17 or newer and the `maestro` command on `PATH`.
-Run the full `npm run e2e` suite only when a fresh compatible development build, Metro session, API environment, and Android device or emulator are available.
-
-```bash
-# Mobile repository: $HOME/src/caneguard/caneguard-mobile
-cd "$HOME/src/caneguard/caneguard-mobile"
-npm run e2e
-```
+Mobile device verification is owned by the Mobile repository and is not part of normal Web/API onboarding.
+Follow the [Mobile Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md) for its current preflight, flow, and evidence commands.
+The Web/API repository's deterministic checks remain the `check:web`, `check:api`, and contract commands documented above.
 
 ## Advanced contracts and full-system acceptance
 

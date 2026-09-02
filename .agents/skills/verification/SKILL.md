@@ -31,7 +31,7 @@ For bug fixes, prefer a regression test.
 
 For UI changes, automated tests may not prove visual/interaction quality; add manual/browser/device evidence when needed.
 
-For React Native/Expo work where Maestro may be used, load `maestro-runtime-verification` before treating Maestro as valid evidence. Assess native-runtime freshness first so a stale development build is deferred instead of being mistaken for a feature failure.
+For React Native/Expo device verification, load `akidev-mobile-verification` before treating device or E2E results as valid evidence. Assess native-runtime freshness first so a stale development build is deferred instead of being mistaken for a feature failure.
 
 ## Report
 

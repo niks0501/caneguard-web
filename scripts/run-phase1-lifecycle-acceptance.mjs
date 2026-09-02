@@ -98,7 +98,7 @@ async function main() {
       transport: 'Mobile-shaped HTTP requests from Node fetch',
     },
     physical_device: false,
-    maestro: 'not_run',
+    device_automation: 'not_run',
     trusted_contract_gate: trustedContractGate,
     simulated_boundaries: [
       'Mobile authentication and HTTP transport are simulated by this Node harness.',
@@ -108,8 +108,8 @@ async function main() {
     contract_artifacts: [],
     steps,
     limitations: [
-      'This artifact is automated local-stack evidence only and must not be reported as physical-device or Maestro evidence.',
-      'Captain-owned Maestro execution remains a separate handoff after the local stack and trusted contract gates pass.',
+      'This artifact is automated local-stack evidence only and must not be reported as physical-device or device-flow evidence.',
+      'Mobile device acceptance remains a separate handoff after the local stack and trusted contract gates pass.',
       'The Mobile app seam test is run only when an existing Mobile node_modules installation is available; this harness never installs dependencies.',
       'A dirty working tree is local development evidence only; trusted gates require exact clean committed revisions.',
       'The trusted cross-repository producer gate remains separate from this local-stack harness and requires the pinned clean Mobile revision plus installed Mobile Jest dependencies.',
@@ -389,7 +389,7 @@ async function main() {
     await writeEvidence(outputPath, evidence);
     console.log(
       `[acceptance] PASS_WITH_GAPS local-stack Phase 1 lifecycle evidence recorded at ${outputPath}. `
-        + 'physical_device=false; maestro=not_run.',
+        + 'physical_device=false; device_automation=not_run.',
     );
   } catch (error) {
     const failure = error instanceof Phase1AcceptanceError

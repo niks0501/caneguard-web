@@ -33,6 +33,10 @@ If dependencies are absent, that check is recorded as skipped rather than silent
 
 The flow submits a Mobile-shaped report through the local API.
 
+> **Current mobile automation:** Physical device acceptance is owned by the companion [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md).
+>
+> This document covers only the Web/API local-stack harness.
+
 A reviewer assigns the open case to the seeded field reporter.
 
 The field reporter reads the owner-scoped assignment and assignment attention feed.
@@ -55,8 +59,6 @@ Its `evidence_class` is `automated_local_stack`.
 
 Its `physical_device` value is always `false`.
 
-Its `maestro` value is always `not_run`.
-
 The local evidence does not attest the trusted cross-repository producer gate until a clean Mobile lifecycle commit is pinned.
 
 Its `PASS_WITH_GAPS` status means the local-stack proof passed while the physical-runtime proof remains outstanding.
@@ -65,15 +67,15 @@ The Mobile HTTP transport and all credentials are simulated or local test infras
 
 The optional Mobile SQLite seam uses a temporary file reopen, but it is not a physical app process restart.
 
-Do not cite this artifact as Android, iOS, physical-device, Maestro, staging, or production evidence.
+Do not cite this artifact as device, staging, or production evidence.
 
 ## Captain-owned handoff
 
-After the local-stack proof and trusted contract gate pass, the captain owns the later Maestro execution.
+After the local-stack proof and trusted contract gate pass, the companion Mobile repository owns the later device acceptance.
 
 The captain must use the exact Web revision, exact Mobile revision, and artifact digests recorded for that run.
 
-The captain must record device, build, environment, and flow evidence in the Mobile `.maestro/evidence/` convention.
+The companion Mobile repository must record device, build, environment, and flow evidence in its current evidence convention.
 
 The captain must preserve the distinction between local-stack evidence, mocked or automated Mobile evidence, and physical-device evidence.
 

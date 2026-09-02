@@ -10,9 +10,13 @@
 
 ## Purpose
 
-This document covers the **real Android Wi-Fi OFF/ON acceptance scenarios that must not be automated through Maestro while the phone is controlled using wireless ADB**.
+This document covers the **real Android Wi-Fi OFF/ON acceptance scenarios that must not be automated through a wireless device-control flow while the phone is controlled using wireless ADB**.
 
 Turning Wi-Fi off will disconnect wireless ADB. That is expected. During these steps, judge the app by what you can see and do directly on the phone. After Wi-Fi is restored, wireless debugging may reconnect automatically or may need to be reconnected/re-paired depending on Android/host behavior.
+
+> **Current mobile automation:** Mobile device automation is maintained in the companion [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md).
+>
+> This Web repository keeps this manual Wi-Fi procedure because wireless ADB disconnects when Wi-Fi is disabled.
 
 This document is part of the P0E/P0F acceptance gate.
 
@@ -36,7 +40,7 @@ Use only test/synthetic data. Do not use a real farmer's personal information.
 
 Before turning Wi-Fi off:
 
-- stop any running Maestro flow;
+- stop any running device flow;
 - assume wireless ADB will disconnect;
 - do not depend on `adb logcat` during the disconnected period unless you temporarily use USB ADB;
 - make sure you know the test account password before going offline if the app may need it later;
@@ -96,7 +100,7 @@ Notes:
 
 ## Step 2 — Turn Wi-Fi OFF
 
-1. Stop Maestro if it is running.
+1. Stop any device flow if it is running.
 2. Confirm mobile data is OFF.
 3. Open Android Quick Settings.
 4. Turn Wi-Fi OFF.
@@ -220,7 +224,7 @@ This test validates queue behavior under real no-network conditions without tryi
 ## Step 1 — Prepare offline state
 
 1. Confirm mobile data OFF.
-2. Stop Maestro.
+2. Stop any device flow.
 3. Turn Wi-Fi OFF.
 
 ## Step 2 — Create multiple finalized test reports
