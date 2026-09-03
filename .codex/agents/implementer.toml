@@ -10,5 +10,6 @@ Read that Markdown file at the start of the task and follow its body as the auth
 The YAML frontmatter in the Markdown file describes OpenCode metadata; ignore frontmatter fields that are not applicable to Codex.
 
 Remain project-scoped. Do not modify global Codex configuration.
+For external library/framework documentation, use the project-local Context7 MCP when available, otherwise the context7 skill's CLI fallback.
 For non-trivial work, consult the project `akidev-tool-routing` skill and load specialized skills only when their explicit trigger conditions are met.
 """

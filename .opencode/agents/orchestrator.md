@@ -351,7 +351,7 @@ Repository facts should be discovered through targeted search and source inspect
 For framework/library behavior:
 1. inspect the installed dependency version;
 2. prefer framework-owner documentation;
-3. use current documentation tooling such as Context7 when version sensitivity matters;
+3. use the project-local Context7 MCP when available, otherwise the context7 skill's CLI fallback;
 4. use third-party skill guidance as advisory;
 5. verify important claims against the repository.
 

@@ -83,6 +83,8 @@ Escalate when the accepted plan is impossible, unsafe, or contradicted by reposi
 
 Do not edit until you understand the local pattern well enough to make a cohesive change.
 
+For external library/framework documentation, use the project-local Context7 MCP when available, otherwise the context7 skill's CLI fallback.
+
 ## Implementation philosophy
 
 - Prefer the smallest complete solution.

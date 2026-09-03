@@ -1,4 +1,4 @@
 # Managed by AkiDev. Values are intentionally plain text; no shell evaluation is required.
 profile=laravel-react
 overlays=
-tools=
+tools=context7

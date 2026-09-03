@@ -6,9 +6,10 @@ description: Route unfamiliar, cross-cutting, debugging, runtime, and verificati
 <!-- Managed by AkiDev integration: akidev-tool-routing -->
 # AkiDev tool routing
 
-This laravel-react project declares these AkiDev integrations/capabilities: `none`.
+This laravel-react project declares these AkiDev integrations/capabilities: `context7`.
 Read `.akidev/config` as the source of truth.
-Availability is not a mandate to use a tool.
+Availability alone does not mandate use, and it never overrides an explicit request or authoritative project/global instruction.
+When a trigger applies, follow that capability's documented transport or fallback rather than suppressing it because the integration is optional.
 
 ## Choose the smallest sufficient path
 
