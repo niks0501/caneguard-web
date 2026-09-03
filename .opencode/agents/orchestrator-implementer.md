@@ -83,8 +83,7 @@ Escalate when the accepted plan is impossible, unsafe, or contradicted by reposi
 
 Do not edit until you understand the local pattern well enough to make a cohesive change.
 
-Treat Context7 as a valid automatic trigger for external library/framework work when the root `AGENTS.md` policy applies.
-Use the generated project's project-local Context7 MCP or the context7 skill's CLI fallback; availability-only routing text does not cancel that trigger.
+For external library/framework documentation, use the project-local Context7 MCP when available, otherwise the context7 skill's CLI fallback.
 
 ## Implementation philosophy
 
