@@ -159,6 +159,16 @@ Password reset, password change, email change, biometric disablement, and role c
 
 Mobile logout revokes only the current token.
 
+## Mobile device/session management
+
+A field-reporter bearer session can list its own active Mobile sessions with `GET /api/v1/mobile/auth/devices`.
+
+The response is `{ "data": [...], "meta": { "count": <number> } }`. Each item contains the server session `id`, the client `device_id`, the display `device_name`, `created_at`, `last_used_at`, `expires_at`, and `is_current`. The server never returns a bearer token, token hash, or session payload. The numeric `id` is an opaque revocation handle and is authorized against the calling user's tokens.
+
+`DELETE /api/v1/mobile/auth/devices/{id}` revokes the caller's Mobile session identified by that list `id` and returns `204`. A caller can revoke the current session; its next request must authenticate with another active session. A missing or another user's identifier returns `404 NOT_FOUND` without disclosing whether a session exists. Successful revocations are recorded as `mobile_device_revocation` security-audit events.
+
+These endpoints provide explicit per-device/session revocation without changing the documented `expires_at: null` policy. The expiry-policy decision remains with the captain. The Web/API change does not modify `caneguard-mobile`; Mobile issue #70 still needs coordinated client handling so biometric logout clears local credentials and, when appropriate, calls server logout or this revocation surface.
+
 ## Security audit
 
 Sensitive step-up attempts and successful security changes write a `security_audits` record.

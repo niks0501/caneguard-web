@@ -127,6 +127,29 @@ class WebAuthenticationTest extends TestCase
             ]);
     }
 
+    public function test_login_throttles_password_sprays_by_source_ip(): void
+    {
+        config([
+            'caneguard.rate_limits.login.per_email_ip_per_minute' => 50,
+            'caneguard.rate_limits.login.per_ip_per_minute' => 2,
+            'caneguard.rate_limits.login.global_per_minute' => 50,
+        ]);
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $this->postJson('/login', [
+                'email' => "spray-{$attempt}@example.test",
+                'password' => 'incorrect-password',
+            ])->assertUnprocessable();
+        }
+
+        $this->postJson('/login', [
+            'email' => 'spray-final@example.test',
+            'password' => 'incorrect-password',
+        ])
+            ->assertTooManyRequests()
+            ->assertJsonPath('code', 'RATE_LIMITED');
+    }
+
     public function test_login_csrf_failures_use_the_canonical_error_shape(): void
     {
         $this->mock(

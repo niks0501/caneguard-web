@@ -258,6 +258,7 @@ Replace angle-bracket values with local values and never commit the file.
 | `APP_MAINTENANCE_DRIVER` | Keep `file`. |
 | `APP_MAINTENANCE_STORE` | Keep `database`. |
 | `APP_URL` | The same exact value as `QA_PUBLIC_URL`. |
+| `APP_TRUSTED_HOSTS` | The hostname from `QA_PUBLIC_URL` only, without scheme or port. |
 | `FRONTEND_URL` | The same exact value as `QA_PUBLIC_URL`. |
 | `CORS_ALLOWED_ORIGINS` | The same exact value as `QA_PUBLIC_URL`. |
 | `SANCTUM_STATEFUL_DOMAINS` | The host from `QA_PUBLIC_URL` only, such as `device.tailnet.ts.net`. |

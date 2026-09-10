@@ -68,6 +68,9 @@ export const mapResponseSchema = z.object({
     total_count: z.number().int().nonnegative(),
     located_count: z.number().int().nonnegative(),
     unlocated_count: z.number().int().nonnegative(),
+    limit: z.number().int().positive(),
+    returned_count: z.number().int().nonnegative(),
+    truncated: z.boolean(),
   }),
 });
 

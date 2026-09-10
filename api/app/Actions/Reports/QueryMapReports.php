@@ -14,7 +14,7 @@ class QueryMapReports
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return array{reports: Collection<int, Report>, total_count: int, located_count: int, unlocated_count: int}
+     * @return array{reports: Collection<int, Report>, total_count: int, located_count: int, unlocated_count: int, limit: int, returned_count: int, truncated: bool}
      */
     public function handle(array $filters): array
     {
@@ -31,6 +31,11 @@ class QueryMapReports
         }
 
         $totalCount = (clone $query)->count('reports.id');
+        $maxLimit = (int) config('caneguard.map.max_limit', 1000);
+        $limit = min(
+            $maxLimit,
+            max(1, (int) ($filters['limit'] ?? config('caneguard.map.default_limit', $maxLimit))),
+        );
         $locatedQuery = (clone $query)
             ->whereNotNull('final_latitude')
             ->whereNotNull('final_longitude')
@@ -62,13 +67,21 @@ class QueryMapReports
                 'referral_state',
             ])
             ->orderBy('id')
+            ->limit($limit + 1)
             ->get();
+        $truncated = $reports->count() > $limit;
+        if ($truncated) {
+            $reports->pop();
+        }
 
         return [
             'reports' => $reports,
             'total_count' => $totalCount,
             'located_count' => $locatedCount,
             'unlocated_count' => $totalCount - $locatedCount,
+            'limit' => $limit,
+            'returned_count' => $reports->count(),
+            'truncated' => $truncated,
         ];
     }
 }

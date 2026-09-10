@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Report;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AuthSecurityTest extends TestCase
@@ -98,6 +100,57 @@ class AuthSecurityTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->postJson('/logout')->assertNoContent();
         $this->getJson(parse_url($url, PHP_URL_PATH).'?'.parse_url($url, PHP_URL_QUERY))
+            ->assertOk()
+            ->assertJsonPath('code', 'EMAIL_VERIFIED');
+    }
+
+    public function test_spoofed_host_cannot_change_generated_api_urls(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->withHeader('Host', 'attacker.example.test')
+            ->getJson('/api/v1/reports?per_page=1')
+            ->assertOk()
+            ->assertJsonPath(
+                'data.0.image_url',
+                route('api.v1.reports.image', ['report' => $report->uuid]),
+            )
+            ->assertDontSee('attacker.example.test');
+    }
+
+    public function test_spoofed_host_cannot_change_signed_verification_links(): void
+    {
+        Notification::fake();
+        $user = User::factory()->unverified()->create();
+
+        $this->withHeader('Host', 'attacker.example.test')
+            ->postJson('/email/verification-notification', ['email' => $user->email])
+            ->assertAccepted();
+
+        $query = null;
+        Notification::assertSentTo($user, VerifyEmail::class, function (VerifyEmail $notification) use (&$query, $user): bool {
+            $linkQuery = parse_url((string) $notification->toMail($user)->actionUrl, PHP_URL_QUERY);
+            if (! is_string($linkQuery) || $linkQuery === '') {
+                return false;
+            }
+
+            parse_str($linkQuery, $parameters);
+            if (! isset($parameters['expires'], $parameters['signature'])) {
+                return false;
+            }
+
+            $query = http_build_query([
+                'expires' => $parameters['expires'],
+                'signature' => $parameters['signature'],
+            ], '', '&', PHP_QUERY_RFC3986);
+
+            return true;
+        });
+
+        $this->withHeader('Host', 'localhost')
+            ->getJson('/email/verify/'.$user->getKey().'/'.sha1($user->email).'?'.$query)
             ->assertOk()
             ->assertJsonPath('code', 'EMAIL_VERIFIED');
     }

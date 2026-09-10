@@ -44,7 +44,14 @@ const mapData: FieldValidationMapData = {
       },
     },
   ],
-  metadata: { totalCount: 2, locatedCount: 1, unlocatedCount: 1 },
+  metadata: {
+    totalCount: 2,
+    locatedCount: 1,
+    unlocatedCount: 1,
+    limit: 1000,
+    returnedCount: 1,
+    truncated: false,
+  },
 };
 
 const queueData: FieldValidationQueueData = {
@@ -118,6 +125,26 @@ describe("FieldValidationMapPage", () => {
     );
   });
 
+  it("communicates when the API bounds the map result set", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult({
+        ...mapData,
+        metadata: {
+          ...mapData.metadata,
+          totalCount: 1001,
+          locatedCount: 1001,
+          unlocatedCount: 0,
+          limit: 1000,
+          returnedCount: 1000,
+          truncated: true,
+        },
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByText(/Showing 1000 of 1001 matching reports on the map/)).toBeInTheDocument();
+  });
+
   it("keeps the queue available when the map request fails", () => {
     vi.mocked(useFieldValidationMap).mockReturnValue(
       queryResult(undefined, {
@@ -187,7 +214,14 @@ describe("FieldValidationMapPage", () => {
     const emptyMap: FieldValidationMapData = {
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 0, locatedCount: 0, unlocatedCount: 0 },
+      metadata: {
+        totalCount: 0,
+        locatedCount: 0,
+        unlocatedCount: 0,
+        limit: 1000,
+        returnedCount: 0,
+        truncated: false,
+      },
     };
     vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(emptyMap));
     renderPage();
@@ -200,7 +234,14 @@ describe("FieldValidationMapPage", () => {
     const unlocatedMap: FieldValidationMapData = {
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 2, locatedCount: 0, unlocatedCount: 2 },
+      metadata: {
+        totalCount: 2,
+        locatedCount: 0,
+        unlocatedCount: 2,
+        limit: 1000,
+        returnedCount: 0,
+        truncated: false,
+      },
     };
     vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(unlocatedMap));
     renderPage();

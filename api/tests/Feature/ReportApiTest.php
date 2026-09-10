@@ -8,6 +8,7 @@ use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -468,6 +469,19 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('code', 'FORBIDDEN');
     }
 
+    public function test_unauthenticated_non_json_api_requests_use_the_json_auth_contract_without_error_logging(): void
+    {
+        Log::spy();
+        Log::shouldNotReceive('error');
+
+        $this->get('/api/v1/me')
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+                'code' => 'UNAUTHENTICATED',
+            ]);
+    }
+
     public function test_unexpected_api_errors_do_not_leak_exception_details(): void
     {
         Route::get('/api/v1/forced-failure', function (): never {
@@ -480,5 +494,22 @@ class ReportApiTest extends TestCase
                 'message' => 'An unexpected server error occurred.',
                 'code' => 'SERVER_ERROR',
             ]);
+    }
+
+    public function test_non_api_errors_remain_safe_when_debug_is_enabled(): void
+    {
+        config(['app.debug' => true]);
+        Route::get('/forced-failure', function (): never {
+            throw new RuntimeException('Sensitive internal failure detail.');
+        });
+
+        $this->get('/forced-failure')
+            ->assertInternalServerError()
+            ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertSee('Request could not be completed')
+            ->assertDontSee('Sensitive internal failure detail.')
+            ->assertDontSee('Whoops')
+            ->assertDontSee('vendor/');
     }
 }

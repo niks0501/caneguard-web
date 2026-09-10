@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Referral summary - {{ $summary['case']['reference_code'] }}</title>
-    <style>
+    <style nonce="{{ request()->attributes->get('csp_nonce') }}">
         :root {
             color-scheme: light;
             font-family: Arial, sans-serif;
@@ -45,6 +45,7 @@
         .notice { margin: 0; padding: 12px 14px; color: #5e5426; background: #f7f1d8; border: 1px solid #e5dcad; border-radius: 9px; line-height: 1.45; }
         .muted { color: #718174; }
         .print-actions { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+        .model-details { margin-top: 14px; }
         .print-actions button { padding: 9px 13px; color: #fff; background: #2f633d; border: 0; border-radius: 7px; cursor: pointer; }
         @media (max-width: 600px) {
             body { padding: 0; }
@@ -64,7 +65,7 @@
 <body>
     <main>
         <div class="print-actions">
-            <button type="button" onclick="window.print()">Print summary</button>
+            <button type="button" id="print-summary">Print summary</button>
         </div>
         <header>
             <p class="eyebrow">CaneGuard expert referral</p>
@@ -134,7 +135,7 @@
         <section>
             <h2>Possible AI result - decision support only</h2>
             <p class="notice">Possible result: {{ $summary['possible_ai_result']['label_text'] }}. Confidence is included as model support context only. This is not a diagnosis or an authority finding.</p>
-            <dl style="margin-top: 14px">
+            <dl class="model-details">
                 <div><dt>Model confidence</dt><dd>{{ $summary['possible_ai_result']['confidence'] }}</dd></div>
                 <div><dt>Model version</dt><dd>{{ $summary['possible_ai_result']['model_version'] }}</dd></div>
             </dl>
@@ -166,5 +167,8 @@
             </dl>
         </section>
     </main>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
+        document.getElementById('print-summary')?.addEventListener('click', () => window.print());
+    </script>
 </body>
 </html>

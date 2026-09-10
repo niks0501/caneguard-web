@@ -70,6 +70,7 @@ const REQUIRED_KEYS = [
   "APP_MAINTENANCE_DRIVER",
   "APP_MAINTENANCE_STORE",
   "APP_URL",
+  "APP_TRUSTED_HOSTS",
   "FRONTEND_URL",
   "CORS_ALLOWED_ORIGINS",
   "SANCTUM_STATEFUL_DOMAINS",
@@ -99,6 +100,7 @@ const APPLICATION_ENV_KEYS = [
   "APP_MAINTENANCE_DRIVER",
   "APP_MAINTENANCE_STORE",
   "APP_URL",
+  "APP_TRUSTED_HOSTS",
   "APP_LOCALE",
   "APP_FALLBACK_LOCALE",
   "APP_FAKER_LOCALE",
@@ -367,6 +369,13 @@ export function validateStagingConfig(config) {
     !config.SANCTUM_STATEFUL_DOMAINS.split(",").some((domain) => domain.trim() === publicHost)
   ) {
     errors.push("SANCTUM_STATEFUL_DOMAINS must include the public Funnel host and port");
+  }
+  if (
+    publicHost &&
+    config.APP_TRUSTED_HOSTS &&
+    !config.APP_TRUSTED_HOSTS.split(",").some((host) => host.trim() === publicHost)
+  ) {
+    errors.push("APP_TRUSTED_HOSTS must include the public Funnel host without scheme or port");
   }
 
   if (config.SESSION_DOMAIN) {

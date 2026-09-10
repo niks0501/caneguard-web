@@ -361,6 +361,10 @@ class ReportReferralTest extends TestCase
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
             ->assertSee('Referral summary - '.$report->reference_code)
             ->assertSee('SRA-2026-0100');
+
+        $this->getJson('/api/v1/me')
+            ->assertOk()
+            ->assertJsonPath('data.uuid', $reviewer->uuid);
     }
 
     public function test_referral_summary_requires_a_referral_and_report_view_authority(): void

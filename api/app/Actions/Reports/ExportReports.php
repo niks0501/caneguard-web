@@ -101,26 +101,40 @@ final class ExportReports
         $assignment = $report->fieldValidationAssignment;
         $referral = $report->referral;
 
-        return [
-            $report->reference_code,
-            $report->submitted_at?->utc()->toDateString() ?? '',
-            $report->barangay,
-            $report->farmer_or_farm_owner_name ?? '',
-            'Possible '.$report->predicted_label,
-            $report->affected_area_hectares ?? '',
-            $report->affected_portion_percent ?? '',
-            $lifecycle['verification_outcome'],
-            $lifecycle['case_state'],
-            $lifecycle['field_validation_state'],
-            $assignment?->assignee?->name ?? '',
-            $assignment?->assignedBy?->name ?? '',
-            $assignment?->target_visit_date?->format('Y-m-d') ?? '',
-            $report->action_taken ?? '',
-            $lifecycle['referral_state'],
-            $referral?->destination ?? '',
-            $referral?->reference ?? '',
-            $referral?->referral_date?->format('Y-m-d') ?? '',
-            $referral?->response_date?->format('Y-m-d') ?? '',
-        ];
+        return array_map(
+            $this->neutralizeSpreadsheetFormula(...),
+            [
+                $report->reference_code,
+                $report->submitted_at?->utc()->toDateString() ?? '',
+                $report->barangay,
+                $report->farmer_or_farm_owner_name ?? '',
+                'Possible '.$report->predicted_label,
+                $report->affected_area_hectares ?? '',
+                $report->affected_portion_percent ?? '',
+                $lifecycle['verification_outcome'],
+                $lifecycle['case_state'],
+                $lifecycle['field_validation_state'],
+                $assignment?->assignee?->name ?? '',
+                $assignment?->assignedBy?->name ?? '',
+                $assignment?->target_visit_date?->format('Y-m-d') ?? '',
+                $report->action_taken ?? '',
+                $lifecycle['referral_state'],
+                $referral?->destination ?? '',
+                $referral?->reference ?? '',
+                $referral?->referral_date?->format('Y-m-d') ?? '',
+                $referral?->response_date?->format('Y-m-d') ?? '',
+            ],
+        );
+    }
+
+    private function neutralizeSpreadsheetFormula(mixed $value): mixed
+    {
+        if (! is_string($value) || $value === '') {
+            return $value;
+        }
+
+        return in_array($value[0], ['=', '+', '-', '@', "\t", "\r", "\n"], true)
+            ? "'".$value
+            : $value;
     }
 }

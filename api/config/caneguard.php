@@ -34,10 +34,37 @@ return [
     'security_audit' => [
         'retention_days' => (int) env('CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS', 2555),
     ],
+    'rate_limits' => [
+        'login' => [
+            'per_email_ip_per_minute' => max(
+                1,
+                (int) env('CANEGUARD_LOGIN_PER_EMAIL_IP_PER_MINUTE', 5),
+            ),
+            'qa_per_email_ip_per_minute' => max(
+                1,
+                (int) env('CANEGUARD_QA_LOGIN_PER_EMAIL_IP_PER_MINUTE', 60),
+            ),
+            'per_ip_per_minute' => max(
+                1,
+                (int) env('CANEGUARD_LOGIN_PER_IP_PER_MINUTE', 30),
+            ),
+            'global_per_minute' => max(
+                1,
+                (int) env('CANEGUARD_LOGIN_GLOBAL_PER_MINUTE', 300),
+            ),
+        ],
+    ],
     'demo_users' => [
         'field_reporter_password' => env('CANEGUARD_FIELD_PASSWORD'),
         'reviewer_password' => env('CANEGUARD_REVIEWER_PASSWORD'),
         'admin_password' => env('CANEGUARD_ADMIN_PASSWORD'),
+    ],
+    'map' => [
+        'default_limit' => min(
+            1000,
+            max(1, (int) env('CANEGUARD_MAP_DEFAULT_LIMIT', 1000)),
+        ),
+        'max_limit' => 1000,
     ],
     'duplicate_assistance' => [
         'recent_window_hours' => 72,
