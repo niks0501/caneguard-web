@@ -156,9 +156,7 @@ class MobileAuthController extends Controller
                     ->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
             });
-        $tokens = ctype_digit($device)
-            ? $query->whereKey((int) $device)->get()
-            : $query->where('device_id', $device)->get();
+        $tokens = $query->whereKey((int) $device)->get();
 
         if ($tokens->isEmpty()) {
             return response()->json([

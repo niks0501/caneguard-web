@@ -224,6 +224,43 @@ class MobileAuthenticationTest extends TestCase
         $this->assertNotNull(PersonalAccessToken::findToken($differentUserToken->plainTextToken));
     }
 
+    public function test_revocation_only_accepts_the_numeric_list_handle_and_not_client_device_ids(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $current = $reporter->createToken(
+            IssueMobileToken::TOKEN_NAME_PREFIX.'Current Android',
+            IssueMobileToken::abilities(),
+        );
+        $current->accessToken->forceFill(['device_id' => '999999'])->save();
+        $backup = $reporter->createToken(
+            IssueMobileToken::TOKEN_NAME_PREFIX.'Backup Android',
+            IssueMobileToken::abilities(),
+        );
+        $backup->accessToken->forceFill(['device_id' => 'backup-device'])->save();
+
+        $this->withToken($current->plainTextToken)
+            ->deleteJson('/api/v1/mobile/auth/devices/backup-device')
+            ->assertNotFound()
+            ->assertJsonPath('code', 'NOT_FOUND');
+        $this->withToken($current->plainTextToken)
+            ->deleteJson('/api/v1/mobile/auth/devices/999999')
+            ->assertNotFound()
+            ->assertJsonPath('code', 'NOT_FOUND');
+
+        $this->assertNotNull(PersonalAccessToken::findToken($current->plainTextToken));
+        $this->assertNotNull(PersonalAccessToken::findToken($backup->plainTextToken));
+        $this->assertDatabaseMissing('security_audits', [
+            'action' => SecurityAudit::ACTION_MOBILE_DEVICE_REVOCATION,
+        ]);
+
+        $this->withToken($current->plainTextToken)
+            ->deleteJson('/api/v1/mobile/auth/devices/'.$backup->accessToken->getKey())
+            ->assertNoContent();
+
+        $this->assertNull(PersonalAccessToken::findToken($backup->plainTextToken));
+        $this->assertNotNull(PersonalAccessToken::findToken($current->plainTextToken));
+    }
+
     public function test_logout_revokes_only_the_current_access_token(): void
     {
         $reporter = User::factory()->fieldReporter()->create();

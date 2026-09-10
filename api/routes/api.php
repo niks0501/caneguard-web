@@ -83,7 +83,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.mobile.auth.devices');
     Route::delete('/mobile/auth/devices/{device}', [MobileAuthController::class, 'revokeDevice'])
         ->middleware('mobile.token')
-        ->name('api.v1.mobile.auth.devices.revoke');
+        ->name('api.v1.mobile.auth.devices.revoke')
+        ->whereNumber('device');
     Route::post('/mobile/auth/enroll', [MobileAuthController::class, 'enroll'])
         ->middleware('mobile.token')
         ->name('api.v1.mobile.auth.enroll');
