@@ -125,6 +125,53 @@ class ReportReportingTest extends TestCase
         ], $rows[1]);
     }
 
+    public function test_export_neutralizes_formula_prefixes_in_all_text_cells(): void
+    {
+        $reviewer = User::factory()->reviewer()->create(['name' => "\rassigner"]);
+        $assignee = User::factory()->fieldReporter()->create(['name' => "\tvalidator"]);
+        $report = Report::factory()->create([
+            'reference_code' => '=case-reference',
+            'reporter_id' => $assignee->getKey(),
+            'barangay' => '+barangay',
+            'farmer_or_farm_owner_name' => '-farmer',
+            'action_taken' => '@action',
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        ReportReferral::factory()->create([
+            'report_id' => $report->getKey(),
+            'referred_by_id' => $reviewer->getKey(),
+            'destination' => "\ndestination",
+            'reference' => '=external-reference',
+            'referral_date' => '2026-09-05',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $response = $this->get('/api/v1/reports/export');
+        $handle = fopen('php://temp', 'r+');
+        $this->assertIsResource($handle);
+        fwrite($handle, $response->streamedContent());
+        rewind($handle);
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            $rows[] = $row;
+        }
+        fclose($handle);
+
+        $this->assertSame("'=case-reference", $rows[1][0]);
+        $this->assertSame("'+barangay", $rows[1][2]);
+        $this->assertSame("'-farmer", $rows[1][3]);
+        $this->assertSame("'\tvalidator", $rows[1][10]);
+        $this->assertSame("'\rassigner", $rows[1][11]);
+        $this->assertSame("'@action", $rows[1][13]);
+        $this->assertSame("'\ndestination", $rows[1][15]);
+        $this->assertSame("'=external-reference", $rows[1][16]);
+    }
+
     public function test_export_and_monthly_summary_require_office_authority_and_validate_month(): void
     {
         $this->getJson('/api/v1/reports/export')

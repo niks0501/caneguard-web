@@ -10,6 +10,7 @@ use App\Http\Requests\EnrollMobileDeviceRequest;
 use App\Http\Requests\MobileLoginRequest;
 use App\Http\Requests\MobileSessionRequest;
 use App\Http\Resources\AuthenticatedUserResource;
+use App\Http\Resources\MobileDeviceResource;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -120,6 +121,67 @@ class MobileAuthController extends Controller
         );
 
         return $this->tokenResponse($token, $user, $request);
+    }
+
+    public function devices(MobileSessionRequest $request): JsonResponse
+    {
+        $tokens = $request->user()->tokens()
+            ->where('name', 'like', IssueMobileToken::TOKEN_NAME_PREFIX.'%')
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->orderByDesc('last_used_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'data' => MobileDeviceResource::collection($tokens)->resolve($request),
+            'meta' => [
+                'count' => $tokens->count(),
+            ],
+        ])->header('Cache-Control', 'private, no-store');
+    }
+
+    public function revokeDevice(
+        MobileSessionRequest $request,
+        string $device,
+        RecordSecurityAudit $audits,
+    ): JsonResponse {
+        $query = $request->user()->tokens()
+            ->where('name', 'like', IssueMobileToken::TOKEN_NAME_PREFIX.'%')
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
+        $tokens = $query->whereKey((int) $device)->get();
+
+        if ($tokens->isEmpty()) {
+            return response()->json([
+                'message' => 'The requested mobile device was not found.',
+                'code' => 'NOT_FOUND',
+            ], 404);
+        }
+
+        foreach ($tokens as $token) {
+            $audits->handle(
+                SecurityAudit::ACTION_MOBILE_DEVICE_REVOCATION,
+                SecurityAudit::OUTCOME_SUCCESS,
+                actor: $request->user(),
+                target: $request->user(),
+                metadata: [
+                    'token_id' => $token->getKey(),
+                    'device_id_hash' => $token->device_id === null
+                        ? null
+                        : hash('sha256', $token->device_id),
+                ],
+            );
+            $token->delete();
+        }
+
+        return response()->json([], 204);
     }
 
     public function me(MobileSessionRequest $request): JsonResponse

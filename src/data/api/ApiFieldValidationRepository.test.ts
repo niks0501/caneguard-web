@@ -30,7 +30,14 @@ const mapDto = {
       },
     },
   ],
-  metadata: { total_count: 2, located_count: 1, unlocated_count: 1 },
+  metadata: {
+    total_count: 2,
+    located_count: 1,
+    unlocated_count: 1,
+    limit: 1000,
+    returned_count: 1,
+    truncated: false,
+  },
 } as const;
 
 const queueDto = {

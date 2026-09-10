@@ -36,6 +36,8 @@ class SecurityAudit extends Model
 
     public const ACTION_MOBILE_DEVICE_ENROLLMENT = 'mobile_device_enrollment';
 
+    public const ACTION_MOBILE_DEVICE_REVOCATION = 'mobile_device_revocation';
+
     public const ACTION_BIOMETRIC_DISABLEMENT = 'biometric_disablement';
 
     public const ACTION_ROLE_CHANGE = 'role_change';

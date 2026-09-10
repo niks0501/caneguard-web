@@ -64,10 +64,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::get('/reports/{report}/image', ReportImageController::class)
         ->name('api.v1.reports.image');
     Route::get('/reports/{report}/referral/summary', ReferralSummaryController::class)
-        ->middleware('web')
         ->name('api.v1.reports.referral.summary');
     Route::get('/reports/{report}/referral-summary', ReferralSummaryController::class)
-        ->middleware('web')
         ->name('api.v1.reports.referral-summary');
     Route::post('/reports/{report}/referral', [ReportReferralController::class, 'store']);
     Route::post('/reports/{report}/referral/response', ExpertReferralResponseController::class);
@@ -80,6 +78,13 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
 
     Route::get('/mobile/auth/me', [MobileAuthController::class, 'me'])
         ->middleware('mobile.token');
+    Route::get('/mobile/auth/devices', [MobileAuthController::class, 'devices'])
+        ->middleware('mobile.token')
+        ->name('api.v1.mobile.auth.devices');
+    Route::delete('/mobile/auth/devices/{device}', [MobileAuthController::class, 'revokeDevice'])
+        ->middleware('mobile.token')
+        ->name('api.v1.mobile.auth.devices.revoke')
+        ->whereNumber('device');
     Route::post('/mobile/auth/enroll', [MobileAuthController::class, 'enroll'])
         ->middleware('mobile.token')
         ->name('api.v1.mobile.auth.enroll');

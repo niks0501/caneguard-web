@@ -87,6 +87,9 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
         totalCount: reports.length,
         locatedCount: located.length,
         unlocatedCount: reports.length - located.length,
+        limit: 1000,
+        returnedCount: located.length,
+        truncated: false,
       },
     };
   }

@@ -67,6 +67,9 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
       totalCount: dto.metadata.total_count,
       locatedCount: dto.metadata.located_count,
       unlocatedCount: dto.metadata.unlocated_count,
+      limit: dto.metadata.limit,
+      returnedCount: dto.metadata.returned_count,
+      truncated: dto.metadata.truncated,
     },
   };
 }

@@ -24,6 +24,9 @@ class MapReportController extends Controller
                 'total_count' => $result['total_count'],
                 'located_count' => $result['located_count'],
                 'unlocated_count' => $result['unlocated_count'],
+                'limit' => $result['limit'],
+                'returned_count' => $result['returned_count'],
+                'truncated' => $result['truncated'],
             ],
         ])->header('Cache-Control', 'private, no-store');
     }

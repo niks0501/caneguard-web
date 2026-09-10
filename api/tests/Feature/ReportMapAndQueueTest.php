@@ -69,7 +69,10 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_FOR_FIELD_VALIDATION)
             ->assertJsonPath('metadata.total_count', 2)
             ->assertJsonPath('metadata.located_count', 1)
-            ->assertJsonPath('metadata.unlocated_count', 1);
+            ->assertJsonPath('metadata.unlocated_count', 1)
+            ->assertJsonPath('metadata.limit', 1000)
+            ->assertJsonPath('metadata.returned_count', 1)
+            ->assertJsonPath('metadata.truncated', false);
 
         $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
             'date_from' => '2026-08-13',
@@ -89,6 +92,39 @@ class ReportMapAndQueueTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'features')
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_RESOLVED);
+    }
+
+    public function test_map_limits_results_and_reports_the_truncation_contract(): void
+    {
+        config([
+            'caneguard.map.default_limit' => 2,
+            'caneguard.map.max_limit' => 2,
+        ]);
+        $reviewer = User::factory()->reviewer()->create();
+        $reports = collect(range(1, 3))->map(fn (int $index) => Report::factory()->create([
+            'reference_code' => 'CG-MAP-LIMIT-'.$index,
+            'final_latitude' => 10 + ($index / 100),
+            'final_longitude' => 122 + ($index / 100),
+        ]));
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/map')
+            ->assertOk()
+            ->assertJsonCount(2, 'features')
+            ->assertJsonPath('features.0.id', $reports[0]->uuid)
+            ->assertJsonPath('features.1.id', $reports[1]->uuid)
+            ->assertJsonPath('metadata.total_count', 3)
+            ->assertJsonPath('metadata.located_count', 3)
+            ->assertJsonPath('metadata.unlocated_count', 0)
+            ->assertJsonPath('metadata.limit', 2)
+            ->assertJsonPath('metadata.returned_count', 2)
+            ->assertJsonPath('metadata.truncated', true);
+
+        $this->getJson('/api/v1/reports/map?limit=3')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['errors' => ['limit']]);
     }
 
     public function test_map_date_filter_uses_observed_at_and_excludes_null_observations(): void

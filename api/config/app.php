@@ -56,6 +56,46 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Host Patterns
+    |--------------------------------------------------------------------------
+    |
+    | Host values are deployment configuration, never request input. The
+    | application URL is trusted by default; APP_TRUSTED_HOSTS can provide a
+    | comma-separated list of additional hostnames for a reverse proxy.
+    |
+    */
+
+    'trusted_hosts' => (static function (): array {
+        $hostFromValue = static function (string $value): ?string {
+            $value = trim($value);
+            if ($value === '') {
+                return null;
+            }
+
+            $host = parse_url(
+                str_contains($value, '://') ? $value : 'http://'.$value,
+                PHP_URL_HOST,
+            );
+
+            return is_string($host) && $host !== '' ? strtolower($host) : null;
+        };
+        $configuredHosts = array_filter(
+            array_map($hostFromValue, explode(',', (string) env('APP_TRUSTED_HOSTS', ''))),
+        );
+        $applicationHost = $hostFromValue((string) env('APP_URL', 'http://localhost'));
+        $hosts = array_values(array_unique([
+            ...$configuredHosts,
+            ...($applicationHost === null ? [] : [$applicationHost]),
+        ]));
+
+        return array_map(
+            static fn (string $host): string => '^'.preg_quote($host, '/').'$',
+            $hosts,
+        );
+    })(),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

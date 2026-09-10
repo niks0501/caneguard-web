@@ -55,6 +55,9 @@ export interface FieldValidationMapData {
     totalCount: number;
     locatedCount: number;
     unlocatedCount: number;
+    limit: number;
+    returnedCount: number;
+    truncated: boolean;
   };
 }
 

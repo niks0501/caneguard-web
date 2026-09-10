@@ -69,6 +69,9 @@ function mapData(coordinates: Array<[number, number]>, totalCount = coordinates.
       totalCount,
       locatedCount: coordinates.length,
       unlocatedCount: totalCount - coordinates.length,
+      limit: 1000,
+      returnedCount: coordinates.length,
+      truncated: false,
     },
   };
 }

@@ -45,16 +45,25 @@ function coverageMessage({
   totalCount,
   locatedCount,
   unlocatedCount,
+  limit,
+  returnedCount,
+  truncated,
 }: {
   totalCount: number;
   locatedCount: number;
   unlocatedCount: number;
+  limit: number;
+  returnedCount: number;
+  truncated: boolean;
 }) {
   if (totalCount === 0) {
     return "No reports match the applied filters.";
   }
 
-  const counts = `${locatedCount} located, ${unlocatedCount} unlocated.`;
+  const truncation = truncated
+    ? ` Showing ${returnedCount} of ${totalCount} matching reports on the map (limit ${limit}); narrow the filters to see additional locations.`
+    : "";
+  const counts = `${locatedCount} located, ${unlocatedCount} unlocated.${truncation}`;
   if (unlocatedCount > 0) {
     const reportLabel = unlocatedCount === 1 ? "report has" : "reports have";
     return `${counts} ${unlocatedCount} filtered ${reportLabel} no valid coordinate pair. Continue in the queue or open the submitted report table to review every report.`;

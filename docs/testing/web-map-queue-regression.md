@@ -14,7 +14,7 @@ The regression test asserts that the bounds include every available report coord
 
 Background data refreshes do not reframe the user's map, while a changed filter context may frame the new result set.
 
-The API map response uses GeoJSON point coordinates in `[longitude, latitude]` order and reports `total_count`, `located_count`, and `unlocated_count` separately.
+The API map response uses GeoJSON point coordinates in `[longitude, latitude]` order and reports `total_count`, `located_count`, and `unlocated_count` separately. Located features are bounded by the requested `limit` (default `1000`, maximum `1000`); the response also returns `limit`, `returned_count`, and `truncated`. When `truncated` is true, clients must narrow filters or request a different bounded slice rather than assuming all located reports were returned.
 
 ### Queue refresh independence
 
