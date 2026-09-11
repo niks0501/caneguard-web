@@ -159,7 +159,7 @@ Escalate risk when investigation reveals wider impact. Never silently downgrade 
 Always start with:
 - the current request;
 - this `AGENTS.md`;
-- the active role/skill instructions;
+- the active skill or harness context;
 - the smallest relevant project files.
 
 Load conditional material only when needed:
