@@ -5,7 +5,6 @@
 - lint: `npm run lint`
 - typecheck/static analysis: `npm run typecheck`
 - focused frontend test: `npm test -- --run <test-file>`
-- verification-script assertions: `npm run test:verification-scripts`
 - agent-facing fast gate: `npm run verify:fast`
 
 `verify:fast` delegates to `npm run check:web`, which runs ESLint, TypeScript, Vitest with React Testing Library and MSW coverage, the Vite source-safety test, and the production build. It does not run Playwright, Chrome, browser E2E, or any other E2E flow.

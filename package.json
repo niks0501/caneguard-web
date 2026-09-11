@@ -9,7 +9,6 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:vite-source-safety": "node --test scripts/vite-tailwind-source-safety.node-test.mjs",
-    "test:verification-scripts": "node --test scripts/verification-scripts.node-test.mjs",
     "graphify:validate": "node scripts/validate-graphify-artifacts.mjs",
     "test:watch": "vitest",
     "preview": "vite preview",
