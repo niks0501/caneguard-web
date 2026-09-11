@@ -310,8 +310,9 @@ Use this loop:
    - add tests where behavior requires them.
 
 5. **Verify**
-   - run narrow checks first;
-   - broaden when justified;
+   - follow the strict ladder and target workflow in `.agents/skills/verification/SKILL.md`;
+   - run targeted and fast checks before affected backend or contract checks;
+   - cross the E2E decision gate only when its exceptional criteria are met, then run the smallest justified flow;
    - classify failures rather than blindly retry.
 
 6. **Review**
@@ -351,7 +352,7 @@ Repository facts should be discovered through targeted search and source inspect
 For framework/library behavior:
 1. inspect the installed dependency version;
 2. prefer framework-owner documentation;
-3. use the project-local Context7 MCP when available, otherwise the context7 skill's CLI fallback;
+3. treat Context7 as a valid automatic trigger for external library/framework work when the root `AGENTS.md` policy applies, using the project-local Context7 MCP or the context7 skill's CLI fallback;
 4. use third-party skill guidance as advisory;
 5. verify important claims against the repository.
 
@@ -433,18 +434,21 @@ Do not invoke visual automation for non-visual work.
 
 ## Verification policy
 
-Match verification to the changed surface.
+Follow the canonical `.agents/skills/verification/SKILL.md` strict ladder and target workflow.
+The ladder is static -> unit/component -> integration/Feature -> API/contract -> E2E.
+Run the narrowest meaningful check first and stop when the acceptance criteria are met.
+E2E is exceptional rather than automatic extra confidence, and its decision gate must be met before browser or device automation.
+Normal web and mobile features should finish without Chrome, Metro, an Android emulator, Playwright, or Agent Device.
+For React Native and Expo, Jest/jest-expo plus React Native Testing Library is the ordinary path, with Agent Device limited to a small representative native-boundary check after fast tests.
 
 Examples:
 - focused unit test for pure logic;
 - request/integration tests for backend endpoints;
 - typecheck/lint for typed frontend code;
 - build when bundling/configuration changes;
-- Playwright for critical web workflow;
-- agent-device/device tooling for critical mobile workflow;
+- Playwright only for a justified browser-specific or other gated flow;
+- agent-device only for a justified native-boundary or other gated flow;
 - database integration test for persistence behavior.
-
-Run the narrowest meaningful check first.
 
 A failing broad baseline check may be unrelated; investigate rather than silently fixing unrelated failures.
 
@@ -458,7 +462,9 @@ After a failure:
 - gather missing evidence;
 - change the relevant condition before rerunning.
 
-If two attempts fail for essentially the same reason and no new evidence exists, stop repeating and report the blocker or change strategy.
+Keep each justified E2E flow within a two-attempt ceiling: one initial attempt and at most one evidence-based retry.
+Classify biometrics, gallery pickers, permissions, and comparable native blockers as manual/native verification required rather than retry loops.
+If the ceiling is reached or a native blocker is found, report the gap or manual verification requirement and change strategy.
 
 ## Scope control
 

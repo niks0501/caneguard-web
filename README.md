@@ -394,15 +394,21 @@ Run the Web/API checks from the Web/API repository root.
 ```bash
 # Web/API repository: $HOME/src/caneguard/caneguard-web
 cd "$HOME/src/caneguard/caneguard-web"
-npm run check:web
-npm run check:api
+npm run verify:fast
+npm run verify:backend
+npm run verify:contract
 npm run check:all
-npm run api:test:mysql
 ```
+
+The agent-facing verification shortcuts are:
+
+- `npm run verify:fast` — the ordinary Web fast gate (`check:web`); it runs lint, typecheck, Vitest/Testing Library/MSW tests, source-safety checks, and the production build without any browser or E2E flow.
+- `npm run verify:backend` — Laravel PHPUnit/Feature tests, Pint, and the separate MySQL suite.
+- `npm run verify:contract` — the established artifact, Laravel consumer, and exact-revision Mobile producer contract gate.
 
 `npm run check:web` runs Web lint, typecheck, tests, the Vite source-safety test (`npm run test:vite-source-safety`), and the production build.
 `npm run check:api` runs the SQLite-backed API feature tests and the Pint format check.
-`npm run check:all` runs `check:web` followed by `check:api`.
+`npm run check:all` runs `check:web` followed by `check:api` and graph artifact validation.
 `npm run api:test:mysql` runs the separate MySQL suite against `caneguard_test`; use the migrated and seeded disposable database prepared above.
 
 Run the local Web/API lifecycle contract checks when changing an upload, assignment, completion, notification, or lifecycle boundary.

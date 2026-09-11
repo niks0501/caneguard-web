@@ -1,37 +1,50 @@
 # Project Verification Commands
 
-Replace placeholders with commands that actually exist in this repository.
-
-Do not invent checks. A missing command is a verification gap, not permission to install or improvise tooling.
-
 ## Fast checks
 
-- format/lint:
-- typecheck/static analysis:
-- focused test:
+- lint: `npm run lint`
+- typecheck/static analysis: `npm run typecheck`
+- focused frontend test: `npm test -- --run <test-file>`
+- agent-facing fast gate: `npm run verify:fast`
+
+`verify:fast` delegates to `npm run check:web`, which runs ESLint, TypeScript, Vitest with React Testing Library and MSW coverage, the Vite source-safety test, and the production build. It does not run Playwright, Chrome, browser E2E, or any other E2E flow.
+
+Run targeted tests before `npm run verify:fast`.
+
+## Backend/API checks
+
+- Laravel PHPUnit/Feature suite and formatting: `npm run check:api`
+- MySQL integration suite: `npm run api:test:mysql`
+- agent-facing backend gate: `npm run verify:backend`
+
+`verify:backend` composes `npm run check:api` and `npm run api:test:mysql`. The MySQL suite requires the disposable `caneguard_test` database described in the README.
+
+## Contract checks
+
+- local artifact and helper tests: `npm run contract:test`
+- full local and cross-repository contract gate: `npm run verify:contract`
+
+`verify:contract` delegates to `npm run contract:gate`, which validates the Web-owned artifacts, Laravel consumers, and the exact clean Mobile producer revision when `MOBILE_REPO_DIR` is configured. See [the contract gate guide](docs/testing/mobile-report-upload-contract-gate.md).
 
 ## Broader checks
 
-- test suite:
-- build:
-- integration:
-- E2E:
+- complete repository gate: `npm run check:all`
+- E2E: no repository E2E command is defined; use the separate P0F acceptance path only when its verification decision gate is met
 
 ## Manual verification
 
-Document UI, device, browser, workflow, or data checks that cannot be proven adequately by automated tests.
+Browser, device, and full-system workflow checks are separate from the ordinary fast gate. Follow the P0F acceptance documentation for any justified browser or device flow after fast, backend, and contract checks pass.
 
 ## Database checks
 
-- schema validation:
-- migration dry-run or safe check:
-- database test strategy:
+- schema/integration validation: `npm run api:test:mysql`
+- migration dry-run or safe check: no repository command is defined
+- database test strategy: run Laravel Feature tests against in-memory SQLite; run the MySQL suite only against the disposable, migrated, and seeded `caneguard_test` database
 
 ## Rules
 
-- Run the narrowest meaningful checks first.
-- Broaden verification when risk, changed surface, or failures justify it.
-- Do not run destructive migrations against non-disposable data.
-- Do not deploy or publish as part of verification unless explicitly requested.
-- Do not install dependencies merely because a verification command is missing.
-- Report commands exactly as run and distinguish passed, failed, skipped, and unavailable checks.
+- Use the strict verification ladder in `.agents/skills/verification/SKILL.md`.
+- Run targeted tests before `npm run verify:fast`, then run only affected backend or contract checks.
+- Do not run E2E as part of `npm run verify:fast`.
+- Run only commands that exist in `package.json` or repository scripts.
+- Do not run destructive migrations against shared or production data.
