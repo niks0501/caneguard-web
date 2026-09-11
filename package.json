@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:vite-source-safety": "node --test scripts/vite-tailwind-source-safety.node-test.mjs",
+    "test:verification-scripts": "node --test scripts/verification-scripts.node-test.mjs",
     "graphify:validate": "node scripts/validate-graphify-artifacts.mjs",
     "test:watch": "vitest",
     "preview": "vite preview",
@@ -53,6 +54,9 @@
     "phase1:acceptance:test": "node --test scripts/phase1-lifecycle-acceptance.node-test.mjs",
     "check:web": "npm run lint && npm run typecheck && npm run test && npm run test:vite-source-safety && npm run build",
     "check:api": "npm run api:test && npm run api:format:check",
+    "verify:fast": "npm run check:web",
+    "verify:backend": "npm run check:api && npm run api:test:mysql",
+    "verify:contract": "npm run contract:gate",
     "check:all": "npm run check:web && npm run check:api && npm run graphify:validate"
   },
   "dependencies": {
