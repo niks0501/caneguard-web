@@ -2,43 +2,54 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parse } from "yaml";
 
-const workflow = readFileSync(
-  join(import.meta.dirname, "..", ".github", "workflows", "web-api-pr-quality-gate.yml"),
-  "utf8",
+const workflow = parse(
+  readFileSync(
+    join(import.meta.dirname, "..", ".github", "workflows", "web-api-pr-quality-gate.yml"),
+    "utf8",
+  ),
 );
 
-function occurrences(value) {
-  return workflow.split(value).length - 1;
+function qualityGateSteps() {
+  const steps = workflow?.jobs?.["quality-gate"]?.steps;
+  assert.ok(Array.isArray(steps), "quality-gate job must define steps");
+  return steps;
 }
 
-test("the PR quality gate retains both dependency audit commands", () => {
-  const npmAudit = "npm audit --audit-level=high";
-  const composerAudit =
-    "composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail";
+function stepNamed(name) {
+  const matches = qualityGateSteps().filter((step) => step?.name === name);
+  assert.equal(matches.length, 1, `expected exactly one step named ${name}`);
+  return matches[0];
+}
 
-  assert.equal(occurrences(npmAudit), 1);
-  assert.equal(occurrences(composerAudit), 1);
-  assert.match(workflow, /- name: Audit Web dependencies[\s\S]*?run: npm audit --audit-level=high/);
-  assert.match(
-    workflow,
-    /- name: Audit Laravel dependencies[\s\S]*?run: composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail/,
-  );
-  assert.match(
-    workflow,
-    /- name: Verify MapLibre dependency security contract[\s\S]*?run: npm run security:dependency-check/,
-  );
+const expectedCommands = {
+  "Install Web dependencies": "npm ci --no-audit --no-fund",
+  "Install Laravel dependencies":
+    "composer install --working-dir=api --no-interaction --no-progress --prefer-dist",
+  "Verify dependency audit gate contract": "npm run test:quality-gate-workflow",
+  "Verify MapLibre dependency security contract": "npm run security:dependency-check",
+  "Audit Web dependencies (high and critical advisories fail)": "npm audit --audit-level=high",
+  "Audit Laravel dependencies (advisories and abandoned packages fail)":
+    "composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail",
+};
+
+test("the PR quality gate retains its dependency security commands", () => {
+  for (const [name, command] of Object.entries(expectedCommands)) {
+    assert.equal(stepNamed(name).run, command);
+  }
 });
 
 test("audits run after their corresponding dependency installations", () => {
-  assert(
-    workflow.indexOf("run: npm ci --no-audit --no-fund") <
-      workflow.indexOf("npm audit --audit-level=high"),
+  const steps = qualityGateSteps();
+  const stepIndex = (name) => steps.findIndex((step) => step?.name === name);
+
+  assert.ok(
+    stepIndex("Install Web dependencies") <
+      stepIndex("Audit Web dependencies (high and critical advisories fail)"),
   );
-  assert(
-    workflow.indexOf("run: composer install --working-dir=api") <
-      workflow.indexOf(
-        "composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail",
-      ),
+  assert.ok(
+    stepIndex("Install Laravel dependencies") <
+      stepIndex("Audit Laravel dependencies (advisories and abandoned packages fail)"),
   );
 });

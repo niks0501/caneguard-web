@@ -65,8 +65,8 @@ class AppServiceProvider extends ServiceProvider
             $perEmailIp = app()->environment('qa-staging')
                 ? (int) ($limits['qa_per_email_ip_per_minute'] ?? 60)
                 : (int) ($limits['per_email_ip_per_minute'] ?? 5);
-            $perIp = (int) ($limits['per_ip_per_minute'] ?? 30);
-            $global = (int) ($limits['global_per_minute'] ?? 300);
+            $perIp = (int) ($limits['per_ip_per_minute'] ?? 300);
+            $global = (int) ($limits['global_per_minute'] ?? 3000);
             $ip = (string) $request->ip();
 
             return [
