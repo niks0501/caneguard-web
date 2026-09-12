@@ -11,8 +11,14 @@ const workflow = parse(
   ),
 );
 
+function qualityGateJob() {
+  const job = workflow?.jobs?.["quality-gate"];
+  assert.ok(job && typeof job === "object" && !Array.isArray(job), "quality-gate job must exist");
+  return job;
+}
+
 function qualityGateSteps() {
-  const steps = workflow?.jobs?.["quality-gate"]?.steps;
+  const steps = qualityGateJob().steps;
   assert.ok(Array.isArray(steps), "quality-gate job must define steps");
   return steps;
 }
@@ -45,6 +51,16 @@ test("the PR quality gate retains its dependency security commands", () => {
   for (const [name, command] of Object.entries(expectedCommands)) {
     assert.equal(stepNamed(name).run, command);
   }
+});
+
+test("quality gate job cannot be skipped or ignored", () => {
+  const job = qualityGateJob();
+  assert.equal(Object.hasOwn(job, "if"), false, "quality-gate job must not define if");
+  assert.equal(
+    Object.hasOwn(job, "continue-on-error"),
+    false,
+    "quality-gate job must not define continue-on-error",
+  );
 });
 
 test("security steps cannot be skipped or ignored", () => {
