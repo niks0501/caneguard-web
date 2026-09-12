@@ -150,6 +150,29 @@ class WebAuthenticationTest extends TestCase
             ->assertJsonPath('code', 'RATE_LIMITED');
     }
 
+    public function test_login_throttles_the_global_bucket(): void
+    {
+        config([
+            'caneguard.rate_limits.login.per_email_ip_per_minute' => 50,
+            'caneguard.rate_limits.login.per_ip_per_minute' => 50,
+            'caneguard.rate_limits.login.global_per_minute' => 2,
+        ]);
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $this->postJson('/login', [
+                'email' => "global-spray-{$attempt}@example.test",
+                'password' => 'incorrect-password',
+            ])->assertUnprocessable();
+        }
+
+        $this->postJson('/login', [
+            'email' => 'global-spray-final@example.test',
+            'password' => 'incorrect-password',
+        ])
+            ->assertTooManyRequests()
+            ->assertJsonPath('code', 'RATE_LIMITED');
+    }
+
     public function test_login_csrf_failures_use_the_canonical_error_shape(): void
     {
         $this->mock(

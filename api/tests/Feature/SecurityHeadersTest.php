@@ -50,4 +50,16 @@ class SecurityHeadersTest extends TestCase
                 'max-age=31536000; includeSubDomains',
             );
     }
+
+    public function test_untrusted_forwarded_https_does_not_enable_hsts(): void
+    {
+        $response = $this->withHeader('X-Forwarded-Proto', 'https')->get('/up');
+
+        $response
+            ->assertOk()
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        $this->assertFalse($response->headers->has('Strict-Transport-Security'));
+    }
 }
