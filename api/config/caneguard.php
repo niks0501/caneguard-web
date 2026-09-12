@@ -44,13 +44,16 @@ return [
                 1,
                 (int) env('CANEGUARD_QA_LOGIN_PER_EMAIL_IP_PER_MINUTE', 60),
             ),
+            // The documented Tailscale Funnel path presents one shared proxy IP.
+            // Keep these aggregate backstops high enough for normal shared use;
+            // deployments with client-IP forwarding should tune them to their traffic.
             'per_ip_per_minute' => max(
                 1,
-                (int) env('CANEGUARD_LOGIN_PER_IP_PER_MINUTE', 30),
+                (int) env('CANEGUARD_LOGIN_PER_IP_PER_MINUTE', 300),
             ),
             'global_per_minute' => max(
                 1,
-                (int) env('CANEGUARD_LOGIN_GLOBAL_PER_MINUTE', 300),
+                (int) env('CANEGUARD_LOGIN_GLOBAL_PER_MINUTE', 3000),
             ),
         ],
     ],

@@ -556,7 +556,15 @@ npm run staging -- stop
 The stop command retains the `caneguard_staging` schema, seeded rows, and uploaded files for diagnosis.
 The next plain `npm run staging` is the explicit destructive boundary because it resets and reseeds that database.
 
-## 9. Troubleshooting
+## 9. Security boundary notes
+
+The canonical Tailscale Funnel command terminates public TLS at the Funnel and forwards HTTP to the private Web listener. Laravel therefore emits HSTS only when it receives a request it knows is HTTPS; the application does not trust an arbitrary `X-Forwarded-Proto` header. The Funnel or another approved edge must supply HSTS for the public origin. The non-browser regression test in `api/tests/Feature/SecurityHeadersTest.php` ensures a client-supplied forwarded scheme cannot opt a local HTTP request into HSTS.
+
+The Funnel path also presents one shared proxy address to Laravel. Login throttling keeps per-email, shared per-IP, and global buckets, with the latter two raised to 300 and 3,000 attempts per minute respectively so ordinary shared use does not trip them. This is an intentional staging limitation, not proof of client-specific IP throttling. A production deployment must sit behind a fixed forwarding proxy that strips/replaces client-supplied forwarding headers and supplies the real client IP before the per-IP bucket can be treated as client-specific.
+
+Do not add broad trusted-proxy settings or build a relay into this staging workflow to work around that limitation. Record and review the production proxy boundary before claiming full #91 coverage.
+
+## 10. Troubleshooting
 
 ### The preflight tool check fails
 

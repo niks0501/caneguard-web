@@ -7,7 +7,7 @@
 - focused frontend test: `npm test -- --run <test-file>`
 - agent-facing fast gate: `npm run verify:fast`
 
-`verify:fast` delegates to `npm run check:web`, which runs ESLint, TypeScript, Vitest with React Testing Library and MSW coverage, the Vite source-safety test, and the production build. It does not run Playwright, Chrome, browser E2E, or any other E2E flow.
+`verify:fast` delegates to `npm run check:web`, which runs ESLint, TypeScript, Vitest with React Testing Library and MSW coverage, the Vite source-safety test, the security dependency checks, and the production build. It does not run Playwright, Chrome, browser E2E, or any other E2E flow.
 
 Run targeted tests before `npm run verify:fast`.
 
