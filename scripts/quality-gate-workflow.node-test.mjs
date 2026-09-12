@@ -34,9 +34,28 @@ const expectedCommands = {
     "composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail",
 };
 
+const securityStepNames = [
+  "Verify dependency audit gate contract",
+  "Verify MapLibre dependency security contract",
+  "Audit Web dependencies (high and critical advisories fail)",
+  "Audit Laravel dependencies (advisories and abandoned packages fail)",
+];
+
 test("the PR quality gate retains its dependency security commands", () => {
   for (const [name, command] of Object.entries(expectedCommands)) {
     assert.equal(stepNamed(name).run, command);
+  }
+});
+
+test("security steps cannot be skipped or ignored", () => {
+  for (const name of securityStepNames) {
+    const step = stepNamed(name);
+    assert.equal(Object.hasOwn(step, "if"), false, `${name} must not define if`);
+    assert.equal(
+      Object.hasOwn(step, "continue-on-error"),
+      false,
+      `${name} must not define continue-on-error`,
+    );
   }
 });
 
