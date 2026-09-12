@@ -402,11 +402,11 @@ npm run check:all
 
 The agent-facing verification shortcuts are:
 
-- `npm run verify:fast` — the ordinary Web fast gate (`check:web`); it runs lint, typecheck, Vitest/Testing Library/MSW tests, source-safety checks, and the production build without any browser or E2E flow.
+- `npm run verify:fast` — the ordinary Web fast gate (`check:web`); it runs lint, typecheck, Vitest/Testing Library/MSW tests, source-safety checks, security dependency checks, and the production build without any browser or E2E flow.
 - `npm run verify:backend` — Laravel PHPUnit/Feature tests, Pint, and the separate MySQL suite.
 - `npm run verify:contract` — the established artifact, Laravel consumer, and exact-revision Mobile producer contract gate.
 
-`npm run check:web` runs Web lint, typecheck, tests, the Vite source-safety test (`npm run test:vite-source-safety`), and the production build.
+`npm run check:web` runs Web lint, typecheck, tests, the Vite source-safety test (`npm run test:vite-source-safety`), the security dependency checks (`security:dependency-check` and `test:quality-gate-workflow`), and the production build.
 `npm run check:api` runs the SQLite-backed API feature tests and the Pint format check.
 `npm run check:all` runs `check:web` followed by `check:api` and graph artifact validation.
 `npm run api:test:mysql` runs the separate MySQL suite against `caneguard_test`; use the migrated and seeded disposable database prepared above.
