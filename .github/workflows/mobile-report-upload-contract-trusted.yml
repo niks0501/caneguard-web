@@ -70,8 +70,7 @@ on:
       - api/app/Contracts/ReportLifecycleContract.php
       - api/app/Http/Controllers/Api/V1/MobileReportController.php
       - api/app/Http/Controllers/Api/V2/MobileReportController.php
-      - api/app/Http/Controllers/Api/V2/MobilePossibleRecentMatchesController.php
-      - api/app/Http/Controllers/Api/V2/MobileReportStatusController.php
+      - api/app/Http/Controllers/Api/V1/MobileReportStatusController.php
       - api/app/Http/Controllers/Api/V1/FieldReporterController.php
       - api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php
       - api/app/Http/Controllers/Api/V1/MobileFieldValidationCompletionController.php
@@ -92,7 +91,6 @@ on:
       - api/app/Http/Requests/MobileNotificationRequest.php
       - api/app/Http/Requests/StoreMobileReportRequest.php
       - api/app/Http/Requests/StoreMobileReportV2Request.php
-      - api/app/Http/Requests/PossibleRecentMatchesV2Request.php
       - api/app/Http/Requests/MobileFieldValidationAssignmentRequest.php
       - api/app/Http/Requests/FieldValidationQueueRequest.php
       - api/app/Http/Requests/ListNotificationsRequest.php

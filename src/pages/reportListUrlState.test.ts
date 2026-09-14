@@ -38,12 +38,20 @@ describe("parseReportListUrl", () => {
     });
   });
 
+  it("accepts the V2 smut model label", () => {
+    const state = parseReportListUrl(
+      new URLSearchParams("predicted_label=smut"),
+    );
+
+    expect(state.filters.disease).toBe("smut");
+    expect(state.invalid).toBe(false);
+  });
+
   it.each([
     ["page=0"],
     ["page=not-a-number"],
     ["status=confirmed"],
     ["queue=not-a-queue"],
-    ["predicted_label=smut"],
     ["date_from=2026-07-31&date_to=2026-07-01"],
     ["date_from=2026-02-30"],
     ["sort=random"],

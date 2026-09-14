@@ -1,6 +1,6 @@
 import type { OperationalQueue } from "./operationalQueue";
 
-export type DiseaseKey = "healthy" | "mosaic" | "rust";
+export type DiseaseKey = "healthy" | "mosaic" | "rust" | "smut";
 
 export type AuthorityClassifiedCondition =
   | "smut"

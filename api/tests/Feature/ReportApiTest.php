@@ -141,7 +141,7 @@ class ReportApiTest extends TestCase
         $this->getJson('/api/v1/reports?'.http_build_query([
             'page' => 0,
             'status' => 'confirmed',
-            'predicted_label' => 'smut',
+            'predicted_label' => 'downy_mildew',
             'date_from' => '2026-07-20',
             'date_to' => '2026-07-19',
             'sort' => 'random',
@@ -157,6 +157,22 @@ class ReportApiTest extends TestCase
                     'sort',
                 ],
             ]);
+    }
+
+    public function test_report_list_accepts_smut_model_reports(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->mobileModelV1()->create([
+            'predicted_label' => Report::LABEL_SMUT,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports?predicted_label='.Report::LABEL_SMUT)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $report->uuid)
+            ->assertJsonPath('data.0.predicted_label', Report::LABEL_SMUT);
     }
 
     public function test_report_detail_uses_uuid_and_returns_every_contract_section(): void

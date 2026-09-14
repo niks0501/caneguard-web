@@ -5,7 +5,7 @@ import {
   userSchema,
 } from "./common.schema";
 
-export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust"]);
+export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
 export const authorityClassifiedConditionSchema = z.enum([
   "smut",
   "downy_mildew",

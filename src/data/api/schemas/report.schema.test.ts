@@ -100,10 +100,19 @@ describe("report API schemas", () => {
     ).toBeNull();
   });
 
+  it("accepts the V2 smut model label", () => {
+    const smut = {
+      ...paginatedReportsDto,
+      data: [{ ...paginatedReportsDto.data[0], predicted_label: "smut" }],
+    };
+
+    expect(reportListResponseSchema.parse(smut).data[0]?.predicted_label).toBe("smut");
+  });
+
   it("rejects an unknown backend disease label", () => {
     const invalid = {
       ...paginatedReportsDto,
-      data: [{ ...paginatedReportsDto.data[0], predicted_label: "smut" }],
+      data: [{ ...paginatedReportsDto.data[0], predicted_label: "downy_mildew" }],
     };
 
     expect(() => reportListResponseSchema.parse(invalid)).toThrow();

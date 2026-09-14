@@ -104,7 +104,7 @@ The example intentionally includes nullable review fields and a canonical `sync.
 
 ## Producer and regression coverage
 
-The producer is `api/app/Http/Controllers/Api/V2/MobileReportStatusController.php` with serialization in `api/app/Http/Resources/ReportStatusResource.php`.
+The producer is `api/app/Http/Controllers/Api/V1/MobileReportStatusController.php` with serialization in `api/app/Http/Resources/ReportStatusResource.php`.
 
 `api/tests/Feature/MobileReportStatusTest.php` covers authentication, owner scoping, authorization, the five status values, exact serialized fields, checkpoint pagination, and reviewer identity omission.
 

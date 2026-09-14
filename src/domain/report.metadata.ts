@@ -11,6 +11,7 @@ export const diseaseLabels: Record<DiseaseKey, string> = {
   healthy: "Possible healthy appearance",
   mosaic: "Possible mosaic",
   rust: "Possible rust",
+  smut: "Possible smut",
 };
 
 export const authorityClassifiedConditionLabels: Record<
