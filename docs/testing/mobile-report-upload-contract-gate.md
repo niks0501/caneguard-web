@@ -14,7 +14,9 @@ Mobile device acceptance is owned by the companion [Agent Device guide](https://
 
 ## What the gate runs
 
-`contract:artifact` validates the upload artifact.
+`contract:artifact` validates the retained v1 upload artifact.
+
+`contract:v2:artifact` validates the Model V1 four-class upload artifact used by the current Mobile producer.
 
 `contract:assignment-artifact` validates the assignment artifact identity, owner-scoped JSON envelope, item fields, assignment states, and pagination checkpoint.
 
@@ -30,7 +32,7 @@ Mobile device acceptance is owned by the companion [Agent Device guide](https://
 
 `contract:lifecycle-consumer` runs the Laravel test that reads the canonical lifecycle artifact through the API model.
 
-`contract:producer`, `contract:assignment-producer`, and `contract:completion-producer` run focused Mobile producer tests from the selected revision.
+`contract:producer`, `contract:assignment-producer`, and `contract:completion-producer` run focused Mobile producer tests from the selected revision. The upload producer check evaluates `mobile-report-upload-v2`; the other API families remain on their existing v1 contracts.
 
 `contract:notification-producer` evaluates the Mobile notification parser against the Web-owned artifact.
 
@@ -70,6 +72,7 @@ Run all artifact and helper tests:
 ```bash
 npm run contract:test
 npm run contract:artifact
+npm run contract:v2:artifact
 npm run contract:assignment-artifact
 npm run contract:completion-artifact
 npm run contract:notification-artifact

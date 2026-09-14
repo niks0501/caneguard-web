@@ -18,7 +18,7 @@ async function configFixture(overrides = {}) {
   await writeFile(configPath, JSON.stringify({
     mobile_repository: 'niks0501/caneguard-mobile',
     mobile_ref: VALID_SHA,
-    artifact_path: 'docs/contracts/mobile-report-upload-v1.json',
+    artifact_path: 'docs/contracts/mobile-report-upload-v2.json',
     producer_test_path:
       'src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts',
     assignment_artifact_path: 'docs/contracts/mobile-field-validation-assignment-v1.json',

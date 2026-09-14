@@ -1,0 +1,515 @@
+{
+  "$id": "https://github.com/niks0501/caneguard-web/blob/main/docs/contracts/mobile-report-upload-v2.json",
+  "artifact_format": "caneguard-multipart-contract",
+  "contract": "mobile-report-upload-v2",
+  "version": 2,
+  "status": "stable",
+  "owner": "niks0501/caneguard-web/api",
+  "wire": {
+    "method": "POST",
+    "path": "/api/v2/mobile/reports",
+    "content_type": "multipart/form-data",
+    "undeclared_fields": "ignored"
+  },
+  "authentication": {
+    "transport": "Sanctum bearer token",
+    "required_ability": "report:submit",
+    "server_authority": "field reporter role and Report::create policy"
+  },
+  "fields": {
+    "client_uuid": {
+      "wire_type": "text",
+      "type": "uuid",
+      "required": true,
+      "nullable": false,
+      "format": "uuid"
+    },
+    "image": {
+      "wire_type": "file",
+      "type": "image",
+      "required": true,
+      "nullable": false,
+      "formats": [
+        {
+          "name": "jpeg",
+          "extensions": [
+            "jpg",
+            "jpeg"
+          ],
+          "mime_types": [
+            "image/jpeg"
+          ]
+        },
+        {
+          "name": "png",
+          "extensions": [
+            "png"
+          ],
+          "mime_types": [
+            "image/png"
+          ]
+        },
+        {
+          "name": "webp",
+          "extensions": [
+            "webp"
+          ],
+          "mime_types": [
+            "image/webp"
+          ]
+        }
+      ],
+      "max_bytes": 10485760,
+      "metadata": {
+        "client_declared_fields": [
+          "source_width",
+          "source_height"
+        ],
+        "server_derived_fields": {
+          "mime_type": {
+            "type": "string",
+            "source": "uploaded image",
+            "persistence_column": "image_mime_type"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "source": "uploaded image",
+            "maximum_ref": "#/fields/image/max_bytes",
+            "persistence_column": "image_size_bytes"
+          }
+        }
+      }
+    },
+    "image_source_type": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "enum": [
+        "camera",
+        "gallery"
+      ]
+    },
+    "source_width": {
+      "wire_type": "text",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "minimum": 1,
+      "maximum": 50000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "source_height": {
+      "wire_type": "text",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "minimum": 1,
+      "maximum": 50000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "predicted_label": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "enum": [
+        "healthy",
+        "mosaic",
+        "rust",
+        "smut"
+      ]
+    },
+    "confidence": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "class_scores": {
+      "wire_name_template": "class_scores[{key}]",
+      "wire_type": "nested-object",
+      "type": "object",
+      "required": true,
+      "nullable": false,
+      "min_properties": 4,
+      "max_properties": 4,
+      "required_keys": [
+        "healthy",
+        "mosaic",
+        "rust",
+        "smut"
+      ],
+      "additional_properties": false,
+      "values": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "symptom_keys": {
+      "wire_name_template": "symptom_keys[]",
+      "wire_type": "repeated-text",
+      "type": "array",
+      "required": true,
+      "nullable": false,
+      "min_items": 1,
+      "unique_items": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "mosaic",
+          "rust",
+          "smut",
+          "yellow-midrib",
+          "none",
+          "something-else",
+          "unable-to-tell"
+        ]
+      }
+    },
+    "checklist_consistency": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "max_length": 40
+    },
+    "reported_severity": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 20,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "mismatch_reported": {
+      "wire_type": "text",
+      "type": "boolean",
+      "required": false,
+      "nullable": true,
+      "accepted_wire_values": [
+        true,
+        false,
+        0,
+        1,
+        "0",
+        "1",
+        "true",
+        "false"
+      ],
+      "normalization": {
+        "empty_string": "null",
+        "boolean_strings": {
+          "true": true,
+          "false": false
+        }
+      }
+    },
+    "reporter_suspected_condition": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 120,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "reporter_observation_text": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 1000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "quality_warnings": {
+      "wire_name_template": "quality_warnings[]",
+      "wire_type": "repeated-text",
+      "type": "array",
+      "required": false,
+      "nullable": false,
+      "default": [],
+      "unique_items": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "low-resolution",
+          "too-dark",
+          "too-bright",
+          "low-contrast"
+        ]
+      }
+    },
+    "barangay": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "max_length": 120
+    },
+    "farmer_or_farm_owner_name": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 160,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "province": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 120,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "municipality": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 120,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "final_latitude": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": -90,
+      "maximum": 90,
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_with",
+          "fields": [
+            "final_longitude",
+            "location_source"
+          ]
+        }
+      ]
+    },
+    "final_longitude": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": -180,
+      "maximum": 180,
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_with",
+          "fields": [
+            "final_latitude",
+            "location_source"
+          ]
+        }
+      ]
+    },
+    "location_source": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "enum": [
+        "gps",
+        "manual_map"
+      ],
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_with",
+          "fields": [
+            "final_latitude",
+            "final_longitude"
+          ]
+        }
+      ]
+    },
+    "gps_accuracy": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": 0,
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_if",
+          "field": "location_source",
+          "value": "gps"
+        },
+        {
+          "rule": "prohibited_unless",
+          "field": "location_source",
+          "value": "gps"
+        }
+      ]
+    },
+    "observed_at": {
+      "wire_type": "text",
+      "type": "date-time",
+      "required": false,
+      "nullable": true,
+      "format": "date-time",
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "scan_record_client_uuid": {
+      "wire_type": "text",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "format": "uuid",
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "sugarcane_variety": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "crop_age": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "cane_class": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "affected_area_hectares": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "exclusive_minimum": 0,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "affected_portion_percent": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": 0,
+      "maximum": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "field_notes": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 5000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "model_version": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "max_length": 100,
+      "enum": [
+        "v1.0-mobilenetv2"
+      ]
+    },
+    "preprocess_ms": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 999999999
+    },
+    "inference_ms": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 999999999
+    },
+    "total_ms": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 999999999
+    },
+    "captured_at": {
+      "wire_type": "text",
+      "type": "date-time",
+      "required": true,
+      "nullable": false,
+      "format": "date-time"
+    }
+  },
+  "versioning": {
+    "same_major_compatible_widening": [
+      "Accepting additional optional fields while preserving the undeclared-field policy.",
+      "Accepting additional values for an existing enum without changing existing value meanings.",
+      "Increasing a text maximum or numeric maximum, or lowering a numeric minimum, without changing persistence semantics.",
+      "Adding an accepted image format without removing or changing existing formats.",
+      "Increasing the image hard maximum only when every existing v2 consumer remains safe with the wider value."
+    ],
+    "new_major_required": [
+      "Renaming or removing a field, changing its multipart encoding, or changing its type.",
+      "Making an accepted field or value invalid, including narrowing a text, numeric, UUID, array, coordinate, or image boundary.",
+      "Changing a field from optional to required, or changing null and empty-value semantics.",
+      "Changing enum meaning, disease classes, conditional location requirements, server-derived metadata, or persistence semantics.",
+      "Removing an existing image format or lowering the 10 MiB hard maximum."
+    ]
+  }
+}

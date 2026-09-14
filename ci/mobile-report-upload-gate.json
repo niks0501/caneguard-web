@@ -1,7 +1,7 @@
 {
   "mobile_repository": "niks0501/caneguard-mobile",
-  "mobile_ref": "2fecfa14192026d81681373e290d909d56eeda20",
-  "artifact_path": "docs/contracts/mobile-report-upload-v1.json",
+  "mobile_ref": "42b5fad20ad6d9a13018ce4e1bfb62f296c6702b",
+  "artifact_path": "docs/contracts/mobile-report-upload-v2.json",
   "producer_test_path": "src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts",
   "assignment_artifact_path": "docs/contracts/mobile-field-validation-assignment-v1.json",
   "assignment_producer_test_path": "src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.contract.test.ts",

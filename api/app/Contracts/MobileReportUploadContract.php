@@ -12,14 +12,18 @@ use LogicException;
 use RuntimeException;
 use UnexpectedValueException;
 
-final class MobileReportUploadContract
+class MobileReportUploadContract
 {
-    private const CONTRACT_PATH = '../docs/contracts/mobile-report-upload-v1.json';
+    protected const CONTRACT_PATH = '../docs/contracts/mobile-report-upload-v1.json';
+
+    protected const EXPECTED_CONTRACT = 'mobile-report-upload-v1';
+
+    protected const EXPECTED_VERSION = 1;
 
     /**
-     * @var array<string, mixed>|null
+     * @var array<string, array<string, mixed>>
      */
-    private static ?array $definition = null;
+    private static array $definitions = [];
 
     /**
      * @return array<string, mixed>
@@ -28,11 +32,12 @@ final class MobileReportUploadContract
      */
     public static function definition(): array
     {
-        if (self::$definition !== null) {
-            return self::$definition;
+        $contractClass = static::class;
+        if (isset(self::$definitions[$contractClass])) {
+            return self::$definitions[$contractClass];
         }
 
-        $path = base_path(self::CONTRACT_PATH);
+        $path = base_path(static::CONTRACT_PATH);
         $contents = file_get_contents($path);
 
         if ($contents === false) {
@@ -49,9 +54,9 @@ final class MobileReportUploadContract
             );
         }
 
-        self::assertDefinition($definition);
+        static::assertDefinition($definition);
 
-        return self::$definition = $definition;
+        return self::$definitions[$contractClass] = $definition;
     }
 
     /**
@@ -59,7 +64,7 @@ final class MobileReportUploadContract
      */
     public static function field(string $name): array
     {
-        $field = self::definition()['fields'][$name] ?? null;
+        $field = static::definition()['fields'][$name] ?? null;
 
         if (! is_array($field)) {
             throw new UnexpectedValueException(
@@ -75,7 +80,7 @@ final class MobileReportUploadContract
      */
     public static function enumValues(string $field): array
     {
-        $values = self::field($field)['enum'] ?? null;
+        $values = static::field($field)['enum'] ?? null;
 
         if (! is_array($values) || array_filter($values, 'is_string') !== $values) {
             throw new UnexpectedValueException(
@@ -93,7 +98,7 @@ final class MobileReportUploadContract
     {
         $normalized = [];
 
-        foreach (self::definition()['fields'] as $name => $field) {
+        foreach (static::definition()['fields'] as $name => $field) {
             if (! is_array($field)) {
                 continue;
             }
@@ -132,7 +137,7 @@ final class MobileReportUploadContract
     {
         $rules = [];
 
-        foreach (self::definition()['fields'] as $name => $field) {
+        foreach (static::definition()['fields'] as $name => $field) {
             if (! is_array($field)) {
                 throw new UnexpectedValueException(
                     "The mobile report upload field {$name} must be an object.",
@@ -445,10 +450,10 @@ final class MobileReportUploadContract
         }
 
         if ($definition['artifact_format'] !== 'caneguard-multipart-contract'
-            || $definition['contract'] !== 'mobile-report-upload-v1'
-            || $definition['version'] !== 1) {
+            || $definition['contract'] !== static::EXPECTED_CONTRACT
+            || $definition['version'] !== static::EXPECTED_VERSION) {
             throw new UnexpectedValueException(
-                'The Laravel mobile report request only supports mobile-report-upload-v1.',
+                'The Laravel mobile report request does not support this contract version.',
             );
         }
 

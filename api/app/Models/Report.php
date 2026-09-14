@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\MobileReportUploadContract;
+use App\Contracts\MobileReportUploadV2Contract;
 use App\Contracts\ReportLifecycleContract;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -78,6 +79,8 @@ class Report extends Model
     public const LABEL_MOSAIC = 'mosaic';
 
     public const LABEL_RUST = 'rust';
+
+    public const LABEL_SMUT = 'smut';
 
     public const AUTHORITY_CONDITION_SMUT = 'smut';
 
@@ -209,6 +212,18 @@ class Report extends Model
     public static function labels(): array
     {
         return MobileReportUploadContract::enumValues('predicted_label');
+    }
+
+    /**
+     * Labels accepted by the breaking Model V1 mobile report contract.
+     * The legacy accessor intentionally remains V1-compatible for unrelated
+     * API consumers.
+     *
+     * @return array<int, string>
+     */
+    public static function v2Labels(): array
+    {
+        return MobileReportUploadV2Contract::enumValues('predicted_label');
     }
 
     /**

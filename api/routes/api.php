@@ -26,6 +26,9 @@ use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReportReferralController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
+use App\Http\Controllers\Api\V2\MobilePossibleRecentMatchesController as MobileV2PossibleRecentMatchesController;
+use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
+use App\Http\Controllers\Api\V2\MobileReportStatusController as MobileV2ReportStatusController;
 use App\Http\Controllers\Auth\ChangeEmailController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\DisableBiometricController;
@@ -104,4 +107,16 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->middleware(['mobile.token', 'abilities:notification:read']);
     Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
         ->middleware(['mobile.token', 'abilities:assignment:complete', 'throttle:30,1']);
+});
+
+Route::prefix('v2')->middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/mobile/reports/possible-matches', MobileV2PossibleRecentMatchesController::class)
+        ->middleware(['mobile.token', 'abilities:report:submit'])
+        ->name('api.v2.mobile.reports.possible-matches');
+    Route::post('/mobile/reports', [MobileV2ReportController::class, 'store'])
+        ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1'])
+        ->name('api.v2.mobile.reports.store');
+    Route::get('/mobile/reports/statuses', MobileV2ReportStatusController::class)
+        ->middleware(['mobile.token', 'abilities:report:status'])
+        ->name('api.v2.mobile.reports.statuses');
 });

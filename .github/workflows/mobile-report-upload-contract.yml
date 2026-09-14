@@ -10,6 +10,11 @@ on:
       - ci/mobile-report-upload-gate.json
       - docs/contracts/mobile-report-upload-v1.json
       - docs/contracts/mobile-report-upload-v1.md
+      - docs/contracts/mobile-report-upload-v2.json
+      - docs/contracts/mobile-report-upload-v2.md
+      - docs/contracts/mobile-report-status-v2.md
+      - docs/contracts/mobile-duplicate-assistance-v2.json
+      - docs/contracts/mobile-duplicate-assistance-v2.md
       - docs/contracts/mobile-field-validation-assignment-v1.json
       - docs/contracts/mobile-field-validation-assignment-v1.md
       - docs/contracts/mobile-field-validation-completion-v1.json
@@ -37,6 +42,7 @@ on:
       - scripts/run-report-lifecycle-producer-contract.mjs
       - scripts/run-phase1-lifecycle-acceptance.mjs
       - scripts/validate-mobile-report-upload-v1.mjs
+      - scripts/validate-mobile-report-upload-v2.mjs
       - scripts/validate-mobile-field-validation-assignment-v1.mjs
       - scripts/validate-mobile-field-validation-completion-v1.mjs
       - scripts/validate-mobile-field-validation-completion-v1.node-test.mjs
@@ -59,11 +65,15 @@ on:
       - api/app/Actions/Reports/PersistReport.php
       - api/app/Actions/Reports/StoreReport.php
       - api/app/Contracts/MobileReportUploadContract.php
+      - api/app/Contracts/MobileReportUploadV2Contract.php
       - api/app/Contracts/MobileFieldValidationAssignmentContract.php
       - api/app/Contracts/MobileFieldValidationCompletionContract.php
       - api/app/Contracts/MobileNotificationContract.php
       - api/app/Contracts/ReportLifecycleContract.php
       - api/app/Http/Controllers/Api/V1/MobileReportController.php
+      - api/app/Http/Controllers/Api/V2/MobileReportController.php
+      - api/app/Http/Controllers/Api/V2/MobilePossibleRecentMatchesController.php
+      - api/app/Http/Controllers/Api/V2/MobileReportStatusController.php
       - api/app/Http/Controllers/Api/V1/FieldReporterController.php
       - api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php
       - api/app/Http/Controllers/Api/V1/MobileFieldValidationCompletionController.php
@@ -83,6 +93,8 @@ on:
       - api/app/Http/Requests/MobileFieldValidationCompletionRequest.php
       - api/app/Http/Requests/MobileNotificationRequest.php
       - api/app/Http/Requests/StoreMobileReportRequest.php
+      - api/app/Http/Requests/StoreMobileReportV2Request.php
+      - api/app/Http/Requests/PossibleRecentMatchesV2Request.php
       - api/app/Http/Requests/MobileFieldValidationAssignmentRequest.php
       - api/app/Http/Requests/FieldValidationQueueRequest.php
       - api/app/Http/Requests/ListNotificationsRequest.php
@@ -99,6 +111,8 @@ on:
       - api/routes/api.php
       - api/routes/channels.php
       - api/tests/Feature/MobileReportUploadContractTest.php
+      - api/tests/Feature/MobileReportUploadV2ContractTest.php
+      - api/tests/Feature/MobileReportUploadV2Test.php
       - api/tests/Feature/FieldValidationAssignmentTest.php
       - api/tests/Feature/MobileReportUploadTest.php
       - api/tests/Feature/NotificationTest.php
@@ -132,6 +146,7 @@ jobs:
       - name: Validate canonical artifacts
         run: |
           npm run contract:artifact
+          npm run contract:v2:artifact
           npm run contract:assignment-artifact
           npm run contract:completion-artifact
           npm run contract:notification-artifact
