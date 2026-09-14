@@ -12,7 +12,9 @@ import { Button } from "../ui/Button";
 import { SelectFilter, TextArea } from "../ui/FormControls";
 import {
   actionTakenLabels,
+  activeAuthorityClassifiedConditions,
   authorityClassifiedConditionLabels,
+  isLegacyAuthorityClassifiedCondition,
 } from "../../domain/report.metadata";
 import type {
   AuthorityClassifiedCondition,
@@ -51,6 +53,11 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
   const referral = report.referral;
   const referralState = lifecycle?.referralState ?? "not_referred";
   const caseState = lifecycle?.caseState ?? "open";
+  const existingLegacyAuthorityClassification = isLegacyAuthorityClassifiedCondition(
+    report.authorityClassifiedCondition,
+  )
+    ? report.authorityClassifiedCondition
+    : null;
   const [destination, setDestination] = useState("");
   const [reference, setReference] = useState("");
   const [referralDate, setReferralDate] = useState("");
@@ -263,7 +270,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 <CalendarDays aria-hidden="true" />
                 <div>
                   <strong>Record expert response</strong>
-                  <span>Response evidence is separate from the original AI result.</span>
+                  <span>Response evidence is separate from the original AI Possible Condition.</span>
                 </div>
               </div>
               <label className="select-filter" htmlFor="response-date">
@@ -306,7 +313,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 placeholder="Capture the expert's finding as reported"
               />
               <SelectFilter
-                label="Authority finding after response"
+                label="Staff-Classified Condition after response"
                 value={responseAuthority ?? ""}
                 onChange={(event) => {
                   setResponseAuthority(
@@ -317,9 +324,17 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 }}
               >
                 <option value="">Keep or leave unclassified</option>
-                {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
-                  <option value={value} key={value}>{label}</option>
+                {activeAuthorityClassifiedConditions.map((value) => (
+                  <option value={value} key={value}>
+                    {authorityClassifiedConditionLabels[value]}
+                  </option>
                 ))}
+                {existingLegacyAuthorityClassification ? (
+                  <option value={existingLegacyAuthorityClassification}>
+                    {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
+                    {" (legacy record; not offered for new review)"}
+                  </option>
+                ) : null}
               </SelectFilter>
               <SelectFilter
                 label="Verification outcome after response"

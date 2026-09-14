@@ -477,16 +477,16 @@ export function CaseReviewPage() {
               <span>Captured {formatDateTime(report.capturedAt)}</span>
               <span>Submitted {formatDateTime(report.submittedAt)}</span>
             </div>
-            <div className="review-essential-result" aria-label="Possible AI result">
+            <div className="review-essential-result" role="region" aria-label="AI Possible Condition">
               <div className="review-essential-result__heading">
                 <div>
-                  <p className="eyebrow">Decision support</p>
-                  <h3>Possible AI result</h3>
+                  <p className="eyebrow">Possible Condition</p>
+                  <h3>AI Possible Condition</h3>
                 </div>
                 <DiseaseBadge disease={report.predictedDisease} />
               </div>
               <ConfidenceDisplay confidence={report.confidence} />
-              <p><strong>Decision-support only.</strong> Compare this possible result with the symptom responses, reporter observation, and field context. It is not a diagnosis.</p>
+              <p><strong>Decision-support only.</strong> Compare this AI Possible Condition with the symptom responses, reporter observation, and field context. It is not a diagnosis.</p>
             </div>
             <dl className="review-essential-context">
               <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
@@ -744,7 +744,7 @@ export function CaseReviewPage() {
           <section className="review-card office-review" aria-labelledby="office-review-heading">
             <div className="section-heading"><div><p className="eyebrow">Office response</p><h2 id="office-review-heading">Record explicit review</h2></div><CheckCircle2 aria-hidden="true" /></div>
             <SelectFilter
-              label="Authority classification"
+              label="Staff-Classified Condition"
               value={selectedAuthorityClassification ?? ""}
               onChange={(event) => {
                 setAuthorityClassificationOverride(
@@ -767,7 +767,7 @@ export function CaseReviewPage() {
                 </option>
               ) : null}
             </SelectFilter>
-            <p className="authority-classification-help">This is a separate authority finding and never changes the original model result.</p>
+            <p className="authority-classification-help">Staff-Classified Condition is a separate human finding and never changes the original AI Possible Condition.</p>
             {report.authorityClassifiedCondition && report.reviewedBy ? (
               <p className="authority-provenance">Last classified by {report.reviewedBy}{report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.</p>
             ) : null}

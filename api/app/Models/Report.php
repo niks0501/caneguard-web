@@ -278,6 +278,16 @@ class Report extends Model
     }
 
     /**
+     * Legacy Downy mildew may only be carried forward from a historical
+     * record; it is not a valid new Staff-Classified Condition selection.
+     */
+    public function canUpdateAuthorityClassifiedCondition(?string $condition): bool
+    {
+        return $condition !== self::AUTHORITY_CONDITION_DOWNY_MILDEW
+            || $this->authority_classified_condition === self::AUTHORITY_CONDITION_DOWNY_MILDEW;
+    }
+
+    /**
      * @return array<int, string>
      */
     public static function reviewStatuses(): array
