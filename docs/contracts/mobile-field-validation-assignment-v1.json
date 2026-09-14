@@ -80,7 +80,7 @@
         "captured_at": { "type": "date-time", "required": true, "nullable": false },
         "observed_at": { "type": "date-time", "required": true, "nullable": true },
         "submitted_at": { "type": "date-time", "required": true, "nullable": false },
-        "predicted_label": { "type": "string", "required": true, "nullable": false, "enum": ["healthy", "mosaic", "rust"] },
+        "predicted_label": { "type": "string", "required": true, "nullable": false, "enum": ["healthy", "mosaic", "rust", "smut"] },
         "confidence": { "type": "number", "required": true, "nullable": false, "minimum": 0, "maximum": 1 }
       }
     }

@@ -15,7 +15,7 @@
       "predicted_label": {
         "required": true,
         "type": "enum",
-        "values": ["healthy", "mosaic", "rust"]
+        "values": ["healthy", "mosaic", "rust", "smut"]
       },
       "final_latitude": {
         "required": false,
@@ -43,7 +43,7 @@
             "submitted_at": "ISO-8601 datetime"
           },
           "match": {
-            "condition": "healthy|mosaic|rust",
+            "condition": "healthy|mosaic|rust|smut",
             "distance_meters": "non-negative number",
             "basis": [
               "same_condition",

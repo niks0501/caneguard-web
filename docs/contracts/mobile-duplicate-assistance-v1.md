@@ -10,7 +10,7 @@ The endpoint is `GET /api/v1/mobile/reports/possible-matches`.
 
 The request must use a Sanctum bearer token with the `report:submit` ability and a field-reporter account.
 
-The query must include `predicted_label` with one of the existing model labels: `healthy`, `mosaic`, or `rust`.
+The query must include `predicted_label` with one of the existing model labels: `healthy`, `mosaic`, `rust`, or `smut`.
 
 The query may include `final_latitude` and `final_longitude`.
 

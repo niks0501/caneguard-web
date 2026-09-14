@@ -80,6 +80,38 @@ class DuplicateAssistanceTest extends TestCase
         }
     }
 
+    public function test_mobile_possible_matches_support_smut_model_labels(): void
+    {
+        $now = CarbonImmutable::parse('2026-08-29T10:00:00Z');
+        CarbonImmutable::setTestNow($now);
+
+        try {
+            $reporter = User::factory()->fieldReporter()->create();
+            $match = Report::factory()->mobileModelV1()->create([
+                'predicted_label' => Report::LABEL_SMUT,
+                'final_latitude' => 14.0667000,
+                'final_longitude' => 120.6319000,
+                'submitted_at' => $now->subHours(2),
+            ]);
+            $token = $reporter->createToken('smut-possible-match-test', ['report:submit'])
+                ->plainTextToken;
+
+            $this->withToken($token)
+                ->getJson('/api/v1/mobile/reports/possible-matches?'.http_build_query([
+                    'predicted_label' => Report::LABEL_SMUT,
+                    'final_latitude' => 14.0667001,
+                    'final_longitude' => 120.6319001,
+                ]))
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.case.uuid', $match->uuid)
+                ->assertJsonPath('data.0.match.condition', Report::LABEL_SMUT)
+                ->assertJsonPath('meta.possible_match', true);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_missing_location_returns_safe_no_match_assistance_without_blocking_submission_contract(): void
     {
         $reporter = User::factory()->fieldReporter()->create();
