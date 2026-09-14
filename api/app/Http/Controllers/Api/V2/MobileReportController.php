@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V2;
 use App\Actions\Reports\StoreReport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMobileReportV2Request;
-use App\Http\Resources\ReportResource;
+use App\Http\Resources\MobileReportUploadResource;
 use Illuminate\Http\JsonResponse;
 
 class MobileReportController extends Controller
@@ -20,7 +20,7 @@ class MobileReportController extends Controller
             $request->file('image'),
         );
 
-        return (new ReportResource($result['report']))
+        return (new MobileReportUploadResource($result['report']))
             ->response()
             ->setStatusCode($result['created'] ? 201 : 200);
     }

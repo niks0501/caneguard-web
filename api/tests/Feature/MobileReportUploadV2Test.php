@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\MobileReportUploadV2Contract;
 use App\Models\Report;
+use App\Models\ReportAudit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,6 +59,45 @@ class MobileReportUploadV2Test extends TestCase
             $report->reporter_observation_text,
         );
         Storage::disk('local')->assertExists($report->image_path);
+    }
+
+    public function test_v2_retry_omits_reviewer_and_audit_identity(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->reviewer()->create([
+            'email' => 'reviewer-private@example.test',
+            'name' => 'Private reviewer name',
+        ]);
+        $clientUuid = fake()->uuid();
+        $report = Report::factory()->mobileModelV1()->create([
+            'reporter_id' => $reporter,
+            'client_uuid' => $clientUuid,
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'review_notes' => 'Verified by office staff.',
+            'reviewer_id' => $reviewer,
+            'reviewed_at' => now()->subMinute(),
+        ]);
+        ReportAudit::query()->create([
+            'report_id' => $report->id,
+            'actor_id' => $reviewer->id,
+            'field' => 'field_notes',
+            'original_value' => 'Original note.',
+            'corrected_value' => 'Corrected note.',
+            'reason' => 'Office correction.',
+            'created_at' => now()->subMinute(),
+        ]);
+        $token = $reporter->createToken('mobile-v2-private-retry', ['report:submit'])->plainTextToken;
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid))
+            ->assertOk()
+            ->assertJsonPath('data.identity.uuid', $report->uuid)
+            ->assertJsonPath('data.review.status', Report::STATUS_VERIFIED_BY_STAFF)
+            ->assertJsonMissingPath('data.reporter.email')
+            ->assertJsonMissingPath('data.review.reviewer')
+            ->assertJsonMissingPath('data.audit');
     }
 
     public function test_v2_rejects_incomplete_extra_and_malformed_class_scores(): void
