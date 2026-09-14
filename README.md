@@ -206,6 +206,8 @@ php api/artisan db:seed
 ```
 
 The seed creates the local demo accounts and synthetic report data.
+The report seed is safe to rerun against an existing local database: it creates missing demo rows, files, and nested evidence without overwriting existing report rows or immutable submitted evidence.
+Use a disposable reset/reseed when a fresh demo dataset is required.
 The accounts are `field@caneguard.test`, `mao@caneguard.test`, and `admin@caneguard.test`.
 Use the local passwords you set in `CANEGUARD_FIELD_PASSWORD`, `CANEGUARD_REVIEWER_PASSWORD`, and `CANEGUARD_ADMIN_PASSWORD`.
 The Web accepts the reviewer and admin roles, while Mobile synchronization requires the field-reporter role.

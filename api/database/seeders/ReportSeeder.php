@@ -31,7 +31,10 @@ class ReportSeeder extends Seeder
         }
 
         $statuses = Report::reviewStatuses();
-        $labels = Report::labels();
+        // Seed the current Model V1 evidence shape so demo monitoring exercises
+        // every prediction class, including Smut, without changing the legacy
+        // v1 upload contract.
+        $labels = Report::v2Labels();
         $barangays = [
             'Mabini',
             'Maligaya',
@@ -70,88 +73,133 @@ class ReportSeeder extends Seeder
                 'UTC',
             );
             $path = sprintf('seeded/report-%02d.png', $number);
-
-            if (! Storage::disk('local')->put($path, $image)) {
-                throw new RuntimeException("Unable to seed report image [{$path}].");
-            }
-
-            $confidence = round(0.62 + ($number * 0.025), 7);
-            $report = Report::query()->updateOrCreate(
-                ['reference_code' => sprintf('CG-2026-%04d', $number)],
-                [
-                    'uuid' => sprintf(
-                        '20000000-0000-4000-8000-%012d',
-                        $number,
-                    ),
-                    'reporter_id' => $reporter->getKey(),
-                    'client_uuid' => sprintf(
-                        '30000000-0000-4000-8000-%012d',
-                        $number,
-                    ),
-                    'barangay' => $barangays[($number - 1) % count($barangays)],
-                    'final_latitude' => $location['latitude'] ?? null,
-                    'final_longitude' => $location['longitude'] ?? null,
-                    'location_source' => $location['source'] ?? null,
-                    'gps_accuracy' => $location['accuracy'] ?? null,
-                    'image_path' => $path,
-                    'image_mime_type' => 'image/png',
-                    'image_size_bytes' => strlen($image),
-                    'image_source_type' => $number % 2 === 0 ? 'gallery' : 'camera',
-                    'source_width' => 1254,
-                    'source_height' => 1254,
-                    'predicted_label' => $label,
-                    'confidence' => $confidence,
-                    'checklist_consistency' => $number % 4 === 0
-                        ? 'inconclusive'
-                        : 'consistent',
-                    'reported_severity' => ['low', 'moderate', 'high'][($number - 1) % 3],
-                    'model_version' => 'caneguard-mobile-v1.0.0',
-                    'preprocess_ms' => 10 + $number,
-                    'inference_ms' => 90 + ($number * 3),
-                    'total_ms' => 120 + ($number * 4),
-                    'captured_at' => $submittedAt->subMinutes(20 + $number),
-                    'submitted_at' => $submittedAt,
-                    'review_status' => $status,
-                    ...Report::lifecycleForReviewStatus($status),
-                    'review_notes' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
-                        ? null
-                        : 'Seeded office review for demonstration.',
-                    'reviewer_id' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
-                        ? null
-                        : $reviewer->getKey(),
-                    'reviewed_at' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
-                        ? null
-                        : $submittedAt->addDay(),
-                ],
+            $referenceCode = sprintf('CG-2026-%04d', $number);
+            $clientUuid = sprintf(
+                '30000000-0000-4000-8000-%012d',
+                $number,
             );
+            $confidence = round(0.62 + ($number * 0.025), 7);
 
-            foreach (Report::labels() as $scoreLabel) {
-                $score = $scoreLabel === $label
-                    ? $confidence
-                    : round((1 - $confidence) / 2, 7);
-
-                DB::table('report_class_scores')->updateOrInsert(
+            DB::transaction(function () use (
+                $referenceCode,
+                $clientUuid,
+                $reporter,
+                $reviewer,
+                $location,
+                $barangays,
+                $number,
+                $status,
+                $path,
+                $label,
+                $confidence,
+                $submittedAt,
+                $image,
+            ): void {
+                $report = Report::query()->firstOrCreate(
+                    ['reference_code' => $referenceCode],
                     [
+                        'uuid' => sprintf(
+                            '20000000-0000-4000-8000-%012d',
+                            $number,
+                        ),
+                        'reporter_id' => $reporter->getKey(),
+                        'client_uuid' => $clientUuid,
+                        'barangay' => $barangays[($number - 1) % count($barangays)],
+                        'final_latitude' => $location['latitude'] ?? null,
+                        'final_longitude' => $location['longitude'] ?? null,
+                        'location_source' => $location['source'] ?? null,
+                        'gps_accuracy' => $location['accuracy'] ?? null,
+                        'image_path' => $path,
+                        'image_mime_type' => 'image/png',
+                        'image_size_bytes' => strlen($image),
+                        'image_source_type' => $number % 2 === 0 ? 'gallery' : 'camera',
+                        'source_width' => 1254,
+                        'source_height' => 1254,
+                        'predicted_label' => $label,
+                        'confidence' => $confidence,
+                        'checklist_consistency' => $number % 4 === 0
+                            ? 'inconclusive'
+                            : 'consistent',
+                        'reported_severity' => ['low', 'moderate', 'high'][($number - 1) % 3],
+                        'model_version' => 'v1.0-mobilenetv2',
+                        'preprocess_ms' => 10 + $number,
+                        'inference_ms' => 90 + ($number * 3),
+                        'total_ms' => 120 + ($number * 4),
+                        'captured_at' => $submittedAt->subMinutes(20 + $number),
+                        'submitted_at' => $submittedAt,
+                        'review_status' => $status,
+                        ...Report::lifecycleForReviewStatus($status),
+                        'review_notes' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
+                            ? null
+                            : 'Seeded office review for demonstration.',
+                        'reviewer_id' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
+                            ? null
+                            : $reviewer->getKey(),
+                        'reviewed_at' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
+                            ? null
+                            : $submittedAt->addDay(),
+                    ],
+                );
+
+                if (! $report->wasRecentlyCreated && $report->client_uuid !== $clientUuid) {
+                    return;
+                }
+
+                $disk = Storage::disk('local');
+                if (($report->wasRecentlyCreated || ! $disk->exists($report->image_path))
+                    && ! $disk->put($report->image_path, $image)) {
+                    throw new RuntimeException("Unable to seed report image [{$path}].");
+                }
+
+                $reportLabels = $report->model_version === 'v1.0-mobilenetv2'
+                    ? Report::v2Labels()
+                    : Report::labels();
+                $reportConfidence = (float) $report->confidence;
+                $existingScoreLabels = DB::table('report_class_scores')
+                    ->where('report_id', $report->getKey())
+                    ->pluck('label')
+                    ->all();
+
+                foreach ($reportLabels as $scoreLabel) {
+                    if (in_array($scoreLabel, $existingScoreLabels, true)) {
+                        continue;
+                    }
+
+                    $score = $scoreLabel === $report->predicted_label
+                        ? $reportConfidence
+                        : round((1 - $reportConfidence) / (count($reportLabels) - 1), 7);
+
+                    DB::table('report_class_scores')->insert([
                         'report_id' => $report->getKey(),
                         'label' => $scoreLabel,
-                    ],
-                    ['score' => $score],
-                );
-            }
+                        'score' => $score,
+                    ]);
+                }
 
-            DB::table('report_symptoms')->updateOrInsert([
-                'report_id' => $report->getKey(),
-                'symptom_key' => $label === Report::LABEL_HEALTHY
+                $symptomKey = $report->predicted_label === Report::LABEL_HEALTHY
                     ? 'none'
-                    : $label,
-            ]);
+                    : $report->predicted_label;
+                if (! DB::table('report_symptoms')
+                    ->where('report_id', $report->getKey())
+                    ->where('symptom_key', $symptomKey)
+                    ->exists()) {
+                    DB::table('report_symptoms')->insert([
+                        'report_id' => $report->getKey(),
+                        'symptom_key' => $symptomKey,
+                    ]);
+                }
 
-            if ($number % 3 === 0) {
-                DB::table('report_quality_warnings')->updateOrInsert([
-                    'report_id' => $report->getKey(),
-                    'warning_key' => 'low-resolution',
-                ]);
-            }
+                if ($number % 3 === 0
+                    && ! DB::table('report_quality_warnings')
+                        ->where('report_id', $report->getKey())
+                        ->where('warning_key', 'low-resolution')
+                        ->exists()) {
+                    DB::table('report_quality_warnings')->insert([
+                        'report_id' => $report->getKey(),
+                        'warning_key' => 'low-resolution',
+                    ]);
+                }
+            });
         }
     }
 }
