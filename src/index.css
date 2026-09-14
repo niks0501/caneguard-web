@@ -1422,6 +1422,23 @@ blockquote {
   flex: 0 0 auto;
 }
 
+.rssi-observation-callout {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 11px 12px;
+  color: #1e5d4b;
+  background: #eaf6f0;
+  border: 1px solid #a7d8c3;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.rssi-observation-callout strong {
+  font-size: 12px;
+}
+
 .observation-empty {
   margin: 0 0 16px;
   color: var(--color-muted);

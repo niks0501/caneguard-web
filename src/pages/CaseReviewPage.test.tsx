@@ -208,6 +208,29 @@ describe("CaseReviewPage", () => {
     expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
   });
 
+  it("renders RSSI reporter concern separately from the Possible Condition", () => {
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({
+        data: {
+          ...report,
+          reporterSuspectedCondition: "RSSI",
+          reporterObservationText: "A field concern consistent with RSSI was observed.",
+        },
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByRole("heading", { name: "AI Possible Condition" })).toBeInTheDocument();
+    expect(screen.getByText("RSSI reported as a field concern")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Reporter-observed evidence only\. The current Model V1 does not detect RSSI/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Reporter observation: RSSI field concern reported (not AI-detected)"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("A field concern consistent with RSSI was observed.")).toBeInTheDocument();
+  });
+
   it("renders completed field validation evidence in the case review", () => {
     const completedReport = mapReportDetail(
       reportDetailResponseSchema.parse({

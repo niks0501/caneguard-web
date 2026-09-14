@@ -2,6 +2,9 @@ import type { OperationalQueue } from "./operationalQueue";
 
 export type DiseaseKey = "healthy" | "mosaic" | "rust" | "smut";
 
+/** Stable reporter-observation value sent by Mobile for the RSSI quick choice. */
+export const REPORTER_OBSERVED_CONCERN_RSSI = "RSSI" as const;
+
 export type ActiveAuthorityClassifiedCondition =
   | "healthy"
   | "smut"

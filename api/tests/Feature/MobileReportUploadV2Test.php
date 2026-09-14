@@ -62,6 +62,57 @@ class MobileReportUploadV2Test extends TestCase
         Storage::disk('local')->assertExists($report->image_path);
     }
 
+    public function test_v2_preserves_rssi_reporter_observation_without_changing_model_v1_evidence(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-rssi-upload-test', ['report:submit'])->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, [
+                'predicted_label' => Report::LABEL_RUST,
+                'confidence' => 0.82,
+                'class_scores' => [
+                    'healthy' => 0.05,
+                    'mosaic' => 0.13,
+                    'rust' => 0.82,
+                    'smut' => 0,
+                ],
+                'symptom_keys' => [Report::LABEL_RUST],
+                'mismatch_reported' => '1',
+                'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+                'reporter_observation_text' => 'RSSI concern observed in the field.',
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('data.reporter_observation.mismatch_reported', true)
+            ->assertJsonPath(
+                'data.reporter_observation.reporter_suspected_condition',
+                Report::REPORTER_CONCERN_RSSI,
+            )
+            ->assertJsonPath(
+                'data.reporter_observation.reporter_observation_text',
+                'RSSI concern observed in the field.',
+            )
+            ->assertJsonPath('data.model.predicted_label', Report::LABEL_RUST)
+            ->assertJsonPath('data.model.model_version', 'v1.0-mobilenetv2')
+            ->assertJsonCount(4, 'data.model.class_scores');
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertSame(Report::REPORTER_CONCERN_RSSI, $report->reporter_suspected_condition);
+        $this->assertSame('RSSI concern observed in the field.', $report->reporter_observation_text);
+        $this->assertSame(Report::LABEL_RUST, $report->predicted_label);
+        $this->assertSame(0.82, (float) $report->confidence);
+        $this->assertSame(
+            ['healthy' => 0.05, 'mosaic' => 0.13, 'rust' => 0.82, 'smut' => 0.0],
+            $report->classScores()
+                ->pluck('score', 'label')
+                ->map(fn (string $score): float => (float) $score)
+                ->all(),
+        );
+    }
+
     public function test_v2_retry_omits_reviewer_and_audit_identity(): void
     {
         Storage::fake('local');

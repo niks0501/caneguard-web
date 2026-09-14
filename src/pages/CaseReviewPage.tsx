@@ -34,13 +34,14 @@ import {
   isLegacyAuthorityClassifiedCondition,
   submitterRoleLabels,
 } from "../domain/report.metadata";
-import type {
-  ActionTaken,
-  AuthorityClassifiedCondition,
-  CaseState,
-  DiseaseReport,
-  FieldValidationState,
-  VerificationOutcome,
+import {
+  REPORTER_OBSERVED_CONCERN_RSSI,
+  type ActionTaken,
+  type AuthorityClassifiedCondition,
+  type CaseState,
+  type DiseaseReport,
+  type FieldValidationState,
+  type VerificationOutcome,
 } from "../domain/report.types";
 import type {
   OperationalMetadataCorrections,
@@ -145,7 +146,14 @@ function symptomAgreementFor(report: DiseaseReport) {
     : "Not provided";
 }
 
+function isRssiReporterConcern(report: DiseaseReport): boolean {
+  return report.reporterSuspectedCondition?.trim().toUpperCase() === REPORTER_OBSERVED_CONCERN_RSSI;
+}
+
 function reporterComparisonFor(report: DiseaseReport) {
+  if (isRssiReporterConcern(report)) {
+    return "RSSI field concern reported (not AI-detected)";
+  }
   if (report.mismatchReported === true) {
     return "Disagrees with the possible AI result";
   }
@@ -555,6 +563,12 @@ export function CaseReviewPage() {
             ) : (
               <p className="observation-empty">Mismatch status was not collected for this report.</p>
             )}
+            {isRssiReporterConcern(report) ? (
+              <div className="rssi-observation-callout" role="status">
+                <strong>RSSI reported as a field concern</strong>
+                <span>Reporter-observed evidence only. The current Model V1 does not detect RSSI, and this does not change the Possible Condition.</span>
+              </div>
+            ) : null}
             <dl className="detail-list reporter-observation-details">
               <DetailField label="Suspected condition">{report.reporterSuspectedCondition ?? "Not provided"}</DetailField>
               <DetailField label="Observation text">{report.reporterObservationText ?? "Not provided"}</DetailField>

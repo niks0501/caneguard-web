@@ -82,6 +82,9 @@ class Report extends Model
 
     public const LABEL_SMUT = 'smut';
 
+    /** Stable free-text value used when Mobile reports RSSI as field evidence. */
+    public const REPORTER_CONCERN_RSSI = 'RSSI';
+
     public const AUTHORITY_CONDITION_HEALTHY = 'healthy';
 
     public const AUTHORITY_CONDITION_SMUT = 'smut';
