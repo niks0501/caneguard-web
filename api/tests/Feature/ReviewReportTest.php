@@ -85,12 +85,13 @@ class ReviewReportTest extends TestCase
         );
     }
 
-    public function test_reviewer_can_classify_non_smut_ai_evidence_as_downy_mildew(): void
+    public function test_reviewer_can_preserve_a_historical_downy_mildew_classification(): void
     {
         $reviewer = User::factory()->reviewer()->create();
         $report = Report::factory()->mobileModelV1()->create([
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.74,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
         ]);
         $modelLabel = $report->predicted_label;
         $modelConfidence = $report->confidence;
@@ -100,7 +101,7 @@ class ReviewReportTest extends TestCase
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_VERIFIED_BY_STAFF,
-            'notes' => 'Historical Downy mildew finding remains readable independently of the model result.',
+            'notes' => 'Preserve the historical Downy mildew finding independently of the model result.',
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
             'expected_version' => 0,
         ])
@@ -118,6 +119,30 @@ class ReviewReportTest extends TestCase
         $this->assertSame($modelLabel, $updated->predicted_label);
         $this->assertSame($modelConfidence, $updated->confidence);
         $this->assertSame($modelScores, $updated->classScores()->pluck('score', 'label')->all());
+    }
+
+    public function test_new_review_cannot_select_legacy_downy_mildew(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->mobileModelV1()->create([
+            'predicted_label' => Report::LABEL_RUST,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'notes' => 'Downy mildew must not be offered for a new review.',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+            'expected_version' => 0,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('authority_classified_condition');
+
+        $updated = $report->fresh();
+        $this->assertNull($updated->authority_classified_condition);
+        $this->assertSame(Report::STATUS_SUBMITTED_UNVERIFIED, $updated->review_status);
+        $this->assertSame(Report::LABEL_RUST, $updated->predicted_label);
     }
 
     public function test_active_staff_classified_conditions_are_additive_and_preserve_submitted_evidence(): void
@@ -151,8 +176,40 @@ class ReviewReportTest extends TestCase
             $report = Report::factory()->mobileModelV1()->create([
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.74,
+                'farmer_or_farm_owner_name' => 'Juan Dela Cruz',
+                'province' => 'Negros Occidental',
+                'municipality' => 'Bago',
+                'sugarcane_variety' => 'PSR 86',
+                'crop_age' => '6 months',
+                'cane_class' => 'Class A',
+                'field_notes' => 'Observed at the eastern edge.',
+                'reporter_suspected_condition' => 'rssi',
+                'reporter_observation_text' => 'Rust-like symptoms were observed in the field.',
+                'final_latitude' => 10.1234567,
+                'final_longitude' => 122.9876543,
+                'location_source' => 'gps',
+                'gps_accuracy' => 4.25,
             ]);
             $modelEvidence = collect(Report::immutableEvidenceAttributes())
+                ->mapWithKeys(fn (string $attribute) => [
+                    $attribute => $report->getRawOriginal($attribute),
+                ])
+                ->all();
+            $submittedObservationFields = [
+                'farmer_or_farm_owner_name',
+                'province',
+                'municipality',
+                'sugarcane_variety',
+                'crop_age',
+                'cane_class',
+                'affected_area_hectares',
+                'affected_portion_percent',
+                'final_latitude',
+                'final_longitude',
+                'location_source',
+                'gps_accuracy',
+            ];
+            $submittedObservations = collect($submittedObservationFields)
                 ->mapWithKeys(fn (string $attribute) => [
                     $attribute => $report->getRawOriginal($attribute),
                 ])
@@ -176,6 +233,11 @@ class ReviewReportTest extends TestCase
             $this->assertSame(Report::LABEL_RUST, $updated->predicted_label);
             $this->assertSame('0.7400000', $updated->confidence);
             $this->assertSame($modelEvidence, collect(Report::immutableEvidenceAttributes())
+                ->mapWithKeys(fn (string $attribute) => [
+                    $attribute => $updated->getRawOriginal($attribute),
+                ])
+                ->all());
+            $this->assertSame($submittedObservations, collect($submittedObservationFields)
                 ->mapWithKeys(fn (string $attribute) => [
                     $attribute => $updated->getRawOriginal($attribute),
                 ])

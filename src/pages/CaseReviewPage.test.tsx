@@ -166,6 +166,10 @@ describe("CaseReviewPage", () => {
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();
     expect(screen.getByText("Decision-support only.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "AI Possible Condition" })).toHaveTextContent(
+      "AI Possible Condition",
+    );
+    expect(screen.getByText(/Staff-Classified Condition is a separate human finding/)).toBeInTheDocument();
     expect(screen.getByText("Symptom agreement")).toBeInTheDocument();
     expect(screen.getByText("Checklist responses: Consistent with the possible AI result")).toBeInTheDocument();
     expect(screen.getByText("Reporter observation: Disagrees with the possible AI result")).toBeInTheDocument();
@@ -176,7 +180,7 @@ describe("CaseReviewPage", () => {
     expect(reviewSummary.querySelector(".status-badge")).not.toHaveClass("review-summary__label");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Authority classification")).toHaveValue("");
+    expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("");
     expect(screen.getByText("Observed at")).toBeInTheDocument();
     expect(screen.getByText("Submitted at")).toBeInTheDocument();
     expect(
@@ -298,7 +302,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     expect(screen.getByText("Possible smut")).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Authority classification"), "smut");
+    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "smut");
     await user.type(screen.getByLabelText(/^Review notes/), "Authority confirmed Smut.");
     await user.click(screen.getByRole("radio", { name: /Advisory provided/ }));
     await user.click(screen.getByRole("button", { name: "Save explicit review" }));
@@ -309,10 +313,10 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("offers every active authority classification but not legacy Downy mildew", () => {
+  it("offers every active Staff-Classified Condition but not legacy Downy mildew", () => {
     renderPage();
 
-    const select = screen.getByLabelText("Authority classification");
+    const select = screen.getByLabelText("Staff-Classified Condition");
     expect(within(select).getAllByRole("option").map((option) => option.getAttribute("value"))).toEqual([
       "",
       "healthy",
@@ -322,6 +326,16 @@ describe("CaseReviewPage", () => {
       "rssi",
       "mixed_or_multiple",
       "unable_to_classify",
+    ]);
+    expect(within(select).getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Not classified",
+      "Healthy / No Selected Concern",
+      "Sugarcane Smut",
+      "Sugarcane Mosaic Disease",
+      "Sugarcane Rust",
+      "RSSI",
+      "Mixed or Multiple Visible Concerns",
+      "Unable to Classify",
     ]);
     expect(within(select).queryByRole("option", { name: "Downy mildew" })).not.toBeInTheDocument();
   });
@@ -337,7 +351,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    const select = screen.getByLabelText("Authority classification");
+    const select = screen.getByLabelText("Staff-Classified Condition");
     expect(select).toHaveValue("downy_mildew");
     expect(
       within(select).getByRole("option", {
@@ -521,7 +535,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.selectOptions(
-      screen.getByLabelText("Authority classification"),
+      screen.getByLabelText("Staff-Classified Condition"),
       "smut",
     );
     await user.type(
@@ -696,7 +710,7 @@ describe("CaseReviewPage", () => {
     await user.type(screen.getByLabelText("Expert response date"), "2026-09-08");
     await user.type(screen.getByLabelText("Expert response note"), " Response received. ");
     await user.type(screen.getByLabelText("Expert finding (optional)"), " Finding recorded. ");
-    await user.selectOptions(screen.getByLabelText("Authority finding after response"), "smut");
+    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition after response"), "smut");
     await user.selectOptions(screen.getByLabelText("Verification outcome after response"), "verified");
     await user.click(screen.getByRole("button", { name: "Record expert response" }));
 

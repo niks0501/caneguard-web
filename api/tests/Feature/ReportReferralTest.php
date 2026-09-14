@@ -138,6 +138,42 @@ class ReportReferralTest extends TestCase
         $this->assertDatabaseCount('report_referrals', 0);
     }
 
+    public function test_new_referral_and_expert_response_cannot_introduce_legacy_downy_mildew(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Specialist office',
+            'reference' => 'REF-DOWNY',
+            'referral_date' => '2026-09-04',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+            'expected_version' => 0,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('authority_classified_condition');
+
+        $this->assertDatabaseCount('report_referrals', 0);
+
+        $this->recordReferral($report);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-08',
+            'response_note' => 'The expert response is recorded separately.',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+            'expected_version' => 1,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('authority_classified_condition');
+
+        $this->assertNull($report->fresh()->authority_classified_condition);
+        $this->assertSame(
+            Report::REFERRAL_STATE_REFERRED,
+            $report->fresh()->referral_state,
+        );
+    }
+
     public function test_expert_response_updates_authority_finding_and_verification_before_closure(): void
     {
         $reviewer = User::factory()->reviewer()->create();

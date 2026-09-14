@@ -69,6 +69,20 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $report = $this->route('report');
+            if (
+                $report instanceof Report
+                && array_key_exists('authority_classified_condition', $this->all())
+                && ! $report->canUpdateAuthorityClassifiedCondition(
+                    $this->input('authority_classified_condition'),
+                )
+            ) {
+                $validator->errors()->add(
+                    'authority_classified_condition',
+                    'Legacy Downy mildew can only be preserved on an existing historical classification.',
+                );
+            }
+
             $hasNote = filled($this->input('response_note'));
             $hasFinding = filled($this->input('response_finding'));
 
