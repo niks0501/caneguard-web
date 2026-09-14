@@ -6306,9 +6306,9 @@
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V2/MobileReportController.php": {
-    "mtime": 1789365080.2545638,
-    "seen": 1789366027.2817757,
-    "ast_hash": "7a164f9162b6311773cf90e4289bba89",
+    "mtime": 1789367947.3108072,
+    "seen": 1789368002.2892978,
+    "ast_hash": "c003c43d33ee476802b95501a7395cf5",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/StoreMobileReportV2Request.php": {
@@ -6324,9 +6324,9 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/MobileReportUploadV2Test.php": {
-    "mtime": 1789365080.2659788,
-    "seen": 1789366027.2819238,
-    "ast_hash": "c14eb8153a1db557470d863382265221",
+    "mtime": 1789367937.8908103,
+    "seen": 1789368002.2894375,
+    "ast_hash": "15078f94eb4be868083f31abe29a6a55",
     "semantic_hash": ""
   },
   "docs/contracts/examples/mobile-report-status-v2.json": {
@@ -6357,6 +6357,12 @@
     "mtime": 1789365080.2704356,
     "seen": 1789366027.2822738,
     "ast_hash": "fcae7199a39bdc0d9fc91c68998ed6bc",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/MobileReportUploadResource.php": {
+    "mtime": 1789367921.3508391,
+    "seen": 1789368002.2893515,
+    "ast_hash": "c637a82f6d1568de4e8f928d9891f816",
     "semantic_hash": ""
   }
 }

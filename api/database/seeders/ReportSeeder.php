@@ -73,14 +73,10 @@ class ReportSeeder extends Seeder
                 'UTC',
             );
             $path = sprintf('seeded/report-%02d.png', $number);
-
-            if (! Storage::disk('local')->put($path, $image)) {
-                throw new RuntimeException("Unable to seed report image [{$path}].");
-            }
-
+            $referenceCode = sprintf('CG-2026-%04d', $number);
             $confidence = round(0.62 + ($number * 0.025), 7);
-            $report = Report::query()->updateOrCreate(
-                ['reference_code' => sprintf('CG-2026-%04d', $number)],
+            $report = Report::query()->firstOrCreate(
+                ['reference_code' => $referenceCode],
                 [
                     'uuid' => sprintf(
                         '20000000-0000-4000-8000-%012d',
@@ -127,6 +123,14 @@ class ReportSeeder extends Seeder
                         : $submittedAt->addDay(),
                 ],
             );
+
+            if (! $report->wasRecentlyCreated) {
+                continue;
+            }
+
+            if (! Storage::disk('local')->put($path, $image)) {
+                throw new RuntimeException("Unable to seed report image [{$path}].");
+            }
 
             foreach ($labels as $scoreLabel) {
                 $score = $scoreLabel === $label
