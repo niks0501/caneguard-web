@@ -29,7 +29,7 @@ export function AuthPageFrame({
           </span>
           <div>
             <strong>CaneGuard</strong>
-            <span>Municipal agriculture workspace</span>
+            <span>SRA Don Pedro Mill District Office</span>
           </div>
         </div>
 
@@ -49,7 +49,7 @@ export function AuthPageFrame({
       <aside className="login-visual" aria-label="CaneGuard decision support">
         <div>
           <p className="eyebrow">Decision support for local teams</p>
-          <h2>Turn field observations into timely municipal follow-up.</h2>
+          <h2>Turn field observations into timely SRA Don Pedro follow-up.</h2>
           <p>
             Securely review submitted evidence, coordinate validation, and keep
             sugarcane monitoring work visible.

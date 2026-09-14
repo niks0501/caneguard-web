@@ -28,7 +28,7 @@ const summary = {
 };
 
 describe("MonthlyCaseSummary", () => {
-  it("uses case-based wording and keeps possible AI results descriptive", () => {
+  it("uses submitted-report wording and keeps Possible Conditions descriptive", () => {
     render(
       <MonthlyCaseSummary
         summary={summary}
@@ -37,12 +37,12 @@ describe("MonthlyCaseSummary", () => {
       />,
     );
 
-    expect(screen.getByRole("region", { name: "Monthly case summary" })).toHaveTextContent(
-      "These are operational case counts, not population-level disease statistics.",
+    expect(screen.getByRole("region", { name: "Monthly submitted report summary" })).toHaveTextContent(
+      "These are operational report counts, not population-level disease statistics.",
     );
-    expect(screen.getByText("3 reported cases")).toBeInTheDocument();
-    expect(screen.getByText("Possible rust")).toBeInTheDocument();
-    expect(screen.getByText("AI result, decision support only")).toBeInTheDocument();
+    expect(screen.getByText("3 submitted reports")).toBeInTheDocument();
+    expect(screen.getByText("Possible Condition: rust")).toBeInTheDocument();
+    expect(screen.getByText("Possible Condition, decision support only")).toBeInTheDocument();
     expect(screen.queryByText(/prevalence|infection rate|outbreak probability|disease risk score/i)).not.toBeInTheDocument();
   });
 });

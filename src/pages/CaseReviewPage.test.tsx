@@ -166,13 +166,13 @@ describe("CaseReviewPage", () => {
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();
     expect(screen.getByText("Decision-support only.")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "AI Possible Condition" })).toHaveTextContent(
-      "AI Possible Condition",
+    expect(screen.getByRole("region", { name: "Possible Condition" })).toHaveTextContent(
+      "Possible Condition",
     );
     expect(screen.getByText(/Staff-Classified Condition is a separate human finding/)).toBeInTheDocument();
     expect(screen.getByText("Symptom agreement")).toBeInTheDocument();
-    expect(screen.getByText("Checklist responses: Consistent with the possible AI result")).toBeInTheDocument();
-    expect(screen.getByText("Reporter observation: Disagrees with the possible AI result")).toBeInTheDocument();
+    expect(screen.getByText("Checklist responses: Consistent with the Possible Condition")).toBeInTheDocument();
+    expect(screen.getByText("Reporter observation: Disagrees with the Possible Condition")).toBeInTheDocument();
     expect(screen.getByText("Reporter flagged AI mismatch")).toBeInTheDocument();
     const reviewSummary = screen.getByRole("region", { name: "Choose the next safe action" });
     expect(reviewSummary).toHaveTextContent("Selected response");
@@ -220,7 +220,7 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "AI Possible Condition" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Possible Condition" })).toBeInTheDocument();
     expect(screen.getByText("RSSI reported as a field concern")).toBeInTheDocument();
     expect(
       screen.getByText(/Reporter-observed evidence only\. The current Model V1 does not detect RSSI/),
@@ -325,7 +325,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    expect(screen.getByText("Possible smut")).toBeInTheDocument();
+    expect(screen.getByText("Possible Condition: Smut")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "smut");
     await user.type(screen.getByLabelText(/^Review notes/), "Authority confirmed Smut.");
     await user.click(screen.getByRole("radio", { name: /Advisory provided/ }));
@@ -512,7 +512,7 @@ describe("CaseReviewPage", () => {
     await user.selectOptions(screen.getByLabelText("Field validation"), "assigned");
     await user.click(screen.getByRole("button", { name: "Save explicit review" }));
 
-    expect(screen.getByText(/Select a field reporter before saving/i)).toBeInTheDocument();
+    expect(screen.getByText(/Select a Field Inspector before saving/i)).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
@@ -528,7 +528,7 @@ describe("CaseReviewPage", () => {
 
     await user.selectOptions(screen.getByLabelText("Field validation"), "assigned");
     await user.selectOptions(
-      screen.getByLabelText("Field reporter assignee"),
+      screen.getByLabelText("Field Inspector assignee"),
       report.submitterUuid!,
     );
     expect(screen.getByText(/original submitter is also the field validator/i)).toBeInTheDocument();
@@ -759,7 +759,7 @@ describe("CaseReviewPage", () => {
       verificationOutcome: "verified",
       expectedVersion: referredReport.reviewVersion,
     });
-    expect(screen.getByText(/Review the updated authority finding/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review the updated Staff-Classified Condition/i)).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /Print \/ download referral summary/i }),
     ).toHaveAttribute(

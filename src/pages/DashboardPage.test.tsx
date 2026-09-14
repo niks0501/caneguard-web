@@ -144,15 +144,15 @@ describe("DashboardPage", () => {
     );
     renderDashboard();
 
-    expect(screen.getByRole("region", { name: "Monthly case summary" })).toHaveTextContent(
-      "operational case counts, not population-level disease statistics",
+    expect(screen.getByRole("region", { name: "Monthly submitted report summary" })).toHaveTextContent(
+      "operational report counts, not population-level disease statistics",
     );
     const monthly = within(
-      screen.getByRole("region", { name: "Monthly case summary" }),
+      screen.getByRole("region", { name: "Monthly submitted report summary" }),
     );
-    expect(monthly.getByText("3 reported cases")).toBeInTheDocument();
-    expect(monthly.getByText("Possible rust")).toBeInTheDocument();
-    expect(monthly.getByText("Possible smut")).toBeInTheDocument();
+    expect(monthly.getByText("3 submitted reports")).toBeInTheDocument();
+    expect(monthly.getByText("Possible Condition: rust")).toBeInTheDocument();
+    expect(monthly.getByText("Possible Condition: smut")).toBeInTheDocument();
   });
 
   it("refreshes on demand and links to the full queue", async () => {
@@ -192,7 +192,7 @@ describe("DashboardPage", () => {
     );
     const { rerender } = renderDashboard();
     expect(
-      screen.getByText("Loading the municipal report overview..."),
+      screen.getByText("Loading the SRA Don Pedro report overview..."),
     ).toBeInTheDocument();
 
     vi.mocked(useDashboard).mockReturnValue(
@@ -219,7 +219,7 @@ describe("DashboardPage", () => {
     const { rerender } = renderDashboard();
     expect(
       screen.getByText(
-        "Your account does not have access to the municipal dashboard.",
+        "Your account does not have access to the SRA Don Pedro dashboard.",
       ),
     ).toBeInTheDocument();
     expect(

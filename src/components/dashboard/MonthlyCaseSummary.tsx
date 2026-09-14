@@ -5,7 +5,7 @@ function countLabel(count: number, singular: string, plural = `${singular}s`) {
 }
 
 function possibleConditionLabel(condition: string) {
-  return `Possible ${condition.replaceAll("_", " ")}`;
+  return `Possible Condition: ${condition.replaceAll("_", " ")}`;
 }
 
 function metricValue(value: number | null, suffix = "") {
@@ -29,7 +29,7 @@ export function MonthlyCaseSummary({
       <div className="dashboard-section-heading dashboard-monthly-summary__heading">
         <div>
           <p className="eyebrow">Descriptive analytics</p>
-          <h2 id="monthly-case-summary-heading">Monthly case summary</h2>
+          <h2 id="monthly-case-summary-heading">Monthly submitted report summary</h2>
         </div>
         <label className="select-filter dashboard-month-selector">
           <span>Summary month</span>
@@ -45,13 +45,13 @@ export function MonthlyCaseSummary({
       </div>
 
       <p className="dashboard-monthly-summary__notice">
-        Reported cases and estimated affected area from submitted cases for {summary.month}.
-        These are operational case counts, not population-level disease statistics.
+        Submitted reports and estimated affected area from submitted reports for {summary.month}.
+        These are operational report counts, not population-level disease statistics.
       </p>
 
       <div className="dashboard-monthly-summary__metrics">
         <div>
-          <span>Reported cases</span>
+          <span>Submitted Reports</span>
           <strong>{summary.reportedCases}</strong>
         </div>
         <div>
@@ -63,7 +63,7 @@ export function MonthlyCaseSummary({
           <strong>{summary.fieldValidationCounts.requiringValidation}</strong>
         </div>
         <div>
-          <span>Closed cases</span>
+          <span>Closed submitted reports</span>
           <strong>{summary.closedCases}</strong>
         </div>
       </div>
@@ -71,17 +71,17 @@ export function MonthlyCaseSummary({
       <div className="dashboard-monthly-summary__grid">
         <section aria-labelledby="monthly-barangay-heading">
           <div className="monthly-summary-subheading">
-            <h3 id="monthly-barangay-heading">Cases by barangay</h3>
-            <span>Reported cases</span>
+            <h3 id="monthly-barangay-heading">Submitted Reports by barangay</h3>
+            <span>Submitted Reports</span>
           </div>
           {summary.casesByBarangay.length === 0 ? (
-            <p className="monthly-summary-empty">No reported cases in this month.</p>
+            <p className="monthly-summary-empty">No submitted reports in this month.</p>
           ) : (
             <ul className="monthly-summary-list">
               {summary.casesByBarangay.map((item) => (
                 <li key={item.barangay}>
                   <span>{item.barangay}</span>
-                  <strong>{countLabel(item.reportedCases, "reported case")}</strong>
+                  <strong>{countLabel(item.reportedCases, "submitted report")}</strong>
                 </li>
               ))}
             </ul>
@@ -90,17 +90,17 @@ export function MonthlyCaseSummary({
 
         <section aria-labelledby="monthly-condition-heading">
           <div className="monthly-summary-subheading">
-            <h3 id="monthly-condition-heading">Cases by possible condition</h3>
-            <span>AI result, decision support only</span>
+            <h3 id="monthly-condition-heading">Submitted Reports by Possible Condition</h3>
+            <span>Possible Condition, decision support only</span>
           </div>
           {summary.casesByPossibleCondition.length === 0 ? (
-            <p className="monthly-summary-empty">No reported cases in this month.</p>
+            <p className="monthly-summary-empty">No submitted reports in this month.</p>
           ) : (
             <ul className="monthly-summary-list">
               {summary.casesByPossibleCondition.map((item) => (
                 <li key={item.possibleCondition}>
                   <span>{possibleConditionLabel(item.possibleCondition)}</span>
-                  <strong>{countLabel(item.reportedCases, "reported case")}</strong>
+                  <strong>{countLabel(item.reportedCases, "submitted report")}</strong>
                 </li>
               ))}
             </ul>
@@ -127,7 +127,7 @@ export function MonthlyCaseSummary({
           </div>
           <dl className="monthly-summary-definition-list">
             <div>
-              <dt>Cases with supported timing</dt>
+              <dt>Submitted Reports with supported timing</dt>
               <dd>{summary.reviewTime.reviewedCases}</dd>
             </div>
             <div>

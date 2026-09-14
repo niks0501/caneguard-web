@@ -92,7 +92,7 @@ export function LoginPage() {
     routeState.reason === "session_expired"
       ? "Your session expired. Sign in again to continue where you left off."
       : routeState.reason === "access_denied"
-        ? "This account is not authorized for the municipal web workspace."
+        ? "This account is not authorized for the SRA Don Pedro Web workspace."
         : null;
 
   return (
@@ -104,7 +104,7 @@ export function LoginPage() {
           </span>
           <div>
             <strong>CaneGuard</strong>
-            <span>Municipal agriculture workspace</span>
+            <span>SRA Don Pedro Mill District Office</span>
           </div>
         </div>
 
@@ -112,7 +112,7 @@ export function LoginPage() {
           <span className="login-icon"><ShieldCheck aria-hidden="true" /></span>
           <p className="eyebrow">Staff sign in</p>
           <h1 id="login-heading">Sign in to review field reports</h1>
-          <p>Use your municipal reviewer or administrator account.</p>
+          <p>Use your SRA Don Pedro reviewer or administrator account.</p>
         </div>
 
         <div className="login-notice-slot" aria-live="polite">
@@ -180,14 +180,14 @@ export function LoginPage() {
         </form>
 
         <p className="login-support">
-          Field reporters can <Link to={routes.register}>create an account</Link>.
+          Field Inspectors can <Link to={routes.register}>create an account</Link>.
           Staff workspace access remains limited to reviewer and administrator accounts.
         </p>
       </section>
       <aside className="login-visual" aria-label="CaneGuard decision support">
         <div>
           <p className="eyebrow">Decision support for local teams</p>
-          <h2>Turn field observations into timely municipal follow-up.</h2>
+          <h2>Turn field observations into timely SRA Don Pedro follow-up.</h2>
           <p>
             Securely review submitted evidence, coordinate validation, and keep
             sugarcane monitoring work visible.

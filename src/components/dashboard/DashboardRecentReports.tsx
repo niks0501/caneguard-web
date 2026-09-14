@@ -17,7 +17,7 @@ export function DashboardRecentReports({
         <thead>
           <tr>
             <th scope="col">Report</th>
-            <th scope="col">Possible result</th>
+            <th scope="col">Possible Condition</th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
             <th scope="col">Review status</th>
@@ -40,7 +40,7 @@ export function DashboardRecentReports({
                   />
                   <div>
                     <strong>{report.referenceCode}</strong>
-                    <span>Field report</span>
+                    <span>Submitted report</span>
                   </div>
                 </div>
               </td>

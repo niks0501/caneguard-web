@@ -171,8 +171,8 @@ export function FieldValidationMapPage() {
         eyebrow="Field operations"
         title={isFollowUpDue ? "Follow-up due workspace" : "Field-validation map"}
         description={isFollowUpDue
-          ? "Review open cases whose target visit date has passed while field validation remains incomplete. Possible AI results are decision support, not staff confirmation."
-          : "Locate submitted observations and prioritize the oldest reports awaiting an on-site validation. Possible AI results are decision support, not staff confirmation."}
+          ? "Review open submitted reports whose target visit date has passed while field validation remains incomplete. Possible Conditions are decision support, not Staff-Classified Conditions."
+          : "Locate submitted observations and prioritize the oldest submitted reports awaiting an on-site validation. Possible Conditions are decision support, not Staff-Classified Conditions."}
         actions={(
           <Button
             variant="secondary"
