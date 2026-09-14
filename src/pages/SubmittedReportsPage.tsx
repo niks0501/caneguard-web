@@ -179,9 +179,9 @@ export function SubmittedReportsPage() {
   return (
     <PageContent>
       <PageHeader
-        eyebrow="Case monitoring"
+        eyebrow="Submitted Reports"
         title="Submitted reports"
-        description="Review field observations and decide the appropriate municipal follow-up."
+        description="Review field observations and decide the appropriate SRA Don Pedro follow-up."
         actions={(
           <>
           <Button
@@ -270,13 +270,13 @@ export function SubmittedReportsPage() {
             ))}
           </SelectFilter>
           <SelectFilter
-            label="Possible result"
+            label="Possible Condition"
             value={urlState.filters.disease ?? ""}
             onChange={(event) =>
               updateFilter("predicted_label", event.target.value)
             }
           >
-            <option value="">All results</option>
+            <option value="">All Possible Conditions</option>
             {Object.entries(diseaseLabels).map(([value, label]) => (
               <option value={value} key={value}>{label}</option>
             ))}

@@ -26,7 +26,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand">
         <span className="brand__mark"><Sprout aria-hidden="true" /></span>
-        <span><strong>CaneGuard</strong><small>Municipal workspace</small></span>
+        <span><strong>CaneGuard</strong><small>SRA Don Pedro Mill District Office</small></span>
       </div>
 
       <nav className="sidebar__nav">

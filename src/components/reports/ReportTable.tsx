@@ -15,7 +15,7 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
         <thead>
           <tr>
             <th scope="col">Report</th>
-            <th scope="col">Possible result</th>
+            <th scope="col">Possible Condition</th>
             <th scope="col">Reporter</th>
             <th scope="col">Barangay</th>
             <th scope="col">Observed</th>

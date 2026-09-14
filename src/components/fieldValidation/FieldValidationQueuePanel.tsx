@@ -34,7 +34,7 @@ function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem;
       <p className="validation-queue-item__place">{item.barangay}</p>
       <dl>
         <div><dt>Observed</dt><dd>{formatValidationDate(item.observedAt)}</dd></div>
-        <div><dt>Possible result</dt><dd>{diseaseLabels[item.predictedDisease]}</dd></div>
+        <div><dt>Possible Condition</dt><dd>{diseaseLabels[item.predictedDisease]}</dd></div>
         <div><dt>Visit details</dt><dd>{queueItemMeta(item)}</dd></div>
       </dl>
       {item.finalLatitude === null || item.finalLongitude === null ? (

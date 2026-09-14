@@ -44,13 +44,13 @@ const queueCopy: Record<OperationalQueue, {
 }> = {
   needs_review: {
     label: "Needs Review",
-    description: "Open cases waiting for an office review decision.",
+    description: "Open submitted reports waiting for an office review decision.",
     icon: <ShieldCheck aria-hidden="true" />,
     href: routes.reportQueue("needs_review"),
   },
   needs_visit: {
     label: "Needs Visit",
-    description: "Open cases with field validation still incomplete.",
+    description: "Open submitted reports with field validation still incomplete.",
     icon: <ClipboardCheck aria-hidden="true" />,
     href: routes.fieldValidationQueue("needs_visit"),
   },
@@ -83,7 +83,7 @@ export function DashboardPage() {
     dashboard.error instanceof ApiError && dashboard.error.status === 429;
   const isMalformed = dashboard.error instanceof ZodError;
   const initialErrorMessage = isForbidden
-    ? "Your account does not have access to the municipal dashboard."
+    ? "Your account does not have access to the SRA Don Pedro dashboard."
     : isRateLimited
       ? "The dashboard is receiving too many requests. Wait a moment, then try again."
       : isMalformed
@@ -98,7 +98,7 @@ export function DashboardPage() {
   if (dashboard.isPending) {
     return (
       <PageContent>
-        <LoadingState message="Loading the municipal report overview..." />
+        <LoadingState message="Loading the SRA Don Pedro report overview..." />
       </PageContent>
     );
   }
@@ -119,7 +119,7 @@ export function DashboardPage() {
   return (
     <PageContent>
       <PageHeader
-        eyebrow="Municipal overview"
+        eyebrow="SRA Don Pedro overview"
         title="CaneGuard dashboard"
         description="Track incoming field observations and the staff review queue at a glance."
         actions={

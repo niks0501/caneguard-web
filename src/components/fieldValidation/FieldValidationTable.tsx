@@ -28,7 +28,7 @@ export function FieldValidationTable({
                 <th scope="col">Reference</th>
                 <th scope="col">Observed</th>
                 <th scope="col">Barangay</th>
-                <th scope="col">Possible result</th>
+                <th scope="col">Possible Condition</th>
                 <th scope="col">Review state</th>
                 <th scope="col">Coordinates</th>
                 <th scope="col"><span className="sr-only">Actions</span></th>

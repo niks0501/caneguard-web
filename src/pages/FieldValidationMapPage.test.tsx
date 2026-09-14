@@ -267,7 +267,7 @@ describe("FieldValidationMapPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText("Possible AI result"), "rust");
+    await user.selectOptions(screen.getByLabelText("Possible Condition"), "rust");
     await user.type(screen.getByLabelText("Barangay"), "Mabini");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
 

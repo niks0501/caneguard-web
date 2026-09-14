@@ -53,7 +53,7 @@ export function RegisterPage() {
   return (
     <AuthPageFrame
       headingId="register-heading"
-      eyebrow="Field reporter registration"
+      eyebrow="Field Inspector registration"
       title="Create your field account"
       description="Register with an email address so field reports can be securely connected to you."
       icon={<UserPlus aria-hidden="true" />}

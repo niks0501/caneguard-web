@@ -129,9 +129,9 @@ function metadataCorrectionsFor(
 }
 
 const checklistConsistencyLabels: Record<string, string> = {
-  consistent: "Consistent with the possible AI result",
-  inconsistent: "Differs from the possible AI result",
-  inconclusive: "Inconclusive against the possible AI result",
+  consistent: "Consistent with the Possible Condition",
+  inconsistent: "Differs from the Possible Condition",
+  inconclusive: "Inconclusive against the Possible Condition",
 };
 
 function checklistConsistencyLabel(value?: string) {
@@ -155,10 +155,10 @@ function reporterComparisonFor(report: DiseaseReport) {
     return "RSSI field concern reported (not AI-detected)";
   }
   if (report.mismatchReported === true) {
-    return "Disagrees with the possible AI result";
+    return "Disagrees with the Possible Condition";
   }
   if (report.mismatchReported === false) {
-    return "Agrees with the possible AI result";
+    return "Agrees with the Possible Condition";
   }
   return "Not collected";
 }
@@ -250,7 +250,7 @@ export function CaseReviewPage() {
       : report?.fieldValidationAssignment?.targetVisitDate ?? "";
   const fieldValidationError =
     selectedFieldValidationState === "assigned" && !selectedFieldValidationAssignee
-      ? "Select a field reporter before saving field validation."
+      ? "Select a Field Inspector before saving field validation."
       : null;
   const metadataDraft = report
     ? metadataDraftOverride ?? metadataDraftFor(report)
@@ -485,16 +485,16 @@ export function CaseReviewPage() {
               <span>Captured {formatDateTime(report.capturedAt)}</span>
               <span>Submitted {formatDateTime(report.submittedAt)}</span>
             </div>
-            <div className="review-essential-result" role="region" aria-label="AI Possible Condition">
+            <div className="review-essential-result" role="region" aria-label="Possible Condition">
               <div className="review-essential-result__heading">
                 <div>
                   <p className="eyebrow">Possible Condition</p>
-                  <h3>AI Possible Condition</h3>
+                  <h3>Possible Condition</h3>
                 </div>
                 <DiseaseBadge disease={report.predictedDisease} />
               </div>
               <ConfidenceDisplay confidence={report.confidence} />
-              <p><strong>Decision-support only.</strong> Compare this AI Possible Condition with the symptom responses, reporter observation, and field context. It is not a diagnosis.</p>
+              <p><strong>Decision-support only.</strong> Compare this Possible Condition with the symptom responses, reporter observation, and field context. It is not a diagnosis.</p>
             </div>
             <dl className="review-essential-context">
               <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
@@ -784,7 +784,7 @@ export function CaseReviewPage() {
                 </option>
               ) : null}
             </SelectFilter>
-            <p className="authority-classification-help">Staff-Classified Condition is a separate human finding and never changes the original AI Possible Condition.</p>
+            <p className="authority-classification-help">Staff-Classified Condition is a separate human finding and never changes the original Possible Condition.</p>
             {report.authorityClassifiedCondition && report.reviewedBy ? (
               <p className="authority-provenance">Last classified by {report.reviewedBy}{report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.</p>
             ) : null}
@@ -821,11 +821,11 @@ export function CaseReviewPage() {
               <option value="unassigned">No field validation needed</option>
               <option value="assigned">Assign field validation</option>
             </SelectFilter>
-            <p className="authority-classification-help">An assignment activates immediately. Choose a field reporter; a target visit date is optional.</p>
+            <p className="authority-classification-help">An assignment activates immediately. Choose a Field Inspector; a target visit date is optional.</p>
             {selectedFieldValidationState === "assigned" ? (
               <>
                 <SelectFilter
-                  label="Field reporter assignee"
+                  label="Field Inspector assignee"
                   value={selectedFieldValidationAssignee}
                   onChange={(event) => {
                     setFieldValidationAssigneeOverride(event.target.value || null);
@@ -834,7 +834,7 @@ export function CaseReviewPage() {
                     reviewMutation.reset();
                   }}
                 >
-                  <option value="">Select a field reporter</option>
+                  <option value="">Select a Field Inspector</option>
                   {(fieldReportersQuery.data ?? []).map((fieldReporter) => (
                     <option value={fieldReporter.uuid} key={fieldReporter.uuid}>
                       {fieldReporter.name}
@@ -861,7 +861,7 @@ export function CaseReviewPage() {
                   </p>
                 ) : null}
                 {fieldReportersQuery.isError ? (
-                  <p className="form-error" role="alert">Eligible field reporters could not be loaded. Try again before assigning.</p>
+                  <p className="form-error" role="alert">Eligible Field Inspectors could not be loaded. Try again before assigning.</p>
                 ) : null}
               </>
             ) : null}
@@ -897,7 +897,7 @@ export function CaseReviewPage() {
                 );
               })}
             </fieldset>
-            <p className="authority-classification-help">{referralPending ? "The referral action remains active until an expert response is recorded." : "No action is selected until you choose one."} A field reporter may provide visit details, but only office authority can save this disposition.</p>
+            <p className="authority-classification-help">{referralPending ? "The referral action remains active until an expert response is recorded." : "No action is selected until you choose one."} A Field Inspector may provide visit details, but only office staff can save this disposition.</p>
             <TextArea id="review-notes" label="Review notes" hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review." rows={5} maxLength={1000} value={notes} onChange={(event) => { setNotesOverride(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Describe the intervention or other action used, if applicable..." />
             <p className="review-note-count">{notes.length}/1,000</p>
             <details className="metadata-correction">

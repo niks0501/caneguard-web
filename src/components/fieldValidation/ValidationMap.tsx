@@ -110,7 +110,7 @@ function PointPopup({
         <h3>{properties.referenceCode}</h3>
         <dl>
           <div><dt>Review state</dt><dd>{statusLabel(properties.reviewStatus)}</dd></div>
-          <div><dt>Possible result</dt><dd>{diseaseLabels[properties.predictedDisease]}</dd></div>
+          <div><dt>Possible Condition</dt><dd>{diseaseLabels[properties.predictedDisease]}</dd></div>
           <div><dt>Barangay</dt><dd>{properties.barangay}</dd></div>
           <div><dt>Observed</dt><dd>{formatValidationDate(properties.observedAt)}</dd></div>
           <div><dt>Location</dt><dd>{properties.locationSource === "gps" ? "GPS" : properties.locationSource === "manual_map" ? "Manual map" : "Not provided"}</dd></div>

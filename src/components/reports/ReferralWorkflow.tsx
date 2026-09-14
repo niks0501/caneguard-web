@@ -127,7 +127,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
         verificationOutcome: responseVerification || undefined,
         expectedVersion: report.reviewVersion,
       });
-      setNotice("Expert response recorded. Review the updated authority finding before closing the case.");
+      setNotice("Expert response recorded. Review the updated Staff-Classified Condition before closing the report.");
     } catch {
       return;
     }
@@ -147,7 +147,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
         {referralState === "referred"
           ? " Keep the case open until the expert response is recorded."
           : referralState === "expert_response_received"
-            ? " Confirm the authority finding and verification outcome before closure."
+            ? " Confirm the Staff-Classified Condition and verification outcome before closure."
             : " Referral is recorded as an office action, not a verification outcome."}
       </p>
       {notice ? <p className="success-banner referral-notice" role="status">{notice}</p> : null}
@@ -250,7 +250,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
             <span>
               {referral.officeContext.authorityClassifiedCondition
                 ? authorityClassifiedConditionLabels[referral.officeContext.authorityClassifiedCondition]
-                : "No authority finding"}
+                : "No Staff-Classified Condition"}
               {" · "}
               {verificationOutcomeLabels[referral.officeContext.verificationOutcome]}
               {" · "}
@@ -270,7 +270,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 <CalendarDays aria-hidden="true" />
                 <div>
                   <strong>Record expert response</strong>
-                  <span>Response evidence is separate from the original AI Possible Condition.</span>
+                  <span>Response evidence is separate from the original Possible Condition.</span>
                 </div>
               </div>
               <label className="select-filter" htmlFor="response-date">

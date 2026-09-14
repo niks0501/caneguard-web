@@ -92,14 +92,14 @@ describe("SubmittedReportsPage", () => {
     );
     expect(screen.getByText("32 matching reports")).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Possible result" }),
+      screen.getByRole("columnheader", { name: "Possible Condition" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("columnheader", { name: "Observed" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Bago, Negros Occidental")).toBeInTheDocument();
     expect(screen.getByText("AI mismatch flagged")).toBeInTheDocument();
-    expect(screen.getAllByText("Possible smut").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Possible Condition: Smut").length).toBeGreaterThanOrEqual(1);
     const statusCell = screen.getByRole("cell", { name: "Needs field validation" });
     const longStatusLabel = statusCell.querySelector(".status-badge__label");
     expect(longStatusLabel).toHaveClass("status-badge__label");

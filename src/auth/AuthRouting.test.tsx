@@ -156,7 +156,7 @@ describe("authenticated routing", () => {
 
     expect(
       await screen.findByText(
-        "This account is not authorized for the municipal web workspace.",
+        "This account is not authorized for the SRA Don Pedro Web workspace.",
       ),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/login");

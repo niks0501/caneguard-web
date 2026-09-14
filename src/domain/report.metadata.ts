@@ -10,10 +10,10 @@ import type {
 } from "./report.types";
 
 export const diseaseLabels: Record<DiseaseKey, string> = {
-  healthy: "Possible healthy appearance",
-  mosaic: "Possible mosaic",
-  rust: "Possible rust",
-  smut: "Possible smut",
+  healthy: "Possible Condition: No supported disease detected",
+  mosaic: "Possible Condition: Mosaic",
+  rust: "Possible Condition: Rust",
+  smut: "Possible Condition: Smut",
 };
 
 /** Values offered when recording a new staff classification. */
@@ -86,7 +86,7 @@ export const actionTakenLabels: Record<ActionTaken, string> = {
 };
 
 export const submitterRoleLabels: Record<SubmitterRole, string> = {
-  field_reporter: "Field reporter",
+  field_reporter: "Field Inspector",
   reviewer: "Reviewer",
   admin: "Administrator",
 };
