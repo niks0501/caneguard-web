@@ -142,6 +142,22 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame(Report::REFERRAL_STATE_NOT_REFERRED, $report->referral_state);
     }
 
+    public function test_report_factory_supports_every_active_and_legacy_classification_value(): void
+    {
+        foreach (Report::authorityClassifiedConditions() as $condition) {
+            $report = Report::factory()->create([
+                'authority_classified_condition' => $condition,
+            ]);
+
+            $this->assertSame($condition, $report->fresh()->authority_classified_condition);
+        }
+
+        $this->assertSame(
+            [Report::AUTHORITY_CONDITION_DOWNY_MILDEW],
+            Report::legacyAuthorityClassifiedConditions(),
+        );
+    }
+
     public function test_report_referral_factory_preserves_the_handoff_fields(): void
     {
         $referral = ReportReferral::factory()->create([

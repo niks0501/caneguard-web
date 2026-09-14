@@ -7,10 +7,14 @@ import {
 
 export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
 export const authorityClassifiedConditionSchema = z.enum([
+  "healthy",
   "smut",
-  "downy_mildew",
+  "mosaic",
+  "rust",
+  "rssi",
   "mixed_or_multiple",
   "unable_to_classify",
+  "downy_mildew",
 ]);
 export const reviewStatusSchema = z.enum([
   "submitted_unverified",

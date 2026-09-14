@@ -2,11 +2,24 @@ import type { OperationalQueue } from "./operationalQueue";
 
 export type DiseaseKey = "healthy" | "mosaic" | "rust" | "smut";
 
-export type AuthorityClassifiedCondition =
+export type ActiveAuthorityClassifiedCondition =
+  | "healthy"
   | "smut"
-  | "downy_mildew"
+  | "mosaic"
+  | "rust"
+  | "rssi"
   | "mixed_or_multiple"
   | "unable_to_classify";
+
+export type LegacyAuthorityClassifiedCondition = "downy_mildew";
+
+/**
+ * All values readable from the API. Legacy values remain in this type so
+ * historical reports can be displayed without being offered for new review.
+ */
+export type AuthorityClassifiedCondition =
+  | ActiveAuthorityClassifiedCondition
+  | LegacyAuthorityClassifiedCondition;
 
 export type LocationSource = "gps" | "manual_map";
 

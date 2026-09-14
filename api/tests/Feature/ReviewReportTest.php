@@ -100,7 +100,7 @@ class ReviewReportTest extends TestCase
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_VERIFIED_BY_STAFF,
-            'notes' => 'Authority review identifies downy mildew independently of the model result.',
+            'notes' => 'Historical Downy mildew finding remains readable independently of the model result.',
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
             'expected_version' => 0,
         ])
@@ -118,6 +118,71 @@ class ReviewReportTest extends TestCase
         $this->assertSame($modelLabel, $updated->predicted_label);
         $this->assertSame($modelConfidence, $updated->confidence);
         $this->assertSame($modelScores, $updated->classScores()->pluck('score', 'label')->all());
+    }
+
+    public function test_active_staff_classified_conditions_are_additive_and_preserve_submitted_evidence(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+
+        $this->assertSame([
+            Report::AUTHORITY_CONDITION_HEALTHY,
+            Report::AUTHORITY_CONDITION_SMUT,
+            Report::AUTHORITY_CONDITION_MOSAIC,
+            Report::AUTHORITY_CONDITION_RUST,
+            Report::AUTHORITY_CONDITION_RSSI,
+            Report::AUTHORITY_CONDITION_MIXED_OR_MULTIPLE,
+            Report::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY,
+        ], Report::activeAuthorityClassifiedConditions());
+        $this->assertSame(
+            [Report::AUTHORITY_CONDITION_DOWNY_MILDEW],
+            Report::legacyAuthorityClassifiedConditions(),
+        );
+        $this->assertSame(
+            [
+                ...Report::activeAuthorityClassifiedConditions(),
+                ...Report::legacyAuthorityClassifiedConditions(),
+            ],
+            Report::authorityClassifiedConditions(),
+        );
+
+        Sanctum::actingAs($reviewer);
+
+        foreach (Report::activeAuthorityClassifiedConditions() as $condition) {
+            $report = Report::factory()->mobileModelV1()->create([
+                'predicted_label' => Report::LABEL_RUST,
+                'confidence' => 0.74,
+            ]);
+            $modelEvidence = collect(Report::immutableEvidenceAttributes())
+                ->mapWithKeys(fn (string $attribute) => [
+                    $attribute => $report->getRawOriginal($attribute),
+                ])
+                ->all();
+            $modelScores = $report->classScores()->pluck('score', 'label')->all();
+            $submittedSymptoms = $report->symptoms()->pluck('symptom_key')->all();
+
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'status' => Report::STATUS_VERIFIED_BY_STAFF,
+                'notes' => "Staff classification recorded as {$condition}.",
+                'authority_classified_condition' => $condition,
+                'expected_version' => 0,
+            ])
+                ->assertOk()
+                ->assertJsonPath('data.review.authority_classified_condition', $condition)
+                ->assertJsonPath('data.model.predicted_label', Report::LABEL_RUST)
+                ->assertJsonPath('data.model.confidence', 0.74);
+
+            $updated = $report->fresh();
+            $this->assertSame($condition, $updated->authority_classified_condition);
+            $this->assertSame(Report::LABEL_RUST, $updated->predicted_label);
+            $this->assertSame('0.7400000', $updated->confidence);
+            $this->assertSame($modelEvidence, collect(Report::immutableEvidenceAttributes())
+                ->mapWithKeys(fn (string $attribute) => [
+                    $attribute => $updated->getRawOriginal($attribute),
+                ])
+                ->all());
+            $this->assertSame($modelScores, $updated->classScores()->pluck('score', 'label')->all());
+            $this->assertSame($submittedSymptoms, $updated->symptoms()->pluck('symptom_key')->all());
+        }
     }
 
     public function test_review_without_classification_preserves_an_existing_authority_finding(): void
@@ -153,7 +218,7 @@ class ReviewReportTest extends TestCase
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_RESOLVED,
             'notes' => 'No supported authority condition could be recorded.',
-            'authority_classified_condition' => 'rust',
+            'authority_classified_condition' => 'not-a-condition',
             'expected_version' => 0,
         ])
             ->assertUnprocessable()
