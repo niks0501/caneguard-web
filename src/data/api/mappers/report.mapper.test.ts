@@ -4,6 +4,7 @@ import {
   paginatedReportsDto,
   reportDetailDto,
   reportReferralDto,
+  staffClassifiedReportDetailDto,
 } from "../../../test/fixtures";
 import { reportDetailResponseSchema } from "../schemas/report.schema";
 import {
@@ -217,18 +218,10 @@ describe("report mappers", () => {
 
   it("maps an authority classification without changing the model result", () => {
     const report = mapReportDetail(
-      reportDetailResponseSchema.parse({
-        data: {
-          ...reportDetailDto,
-          review: {
-            ...reportDetailDto.review,
-            authority_classified_condition: "smut",
-          },
-        },
-      }).data,
+      reportDetailResponseSchema.parse({ data: staffClassifiedReportDetailDto }).data,
     );
 
-    expect(report.authorityClassifiedCondition).toBe("smut");
+    expect(report.authorityClassifiedCondition).toBe("rssi");
     expect(report.predictedDisease).toBe("rust");
   });
 

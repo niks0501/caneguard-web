@@ -82,7 +82,15 @@ class Report extends Model
 
     public const LABEL_SMUT = 'smut';
 
+    public const AUTHORITY_CONDITION_HEALTHY = 'healthy';
+
     public const AUTHORITY_CONDITION_SMUT = 'smut';
+
+    public const AUTHORITY_CONDITION_MOSAIC = 'mosaic';
+
+    public const AUTHORITY_CONDITION_RUST = 'rust';
+
+    public const AUTHORITY_CONDITION_RSSI = 'rssi';
 
     public const AUTHORITY_CONDITION_DOWNY_MILDEW = 'downy_mildew';
 
@@ -227,15 +235,45 @@ class Report extends Model
     }
 
     /**
+     * Values that may be selected for a new Staff-Classified Condition review.
+     *
+     * @return array<int, string>
+     */
+    public static function activeAuthorityClassifiedConditions(): array
+    {
+        return [
+            self::AUTHORITY_CONDITION_HEALTHY,
+            self::AUTHORITY_CONDITION_SMUT,
+            self::AUTHORITY_CONDITION_MOSAIC,
+            self::AUTHORITY_CONDITION_RUST,
+            self::AUTHORITY_CONDITION_RSSI,
+            self::AUTHORITY_CONDITION_MIXED_OR_MULTIPLE,
+            self::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY,
+        ];
+    }
+
+    /**
+     * Values retained so historical reports remain readable during the
+     * expand-first compatibility transition. They are not new-review options.
+     *
+     * @return array<int, string>
+     */
+    public static function legacyAuthorityClassifiedConditions(): array
+    {
+        return [self::AUTHORITY_CONDITION_DOWNY_MILDEW];
+    }
+
+    /**
+     * All values accepted at the API boundary, including legacy values that
+     * must continue to parse and persist when already present on a report.
+     *
      * @return array<int, string>
      */
     public static function authorityClassifiedConditions(): array
     {
         return [
-            self::AUTHORITY_CONDITION_SMUT,
-            self::AUTHORITY_CONDITION_DOWNY_MILDEW,
-            self::AUTHORITY_CONDITION_MIXED_OR_MULTIPLE,
-            self::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY,
+            ...self::activeAuthorityClassifiedConditions(),
+            ...self::legacyAuthorityClassifiedConditions(),
         ];
     }
 

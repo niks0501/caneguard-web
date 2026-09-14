@@ -28,8 +28,10 @@ import { SelectFilter, TextArea } from "../components/ui/FormControls";
 import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/States";
 import {
   actionTakenLabels,
-  imageStatusLabels,
+  activeAuthorityClassifiedConditions,
   authorityClassifiedConditionLabels,
+  imageStatusLabels,
+  isLegacyAuthorityClassifiedCondition,
   submitterRoleLabels,
 } from "../domain/report.metadata";
 import type {
@@ -216,6 +218,11 @@ export function CaseReviewPage() {
     authorityClassificationOverride !== undefined
       ? authorityClassificationOverride
       : report?.authorityClassifiedCondition ?? null;
+  const existingLegacyAuthorityClassification = isLegacyAuthorityClassifiedCondition(
+    report?.authorityClassifiedCondition,
+  )
+    ? report.authorityClassifiedCondition
+    : null;
   const selectedVerificationOutcome =
     verificationOverride !== undefined
       ? verificationOverride
@@ -748,9 +755,17 @@ export function CaseReviewPage() {
               }}
             >
               <option value="">Not classified</option>
-              {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
+              {activeAuthorityClassifiedConditions.map((value) => (
+                <option value={value} key={value}>
+                  {authorityClassifiedConditionLabels[value]}
+                </option>
               ))}
+              {existingLegacyAuthorityClassification ? (
+                <option value={existingLegacyAuthorityClassification}>
+                  {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
+                  {" (legacy record; not offered for new review)"}
+                </option>
+              ) : null}
             </SelectFilter>
             <p className="authority-classification-help">This is a separate authority finding and never changes the original model result.</p>
             {report.authorityClassifiedCondition && report.reviewedBy ? (

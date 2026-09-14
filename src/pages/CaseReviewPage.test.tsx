@@ -174,7 +174,7 @@ describe("CaseReviewPage", () => {
     expect(reviewSummary).toHaveTextContent("Selected response");
     expect(screen.getByText("Current status")).toHaveClass("review-summary__label");
     expect(reviewSummary.querySelector(".status-badge")).not.toHaveClass("review-summary__label");
-    expect(screen.getByText("Smut")).toBeInTheDocument();
+    expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
     expect(screen.getByLabelText("Authority classification")).toHaveValue("");
     expect(screen.getByText("Observed at")).toBeInTheDocument();
@@ -309,23 +309,47 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("allows authority Downy mildew without changing a different AI result", async () => {
+  it("offers every active authority classification but not legacy Downy mildew", () => {
+    renderPage();
+
+    const select = screen.getByLabelText("Authority classification");
+    expect(within(select).getAllByRole("option").map((option) => option.getAttribute("value"))).toEqual([
+      "",
+      "healthy",
+      "smut",
+      "mosaic",
+      "rust",
+      "rssi",
+      "mixed_or_multiple",
+      "unable_to_classify",
+    ]);
+    expect(within(select).queryByRole("option", { name: "Downy mildew" })).not.toBeInTheDocument();
+  });
+
+  it("keeps a historical Downy mildew classification readable and preservable", async () => {
     const user = userEvent.setup();
-    const mutateAsync = vi.fn().mockResolvedValue(report);
+    const historicalReport = {
+      ...report,
+      authorityClassifiedCondition: "downy_mildew" as const,
+    };
+    const mutateAsync = vi.fn().mockResolvedValue(historicalReport);
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: historicalReport }));
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    await user.selectOptions(
-      screen.getByLabelText("Authority classification"),
-      "downy_mildew",
-    );
-    await user.type(screen.getByLabelText(/^Review notes/), "Authority finding recorded.");
+    const select = screen.getByLabelText("Authority classification");
+    expect(select).toHaveValue("downy_mildew");
+    expect(
+      within(select).getByRole("option", {
+        name: /Downy mildew \(legacy record; not offered for new review\)/,
+      }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: /Advisory provided/ }));
     await user.click(screen.getByRole("button", { name: "Save explicit review" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       authorityClassifiedCondition: "downy_mildew",
-      expectedVersion: report.reviewVersion,
+      expectedVersion: historicalReport.reviewVersion,
     }));
   });
 

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { paginatedReportsDto, reportDetailDto } from "../../../test/fixtures";
+import {
+  activeAuthorityClassifiedConditions,
+  legacyAuthorityClassifiedConditions,
+} from "../../../domain/report.metadata";
+import {
+  paginatedReportsDto,
+  reportDetailDto,
+  staffClassifiedReportDetailDto,
+} from "../../../test/fixtures";
 import {
   reportDetailResponseSchema,
   reportListResponseSchema,
@@ -118,15 +126,43 @@ describe("report API schemas", () => {
     expect(() => reportListResponseSchema.parse(invalid)).toThrow();
   });
 
-  it("keeps authority classifications separate from model labels", () => {
-    const invalid = {
-      ...reportDetailDto,
-      review: {
-        ...reportDetailDto.review,
-        authority_classified_condition: "rust",
-      },
-    };
+  it("accepts every active and legacy authority classification value", () => {
+    const values = [
+      ...activeAuthorityClassifiedConditions,
+      ...legacyAuthorityClassifiedConditions,
+    ];
 
-    expect(() => reportDetailResponseSchema.parse({ data: invalid })).toThrow();
+    for (const value of values) {
+      const parsed = reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          review: {
+            ...reportDetailDto.review,
+            authority_classified_condition: value,
+          },
+        },
+      });
+
+      expect(parsed.data.review.authority_classified_condition).toBe(value);
+    }
+  });
+
+  it("keeps authority classifications separate from model labels", () => {
+    const parsed = reportDetailResponseSchema.parse({
+      data: {
+        ...reportDetailDto,
+        review: {
+          ...reportDetailDto.review,
+          authority_classified_condition: "rssi",
+        },
+      },
+    });
+
+    expect(parsed.data.model.predicted_label).toBe("rust");
+    expect(parsed.data.review.authority_classified_condition).toBe("rssi");
+    expect(
+      reportDetailResponseSchema.parse({ data: staffClassifiedReportDetailDto }).data.review
+        .authority_classified_condition,
+    ).toBe("rssi");
   });
 });

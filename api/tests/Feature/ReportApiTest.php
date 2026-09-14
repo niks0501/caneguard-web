@@ -192,6 +192,23 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.observations.symptom_keys.0', Report::LABEL_SMUT);
     }
 
+    public function test_report_detail_preserves_historical_downy_mildew_classification(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath(
+                'data.review.authority_classified_condition',
+                Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+            );
+    }
+
     public function test_report_detail_uses_uuid_and_returns_every_contract_section(): void
     {
         $reviewer = User::factory()->reviewer()->create();

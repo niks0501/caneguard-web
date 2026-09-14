@@ -112,6 +112,14 @@ export const reportDetailDto = {
   updated_at: "2026-07-20T10:00:00.000Z",
 } as const;
 
+export const staffClassifiedReportDetailDto = {
+  ...reportDetailDto,
+  review: {
+    ...reportDetailDto.review,
+    authority_classified_condition: "rssi",
+  },
+} as const;
+
 export const completedFieldValidationAssignmentDto = {
   uuid: "3fbd7f77-7d6b-4eb0-a1c7-b673f5a2f39f",
   assignee: {

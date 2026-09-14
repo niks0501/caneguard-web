@@ -1,8 +1,10 @@
 import type {
   ActionTaken,
+  ActiveAuthorityClassifiedCondition,
   AuthorityClassifiedCondition,
   DiseaseKey,
   ImageStatus,
+  LegacyAuthorityClassifiedCondition,
   ReviewStatus,
   SubmitterRole,
 } from "./report.types";
@@ -14,15 +16,59 @@ export const diseaseLabels: Record<DiseaseKey, string> = {
   smut: "Possible smut",
 };
 
+/** Values offered when recording a new staff classification. */
+export const activeAuthorityClassifiedConditions = [
+  "healthy",
+  "smut",
+  "mosaic",
+  "rust",
+  "rssi",
+  "mixed_or_multiple",
+  "unable_to_classify",
+] as const satisfies readonly ActiveAuthorityClassifiedCondition[];
+
+/** Historical values that remain readable but are not new-review options. */
+export const legacyAuthorityClassifiedConditions = [
+  "downy_mildew",
+] as const satisfies readonly LegacyAuthorityClassifiedCondition[];
+
+export const activeAuthorityClassifiedConditionLabels: Record<
+  ActiveAuthorityClassifiedCondition,
+  string
+> = {
+  healthy: "Healthy / No Selected Concern",
+  smut: "Sugarcane Smut",
+  mosaic: "Sugarcane Mosaic Disease",
+  rust: "Sugarcane Rust",
+  rssi: "RSSI",
+  mixed_or_multiple: "Mixed or Multiple Visible Concerns",
+  unable_to_classify: "Unable to Classify",
+};
+
+export const legacyAuthorityClassifiedConditionLabels: Record<
+  LegacyAuthorityClassifiedCondition,
+  string
+> = {
+  downy_mildew: "Downy mildew",
+};
+
 export const authorityClassifiedConditionLabels: Record<
   AuthorityClassifiedCondition,
   string
 > = {
-  smut: "Smut",
-  downy_mildew: "Downy mildew",
-  mixed_or_multiple: "Mixed or multiple conditions",
-  unable_to_classify: "Unable to classify",
+  ...activeAuthorityClassifiedConditionLabels,
+  ...legacyAuthorityClassifiedConditionLabels,
 };
+
+export function isLegacyAuthorityClassifiedCondition(
+  value: AuthorityClassifiedCondition | null | undefined,
+): value is LegacyAuthorityClassifiedCondition {
+  return value !== null
+    && value !== undefined
+    && legacyAuthorityClassifiedConditions.includes(
+      value as LegacyAuthorityClassifiedCondition,
+    );
+}
 
 export const reviewStatusLabels: Record<ReviewStatus, string> = {
   submitted_unverified: "Needs review",
