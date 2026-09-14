@@ -57,6 +57,7 @@ export const reportDetailDto = {
       { label: "rust", score: 0.93 },
       { label: "mosaic", score: 0.04 },
       { label: "healthy", score: 0.03 },
+      { label: "smut", score: 0 },
     ],
     model_version: "caneguard-v1",
     timings_ms: {

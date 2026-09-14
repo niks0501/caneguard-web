@@ -38,6 +38,17 @@ vi.mock("../hooks/useFieldReporters", () => ({
 const report = mapReportDetail(
   reportDetailResponseSchema.parse({ data: reportDetailDto }).data,
 );
+const smutReport = {
+  ...report,
+  predictedDisease: "smut" as const,
+  classScores: [
+    { label: "smut" as const, score: 0.97 },
+    { label: "rust" as const, score: 0.01 },
+    { label: "mosaic" as const, score: 0.01 },
+    { label: "healthy" as const, score: 0.01 },
+  ],
+};
+
 const referredReport = mapReportDetail(
   reportDetailResponseSchema.parse({
     data: {
@@ -277,6 +288,45 @@ describe("CaseReviewPage", () => {
     expect(
       screen.getByText("The reporter explicitly indicated no AI mismatch."),
     ).toBeInTheDocument();
+  });
+
+  it("keeps an AI Smut result separate when the authority confirms Smut", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(smutReport);
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: smutReport }));
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
+    renderPage();
+
+    expect(screen.getByText("Possible smut")).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Authority classification"), "smut");
+    await user.type(screen.getByLabelText(/^Review notes/), "Authority confirmed Smut.");
+    await user.click(screen.getByRole("radio", { name: /Advisory provided/ }));
+    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      authorityClassifiedCondition: "smut",
+      expectedVersion: smutReport.reviewVersion,
+    }));
+  });
+
+  it("allows authority Downy mildew without changing a different AI result", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
+    renderPage();
+
+    await user.selectOptions(
+      screen.getByLabelText("Authority classification"),
+      "downy_mildew",
+    );
+    await user.type(screen.getByLabelText(/^Review notes/), "Authority finding recorded.");
+    await user.click(screen.getByRole("radio", { name: /Advisory provided/ }));
+    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      authorityClassifiedCondition: "downy_mildew",
+      expectedVersion: report.reviewVersion,
+    }));
   });
 
   it("does not select an office action or verification outcome automatically", () => {

@@ -31,7 +31,10 @@ class ReportSeeder extends Seeder
         }
 
         $statuses = Report::reviewStatuses();
-        $labels = Report::labels();
+        // Seed the current Model V1 evidence shape so demo monitoring exercises
+        // every prediction class, including Smut, without changing the legacy
+        // v1 upload contract.
+        $labels = Report::v2Labels();
         $barangays = [
             'Mabini',
             'Maligaya',
@@ -105,7 +108,7 @@ class ReportSeeder extends Seeder
                         ? 'inconclusive'
                         : 'consistent',
                     'reported_severity' => ['low', 'moderate', 'high'][($number - 1) % 3],
-                    'model_version' => 'caneguard-mobile-v1.0.0',
+                    'model_version' => 'v1.0-mobilenetv2',
                     'preprocess_ms' => 10 + $number,
                     'inference_ms' => 90 + ($number * 3),
                     'total_ms' => 120 + ($number * 4),
@@ -125,10 +128,10 @@ class ReportSeeder extends Seeder
                 ],
             );
 
-            foreach (Report::labels() as $scoreLabel) {
+            foreach ($labels as $scoreLabel) {
                 $score = $scoreLabel === $label
                     ? $confidence
-                    : round((1 - $confidence) / 2, 7);
+                    : round((1 - $confidence) / (count($labels) - 1), 7);
 
                 DB::table('report_class_scores')->updateOrInsert(
                     [

@@ -94,6 +94,40 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_RESOLVED);
     }
 
+    public function test_smut_model_reports_are_available_in_map_and_field_validation_queue(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->mobileModelV1()->create([
+            'reference_code' => 'CG-SMUT-MAP-QUEUE',
+            'predicted_label' => Report::LABEL_SMUT,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'barangay' => 'Mabini',
+            'final_latitude' => 10.1234567,
+            'final_longitude' => 122.9876543,
+            'observed_at' => CarbonImmutable::parse('2026-08-13T10:20:30Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/map?'.http_build_query([
+            'predicted_label' => Report::LABEL_SMUT,
+            'barangay' => 'Mabini',
+        ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'features')
+            ->assertJsonPath('features.0.id', $report->uuid)
+            ->assertJsonPath('features.0.properties.predicted_label', Report::LABEL_SMUT);
+
+        $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
+            'predicted_label' => Report::LABEL_SMUT,
+            'barangay' => 'Mabini',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.uuid', $report->uuid)
+            ->assertJsonPath('data.items.0.predicted_label', Report::LABEL_SMUT);
+    }
+
     public function test_map_limits_results_and_reports_the_truncation_contract(): void
     {
         config([

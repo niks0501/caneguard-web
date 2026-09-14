@@ -175,6 +175,23 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.0.predicted_label', Report::LABEL_SMUT);
     }
 
+    public function test_report_detail_preserves_a_smut_model_v1_evidence_shape(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->mobileModelV1()->create([
+            'predicted_label' => Report::LABEL_SMUT,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.model.predicted_label', Report::LABEL_SMUT)
+            ->assertJsonCount(4, 'data.model.class_scores')
+            ->assertJsonPath('data.model.class_scores.3.label', Report::LABEL_SMUT)
+            ->assertJsonPath('data.observations.symptom_keys.0', Report::LABEL_SMUT);
+    }
+
     public function test_report_detail_uses_uuid_and_returns_every_contract_section(): void
     {
         $reviewer = User::factory()->reviewer()->create();

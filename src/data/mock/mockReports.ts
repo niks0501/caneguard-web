@@ -49,7 +49,7 @@ const sourceReports: DiseaseReport[] = [
     submitterRole: "field_reporter",
     capturedAt: "2026-07-17T15:20:00+08:00",
     submittedAt: "2026-07-17T16:02:00+08:00",
-    predictedDisease: "rust",
+    predictedDisease: "smut",
     confidence: 0.93,
     imageStatus: "available",
     symptoms: commonSymptoms.smut.map((symptom) => ({ ...symptom })),

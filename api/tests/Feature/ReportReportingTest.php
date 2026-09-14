@@ -289,6 +289,24 @@ class ReportReportingTest extends TestCase
         $response->assertJsonMissingPath('data.disease_risk_score');
     }
 
+    public function test_monthly_summary_includes_smut_as_possible_ai_evidence(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->mobileModelV1()->create([
+            'predicted_label' => Report::LABEL_SMUT,
+            'submitted_at' => CarbonImmutable::parse('2026-07-21T10:00:00Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/summary?month=2026-07')
+            ->assertOk()
+            ->assertJsonFragment([
+                'possible_condition' => Report::LABEL_SMUT,
+                'reported_cases' => 1,
+            ]);
+    }
+
     public function test_dashboard_summary_exposes_the_selected_monthly_case_summary(): void
     {
         $reviewer = User::factory()->reviewer()->create();

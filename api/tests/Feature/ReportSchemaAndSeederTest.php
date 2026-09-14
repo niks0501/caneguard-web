@@ -225,14 +225,18 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('120.6350000', $manualDemoReport->final_longitude);
         $this->assertSame('manual_map', $manualDemoReport->location_source);
         $this->assertNull($manualDemoReport->gps_accuracy);
-        $this->assertDatabaseCount('report_class_scores', 36);
-        $this->assertSame(Report::labels(), Report::query()
+        $this->assertDatabaseCount('report_class_scores', 48);
+        $this->assertSame(Report::v2Labels(), Report::query()
             ->distinct()
             ->orderBy('predicted_label')
             ->pluck('predicted_label')
             ->sort()
             ->values()
             ->all());
+        $this->assertDatabaseHas('reports', [
+            'predicted_label' => Report::LABEL_SMUT,
+            'model_version' => 'v1.0-mobilenetv2',
+        ]);
         $expectedStatuses = Report::reviewStatuses();
         sort($expectedStatuses);
 
@@ -273,7 +277,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(512, $dimensions[1]);
         $this->assertGreaterThan(10_000, strlen($seededImage));
         $this->assertSame(
-            3,
+            4,
             ReportClassScore::query()
                 ->where('report_id', Report::query()->firstOrFail()->id)
                 ->count(),

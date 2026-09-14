@@ -117,7 +117,10 @@ describe("DashboardPage", () => {
             period: { from: "2026-07-01", to: "2026-07-31" },
             reportedCases: 4,
             casesByBarangay: [{ barangay: "Mabini", reportedCases: 3 }],
-            casesByPossibleCondition: [{ possibleCondition: "rust", reportedCases: 2 }],
+            casesByPossibleCondition: [
+              { possibleCondition: "rust", reportedCases: 2 },
+              { possibleCondition: "smut", reportedCases: 1 },
+            ],
             estimatedAffectedHectares: 3.75,
             fieldValidationCounts: {
               unassigned: 1,
@@ -149,6 +152,7 @@ describe("DashboardPage", () => {
     );
     expect(monthly.getByText("3 reported cases")).toBeInTheDocument();
     expect(monthly.getByText("Possible rust")).toBeInTheDocument();
+    expect(monthly.getByText("Possible smut")).toBeInTheDocument();
   });
 
   it("refreshes on demand and links to the full queue", async () => {

@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -125,6 +126,46 @@ class MobileReportUploadV2Test extends TestCase
 
         $this->assertDatabaseCount('reports', 0);
         $this->assertSame(4, count(MobileReportUploadV2Contract::field('class_scores')['required_keys']));
+    }
+
+    public function test_v2_status_feed_exposes_a_completed_authority_review_to_mobile(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-13T10:00:00Z');
+        try {
+            $reporter = User::factory()->fieldReporter()->create();
+            $reviewer = User::factory()->reviewer()->create();
+            $report = Report::factory()->mobileModelV1()->create([
+                'reporter_id' => $reporter,
+                'predicted_label' => Report::LABEL_SMUT,
+            ]);
+
+            $reviewerToken = $reviewer->createToken('web-review', ['*'])->plainTextToken;
+            $this->withToken($reviewerToken)
+                ->patchJson(
+                    "/api/v1/reports/{$report->uuid}/review",
+                    [
+                        'status' => Report::STATUS_RESOLVED,
+                        'notes' => 'Smut confirmed by authority review.',
+                        'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+                        'expected_version' => 0,
+                    ],
+                )
+                ->assertOk();
+
+            Auth::forgetGuards();
+            Auth::shouldUse('web');
+            $this->flushHeaders();
+            $token = $reporter->createToken('mobile-v2-completed-status', ['report:status'])->plainTextToken;
+            $this->withToken($token)
+                ->getJson('/api/v2/mobile/reports/statuses?sync_before=2026-09-13T10:00:01Z')
+                ->assertOk()
+                ->assertJsonPath('data.0.client_uuid', $report->client_uuid)
+                ->assertJsonPath('data.0.review_status', Report::STATUS_RESOLVED)
+                ->assertJsonPath('data.0.review_notes', 'Smut confirmed by authority review.')
+                ->assertJsonPath('data.0.reviewed_at', '2026-09-13T10:00:00.000000Z');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_v2_status_feed_returns_the_owned_report_status(): void
