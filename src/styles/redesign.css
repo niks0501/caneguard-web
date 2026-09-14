@@ -1463,6 +1463,28 @@ textarea:focus-visible {
   border-top: 4px solid var(--color-primary-light);
 }
 
+.field-validation-action-evidence {
+  margin-bottom: 14px;
+  padding: 12px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-md);
+}
+
+.field-validation-action-evidence__title {
+  margin: 0 0 8px;
+  color: var(--color-primary-dark);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.field-validation-action-evidence .detail-field dd {
+  color: var(--color-primary-dark);
+  font-size: 12px;
+}
+
 .field-validation-evidence-card .section-heading > svg {
   color: var(--color-primary);
 }
@@ -1476,6 +1498,28 @@ textarea:focus-visible {
   border-top: 4px solid var(--color-primary-dark);
   background: #f5f9f5;
   box-shadow: var(--shadow-raised);
+}
+
+.review-action-guidance {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0 14px;
+  padding: 12px;
+  color: var(--color-primary-dark);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-md);
+}
+
+.review-action-guidance strong {
+  font-size: 11px;
+}
+
+.review-action-guidance p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .duplicate-link-card {

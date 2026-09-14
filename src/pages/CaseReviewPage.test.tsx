@@ -261,6 +261,7 @@ describe("CaseReviewPage", () => {
         "The field finding is preserved as separate evidence.",
       ),
     ).toBeInTheDocument();
+    expect(within(evidence).getByText("Action Taken evidence")).toBeInTheDocument();
     expect(
       within(evidence).getByText("Provided field guidance and recorded the next action."),
     ).toBeInTheDocument();
@@ -400,6 +401,19 @@ describe("CaseReviewPage", () => {
     ).toBe(true);
     expect(screen.getByLabelText("Verification outcome")).toHaveValue("");
     expect(screen.getByText("No office action selected")).toBeInTheDocument();
+  });
+
+  it("makes the existing review notes field explicit for intervention details", () => {
+    renderPage();
+
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /Record intervention or action details.*treatment, pesticide, medicine, technical assistance, or other action/i,
+    );
+    expect(screen.getByText(/Record treatment, pesticide, medicine, technical assistance, or other action details when applicable/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Review notes/)).toHaveAttribute(
+      "placeholder",
+      "Describe the intervention or other action used, if applicable...",
+    );
   });
 
   it("keeps possible matching advisory and explicit linkage separate", async () => {
