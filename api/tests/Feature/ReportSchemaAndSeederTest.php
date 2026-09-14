@@ -258,6 +258,48 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
     }
 
+    public function test_seeder_completes_an_existing_partial_seed_fixture(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $report = Report::factory()->create([
+            'reference_code' => 'CG-2026-0001',
+            'client_uuid' => '30000000-0000-4000-8000-000000000001',
+            'image_path' => 'seeded/report-01.png',
+            'predicted_label' => Report::LABEL_SMUT,
+            'confidence' => 0.7312345,
+            'model_version' => 'v1.0-mobilenetv2',
+            'review_status' => Report::STATUS_RESOLVED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+        ]);
+        DB::table('report_class_scores')->where('report_id', $report->id)->delete();
+        DB::table('report_symptoms')->where('report_id', $report->id)->delete();
+        $originalReport = (array) DB::table('reports')
+            ->where('id', $report->id)
+            ->first();
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(
+            $originalReport,
+            (array) DB::table('reports')->where('id', $report->id)->first(),
+        );
+        $this->assertSame(4, DB::table('report_class_scores')
+            ->where('report_id', $report->id)
+            ->count());
+        $this->assertDatabaseHas('report_symptoms', [
+            'report_id' => $report->id,
+            'symptom_key' => Report::LABEL_SMUT,
+        ]);
+        $this->assertTrue(Storage::disk('local')->exists('seeded/report-01.png'));
+        $this->assertSame(12, Report::query()->count());
+    }
+
     public function test_seeder_creates_twelve_varied_reports_with_valid_images(): void
     {
         Storage::fake('local');
