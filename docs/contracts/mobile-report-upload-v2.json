@@ -215,6 +215,7 @@
       }
     },
     "reporter_suspected_condition": {
+      "description": "Bounded free-text reporter observation; Mobile may send RSSI as a field concern value, not as a Model V1 class.",
       "wire_type": "text",
       "type": "string",
       "required": false,

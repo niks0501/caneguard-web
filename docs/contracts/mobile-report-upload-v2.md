@@ -26,6 +26,8 @@ Nullable text fields accept an empty multipart text part as `null` where the JSO
 
 The boolean `mismatch_reported` field accepts the JSON-declared boolean, numeric, and string representations.
 
+`reporter_suspected_condition` remains a bounded free-text reporter-observation field. Mobile's RSSI quick choice sends the stable value `RSSI` here; it is preserved as field evidence and is not a Model V1 label or class score. The model contract remains exactly `healthy`, `mosaic`, `rust`, and `smut`.
+
 `captured_at` and `observed_at` use ISO-8601 date-time values with an explicit timezone, and date-only values are outside v2.
 
 ## Image boundary

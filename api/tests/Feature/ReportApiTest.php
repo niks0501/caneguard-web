@@ -209,6 +209,34 @@ class ReportApiTest extends TestCase
             );
     }
 
+    public function test_report_detail_preserves_rssi_reporter_observation_separately_from_model_evidence(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->mobileModelV1()->create([
+            'predicted_label' => Report::LABEL_RUST,
+            'mismatch_reported' => true,
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'reporter_observation_text' => 'RSSI concern observed in the field.',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.model.predicted_label', Report::LABEL_RUST)
+            ->assertJsonCount(4, 'data.model.class_scores')
+            ->assertJsonPath('data.reporter_observation.mismatch_reported', true)
+            ->assertJsonPath(
+                'data.reporter_observation.reporter_suspected_condition',
+                Report::REPORTER_CONCERN_RSSI,
+            )
+            ->assertJsonPath(
+                'data.reporter_observation.reporter_observation_text',
+                'RSSI concern observed in the field.',
+            )
+            ->assertJsonPath('data.review.authority_classified_condition', null);
+    }
+
     public function test_report_detail_uses_uuid_and_returns_every_contract_section(): void
     {
         $reviewer = User::factory()->reviewer()->create();

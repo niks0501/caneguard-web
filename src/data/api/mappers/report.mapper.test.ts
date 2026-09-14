@@ -85,6 +85,31 @@ describe("report mappers", () => {
     expect(report.reviewVersion).toBe(0);
   });
 
+  it("preserves RSSI as reporter observation evidence while keeping the model result unchanged", () => {
+    const rssi = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          model: {
+            ...reportDetailDto.model,
+            predicted_label: "rust",
+          },
+          reporter_observation: {
+            mismatch_reported: true,
+            reporter_suspected_condition: "RSSI",
+            reporter_observation_text: "RSSI concern observed in the field.",
+          },
+        },
+      }).data,
+    );
+
+    expect(rssi.reporterSuspectedCondition).toBe("RSSI");
+    expect(rssi.reporterObservationText).toBe("RSSI concern observed in the field.");
+    expect(rssi.mismatchReported).toBe(true);
+    expect(rssi.predictedDisease).toBe("rust");
+    expect(rssi.classScores).toEqual(reportDetailDto.model.class_scores);
+  });
+
   it("maps completed field validation evidence into the review model", () => {
     const report = mapReportDetail(
       reportDetailResponseSchema.parse({
