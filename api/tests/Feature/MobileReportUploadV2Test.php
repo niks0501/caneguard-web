@@ -87,34 +87,6 @@ class MobileReportUploadV2Test extends TestCase
         $this->assertSame(4, count(MobileReportUploadV2Contract::field('class_scores')['required_keys']));
     }
 
-    public function test_v2_possible_match_accepts_a_smut_condition(): void
-    {
-        CarbonImmutable::setTestNow('2026-09-13T10:00:00Z');
-        try {
-            $reporter = User::factory()->fieldReporter()->create();
-            Report::factory()->mobileModelV1()->create([
-                'predicted_label' => Report::LABEL_SMUT,
-                'final_latitude' => 14.0667000,
-                'final_longitude' => 120.6319000,
-                'submitted_at' => now()->subHours(2),
-            ]);
-            $token = $reporter->createToken('mobile-v2-match-test', ['report:submit'])->plainTextToken;
-
-            $this->withToken($token)
-                ->getJson('/api/v2/mobile/reports/possible-matches?'.http_build_query([
-                    'predicted_label' => Report::LABEL_SMUT,
-                    'final_latitude' => 14.0667001,
-                    'final_longitude' => 120.6319001,
-                ]))
-                ->assertOk()
-                ->assertJsonCount(1, 'data')
-                ->assertJsonPath('data.0.match.condition', Report::LABEL_SMUT)
-                ->assertJsonPath('meta.possible_match', true);
-        } finally {
-            CarbonImmutable::setTestNow();
-        }
-    }
-
     public function test_v2_status_feed_returns_the_owned_report_status(): void
     {
         CarbonImmutable::setTestNow('2026-09-13T10:00:00Z');

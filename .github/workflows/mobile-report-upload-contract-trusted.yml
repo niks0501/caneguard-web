@@ -13,8 +13,6 @@ on:
       - docs/contracts/mobile-report-upload-v2.json
       - docs/contracts/mobile-report-upload-v2.md
       - docs/contracts/mobile-report-status-v2.md
-      - docs/contracts/mobile-duplicate-assistance-v2.json
-      - docs/contracts/mobile-duplicate-assistance-v2.md
       - docs/contracts/mobile-field-validation-assignment-v1.json
       - docs/contracts/mobile-field-validation-assignment-v1.md
       - docs/contracts/mobile-field-validation-completion-v1.json
