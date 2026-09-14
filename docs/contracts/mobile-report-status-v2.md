@@ -110,4 +110,4 @@ The producer is `api/app/Http/Controllers/Api/V1/MobileReportStatusController.ph
 
 The server may store additional lifecycle dimensions beside `review_status`, but this v2 contract does not expose them or change its exact response shape.
 
-This v2 contract does not introduce an API version change, review-history endpoint, or mobile user-interface behavior.
+This v2 route reuses the v1 response shape and does not introduce a review-history endpoint or mobile user-interface behavior.

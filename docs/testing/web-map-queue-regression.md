@@ -52,6 +52,7 @@ Run the Web/API upload-contract checks that protect the mobile submission bounda
 
 ```bash
 npm run contract:artifact
+npm run contract:v2:artifact
 npm run contract:config
 npm run contract:test
 npm run contract:consumer

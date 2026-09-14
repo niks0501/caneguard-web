@@ -1,49 +1,27 @@
-# Mobile report review status contract
+# Mobile report review status implementation notes
 
-This document is authoritative for the existing Laravel mobile status feed used by
-Field Reporter clients. It is additive to `/api/v1`; it does not replace report
-submission or the reviewer workflow.
+The canonical wire contracts are [`mobile-report-status-v1.md`](../../docs/contracts/mobile-report-status-v1.md)
+and [`mobile-report-status-v2.md`](../../docs/contracts/mobile-report-status-v2.md).
+This document records shared implementation behavior and does not duplicate their
+response schemas. The v2 route is the current route for Model V1 mobile clients;
+the v1 route remains available for legacy clients.
 
 ## Read status snapshots
 
-`GET /api/v1/mobile/reports/statuses`
+Both `GET /api/v1/mobile/reports/statuses` and
+`GET /api/v2/mobile/reports/statuses` require Sanctum bearer authentication, the
+`report:status` token ability, and a `field_reporter` account. Results are scoped
+to the authenticated reporter. Reviewer and admin accounts must use the reviewer
+API instead.
 
-The request requires Sanctum bearer authentication, the `report:status` token
-ability, and a `field_reporter` account. Results are scoped to the authenticated
-reporter. Reviewer and admin accounts must use the reviewer API instead.
+Both routes return the exact snapshot defined by their versioned contract. The
+feed intentionally does not include reviewer UUID, name, or email. Review history
+and threaded replies are not part of the mobile status response. Mobile
+presentation may call the author `Authority staff`, but that label is not an API
+field.
 
-Each `data` item is the exact current snapshot below. The feed intentionally does
-not include reviewer UUID, name, or email:
-
-```json
-{
-  "uuid": "server-report-uuid",
-  "client_uuid": "stable-mobile-report-uuid",
-  "reference_code": "CG-20260813-AB12CD34",
-  "review_status": "verified_by_staff",
-  "review_notes": "Latest plain-text authority note or null",
-  "reviewed_at": "2026-08-13T10:20:30.123000Z",
-  "updated_at": "2026-08-13T10:20:31.456000Z"
-}
-```
-
-`review_status` is one of these five wire values:
-
-- `submitted_unverified`
-- `for_field_validation`
-- `verified_by_staff`
-- `unable_to_verify`
-- `resolved`
-
-`review_notes` is the latest optional plain-text note only. Review history and
-threaded replies are not part of this contract. Mobile presentation may call the
-author `Authority staff`, but that label is not an API field.
-
-The response retains Laravel's existing top-level `data`, `links`, and `meta`
-pagination keys and also includes `sync.before`. Pagination is cursor-based and
-ordered by `(updated_at, id)`. Clients must follow the returned cursor links and
-retain the same `sync.before` checkpoint for a complete refresh. `updated_after`
-is an optional incremental lower bound; `per_page` is 1–100.
+The route-specific query parameters, response fields, pagination behavior, and
+checkpoint rules are maintained in the canonical versioned contracts above.
 
 ## Review mutation and retry behavior
 
@@ -69,7 +47,7 @@ Legacy status values are mapped without reopening completed
 See [`docs/contracts/report-lifecycle-v1.md`](../../docs/contracts/report-lifecycle-v1.md)
 for the values and mapping.
 
-This Mobile status contract adds no push notifications, unread state, replies,
-referral workflow, analytics, optional report fields, or new endpoint.
+These Mobile status contracts add no push notifications, unread state, replies,
+referral workflow, analytics, or optional report fields.
 Reviewer-facing report details may expose the separate operational correction
 history described in the lifecycle contract.
