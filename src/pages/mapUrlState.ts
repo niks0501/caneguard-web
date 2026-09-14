@@ -13,7 +13,7 @@ const statusSchema = z.enum([
   "resolved",
 ]);
 const queueSchema = z.enum(["needs_visit", "follow_up_due"]);
-const diseaseSchema = z.enum(["healthy", "mosaic", "rust"]);
+const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
 const dateSchema = z.iso.date();
 
 export interface MapUrlState {

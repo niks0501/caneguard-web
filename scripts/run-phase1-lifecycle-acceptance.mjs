@@ -14,6 +14,7 @@ import { readMobileFieldValidationCompletionArtifact } from './validate-mobile-f
 import { readMobileNotificationsArtifact } from './validate-mobile-notifications-v1.mjs';
 import { readMobileReportUploadArtifact } from './validate-mobile-report-upload-v1.mjs';
 import { readReportLifecycleArtifact } from './validate-report-lifecycle-v1.mjs';
+import { readMobileReportUploadV2Artifact } from './validate-mobile-report-upload-v2.mjs';
 
 const REPOSITORY_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -24,6 +25,10 @@ const CONTRACT_ARTIFACTS = [
   {
     relativePath: 'docs/contracts/mobile-report-upload-v1.json',
     reader: readMobileReportUploadArtifact,
+  },
+  {
+    relativePath: 'docs/contracts/mobile-report-upload-v2.json',
+    reader: readMobileReportUploadV2Artifact,
   },
   {
     relativePath: 'docs/contracts/mobile-field-validation-assignment-v1.json',
@@ -135,7 +140,7 @@ async function main() {
       evidence.contract_artifacts = CONTRACT_ARTIFACTS.map(({ relativePath }, index) => (
         artifactEvidence(relativePath, definitions[index])
       ));
-      return 'All linked v1 artifacts passed structural validation.';
+      return 'All linked upload and lifecycle artifacts passed structural validation.';
     });
 
     await runStep(steps, 'Mobile source artifact alignment', async () => {
@@ -195,7 +200,7 @@ async function main() {
       }
 
       const form = await buildReportForm(tempRoot);
-      const upload = await requestJson(`${apiBaseUrl}/api/v1/mobile/reports`, {
+      const upload = await requestJson(`${apiBaseUrl}/api/v2/mobile/reports`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${mobileToken}` },
         body: form,
@@ -602,12 +607,13 @@ async function buildReportForm(tempRoot) {
   append('class_scores[healthy]', 0.08);
   append('class_scores[mosaic]', 0.1);
   append('class_scores[rust]', 0.82);
+  append('class_scores[smut]', 0);
   append('symptom_keys[]', 'rust');
   append('checklist_consistency', 'consistent');
   append('reported_severity', 'moderate');
   append('quality_warnings[]', 'low-resolution');
   append('barangay', 'Mabini');
-  append('model_version', 'caneguard-mobile-v1.0.0');
+  append('model_version', 'v1.0-mobilenetv2');
   append('preprocess_ms', 12.5);
   append('inference_ms', 95.75);
   append('total_ms', 122.25);

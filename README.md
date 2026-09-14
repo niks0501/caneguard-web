@@ -23,7 +23,7 @@ Sanctum cookie session        bearer token via ADB reverse
 - The Web app uses Vite, React, TypeScript, and `VITE_API_BASE_URL`.
 - The API uses Laravel 13, Sanctum, MySQL, database-backed sessions and cache, and local report-image storage.
 - Web authentication uses Sanctum cookies and the configured CORS and stateful-domain values.
-- Mobile authentication uses a Sanctum bearer token and the `/api/v1/mobile/*` routes.
+- Mobile authentication uses a Sanctum bearer token and the versioned `/api/v1/mobile/*` and `/api/v2/mobile/*` routes.
 - The root `npm run api:dev` script starts the API on `127.0.0.1:8000`.
 - The root `npm run dev` script starts the Web app on Vite's default local URL, `http://localhost:5173`.
 - The API health endpoint is `GET http://127.0.0.1:8000/api/health`.
@@ -419,6 +419,7 @@ The artifact and consumer checks do not need the private Mobile repository.
 cd "$HOME/src/caneguard/caneguard-web"
 npm run contract:test
 npm run contract:artifact
+npm run contract:v2:artifact
 npm run contract:assignment-artifact
 npm run contract:completion-artifact
 npm run contract:notification-artifact
@@ -465,8 +466,10 @@ Use [the P0F acceptance gate](docs/CaneGuard_P0A-P0F_Stabilization_Plans/P0F-CRO
 
 - [Simple staging workflow](docs/staging.md)
 - [Physical Android API connectivity](docs/development/physical-android-api.md)
-- [Mobile report upload contract](docs/contracts/mobile-report-upload-v1.md)
-- [Mobile report review-status contract](docs/contracts/mobile-report-status-v1.md)
+- [Mobile report upload contract v1](docs/contracts/mobile-report-upload-v1.md)
+- [Mobile report upload contract v2](docs/contracts/mobile-report-upload-v2.md)
+- [Mobile report review-status contract v1](docs/contracts/mobile-report-status-v1.md)
+- [Mobile report review-status contract v2](docs/contracts/mobile-report-status-v2.md)
 - [Mobile duplicate assistance contract](docs/contracts/mobile-duplicate-assistance-v1.md)
 - [Mobile lifecycle contract gate](docs/testing/mobile-report-upload-contract-gate.md)
 - [Web map and queue regression evidence](docs/testing/web-map-queue-regression.md)

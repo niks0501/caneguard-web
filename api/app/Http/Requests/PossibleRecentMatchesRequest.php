@@ -19,7 +19,7 @@ class PossibleRecentMatchesRequest extends ApiFormRequest
             'predicted_label' => [
                 'required',
                 'string',
-                Rule::in(Report::labels()),
+                Rule::in(Report::v2Labels()),
             ],
             'final_latitude' => [
                 'sometimes',

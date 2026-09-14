@@ -998,6 +998,7 @@ a .mismatch-table-marker {
 .disease-badge--healthy > span { background: var(--disease-healthy); }
 .disease-badge--mosaic > span { background: var(--disease-mosaic); }
 .disease-badge--rust > span { background: var(--disease-rust); }
+.disease-badge--smut > span { background: var(--disease-smut); }
 
 .status-badge--submitted_unverified { color: #6e5213; background: #f7eecb; }
 .status-badge--for_field_validation { color: #8a421e; background: #f7e4d8; }

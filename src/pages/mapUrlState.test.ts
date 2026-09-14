@@ -28,6 +28,13 @@ describe("mapUrlState", () => {
     });
   });
 
+  it("accepts the V2 smut model label", () => {
+    const state = parseMapUrl(new URLSearchParams("predicted_label=smut"));
+
+    expect(state.filters.disease).toBe("smut");
+    expect(state.invalid).toBe(false);
+  });
+
   it("rejects invalid values and preserves normalized URL output", () => {
     expect(
       parseMapUrl(new URLSearchParams("status=confirmed&date_from=2026-08-14&date_to=2026-08-13")).invalid,

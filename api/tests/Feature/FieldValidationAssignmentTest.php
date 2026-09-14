@@ -163,6 +163,27 @@ class FieldValidationAssignmentTest extends TestCase
         ]);
     }
 
+    public function test_mobile_assignment_feed_preserves_smut_model_labels(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->mobileModelV1()->create([
+            'predicted_label' => Report::LABEL_SMUT,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($assignee, ['assignment:read']);
+
+        $this->getJson('/api/v1/mobile/assignments')
+            ->assertOk()
+            ->assertJsonPath('data.0.case.predicted_label', Report::LABEL_SMUT);
+    }
+
     public function test_mobile_assignment_feed_is_owner_scoped_and_can_materialize_a_server_only_case(): void
     {
         $reviewer = User::factory()->reviewer()->create();
@@ -508,6 +529,10 @@ class FieldValidationAssignmentTest extends TestCase
                 'case',
             ],
             array_keys($contract['fields']),
+        );
+        $this->assertSame(
+            ['healthy', 'mosaic', 'rust', 'smut'],
+            $contract['fields']['case']['properties']['predicted_label']['enum'],
         );
     }
 }

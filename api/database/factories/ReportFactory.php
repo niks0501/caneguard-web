@@ -86,6 +86,17 @@ class ReportFactory extends Factory
         ];
     }
 
+    /**
+     * Build a report fixture using the Model V1 four-class evidence shape.
+     */
+    public function mobileModelV1(): static
+    {
+        return $this->state([
+            'predicted_label' => fake()->randomElement(Report::v2Labels()),
+            'model_version' => 'v1.0-mobilenetv2',
+        ]);
+    }
+
     public function configure(): static
     {
         return $this
@@ -97,7 +108,10 @@ class ReportFactory extends Factory
                 }
             })
             ->afterCreating(function (Report $report): void {
-                $scores = collect(Report::labels())
+                $labels = $report->model_version === 'v1.0-mobilenetv2'
+                    ? Report::v2Labels()
+                    : Report::labels();
+                $scores = collect($labels)
                     ->map(fn (string $label) => [
                         'label' => $label,
                         'score' => $label === $report->predicted_label

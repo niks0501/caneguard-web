@@ -7,7 +7,7 @@ const DEFAULT_CONFIG_PATH = path.resolve(
   '../ci/mobile-report-upload-gate.json',
 );
 const EXPECTED_MOBILE_REPOSITORY = 'niks0501/caneguard-mobile';
-const EXPECTED_ARTIFACT_PATH = 'docs/contracts/mobile-report-upload-v1.json';
+const EXPECTED_ARTIFACT_PATH = 'docs/contracts/mobile-report-upload-v2.json';
 const EXPECTED_PRODUCER_TEST_PATH =
   'src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts';
 const EXPECTED_ASSIGNMENT_ARTIFACT_PATH =

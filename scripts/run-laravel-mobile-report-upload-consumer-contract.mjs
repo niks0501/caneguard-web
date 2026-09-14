@@ -9,7 +9,7 @@ const repositoryRoot = path.resolve(
 const phpCommand = process.platform === 'win32' ? 'php.exe' : 'php';
 const result = spawnSync(
   phpCommand,
-  ['artisan', 'test', '--filter=MobileReportUploadContractTest'],
+  ['artisan', 'test', '--filter=MobileReportUpload(ContractTest|V2)'],
   {
     cwd: path.join(repositoryRoot, 'api'),
     stdio: 'inherit',
@@ -21,11 +21,11 @@ if (result.error) {
   process.exitCode = 1;
 } else if (result.status !== 0) {
   console.error(
-    `[consumer] Laravel MobileReportUploadContractTest failed with exit code ${result.status ?? 'unknown'}.`,
+    `[consumer] Laravel mobile report upload contract tests failed with exit code ${result.status ?? 'unknown'}.`,
   );
   process.exitCode = result.status || 1;
 } else {
   console.log(
-    '[consumer] PASS Laravel MobileReportUploadContractTest accepted the v1 boundary.',
+    '[consumer] PASS Laravel mobile report upload contract tests accepted the v1 and V2 boundaries.',
   );
 }

@@ -23,7 +23,7 @@ Laravel is accessible, powerful, and provides tools required for large, robust a
 
 ## Mobile report review status contract
 
-The canonical v1 wire contract for `GET /api/v1/mobile/reports/statuses` is maintained at [`../docs/contracts/mobile-report-status-v1.md`](../docs/contracts/mobile-report-status-v1.md).
+The canonical v1 wire contract for `GET /api/v1/mobile/reports/statuses` remains maintained at [`../docs/contracts/mobile-report-status-v1.md`](../docs/contracts/mobile-report-status-v1.md). Model V1 mobile clients use the corresponding V2 status route, `GET /api/v2/mobile/reports/statuses`.
 
 The endpoint implementation is covered by `tests/Feature/MobileReportStatusTest.php`.
 
@@ -31,9 +31,9 @@ This README intentionally does not duplicate the response schema so the versione
 
 ## Mobile report upload contract
 
-The canonical v1 multipart upload contract is maintained at [`../docs/contracts/mobile-report-upload-v1.md`](../docs/contracts/mobile-report-upload-v1.md), with its machine-readable source at [`../docs/contracts/mobile-report-upload-v1.json`](../docs/contracts/mobile-report-upload-v1.json).
+The stable v1 multipart upload contract remains available at [`../docs/contracts/mobile-report-upload-v1.md`](../docs/contracts/mobile-report-upload-v1.md). Model V1 mobile clients use the breaking four-class V2 contract at [`../docs/contracts/mobile-report-upload-v2.md`](../docs/contracts/mobile-report-upload-v2.md), with its machine-readable source at [`../docs/contracts/mobile-report-upload-v2.json`](../docs/contracts/mobile-report-upload-v2.json).
 
-The Laravel request compiles its validation boundary from that artifact through `App\Contracts\MobileReportUploadContract`.
+The Laravel requests compile their validation boundaries from those artifacts through `App\Contracts\MobileReportUploadContract` and `App\Contracts\MobileReportUploadV2Contract`.
 
 ## Learning Laravel
 

@@ -987,12 +987,13 @@ function buildMobileUploadForm(worktree) {
   append("class_scores[healthy]", 0.08);
   append("class_scores[mosaic]", 0.1);
   append("class_scores[rust]", 0.82);
+  append("class_scores[smut]", 0);
   append("symptom_keys[]", "rust");
   append("checklist_consistency", "consistent");
   append("reported_severity", "moderate");
   append("quality_warnings[]", "low-resolution");
   append("barangay", "Mabini");
-  append("model_version", "caneguard-mobile-v1.0.0");
+  append("model_version", "v1.0-mobilenetv2");
   append("preprocess_ms", 12.5);
   append("inference_ms", 95.75);
   append("total_ms", 122.25);
@@ -1022,7 +1023,7 @@ async function checkSeededMobileReportUpload(config, apiBaseUrl, worktree) {
     );
   }
 
-  const upload = await requestJson(`${apiBaseUrl}/api/v1/mobile/reports`, {
+  const upload = await requestJson(`${apiBaseUrl}/api/v2/mobile/reports`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${login.body.token}`,

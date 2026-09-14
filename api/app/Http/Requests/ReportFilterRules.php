@@ -15,7 +15,7 @@ final class ReportFilterRules
         bool $includeQueue = true,
     ): array {
         $rules = [
-            'predicted_label' => ['sometimes', Rule::in(Report::labels())],
+            'predicted_label' => ['sometimes', Rule::in(Report::v2Labels())],
             'barangay' => ['sometimes', 'string', 'max:120'],
             'date_from' => ['sometimes', 'date_format:Y-m-d'],
             'date_to' => [
