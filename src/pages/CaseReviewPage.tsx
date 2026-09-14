@@ -569,15 +569,18 @@ export function CaseReviewPage() {
               <p className="authority-classification-help">
                 This submitted field evidence is read-only here and does not verify or close the case.
               </p>
+              <div className="field-validation-action-evidence" aria-label="Action Taken evidence">
+                <p className="field-validation-action-evidence__title">Action Taken evidence</p>
+                <DetailField label="Action taken">
+                  {report.fieldValidationAssignment.completion.actionTaken}
+                </DetailField>
+              </div>
               <dl className="detail-list reporter-observation-details">
                 <DetailField label="Observation">
                   {report.fieldValidationAssignment.completion.fieldObservation}
                 </DetailField>
                 <DetailField label="Finding">
                   {report.fieldValidationAssignment.completion.fieldFinding}
-                </DetailField>
-                <DetailField label="Action taken">
-                  {report.fieldValidationAssignment.completion.actionTaken}
                 </DetailField>
               </dl>
             </section>
@@ -847,6 +850,10 @@ export function CaseReviewPage() {
               <option value="closed">Closed - office handling is complete</option>
             </SelectFilter>
             <p className="authority-classification-help">Closing a case is an explicit office decision. Verification never closes it automatically.</p>
+            <div className="review-action-guidance" role="note">
+              <strong>Record intervention or action details</strong>
+              <p>Choose the office action below, then use Review notes to record the treatment, pesticide, medicine, technical assistance, or other action used when applicable. If no intervention was used, say so in the notes.</p>
+            </div>
             <fieldset className="review-actions">
               <legend>Action taken - choose explicitly</legend>
               {actions.map((action) => {
@@ -862,7 +869,7 @@ export function CaseReviewPage() {
               })}
             </fieldset>
             <p className="authority-classification-help">{referralPending ? "The referral action remains active until an expert response is recorded." : "No action is selected until you choose one."} A field reporter may provide visit details, but only office authority can save this disposition.</p>
-            <TextArea id="review-notes" label="Review notes" hint="Use neutral, observable language. Notes are saved with the review." rows={5} maxLength={1000} value={notes} onChange={(event) => { setNotesOverride(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Add context for this office response..." />
+            <TextArea id="review-notes" label="Review notes" hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review." rows={5} maxLength={1000} value={notes} onChange={(event) => { setNotesOverride(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Describe the intervention or other action used, if applicable..." />
             <p className="review-note-count">{notes.length}/1,000</p>
             <details className="metadata-correction">
               <summary>Correct operational metadata</summary>
