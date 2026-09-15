@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Notifications\CreateLifecycleNotifications;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\MobileNotificationMutationRequest;
 use App\Http\Requests\MobileNotificationRequest;
 use App\Http\Resources\MobileNotificationResource;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Notifications\DatabaseNotification;
 
 class MobileNotificationController extends Controller
 {
@@ -37,6 +40,47 @@ class MobileNotificationController extends Controller
         return MobileNotificationResource::collection($items)->additional([
             'sync' => [
                 'before' => $syncBefore->toISOString(),
+            ],
+        ]);
+    }
+
+    /**
+     * Acknowledge one owner-scoped notification. Loads the item through the
+     * authenticated user's notifications relation so another account's
+     * notification can never be read or acknowledged.
+     */
+    public function markRead(
+        MobileNotificationMutationRequest $request,
+        DatabaseNotification $notification,
+    ): MobileNotificationResource {
+        $user = $request->user();
+        $owned = $user->notifications()
+            ->whereKey($notification->getKey())
+            ->firstOrFail();
+
+        if ($owned->read_at === null) {
+            $owned->markAsRead();
+        }
+
+        return (new MobileNotificationResource($owned->refresh()))->additional([
+            'meta' => [
+                'unread_count' => $user->unreadNotifications()->count(),
+            ],
+        ]);
+    }
+
+    /** Acknowledge every unread notification owned by the signed-in inspector. */
+    public function markAllAsRead(
+        MobileNotificationMutationRequest $request,
+    ): JsonResponse {
+        $user = $request->user();
+        $markedCount = $user->unreadNotifications()->update(['read_at' => now()]);
+
+        return response()->json([
+            'data' => [],
+            'meta' => [
+                'marked_count' => $markedCount,
+                'unread_count' => 0,
             ],
         ]);
     }

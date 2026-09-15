@@ -33,6 +33,14 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     symptoms: [],
     reviewStatus: dto.review_status,
     lifecycle: mapReportLifecycle(dto.lifecycle, dto.review_status),
+    authorityClassifiedCondition: dto.authority_classified_condition ?? null,
+    locationUnavailable: dto.location_unavailable ?? false,
+    locationUnavailableReason: dto.location_unavailable_reason ?? null,
+    affectedAreaMeasurement: dto.affected_area_measurement,
+    affectedPortionMeasurement: dto.affected_portion_measurement,
+    followUp: dto.follow_up
+      ? { dueOn: dto.follow_up.due_on, overdue: dto.follow_up.overdue }
+      : undefined,
   };
 }
 

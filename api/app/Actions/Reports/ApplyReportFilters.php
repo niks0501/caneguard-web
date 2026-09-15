@@ -53,6 +53,26 @@ class ApplyReportFilters
                     ->where('review_status', $status),
             )
             ->when(
+                $filters['case_state'] ?? null,
+                fn (Builder $query, string $state) => $query
+                    ->where('case_state', $state),
+            )
+            ->when(
+                $filters['verification_outcome'] ?? null,
+                fn (Builder $query, string $outcome) => $query
+                    ->where('verification_outcome', $outcome),
+            )
+            ->when(
+                $filters['field_validation_state'] ?? null,
+                fn (Builder $query, string $state) => $query
+                    ->where('field_validation_state', $state),
+            )
+            ->when(
+                $filters['authority_classified_condition'] ?? null,
+                fn (Builder $query, string $condition) => $query
+                    ->where('authority_classified_condition', $condition),
+            )
+            ->when(
                 $filters['predicted_label'] ?? null,
                 fn (Builder $query, string $label) => $query
                     ->where('predicted_label', $label),

@@ -20,7 +20,7 @@ export function DashboardRecentReports({
             <th scope="col">Possible Condition</th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
-            <th scope="col">Review status</th>
+            <th scope="col">Work status</th>
             <th scope="col"><span className="sr-only">Action</span></th>
           </tr>
         </thead>

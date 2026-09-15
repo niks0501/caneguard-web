@@ -23,6 +23,7 @@ export const reviewStatusSchema = z.enum([
   "unable_to_verify",
   "resolved",
 ]);
+export const measurementProvenanceSchema = z.enum(["measured", "not_measured"]);
 export const caseStateSchema = z.enum(["open", "closed"]);
 export const verificationOutcomeSchema = z.enum([
   "not_determined",
@@ -171,6 +172,15 @@ export const reportListItemSchema = z.object({
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
   lifecycle: reportLifecycleSchema.optional(),
+  authority_classified_condition: authorityClassifiedConditionSchema.nullable().optional(),
+  location_unavailable: z.boolean().optional(),
+  location_unavailable_reason: z.string().nullable().optional(),
+  affected_area_measurement: measurementProvenanceSchema.optional(),
+  affected_portion_measurement: measurementProvenanceSchema.optional(),
+  follow_up: z.object({
+    due_on: z.string().nullable(),
+    overdue: z.boolean(),
+  }).optional(),
   mismatch_reported: z.boolean().nullable(),
   image_url: z.string(),
 });

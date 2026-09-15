@@ -17,11 +17,28 @@ const statusSchema = z.enum([
 ]);
 const queueSchema = z.enum(operationalQueueValues);
 const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
-const sortSchema = z.enum([
-  "newest",
-  "oldest",
-  "confidence_desc",
-  "confidence_asc",
+const sortSchema = z.enum(["newest", "oldest", "due_soonest"]);
+const caseStateSchema = z.enum(["open", "closed"]);
+const verificationOutcomeSchema = z.enum([
+  "not_determined",
+  "verified",
+  "unable_to_verify",
+]);
+const fieldValidationStateSchema = z.enum([
+  "unassigned",
+  "assigned",
+  "in_progress",
+  "completed",
+]);
+const staffClassifiedConditionSchema = z.enum([
+  "healthy",
+  "smut",
+  "mosaic",
+  "rust",
+  "rssi",
+  "downy_mildew",
+  "mixed_or_multiple",
+  "unable_to_classify",
 ]);
 const dateSchema = z.iso.date();
 
@@ -48,6 +65,19 @@ export function parseReportListUrl(
   const rawDateFrom = optionalValue(searchParams, "date_from");
   const rawDateTo = optionalValue(searchParams, "date_to");
   const rawSort = optionalValue(searchParams, "sort");
+  const rawCaseState = optionalValue(searchParams, "case_state");
+  const rawVerificationOutcome = optionalValue(
+    searchParams,
+    "verification_outcome",
+  );
+  const rawFieldValidationState = optionalValue(
+    searchParams,
+    "field_validation_state",
+  );
+  const rawStaffClassifiedCondition = optionalValue(
+    searchParams,
+    "authority_classified_condition",
+  );
 
   const page =
     rawPage && /^\d+$/.test(rawPage) ? Number.parseInt(rawPage, 10) : 1;
@@ -55,6 +85,16 @@ export function parseReportListUrl(
   const status = rawStatus ? statusSchema.safeParse(rawStatus) : null;
   const disease = rawDisease ? diseaseSchema.safeParse(rawDisease) : null;
   const sort = rawSort ? sortSchema.safeParse(rawSort) : null;
+  const caseState = rawCaseState ? caseStateSchema.safeParse(rawCaseState) : null;
+  const verificationOutcome = rawVerificationOutcome
+    ? verificationOutcomeSchema.safeParse(rawVerificationOutcome)
+    : null;
+  const fieldValidationState = rawFieldValidationState
+    ? fieldValidationStateSchema.safeParse(rawFieldValidationState)
+    : null;
+  const staffClassifiedCondition = rawStaffClassifiedCondition
+    ? staffClassifiedConditionSchema.safeParse(rawStaffClassifiedCondition)
+    : null;
   const dateFrom = rawDateFrom ? dateSchema.safeParse(rawDateFrom) : null;
   const dateTo = rawDateTo ? dateSchema.safeParse(rawDateTo) : null;
   const invalid =
@@ -68,6 +108,10 @@ export function parseReportListUrl(
     Boolean(status && !status.success) ||
     Boolean(disease && !disease.success) ||
     Boolean(sort && !sort.success) ||
+    Boolean(caseState && !caseState.success) ||
+    Boolean(verificationOutcome && !verificationOutcome.success) ||
+    Boolean(fieldValidationState && !fieldValidationState.success) ||
+    Boolean(staffClassifiedCondition && !staffClassifiedCondition.success) ||
     Boolean(dateFrom && !dateFrom.success) ||
     Boolean(dateTo && !dateTo.success) ||
     Boolean(rawDateFrom && rawDateTo && rawDateTo < rawDateFrom);
@@ -87,7 +131,23 @@ export function parseReportListUrl(
       barangay: rawBarangay,
       dateFrom: dateFrom?.success ? dateFrom.data : undefined,
       dateTo: dateTo?.success ? dateTo.data : undefined,
-      sort: sort?.success ? sort.data : "newest",
+      caseState: caseState?.success ? caseState.data : undefined,
+      verificationOutcome: verificationOutcome?.success
+        ? verificationOutcome.data
+        : undefined,
+      fieldValidationState: fieldValidationState?.success
+        ? fieldValidationState.data
+        : undefined,
+      staffClassifiedCondition: staffClassifiedCondition?.success
+        ? staffClassifiedCondition.data
+        : undefined,
+      // The unscoped work queue opens on the oldest submission; a due queue
+      // opens on the nearest target visit date.
+      sort: sort?.success
+        ? sort.data
+        : queue?.success && queue.data === "follow_up_due"
+          ? "due_soonest"
+          : "oldest",
     },
     hasActiveFilters: Boolean(
       rawQueue ||
@@ -96,7 +156,11 @@ export function parseReportListUrl(
         rawDisease ||
         rawBarangay ||
         rawDateFrom ||
-        rawDateTo,
+        rawDateTo ||
+        rawCaseState ||
+        rawVerificationOutcome ||
+        rawFieldValidationState ||
+        rawStaffClassifiedCondition,
     ),
     invalid,
   };

@@ -23,6 +23,19 @@ final class ReportFilterRules
                 'date_format:Y-m-d',
                 'after_or_equal:date_from',
             ],
+            'case_state' => ['sometimes', Rule::in(Report::caseStates())],
+            'verification_outcome' => [
+                'sometimes',
+                Rule::in(Report::verificationOutcomes()),
+            ],
+            'field_validation_state' => [
+                'sometimes',
+                Rule::in(Report::fieldValidationStates()),
+            ],
+            'authority_classified_condition' => [
+                'sometimes',
+                Rule::in(Report::authorityClassifiedConditions()),
+            ],
         ];
 
         if ($includeStatus) {

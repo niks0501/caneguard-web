@@ -27,13 +27,16 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'final_latitude',
     'final_longitude',
     'location_source',
+    'location_unavailable_reason',
     'gps_accuracy',
     'observed_at',
     'sugarcane_variety',
     'crop_age',
     'cane_class',
     'affected_area_hectares',
+    'affected_area_measurement',
     'affected_portion_percent',
+    'affected_portion_measurement',
     'field_notes',
     'mismatch_reported',
     'reporter_suspected_condition',
@@ -84,6 +87,28 @@ class Report extends Model
 
     /** Stable free-text value used when Mobile reports RSSI as field evidence. */
     public const REPORTER_CONCERN_RSSI = 'RSSI';
+
+    /** D-01: explicit provenance for a reported affected-area value. */
+    public const MEASUREMENT_MEASURED = 'measured';
+
+    public const MEASUREMENT_NOT_MEASURED = 'not_measured';
+
+    /** D-02: a location that was deliberately not captured before submission. */
+    public const LOCATION_SOURCE_UNAVAILABLE = 'unavailable';
+
+    public const LOCATION_SOURCE_GPS = 'gps';
+
+    public const LOCATION_SOURCE_MANUAL_MAP = 'manual_map';
+
+    public const LOCATION_UNAVAILABLE_REASON_PERMISSION_DENIED = 'permission_denied';
+
+    public const LOCATION_UNAVAILABLE_REASON_SERVICES_UNAVAILABLE = 'services_unavailable';
+
+    public const LOCATION_UNAVAILABLE_REASON_LOW_ACCURACY = 'low_accuracy';
+
+    public const LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP = 'offline_no_map';
+
+    public const LOCATION_UNAVAILABLE_REASON_OTHER = 'other';
 
     public const AUTHORITY_CONDITION_HEALTHY = 'healthy';
 
@@ -150,6 +175,35 @@ class Report extends Model
     public const ACTION_NO_FURTHER_ACTION_REQUIRED = 'no_further_action_required';
 
     public const AUDIT_FIELD_CANONICAL_REPORT = 'canonical_report_id';
+
+    /**
+     * Resolve the recorded measurement provenance for affected area.
+     *
+     * Rows written before D-01 have no explicit provenance, so a stored number
+     * reads as measured and a missing number reads as not measured.
+     */
+    public function affectedAreaMeasurement(): string
+    {
+        return $this->affected_area_measurement
+            ?? ($this->affected_area_hectares === null
+                ? self::MEASUREMENT_NOT_MEASURED
+                : self::MEASUREMENT_MEASURED);
+    }
+
+    /** @see affectedAreaMeasurement() */
+    public function affectedPortionMeasurement(): string
+    {
+        return $this->affected_portion_measurement
+            ?? ($this->affected_portion_percent === null
+                ? self::MEASUREMENT_NOT_MEASURED
+                : self::MEASUREMENT_MEASURED);
+    }
+
+    /** True when the reporter submitted without an exact coordinate on purpose. */
+    public function hasLocationUnavailable(): bool
+    {
+        return $this->location_source === self::LOCATION_SOURCE_UNAVAILABLE;
+    }
 
     /**
      * Evidence submitted by Mobile is immutable after the report is created.
@@ -532,12 +586,15 @@ class Report extends Model
             'final_latitude' => 'decimal:7',
             'final_longitude' => 'decimal:7',
             'location_source' => 'string',
+            'location_unavailable_reason' => 'string',
             'gps_accuracy' => 'decimal:2',
             'sugarcane_variety' => 'string',
             'crop_age' => 'string',
             'cane_class' => 'string',
             'affected_area_hectares' => 'decimal:2',
+            'affected_area_measurement' => 'string',
             'affected_portion_percent' => 'decimal:2',
+            'affected_portion_measurement' => 'string',
             'field_notes' => 'string',
             'mismatch_reported' => 'boolean',
             'reporter_suspected_condition' => 'string',

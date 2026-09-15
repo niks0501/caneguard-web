@@ -175,7 +175,7 @@ describe("CaseReviewPage", () => {
       name: "Review evidence, choose a next action, then save",
     });
     expect(reviewSummary).toHaveTextContent("Case state");
-    expect(screen.getByText("Current status")).toHaveClass("review-summary__label");
+    expect(screen.getByText("Work status")).toHaveClass("review-summary__label");
     expect(reviewSummary.querySelector(".status-badge")).not.toHaveClass("review-summary__label");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();

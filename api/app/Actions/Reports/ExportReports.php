@@ -22,10 +22,16 @@ final class ExportReports
         'farmer_or_farm_reference',
         'possible_ai_condition',
         'affected_area_hectares',
+        'affected_area_measurement',
         'affected_portion_percent',
+        'affected_portion_measurement',
+        'work_status',
         'verification_outcome',
         'case_state',
         'field_validation_state',
+        'staff_classified_condition',
+        'location_unavailable',
+        'location_unavailable_reason',
         'field_validator',
         'assigned_by',
         'target_visit_date',
@@ -82,8 +88,6 @@ final class ExportReports
     {
         [$column, $direction] = match ($sort) {
             'submitted_at' => ['submitted_at', 'asc'],
-            '-confidence' => ['confidence', 'desc'],
-            'confidence' => ['confidence', 'asc'],
             default => ['submitted_at', 'desc'],
         };
 
@@ -109,11 +113,23 @@ final class ExportReports
                 $report->barangay,
                 $report->farmer_or_farm_owner_name ?? '',
                 'Possible '.$report->predicted_label,
-                $report->affected_area_hectares ?? '',
-                $report->affected_portion_percent ?? '',
+                $report->affected_area_hectares === null
+                    ? $report->affectedAreaMeasurement()
+                    : $report->affected_area_hectares,
+                $report->affectedAreaMeasurement(),
+                $report->affected_portion_percent === null
+                    ? $report->affectedPortionMeasurement()
+                    : $report->affected_portion_percent,
+                $report->affectedPortionMeasurement(),
+                $report->review_status,
                 $lifecycle['verification_outcome'],
                 $lifecycle['case_state'],
                 $lifecycle['field_validation_state'],
+                $report->authority_classified_condition ?? '',
+                $report->hasLocationUnavailable() ? 'yes' : 'no',
+                $report->hasLocationUnavailable()
+                    ? ($report->location_unavailable_reason ?? '')
+                    : '',
                 $assignment?->assignee?->name ?? '',
                 $assignment?->assignedBy?->name ?? '',
                 $assignment?->target_visit_date?->format('Y-m-d') ?? '',

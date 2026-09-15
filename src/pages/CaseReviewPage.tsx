@@ -544,7 +544,7 @@ export function CaseReviewPage() {
           <p>Submitted AI evidence is kept behind a disclosure so the office decision is not anchored by the model result.</p>
         </div>
         <div className="review-summary__item">
-          <span className="review-summary__label">Current status</span>
+          <span className="review-summary__label">Work status</span>
           <ReviewStatusBadge status={report.reviewStatus} />
         </div>
         <div className="review-summary__item">

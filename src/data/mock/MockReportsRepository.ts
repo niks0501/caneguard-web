@@ -111,11 +111,15 @@ export class MockReportsRepository implements ReportsRepository {
         );
       })
       .sort((first, second) => {
-        if (filters?.sort === "confidence_desc") {
-          return second.confidence - first.confidence;
-        }
-        if (filters?.sort === "confidence_asc") {
-          return first.confidence - second.confidence;
+        if (filters?.sort === "due_soonest") {
+          const firstDue = first.followUp?.dueOn ?? null;
+          const secondDue = second.followUp?.dueOn ?? null;
+          if (firstDue === secondDue) {
+            return new Date(first.submittedAt).getTime() - new Date(second.submittedAt).getTime();
+          }
+          if (firstDue === null) return 1;
+          if (secondDue === null) return -1;
+          return firstDue.localeCompare(secondDue);
         }
         const dateDifference =
           new Date(second.submittedAt).getTime() -

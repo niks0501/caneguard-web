@@ -88,10 +88,16 @@ class ReportReportingTest extends TestCase
             'farmer_or_farm_reference',
             'possible_ai_condition',
             'affected_area_hectares',
+            'affected_area_measurement',
             'affected_portion_percent',
+            'affected_portion_measurement',
+            'work_status',
             'verification_outcome',
             'case_state',
             'field_validation_state',
+            'staff_classified_condition',
+            'location_unavailable',
+            'location_unavailable_reason',
             'field_validator',
             'assigned_by',
             'target_visit_date',
@@ -109,10 +115,16 @@ class ReportReportingTest extends TestCase
             'Juan Dela Cruz',
             'Possible rust',
             '12.50',
+            Report::MEASUREMENT_MEASURED,
             '42.75',
+            Report::MEASUREMENT_MEASURED,
+            Report::STATUS_FOR_FIELD_VALIDATION,
             Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             Report::CASE_STATE_OPEN,
             Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            '',
+            'no',
+            '',
             'Field Validator',
             'Office Reviewer',
             '2026-09-12',
@@ -165,11 +177,11 @@ class ReportReportingTest extends TestCase
         $this->assertSame("'=case-reference", $rows[1][0]);
         $this->assertSame("'+barangay", $rows[1][2]);
         $this->assertSame("'-farmer", $rows[1][3]);
-        $this->assertSame("'\tvalidator", $rows[1][10]);
-        $this->assertSame("'\rassigner", $rows[1][11]);
-        $this->assertSame("'@action", $rows[1][13]);
-        $this->assertSame("'\ndestination", $rows[1][15]);
-        $this->assertSame("'=external-reference", $rows[1][16]);
+        $this->assertSame("'\tvalidator", $rows[1][16]);
+        $this->assertSame("'\rassigner", $rows[1][17]);
+        $this->assertSame("'@action", $rows[1][19]);
+        $this->assertSame("'\ndestination", $rows[1][21]);
+        $this->assertSame("'=external-reference", $rows[1][22]);
     }
 
     public function test_export_and_monthly_summary_require_office_authority_and_validate_month(): void

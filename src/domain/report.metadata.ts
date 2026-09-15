@@ -2,11 +2,15 @@ import type {
   ActionTaken,
   ActiveAuthorityClassifiedCondition,
   AuthorityClassifiedCondition,
+  CaseState,
   DiseaseKey,
+  FieldValidationState,
   ImageStatus,
   LegacyAuthorityClassifiedCondition,
+  MeasurementProvenance,
   ReviewStatus,
   SubmitterRole,
+  VerificationOutcome,
 } from "./report.types";
 
 export const diseaseLabels: Record<DiseaseKey, string> = {
@@ -76,6 +80,32 @@ export const reviewStatusLabels: Record<ReviewStatus, string> = {
   verified_by_staff: "Verified by staff",
   unable_to_verify: "Unable to verify",
   resolved: "Resolved",
+};
+
+export const caseStateLabels: Record<CaseState, string> = {
+  open: "Open",
+  closed: "Closed",
+};
+
+export const verificationOutcomeLabels: Record<VerificationOutcome, string> = {
+  not_determined: "Not determined",
+  verified: "Verified",
+  unable_to_verify: "Unable to verify",
+};
+
+export const fieldValidationStateLabels: Record<FieldValidationState, string> = {
+  unassigned: "Unassigned",
+  assigned: "Assigned",
+  in_progress: "In progress",
+  completed: "Completed",
+};
+
+export const measurementProvenanceLabels: Record<
+  MeasurementProvenance,
+  string
+> = {
+  measured: "Measured",
+  not_measured: "Not measured",
 };
 
 export const actionTakenLabels: Record<ActionTaken, string> = {

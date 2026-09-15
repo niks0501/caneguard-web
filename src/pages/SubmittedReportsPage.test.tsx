@@ -74,7 +74,7 @@ beforeEach(() => {
 describe("SubmittedReportsPage", () => {
   it("uses URL filters for the server query and renders Laravel pagination", () => {
     renderPage(
-      "/reports?page=2&status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27&sort=confidence_desc",
+      "/reports?page=2&status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27&sort=oldest",
     );
 
     expect(useReports).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ describe("SubmittedReportsPage", () => {
         barangay: "Mabini",
         dateFrom: "2026-07-01",
         dateTo: "2026-07-27",
-        sort: "confidence_desc",
+        sort: "oldest",
       }),
       { enabled: true },
     );
@@ -95,8 +95,11 @@ describe("SubmittedReportsPage", () => {
       screen.getByRole("columnheader", { name: "Possible Condition" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Observed" }),
+      screen.getByRole("columnheader", { name: "Work status" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", { name: "Observed" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Bago, Negros Occidental")).toBeInTheDocument();
     expect(screen.getByText("AI mismatch flagged")).toBeInTheDocument();
     expect(screen.getAllByText("Possible Condition: Smut").length).toBeGreaterThanOrEqual(1);
@@ -158,7 +161,7 @@ describe("SubmittedReportsPage", () => {
     renderPage("/reports?page=3&status=resolved");
 
     await user.selectOptions(
-      screen.getByLabelText("Status"),
+      screen.getByLabelText("Work status"),
       "for_field_validation",
     );
 
@@ -330,4 +333,65 @@ describe("SubmittedReportsPage", () => {
     ).toBeDisabled();
     expect(screen.queryByText(/latest refresh failed/i)).not.toBeInTheDocument();
   });
+  it("defaults the unscoped work queue to the oldest submission", () => {
+    renderPage("/reports");
+
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: "oldest" }),
+      { enabled: true },
+    );
+  });
+
+  it("offers queue, work-status, and operational sorts without confidence sorting", () => {
+    renderPage("/reports");
+
+    const sort = screen.getByLabelText("Sort by");
+    const sortOptions = Array.from(sort.querySelectorAll("option")).map(
+      (option) => option.textContent,
+    );
+    expect(sortOptions).toEqual([
+      "Oldest submitted first",
+      "Newest submitted first",
+      "Due soonest",
+    ]);
+    expect(screen.getByLabelText("Queue")).toBeInTheDocument();
+    expect(screen.getByLabelText("Work status")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Staff-classified condition"),
+    ).toBeInTheDocument();
+  });
+
+  it("filters by the independent lifecycle and classification concepts", async () => {
+    const user = userEvent.setup();
+    renderPage("/reports");
+
+    await user.selectOptions(screen.getByLabelText("Case state"), "open");
+    expect(screen.getByTestId("location")).toHaveTextContent("?case_state=open");
+
+    await user.selectOptions(
+      screen.getByLabelText("Field validation state"),
+      "assigned",
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "field_validation_state=assigned",
+    );
+
+    await user.selectOptions(
+      screen.getByLabelText("Staff-classified condition"),
+      "rust",
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "authority_classified_condition=rust",
+    );
+  });
+
+  it("orders the follow-up queue by the nearest due date", () => {
+    renderPage("/reports?queue=follow_up_due");
+
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: "follow_up_due", sort: "due_soonest" }),
+      { enabled: true },
+    );
+  });
+
 });

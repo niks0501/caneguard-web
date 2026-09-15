@@ -30,8 +30,7 @@ import {
 const sortValues = {
   newest: "-submitted_at",
   oldest: "submitted_at",
-  confidence_desc: "-confidence",
-  confidence_asc: "confidence",
+  due_soonest: "due_soonest",
 } as const;
 
 function toQueryParams(
@@ -52,6 +51,23 @@ function toQueryParams(
     barangay:
       filters.barangay && filters.barangay !== "all"
         ? filters.barangay
+        : undefined,
+    case_state:
+      filters.caseState && filters.caseState !== "all"
+        ? filters.caseState
+        : undefined,
+    verification_outcome:
+      filters.verificationOutcome && filters.verificationOutcome !== "all"
+        ? filters.verificationOutcome
+        : undefined,
+    field_validation_state:
+      filters.fieldValidationState && filters.fieldValidationState !== "all"
+        ? filters.fieldValidationState
+        : undefined,
+    authority_classified_condition:
+      filters.staffClassifiedCondition &&
+      filters.staffClassifiedCondition !== "all"
+        ? filters.staffClassifiedCondition
         : undefined,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
