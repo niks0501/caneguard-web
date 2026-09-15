@@ -2,7 +2,6 @@ import {
   CalendarDays,
   FileText,
   MessageSquareText,
-  Send,
 } from "lucide-react";
 import { useState } from "react";
 import { ApiError } from "../../api/ApiError";
@@ -22,7 +21,7 @@ import type {
   ReferralState,
   VerificationOutcome,
 } from "../../domain/report.types";
-import { useRecordExpertReferralResponse, useRecordReportReferral } from "../../hooks/useReports";
+import { useRecordExpertReferralResponse } from "../../hooks/useReports";
 import { formatDateTime } from "../../lib/formatters";
 
 const verificationOutcomeLabels: Record<VerificationOutcome, string> = {
@@ -49,20 +48,13 @@ function errorMessage(error: unknown, fallback: string): string | null {
 }
 
 export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
-  const lifecycle = report.lifecycle;
   const referral = report.referral;
-  const referralState = lifecycle?.referralState ?? "not_referred";
-  const caseState = lifecycle?.caseState ?? "open";
+  const referralState = report.lifecycle?.referralState ?? "not_referred";
   const existingLegacyAuthorityClassification = isLegacyAuthorityClassifiedCondition(
     report.authorityClassifiedCondition,
   )
     ? report.authorityClassifiedCondition
     : null;
-  const [destination, setDestination] = useState("");
-  const [reference, setReference] = useState("");
-  const [referralDate, setReferralDate] = useState("");
-  const [referralNote, setReferralNote] = useState("");
-  const [referralSubmitted, setReferralSubmitted] = useState(false);
   const [responseDate, setResponseDate] = useState("");
   const [responseNote, setResponseNote] = useState("");
   const [responseFinding, setResponseFinding] = useState("");
@@ -74,18 +66,8 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
   >(undefined);
   const [responseSubmitted, setResponseSubmitted] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const recordReferral = useRecordReportReferral(report.uuid);
   const recordResponse = useRecordExpertReferralResponse(report.uuid);
 
-  const referralInputError =
-    !destination.trim()
-      ? "Add the expert destination."
-      : !reference.trim()
-        ? "Add the referral reference."
-        : !referralDate
-          ? "Add the referral date."
-          : null;
-  const referralFieldError = referralSubmitted ? referralInputError : null;
   const responseInputError =
     !responseDate
       ? "Add the expert response date."
@@ -93,25 +75,6 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
         ? "Add an expert response note or finding."
         : null;
   const responseFieldError = responseSubmitted ? responseInputError : null;
-
-  const saveReferral = async () => {
-    setReferralSubmitted(true);
-    setNotice(null);
-    if (referralInputError || report.reviewVersion === undefined) return;
-
-    try {
-      await recordReferral.mutateAsync({
-        destination,
-        reference,
-        referralDate,
-        note: referralNote,
-        expectedVersion: report.reviewVersion,
-      });
-      setNotice("Expert referral recorded. The case remains open while input is pending.");
-    } catch {
-      return;
-    }
-  };
 
   const saveResponse = async () => {
     setResponseSubmitted(true);
@@ -133,12 +96,16 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
     }
   };
 
+  // Referral creation now lives in the guided next-action panel. This section
+  // only handles the pending referral and the expert response lifecycle.
+  if (!referral) return null;
+
   return (
     <section className="review-card referral-workflow" aria-labelledby="referral-heading">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Expert follow-up</p>
-          <h2 id="referral-heading">Referral lifecycle</h2>
+          <h2 id="referral-heading">Expert referral follow-up</h2>
         </div>
         <MessageSquareText aria-hidden="true" />
       </div>
@@ -152,91 +119,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
       </p>
       {notice ? <p className="success-banner referral-notice" role="status">{notice}</p> : null}
 
-      {!referral && caseState === "open" ? (
-        <div className="referral-form">
-          <p className="authority-classification-help">
-            Capture the external handoff as plain operational text. CaneGuard does not send the referral or connect to an external SRA account.
-          </p>
-          <label className="select-filter" htmlFor="referral-destination">
-            <span>Expert destination</span>
-            <input
-              id="referral-destination"
-              value={destination}
-              maxLength={160}
-              onChange={(event) => {
-                setDestination(event.target.value);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-              placeholder="Office, laboratory, or expert group"
-            />
-          </label>
-          <label className="select-filter" htmlFor="referral-reference">
-            <span>Referral reference</span>
-            <input
-              id="referral-reference"
-              value={reference}
-              maxLength={160}
-              onChange={(event) => {
-                setReference(event.target.value);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-              placeholder="Reference supplied by the receiving office"
-            />
-          </label>
-          <label className="select-filter" htmlFor="referral-date">
-            <span>Referral date</span>
-            <input
-              id="referral-date"
-              type="date"
-              value={referralDate}
-              onChange={(event) => {
-                setReferralDate(event.target.value);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-            />
-          </label>
-          <TextArea
-            id="referral-note"
-            label="Referral note (optional)"
-            hint="Keep the request neutral and grounded in the submitted evidence."
-            rows={3}
-            maxLength={1000}
-            value={referralNote}
-            onChange={(event) => {
-              setReferralNote(event.target.value);
-              setReferralSubmitted(false);
-              recordReferral.reset();
-            }}
-            placeholder="What should the expert review?"
-          />
-          {referralFieldError ? <p className="form-error" role="alert">{referralFieldError}</p> : null}
-          {errorMessage(recordReferral.error, "The referral service is unavailable. No referral change was confirmed.") ? (
-            <p className="form-error" role="alert">
-              {errorMessage(recordReferral.error, "The referral service is unavailable. No referral change was confirmed.")}
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            icon={<Send aria-hidden="true" />}
-            disabled={recordReferral.isPending}
-            onClick={() => void saveReferral()}
-          >
-            {recordReferral.isPending ? "Recording referral..." : "Record expert referral"}
-          </Button>
-        </div>
-      ) : null}
-
-      {!referral && caseState !== "open" ? (
-        <p className="authority-classification-help">
-          This case is closed. A new expert referral cannot be recorded.
-        </p>
-      ) : null}
-
-      {referral ? (
-        <>
+      <>
           <dl className="detail-list referral-details">
             <DetailField label="Destination">{referral.destination}</DetailField>
             <DetailField label="Reference">{referral.reference}</DetailField>
@@ -384,8 +267,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
             <FileText aria-hidden="true" />
             <span>Print / download referral summary</span>
           </a>
-        </>
-      ) : null}
+      </>
     </section>
   );
 }

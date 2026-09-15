@@ -60,14 +60,14 @@ describe("mock data mode", () => {
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("radio", { name: /Advisory provided/ }),
+      screen.getByRole("radio", { name: /Provide advisory/ }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Save explicit review" }),
+      screen.getByRole("button", { name: "Save review" }),
     );
 
     expect(
-      await screen.findByText(/CG-2026-0718 - Action recorded: Advisory provided\./),
+      await screen.findByText(/CG-2026-0718 - Next action recorded: Provide advisory\./),
     ).toBeInTheDocument();
   });
 });

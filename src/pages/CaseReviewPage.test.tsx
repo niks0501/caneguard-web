@@ -147,7 +147,6 @@ describe("CaseReviewPage", () => {
     const technicalEvidence = screen.getByText("Technical Evidence").closest("details");
     expect(technicalEvidence).not.toHaveAttribute("open");
     expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
-    expect(screen.getAllByText("93%").length).toBeGreaterThan(0);
     expect(screen.getByText("Checklist consistency")).toBeInTheDocument();
     expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
     expect(screen.getByText("Negros Occidental")).toBeInTheDocument();
@@ -165,17 +164,17 @@ describe("CaseReviewPage", () => {
     expect(
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Decision-support only.")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Possible Condition" })).toHaveTextContent(
-      "Possible Condition",
-    );
     expect(screen.getByText(/Staff-Classified Condition is a separate human finding/)).toBeInTheDocument();
     expect(screen.getByText("Symptom agreement")).toBeInTheDocument();
     expect(screen.getByText("Checklist responses: Consistent with the Possible Condition")).toBeInTheDocument();
-    expect(screen.getByText("Reporter observation: Disagrees with the Possible Condition")).toBeInTheDocument();
+    expect(
+      screen.getByText("Reporter observation: Possible Condition reported as not matching"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Reporter flagged AI mismatch")).toBeInTheDocument();
-    const reviewSummary = screen.getByRole("region", { name: "Choose the next safe action" });
-    expect(reviewSummary).toHaveTextContent("Selected response");
+    const reviewSummary = screen.getByRole("region", {
+      name: "Review evidence, choose a next action, then save",
+    });
+    expect(reviewSummary).toHaveTextContent("Case state");
     expect(screen.getByText("Current status")).toHaveClass("review-summary__label");
     expect(reviewSummary.querySelector(".status-badge")).not.toHaveClass("review-summary__label");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
@@ -186,6 +185,16 @@ describe("CaseReviewPage", () => {
     expect(
       screen.queryByRole("heading", { name: "Completed field validation" }),
     ).not.toBeInTheDocument();
+
+    // D-01: the submitted Possible Condition label and confidence stay behind a
+    // closed disclosure so they never lead the initial review.
+    const submittedAiEvidence = screen
+      .getByText("Possible Condition and confidence")
+      .closest("details");
+    expect(submittedAiEvidence).not.toHaveAttribute("open");
+    expect(
+      within(submittedAiEvidence!).getByRole("region", { name: "Possible Condition" }),
+    ).not.toBeVisible();
 
     fireEvent.error(image);
     expect(
@@ -202,6 +211,14 @@ describe("CaseReviewPage", () => {
         name: `Submitted sugarcane evidence for ${report.referenceCode}`,
       }),
     ).toBeInTheDocument();
+
+    await user.click(screen.getByText("Possible Condition and confidence"));
+    expect(submittedAiEvidence).toHaveAttribute("open");
+    expect(screen.getByRole("region", { name: "Possible Condition" })).toHaveTextContent(
+      "Possible Condition",
+    );
+    expect(screen.getByText("Decision-support only.")).toBeInTheDocument();
+    expect(screen.getAllByText("93%").length).toBeGreaterThan(0);
 
     await user.click(screen.getByText("Technical Evidence"));
     expect(technicalEvidence).toHaveAttribute("open");
@@ -299,7 +316,7 @@ describe("CaseReviewPage", () => {
     const { rerender } = renderPage();
 
     expect(
-      screen.getByText("Mismatch status was not collected for this report."),
+      screen.getByText("Possible Condition agreement was not collected for this report."),
     ).toBeInTheDocument();
 
     vi.mocked(useReport).mockReturnValue(
@@ -314,8 +331,13 @@ describe("CaseReviewPage", () => {
     );
 
     expect(
-      screen.getByText("The reporter explicitly indicated no AI mismatch."),
+      screen.getByText("The reporter said the Possible Condition matches what they observed."),
     ).toBeInTheDocument();
+    // The reporter's own concern is reported independently of that agreement.
+    const concernField = screen
+      .getByText("Observed or suspected concern")
+      .closest(".detail-field");
+    expect(concernField).toHaveTextContent("smut");
   });
 
   it("keeps an AI Smut result separate when the authority confirms Smut", async () => {
@@ -325,11 +347,13 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    expect(screen.getByText("Possible Condition: Smut")).toBeInTheDocument();
+    expect(screen.getByText("Possible Condition: Smut")).not.toBeVisible();
+    await user.click(screen.getByText("Possible Condition and confidence"));
+    expect(screen.getByText("Possible Condition: Smut")).toBeVisible();
     await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "smut");
     await user.type(screen.getByLabelText(/^Review notes/), "Authority confirmed Smut.");
-    await user.click(screen.getByRole("radio", { name: /Advisory provided/ }));
-    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    await user.click(screen.getByRole("button", { name: "Save review" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       authorityClassifiedCondition: "smut",
@@ -382,8 +406,8 @@ describe("CaseReviewPage", () => {
         name: /Downy mildew \(legacy record; not offered for new review\)/,
       }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: /Advisory provided/ }));
-    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    await user.click(screen.getByRole("button", { name: "Save review" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       authorityClassifiedCondition: "downy_mildew",
@@ -391,7 +415,7 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("does not select an office action or verification outcome automatically", () => {
+  it("does not select a next action or verification outcome automatically", () => {
     renderPage();
 
     expect(
@@ -400,7 +424,10 @@ describe("CaseReviewPage", () => {
         .every((radio) => !(radio as HTMLInputElement).checked),
     ).toBe(true);
     expect(screen.getByLabelText("Verification outcome")).toHaveValue("");
-    expect(screen.getByText("No office action selected")).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Next action - choose one" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No office action selected")).not.toBeInTheDocument();
   });
 
   it("makes the existing review notes field explicit for intervention details", () => {
@@ -446,6 +473,7 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
+    await user.click(screen.getByText("More actions"));
     expect(screen.getByText(/nothing is merged, deleted, or blocked automatically/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Use as canonical" }));
     expect(screen.getByLabelText("Canonical case UUID")).toHaveValue("canonical-report");
@@ -470,13 +498,16 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
+    await user.click(screen.getByText("More actions"));
+
     await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
 
     expect(screen.getByText(/enter a canonical case UUID/i)).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("shows the preserved relationship after a case is linked", () => {
+  it("shows the preserved relationship after a case is linked", async () => {
+    const user = userEvent.setup();
     vi.mocked(useReport).mockReturnValue(
       queryResult({
         data: {
@@ -497,6 +528,8 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
+    await user.click(screen.getByText("More actions"));
+
     expect(screen.getByText("Linked as a possible duplicate")).toBeInTheDocument();
     expect(screen.getByText(/Canonical case CG-2026-0002/)).toBeInTheDocument();
     expect(screen.getByText(/submitted record and its audit history remain preserved/i)).toBeInTheDocument();
@@ -509,8 +542,8 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText("Field validation"), "assigned");
-    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+    await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
+    await user.click(screen.getByRole("button", { name: "Save review" }));
 
     expect(screen.getByText(/Select a Field Inspector before saving/i)).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
@@ -526,15 +559,16 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText("Field validation"), "assigned");
+    await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
     await user.selectOptions(
       screen.getByLabelText("Field Inspector assignee"),
       report.submitterUuid!,
     );
     expect(screen.getByText(/original submitter is also the field validator/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Save explicit review" }));
+    await user.click(screen.getByRole("button", { name: "Save review" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      actionTaken: undefined,
       fieldValidationState: "assigned",
       fieldValidationAssigneeUuid: report.submitterUuid,
       fieldValidationTargetDate: null,
@@ -554,7 +588,7 @@ describe("CaseReviewPage", () => {
       "unable_to_verify",
     );
     await user.click(
-      screen.getByRole("button", { name: "Save explicit review" }),
+      screen.getByRole("button", { name: "Save review" }),
     );
 
     expect(
@@ -580,10 +614,10 @@ describe("CaseReviewPage", () => {
       "Field evidence reviewed.",
     );
     await user.click(
-      screen.getByRole("radio", { name: /Advisory provided/ }),
+      screen.getByRole("radio", { name: /Provide advisory/ }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Save explicit review" }),
+      screen.getByRole("button", { name: "Save review" }),
     );
 
     expect(mutateAsync).toHaveBeenCalledWith({
@@ -591,7 +625,7 @@ describe("CaseReviewPage", () => {
       authorityClassifiedCondition: "smut",
       verificationOutcome: undefined,
       actionTaken: "advisory_provided",
-      fieldValidationState: undefined,
+      fieldValidationState: "unassigned",
       fieldValidationAssigneeUuid: undefined,
       fieldValidationTargetDate: undefined,
       caseState: undefined,
@@ -702,7 +736,7 @@ describe("CaseReviewPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("records a referral through the dedicated lifecycle workflow", async () => {
+  it("records a referral through the guided next action", async () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockResolvedValue(referredReport);
     vi.mocked(useRecordReportReferral).mockReturnValue(
@@ -710,21 +744,30 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
+    // Referral fields are revealed only for the Refer to expert choice.
+    expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
     await user.type(screen.getByLabelText("Expert destination"), " Regional office ");
     await user.type(screen.getByLabelText("Referral reference"), " SRA-2026-0042 ");
     await user.type(screen.getByLabelText("Referral date"), "2026-09-04");
     await user.type(screen.getByLabelText(/Referral note \(optional\)/), " Review the mismatch. ");
-    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
+    await user.click(screen.getByRole("button", { name: "Save referral" }));
 
+    // One save request through the existing atomic referral endpoint, carrying
+    // the visible office classification, verification, and notes snapshot.
     expect(mutateAsync).toHaveBeenCalledWith({
       destination: " Regional office ",
       reference: " SRA-2026-0042 ",
       referralDate: "2026-09-04",
       note: " Review the mismatch. ",
+      authorityClassifiedCondition: null,
+      verificationOutcome: undefined,
+      officeNotes: "",
       expectedVersion: report.reviewVersion,
     });
     expect(
-      await screen.findByText(/Expert referral recorded/i),
+      await screen.findByText("Returned to report queue"),
     ).toBeInTheDocument();
   });
 
@@ -743,7 +786,7 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
-    expect(screen.getByText("Awaiting expert input")).toBeInTheDocument();
+    expect(screen.getAllByText("Awaiting expert input").length).toBeGreaterThan(0);
     await user.type(screen.getByLabelText("Expert response date"), "2026-09-08");
     await user.type(screen.getByLabelText("Expert response note"), " Response received. ");
     await user.type(screen.getByLabelText("Expert finding (optional)"), " Finding recorded. ");
@@ -816,5 +859,85 @@ describe("CaseReviewPage", () => {
     expect(
       screen.getByRole("button", { name: "Try again" }),
     ).toBeInTheDocument();
+  });
+
+  it("reveals assignment and referral fields only for their own next action", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
+    expect(screen.getByLabelText("Field Inspector assignee")).toBeInTheDocument();
+    expect(screen.getByLabelText("Target visit date (optional)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
+  });
+
+  it("keeps duplicate linking and metadata correction under More actions", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const moreActions = screen.getByText("More actions").closest("details");
+    expect(moreActions).not.toHaveAttribute("open");
+    expect(
+      within(moreActions!).getByText("Possible duplicate linkage"),
+    ).not.toBeVisible();
+    expect(
+      within(moreActions!).getByText("Correct operational metadata"),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByText("More actions"));
+    expect(moreActions).toHaveAttribute("open");
+    expect(within(moreActions!).getByText("Possible duplicate linkage")).toBeVisible();
+  });
+
+  it("closes a case only through the confirmed No further action choice", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
+    renderPage();
+
+    expect(
+      screen.queryByRole("checkbox", { name: /Close this case/ }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /No further action/ }));
+    const closeConfirmation = screen.getByRole("checkbox", { name: /Close this case/ });
+    // D-02: the confirmation is checked by default so closure stays explicit
+    // but still fits in one save.
+    expect(closeConfirmation).toBeChecked();
+    await user.click(closeConfirmation);
+    expect(closeConfirmation).not.toBeChecked();
+
+    await user.click(screen.getByRole("button", { name: "Save review" }));
+    expect(mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionTaken: "no_further_action_required",
+        caseState: undefined,
+      }),
+    );
+  });
+
+  it("closes the case when the No further action confirmation is left checked", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /No further action/ }));
+    expect(screen.getByRole("checkbox", { name: /Close this case/ })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Save review" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionTaken: "no_further_action_required",
+        caseState: "closed",
+      }),
+    );
   });
 });
