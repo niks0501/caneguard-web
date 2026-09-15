@@ -25,16 +25,19 @@ Browser actions were performed live through the bridge. No `.ad` flow or replaya
 
 The bridge snapshot was retained at `.firstmate-scratch/cg-verify-103-browser-rssi-snapshot.txt`. A live DOM evaluation independently returned true for the reviewer session, RSSI concern, not-AI-detected copy, Possible Condition, immutable boundary copy, all four AI classes, and the Model V1 version.
 
-## Mobile → API → Web review cross-system journey: PENDING
+## Mobile → API → Web review cross-system journey: BLOCKED
 
 | Tester action | Expected | Actual and evidence |
 | --- | --- | --- |
-| Prepare the shared Android device and Mobile development build | A running Mobile build can author a T02 RSSI report | `adb devices -l` showed the shared Android device as available, and ADB reverse was established for API port 8000. The installed package opened only the Expo launcher; no Mobile Metro/dev server was listening on the host (`ss` showed no 8081/19000-series listener). |
-| Exercise a real Mobile RSSI upload through the API and reopen it in Web Case Review | A new Mobile-authored report reaches the API with RSSI preserved and renders separately from the Possible Condition in Web | Not executed because the Mobile dev build could not be brought up from this Web worktree. No cross-system PASS is claimed and no fabricated Mobile/API/Web evidence is recorded. |
+| Prepare the shared Android device and Mobile development build | A running Mobile build can author a T02 RSSI report | With the explicit serial `AYAUFIN76LEYR46X`, `adb devices -l` showed the device as available. ADB reverse was established for API ports 8000 and 8081. Host Metro answered `packager-status:running` on port 8081, and the installed `com.niks0501.caneguard` dev build opened successfully (version 1.1.1). |
+| Start a real Mobile report from a device image | A Mobile scan produces preserved Model V1 evidence before field reporting | The live app selected a gallery image, ran on-device analysis, and showed `Possible Condition: Smut` at `100%`. The guided observation `Something else` was selected and the app stated that the selected observation and Possible Condition remain separate evidence. |
+| Open the Field Report authoring path and prepare a T02 concern | The report can be completed with the RSSI quick choice and required report details | The live app opened Field Report authoring and accepted the synthetic farm reference, `Maligaya` barangay, `0.5` hectares, and `30` percent. The RSSI quick-choice UI was confirmed live on the retained report draft: `Report RSSI as a field concern`, `Field concern only · not detected by current Model V1`, and the separate observation text field. |
+| Finalize the report for API synchronization | Mobile submits a report with final coordinates and the RSSI observation | Finalization was blocked by the app's required `Final coordinates` and `GPS or manual-map location source`. Location permission and device location were enabled, but live GPS readings were ±28–30 m and were explicitly retained only as attempts, not final coordinates. The manual map was disabled with `Manual map tiles are unavailable until the CaneGuard privacy proxy is configured.` |
+| Exercise the Mobile upload through the API and reopen it in Web Case Review | A new Mobile-authored report reaches the API with RSSI preserved and renders separately from the Possible Condition in Web | Not executed because the real Mobile report could not be finalized. No cross-system PASS is claimed and no fabricated Mobile/API/Web evidence is recorded. |
 
-This gate remains pending until the device worker provides a running Mobile Metro/dev build. The browser gate is independent and has passed.
+This live gate is **BLOCKED** on the required final-location environment: the physical device's GPS did not meet the app's final-coordinate threshold and the privacy-proxy-backed manual map was unavailable. The browser gate is independent and has passed. The device session was closed afterward; `agent-device device status` reported no local claims.
 
 ## Result
 
 - Browser Case Review RSSI presentation: **PASS**
-- Mobile → API → Web review cross-system journey: **PENDING** (Mobile Metro/dev build unavailable)
+- Mobile → API → Web review cross-system journey: **BLOCKED** (final location unavailable: GPS ±28–30 m; manual map privacy proxy unavailable)
