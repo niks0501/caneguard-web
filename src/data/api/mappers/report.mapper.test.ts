@@ -34,6 +34,7 @@ describe("report mappers", () => {
       },
       mismatchReported: true,
     });
+    expect(report.confidence).toBeUndefined();
   });
 
   it("maps detail observations and review data", () => {
@@ -67,7 +68,9 @@ describe("report mappers", () => {
     expect(report.cropAge).toBe("6 months");
     expect(report.caneClass).toBe("Class A");
     expect(report.affectedAreaHectares).toBe(12.5);
+    expect(report.affectedAreaMeasurement).toBe("measured");
     expect(report.affectedPortionPercent).toBe(42.75);
+    expect(report.affectedPortionMeasurement).toBe("measured");
     expect(report.fieldNotes).toContain("Rust symptoms");
     expect(report.mismatchReported).toBe(true);
     expect(report.reporterSuspectedCondition).toBe("smut");

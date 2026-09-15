@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -86,6 +87,27 @@ final class ExportReports
 
     private function applySort(Builder $query, string $sort): void
     {
+        if ($sort === 'due_soonest') {
+            $query
+                ->leftJoinSub(
+                    FieldValidationAssignment::query()
+                        ->selectRaw('report_id, MIN(target_visit_date) as due_on')
+                        ->whereNotNull('target_visit_date')
+                        ->groupBy('report_id'),
+                    'due_assignments',
+                    'due_assignments.report_id',
+                    '=',
+                    'reports.id',
+                )
+                ->select('reports.*')
+                ->orderByRaw('due_assignments.due_on is null')
+                ->orderBy('due_assignments.due_on')
+                ->orderBy('reports.submitted_at')
+                ->orderBy('reports.id');
+
+            return;
+        }
+
         [$column, $direction] = match ($sort) {
             'submitted_at' => ['submitted_at', 'asc'],
             default => ['submitted_at', 'desc'],
@@ -104,6 +126,8 @@ final class ExportReports
         $lifecycle = $report->lifecycleSnapshot();
         $assignment = $report->fieldValidationAssignment;
         $referral = $report->referral;
+        $areaMeasurement = $report->affectedAreaMeasurement();
+        $portionMeasurement = $report->affectedPortionMeasurement();
 
         return array_map(
             $this->neutralizeSpreadsheetFormula(...),
@@ -113,14 +137,14 @@ final class ExportReports
                 $report->barangay,
                 $report->farmer_or_farm_owner_name ?? '',
                 'Possible '.$report->predicted_label,
-                $report->affected_area_hectares === null
-                    ? $report->affectedAreaMeasurement()
-                    : $report->affected_area_hectares,
-                $report->affectedAreaMeasurement(),
-                $report->affected_portion_percent === null
-                    ? $report->affectedPortionMeasurement()
-                    : $report->affected_portion_percent,
-                $report->affectedPortionMeasurement(),
+                $report->affected_area_hectares ?? '',
+                $areaMeasurement === Report::MEASUREMENT_NOT_MEASURED
+                    ? 'Not measured'
+                    : 'Measured',
+                $report->affected_portion_percent ?? '',
+                $portionMeasurement === Report::MEASUREMENT_NOT_MEASURED
+                    ? 'Not measured'
+                    : 'Measured',
                 $report->review_status,
                 $lifecycle['verification_outcome'],
                 $lifecycle['case_state'],

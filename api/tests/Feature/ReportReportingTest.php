@@ -115,9 +115,9 @@ class ReportReportingTest extends TestCase
             'Juan Dela Cruz',
             'Possible rust',
             '12.50',
-            Report::MEASUREMENT_MEASURED,
+            'Measured',
             '42.75',
-            Report::MEASUREMENT_MEASURED,
+            'Measured',
             Report::STATUS_FOR_FIELD_VALIDATION,
             Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             Report::CASE_STATE_OPEN,
@@ -135,6 +135,54 @@ class ReportReportingTest extends TestCase
             '2026-09-05',
             '2026-09-08',
         ], $rows[1]);
+    }
+
+    public function test_export_uses_human_measurement_labels_and_supports_due_sorting(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $dueSoon = Report::factory()->create([
+            'reference_code' => 'CG-EXPORT-DUE',
+            'affected_area_hectares' => 2.5,
+            'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
+            'affected_portion_percent' => 40,
+            'affected_portion_measurement' => Report::MEASUREMENT_MEASURED,
+            'submitted_at' => CarbonImmutable::parse('2026-09-04T10:00:00Z'),
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $dueSoon->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-09-10',
+        ]);
+        $notMeasured = Report::factory()->create([
+            'reference_code' => 'CG-EXPORT-NOT-MEASURED',
+            'affected_area_hectares' => null,
+            'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            'affected_portion_percent' => null,
+            'affected_portion_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            'submitted_at' => CarbonImmutable::parse('2026-09-03T10:00:00Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $response = $this->get('/api/v1/reports/export?sort=due_soonest');
+        $rows = array_map(
+            'str_getcsv',
+            array_filter(preg_split('/\r\n|\r|\n/', trim($response->streamedContent())) ?: []),
+        );
+
+        $this->assertSame('CG-EXPORT-DUE', $rows[1][0]);
+        $notMeasuredRow = collect($rows)->first(fn (array $row) => ($row[0] ?? null) === $notMeasured->reference_code);
+        $this->assertNotNull($notMeasuredRow);
+        $this->assertSame('', $notMeasuredRow[5]);
+        $this->assertSame('Not measured', $notMeasuredRow[6]);
+        $this->assertSame('', $notMeasuredRow[7]);
+        $this->assertSame('Not measured', $notMeasuredRow[8]);
+
+        $this->get('/api/v1/reports/export?sort=confidence')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
     }
 
     public function test_export_neutralizes_formula_prefixes_in_all_text_cells(): void

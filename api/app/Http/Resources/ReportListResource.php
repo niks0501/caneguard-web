@@ -23,7 +23,6 @@ class ReportListResource extends JsonResource
             'captured_at' => $this->captured_at->utc()->toISOString(),
             'submitted_at' => $this->submitted_at->utc()->toISOString(),
             'predicted_label' => $this->predicted_label,
-            'confidence' => (float) $this->confidence,
             'review_status' => $this->review_status,
             'lifecycle' => $this->resource->lifecycleSnapshot(),
             'authority_classified_condition' => $this->authority_classified_condition,

@@ -180,7 +180,8 @@ export interface DiseaseReport {
   gpsAccuracy?: number;
   scanRecordClientUuid?: string;
   predictedDisease: DiseaseKey;
-  confidence: number;
+  /** Present in Case Review detail; intentionally absent from queue/list DTOs. */
+  confidence?: number;
   imageUrl?: string;
   imageStatus: ImageStatus;
   imageMimeType?: string;

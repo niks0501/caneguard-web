@@ -24,6 +24,13 @@ export const reviewStatusSchema = z.enum([
   "resolved",
 ]);
 export const measurementProvenanceSchema = z.enum(["measured", "not_measured"]);
+export const locationUnavailableReasonSchema = z.enum([
+  "permission_denied",
+  "services_unavailable",
+  "low_accuracy",
+  "offline_no_map",
+  "other",
+]);
 export const caseStateSchema = z.enum(["open", "closed"]);
 export const verificationOutcomeSchema = z.enum([
   "not_determined",
@@ -169,12 +176,11 @@ export const reportListItemSchema = z.object({
   captured_at: z.iso.datetime({ offset: true }),
   submitted_at: z.iso.datetime({ offset: true }),
   predicted_label: diseaseKeySchema,
-  confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
   lifecycle: reportLifecycleSchema.optional(),
   authority_classified_condition: authorityClassifiedConditionSchema.nullable().optional(),
   location_unavailable: z.boolean().optional(),
-  location_unavailable_reason: z.string().nullable().optional(),
+  location_unavailable_reason: locationUnavailableReasonSchema.nullable().optional(),
   affected_area_measurement: measurementProvenanceSchema.optional(),
   affected_portion_measurement: measurementProvenanceSchema.optional(),
   follow_up: z.object({
@@ -238,14 +244,17 @@ export const reportDetailSchema = z.object({
     crop_age: z.string().nullable(),
     cane_class: z.string().nullable(),
     affected_area_hectares: z.number().positive().nullable(),
+    affected_area_measurement: measurementProvenanceSchema,
     affected_portion_percent: z.number().min(0).max(100).nullable(),
+    affected_portion_measurement: measurementProvenanceSchema,
     field_notes: z.string().nullable(),
     farmer_or_farm_owner_name: z.string().nullable().optional(),
     province: z.string().nullable().optional(),
     municipality: z.string().nullable().optional(),
     final_latitude: z.number().min(-90).max(90).nullable().optional(),
     final_longitude: z.number().min(-180).max(180).nullable().optional(),
-    location_source: z.enum(["gps", "manual_map"]).nullable().optional(),
+    location_source: z.enum(["gps", "manual_map", "unavailable"]).nullable().optional(),
+    location_unavailable_reason: locationUnavailableReasonSchema.nullable().optional(),
     gps_accuracy: z.number().nonnegative().nullable().optional(),
   }),
   reporter_observation: z.object({

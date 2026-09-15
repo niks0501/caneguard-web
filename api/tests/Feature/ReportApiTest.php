@@ -223,7 +223,8 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.0.affected_area_hectares', null)
             ->assertJsonPath('data.0.follow_up.due_on', '2026-07-01')
             ->assertJsonPath('data.0.follow_up.overdue', true)
-            ->assertJsonPath('data.0.review_status', $report->review_status);
+            ->assertJsonPath('data.0.review_status', $report->review_status)
+            ->assertJsonMissingPath('data.0.confidence');
     }
 
     public function test_report_search_treats_like_wildcards_as_literal_text(): void
@@ -347,6 +348,37 @@ class ReportApiTest extends TestCase
                 'RSSI concern observed in the field.',
             )
             ->assertJsonPath('data.review.authority_classified_condition', null);
+    }
+
+    public function test_report_detail_preserves_unavailable_location_and_not_measured_provenance(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+            'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            'final_latitude' => null,
+            'final_longitude' => null,
+            'gps_accuracy' => null,
+            'affected_area_hectares' => null,
+            'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            'affected_portion_percent' => null,
+            'affected_portion_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.observations.location_source', Report::LOCATION_SOURCE_UNAVAILABLE)
+            ->assertJsonPath('data.observations.location_unavailable', true)
+            ->assertJsonPath(
+                'data.observations.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            )
+            ->assertJsonPath('data.observations.affected_area_measurement', Report::MEASUREMENT_NOT_MEASURED)
+            ->assertJsonPath('data.observations.affected_portion_measurement', Report::MEASUREMENT_NOT_MEASURED)
+            ->assertJsonPath('data.observations.affected_area_hectares', null)
+            ->assertJsonPath('data.observations.affected_portion_percent', null);
     }
 
     public function test_report_detail_uses_uuid_and_returns_every_contract_section(): void
