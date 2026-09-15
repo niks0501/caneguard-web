@@ -175,7 +175,7 @@ describe("CaseReviewPage", () => {
       name: "Review evidence, choose a next action, then save",
     });
     expect(reviewSummary).toHaveTextContent("Case state");
-    expect(screen.getByText("Current status")).toHaveClass("review-summary__label");
+    expect(screen.getByText("Work status")).toHaveClass("review-summary__label");
     expect(reviewSummary.querySelector(".status-badge")).not.toHaveClass("review-summary__label");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
@@ -223,6 +223,34 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByText("Technical Evidence"));
     expect(technicalEvidence).toHaveAttribute("open");
     expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
+  });
+
+  it("renders unavailable location provenance and human measurement state", () => {
+    const unavailable = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          observations: {
+            ...reportDetailDto.observations,
+            final_latitude: null,
+            final_longitude: null,
+            location_source: "unavailable",
+            location_unavailable_reason: "offline_no_map",
+            affected_area_hectares: null,
+            affected_area_measurement: "not_measured",
+            affected_portion_percent: null,
+            affected_portion_measurement: "not_measured",
+          },
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: unavailable }));
+
+    renderPage();
+
+    expect(screen.getAllByText("Unavailable")).toHaveLength(2);
+    expect(screen.getByText("Unavailable — offline no map")).toBeInTheDocument();
+    expect(screen.getAllByText("Not measured")).toHaveLength(2);
   });
 
   it("renders RSSI reporter concern separately from the Possible Condition", () => {

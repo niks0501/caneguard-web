@@ -24,7 +24,10 @@ export type AuthorityClassifiedCondition =
   | ActiveAuthorityClassifiedCondition
   | LegacyAuthorityClassifiedCondition;
 
-export type LocationSource = "gps" | "manual_map";
+export type LocationSource = "gps" | "manual_map" | "unavailable";
+
+/** D-01: whether a reported measurement was actually taken. */
+export type MeasurementProvenance = "measured" | "not_measured";
 
 export type ReviewStatus =
   | "submitted_unverified"
@@ -177,7 +180,8 @@ export interface DiseaseReport {
   gpsAccuracy?: number;
   scanRecordClientUuid?: string;
   predictedDisease: DiseaseKey;
-  confidence: number;
+  /** Present in Case Review detail; intentionally absent from queue/list DTOs. */
+  confidence?: number;
   imageUrl?: string;
   imageStatus: ImageStatus;
   imageMimeType?: string;
@@ -201,7 +205,12 @@ export interface DiseaseReport {
   cropAge?: string;
   caneClass?: string;
   affectedAreaHectares?: number;
+  affectedAreaMeasurement?: MeasurementProvenance;
   affectedPortionPercent?: number;
+  affectedPortionMeasurement?: MeasurementProvenance;
+  locationUnavailable?: boolean;
+  locationUnavailableReason?: string | null;
+  followUp?: { dueOn: string | null; overdue: boolean };
   reviewStatus: ReviewStatus;
   mismatchReported?: boolean | null;
   reporterSuspectedCondition?: string | null;
@@ -230,15 +239,22 @@ export interface ReportAudit {
   reason: string;
 }
 
+export type ReportSort = "newest" | "oldest" | "due_soonest";
+
 export interface ReportFilters {
   queue?: OperationalQueue;
   search?: string;
+  /** Derived compatibility projection; the actual lifecycle axes sit below. */
   status?: ReviewStatus | "all";
+  caseState?: CaseState | "all";
+  verificationOutcome?: VerificationOutcome | "all";
+  fieldValidationState?: FieldValidationState | "all";
+  staffClassifiedCondition?: AuthorityClassifiedCondition | "all";
   disease?: DiseaseKey | "all";
   barangay?: string | "all";
   dateFrom?: string;
   dateTo?: string;
-  sort?: "newest" | "oldest" | "confidence_desc" | "confidence_asc";
+  sort?: ReportSort;
   page?: number;
   perPage?: number;
 }

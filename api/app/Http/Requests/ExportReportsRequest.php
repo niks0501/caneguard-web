@@ -22,8 +22,7 @@ class ExportReportsRequest extends ApiFormRequest
                 Rule::in([
                     '-submitted_at',
                     'submitted_at',
-                    '-confidence',
-                    'confidence',
+                    'due_soonest',
                 ]),
             ],
         ];

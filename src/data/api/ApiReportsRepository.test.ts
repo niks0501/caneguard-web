@@ -25,7 +25,7 @@ describe("ApiReportsRepository", () => {
         expect(query.get("barangay")).toBe("Mabini");
         expect(query.get("date_from")).toBe("2026-07-01");
         expect(query.get("date_to")).toBe("2026-07-27");
-        expect(query.get("sort")).toBe("-confidence");
+        expect(query.get("sort")).toBe("submitted_at");
         return HttpResponse.json(paginatedReportsDto);
       }),
     );
@@ -43,7 +43,7 @@ describe("ApiReportsRepository", () => {
       barangay: "Mabini",
       dateFrom: "2026-07-01",
       dateTo: "2026-07-27",
-      sort: "confidence_desc",
+      sort: "oldest",
     });
 
     expect(result.meta.total).toBe(1);

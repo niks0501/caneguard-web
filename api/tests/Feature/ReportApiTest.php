@@ -25,7 +25,7 @@ class ReportApiTest extends TestCase
             'name' => 'Ana Field Reporter',
         ]);
         $reviewer = User::factory()->reviewer()->create();
-        $highestConfidence = Report::factory()->create([
+        $newestSubmission = Report::factory()->create([
             'reporter_id' => $reporter,
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_RUST,
@@ -37,7 +37,7 @@ class ReportApiTest extends TestCase
             'mismatch_reported' => true,
             'submitted_at' => CarbonImmutable::parse('2026-07-20T10:00:00Z'),
         ]);
-        $middleConfidence = Report::factory()->create([
+        $middleSubmission = Report::factory()->create([
             'reporter_id' => $reporter,
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_RUST,
@@ -45,7 +45,7 @@ class ReportApiTest extends TestCase
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'submitted_at' => CarbonImmutable::parse('2026-07-20T09:00:00Z'),
         ]);
-        $lowestConfidence = Report::factory()->create([
+        $oldestSubmission = Report::factory()->create([
             'reporter_id' => $reporter,
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_RUST,
@@ -69,25 +69,25 @@ class ReportApiTest extends TestCase
             'barangay' => 'Mabini',
             'date_from' => '2026-07-20',
             'date_to' => '2026-07-20',
-            'sort' => '-confidence',
+            'sort' => '-submitted_at',
             'per_page' => 2,
         ];
 
         $this->getJson('/api/v1/reports?'.http_build_query($query))
             ->assertOk()
             ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.uuid', $highestConfidence->uuid)
-            ->assertJsonPath('data.1.uuid', $middleConfidence->uuid)
+            ->assertJsonPath('data.0.uuid', $newestSubmission->uuid)
+            ->assertJsonPath('data.1.uuid', $middleSubmission->uuid)
             ->assertJsonPath('data.0.reporter.name', 'Ana Field Reporter')
             ->assertJsonPath(
                 'data.0.captured_at',
-                $highestConfidence->captured_at->utc()->toISOString(),
+                $newestSubmission->captured_at->utc()->toISOString(),
             )
             ->assertJsonPath(
                 'data.0.image_url',
                 route(
                     'api.v1.reports.image',
-                    ['report' => $highestConfidence->uuid],
+                    ['report' => $newestSubmission->uuid],
                 ),
             )
             ->assertJsonPath('data.0.province', 'Negros Occidental')
@@ -95,7 +95,7 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.0.mismatch_reported', true)
             ->assertJsonPath(
                 'data.0.observed_at',
-                $highestConfidence->observed_at->utc()->toISOString(),
+                $newestSubmission->observed_at->utc()->toISOString(),
             )
             ->assertJsonPath('meta.current_page', 1)
             ->assertJsonPath('meta.last_page', 2)
@@ -108,10 +108,123 @@ class ReportApiTest extends TestCase
         ]))
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.uuid', $lowestConfidence->uuid)
+            ->assertJsonPath('data.0.uuid', $oldestSubmission->uuid)
             ->assertJsonPath('meta.current_page', 2)
             ->assertJsonPath('meta.last_page', 2)
             ->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_report_queue_sorts_by_operational_age_and_due_date_only(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $older = Report::factory()->create([
+            'submitted_at' => CarbonImmutable::parse('2026-07-10T10:00:00Z'),
+        ]);
+        $newer = Report::factory()->create([
+            'submitted_at' => CarbonImmutable::parse('2026-07-20T10:00:00Z'),
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $newer->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-08-01',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports?sort=submitted_at')
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $older->uuid);
+
+        $this->getJson('/api/v1/reports?sort=-submitted_at')
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $newer->uuid);
+
+        $this->getJson('/api/v1/reports?sort=due_soonest')
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $newer->uuid);
+
+        foreach (['confidence', '-confidence'] as $removedSort) {
+            $this->getJson('/api/v1/reports?sort='.$removedSort)
+                ->assertStatus(422)
+                ->assertJsonPath('code', 'VALIDATION_ERROR');
+        }
+    }
+
+    public function test_report_queue_filters_by_the_independent_lifecycle_concepts(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assigned = Report::factory()->create([
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
+        ]);
+        Report::factory()->create([
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports?case_state='.Report::CASE_STATE_OPEN)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $assigned->uuid);
+
+        $this->getJson('/api/v1/reports?field_validation_state='.Report::FIELD_VALIDATION_STATE_ASSIGNED)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $assigned->uuid);
+
+        $this->getJson('/api/v1/reports?verification_outcome='.Report::VERIFICATION_OUTCOME_VERIFIED)
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->getJson('/api/v1/reports?authority_classified_condition='.Report::AUTHORITY_CONDITION_RUST)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $assigned->uuid);
+    }
+
+    public function test_report_queue_rows_expose_operational_priority_without_confidence_sorting(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
+            'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+            'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_LOW_ACCURACY,
+            'affected_area_hectares' => null,
+            'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            'submitted_at' => CarbonImmutable::parse('2026-07-20T10:00:00Z'),
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-07-01',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports')
+            ->assertOk()
+            ->assertJsonPath('data.0.authority_classified_condition', Report::AUTHORITY_CONDITION_RUST)
+            ->assertJsonPath('data.0.location_unavailable', true)
+            ->assertJsonPath(
+                'data.0.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_LOW_ACCURACY,
+            )
+            ->assertJsonPath('data.0.affected_area_measurement', Report::MEASUREMENT_NOT_MEASURED)
+            ->assertJsonPath('data.0.affected_area_hectares', null)
+            ->assertJsonPath('data.0.follow_up.due_on', '2026-07-01')
+            ->assertJsonPath('data.0.follow_up.overdue', true)
+            ->assertJsonPath('data.0.review_status', $report->review_status)
+            ->assertJsonMissingPath('data.0.confidence');
     }
 
     public function test_report_search_treats_like_wildcards_as_literal_text(): void
@@ -235,6 +348,37 @@ class ReportApiTest extends TestCase
                 'RSSI concern observed in the field.',
             )
             ->assertJsonPath('data.review.authority_classified_condition', null);
+    }
+
+    public function test_report_detail_preserves_unavailable_location_and_not_measured_provenance(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+            'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            'final_latitude' => null,
+            'final_longitude' => null,
+            'gps_accuracy' => null,
+            'affected_area_hectares' => null,
+            'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            'affected_portion_percent' => null,
+            'affected_portion_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.observations.location_source', Report::LOCATION_SOURCE_UNAVAILABLE)
+            ->assertJsonPath('data.observations.location_unavailable', true)
+            ->assertJsonPath(
+                'data.observations.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            )
+            ->assertJsonPath('data.observations.affected_area_measurement', Report::MEASUREMENT_NOT_MEASURED)
+            ->assertJsonPath('data.observations.affected_portion_measurement', Report::MEASUREMENT_NOT_MEASURED)
+            ->assertJsonPath('data.observations.affected_area_hectares', null)
+            ->assertJsonPath('data.observations.affected_portion_percent', null);
     }
 
     public function test_report_detail_uses_uuid_and_returns_every_contract_section(): void

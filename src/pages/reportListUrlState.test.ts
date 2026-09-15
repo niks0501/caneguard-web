@@ -16,7 +16,11 @@ describe("parseReportListUrl", () => {
         barangay: "Mabini",
         date_from: "2026-07-01",
         date_to: "2026-07-27",
-        sort: "confidence_desc",
+        sort: "oldest",
+        case_state: "open",
+        verification_outcome: "not_determined",
+        field_validation_state: "assigned",
+        authority_classified_condition: "rust",
       }),
     );
 
@@ -31,11 +35,31 @@ describe("parseReportListUrl", () => {
         barangay: "Mabini",
         dateFrom: "2026-07-01",
         dateTo: "2026-07-27",
-        sort: "confidence_desc",
+        caseState: "open",
+        verificationOutcome: "not_determined",
+        fieldValidationState: "assigned",
+        staffClassifiedCondition: "rust",
+        sort: "oldest",
       },
       hasActiveFilters: true,
       invalid: false,
     });
+  });
+
+  it("defaults the unscoped work queue to the oldest submission", () => {
+    expect(parseReportListUrl(new URLSearchParams()).filters.sort).toBe("oldest");
+  });
+
+  it("defaults the follow-up queue to the nearest due date", () => {
+    expect(
+      parseReportListUrl(new URLSearchParams("queue=follow_up_due")).filters.sort,
+    ).toBe("due_soonest");
+  });
+
+  it("no longer accepts confidence sorting", () => {
+    expect(
+      parseReportListUrl(new URLSearchParams("sort=confidence_desc")).invalid,
+    ).toBe(true);
   });
 
   it("accepts the V2 smut model label", () => {

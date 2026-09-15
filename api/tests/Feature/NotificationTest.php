@@ -367,6 +367,105 @@ class NotificationTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
+    public function test_mobile_mark_read_acknowledges_only_the_owners_notification(): void
+    {
+        $owner = User::factory()->fieldReporter()->create();
+        $other = User::factory()->fieldReporter()->create();
+        $owned = $this->createNotification($owner, 'CG-20260817-OWNED');
+        $foreign = $this->createNotification($other, 'CG-20260817-FOREIGN');
+        $token = $owner->createToken('notification-read', ['notification:read'])->plainTextToken;
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/mobile/notifications/{$owned->id}/read")
+            ->assertOk()
+            ->assertJsonPath('data.id', $owned->id)
+            ->assertJsonPath('data.is_read', true)
+            ->assertJsonPath('meta.unread_count', 0);
+
+        $this->assertNotNull($owned->fresh()->read_at);
+        $this->assertNull($foreign->fresh()->read_at);
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/mobile/notifications/{$foreign->id}/read")
+            ->assertNotFound();
+
+        $this->assertNull($foreign->fresh()->read_at);
+    }
+
+    public function test_mobile_mark_read_is_idempotent_and_preserves_the_first_timestamp(): void
+    {
+        $owner = User::factory()->fieldReporter()->create();
+        $notification = $this->createNotification($owner, 'CG-20260817-IDEMPOTENT');
+        $token = $owner->createToken('notification-read', ['notification:read'])->plainTextToken;
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")
+            ->assertOk();
+        $firstReadAt = $notification->fresh()->read_at;
+
+        $this->travel(5)->minutes();
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")
+            ->assertOk()
+            ->assertJsonPath('data.is_read', true)
+            ->assertJsonPath('meta.unread_count', 0);
+
+        $this->assertTrue($firstReadAt->equalTo($notification->fresh()->read_at));
+    }
+
+    public function test_mobile_mark_all_read_clears_only_the_owners_unread_items(): void
+    {
+        $owner = User::factory()->fieldReporter()->create();
+        $other = User::factory()->fieldReporter()->create();
+        $this->createNotification($owner, 'CG-20260817-ONE');
+        $this->createNotification($owner, 'CG-20260817-TWO');
+        $foreign = $this->createNotification($other, 'CG-20260817-THREE');
+        $token = $owner->createToken('notification-read', ['notification:read'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertJsonPath('meta.marked_count', 2)
+            ->assertJsonPath('meta.unread_count', 0);
+
+        $this->assertSame(0, $owner->unreadNotifications()->count());
+        $this->assertSame(1, $other->unreadNotifications()->count());
+        $this->assertNull($foreign->fresh()->read_at);
+
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertJsonPath('meta.marked_count', 0);
+    }
+
+    public function test_mobile_read_mutations_require_the_field_reporter_role_and_read_ability(): void
+    {
+        $owner = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->reviewer()->create();
+        $notification = $this->createNotification($owner, 'CG-20260817-ROLE');
+        $reviewerToken = $reviewer->createToken('reviewer', ['notification:read'])->plainTextToken;
+        $weakToken = $owner->createToken('no-ability', ['report:submit'])->plainTextToken;
+
+        $this->withToken($reviewerToken)
+            ->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")
+            ->assertForbidden();
+        $this->withToken($reviewerToken)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertForbidden();
+
+        Auth::forgetGuards();
+
+        $this->withToken($weakToken)
+            ->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")
+            ->assertForbidden();
+        $this->withToken($weakToken)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertForbidden();
+
+        $this->assertNull($notification->fresh()->read_at);
+    }
+
     public function test_private_channel_authorization_requires_the_matching_web_user_role(): void
     {
         config([

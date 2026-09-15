@@ -26,13 +26,20 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     capturedAt: dto.captured_at,
     submittedAt: dto.submitted_at,
     predictedDisease: dto.predicted_label,
-    confidence: dto.confidence,
     mismatchReported: dto.mismatch_reported,
     imageUrl: dto.image_url,
     imageStatus: dto.image_url ? "available" : "unavailable",
     symptoms: [],
     reviewStatus: dto.review_status,
     lifecycle: mapReportLifecycle(dto.lifecycle, dto.review_status),
+    authorityClassifiedCondition: dto.authority_classified_condition ?? null,
+    locationUnavailable: dto.location_unavailable ?? false,
+    locationUnavailableReason: dto.location_unavailable_reason ?? null,
+    affectedAreaMeasurement: dto.affected_area_measurement,
+    affectedPortionMeasurement: dto.affected_portion_measurement,
+    followUp: dto.follow_up
+      ? { dueOn: dto.follow_up.due_on, overdue: dto.follow_up.overdue }
+      : undefined,
   };
 }
 
@@ -53,6 +60,8 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     finalLatitude: dto.observations.final_latitude ?? undefined,
     finalLongitude: dto.observations.final_longitude ?? undefined,
     locationSource: dto.observations.location_source ?? undefined,
+    locationUnavailable: dto.observations.location_source === "unavailable",
+    locationUnavailableReason: dto.observations.location_unavailable_reason ?? null,
     gpsAccuracy: dto.observations.gps_accuracy ?? undefined,
     scanRecordClientUuid: dto.identity.scan_record_client_uuid ?? undefined,
     predictedDisease: dto.model.predicted_label,
@@ -79,7 +88,9 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     cropAge: dto.observations.crop_age ?? undefined,
     caneClass: dto.observations.cane_class ?? undefined,
     affectedAreaHectares: dto.observations.affected_area_hectares ?? undefined,
+    affectedAreaMeasurement: dto.observations.affected_area_measurement,
     affectedPortionPercent: dto.observations.affected_portion_percent ?? undefined,
+    affectedPortionMeasurement: dto.observations.affected_portion_measurement,
     fieldNotes: dto.observations.field_notes ?? undefined,
     mismatchReported: dto.reporter_observation.mismatch_reported,
     reporterSuspectedCondition:

@@ -544,7 +544,7 @@ export function CaseReviewPage() {
           <p>Submitted AI evidence is kept behind a disclosure so the office decision is not anchored by the model result.</p>
         </div>
         <div className="review-summary__item">
-          <span className="review-summary__label">Current status</span>
+          <span className="review-summary__label">Work status</span>
           <ReviewStatusBadge status={report.reviewStatus} />
         </div>
         <div className="review-summary__item">
@@ -599,20 +599,43 @@ export function CaseReviewPage() {
                 <DetailField label="Municipality">{report.municipality ?? "Not provided"}</DetailField>
                 <DetailField label="Province">{report.province ?? "Not provided"}</DetailField>
                 <DetailField label="Coordinates">
-                  {report.finalLatitude !== undefined && report.finalLongitude !== undefined
-                    ? `${report.finalLatitude}, ${report.finalLongitude}`
-                    : "Not provided"}
+                  {report.locationSource === "unavailable"
+                    ? "Unavailable"
+                    : report.finalLatitude !== undefined && report.finalLongitude !== undefined
+                      ? `${report.finalLatitude}, ${report.finalLongitude}`
+                      : "Not provided"}
                 </DetailField>
                 <DetailField label="Location source">
                   {report.locationSource === "gps"
                     ? "GPS"
                     : report.locationSource === "manual_map"
                       ? "Manual map"
+                      : report.locationSource === "unavailable"
+                        ? "Unavailable"
+                        : "Not provided"}
+                </DetailField>
+                {report.locationSource === "unavailable" ? (
+                  <DetailField label="Location unavailable reason">
+                    {report.locationUnavailableReason
+                      ? `Unavailable — ${report.locationUnavailableReason.replaceAll("_", " ")}`
+                      : "Unavailable — reason not recorded"}
+                  </DetailField>
+                ) : null}
+                <DetailField label="GPS accuracy">{report.gpsAccuracy !== undefined ? `${report.gpsAccuracy} m` : "Not provided"}</DetailField>
+                <DetailField label="Affected area">
+                  {report.affectedAreaMeasurement === "not_measured"
+                    ? "Not measured"
+                    : report.affectedAreaHectares !== undefined
+                      ? `${report.affectedAreaHectares} ha`
                       : "Not provided"}
                 </DetailField>
-                <DetailField label="GPS accuracy">{report.gpsAccuracy !== undefined ? `${report.gpsAccuracy} m` : "Not provided"}</DetailField>
-                <DetailField label="Affected area">{report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : "Not provided"}</DetailField>
-                <DetailField label="Affected portion">{report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : "Not provided"}</DetailField>
+                <DetailField label="Affected portion">
+                  {report.affectedPortionMeasurement === "not_measured"
+                    ? "Not measured"
+                    : report.affectedPortionPercent !== undefined
+                      ? `${report.affectedPortionPercent}%`
+                      : "Not provided"}
+                </DetailField>
                 <DetailField label="Reporter">{report.submittedByName}</DetailField>
               </dl>
               <div className="quality-summary">
@@ -720,7 +743,7 @@ export function CaseReviewPage() {
                     </div>
                     <DiseaseBadge disease={report.predictedDisease} />
                   </div>
-                  <ConfidenceDisplay confidence={report.confidence} />
+                  <ConfidenceDisplay confidence={report.confidence ?? 0} />
                   <p><strong>Decision-support only.</strong> Compare this Possible Condition with the symptom responses, reporter observation, and field context. It is not a diagnosis.</p>
                 </div>
               </div>

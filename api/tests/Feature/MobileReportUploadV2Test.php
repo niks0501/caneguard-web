@@ -240,6 +240,180 @@ class MobileReportUploadV2Test extends TestCase
     /**
      * @return array<string, mixed>
      */
+    public function test_v2_records_explicit_measurement_provenance(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-provenance', ['report:submit'])->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, [
+                'affected_area_hectares' => 12.5,
+                'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
+                'affected_portion_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            ]))
+            ->assertCreated()
+            ->assertJsonPath(
+                'data.observations.affected_area_measurement',
+                Report::MEASUREMENT_MEASURED,
+            )
+            ->assertJsonPath(
+                'data.observations.affected_portion_measurement',
+                Report::MEASUREMENT_NOT_MEASURED,
+            )
+            ->assertJsonPath('data.observations.affected_portion_percent', null);
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertSame(Report::MEASUREMENT_MEASURED, $report->affected_area_measurement);
+        $this->assertNull($report->affected_portion_percent);
+    }
+
+    public function test_v2_infers_measurement_provenance_for_a_legacy_payload(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-inferred', ['report:submit'])->plainTextToken;
+        $withValue = fake()->uuid();
+        $withoutValue = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($withValue, [
+                'affected_area_hectares' => 4.25,
+            ]))
+            ->assertCreated();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($withoutValue, [
+                'affected_area_hectares' => '',
+            ]))
+            ->assertCreated();
+
+        $measuredReport = Report::query()->where('client_uuid', $withValue)->sole();
+        $this->assertSame(Report::MEASUREMENT_MEASURED, $measuredReport->affected_area_measurement);
+        $this->assertSame(Report::MEASUREMENT_NOT_MEASURED, $measuredReport->affected_portion_measurement);
+
+        $notMeasuredReport = Report::query()->where('client_uuid', $withoutValue)->sole();
+        $this->assertSame(Report::MEASUREMENT_NOT_MEASURED, $notMeasuredReport->affected_area_measurement);
+        $this->assertNull($notMeasuredReport->affected_area_hectares);
+    }
+
+    public function test_v2_rejects_incoherent_measurement_provenance(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-invalid', ['report:submit'])->plainTextToken;
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+                'affected_area_hectares' => 12.5,
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'affected_area_measurement' => 'guessed',
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+    }
+
+    public function test_v2_accepts_a_deliberately_unavailable_location(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-location', ['report:submit'])->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, [
+                'barangay' => 'Mabini',
+                'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+                'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('data.observations.location_source', Report::LOCATION_SOURCE_UNAVAILABLE)
+            ->assertJsonPath('data.observations.location_unavailable', true)
+            ->assertJsonPath(
+                'data.observations.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            )
+            ->assertJsonPath('data.observations.final_latitude', null)
+            ->assertJsonPath('data.observations.final_longitude', null);
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertTrue($report->hasLocationUnavailable());
+        $this->assertNull($report->final_latitude);
+        $this->assertSame('Mabini', $report->barangay);
+    }
+
+    public function test_v2_rejects_incoherent_location_provenance(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-location-invalid', ['report:submit'])->plainTextToken;
+
+        // An unavailable location still has to say why.
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+
+        // Coordinates contradict an unavailable location.
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+                'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_PERMISSION_DENIED,
+                'final_latitude' => 14.05,
+                'final_longitude' => 120.9,
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+
+        // A GPS location still requires coordinates.
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'location_source' => Report::LOCATION_SOURCE_GPS,
+                'gps_accuracy' => 6.5,
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+
+        // A reason without an unavailable location is contradictory.
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'final_latitude' => 14.05,
+                'final_longitude' => 120.9,
+                'location_source' => Report::LOCATION_SOURCE_GPS,
+                'gps_accuracy' => 6.5,
+                'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OTHER,
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+    }
+
     private function payload(string $clientUuid, array $overrides = []): array
     {
         $image = base64_decode(

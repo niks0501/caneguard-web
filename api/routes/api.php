@@ -103,6 +103,12 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->middleware(['mobile.token', 'abilities:assignment:read']);
     Route::get('/mobile/notifications', MobileNotificationController::class)
         ->middleware(['mobile.token', 'abilities:notification:read']);
+    Route::post('/mobile/notifications/read-all', [MobileNotificationController::class, 'markAllAsRead'])
+        ->middleware(['mobile.token', 'abilities:notification:read'])
+        ->name('api.v1.mobile.notifications.read-all');
+    Route::patch('/mobile/notifications/{notification}/read', [MobileNotificationController::class, 'markRead'])
+        ->middleware(['mobile.token', 'abilities:notification:read'])
+        ->name('api.v1.mobile.notifications.read');
     Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
         ->middleware(['mobile.token', 'abilities:assignment:complete', 'throttle:30,1']);
 });

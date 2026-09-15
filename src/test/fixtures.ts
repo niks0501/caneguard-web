@@ -12,7 +12,6 @@ export const reportListItemDto = {
   captured_at: "2026-07-20T09:55:00.000Z",
   submitted_at: "2026-07-20T10:00:00.000Z",
   predicted_label: "rust",
-  confidence: 0.93,
   review_status: "submitted_unverified",
   lifecycle: {
     case_state: "open",
@@ -52,7 +51,7 @@ export const reportDetailDto = {
   },
   model: {
     predicted_label: reportListItemDto.predicted_label,
-    confidence: reportListItemDto.confidence,
+    confidence: 0.93,
     class_scores: [
       { label: "rust", score: 0.93 },
       { label: "mosaic", score: 0.04 },
@@ -82,7 +81,9 @@ export const reportDetailDto = {
     crop_age: "6 months",
     cane_class: "Class A",
     affected_area_hectares: 12.5,
+    affected_area_measurement: "measured",
     affected_portion_percent: 42.75,
+    affected_portion_measurement: "measured",
     field_notes: "Rust symptoms concentrated on the eastern edge.",
   },
   reporter_observation: {

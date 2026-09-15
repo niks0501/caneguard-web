@@ -287,6 +287,35 @@ class MobileReportUploadContract
                     fn (): bool => $request->input($condition['field'])
                         !== $condition['value'],
                 );
+            } elseif ($rule === 'prohibited_when') {
+                $rules[] = Rule::prohibitedIf(
+                    fn (): bool => $request->input($condition['field'])
+                        === $condition['value'],
+                );
+            } elseif ($rule === 'measurement_pairing') {
+                $valueField = $condition['value_field'] ?? null;
+                if (! is_string($valueField) || $valueField === '') {
+                    throw new UnexpectedValueException(
+                        'measurement_pairing conditions need a value_field.',
+                    );
+                }
+
+                $rules[] = static function (
+                    string $attribute,
+                    mixed $value,
+                    Closure $fail,
+                ) use ($request, $valueField): void {
+                    $raw = $request->input($valueField);
+                    $hasValue = $raw !== null && $raw !== '';
+
+                    if ($value === 'measured' && ! $hasValue) {
+                        $fail("The {$valueField} field is required when {$attribute} is measured.");
+                    }
+
+                    if ($value === 'not_measured' && $hasValue) {
+                        $fail("The {$valueField} field must be omitted when {$attribute} is not measured.");
+                    }
+                };
             } else {
                 throw new UnexpectedValueException(
                     "Unsupported mobile report upload condition {$rule}.",

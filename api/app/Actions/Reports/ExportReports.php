@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -22,10 +23,16 @@ final class ExportReports
         'farmer_or_farm_reference',
         'possible_ai_condition',
         'affected_area_hectares',
+        'affected_area_measurement',
         'affected_portion_percent',
+        'affected_portion_measurement',
+        'work_status',
         'verification_outcome',
         'case_state',
         'field_validation_state',
+        'staff_classified_condition',
+        'location_unavailable',
+        'location_unavailable_reason',
         'field_validator',
         'assigned_by',
         'target_visit_date',
@@ -80,10 +87,29 @@ final class ExportReports
 
     private function applySort(Builder $query, string $sort): void
     {
+        if ($sort === 'due_soonest') {
+            $query
+                ->leftJoinSub(
+                    FieldValidationAssignment::query()
+                        ->selectRaw('report_id, MIN(target_visit_date) as due_on')
+                        ->whereNotNull('target_visit_date')
+                        ->groupBy('report_id'),
+                    'due_assignments',
+                    'due_assignments.report_id',
+                    '=',
+                    'reports.id',
+                )
+                ->select('reports.*')
+                ->orderByRaw('due_assignments.due_on is null')
+                ->orderBy('due_assignments.due_on')
+                ->orderBy('reports.submitted_at')
+                ->orderBy('reports.id');
+
+            return;
+        }
+
         [$column, $direction] = match ($sort) {
             'submitted_at' => ['submitted_at', 'asc'],
-            '-confidence' => ['confidence', 'desc'],
-            'confidence' => ['confidence', 'asc'],
             default => ['submitted_at', 'desc'],
         };
 
@@ -100,6 +126,8 @@ final class ExportReports
         $lifecycle = $report->lifecycleSnapshot();
         $assignment = $report->fieldValidationAssignment;
         $referral = $report->referral;
+        $areaMeasurement = $report->affectedAreaMeasurement();
+        $portionMeasurement = $report->affectedPortionMeasurement();
 
         return array_map(
             $this->neutralizeSpreadsheetFormula(...),
@@ -110,10 +138,22 @@ final class ExportReports
                 $report->farmer_or_farm_owner_name ?? '',
                 'Possible '.$report->predicted_label,
                 $report->affected_area_hectares ?? '',
+                $areaMeasurement === Report::MEASUREMENT_NOT_MEASURED
+                    ? 'Not measured'
+                    : 'Measured',
                 $report->affected_portion_percent ?? '',
+                $portionMeasurement === Report::MEASUREMENT_NOT_MEASURED
+                    ? 'Not measured'
+                    : 'Measured',
+                $report->review_status,
                 $lifecycle['verification_outcome'],
                 $lifecycle['case_state'],
                 $lifecycle['field_validation_state'],
+                $report->authority_classified_condition ?? '',
+                $report->hasLocationUnavailable() ? 'yes' : 'no',
+                $report->hasLocationUnavailable()
+                    ? ($report->location_unavailable_reason ?? '')
+                    : '',
                 $assignment?->assignee?->name ?? '',
                 $assignment?->assignedBy?->name ?? '',
                 $assignment?->target_visit_date?->format('Y-m-d') ?? '',

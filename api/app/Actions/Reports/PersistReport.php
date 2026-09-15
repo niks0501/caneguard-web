@@ -48,7 +48,15 @@ class PersistReport
                 'crop_age' => $data['crop_age'] ?? null,
                 'cane_class' => $data['cane_class'] ?? null,
                 'affected_area_hectares' => $data['affected_area_hectares'] ?? null,
+                'affected_area_measurement' => $data['affected_area_measurement']
+                    ?? (($data['affected_area_hectares'] ?? null) === null
+                        ? Report::MEASUREMENT_NOT_MEASURED
+                        : Report::MEASUREMENT_MEASURED),
                 'affected_portion_percent' => $data['affected_portion_percent'] ?? null,
+                'affected_portion_measurement' => $data['affected_portion_measurement']
+                    ?? (($data['affected_portion_percent'] ?? null) === null
+                        ? Report::MEASUREMENT_NOT_MEASURED
+                        : Report::MEASUREMENT_MEASURED),
                 'field_notes' => $data['field_notes'] ?? null,
                 'mismatch_reported' => $data['mismatch_reported'] ?? null,
                 'reporter_suspected_condition' => $data['reporter_suspected_condition'] ?? null,
@@ -73,6 +81,9 @@ class PersistReport
                 'final_latitude' => $data['final_latitude'] ?? null,
                 'final_longitude' => $data['final_longitude'] ?? null,
                 'location_source' => $data['location_source'] ?? null,
+                'location_unavailable_reason' => ($data['location_source'] ?? null) === Report::LOCATION_SOURCE_UNAVAILABLE
+                    ? ($data['location_unavailable_reason'] ?? null)
+                    : null,
                 'gps_accuracy' => $data['gps_accuracy'] ?? null,
                 'observed_at' => isset($data['observed_at'])
                     ? CarbonImmutable::parse($data['observed_at'])->utc()

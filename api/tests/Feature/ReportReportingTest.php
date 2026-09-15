@@ -88,10 +88,16 @@ class ReportReportingTest extends TestCase
             'farmer_or_farm_reference',
             'possible_ai_condition',
             'affected_area_hectares',
+            'affected_area_measurement',
             'affected_portion_percent',
+            'affected_portion_measurement',
+            'work_status',
             'verification_outcome',
             'case_state',
             'field_validation_state',
+            'staff_classified_condition',
+            'location_unavailable',
+            'location_unavailable_reason',
             'field_validator',
             'assigned_by',
             'target_visit_date',
@@ -109,10 +115,16 @@ class ReportReportingTest extends TestCase
             'Juan Dela Cruz',
             'Possible rust',
             '12.50',
+            'Measured',
             '42.75',
+            'Measured',
+            Report::STATUS_FOR_FIELD_VALIDATION,
             Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             Report::CASE_STATE_OPEN,
             Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            '',
+            'no',
+            '',
             'Field Validator',
             'Office Reviewer',
             '2026-09-12',
@@ -123,6 +135,54 @@ class ReportReportingTest extends TestCase
             '2026-09-05',
             '2026-09-08',
         ], $rows[1]);
+    }
+
+    public function test_export_uses_human_measurement_labels_and_supports_due_sorting(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $dueSoon = Report::factory()->create([
+            'reference_code' => 'CG-EXPORT-DUE',
+            'affected_area_hectares' => 2.5,
+            'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
+            'affected_portion_percent' => 40,
+            'affected_portion_measurement' => Report::MEASUREMENT_MEASURED,
+            'submitted_at' => CarbonImmutable::parse('2026-09-04T10:00:00Z'),
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $dueSoon->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-09-10',
+        ]);
+        $notMeasured = Report::factory()->create([
+            'reference_code' => 'CG-EXPORT-NOT-MEASURED',
+            'affected_area_hectares' => null,
+            'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            'affected_portion_percent' => null,
+            'affected_portion_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+            'submitted_at' => CarbonImmutable::parse('2026-09-03T10:00:00Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $response = $this->get('/api/v1/reports/export?sort=due_soonest');
+        $rows = array_map(
+            'str_getcsv',
+            array_filter(preg_split('/\r\n|\r|\n/', trim($response->streamedContent())) ?: []),
+        );
+
+        $this->assertSame('CG-EXPORT-DUE', $rows[1][0]);
+        $notMeasuredRow = collect($rows)->first(fn (array $row) => ($row[0] ?? null) === $notMeasured->reference_code);
+        $this->assertNotNull($notMeasuredRow);
+        $this->assertSame('', $notMeasuredRow[5]);
+        $this->assertSame('Not measured', $notMeasuredRow[6]);
+        $this->assertSame('', $notMeasuredRow[7]);
+        $this->assertSame('Not measured', $notMeasuredRow[8]);
+
+        $this->get('/api/v1/reports/export?sort=confidence')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
     }
 
     public function test_export_neutralizes_formula_prefixes_in_all_text_cells(): void
@@ -165,11 +225,11 @@ class ReportReportingTest extends TestCase
         $this->assertSame("'=case-reference", $rows[1][0]);
         $this->assertSame("'+barangay", $rows[1][2]);
         $this->assertSame("'-farmer", $rows[1][3]);
-        $this->assertSame("'\tvalidator", $rows[1][10]);
-        $this->assertSame("'\rassigner", $rows[1][11]);
-        $this->assertSame("'@action", $rows[1][13]);
-        $this->assertSame("'\ndestination", $rows[1][15]);
-        $this->assertSame("'=external-reference", $rows[1][16]);
+        $this->assertSame("'\tvalidator", $rows[1][16]);
+        $this->assertSame("'\rassigner", $rows[1][17]);
+        $this->assertSame("'@action", $rows[1][19]);
+        $this->assertSame("'\ndestination", $rows[1][21]);
+        $this->assertSame("'=external-reference", $rows[1][22]);
     }
 
     public function test_export_and_monthly_summary_require_office_authority_and_validate_month(): void
