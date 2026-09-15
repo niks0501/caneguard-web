@@ -35,7 +35,7 @@ class DashboardSummaryController extends Controller
         }
 
         $recentReports = Report::query()
-            ->with(['reporter', 'reviewer'])
+            ->with(['reporter', 'reviewer', 'fieldValidationAssignment'])
             ->latest('submitted_at')
             ->limit(5)
             ->get();
