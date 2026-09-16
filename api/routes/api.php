@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\MapReportController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationCompletionController;
+use App\Http\Controllers\Api\V1\MobileMapTileController;
 use App\Http\Controllers\Api\V1\MobileNotificationController;
 use App\Http\Controllers\Api\V1\MobilePossibleRecentMatchesController;
 use App\Http\Controllers\Api\V1\MobileReportController;
@@ -99,6 +100,10 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1']);
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware(['mobile.token', 'abilities:report:status']);
+    Route::get('/mobile/map-tiles/{z}/{x}/{y}.png', MobileMapTileController::class)
+        ->middleware(['mobile.token', 'abilities:report:status'])
+        ->whereNumber(['z', 'x', 'y'])
+        ->name('api.v1.mobile.map-tiles');
     Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
         ->middleware(['mobile.token', 'abilities:assignment:read']);
     Route::get('/mobile/notifications', MobileNotificationController::class)
