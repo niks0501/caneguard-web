@@ -209,11 +209,10 @@ class ReviewReportTest extends TestCase
                 'location_source',
                 'gps_accuracy',
             ];
-            $submittedObservations = collect($submittedObservationFields)
-                ->mapWithKeys(fn (string $attribute) => [
-                    $attribute => $report->getRawOriginal($attribute),
-                ])
-                ->all();
+            $submittedObservations = $this->submittedObservationSnapshot(
+                $report,
+                $submittedObservationFields,
+            );
             $modelScores = $report->classScores()->pluck('score', 'label')->all();
             $submittedSymptoms = $report->symptoms()->pluck('symptom_key')->all();
 
@@ -237,14 +236,48 @@ class ReviewReportTest extends TestCase
                     $attribute => $updated->getRawOriginal($attribute),
                 ])
                 ->all());
-            $this->assertSame($submittedObservations, collect($submittedObservationFields)
-                ->mapWithKeys(fn (string $attribute) => [
-                    $attribute => $updated->getRawOriginal($attribute),
-                ])
-                ->all());
+            $this->assertSame(
+                $submittedObservations,
+                $this->submittedObservationSnapshot($updated, $submittedObservationFields),
+            );
             $this->assertSame($modelScores, $updated->classScores()->pluck('score', 'label')->all());
             $this->assertSame($submittedSymptoms, $updated->symptoms()->pluck('symptom_key')->all());
         }
+    }
+
+    /**
+     * SQLite drivers may return a whole-number DECIMAL as an int after a
+     * reload, while the factory-created model retains the float input.
+     * Normalize numeric evidence before comparing persistence invariants.
+     *
+     * @param  array<int, string>  $attributes
+     * @return array<string, mixed>
+     */
+    private function submittedObservationSnapshot(Report $report, array $attributes): array
+    {
+        return collect($attributes)
+            ->mapWithKeys(fn (string $attribute) => [
+                $attribute => $this->canonicalObservationValue(
+                    $attribute,
+                    $report->getRawOriginal($attribute),
+                ),
+            ])
+            ->all();
+    }
+
+    private function canonicalObservationValue(string $attribute, mixed $value): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return in_array($attribute, [
+            'affected_area_hectares',
+            'affected_portion_percent',
+            'final_latitude',
+            'final_longitude',
+            'gps_accuracy',
+        ], true) ? (float) $value : $value;
     }
 
     public function test_review_without_classification_preserves_an_existing_authority_finding(): void
