@@ -97,14 +97,8 @@ describe("DashboardPage", () => {
         name: "Submitted evidence for CG-2026-0718",
       }),
     ).toHaveAttribute("src", mockReports[0].imageUrl);
-    expect(screen.queryByText(/confirmed cases?/i)).not.toBeInTheDocument();
-    const nextAction = screen.getByRole("region", {
-      name: "Start with Needs Review",
-    });
-    expect(nextAction).toHaveTextContent("first active queue");
-    expect(
-      within(nextAction).getByRole("link", { name: "Open priority queue" }),
-    ).toHaveAttribute("href", "/reports?queue=needs_review");
+    expect(screen.queryByRole("region", { name: /Start with Needs Review/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Recent reports" })).toBeInTheDocument();
   });
 
   it("renders monthly case summaries with an operational-statistics boundary", () => {

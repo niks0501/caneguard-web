@@ -61,18 +61,23 @@ export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
     });
   };
 
-  const openNotification = async (notification: AppNotification) => {
-    if (!notification.isRead) {
-      try {
-        await markRead.mutateAsync(notification.id);
-      } catch {
-        return;
-      }
-    }
+  const panelRef = useRef<HTMLElement>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      panelRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  const openNotification = (notification: AppNotification) => {
     setIsOpen(false);
     if (notification.caseUuid) {
       navigate(`/reports/${encodeURIComponent(notification.caseUuid)}`);
+    }
+    if (!notification.isRead) {
+      void markRead.mutateAsync(notification.id).catch(() => {
+        // Idempotent background acknowledgment, navigation never blocked
+      });
     }
   };
 
@@ -108,6 +113,8 @@ export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
           id="notification-panel"
           role="dialog"
           aria-label="Notifications"
+          tabIndex={-1}
+          ref={panelRef}
         >
           <div className="notification-panel__header">
             <div>

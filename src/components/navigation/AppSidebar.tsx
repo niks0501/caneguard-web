@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   ChevronRight,
   LayoutDashboard,
   LogOut,
@@ -10,10 +9,6 @@ import {
 import { NavLink } from "react-router";
 import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
-
-const futureLinks = [
-  { label: "Analytics", icon: BarChart3 },
-];
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const auth = useAuth();
@@ -58,23 +53,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <span>Submitted reports</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
-        <div className="sidebar__planned" aria-label="Planned screens">
-          <p>Coming next</p>
-          {futureLinks.map(({ label, icon: Icon }) => (
-            <button className="sidebar-link" disabled key={label} title="Planned screen">
-              <Icon aria-hidden="true" />
-              <span>{label}</span>
-              <span className="sidebar-link__planned-label">Planned</span>
-            </button>
-          ))}
-        </div>
       </nav>
 
       <div className="sidebar__footer">
-        <div className="sync-card">
-          <ShieldCheck aria-hidden="true" />
-          <div><strong>Review session active</strong><span>{auth.user?.role === "admin" ? "Administrator access" : "Reviewer access"}</span></div>
-        </div>
         <button className="user-summary" type="button" onClick={logout}>
           <span className="avatar">
             {auth.user?.name

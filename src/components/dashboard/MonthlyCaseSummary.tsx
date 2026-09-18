@@ -28,7 +28,7 @@ export function MonthlyCaseSummary({
     >
       <div className="dashboard-section-heading dashboard-monthly-summary__heading">
         <div>
-          <p className="eyebrow">Descriptive analytics</p>
+          <p className="eyebrow">Month-scoped descriptive analytics ({summary.month || month})</p>
           <h2 id="monthly-case-summary-heading">Monthly submitted report summary</h2>
         </div>
         <label className="select-filter dashboard-month-selector">

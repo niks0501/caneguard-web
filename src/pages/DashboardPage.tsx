@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  ArrowRight,
   CalendarClock,
   CheckCircle2,
   ClipboardCheck,
@@ -69,14 +68,15 @@ const queueOrder: OperationalQueue[] = [
 ];
 
 export function DashboardPage() {
-  const [summaryMonth, setSummaryMonth] = useState(() =>
-    new Date().toISOString().slice(0, 7),
-  );
-  const dashboard = useDashboard(summaryMonth);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const dashboard = useDashboard(selectedMonth ?? undefined);
   const summary = dashboard.data;
-  const firstActiveQueue = summary
-    ? queueOrder.find((queue) => (summary.queues?.[queue] ?? 0) > 0)
-    : undefined;
+
+  const activeMonth =
+    selectedMonth ??
+    (summary?.monthlySummary?.month ??
+      summary?.recentReports?.[0]?.submittedAt?.slice(0, 7) ??
+      new Date().toISOString().slice(0, 7));
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
   const isRateLimited =
@@ -172,35 +172,27 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section className="dashboard-next-action" aria-labelledby="next-action-heading">
-        <div className="dashboard-next-action__icon"><ArrowRight aria-hidden="true" /></div>
-        <div>
-          <p className="eyebrow">Next safe action</p>
-          <h2 id="next-action-heading">
-            {firstActiveQueue
-              ? `Start with ${queueCopy[firstActiveQueue].label}`
-              : "No operational queue is waiting"}
-          </h2>
-          <p>
-            {firstActiveQueue
-              ? "Open the first active queue to review current work without losing the submitted evidence context."
-              : "Historical totals and recent submissions remain available below for context."}
-          </p>
+      <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
+        <div className="workspace-heading">
+          <div>
+            <p className="eyebrow">Latest field activity</p>
+            <h2 id="recent-reports-heading">Recent reports</h2>
+          </div>
+          <span>{summary.recentReports.length} latest submissions</span>
         </div>
-        <Link
-          className="dashboard-next-action__link"
-          to={queueCopy[firstActiveQueue ?? "needs_review"].href}
-        >
-          <span>Open priority queue</span>
-          <ArrowRight aria-hidden="true" />
-        </Link>
+
+        {summary.recentReports.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <DashboardRecentReports reports={summary.recentReports} />
+        )}
       </section>
 
       {summary.monthlySummary ? (
         <MonthlyCaseSummary
           summary={summary.monthlySummary}
-          month={summaryMonth}
-          onMonthChange={setSummaryMonth}
+          month={activeMonth}
+          onMonthChange={setSelectedMonth}
         />
       ) : null}
 
@@ -239,22 +231,6 @@ export function DashboardPage() {
             <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
           </p>
         </section>
-      </section>
-
-      <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
-        <div className="workspace-heading">
-          <div>
-            <p className="eyebrow">Latest field activity</p>
-            <h2 id="recent-reports-heading">Recent reports</h2>
-          </div>
-          <span>{summary.recentReports.length} latest submissions</span>
-        </div>
-
-        {summary.recentReports.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <DashboardRecentReports reports={summary.recentReports} />
-        )}
       </section>
     </PageContent>
   );

@@ -573,7 +573,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
     await user.click(screen.getByRole("button", { name: "Save review" }));
 
-    expect(screen.getByText(/Select a Field Inspector before saving/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Select a Field Inspector before saving/i).length).toBeGreaterThan(0);
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
@@ -620,9 +620,23 @@ describe("CaseReviewPage", () => {
     );
 
     expect(
-      screen.getByText(/Add a note explaining why/i),
-    ).toBeInTheDocument();
+      screen.getAllByText(/Add a note explaining why/i).length,
+    ).toBeGreaterThan(0);
     expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("renders GOV.UK error summary and prefixes document title on validation failure", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Save review" }));
+
+    const errorSummary = screen.getByRole("alert", { name: "There is a problem" });
+    expect(errorSummary).toBeInTheDocument();
+    expect(
+      within(errorSummary).getByRole("link", { name: /Choose a next action/i }),
+    ).toHaveAttribute("href", "#review-next-action");
+    expect(document.title).toMatch(/^Error: /);
   });
 
   it("saves with the loaded version and returns only after success", async () => {

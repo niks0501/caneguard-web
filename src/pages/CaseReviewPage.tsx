@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -347,6 +347,71 @@ export function CaseReviewPage() {
     authorityClassificationOverride !== undefined ||
     notesOverride !== null ||
     metadataCorrections !== undefined;
+
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
+
+  const validationErrors: Array<{ id: string; message: string }> = [];
+  if (submitted && !referralNeeded && !hasReviewInput) {
+    validationErrors.push({
+      id: "review-next-action",
+      message: "Choose a next action or another review field before saving.",
+    });
+  }
+  if (submitted && !referralNeeded && fieldValidationError) {
+    validationErrors.push({
+      id: "field-validation-assignee",
+      message: fieldValidationError,
+    });
+  }
+  if (submitted && !referralNeeded && noteError) {
+    validationErrors.push({
+      id: "review-notes",
+      message: noteError,
+    });
+  }
+  if (submitted && !referralNeeded && correctionError) {
+    validationErrors.push({
+      id: "correction-reason",
+      message: correctionError,
+    });
+  }
+  if (submitted && referralNeeded && referralInputError) {
+    validationErrors.push({
+      id: "referral-destination",
+      message: referralInputError,
+    });
+  }
+
+  const isDirty =
+    (notesOverride !== null && notesOverride !== (report?.reviewNotes ?? "")) ||
+    nextActionTouched ||
+    (authorityClassificationOverride !== undefined &&
+      authorityClassificationOverride !== (report?.authorityClassifiedCondition ?? null)) ||
+    (verificationOverride !== undefined &&
+      verificationOverride !== (lifecycle?.verificationOutcome ?? ""));
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isDirty) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (submitted && validationErrors.length > 0) {
+      errorSummaryRef.current?.focus();
+      if (report?.referenceCode) {
+        document.title = `Error: CaneGuard | Case Review ${report.referenceCode}`;
+      }
+    } else if (report?.referenceCode) {
+      document.title = `CaneGuard | Case Review ${report.referenceCode}`;
+    }
+  }, [submitted, validationErrors.length, report?.referenceCode]);
+
   const updateMetadataDraft = (field: keyof MetadataDraft, value: string) => {
     if (!metadataDraft) return;
     setMetadataDraftOverride({ ...metadataDraft, [field]: value });
@@ -537,6 +602,27 @@ export function CaseReviewPage() {
         </div>
       ) : null}
 
+      {submitted && validationErrors.length > 0 ? (
+        <div
+          className="govuk-error-summary"
+          role="alert"
+          tabIndex={-1}
+          ref={errorSummaryRef}
+          aria-labelledby="error-summary-title"
+        >
+          <h2 className="govuk-error-summary__title" id="error-summary-title">
+            There is a problem
+          </h2>
+          <ul className="govuk-error-summary__list">
+            {validationErrors.map((err) => (
+              <li key={err.id}>
+                <a href={`#${err.id}`}>{err.message}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <section className="review-summary review-summary--status" aria-labelledby="review-summary-heading">
         <div className="review-summary__lead">
           <p className="eyebrow">Guided review</p>
@@ -565,9 +651,7 @@ export function CaseReviewPage() {
         <div className="review-main">
           <section className="review-step" aria-labelledby="review-step-evidence">
             <div className="review-step__heading">
-              <span className="review-step__index" aria-hidden="true">1</span>
               <div>
-                <p className="eyebrow">Step 1 of 3</p>
                 <h2 id="review-step-evidence">Review evidence</h2>
               </div>
             </div>
@@ -798,9 +882,7 @@ export function CaseReviewPage() {
         <aside className="review-sidebar" aria-label="Office decision">
           <section className="review-step" aria-labelledby="review-step-action">
             <div className="review-step__heading">
-              <span className="review-step__index" aria-hidden="true">2</span>
               <div>
-                <p className="eyebrow">Step 2 of 3</p>
                 <h2 id="review-step-action">Choose next action</h2>
               </div>
             </div>
@@ -858,20 +940,37 @@ export function CaseReviewPage() {
                 </div>
               ) : (
                 <>
-                  <fieldset className="review-actions">
+                  <fieldset
+                    className="review-actions"
+                    id="review-next-action"
+                    aria-describedby={
+                      submitted && !referralNeeded && !hasReviewInput
+                        ? "review-next-action-error"
+                        : undefined
+                    }
+                  >
                     <legend>Next action - choose one</legend>
                     {nextActions.map((action) => {
                       const disabled =
                         (fieldValidationActive && action.value === "needs_field_validation") ||
                         (caseAlreadyClosed && action.value === "referred_for_expert_validation");
+                      const isClosedReferral =
+                        caseAlreadyClosed && action.value === "referred_for_expert_validation";
                       return (
-                        <label className={`${selectedNextAction === action.value ? "is-selected " : ""}${disabled ? "is-disabled" : ""}`} key={action.value}>
+                        <label
+                          className={`${selectedNextAction === action.value ? "is-selected " : ""}${disabled ? "is-disabled" : ""}`}
+                          key={action.value}
+                        >
                           <input
                             type="radio"
+                            id={`next-action-${action.value}`}
                             name="review-next-action"
                             value={action.value}
                             checked={selectedNextAction === action.value}
                             disabled={disabled}
+                            aria-describedby={
+                              isClosedReferral ? "expert-disabled-reason" : undefined
+                            }
                             onChange={() => {
                               setNextActionOverride(action.value);
                               setNextActionTouched(true);
@@ -881,7 +980,19 @@ export function CaseReviewPage() {
                               recordReferral.reset();
                             }}
                           />
-                          <span><strong>{nextActionLabels[action.value]}</strong><small>{action.description}</small></span>
+                          <span>
+                            <strong>{nextActionLabels[action.value]}</strong>
+                            <small>
+                              {isClosedReferral
+                                ? "Closed cases cannot be referred for expert validation. Reopen the case to request expert review."
+                                : action.description}
+                            </small>
+                            {isClosedReferral ? (
+                              <span id="expert-disabled-reason" className="field-hint">
+                                Closed cases cannot be referred for expert validation. Reopen the case to request expert review.
+                              </span>
+                            ) : null}
+                          </span>
                         </label>
                       );
                     })}
@@ -890,8 +1001,19 @@ export function CaseReviewPage() {
                   {fieldValidationNeeded ? (
                     <div className="review-subform" aria-label="Field validation assignment">
                       <p className="authority-classification-help">An assignment activates immediately. Choose a Field Inspector; a target visit date is optional.</p>
+                      {submitted && fieldValidationError ? (
+                        <p id="field-validation-assignee-error" className="form-error" role="alert">
+                          {fieldValidationError}
+                        </p>
+                      ) : null}
                       <SelectFilter
+                        id="field-validation-assignee"
                         label="Field Inspector assignee"
+                        aria-describedby={
+                          submitted && fieldValidationError
+                            ? "field-validation-assignee-error"
+                            : undefined
+                        }
                         value={selectedFieldValidationAssignee}
                         onChange={(event) => {
                           setFieldValidationAssigneeOverride(event.target.value || null);
@@ -948,12 +1070,18 @@ export function CaseReviewPage() {
                   {referralNeeded ? (
                     <div className="review-subform" aria-label="Expert referral details">
                       <p className="authority-classification-help">Capture the external handoff as plain operational text. CaneGuard does not send the referral or connect to an external SRA account.</p>
+                      {referralFieldError ? (
+                        <p id="referral-destination-error" className="form-error" role="alert">
+                          {referralFieldError}
+                        </p>
+                      ) : null}
                       <label className="select-filter" htmlFor="referral-destination">
                         <span>Expert destination</span>
                         <input
                           id="referral-destination"
                           value={referralDestination}
                           maxLength={160}
+                          aria-describedby={referralFieldError ? "referral-destination-error" : undefined}
                           onChange={(event) => {
                             setReferralDestination(event.target.value);
                             setReferralSubmitted(false);
@@ -1003,7 +1131,6 @@ export function CaseReviewPage() {
                         }}
                         placeholder="What should the expert review?"
                       />
-                      {referralFieldError ? <p className="form-error" role="alert">{referralFieldError}</p> : null}
                     </div>
                   ) : null}
                 </>
@@ -1048,9 +1175,31 @@ export function CaseReviewPage() {
                 <strong>Record intervention or action details</strong>
                 <p>Use Review notes to record the treatment, pesticide, medicine, technical assistance, or other action used when applicable. If no intervention was used, say so in the notes.</p>
               </div>
-              <TextArea id="review-notes" label="Review notes" hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review." rows={5} maxLength={1000} value={notes} onChange={(event) => { setNotesOverride(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Describe the intervention or other action used, if applicable..." />
+              {submitted && !referralNeeded && noteError ? (
+                <p id="review-notes-error" className="form-error" role="alert">
+                  {noteError}
+                </p>
+              ) : null}
+              <TextArea
+                id="review-notes"
+                label="Review notes"
+                hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review."
+                rows={5}
+                maxLength={1000}
+                value={notes}
+                aria-describedby={
+                  submitted && !referralNeeded && noteError
+                    ? "review-notes-error"
+                    : undefined
+                }
+                onChange={(event) => {
+                  setNotesOverride(event.target.value);
+                  setSubmitted(false);
+                  reviewMutation.reset();
+                }}
+                placeholder="Describe the intervention or other action used, if applicable..."
+              />
               <p className="review-note-count">{notes.length}/1,000</p>
-              {submitted && fieldValidationError ? <p className="form-error" role="alert">{fieldValidationError}</p> : null}
             </section>
 
             <details className="review-card technical-evidence more-actions">
@@ -1180,7 +1329,30 @@ export function CaseReviewPage() {
                     <label className="select-filter" htmlFor="correction-area"><span>Affected area (ha)</span><input id="correction-area" type="number" min="0" step="0.01" value={metadataDraft?.affectedAreaHectares ?? ""} onChange={(event) => updateMetadataDraft("affectedAreaHectares", event.target.value)} /></label>
                     <label className="select-filter" htmlFor="correction-portion"><span>Affected portion (%)</span><input id="correction-portion" type="number" min="0" max="100" step="0.01" value={metadataDraft?.affectedPortionPercent ?? ""} onChange={(event) => updateMetadataDraft("affectedPortionPercent", event.target.value)} /></label>
                   </div>
-                  <TextArea id="correction-reason" label="Correction reason" hint="Required when an operational value changes." rows={3} maxLength={1000} value={correctionReason} onChange={(event) => { setCorrectionReason(event.target.value); setSubmitted(false); reviewMutation.reset(); }} placeholder="Explain the source of the correction..." />
+                  {submitted && !referralNeeded && correctionError ? (
+                    <p id="correction-reason-error" className="form-error" role="alert">
+                      {correctionError}
+                    </p>
+                  ) : null}
+                  <TextArea
+                    id="correction-reason"
+                    label="Correction reason"
+                    hint="Required when an operational value changes."
+                    rows={3}
+                    maxLength={1000}
+                    value={correctionReason}
+                    aria-describedby={
+                      submitted && !referralNeeded && correctionError
+                        ? "correction-reason-error"
+                        : undefined
+                    }
+                    onChange={(event) => {
+                      setCorrectionReason(event.target.value);
+                      setSubmitted(false);
+                      reviewMutation.reset();
+                    }}
+                    placeholder="Explain the source of the correction..."
+                  />
                   {report.metadataCorrectionAudits?.length ? (
                     <div className="metadata-audit-history">
                       <strong>Correction history</strong>
@@ -1203,9 +1375,7 @@ export function CaseReviewPage() {
 
           <section className="review-step" aria-labelledby="review-step-save">
             <div className="review-step__heading">
-              <span className="review-step__index" aria-hidden="true">3</span>
               <div>
-                <p className="eyebrow">Step 3 of 3</p>
                 <h2 id="review-step-save">Save</h2>
               </div>
             </div>
@@ -1216,9 +1386,6 @@ export function CaseReviewPage() {
                   ? "Saving records the expert referral together with your visible classification, verification, and notes. The case stays open while input is pending."
                   : "Saving records your Staff-Classified Condition, verification, next action, and notes as one office review."}
               </p>
-              {submitted && !referralNeeded && !hasReviewInput ? <p className="form-error" role="alert">Choose a next action or another review field before saving.</p> : null}
-              {submitted && !referralNeeded && noteError ? <p className="form-error" role="alert">{noteError}</p> : null}
-              {submitted && !referralNeeded && correctionError ? <p className="form-error" role="alert">{correctionError}</p> : null}
               {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
               {referralRecordError ? <p className="form-error" role="alert">{referralRecordError}</p> : null}
               {conflict ? (
@@ -1247,3 +1414,4 @@ export function CaseReviewPage() {
     </PageContent>
   );
 }
+

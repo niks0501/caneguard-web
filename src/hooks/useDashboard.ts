@@ -12,6 +12,7 @@ export function useDashboard(month?: string) {
   return useQuery({
     queryKey: dashboardKeys.summary(month),
     queryFn: () => dashboardRepository.getSummary(month),
+    placeholderData: (previousData) => previousData,
     ...getOperationalQueryRefreshOptions(),
   });
 }

@@ -13,7 +13,7 @@ import { useApiConnectivity } from "../../api/apiConnectivity.context";
 
 type ServerStatusValue = "connected" | "refreshing" | "unavailable" | "offline";
 
-export function ServerStatus() {
+export function ServerStatus({ showOnlyDegraded = false }: { showOnlyDegraded?: boolean } = {}) {
   const { networkStatus, apiReachability } = useApiConnectivity();
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
@@ -68,12 +68,18 @@ export function ServerStatus() {
     offline: "Offline",
   }[status];
 
+  if (showOnlyDegraded && status !== "unavailable" && status !== "offline") {
+    return null;
+  }
+
+  const isDegraded = status === "unavailable" || status === "offline";
+
   return (
     <span
       className={`server-status server-status--${status}`}
       role="status"
       aria-label={`Connectivity: Network ${networkLabel}; CaneGuard server ${serverLabel}`}
-      aria-live="polite"
+      aria-live={isDegraded ? "polite" : "off"}
     >
       {status === "refreshing" ? (
         <LoaderCircle className="spin" aria-hidden="true" />
