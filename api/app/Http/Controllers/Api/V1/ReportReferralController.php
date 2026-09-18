@@ -25,6 +25,7 @@ class ReportReferralController extends Controller
         return (new ReportResource($updated->load([
             'reporter',
             'reviewer',
+            'advisory',
             'fieldValidationAssignment.assignee',
             'fieldValidationAssignment.assignedBy',
             'classScores',

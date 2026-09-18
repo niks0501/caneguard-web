@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AdminUserRoleController;
+use App\Http\Controllers\Api\V1\AdvisoryController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\ExpertQueueController;
@@ -51,6 +52,20 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::patch('/admin/users/{user:uuid}/role', AdminUserRoleController::class)
         ->name('api.v1.admin.users.role');
     Route::get('/dashboard/summary', DashboardSummaryController::class);
+    Route::get('/advisories', [AdvisoryController::class, 'index'])
+        ->name('api.v1.advisories.index');
+    Route::post('/advisories', [AdvisoryController::class, 'store'])
+        ->name('api.v1.advisories.store');
+    Route::get('/advisories/{advisory}', [AdvisoryController::class, 'show'])
+        ->name('api.v1.advisories.show');
+    Route::patch('/advisories/{advisory}', [AdvisoryController::class, 'update'])
+        ->name('api.v1.advisories.update');
+    Route::post('/advisories/{advisory}/validate', function (\App\Http\Requests\AdvisoryTransitionRequest $request, \App\Models\Advisory $advisory, AdvisoryController $controller) {
+        return $controller->transition($request, $advisory, \App\Models\Advisory::STATUS_VALIDATED);
+    })->name('api.v1.advisories.validate');
+    Route::post('/advisories/{advisory}/retire', function (\App\Http\Requests\AdvisoryTransitionRequest $request, \App\Models\Advisory $advisory, AdvisoryController $controller) {
+        return $controller->transition($request, $advisory, \App\Models\Advisory::STATUS_RETIRED);
+    })->name('api.v1.advisories.retire');
     Route::get('/field-reporters', FieldReporterController::class);
     Route::get('/reports/expert-queue', ExpertQueueController::class)
         ->name('api.v1.reports.expert-queue');
@@ -128,4 +143,10 @@ Route::prefix('v2')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware(['mobile.token', 'abilities:report:status'])
         ->name('api.v2.mobile.reports.statuses');
+});
+
+Route::prefix('v3')->middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
+        ->middleware(['mobile.token', 'abilities:report:status'])
+        ->name('api.v3.mobile.reports.statuses');
 });

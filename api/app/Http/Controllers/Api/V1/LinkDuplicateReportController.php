@@ -26,6 +26,7 @@ class LinkDuplicateReportController extends Controller
         return new ReportResource($linked->load([
             'reporter',
             'reviewer',
+            'advisory',
             'canonicalReport',
             'fieldValidationAssignment.assignee',
             'fieldValidationAssignment.assignedBy',

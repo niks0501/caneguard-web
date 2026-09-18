@@ -108,6 +108,21 @@ class ReportResource extends JsonResource
                 'reviewed_at' => $this->reviewed_at?->utc()->toISOString(),
             ],
             'lifecycle' => $this->resource->lifecycleSnapshot(),
+            'advisory' => $this->when(
+                $this->relationLoaded('advisory'),
+                fn () => $this->advisory ? [
+                    'uuid' => $this->advisory->uuid,
+                    'code' => $this->advisory->code,
+                    'title' => $this->advisory->title,
+                    'content' => $this->advisory->content,
+                    'status' => $this->advisory->status,
+                    'validation_provenance' => $this->advisory->validation_provenance,
+                    'selected_at' => $this->advisory_selected_at?->utc()->toISOString(),
+                    'delivery_state' => $this->advisory_delivery_state,
+                    'delivered_at' => $this->advisory_delivered_at?->utc()->toISOString(),
+                    'acknowledged_at' => $this->advisory_acknowledged_at?->utc()->toISOString(),
+                ] : null,
+            ),
             'duplicate_linkage' => $this->duplicateLinkage(),
             'field_validation_assignment' => $this->when(
                 $this->relationLoaded('fieldValidationAssignment'),

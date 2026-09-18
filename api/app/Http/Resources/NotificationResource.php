@@ -26,6 +26,8 @@ class NotificationResource extends JsonResource
                 'reference_code' => $data['reference_code'] ?? null,
             ],
             'assignment_uuid' => $data['assignment_uuid'] ?? null,
+            'content' => $data['content'] ?? null,
+            'advisory' => $data['advisory'] ?? null,
             'is_read' => $this->read_at !== null,
             'read_at' => $this->read_at?->utc()->toISOString(),
             'created_at' => $this->created_at?->utc()->toISOString(),
