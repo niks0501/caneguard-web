@@ -38,12 +38,13 @@ function renderStatus(
   queryKey: string,
   queryFn: () => Promise<unknown>,
   connectivity: ApiConnectivitySnapshot = connected,
+  showOnlyDegraded = false,
 ) {
   return render(
     <QueryClientProvider client={queryClient()}>
       <ApiConnectivityContext value={connectivity}>
         <QueryProbe queryKey={queryKey} queryFn={queryFn} />
-        <ServerStatus />
+        <ServerStatus showOnlyDegraded={showOnlyDegraded} />
       </ApiConnectivityContext>
     </QueryClientProvider>,
   );
@@ -103,5 +104,16 @@ describe("ServerStatus", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText("Offline")).toBeInTheDocument();
+  });
+
+  it("renders nothing when healthy by default (showOnlyDegraded=true)", () => {
+    const { container } = render(
+      <QueryClientProvider client={queryClient()}>
+        <ApiConnectivityContext value={connected}>
+          <ServerStatus />
+        </ApiConnectivityContext>
+      </QueryClientProvider>,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

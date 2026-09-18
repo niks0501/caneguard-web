@@ -149,7 +149,6 @@ export function DashboardPage() {
       <section className="dashboard-operational-section" aria-labelledby="operational-queues-heading">
         <div className="dashboard-section-heading">
           <div>
-            <p className="eyebrow">Work requiring attention</p>
             <h2 id="operational-queues-heading">Operational queues</h2>
           </div>
           <span>Start with the queue that needs action today.</span>
@@ -175,7 +174,6 @@ export function DashboardPage() {
       <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
         <div className="workspace-heading">
           <div>
-            <p className="eyebrow">Latest field activity</p>
             <h2 id="recent-reports-heading">Recent reports</h2>
           </div>
           <span>{summary.recentReports.length} latest submissions</span>
@@ -199,7 +197,6 @@ export function DashboardPage() {
       <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
         <div className="dashboard-section-heading">
           <div>
-            <p className="eyebrow">Historical context</p>
             <h2>Report totals</h2>
           </div>
           <span>Descriptive totals, not today&apos;s work queue.</span>

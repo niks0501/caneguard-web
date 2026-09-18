@@ -107,7 +107,6 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
     <section className="review-card referral-workflow" aria-labelledby="referral-heading">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Expert follow-up</p>
           <h2 id="referral-heading">Expert referral follow-up</h2>
         </div>
         <MessageSquareText aria-hidden="true" />

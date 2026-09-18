@@ -118,7 +118,6 @@ export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
         >
           <div className="notification-panel__header">
             <div>
-              <p className="eyebrow">Attention inbox</p>
               <h2>Notifications</h2>
               <span>
                 {unreadCount > 0

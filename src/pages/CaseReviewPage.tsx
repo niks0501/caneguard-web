@@ -649,7 +649,6 @@ export function CaseReviewPage() {
 
       <section className="review-summary review-summary--status" aria-labelledby="review-summary-heading">
         <div className="review-summary__lead">
-          <p className="eyebrow">Guided review</p>
           <h2 id="review-summary-heading">Review evidence, choose a next action, then save</h2>
           <p>Submitted AI evidence is kept behind a disclosure so the office decision is not anchored by the model result.</p>
         </div>
@@ -681,7 +680,7 @@ export function CaseReviewPage() {
             </div>
 
             <section className="review-card evidence-card" aria-labelledby="evidence-heading">
-              <div className="section-heading"><div><p className="eyebrow">Submitted evidence</p><h2 id="evidence-heading">Field image and location</h2></div><span className="source-label"><Smartphone aria-hidden="true" />{report.imageSourceType === "gallery" ? "Gallery upload" : "Camera capture"}</span></div>
+              <div className="section-heading"><div><h2 id="evidence-heading">Field image and location</h2></div><span className="source-label"><Smartphone aria-hidden="true" />{report.imageSourceType === "gallery" ? "Gallery upload" : "Camera capture"}</span></div>
               <div className="evidence-stage">
                 {report.imageStatus === "available" ? (
                   <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
@@ -755,7 +754,7 @@ export function CaseReviewPage() {
             </section>
 
             <section className="review-card reporter-observation-card" aria-labelledby="reporter-observation-heading">
-              <div className="section-heading"><div><p className="eyebrow">Reporter observation</p><h2 id="reporter-observation-heading">What the reporter saw</h2></div><AlertTriangle aria-hidden="true" /></div>
+              <div className="section-heading"><div><h2 id="reporter-observation-heading">What the reporter saw</h2></div><AlertTriangle aria-hidden="true" /></div>
               {report.mismatchReported === true ? (
                 <div className="reporter-mismatch-label"><AlertTriangle aria-hidden="true" /><strong>The reporter said the Possible Condition does not match what they observed</strong></div>
               ) : report.mismatchReported === false ? (
@@ -776,7 +775,7 @@ export function CaseReviewPage() {
             </section>
 
             <section className="review-card" aria-labelledby="symptoms-heading">
-              <div className="section-heading"><div><p className="eyebrow">Guided observation</p><h2 id="symptoms-heading">Submitted symptom responses</h2></div><ClipboardList aria-hidden="true" /></div>
+              <div className="section-heading"><div><h2 id="symptoms-heading">Submitted symptom responses</h2></div><ClipboardList aria-hidden="true" /></div>
               <div className={`symptom-agreement symptom-agreement--${symptomAgreementToneFor(report)}`} role="status">
                 <span>Symptom agreement</span>
                 <strong>Checklist responses: {symptomAgreementFor(report)}</strong>
@@ -789,7 +788,7 @@ export function CaseReviewPage() {
             </section>
 
             <section className="review-card" aria-labelledby="notes-heading">
-              <div className="section-heading"><div><p className="eyebrow">Observation context</p><h2 id="notes-heading">Submitted observations</h2></div></div>
+              <div className="section-heading"><div><h2 id="notes-heading">Submitted observations</h2></div></div>
               <dl className="detail-list">
                 <DetailField label="Checklist consistency">{report.checklistConsistency?.replaceAll("_", " ") ?? "Not provided"}</DetailField>
                 <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
@@ -807,7 +806,7 @@ export function CaseReviewPage() {
               >
                 <div className="section-heading">
                   <div>
-                    <p className="eyebrow">Field validation</p>
+                    <span className="summary-tag">Field validation</span>
                     <h2 id="field-validation-evidence-heading">Completed field validation</h2>
                   </div>
                   <ClipboardList aria-hidden="true" />
@@ -837,7 +836,7 @@ export function CaseReviewPage() {
             <details className="review-card technical-evidence submitted-ai-evidence">
               <summary>
                 <span>
-                  <span className="eyebrow">Submitted AI evidence</span>
+                  <span className="summary-tag">Submitted AI evidence</span>
                   <strong>Possible Condition and confidence</strong>
                 </span>
                 <ScanLine aria-hidden="true" />
@@ -846,7 +845,6 @@ export function CaseReviewPage() {
                 <div className="review-essential-result" role="region" aria-label="Possible Condition">
                   <div className="review-essential-result__heading">
                     <div>
-                      <p className="eyebrow">Possible Condition</p>
                       <h3>Possible Condition</h3>
                     </div>
                     <DiseaseBadge disease={report.predictedDisease} />
@@ -860,7 +858,7 @@ export function CaseReviewPage() {
             <details className="review-card technical-evidence">
               <summary>
                 <span>
-                  <span className="eyebrow">Additional evidence</span>
+                  <span className="summary-tag">Additional evidence</span>
                   <strong>Technical Evidence</strong>
                 </span>
                 <ScanLine aria-hidden="true" />
@@ -890,7 +888,7 @@ export function CaseReviewPage() {
             </details>
 
             <section className="review-card" aria-labelledby="report-context-heading">
-              <div className="section-heading"><div><p className="eyebrow">Submission details</p><h2 id="report-context-heading">Report context</h2></div><MapPin aria-hidden="true" /></div>
+              <div className="section-heading"><div><h2 id="report-context-heading">Report context</h2></div><MapPin aria-hidden="true" /></div>
               <dl className="detail-list">
                 <DetailField label="Submitter role">{submitterRoleLabels[report.submitterRole]}</DetailField>
                 <DetailField label="Observed at">{report.observedAt ? formatDateTime(report.observedAt) : "Not provided"}</DetailField>
@@ -904,7 +902,6 @@ export function CaseReviewPage() {
             <section className="review-card case-timeline" aria-labelledby="timeline-heading">
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow">Audit trail</p>
                   <h2 id="timeline-heading">Review history</h2>
                 </div>
                 <History aria-hidden="true" />
@@ -968,7 +965,7 @@ export function CaseReviewPage() {
             </div>
 
             <section className="review-card office-review" aria-labelledby="office-review-heading">
-              <div className="section-heading"><div><p className="eyebrow">Office response</p><h2 id="office-review-heading">Record the office decision</h2></div><CheckCircle2 aria-hidden="true" /></div>
+              <div className="section-heading"><div><h2 id="office-review-heading">Record the office decision</h2></div><CheckCircle2 aria-hidden="true" /></div>
               <SelectFilter
                 label="Staff-Classified Condition"
                 value={selectedAuthorityClassification ?? ""}
@@ -1363,7 +1360,7 @@ export function CaseReviewPage() {
             <details className="review-card technical-evidence more-actions">
               <summary>
                 <span>
-                  <span className="eyebrow">Rarely needed</span>
+                  <span className="summary-tag">Rarely needed</span>
                   <strong>More actions</strong>
                 </span>
                 <MoreHorizontal aria-hidden="true" />
@@ -1372,7 +1369,6 @@ export function CaseReviewPage() {
                 <section className="duplicate-link-card" aria-labelledby="duplicate-link-heading">
                   <div className="section-heading">
                     <div>
-                      <p className="eyebrow">Case relationship</p>
                       <h2 id="duplicate-link-heading">Possible duplicate linkage</h2>
                     </div>
                     <GitBranch aria-hidden="true" />

@@ -31,9 +31,9 @@ function queueItemMeta(item: FieldValidationQueueItem) {
   return `${targetDate} · ${affectedArea} · ${affectedPortion}`;
 }
 
-function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem; featured?: boolean }) {
+function QueueItem({ item }: { item: FieldValidationQueueItem }) {
   return (
-    <article className={`validation-queue-item${featured ? " is-featured" : ""}`}>
+    <article className="validation-queue-item">
       <div className="validation-queue-item__topline">
         <strong>{item.referenceCode}</strong>
         <span className="status-chip status-chip--field-validation">
@@ -114,7 +114,6 @@ export function FieldValidationQueuePanel({
     <aside className="validation-queue-panel" aria-labelledby="field-validation-queue-heading">
       <div className="validation-queue-panel__heading">
         <div>
-          <p className="eyebrow">Operational queue</p>
           <h2 id="field-validation-queue-heading">{title}</h2>
         </div>
         <div className="validation-queue-panel__heading-meta">
@@ -170,12 +169,12 @@ export function FieldValidationQueuePanel({
           {currentPage === 1 ? (
             <>
               <div className="validation-queue-panel__oldest">
-                <p className="eyebrow">{isFollowUpDue ? "Oldest target date" : "Oldest observation"}</p>
-                <QueueItem item={paginatedItems[0]} featured />
+                <h3 className="queue-subheading">{isFollowUpDue ? "Oldest target date" : "Oldest observation"}</h3>
+                <QueueItem item={paginatedItems[0]} />
               </div>
               {paginatedItems.length > 1 ? (
                 <div className="validation-queue-panel__list">
-                  <p className="eyebrow">{isFollowUpDue ? "Next overdue visits" : "Next visits"}</p>
+                  <h3 className="queue-subheading">{isFollowUpDue ? "Next overdue visits" : "Next visits"}</h3>
                   {paginatedItems.slice(1).map((item) => (
                     <QueueItem item={item} key={item.uuid} />
                   ))}

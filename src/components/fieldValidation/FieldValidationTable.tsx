@@ -13,7 +13,6 @@ export function FieldValidationTable({
     <section className="field-validation-table-card" aria-labelledby="location-table-heading">
       <div className="workspace-heading">
         <div>
-          <p className="eyebrow">Accessible fallback</p>
           <h2 id="location-table-heading">Located observations</h2>
         </div>
         <span>{features.length} rows</span>

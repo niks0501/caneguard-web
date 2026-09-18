@@ -156,7 +156,6 @@ export function SettingsPage() {
   return (
     <PageContent className="settings-page">
       <PageHeader
-        eyebrow="Account management"
         title="Account settings"
         description="View your authorized account profile, update credentials, and manage connected mobile inspection devices."
       />
@@ -166,7 +165,6 @@ export function SettingsPage() {
         <section className="settings-card" aria-labelledby="profile-heading">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Identity</p>
               <h2 id="profile-heading">Account profile</h2>
             </div>
             <User aria-hidden="true" />
@@ -185,7 +183,6 @@ export function SettingsPage() {
         <section className="settings-card" aria-labelledby="password-heading">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Security credentials</p>
               <h2 id="password-heading">Change password</h2>
             </div>
             <KeyRound aria-hidden="true" />
@@ -255,7 +252,6 @@ export function SettingsPage() {
         <section className="settings-card" aria-labelledby="email-heading">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Contact &amp; login</p>
               <h2 id="email-heading">Change email address</h2>
             </div>
             <Mail aria-hidden="true" />
@@ -312,7 +308,6 @@ export function SettingsPage() {
         <section className="settings-card settings-card--wide" aria-labelledby="devices-heading">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Device access</p>
               <h2 id="devices-heading">Connected mobile devices</h2>
             </div>
             <Smartphone aria-hidden="true" />
