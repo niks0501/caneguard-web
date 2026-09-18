@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\ReportReferral;
@@ -365,6 +366,109 @@ class ReportReportingTest extends TestCase
                 'possible_condition' => Report::LABEL_SMUT,
                 'reported_cases' => 1,
             ]);
+    }
+
+    public function test_monthly_summary_reports_expert_feedback_metrics_from_attributed_consults(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $advisory = Advisory::factory()->validated($reviewer)->create();
+        $deliveredAdvisory = Advisory::factory()->validated($reviewer)->create();
+
+        $agrees = Report::factory()->create([
+            'reference_code' => 'CG-FEEDBACK-AGREES',
+            'predicted_label' => Report::LABEL_RUST,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
+            'checklist_consistency' => 'consistent',
+            'advisory_id' => $advisory->getKey(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_PENDING,
+            'submitted_at' => CarbonImmutable::parse('2026-07-02T08:00:00Z'),
+        ]);
+        ReportReferral::factory()->create([
+            'report_id' => $agrees->getKey(),
+            'referral_date' => '2026-07-03',
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'created_at' => CarbonImmutable::parse('2026-07-03T08:00:00Z'),
+            'updated_at' => CarbonImmutable::parse('2026-07-04T08:00:00Z'),
+            'response_date' => '2026-07-04',
+            'response_recorded_at' => CarbonImmutable::parse('2026-07-04T08:00:00Z'),
+            'finding_summary' => 'The signs match rust.',
+            'finding_recorded_at' => CarbonImmutable::parse('2026-07-04T08:00:00Z'),
+        ]);
+
+        $disagrees = Report::factory()->create([
+            'reference_code' => 'CG-FEEDBACK-DISAGREES',
+            'predicted_label' => Report::LABEL_MOSAIC,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+            'checklist_consistency' => 'inconsistent',
+            'advisory_id' => $deliveredAdvisory->getKey(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+            'submitted_at' => CarbonImmutable::parse('2026-07-05T08:00:00Z'),
+        ]);
+        ReportReferral::factory()->create([
+            'report_id' => $disagrees->getKey(),
+            'referral_date' => '2026-07-06',
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'created_at' => CarbonImmutable::parse('2026-07-06T08:00:00Z'),
+            'updated_at' => CarbonImmutable::parse('2026-07-08T08:00:00Z'),
+            'response_date' => '2026-07-08',
+            'response_recorded_at' => CarbonImmutable::parse('2026-07-08T08:00:00Z'),
+            'finding_details' => 'The symptoms are consistent with smut.',
+            'finding_recorded_at' => CarbonImmutable::parse('2026-07-08T08:00:00Z'),
+        ]);
+
+        $unable = Report::factory()->create([
+            'reference_code' => 'CG-FEEDBACK-UNABLE',
+            'predicted_label' => Report::LABEL_RUST,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY,
+            'checklist_consistency' => 'inconclusive',
+            'submitted_at' => CarbonImmutable::parse('2026-07-09T08:00:00Z'),
+        ]);
+        ReportReferral::factory()->create([
+            'report_id' => $unable->getKey(),
+            'referral_date' => '2026-07-10',
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'created_at' => CarbonImmutable::parse('2026-07-10T08:00:00Z'),
+            'updated_at' => CarbonImmutable::parse('2026-07-11T08:00:00Z'),
+            'response_date' => '2026-07-11',
+            'response_recorded_at' => CarbonImmutable::parse('2026-07-11T08:00:00Z'),
+            'finding_summary' => 'The available evidence is insufficient.',
+            'finding_recorded_at' => CarbonImmutable::parse('2026-07-11T08:00:00Z'),
+        ]);
+
+        $outsideMonth = Report::factory()->create([
+            'reference_code' => 'CG-FEEDBACK-OUTSIDE',
+            'submitted_at' => CarbonImmutable::parse('2026-08-01T08:00:00Z'),
+        ]);
+        ReportReferral::factory()->create([
+            'report_id' => $outsideMonth->getKey(),
+            'referral_date' => '2026-08-01',
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'finding_recorded_at' => CarbonImmutable::parse('2026-08-02T08:00:00Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/summary?month=2026-07')
+            ->assertOk()
+            ->assertJsonPath('data.expert_verification.unable_to_classify_rate.count', 1)
+            ->assertJsonPath('data.expert_verification.unable_to_classify_rate.denominator', 3)
+            ->assertJsonPath('data.expert_verification.unable_to_classify_rate.rate', 0.3333)
+            ->assertJsonPath('data.expert_verification.consult_volume.total', 3)
+            ->assertJsonPath('data.expert_verification.consult_volume.consulted_cases', 3)
+            ->assertJsonPath('data.expert_verification.consult_volume.completed', 3)
+            ->assertJsonPath('data.expert_verification.time_to_finding.findings', 3)
+            ->assertJsonPath('data.expert_verification.time_to_finding.average_hours', 40)
+            ->assertJsonPath('data.expert_verification.time_to_finding.median_hours', 32)
+            ->assertJsonPath('data.expert_verification.advisory_coverage.consult_cases', 3)
+            ->assertJsonPath('data.expert_verification.advisory_coverage.cases_with_advisory', 2)
+            ->assertJsonPath('data.expert_verification.advisory_coverage.coverage_rate', 0.6667)
+            ->assertJsonPath('data.expert_verification.advisory_coverage.delivered_cases', 1)
+            ->assertJsonPath('data.expert_verification.expert_agreement.count', 1)
+            ->assertJsonPath('data.expert_verification.expert_agreement.denominator', 2)
+            ->assertJsonPath('data.expert_verification.expert_agreement.rate', 0.5)
+            ->assertJsonPath('data.expert_verification.symptom_verification_disagreement.count', 1)
+            ->assertJsonPath('data.expert_verification.symptom_verification_disagreement.denominator', 3)
+            ->assertJsonPath('data.expert_verification.symptom_verification_disagreement.rate', 0.3333);
     }
 
     public function test_dashboard_summary_exposes_the_selected_monthly_case_summary(): void
