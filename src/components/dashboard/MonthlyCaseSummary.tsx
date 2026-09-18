@@ -28,7 +28,6 @@ export function MonthlyCaseSummary({
     >
       <div className="dashboard-section-heading dashboard-monthly-summary__heading">
         <div>
-          <p className="dashboard-section-subtext">Month-scoped descriptive analytics ({summary.month || month})</p>
           <h2 id="monthly-case-summary-heading">Monthly submitted report summary</h2>
         </div>
         <label className="select-filter dashboard-month-selector">
@@ -50,29 +49,28 @@ export function MonthlyCaseSummary({
       </p>
 
       <div className="dashboard-monthly-summary__metrics">
-        <div>
+        <div className="monthly-summary-metric">
           <span>Submitted reports</span>
           <strong>{summary.reportedCases}</strong>
         </div>
-        <div>
+        <div className="monthly-summary-metric">
           <span>Estimated affected area</span>
           <strong>{summary.estimatedAffectedHectares} ha</strong>
         </div>
-        <div>
+        <div className="monthly-summary-metric">
           <span>Requiring field validation</span>
           <strong>{summary.fieldValidationCounts.requiringValidation}</strong>
         </div>
-        <div>
+        <div className="monthly-summary-metric">
           <span>Closed submitted reports</span>
           <strong>{summary.closedCases}</strong>
         </div>
       </div>
 
       <div className="dashboard-monthly-summary__grid">
-        <section aria-labelledby="monthly-barangay-heading">
+        <section aria-labelledby="monthly-barangay-heading" className="monthly-summary-card">
           <div className="monthly-summary-subheading">
             <h3 id="monthly-barangay-heading">Submitted reports by barangay</h3>
-            <span>Submitted reports</span>
           </div>
           {summary.casesByBarangay.length === 0 ? (
             <p className="monthly-summary-empty">No submitted reports in this month.</p>
@@ -88,10 +86,10 @@ export function MonthlyCaseSummary({
           )}
         </section>
 
-        <section aria-labelledby="monthly-condition-heading">
+        <section aria-labelledby="monthly-condition-heading" className="monthly-summary-card">
           <div className="monthly-summary-subheading">
             <h3 id="monthly-condition-heading">Submitted reports by Possible Condition</h3>
-            <span>Possible Condition, decision support only</span>
+            <span className="summary-tag">Possible Condition, decision support only</span>
           </div>
           {summary.casesByPossibleCondition.length === 0 ? (
             <p className="monthly-summary-empty">No submitted reports in this month.</p>
@@ -107,10 +105,9 @@ export function MonthlyCaseSummary({
           )}
         </section>
 
-        <section aria-labelledby="monthly-validation-heading">
+        <section aria-labelledby="monthly-validation-heading" className="monthly-summary-card">
           <div className="monthly-summary-subheading">
             <h3 id="monthly-validation-heading">Field-validation counts</h3>
-            <span>Operational workflow state</span>
           </div>
           <dl className="monthly-summary-definition-list">
             <div><dt>No assignment</dt><dd>{summary.fieldValidationCounts.unassigned}</dd></div>
@@ -120,10 +117,9 @@ export function MonthlyCaseSummary({
           </dl>
         </section>
 
-        <section aria-labelledby="monthly-review-time-heading">
+        <section aria-labelledby="monthly-review-time-heading" className="monthly-summary-card">
           <div className="monthly-summary-subheading">
             <h3 id="monthly-review-time-heading">Review time</h3>
-            <span>Submitted to office review</span>
           </div>
           <dl className="monthly-summary-definition-list">
             <div>

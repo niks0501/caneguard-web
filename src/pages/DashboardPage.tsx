@@ -119,9 +119,8 @@ export function DashboardPage() {
   return (
     <PageContent>
       <PageHeader
-        eyebrow="SRA Don Pedro overview"
         title="CaneGuard dashboard"
-        description="Track incoming field observations and the staff review queue at a glance."
+        description="Incoming field reports and review queues for the SRA Don Pedro Mill District."
         actions={
           <>
             <Link className="button button--secondary" to={routes.reports}>
@@ -151,7 +150,6 @@ export function DashboardPage() {
           <div>
             <h2 id="operational-queues-heading">Operational queues</h2>
           </div>
-          <span>Start with the queue that needs action today.</span>
         </div>
         <div className="dashboard-operational-queues">
           {queueOrder.map((queue) => {
@@ -176,7 +174,7 @@ export function DashboardPage() {
           <div>
             <h2 id="recent-reports-heading">Recent reports</h2>
           </div>
-          <span>{summary.recentReports.length} latest submissions</span>
+          <span className="workspace-heading__meta">{summary.recentReports.length} latest submissions</span>
         </div>
 
         {summary.recentReports.length === 0 ? (
@@ -199,7 +197,11 @@ export function DashboardPage() {
           <div>
             <h2>Report totals</h2>
           </div>
-          <span>Descriptive totals, not today&apos;s work queue.</span>
+          <p className="dashboard-refreshed" aria-live="polite">
+            <RefreshCw aria-hidden="true" />
+            <span>Last refreshed</span>
+            <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
+          </p>
         </div>
         <section className="dashboard-secondary-row" aria-label="Historical report status totals">
           <SecondaryMetric
@@ -222,11 +224,6 @@ export function DashboardPage() {
             value={summary.counts.resolved}
             icon={<Clock3 aria-hidden="true" />}
           />
-          <p className="dashboard-refreshed" aria-live="polite">
-            <RefreshCw aria-hidden="true" />
-            <span>Last refreshed</span>
-            <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
-          </p>
         </section>
       </section>
     </PageContent>
