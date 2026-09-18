@@ -13,6 +13,7 @@ class RecordExpertReferralResponse
 {
     public function __construct(
         private readonly CreateLifecycleNotifications $notifications,
+        private readonly RecordReportReviewEvent $reviewEvents,
     ) {}
 
     /**
@@ -107,7 +108,7 @@ class RecordExpertReferralResponse
                 'finding_recorded_at' => $consultCancelled || ! $hasFinding ? null : $reviewedAt,
             ]);
 
-            $locked->reviewEvents()->create([
+            $this->reviewEvents->handle($locked, [
                 'actor_id' => $actor->getKey(),
                 'action_taken' => $locked->action_taken,
                 'authority_classified_condition' => $authorityFinding,

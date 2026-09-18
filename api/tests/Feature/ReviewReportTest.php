@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -687,6 +688,29 @@ class ReviewReportTest extends TestCase
             'A newer review.',
             $report->fresh()->review_notes,
         );
+    }
+
+    public function test_review_remains_available_when_optional_review_history_table_is_missing(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Schema::dropIfExists('report_review_events');
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'notes' => 'Review remains available without optional history.',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.review.action_taken', Report::ACTION_ADVISORY_PROVIDED)
+            ->assertJsonMissingPath('data.review_events');
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $report->getKey(),
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'review_notes' => 'Review remains available without optional history.',
+        ]);
     }
 
     public function test_review_persists_review_event_history_and_projects_latest_state(): void

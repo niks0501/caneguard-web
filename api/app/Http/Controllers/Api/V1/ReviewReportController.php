@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Notifications\CreateLifecycleNotifications;
 use App\Actions\Reports\RecordReportReferral;
+use App\Actions\Reports\RecordReportReviewEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewReportRequest;
 use App\Http\Resources\ReportResource;
@@ -13,6 +14,7 @@ use App\Models\ReportAudit;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ReviewReportController extends Controller
@@ -28,6 +30,7 @@ class ReviewReportController extends Controller
         Report $report,
         CreateLifecycleNotifications $notifications,
         RecordReportReferral $recordReferral,
+        RecordReportReviewEvent $recordReviewEvent,
     ): ReportResource {
         $data = $request->validated();
 
@@ -84,12 +87,12 @@ class ReviewReportController extends Controller
                 'referral.officeReviewer',
                 'referrals.expert',
                 'audits.actor',
-                'reviewEvents.actor',
+                ...$this->reviewEventRelations(),
             ]));
         }
 
         $advisoryForDelivery = null;
-        $updated = DB::transaction(function () use ($request, $report, $data, $notifications, &$advisoryForDelivery): Report {
+        $updated = DB::transaction(function () use ($request, $report, $data, $notifications, $recordReviewEvent, &$advisoryForDelivery): Report {
             $locked = Report::query()
                 ->lockForUpdate()
                 ->findOrFail($report->getKey());
@@ -251,7 +254,7 @@ class ReviewReportController extends Controller
 
             $locked->update($reviewUpdate);
 
-            $locked->reviewEvents()->create([
+            $recordReviewEvent->handle($locked, [
                 'actor_id' => $request->user()->getKey(),
                 'action_taken' => $reviewUpdate['action_taken'] ?? $locked->action_taken,
                 'authority_classified_condition' => $reviewUpdate['authority_classified_condition'] ?? $locked->authority_classified_condition,
@@ -328,8 +331,21 @@ class ReviewReportController extends Controller
             'referral.officeReviewer',
             'referrals.expert',
             'audits.actor',
-            'reviewEvents.actor',
+            ...$this->reviewEventRelations(),
         ]));
+    }
+
+    /**
+     * Review history is optional while older deployments catch up to the
+     * migration that introduced it.
+     *
+     * @return array<int, string>
+     */
+    private function reviewEventRelations(): array
+    {
+        return Schema::hasTable('report_review_events')
+            ? ['reviewEvents.actor']
+            : [];
     }
 
     private function isNewReferral(Report $report, array $data): bool

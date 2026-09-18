@@ -441,17 +441,17 @@ class ReportApiTest extends TestCase
         $reviewer = User::factory()->reviewer()->create();
         $report = Report::factory()->create();
 
-        Schema::shouldReceive('hasTable')
-            ->once()
-            ->with('report_review_events')
-            ->andReturnFalse();
-
+        Schema::dropIfExists('report_review_events');
         Sanctum::actingAs($reviewer);
 
         $this->getJson("/api/v1/reports/{$report->uuid}")
             ->assertOk()
             ->assertJsonPath('data.identity.uuid', $report->uuid)
             ->assertJsonMissingPath('data.review_events');
+
+        $this->getJson('/api/health')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ok');
     }
 
     public function test_report_detail_includes_completed_field_validation_evidence_for_reviewers(): void
