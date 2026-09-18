@@ -30,6 +30,12 @@ The boolean `mismatch_reported` field accepts the JSON-declared boolean, numeric
 
 `captured_at` and `observed_at` use ISO-8601 date-time values with an explicit timezone, and date-only values are outside v2.
 
+## Deliberately unavailable location
+
+A finalized report does not require coordinates when the device cannot obtain or select an exact location. Mobile may submit `location_source=unavailable` with a required `location_unavailable_reason` such as `offline_no_map`, while omitting `final_latitude` and `final_longitude`. The API accepts and persists that report as ordinary submitted freight and returns `201` (or `200` for an idempotent retry); it does not require a retry solely to obtain coordinates.
+
+Map responses exclude reports without a valid coordinate pair and report them through `metadata.unlocated_count`. Review and field-validation responses retain the report with nullable coordinates and the unavailable reason, so clients must not treat its absence from the map as upload failure.
+
 ## Image boundary
 
 The required `image` part accepts JPEG with either the `.jpg` or `.jpeg` extension, PNG, and WebP.

@@ -33,6 +33,8 @@ class ReportMapAndQueueTest extends TestCase
             'barangay' => 'Mabini',
             'final_latitude' => null,
             'final_longitude' => null,
+            'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+            'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
             'observed_at' => CarbonImmutable::parse('2026-08-13T12:00:00Z'),
         ]);
         Report::factory()->create([
@@ -86,7 +88,13 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('data.items.0.final_latitude', 10.1234567)
             ->assertJsonPath('data.items.0.final_longitude', 122.9876543)
             ->assertJsonPath('data.items.1.final_latitude', null)
-            ->assertJsonPath('data.items.1.final_longitude', null);
+            ->assertJsonPath('data.items.1.final_longitude', null)
+            ->assertJsonPath('data.items.1.location_source', Report::LOCATION_SOURCE_UNAVAILABLE)
+            ->assertJsonPath(
+                'data.items.1.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            )
+            ->assertJsonPath('data.items.1.location_unavailable', true);
 
         $this->getJson('/api/v1/reports/map?status='.Report::STATUS_RESOLVED)
             ->assertOk()

@@ -1,6 +1,7 @@
 import type {
   DiseaseKey,
   LocationSource,
+  LocationUnavailableReason,
   ReportLifecycle,
   ReviewStatus,
 } from "./report.types";
@@ -77,6 +78,8 @@ export interface FieldValidationQueueItem {
   finalLatitude: number | null;
   finalLongitude: number | null;
   locationSource: LocationSource | null;
+  locationUnavailable?: boolean;
+  locationUnavailableReason?: LocationUnavailableReason | null;
   gpsAccuracy: number | null;
   affectedAreaHectares: number | null;
   affectedPortionPercent: number | null;

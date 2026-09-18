@@ -26,6 +26,13 @@ export type AuthorityClassifiedCondition =
 
 export type LocationSource = "gps" | "manual_map" | "unavailable";
 
+export type LocationUnavailableReason =
+  | "permission_denied"
+  | "services_unavailable"
+  | "low_accuracy"
+  | "offline_no_map"
+  | "other";
+
 /** D-01: whether a reported measurement was actually taken. */
 export type MeasurementProvenance = "measured" | "not_measured";
 

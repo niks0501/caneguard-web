@@ -27,6 +27,8 @@ function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueIte
     finalLatitude: dto.final_latitude,
     finalLongitude: dto.final_longitude,
     locationSource: dto.location_source,
+    locationUnavailable: dto.location_unavailable,
+    locationUnavailableReason: dto.location_unavailable_reason ?? null,
     gpsAccuracy: dto.gps_accuracy,
     affectedAreaHectares: dto.affected_area_hectares,
     affectedPortionPercent: dto.affected_portion_percent,
