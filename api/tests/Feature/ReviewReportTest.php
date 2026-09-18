@@ -688,4 +688,47 @@ class ReviewReportTest extends TestCase
             $report->fresh()->review_notes,
         );
     }
+
+    public function test_review_persists_review_event_history_and_projects_latest_state(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+
+        Sanctum::actingAs($reviewer);
+
+        $firstResponse = $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'notes' => 'First review notes by staff.',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonCount(1, 'data.review_events')
+            ->assertJsonPath('data.review_events.0.actor.uuid', $reviewer->uuid)
+            ->assertJsonPath('data.review_events.0.authority_classified_condition', Report::AUTHORITY_CONDITION_SMUT)
+            ->assertJsonPath('data.review_events.0.verification_outcome', Report::VERIFICATION_OUTCOME_VERIFIED)
+            ->assertJsonPath('data.review_events.0.action_taken', Report::ACTION_ADVISORY_PROVIDED)
+            ->assertJsonPath('data.review_events.0.notes', 'First review notes by staff.');
+
+        $secondReviewer = User::factory()->reviewer()->create();
+        Sanctum::actingAs($secondReviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'action_taken' => Report::ACTION_NO_FURTHER_ACTION_REQUIRED,
+            'notes' => 'Second review note: case resolved.',
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonCount(2, 'data.review_events')
+            ->assertJsonPath('data.review_events.0.actor.uuid', $secondReviewer->uuid)
+            ->assertJsonPath('data.review_events.0.notes', 'Second review note: case resolved.')
+            ->assertJsonPath('data.review_events.1.actor.uuid', $reviewer->uuid)
+            ->assertJsonPath('data.review_events.1.notes', 'First review notes by staff.');
+
+        $this->assertDatabaseCount('report_review_events', 2);
+        $report->refresh();
+        $this->assertSame('Second review note: case resolved.', $report->review_notes);
+        $this->assertSame(Report::ACTION_NO_FURTHER_ACTION_REQUIRED, $report->action_taken);
+    }
 }

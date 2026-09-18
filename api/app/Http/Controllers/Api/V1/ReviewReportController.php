@@ -84,6 +84,7 @@ class ReviewReportController extends Controller
                 'referral.officeReviewer',
                 'referrals.expert',
                 'audits.actor',
+                'reviewEvents.actor',
             ]));
         }
 
@@ -250,6 +251,16 @@ class ReviewReportController extends Controller
 
             $locked->update($reviewUpdate);
 
+            $locked->reviewEvents()->create([
+                'actor_id' => $request->user()->getKey(),
+                'action_taken' => $reviewUpdate['action_taken'] ?? $locked->action_taken,
+                'authority_classified_condition' => $reviewUpdate['authority_classified_condition'] ?? $locked->authority_classified_condition,
+                'verification_outcome' => $reviewUpdate['verification_outcome'] ?? $locked->verification_outcome,
+                'notes' => $reviewUpdate['review_notes'] ?? $locked->review_notes,
+                'case_state' => $reviewUpdate['case_state'] ?? $locked->case_state,
+                'created_at' => $reviewUpdate['reviewed_at'],
+            ]);
+
             if ($assignmentSelected) {
                 $assignee = User::query()
                     ->where('uuid', $data['field_validation_assignee_uuid'])
@@ -317,6 +328,7 @@ class ReviewReportController extends Controller
             'referral.officeReviewer',
             'referrals.expert',
             'audits.actor',
+            'reviewEvents.actor',
         ]));
     }
 

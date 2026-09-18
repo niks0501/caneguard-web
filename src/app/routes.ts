@@ -13,4 +13,5 @@ export const routes = {
   reportQueue: (queue: OperationalQueue) => `/reports?queue=${queue}`,
   fieldValidationQueue: (queue: FieldValidationQueue) => `/map?queue=${queue}`,
   reportDetail: (reportId: string) => `/reports/${reportId}`,
+  settings: "/settings",
 } as const;

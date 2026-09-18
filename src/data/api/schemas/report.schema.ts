@@ -227,6 +227,17 @@ export const reportConsultSchema = z.object({
   response_date: z.string().nullable(),
 });
 
+export const reportReviewEventSchema = z.object({
+  id: z.number().int().positive(),
+  actor: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
+  action_taken: actionTakenSchema.nullable().optional(),
+  authority_classified_condition: authorityClassifiedConditionSchema.nullable().optional(),
+  verification_outcome: verificationOutcomeSchema.nullable().optional(),
+  notes: z.string().nullable().optional(),
+  case_state: caseStateSchema.nullable().optional(),
+  created_at: z.iso.datetime({ offset: true }),
+});
+
 export const reportListItemSchema = z.object({
   uuid: z.string(),
   reference_code: z.string(),
@@ -360,6 +371,7 @@ export const reportDetailSchema = z.object({
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   referral: reportReferralSchema.nullable().optional(),
   consults: z.array(reportConsultSchema).optional(),
+  review_events: z.array(reportReviewEventSchema).optional(),
   version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),
 });

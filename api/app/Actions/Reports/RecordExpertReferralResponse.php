@@ -107,6 +107,16 @@ class RecordExpertReferralResponse
                 'finding_recorded_at' => $consultCancelled || ! $hasFinding ? null : $reviewedAt,
             ]);
 
+            $locked->reviewEvents()->create([
+                'actor_id' => $actor->getKey(),
+                'action_taken' => $locked->action_taken,
+                'authority_classified_condition' => $authorityFinding,
+                'verification_outcome' => $verificationOutcome,
+                'notes' => $consultCancelled ? 'Expert consult cancelled' : ($responseNote ?? $locked->review_notes),
+                'case_state' => $nextLifecycle['case_state'] ?? $lifecycle['case_state'],
+                'created_at' => $reviewedAt,
+            ]);
+
             if ($consultCompleted) {
                 $this->notifications->expertReferralResponseReceived($locked);
             }

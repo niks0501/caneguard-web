@@ -26,6 +26,9 @@ function toQueryParams(
     barangay: filters.barangay?.trim() || undefined,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
+    assignment: filters.assignment,
+    page: filters.page,
+    limit: filters.limit,
   };
 }
 
@@ -49,7 +52,7 @@ export class ApiFieldValidationRepository implements FieldValidationRepository {
       {
         params: {
           ...toQueryParams(filters, false),
-          limit: 50,
+          limit: filters?.limit ?? 50,
         },
       },
     );

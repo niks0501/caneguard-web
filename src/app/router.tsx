@@ -13,6 +13,7 @@ import { RegisterPage } from "../pages/RegisterPage";
 import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
+import { SettingsPage } from "../pages/SettingsPage";
 import { routes } from "./routes";
 import { useAuth } from "../auth/useAuth";
 
@@ -51,6 +52,7 @@ export function AppRouter() {
             />
             <Route path="reports" element={<SubmittedReportsPage />} />
             <Route path="reports/:reportId" element={<CaseReviewPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFoundPage />} />

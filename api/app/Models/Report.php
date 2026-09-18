@@ -620,6 +620,16 @@ class Report extends Model
     }
 
     /**
+     * @return HasMany<ReportReviewEvent, $this>
+     */
+    public function reviewEvents(): HasMany
+    {
+        return $this->hasMany(ReportReviewEvent::class)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

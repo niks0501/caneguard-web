@@ -15,7 +15,7 @@ class QueryFieldValidationQueue
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return array{queue: string, items: Collection<int, Report>, count: int}
+     * @return array{queue: string, items: Collection<int, Report>, count: int, total: int, page: int, limit: int}
      */
     public function handle(array $filters): array
     {
@@ -24,10 +24,22 @@ class QueryFieldValidationQueue
         $this->applyOperationalQueueFilter->handle($query, $queue);
         $this->applyReportFilters->handle($query, $filters, 'observed_at');
 
+        if (isset($filters['assignment'])) {
+            if ($filters['assignment'] === 'unassigned') {
+                $query->whereDoesntHave('fieldValidationAssignment');
+            } elseif ($filters['assignment'] === 'mine' && auth()->check()) {
+                $query->whereHas('fieldValidationAssignment', function ($q) {
+                    $q->where('assignee_id', auth()->id());
+                });
+            }
+        }
+
         $count = (clone $query)->count('reports.id');
         $limit = (int) ($filters['limit'] ?? 50);
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $offset = ($page - 1) * $limit;
         $items = $query
-            ->with('fieldValidationAssignment')
+            ->with('fieldValidationAssignment.assignee')
             ->select([
                 'id',
                 'uuid',
@@ -63,6 +75,7 @@ class QueryFieldValidationQueue
             ->orderBy('observed_at')
             ->orderBy('submitted_at')
             ->orderBy('id')
+            ->offset($offset)
             ->limit($limit)
             ->get();
 
@@ -70,6 +83,9 @@ class QueryFieldValidationQueue
             'queue' => $queue,
             'items' => $items,
             'count' => $count,
+            'total' => $count,
+            'page' => $page,
+            'limit' => $limit,
         ];
     }
 }

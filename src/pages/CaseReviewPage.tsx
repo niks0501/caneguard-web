@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Cloud,
   GitBranch,
+  History,
   Info,
   Link2,
   MapPin,
@@ -28,11 +29,14 @@ import { Button } from "../components/ui/Button";
 import { SelectFilter, TextArea } from "../components/ui/FormControls";
 import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/States";
 import {
+  actionTakenLabels,
   activeAuthorityClassifiedConditions,
   authorityClassifiedConditionLabels,
+  caseStateLabels,
   imageStatusLabels,
   isLegacyAuthorityClassifiedCondition,
   submitterRoleLabels,
+  verificationOutcomeLabels,
 } from "../domain/report.metadata";
 import {
   REPORTER_OBSERVED_CONCERN_RSSI,
@@ -895,6 +899,62 @@ export function CaseReviewPage() {
                 {report.reviewedAt ? <DetailField label="Reviewed at">{formatDateTime(report.reviewedAt)}</DetailField> : null}
                 {report.reviewNotes ? <DetailField label="Current review note">{report.reviewNotes}</DetailField> : null}
               </dl>
+            </section>
+
+            <section className="review-card case-timeline" aria-labelledby="timeline-heading">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Audit trail</p>
+                  <h2 id="timeline-heading">Review history</h2>
+                </div>
+                <History aria-hidden="true" />
+              </div>
+              {report.reviewEvents && report.reviewEvents.length > 0 ? (
+                <ol className="timeline-list">
+                  {report.reviewEvents.map((event) => (
+                    <li key={event.id} className="timeline-item">
+                      <div className="timeline-item__header">
+                        <span className="timeline-item__actor">
+                          {event.actor?.name ?? "Authorized reviewer"}
+                        </span>
+                        <time className="timeline-item__time" dateTime={event.createdAt}>
+                          {formatDateTime(event.createdAt)}
+                        </time>
+                      </div>
+                      <dl className="timeline-item__details">
+                        {event.caseState ? (
+                          <DetailField label="Case state">
+                            {caseStateLabels[event.caseState] ?? event.caseState}
+                          </DetailField>
+                        ) : null}
+                        {event.actionTaken ? (
+                          <DetailField label="Action taken">
+                            {actionTakenLabels[event.actionTaken] ??
+                              event.actionTaken.replaceAll("_", " ")}
+                          </DetailField>
+                        ) : null}
+                        {event.authorityClassifiedCondition ? (
+                          <DetailField label="Staff classification">
+                            {authorityClassifiedConditionLabels[event.authorityClassifiedCondition] ??
+                              event.authorityClassifiedCondition}
+                          </DetailField>
+                        ) : null}
+                        {event.verificationOutcome ? (
+                          <DetailField label="Verification outcome">
+                            {verificationOutcomeLabels[event.verificationOutcome] ??
+                              event.verificationOutcome.replaceAll("_", " ")}
+                          </DetailField>
+                        ) : null}
+                        {event.notes ? (
+                          <DetailField label="Notes">{event.notes}</DetailField>
+                        ) : null}
+                      </dl>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="timeline-empty">No prior review events recorded.</p>
+              )}
             </section>
           </section>
         </div>

@@ -293,6 +293,18 @@ export interface DiseaseReport {
     deliveredAt?: string | null;
     acknowledgedAt?: string | null;
   }) | null;
+  reviewEvents?: ReportReviewEvent[];
+}
+
+export interface ReportReviewEvent {
+  id: number;
+  actor?: { uuid: string; name: string } | null;
+  actionTaken?: ActionTaken | null;
+  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
+  verificationOutcome?: VerificationOutcome | null;
+  notes?: string | null;
+  caseState?: CaseState | null;
+  createdAt: string;
 }
 
 export interface ReportAudit {

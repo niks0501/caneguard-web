@@ -302,4 +302,55 @@ class ReportMapAndQueueTest extends TestCase
                 ->assertJsonStructure(['errors' => ['date_to', 'predicted_label', 'barangay']]);
         }
     }
+
+    public function test_queue_exposes_assignee_and_supports_assignment_filter_and_pagination(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create(['name' => 'Assigned Officer']);
+
+        $assignedReport = Report::factory()->create([
+            'reference_code' => 'CR-ASSIGNED',
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'observed_at' => '2026-08-10 10:00:00.000',
+        ]);
+        $assignedReport->fieldValidationAssignment()->create([
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-08-15',
+            'activated_at' => now(),
+        ]);
+
+        $unassignedReport = Report::factory()->create([
+            'reference_code' => 'CR-UNASSIGNED',
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'observed_at' => '2026-08-11 10:00:00.000',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        // Verify assignee is exposed
+        $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit')
+            ->assertOk()
+            ->assertJsonPath('data.count', 2)
+            ->assertJsonPath('data.items.0.reference_code', 'CR-ASSIGNED')
+            ->assertJsonPath('data.items.0.assignee.uuid', $assignee->uuid)
+            ->assertJsonPath('data.items.0.assignee.name', 'Assigned Officer')
+            ->assertJsonPath('data.items.1.reference_code', 'CR-UNASSIGNED')
+            ->assertJsonPath('data.items.1.assignee', null);
+
+        // Filter: unassigned
+        $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit&assignment=unassigned')
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.reference_code', 'CR-UNASSIGNED');
+
+        // Pagination
+        $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit&limit=1&page=2')
+            ->assertOk()
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.page', 2)
+            ->assertJsonPath('data.per_page', 1)
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.reference_code', 'CR-UNASSIGNED');
+    }
 }

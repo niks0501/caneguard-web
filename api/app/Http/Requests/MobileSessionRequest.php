@@ -9,8 +9,17 @@ class MobileSessionRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === User::ROLE_FIELD_REPORTER
-            && $this->user()?->currentAccessToken() instanceof PersonalAccessToken;
+        $user = $this->user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($this->bearerToken() !== null) {
+            return $user->role === User::ROLE_FIELD_REPORTER
+                && $user->currentAccessToken() instanceof PersonalAccessToken;
+        }
+
+        return true;
     }
 
     public function rules(): array
