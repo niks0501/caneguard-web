@@ -207,7 +207,7 @@ export function SettingsPage() {
           ) : null}
 
           <form onSubmit={handlePasswordSubmit} className="settings-form">
-            <label className="select-filter">
+            <label className="settings-field">
               <span>Current password</span>
               <input
                 type="password"
@@ -218,7 +218,7 @@ export function SettingsPage() {
               />
             </label>
 
-            <label className="select-filter">
+            <label className="settings-field">
               <span>New password</span>
               <input
                 type="password"
@@ -230,7 +230,7 @@ export function SettingsPage() {
               />
             </label>
 
-            <label className="select-filter">
+            <label className="settings-field">
               <span>Confirm new password</span>
               <input
                 type="password"
@@ -276,7 +276,7 @@ export function SettingsPage() {
           ) : null}
 
           <form onSubmit={handleEmailSubmit} className="settings-form">
-            <label className="select-filter">
+            <label className="settings-field">
               <span>Current password (for verification)</span>
               <input
                 type="password"
@@ -287,7 +287,7 @@ export function SettingsPage() {
               />
             </label>
 
-            <label className="select-filter">
+            <label className="settings-field">
               <span>New email address</span>
               <input
                 type="email"

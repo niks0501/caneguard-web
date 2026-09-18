@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import type {
   InputHTMLAttributes,
   SelectHTMLAttributes,
@@ -25,13 +25,26 @@ export function SearchInput({
 
 interface SelectFilterProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
+  className?: string;
 }
 
-export function SelectFilter({ label, children, ...props }: SelectFilterProps) {
+export function SelectFilter({
+  label,
+  className = "",
+  children,
+  ...props
+}: SelectFilterProps) {
   return (
-    <label className="select-filter">
-      <span>{label}</span>
-      <select {...props}>{children}</select>
+    <label className={`select-filter ${className}`.trim()}>
+      <span className="select-filter__label">{label}</span>
+      <div className="select-filter__control">
+        <select {...props}>{children}</select>
+        <ChevronDown
+          className="select-filter__chevron"
+          aria-hidden="true"
+          size={16}
+        />
+      </div>
     </label>
   );
 }

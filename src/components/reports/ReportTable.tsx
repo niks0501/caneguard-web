@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { routes } from "../../app/routes";
 import {
   authorityClassifiedConditionLabels,
@@ -18,6 +18,7 @@ import { DiseaseBadge, ReviewStatusBadge } from "./ReportBadges";
  * AI confidence is never a queue priority score.
  */
 export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
+  const navigate = useNavigate();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggleRow = (uuid: string) => {
@@ -25,6 +26,33 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
       ...prev,
       [uuid]: !prev[uuid],
     }));
+  };
+
+  const handleRowClick = (
+    event: React.MouseEvent<HTMLTableRowElement>,
+    uuid: string,
+  ) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (
+      target.closest(
+        "button, a, input, select, textarea, [role='button'], .report-row-expanded-content",
+      )
+    ) {
+      return;
+    }
+    navigate(routes.reportDetail(uuid));
+  };
+
+  const handleRowKeyDown = (
+    event: React.KeyboardEvent<HTMLTableRowElement>,
+    uuid: string,
+  ) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      navigate(routes.reportDetail(uuid));
+    }
   };
 
   return (
@@ -51,6 +79,9 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                 }`}
                 data-review-status={report.reviewStatus}
                 key={report.uuid}
+                tabIndex={0}
+                onClick={(e) => handleRowClick(e, report.uuid)}
+                onKeyDown={(e) => handleRowKeyDown(e, report.uuid)}
               >
                 <td>
                   <div className="report-identity">
@@ -134,7 +165,10 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                       className="row-expand-btn"
                       aria-expanded={isExpanded}
                       aria-label={`Details for ${report.referenceCode}`}
-                      onClick={() => toggleRow(report.uuid)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleRow(report.uuid);
+                      }}
                     >
                       {isExpanded ? (
                         <ChevronUp aria-hidden="true" />
