@@ -9,6 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // The report_id unique index also backs the existing foreign key on
+        // MySQL, so remove the constraint before replacing that index.
+        Schema::table('report_referrals', function (Blueprint $table): void {
+            $table->dropForeign(['report_id']);
+        });
+
         Schema::table('report_referrals', function (Blueprint $table): void {
             // A case may have more than one completed consult over time. The
             // application enforces one pending/in-progress consult at a time
@@ -76,6 +82,10 @@ return new class extends Migration
                 'finding_recorded_at',
             ]);
             $table->unique('report_id');
+            $table->foreign('report_id')
+                ->references('id')
+                ->on('reports')
+                ->cascadeOnDelete();
         });
     }
 };
