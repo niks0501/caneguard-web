@@ -28,7 +28,7 @@ export function MonthlyCaseSummary({
     >
       <div className="dashboard-section-heading dashboard-monthly-summary__heading">
         <div>
-          <p className="eyebrow">Month-scoped descriptive analytics ({summary.month || month})</p>
+          <p className="dashboard-section-subtext">Month-scoped descriptive analytics ({summary.month || month})</p>
           <h2 id="monthly-case-summary-heading">Monthly submitted report summary</h2>
         </div>
         <label className="select-filter dashboard-month-selector">
@@ -51,7 +51,7 @@ export function MonthlyCaseSummary({
 
       <div className="dashboard-monthly-summary__metrics">
         <div>
-          <span>Submitted Reports</span>
+          <span>Submitted reports</span>
           <strong>{summary.reportedCases}</strong>
         </div>
         <div>
@@ -71,8 +71,8 @@ export function MonthlyCaseSummary({
       <div className="dashboard-monthly-summary__grid">
         <section aria-labelledby="monthly-barangay-heading">
           <div className="monthly-summary-subheading">
-            <h3 id="monthly-barangay-heading">Submitted Reports by barangay</h3>
-            <span>Submitted Reports</span>
+            <h3 id="monthly-barangay-heading">Submitted reports by barangay</h3>
+            <span>Submitted reports</span>
           </div>
           {summary.casesByBarangay.length === 0 ? (
             <p className="monthly-summary-empty">No submitted reports in this month.</p>
@@ -90,7 +90,7 @@ export function MonthlyCaseSummary({
 
         <section aria-labelledby="monthly-condition-heading">
           <div className="monthly-summary-subheading">
-            <h3 id="monthly-condition-heading">Submitted Reports by Possible Condition</h3>
+            <h3 id="monthly-condition-heading">Submitted reports by Possible Condition</h3>
             <span>Possible Condition, decision support only</span>
           </div>
           {summary.casesByPossibleCondition.length === 0 ? (
@@ -127,7 +127,7 @@ export function MonthlyCaseSummary({
           </div>
           <dl className="monthly-summary-definition-list">
             <div>
-              <dt>Submitted Reports with supported timing</dt>
+              <dt>Submitted reports with supported timing</dt>
               <dd>{summary.reviewTime.reviewedCases}</dd>
             </div>
             <div>

@@ -13,7 +13,7 @@ import { useApiConnectivity } from "../../api/apiConnectivity.context";
 
 type ServerStatusValue = "connected" | "refreshing" | "unavailable" | "offline";
 
-export function ServerStatus({ showOnlyDegraded = false }: { showOnlyDegraded?: boolean } = {}) {
+export function ServerStatus({ showOnlyDegraded = true }: { showOnlyDegraded?: boolean } = {}) {
   const { networkStatus, apiReachability } = useApiConnectivity();
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();

@@ -188,7 +188,6 @@ export function SubmittedReportsPage() {
   return (
     <PageContent>
       <PageHeader
-        eyebrow="Submitted Reports"
         title="Submitted reports"
         description="Review field observations and decide the appropriate SRA Don Pedro follow-up."
         actions={(
@@ -245,7 +244,6 @@ export function SubmittedReportsPage() {
       >
         <div className="workspace-heading">
           <div>
-            <p className="eyebrow">{activeQueueLabel ?? "Work queue"}</p>
             <h2 id="report-table-heading">{activeQueueLabel ?? "Recent submissions"}</h2>
           </div>
           <span>
