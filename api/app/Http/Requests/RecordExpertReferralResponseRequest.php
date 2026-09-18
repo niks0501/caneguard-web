@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Report;
+use App\Models\ReportReferral;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
@@ -14,6 +15,12 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
             'expert_response_date' => 'response_date',
             'expert_response_note' => 'response_note',
             'expert_response_finding' => 'response_finding',
+            'finding_summary' => 'response_note',
+            'finding_details' => 'response_finding',
+            'finding' => 'response_finding',
+            'recommendation' => 'finding_recommendation',
+            'source' => 'finding_source',
+            'status' => 'consult_status',
         ];
         $normalized = [];
 
@@ -28,7 +35,7 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
         }
 
         $trimmed = [];
-        foreach (['response_note', 'response_finding'] as $field) {
+        foreach (['response_note', 'response_finding', 'finding_recommendation', 'finding_source'] as $field) {
             if ($this->has($field) && is_string($this->input($field))) {
                 $trimmed[$field] = trim($this->input($field));
             }
@@ -50,9 +57,23 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
-            'response_date' => ['required', 'date'],
+            'response_date' => ['sometimes', 'date'],
+            'consult_status' => [
+                'sometimes',
+                Rule::in([
+                    ReportReferral::STATUS_IN_PROGRESS,
+                    ReportReferral::STATUS_COMPLETED,
+                    ReportReferral::STATUS_CANCELLED,
+                ]),
+            ],
             'response_note' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'response_finding' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'finding_recommendation' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'finding_source' => [
+                'sometimes',
+                'nullable',
+                Rule::in(ReportReferral::findingSources()),
+            ],
             'authority_classified_condition' => [
                 'sometimes',
                 'nullable',
@@ -84,9 +105,18 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
             }
 
             $hasNote = filled($this->input('response_note'));
-            $hasFinding = filled($this->input('response_finding'));
+            $hasFinding = filled($this->input('response_finding'))
+                || filled($this->input('finding_recommendation'));
+            $status = $this->input('consult_status', ReportReferral::STATUS_COMPLETED);
 
-            if (! $hasNote && ! $hasFinding) {
+            if ($status !== ReportReferral::STATUS_CANCELLED && blank($this->input('response_date'))) {
+                $validator->errors()->add(
+                    'response_date',
+                    'A response date is required while recording a consult update.',
+                );
+            }
+
+            if ($status === ReportReferral::STATUS_COMPLETED && ! $hasNote && ! $hasFinding) {
                 $validator->errors()->add(
                     'response_note',
                     'Record an expert response note or finding.',

@@ -18,6 +18,7 @@ class ReferralSummaryController extends Controller
         $report->load([
             'reporter',
             'referral.officeReviewer',
+            'referral.findingRecordedBy',
             'symptoms',
         ]);
         abort_unless($report->referral !== null, 404);

@@ -61,6 +61,14 @@ export type ReferralState =
   | "referred"
   | "expert_response_received";
 
+export type ConsultStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+
+export type FindingSource = "in_system" | "transcribed";
+
 export type ActionTaken =
   | "advisory_provided"
   | "technical_assistance_provided"
@@ -79,17 +87,44 @@ export interface ReferralOfficeContext {
 }
 
 export interface ReportReferral {
+  id?: number;
+  status?: ConsultStatus;
   destination: string;
   reference: string;
   referralDate: string;
+  dueDate?: string | null;
+  expertName?: string | null;
+  expertContact?: string | null;
   note?: string | null;
   responseDate?: string | null;
   responseNote?: string | null;
   responseFinding?: string | null;
+  findingSummary?: string | null;
+  findingDetails?: string | null;
+  findingRecommendation?: string | null;
+  findingSource?: FindingSource | null;
+  findingRecordedBy?: { uuid: string; name: string } | null;
+  findingRecordedAt?: string | null;
   referredBy?: { uuid: string; name: string } | null;
   responseRecordedBy?: { uuid: string; name: string } | null;
   responseRecordedAt?: string | null;
   officeContext: ReferralOfficeContext;
+}
+
+export interface ReportConsult {
+  id: number;
+  status?: ConsultStatus;
+  destination: string;
+  reference: string;
+  referralDate: string;
+  dueDate?: string | null;
+  expertName?: string | null;
+  expertContact?: string | null;
+  findingSummary?: string | null;
+  findingDetails?: string | null;
+  findingRecommendation?: string | null;
+  findingSource?: FindingSource | null;
+  responseDate?: string | null;
 }
 
 export type PossibleMatchBasis =
@@ -226,6 +261,7 @@ export interface DiseaseReport {
   actionTaken?: ActionTaken | null;
   fieldValidationAssignment?: FieldValidationAssignment | null;
   referral?: ReportReferral | null;
+  consults?: ReportConsult[];
   lifecycle?: ReportLifecycle;
   reviewNotes?: string;
   reviewedBy?: string;

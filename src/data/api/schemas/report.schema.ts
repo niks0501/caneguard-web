@@ -48,6 +48,13 @@ export const referralStateSchema = z.enum([
   "referred",
   "expert_response_received",
 ]);
+export const consultStatusSchema = z.enum([
+  "pending",
+  "in_progress",
+  "completed",
+  "cancelled",
+]);
+export const findingSourceSchema = z.enum(["in_system", "transcribed"]);
 export const canonicalCaseSchema = z.object({
   uuid: z.string(),
   reference_code: z.string(),
@@ -152,17 +159,50 @@ export const referralOfficeContextSchema = z.object({
   reviewed_at: z.iso.datetime({ offset: true }).nullable(),
 });
 export const reportReferralSchema = z.object({
+  id: z.number().int().positive().optional(),
+  status: consultStatusSchema.optional(),
   destination: z.string(),
   reference: z.string(),
   referral_date: z.string(),
+  due_date: z.string().nullable().optional(),
+  expert_name: z.string().nullable().optional(),
+  expert_contact: z.string().nullable().optional(),
   note: z.string().nullable(),
   response_date: z.string().nullable(),
   response_note: z.string().nullable(),
   response_finding: z.string().nullable(),
+  finding_summary: z.string().nullable().optional(),
+  finding_details: z.string().nullable().optional(),
+  finding_recommendation: z.string().nullable().optional(),
+  finding: z.string().nullable().optional(),
+  recommendation: z.string().nullable().optional(),
+  finding_source: findingSourceSchema.nullable().optional(),
+  source: findingSourceSchema.nullable().optional(),
+  finding_recorded_by: referralPersonSchema.nullable().optional(),
+  finding_recorded_at: z.iso.datetime({ offset: true }).nullable().optional(),
   referred_by: referralPersonSchema.nullable(),
   response_recorded_by: referralPersonSchema.nullable(),
   response_recorded_at: z.iso.datetime({ offset: true }).nullable(),
   office_context: referralOfficeContextSchema,
+});
+export const reportConsultSchema = z.object({
+  id: z.number().int().positive(),
+  status: consultStatusSchema.optional(),
+  destination: z.string(),
+  reference: z.string(),
+  referral_date: z.string(),
+  due_date: z.string().nullable().optional(),
+  expert_name: z.string().nullable().optional(),
+  expert_contact: z.string().nullable().optional(),
+  finding_summary: z.string().nullable().optional(),
+  finding_details: z.string().nullable().optional(),
+  finding_recommendation: z.string().nullable().optional(),
+  finding: z.string().nullable().optional(),
+  recommendation: z.string().nullable().optional(),
+  finding_source: findingSourceSchema.nullable().optional(),
+  source: findingSourceSchema.nullable().optional(),
+  finding_recorded_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  response_date: z.string().nullable(),
 });
 
 export const reportListItemSchema = z.object({
@@ -296,6 +336,7 @@ export const reportDetailSchema = z.object({
   lifecycle: reportLifecycleSchema.optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   referral: reportReferralSchema.nullable().optional(),
+  consults: z.array(reportConsultSchema).optional(),
   version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),
 });

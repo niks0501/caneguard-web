@@ -32,7 +32,9 @@ class ReportReferralController extends Controller
             'qualityWarnings',
             'referral.referredBy',
             'referral.responseRecordedBy',
+            'referral.findingRecordedBy',
             'referral.officeReviewer',
+            'referrals',
             'audits.actor',
         ])))
             ->response()

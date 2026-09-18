@@ -203,6 +203,15 @@ export class ApiReportsRepository implements ReportsRepository {
       expected_version: input.expectedVersion,
     };
 
+    if (input.dueDate !== undefined) {
+      payload.due_date = input.dueDate || null;
+    }
+    if (input.expertName !== undefined) {
+      payload.expert_name = input.expertName?.trim() || null;
+    }
+    if (input.expertContact !== undefined) {
+      payload.expert_contact = input.expertContact?.trim() || null;
+    }
     if (input.authorityClassifiedCondition !== undefined) {
       payload.authority_classified_condition = input.authorityClassifiedCondition;
     }
@@ -232,6 +241,12 @@ export class ApiReportsRepository implements ReportsRepository {
       expected_version: input.expectedVersion,
     };
 
+    if (input.findingRecommendation !== undefined) {
+      payload.finding_recommendation = input.findingRecommendation?.trim() || null;
+    }
+    if (input.findingSource !== undefined) {
+      payload.finding_source = input.findingSource;
+    }
     if (input.authorityClassifiedCondition !== undefined) {
       payload.authority_classified_condition = input.authorityClassifiedCondition;
     }
