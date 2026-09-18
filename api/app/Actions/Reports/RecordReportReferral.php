@@ -138,6 +138,16 @@ class RecordReportReferral
                 'office_reviewed_at' => $reviewedAt,
             ]);
 
+            $locked->reviewEvents()->create([
+                'actor_id' => $actor->getKey(),
+                'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+                'authority_classified_condition' => $authorityFinding,
+                'verification_outcome' => $verificationOutcome,
+                'notes' => $reviewNotes,
+                'case_state' => $lifecycle['case_state'],
+                'created_at' => $reviewedAt,
+            ]);
+
             return $locked;
         }, attempts: 3);
 

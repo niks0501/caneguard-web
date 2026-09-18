@@ -22,6 +22,9 @@ class FieldValidationQueueController extends Controller
             'data' => [
                 'queue' => $result['queue'],
                 'count' => $result['count'],
+                'total' => $result['total'] ?? $result['count'],
+                'page' => $result['page'] ?? 1,
+                'per_page' => $result['limit'] ?? 50,
                 'oldest' => $items[0] ?? null,
                 'items' => $items,
             ],

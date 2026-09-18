@@ -985,4 +985,39 @@ describe("CaseReviewPage", () => {
       }),
     );
   });
+
+  it("renders empty timeline message when there are no prior review events", () => {
+    renderPage();
+    expect(screen.getByText("No prior review events recorded.")).toBeInTheDocument();
+  });
+
+  it("renders review events in the timeline when present", () => {
+    const reportWithEvents = {
+      ...report,
+      reviewEvents: [
+        {
+          id: 1,
+          actor: {
+            uuid: "00000000-0000-4000-8000-000000000100",
+            name: "Maria Santos",
+          },
+          actionTaken: "advisory_provided" as const,
+          authorityClassifiedCondition: "rust" as const,
+          verificationOutcome: "verified" as const,
+          notes: "Initial field observation confirmed leaf rust.",
+          caseState: "open" as const,
+          createdAt: "2026-07-21T14:30:00.000Z",
+        },
+      ],
+    };
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithEvents }));
+    renderPage();
+
+    const timeline = screen.getByRole("region", { name: "Review history" });
+    expect(within(timeline).getByText("Maria Santos")).toBeInTheDocument();
+    expect(within(timeline).getByText("Advisory provided")).toBeInTheDocument();
+    expect(within(timeline).getByText("Sugarcane Rust")).toBeInTheDocument();
+    expect(within(timeline).getByText("Verified")).toBeInTheDocument();
+    expect(within(timeline).getByText("Initial field observation confirmed leaf rust.")).toBeInTheDocument();
+  });
 });

@@ -24,6 +24,9 @@ function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueIte
     reviewStatus: dto.review_status,
     lifecycle: mapReportLifecycle(dto.lifecycle, dto.review_status),
     targetVisitDate: dto.target_visit_date ?? null,
+    assignee: dto.assignee
+      ? { uuid: dto.assignee.uuid, name: dto.assignee.name }
+      : null,
     finalLatitude: dto.final_latitude,
     finalLongitude: dto.final_longitude,
     locationSource: dto.location_source,
@@ -80,6 +83,9 @@ export function mapFieldValidationQueue(
   data: {
     queue?: "needs_visit" | "follow_up_due";
     count: number;
+    total?: number;
+    page?: number;
+    per_page?: number;
     oldest: FieldValidationQueueItemDto | null;
     items: FieldValidationQueueItemDto[];
   },
@@ -88,6 +94,9 @@ export function mapFieldValidationQueue(
   return {
     queue: data.queue,
     count: data.count,
+    total: data.total ?? data.count,
+    page: data.page,
+    perPage: data.per_page,
     oldest: data.oldest ? mapQueueItem(data.oldest) : null,
     items,
   };

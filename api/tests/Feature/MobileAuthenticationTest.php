@@ -7,6 +7,7 @@ use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class MobileAuthenticationTest extends TestCase
@@ -283,5 +284,33 @@ class MobileAuthenticationTest extends TestCase
         $this->assertNotNull(
             PersonalAccessToken::findToken($other->plainTextToken),
         );
+    }
+
+    public function test_web_authenticated_user_can_list_and_revoke_their_mobile_devices(): void
+    {
+        $user = User::factory()->reviewer()->create();
+        $deviceToken = $user->createToken(
+            IssueMobileToken::TOKEN_NAME_PREFIX.'Reviewer Tablet',
+            IssueMobileToken::abilities(),
+        );
+        $deviceToken->accessToken->forceFill(['device_id' => 'tab-1'])->save();
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/mobile/auth/devices')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.device_name', 'Reviewer Tablet')
+            ->assertJsonPath('data.0.is_current', false);
+
+        $this->deleteJson('/api/v1/mobile/auth/devices/'.$deviceToken->accessToken->getKey())
+            ->assertNoContent();
+
+        $this->assertNull(PersonalAccessToken::findToken($deviceToken->plainTextToken));
+        $this->assertDatabaseHas('security_audits', [
+            'action' => SecurityAudit::ACTION_MOBILE_DEVICE_REVOCATION,
+            'outcome' => SecurityAudit::OUTCOME_SUCCESS,
+            'target_user_id' => $user->getKey(),
+        ]);
     }
 }

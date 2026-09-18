@@ -24,6 +24,8 @@ class FieldValidationQueueRequest extends ApiFormRequest
                 ]),
             ],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'assignment' => ['sometimes', Rule::in(['all', 'mine', 'unassigned'])],
         ];
     }
 }

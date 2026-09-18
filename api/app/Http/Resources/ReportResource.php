@@ -242,6 +242,22 @@ class ReportResource extends JsonResource
                     ])
                     ->values(),
             ],
+            'review_events' => $this->when(
+                $this->relationLoaded('reviewEvents'),
+                fn () => $this->reviewEvents->map(fn ($event) => [
+                    'id' => $event->getKey(),
+                    'actor' => $event->actor ? [
+                        'uuid' => $event->actor->uuid,
+                        'name' => $event->actor->name,
+                    ] : null,
+                    'action_taken' => $event->action_taken,
+                    'authority_classified_condition' => $event->authority_classified_condition,
+                    'verification_outcome' => $event->verification_outcome,
+                    'notes' => $event->notes,
+                    'case_state' => $event->case_state,
+                    'created_at' => $event->created_at?->utc()->toISOString(),
+                ])->values(),
+            ),
             'version' => $this->lock_version,
             'updated_at' => $this->updated_at->utc()->toISOString(),
         ];

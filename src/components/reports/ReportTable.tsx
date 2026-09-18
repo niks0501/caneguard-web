@@ -154,6 +154,14 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                           ({submitterRoleLabels[report.submitterRole]})
                         </span>
                       </div>
+                      {report.fieldValidationAssignment?.assignee ? (
+                        <div className="report-row-expanded-item">
+                          <span className="table-secondary">Assigned to: </span>
+                          <strong className="table-primary">
+                            {report.fieldValidationAssignment.assignee.name}
+                          </strong>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </td>

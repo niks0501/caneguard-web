@@ -24,6 +24,12 @@ class FieldValidationQueueResource extends JsonResource
             'target_visit_date' => $this->resource->relationLoaded('fieldValidationAssignment')
                 ? $this->resource->fieldValidationAssignment?->target_visit_date?->format('Y-m-d')
                 : null,
+            'assignee' => $this->resource->relationLoaded('fieldValidationAssignment') && $this->resource->fieldValidationAssignment?->assignee
+                ? [
+                    'uuid' => $this->resource->fieldValidationAssignment->assignee->uuid,
+                    'name' => $this->resource->fieldValidationAssignment->assignee->name,
+                ]
+                : null,
             'final_latitude' => $this->final_latitude === null
                 ? null
                 : (float) $this->final_latitude,

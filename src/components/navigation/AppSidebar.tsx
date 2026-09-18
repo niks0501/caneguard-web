@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPinned,
+  Settings,
   ShieldCheck,
   Sprout,
 } from "lucide-react";
@@ -67,6 +68,17 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             </NavLink>
           </>
         )}
+
+        <p>Account</p>
+        <NavLink
+          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+          to={routes.settings}
+          onClick={onNavigate}
+        >
+          <Settings aria-hidden="true" />
+          <span>Account &amp; settings</span>
+          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+        </NavLink>
       </nav>
 
       <div className="sidebar__footer">

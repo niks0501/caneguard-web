@@ -211,6 +211,16 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     reviewNotes: dto.review.notes ?? undefined,
     reviewedBy: dto.review.reviewer?.name,
     reviewedAt: dto.review.reviewed_at ?? undefined,
+    reviewEvents: dto.review_events?.map((event) => ({
+      id: event.id,
+      actor: event.actor ? { uuid: event.actor.uuid, name: event.actor.name } : null,
+      actionTaken: event.action_taken ?? null,
+      authorityClassifiedCondition: event.authority_classified_condition ?? null,
+      verificationOutcome: event.verification_outcome ?? null,
+      notes: event.notes ?? null,
+      caseState: event.case_state ?? null,
+      createdAt: event.created_at,
+    })),
     reviewVersion: dto.version,
     updatedAt: dto.updated_at,
   };

@@ -30,7 +30,8 @@ function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
     predictedDisease: report.predictedDisease,
     confidence: report.confidence ?? 0,
     reviewStatus: report.reviewStatus,
-    targetVisitDate: null,
+    targetVisitDate: report.fieldValidationAssignment?.targetVisitDate ?? null,
+    assignee: report.fieldValidationAssignment?.assignee ?? null,
     finalLatitude: report.finalLatitude ?? null,
     finalLongitude: report.finalLongitude ?? null,
     locationSource: report.locationSource ?? null,
@@ -95,7 +96,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
   }
 
   async getQueue(filters: FieldValidationFilters = {}): Promise<FieldValidationQueueData> {
-    const items = mockReports
+    const rawItems = mockReports
       .filter(
         (report) =>
           report.reviewStatus === "for_field_validation" &&
@@ -115,13 +116,29 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           first.uuid.localeCompare(second.uuid)
         );
       })
-      .map(toQueueItem);
+      .map(toQueueItem)
+      .filter((item) => {
+        if (!filters.assignment || filters.assignment === "all") return true;
+        if (filters.assignment === "unassigned") return !item.assignee;
+        if (filters.assignment === "mine") {
+          return item.assignee?.uuid === "00000000-0000-4000-8000-000000000100" || item.assignee?.name === "Maria Santos";
+        }
+        return true;
+      });
+
+    const page = Math.max(1, filters.page ?? 1);
+    const limit = Math.max(1, filters.limit ?? 50);
+    const startIndex = (page - 1) * limit;
+    const paginatedItems = rawItems.slice(startIndex, startIndex + limit);
 
     return {
       queue: filters.queue ?? "needs_visit",
-      count: items.length,
-      oldest: items[0] ?? null,
-      items: items.slice(0, 50),
+      count: rawItems.length,
+      total: rawItems.length,
+      page,
+      perPage: limit,
+      oldest: rawItems[0] ?? null,
+      items: paginatedItems,
     };
   }
 }

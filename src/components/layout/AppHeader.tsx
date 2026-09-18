@@ -1,5 +1,7 @@
 import { Menu } from "lucide-react";
 import type { RefObject } from "react";
+import { Link } from "react-router";
+import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
 import type { RealtimeStatus } from "../../hooks/useRealtimeInvalidation";
 import { NotificationBell } from "./NotificationBell";
@@ -47,9 +49,15 @@ export function AppHeader({
         <ServerStatus showOnlyDegraded />
         <RealtimeStatusIndicator status={realtimeStatus} />
         <NotificationBell enabled={auth.status === "authenticated"} />
-        <span className="avatar" aria-label={auth.user?.name}>
-          {initials(auth.user?.name ?? "CaneGuard user")}
-        </span>
+        <Link
+          to={routes.settings}
+          className="header-avatar-link"
+          title="Account settings"
+        >
+          <span className="avatar" aria-label={auth.user?.name}>
+            {initials(auth.user?.name ?? "CaneGuard user")}
+          </span>
+        </Link>
       </div>
     </header>
   );

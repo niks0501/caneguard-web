@@ -43,6 +43,7 @@ class ReportController extends Controller
             'symptoms',
             'qualityWarnings',
             'audits.actor',
+            'reviewEvents.actor',
         ]));
     }
 }

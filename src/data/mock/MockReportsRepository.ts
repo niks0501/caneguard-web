@@ -5,6 +5,7 @@ import type {
   PaginatedReports,
   PossibleRecentMatches,
   ReportFilters,
+  ReportReviewEvent,
 } from "../../domain/report.types";
 import type {
   DuplicateLinkInput,
@@ -24,6 +25,12 @@ const cloneReport = (report: DiseaseReport): DiseaseReport => ({
   updatedAt: report.updatedAt ?? report.submittedAt,
   reviewVersion: report.reviewVersion ?? 0,
   symptoms: report.symptoms.map((symptom) => ({ ...symptom })),
+  reviewEvents: report.reviewEvents
+    ? report.reviewEvents.map((event) => ({
+        ...event,
+        actor: event.actor ? { ...event.actor } : null,
+      }))
+    : [],
   referral: report.referral
     ? {
         ...report.referral,
@@ -235,6 +242,29 @@ export class MockReportsRepository implements ReportsRepository {
             verificationOutcome:
               input.verificationOutcome ?? lifecycle.verificationOutcome,
           };
+    const now = new Date().toISOString();
+    const newEvent: ReportReviewEvent = {
+      id: (current.reviewEvents?.length ?? 0) + 1,
+      actor: {
+        uuid: "00000000-0000-4000-8000-000000000100",
+        name: "Maria Santos",
+      },
+      actionTaken:
+        input.actionTaken === undefined
+          ? current.actionTaken ?? null
+          : input.actionTaken,
+      authorityClassifiedCondition:
+        input.authorityClassifiedCondition === undefined
+          ? current.authorityClassifiedCondition ?? null
+          : input.authorityClassifiedCondition,
+      verificationOutcome: nextLifecycle.verificationOutcome ?? null,
+      notes:
+        input.notes === undefined
+          ? current.reviewNotes ?? null
+          : input.notes?.trim() || null,
+      caseState: nextLifecycle.caseState ?? null,
+      createdAt: now,
+    };
     const updated: DiseaseReport = {
       ...current,
       reviewStatus: input.status ?? legacyReviewStatusForLifecycle(nextLifecycle),
@@ -249,9 +279,10 @@ export class MockReportsRepository implements ReportsRepository {
       actionTaken:
         input.actionTaken === undefined ? current.actionTaken : input.actionTaken,
       lifecycle: nextLifecycle,
-      reviewedAt: new Date().toISOString(),
+      reviewedAt: now,
       reviewVersion: (current.reviewVersion ?? 0) + 1,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
+      reviewEvents: [newEvent, ...(current.reviewEvents ?? [])],
     };
     this.reports[index] = updated;
     return cloneReport(updated);
@@ -268,6 +299,26 @@ export class MockReportsRepository implements ReportsRepository {
     const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
     const now = new Date().toISOString();
     const nextLifecycle = { ...lifecycle, referralState: "referred" as const };
+    const newEvent: ReportReviewEvent = {
+      id: (current.reviewEvents?.length ?? 0) + 1,
+      actor: {
+        uuid: "00000000-0000-4000-8000-000000000100",
+        name: "Maria Santos",
+      },
+      actionTaken: "referred_for_expert_validation",
+      authorityClassifiedCondition:
+        input.authorityClassifiedCondition === undefined
+          ? current.authorityClassifiedCondition ?? null
+          : input.authorityClassifiedCondition,
+      verificationOutcome:
+        input.verificationOutcome ?? lifecycle.verificationOutcome ?? null,
+      notes:
+        input.officeNotes === undefined
+          ? current.reviewNotes ?? null
+          : input.officeNotes?.trim() || null,
+      caseState: lifecycle.caseState ?? null,
+      createdAt: now,
+    };
     const updated: DiseaseReport = {
       ...current,
       actionTaken: "referred_for_expert_validation",
@@ -307,6 +358,7 @@ export class MockReportsRepository implements ReportsRepository {
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       reviewedAt: now,
       updatedAt: now,
+      reviewEvents: [newEvent, ...(current.reviewEvents ?? [])],
     };
     updated.lifecycle = {
       ...nextLifecycle,
@@ -328,6 +380,23 @@ export class MockReportsRepository implements ReportsRepository {
     if (!current.referral) throw new Error("The report has no referral.");
     const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
     const now = new Date().toISOString();
+    const newEvent: ReportReviewEvent = {
+      id: (current.reviewEvents?.length ?? 0) + 1,
+      actor: {
+        uuid: "00000000-0000-4000-8000-000000000100",
+        name: "Maria Santos",
+      },
+      actionTaken: current.actionTaken ?? null,
+      authorityClassifiedCondition:
+        input.authorityClassifiedCondition === undefined
+          ? current.authorityClassifiedCondition ?? null
+          : input.authorityClassifiedCondition,
+      verificationOutcome:
+        input.verificationOutcome ?? lifecycle.verificationOutcome ?? null,
+      notes: input.responseNote?.trim() || null,
+      caseState: lifecycle.caseState ?? null,
+      createdAt: now,
+    };
     const updated: DiseaseReport = {
       ...current,
       authorityClassifiedCondition:
@@ -355,6 +424,7 @@ export class MockReportsRepository implements ReportsRepository {
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       reviewedAt: now,
       updatedAt: now,
+      reviewEvents: [newEvent, ...(current.reviewEvents ?? [])],
     };
     this.reports[index] = updated;
     return cloneReport(updated);

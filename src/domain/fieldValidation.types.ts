@@ -19,6 +19,9 @@ export interface FieldValidationFilters {
   barangay?: string;
   dateFrom?: string;
   dateTo?: string;
+  assignment?: "all" | "mine" | "unassigned";
+  page?: number;
+  limit?: number;
 }
 
 export interface FieldValidationMapProperties {
@@ -75,6 +78,7 @@ export interface FieldValidationQueueItem {
   reviewStatus: ReviewStatus;
   lifecycle?: ReportLifecycle;
   targetVisitDate?: string | null;
+  assignee?: { uuid: string; name: string } | null;
   finalLatitude: number | null;
   finalLongitude: number | null;
   locationSource: LocationSource | null;
@@ -88,6 +92,9 @@ export interface FieldValidationQueueItem {
 export interface FieldValidationQueueData {
   queue?: FieldValidationQueue;
   count: number;
+  total?: number;
+  page?: number;
+  perPage?: number;
   oldest: FieldValidationQueueItem | null;
   items: FieldValidationQueueItem[];
 }
