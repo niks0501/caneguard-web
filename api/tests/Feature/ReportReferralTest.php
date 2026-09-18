@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\ExpertReferralResponseReceivedNotification;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
@@ -72,6 +74,88 @@ class ReportReferralTest extends TestCase
             'office_case_state' => Report::CASE_STATE_OPEN,
             'office_verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
         ]);
+    }
+
+    public function test_referred_cases_remain_in_each_operational_queue_until_they_leave_open_work(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-18 09:00:00');
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            $assignee = User::factory()->fieldReporter()->create();
+            $needsReview = Report::factory()->create([
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            $needsVisit = Report::factory()->create([
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            $followUpDue = Report::factory()->create([
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            foreach ([$needsVisit, $followUpDue] as $report) {
+                FieldValidationAssignment::factory()->create([
+                    'report_id' => $report->getKey(),
+                    'assignee_id' => $assignee->getKey(),
+                    'assigned_by_id' => $reviewer->getKey(),
+                    'target_visit_date' => $report === $followUpDue ? '2026-09-17' : '2026-09-18',
+                ]);
+            }
+
+            Sanctum::actingAs($reviewer);
+            foreach ([$needsReview, $needsVisit, $followUpDue] as $report) {
+                $this->recordReferral($report);
+            }
+
+            $this->getJson('/api/v1/reports?queue=needs_review')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 1)
+                ->assertJsonFragment(['uuid' => $needsReview->uuid]);
+            $this->getJson('/api/v1/reports?queue=needs_visit')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 2)
+                ->assertJsonFragment(['uuid' => $needsVisit->uuid])
+                ->assertJsonFragment(['uuid' => $followUpDue->uuid]);
+            $this->getJson('/api/v1/reports?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 1)
+                ->assertJsonFragment(['uuid' => $followUpDue->uuid]);
+
+            $this->getJson('/api/v1/reports/map?queue=needs_review')
+                ->assertOk()
+                ->assertJsonPath('metadata.total_count', 1);
+            $this->getJson('/api/v1/reports/map?queue=needs_visit')
+                ->assertOk()
+                ->assertJsonPath('metadata.total_count', 2);
+            $this->getJson('/api/v1/reports/map?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('metadata.total_count', 1);
+
+            $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit')
+                ->assertOk()
+                ->assertJsonPath('data.count', 2)
+                ->assertJsonFragment(['uuid' => $needsVisit->uuid])
+                ->assertJsonFragment(['uuid' => $followUpDue->uuid]);
+            $this->getJson('/api/v1/reports/field-validation-queue?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('data.count', 1)
+                ->assertJsonPath('data.items.0.uuid', $followUpDue->uuid);
+
+            $this->getJson('/api/v1/dashboard/summary')
+                ->assertOk()
+                ->assertJsonPath('data.queues.needs_review', 1)
+                ->assertJsonPath('data.queues.needs_visit', 2)
+                ->assertJsonPath('data.queues.follow_up_due', 1);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_legacy_review_endpoint_can_record_the_referral_without_changing_its_meaning(): void
