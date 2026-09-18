@@ -30,10 +30,11 @@ class ExpertReferralResponseController extends Controller
             'symptoms',
             'qualityWarnings',
             'referral.referredBy',
+            'referral.expert',
             'referral.responseRecordedBy',
             'referral.findingRecordedBy',
             'referral.officeReviewer',
-            'referrals',
+            'referrals.expert',
             'audits.actor',
         ]));
     }

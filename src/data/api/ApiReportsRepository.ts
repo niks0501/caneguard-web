@@ -94,6 +94,18 @@ export class ApiReportsRepository implements ReportsRepository {
     };
   }
 
+  async listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports> {
+    const response = await this.client.get("/api/v1/reports/expert-queue", {
+      params: toQueryParams(filters),
+    });
+    const dto = reportListResponseSchema.parse(response.data);
+
+    return {
+      reports: dto.data.map(mapReportListItem),
+      meta: mapPaginationMeta(dto.meta),
+    };
+  }
+
   async exportReports(filters?: ReportFilters): Promise<Blob> {
     const response = await this.client.get<ArrayBuffer>("/api/v1/reports/export", {
       params: toQueryParams(filters, false),
@@ -205,6 +217,9 @@ export class ApiReportsRepository implements ReportsRepository {
 
     if (input.dueDate !== undefined) {
       payload.due_date = input.dueDate || null;
+    }
+    if (input.expertUuid !== undefined) {
+      payload.expert_uuid = input.expertUuid;
     }
     if (input.expertName !== undefined) {
       payload.expert_name = input.expertName?.trim() || null;

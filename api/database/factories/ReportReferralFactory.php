@@ -26,6 +26,7 @@ class ReportReferralFactory extends Factory
                 'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
             ]),
             'referred_by_id' => $reviewer,
+            'expert_id' => null,
             'destination' => 'Regional crop protection office',
             'reference' => 'SRA-'.fake()->unique()->numerify('######'),
             'referral_date' => now()->toDateString(),
@@ -54,5 +55,12 @@ class ReportReferralFactory extends Factory
             'office_reviewer_id' => null,
             'office_reviewed_at' => null,
         ];
+    }
+
+    public function assignedToExpert(?User $expert = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'expert_id' => $expert ?? User::factory()->expert(),
+        ]);
     }
 }

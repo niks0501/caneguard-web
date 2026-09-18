@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Actions\Notifications\CreateLifecycleNotifications;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
@@ -10,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 class RecordReportReferral
 {
+    public function __construct(
+        private readonly CreateLifecycleNotifications $notifications,
+    ) {}
+
     /**
      * Record the handoff as an operational action while preserving the
      * independent verification and case-state dimensions.
@@ -18,7 +23,7 @@ class RecordReportReferral
      */
     public function handle(User $actor, Report $report, array $data): Report
     {
-        return DB::transaction(function () use ($actor, $report, $data): Report {
+        $updated = DB::transaction(function () use ($actor, $report, $data): Report {
             $locked = Report::query()
                 ->lockForUpdate()
                 ->findOrFail($report->getKey());
@@ -83,8 +88,16 @@ class RecordReportReferral
                 'lock_version' => $locked->lock_version + 1,
             ]);
 
+            $expert = filled($data['expert_uuid'] ?? null)
+                ? User::query()
+                    ->where('uuid', $data['expert_uuid'])
+                    ->where('role', User::ROLE_EXPERT)
+                    ->firstOrFail()
+                : null;
+
             $locked->referrals()->create([
                 'referred_by_id' => $actor->getKey(),
+                'expert_id' => $expert?->getKey(),
                 'destination' => $data['destination'],
                 'reference' => $data['reference'],
                 'referral_date' => $data['referral_date'],
@@ -105,5 +118,10 @@ class RecordReportReferral
 
             return $locked;
         }, attempts: 3);
+
+        $updated->load('referral.expert');
+        $this->notifications->expertReferralAssigned($updated->referral);
+
+        return $updated;
     }
 }

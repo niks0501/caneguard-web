@@ -11,7 +11,7 @@ class BroadcastCaseAttentionChanged
 {
     public function handle(User $recipient, string $eventType): void
     {
-        if (! $recipient->isWebUser()) {
+        if (! $recipient->isOfficeUser()) {
             return;
         }
 
@@ -29,7 +29,7 @@ class BroadcastCaseAttentionChanged
     public function handleOfficeUsers(string $eventType): void
     {
         User::query()
-            ->whereIn('role', User::webRoles())
+            ->whereIn('role', User::officeRoles())
             ->get()
             ->each(function (User $recipient) use ($eventType): void {
                 $this->handle($recipient, $eventType);

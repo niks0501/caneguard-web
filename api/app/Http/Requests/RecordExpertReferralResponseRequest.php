@@ -51,7 +51,7 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
         $report = $this->route('report');
 
         return $report instanceof Report
-            && ($this->user()?->can('review', $report) ?? false);
+            && ($this->user()?->can('respondToReferral', $report) ?? false);
     }
 
     public function rules(): array

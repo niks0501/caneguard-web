@@ -8,6 +8,7 @@ import type {
 } from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
 import {
+  expertReportsQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
   reportQueryOptions,
@@ -20,6 +21,13 @@ export function useReports(
   options: { enabled?: boolean } = {},
 ) {
   return useQuery(reportsQueryOptions(filters, options));
+}
+
+export function useExpertQueue(
+  filters: ReportFilters = {},
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery(expertReportsQueryOptions(filters, options));
 }
 
 export function useExportReports() {

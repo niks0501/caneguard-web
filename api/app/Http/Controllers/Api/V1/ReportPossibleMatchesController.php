@@ -14,7 +14,7 @@ class ReportPossibleMatchesController extends Controller
         Report $report,
         FindPossibleRecentMatches $findPossibleRecentMatches,
     ): AnonymousResourceCollection {
-        $this->authorize('view', $report);
+        $this->authorize('viewPossibleMatches', $report);
 
         $matches = $findPossibleRecentMatches->handle(
             (string) $report->predicted_label,

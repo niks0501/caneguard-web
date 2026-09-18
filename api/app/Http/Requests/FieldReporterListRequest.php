@@ -2,13 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
-
 class FieldReporterListRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return in_array($this->user()?->role, User::webRoles(), true);
+        return $this->user()?->isOfficeUser() ?? false;
     }
 
     public function rules(): array

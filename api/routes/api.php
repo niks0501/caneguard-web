@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AdminUserRoleController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\ExpertQueueController;
 use App\Http\Controllers\Api\V1\ExpertReferralResponseController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldValidationQueueController;
@@ -51,6 +52,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.admin.users.role');
     Route::get('/dashboard/summary', DashboardSummaryController::class);
     Route::get('/field-reporters', FieldReporterController::class);
+    Route::get('/reports/expert-queue', ExpertQueueController::class)
+        ->name('api.v1.reports.expert-queue');
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);

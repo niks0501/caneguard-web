@@ -61,6 +61,7 @@ return [
         'field_reporter_password' => env('CANEGUARD_FIELD_PASSWORD'),
         'reviewer_password' => env('CANEGUARD_REVIEWER_PASSWORD'),
         'admin_password' => env('CANEGUARD_ADMIN_PASSWORD'),
+        'expert_password' => env('CANEGUARD_EXPERT_PASSWORD'),
     ],
     'map' => [
         'default_limit' => min(
