@@ -229,6 +229,9 @@ export function CaseReviewPage() {
   const [referralDestination, setReferralDestination] = useState("");
   const [referralReference, setReferralReference] = useState("");
   const [referralDate, setReferralDate] = useState("");
+  const [referralDueDate, setReferralDueDate] = useState("");
+  const [referralExpertName, setReferralExpertName] = useState("");
+  const [referralExpertContact, setReferralExpertContact] = useState("");
   const [referralNote, setReferralNote] = useState("");
   const [referralSubmitted, setReferralSubmitted] = useState(false);
   const [authorityClassificationOverride, setAuthorityClassificationOverride] =
@@ -504,6 +507,9 @@ export function CaseReviewPage() {
           destination: referralDestination,
           reference: referralReference,
           referralDate,
+          ...(referralDueDate ? { dueDate: referralDueDate } : {}),
+          ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
+          ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
           note: referralNote,
           authorityClassifiedCondition: selectedAuthorityClassification,
           verificationOutcome: selectedVerificationOutcome || undefined,
@@ -1115,6 +1121,47 @@ export function CaseReviewPage() {
                             setReferralSubmitted(false);
                             recordReferral.reset();
                           }}
+                        />
+                      </label>
+                      <label className="select-filter" htmlFor="referral-due-date">
+                        <span>Consult due date (optional)</span>
+                        <input
+                          id="referral-due-date"
+                          type="date"
+                          value={referralDueDate}
+                          onChange={(event) => {
+                            setReferralDueDate(event.target.value);
+                            setReferralSubmitted(false);
+                            recordReferral.reset();
+                          }}
+                        />
+                      </label>
+                      <label className="select-filter" htmlFor="referral-expert-name">
+                        <span>Expert name (optional)</span>
+                        <input
+                          id="referral-expert-name"
+                          maxLength={160}
+                          value={referralExpertName}
+                          onChange={(event) => {
+                            setReferralExpertName(event.target.value);
+                            setReferralSubmitted(false);
+                            recordReferral.reset();
+                          }}
+                          placeholder="Named expert or service"
+                        />
+                      </label>
+                      <label className="select-filter" htmlFor="referral-expert-contact">
+                        <span>Expert contact (optional)</span>
+                        <input
+                          id="referral-expert-contact"
+                          maxLength={320}
+                          value={referralExpertContact}
+                          onChange={(event) => {
+                            setReferralExpertContact(event.target.value);
+                            setReferralSubmitted(false);
+                            recordReferral.reset();
+                          }}
+                          placeholder="Email, phone, or office contact"
                         />
                       </label>
                       <TextArea

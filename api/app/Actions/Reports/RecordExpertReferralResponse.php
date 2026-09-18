@@ -41,15 +41,20 @@ class RecordExpertReferralResponse
 
             $referral = ReportReferral::query()
                 ->where('report_id', $locked->getKey())
+                ->whereIn('consult_status', ReportReferral::activeStatuses())
+                ->latest('id')
                 ->lockForUpdate()
                 ->first();
 
-            if (! $referral || $lifecycle['referral_state'] !== Report::REFERRAL_STATE_REFERRED) {
+            if (! $referral) {
                 throw ValidationException::withMessages([
-                    'referral' => 'An active referral is required before recording an expert response.',
+                    'referral' => 'An active expert consult is required before recording a finding.',
                 ]);
             }
 
+            $consultStatus = $data['consult_status'] ?? ReportReferral::STATUS_COMPLETED;
+            $consultCompleted = $consultStatus === ReportReferral::STATUS_COMPLETED;
+            $consultCancelled = $consultStatus === ReportReferral::STATUS_CANCELLED;
             $reviewedAt = now()->utc();
             $authorityFinding = array_key_exists('authority_classified_condition', $data)
                 ? $data['authority_classified_condition']
@@ -60,28 +65,51 @@ class RecordExpertReferralResponse
             $nextLifecycle = [
                 ...$lifecycle,
                 'verification_outcome' => $verificationOutcome,
-                'referral_state' => Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+                'referral_state' => $consultCompleted
+                    ? Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED
+                    : ($consultCancelled
+                        ? Report::REFERRAL_STATE_NOT_REFERRED
+                        : Report::REFERRAL_STATE_REFERRED),
             ];
 
             $locked->update([
                 'review_status' => Report::legacyReviewStatusForLifecycle($nextLifecycle),
                 'verification_outcome' => $verificationOutcome,
-                'referral_state' => Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+                'referral_state' => $nextLifecycle['referral_state'],
                 'authority_classified_condition' => $authorityFinding,
                 'reviewer_id' => $actor->getKey(),
                 'reviewed_at' => $reviewedAt,
                 'lock_version' => $locked->lock_version + 1,
             ]);
 
+            $responseNote = $data['response_note'] ?? null;
+            $responseFinding = $data['response_finding'] ?? null;
+            $findingRecommendation = $data['finding_recommendation'] ?? null;
+            $hasFinding = filled($responseNote)
+                || filled($responseFinding)
+                || filled($findingRecommendation);
+            $findingSource = filled($data['finding_source'] ?? null)
+                ? $data['finding_source']
+                : ($hasFinding ? ReportReferral::FINDING_SOURCE_TRANSCRIBED : null);
+
             $referral->update([
-                'response_date' => $data['response_date'],
-                'response_note' => $data['response_note'] ?? null,
-                'response_finding' => $data['response_finding'] ?? null,
-                'response_recorded_by_id' => $actor->getKey(),
-                'response_recorded_at' => $reviewedAt,
+                'consult_status' => $consultStatus,
+                'response_date' => $data['response_date'] ?? null,
+                'response_note' => $consultCancelled ? null : $responseNote,
+                'response_finding' => $consultCancelled ? null : $responseFinding,
+                'response_recorded_by_id' => $consultCancelled ? null : $actor->getKey(),
+                'response_recorded_at' => $consultCancelled ? null : $reviewedAt,
+                'finding_summary' => $consultCancelled ? null : $responseNote,
+                'finding_details' => $consultCancelled ? null : $responseFinding,
+                'finding_recommendation' => $consultCancelled ? null : $findingRecommendation,
+                'finding_source' => $consultCancelled ? null : $findingSource,
+                'finding_recorded_by_id' => $consultCancelled || ! $hasFinding ? null : $actor->getKey(),
+                'finding_recorded_at' => $consultCancelled || ! $hasFinding ? null : $reviewedAt,
             ]);
 
-            $this->notifications->expertReferralResponseReceived($locked);
+            if ($consultCompleted) {
+                $this->notifications->expertReferralResponseReceived($locked);
+            }
 
             return $locked;
         }, attempts: 3);

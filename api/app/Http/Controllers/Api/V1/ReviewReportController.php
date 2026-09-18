@@ -9,6 +9,7 @@ use App\Http\Requests\ReviewReportRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use App\Models\ReportAudit;
+use App\Models\ReportReferral;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -34,9 +35,17 @@ class ReviewReportController extends Controller
                 'destination' => trim($data['referral_destination']),
                 'reference' => trim($data['referral_reference']),
                 'referral_date' => $data['referral_date'],
+                'due_date' => $data['referral_due_date'] ?? null,
+                'expert_name' => isset($data['expert_name'])
+                    ? trim((string) $data['expert_name'])
+                    : null,
+                'expert_contact' => isset($data['expert_contact'])
+                    ? trim((string) $data['expert_contact'])
+                    : null,
                 'note' => isset($data['referral_note'])
                     ? trim((string) $data['referral_note'])
                     : null,
+                'consult_status' => $data['consult_status'] ?? null,
                 'expected_version' => $data['expected_version'],
             ];
             foreach ([
@@ -65,7 +74,9 @@ class ReviewReportController extends Controller
                 'qualityWarnings',
                 'referral.referredBy',
                 'referral.responseRecordedBy',
+                'referral.findingRecordedBy',
                 'referral.officeReviewer',
+                'referrals',
                 'audits.actor',
             ]));
         }
@@ -139,7 +150,9 @@ class ReviewReportController extends Controller
             $reviewLifecycle = $locked->lifecycleSnapshot();
             if (($reviewUpdate['case_state'] ?? $reviewLifecycle['case_state']) === Report::CASE_STATE_CLOSED
                 && $reviewLifecycle['referral_state'] === Report::REFERRAL_STATE_REFERRED
-                && $locked->referral()->exists()
+                && $locked->referrals()
+                    ->whereIn('consult_status', ReportReferral::activeStatuses())
+                    ->exists()
             ) {
                 throw ValidationException::withMessages([
                     'case_state' => 'A referred case must remain open until an expert response is recorded.',
@@ -248,7 +261,9 @@ class ReviewReportController extends Controller
             'qualityWarnings',
             'referral.referredBy',
             'referral.responseRecordedBy',
+            'referral.findingRecordedBy',
             'referral.officeReviewer',
+            'referrals',
             'audits.actor',
         ]));
     }

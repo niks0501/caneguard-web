@@ -82,6 +82,7 @@
                 <div><dt>Observed at</dt><dd>{{ $summary['dates']['observed_at'] ?: 'Not provided' }}</dd></div>
                 <div><dt>Submitted at</dt><dd>{{ $summary['dates']['submitted_at'] }}</dd></div>
                 <div><dt>Last office review</dt><dd>{{ $summary['dates']['reviewed_at'] ?: 'Not reviewed' }}</dd></div>
+                <div><dt>Consult status</dt><dd>{{ $summary['referral']['status'] ?? $summary['referral']['state'] }}</dd></div>
                 <div><dt>Expert response date</dt><dd>{{ $summary['dates']['response_date'] ?: 'Pending' }}</dd></div>
             </dl>
         </section>
@@ -160,10 +161,16 @@
             <dl>
                 <div><dt>Destination</dt><dd>{{ $summary['referral']['destination'] }}</dd></div>
                 <div><dt>External reference</dt><dd>{{ $summary['referral']['reference'] }}</dd></div>
+                <div><dt>Due date</dt><dd>{{ $summary['referral']['due_date'] ?: 'Not set' }}</dd></div>
+                <div><dt>Expert</dt><dd>{{ $summary['referral']['expert_name'] ?: 'Not attributed' }}</dd></div>
+                <div class="full"><dt>Expert contact</dt><dd>{{ $summary['referral']['expert_contact'] ?: 'Not provided' }}</dd></div>
                 <div class="full"><dt>Referral note</dt><dd>{{ $summary['referral']['note'] ?: 'Not provided' }}</dd></div>
                 <div><dt>Response date</dt><dd>{{ $summary['referral']['response_date'] ?: 'Pending' }}</dd></div>
                 <div class="full"><dt>Response note</dt><dd>{{ $summary['referral']['response_note'] ?: 'Not provided' }}</dd></div>
-                <div class="full"><dt>Response finding</dt><dd>{{ $summary['referral']['response_finding'] ?: 'Not provided' }}</dd></div>
+                <div class="full"><dt>Finding summary{{ $summary['referral']['finding_source'] === 'transcribed' ? ' (transcribed)' : '' }}</dt><dd>{{ $summary['referral']['finding_summary'] ?: 'Not provided' }}</dd></div>
+                <div class="full"><dt>Finding details{{ $summary['referral']['finding_source'] === 'transcribed' ? ' (transcribed)' : '' }}</dt><dd>{{ $summary['referral']['finding_details'] ?: 'Not provided' }}</dd></div>
+                <div class="full"><dt>Recommendation</dt><dd>{{ $summary['referral']['finding_recommendation'] ?: 'Not provided' }}</dd></div>
+                <div><dt>Finding source</dt><dd>{{ $summary['referral']['finding_source'] ?: 'Not recorded' }}</dd></div>
             </dl>
         </section>
     </main>

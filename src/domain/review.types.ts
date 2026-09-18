@@ -3,6 +3,7 @@ import type {
   AuthorityClassifiedCondition,
   CaseState,
   FieldValidationState,
+  FindingSource,
   ReviewStatus,
   VerificationOutcome,
 } from "./report.types";
@@ -24,6 +25,9 @@ export interface ReportReferralInput {
   destination: string;
   reference: string;
   referralDate: string;
+  dueDate?: string | null;
+  expertName?: string | null;
+  expertContact?: string | null;
   note?: string | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   verificationOutcome?: VerificationOutcome;
@@ -35,6 +39,8 @@ export interface ExpertReferralResponseInput {
   responseDate: string;
   responseNote?: string | null;
   responseFinding?: string | null;
+  findingRecommendation?: string | null;
+  findingSource?: FindingSource | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   verificationOutcome?: VerificationOutcome;
   expectedVersion: number;

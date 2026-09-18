@@ -530,11 +530,33 @@ class Report extends Model
     }
 
     /**
+     * The latest attributed consult remains available through the legacy
+     * referral name so existing clients can adopt the richer record safely.
+     *
      * @return HasOne<ReportReferral, $this>
      */
     public function referral(): HasOne
     {
-        return $this->hasOne(ReportReferral::class);
+        return $this->hasOne(ReportReferral::class)->latestOfMany();
+    }
+
+    /**
+     * @return HasMany<ReportReferral, $this>
+     */
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(ReportReferral::class);
+    }
+
+    /**
+     * The consult name is the Phase 1 vocabulary; referrals remains the
+     * compatibility relation for existing callers.
+     *
+     * @return HasMany<ReportReferral, $this>
+     */
+    public function consults(): HasMany
+    {
+        return $this->hasMany(ReportReferral::class);
     }
 
     /**

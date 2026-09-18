@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Report;
+use App\Models\ReportReferral;
 use App\Models\User;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
@@ -89,6 +90,27 @@ class ReviewReportRequest extends ApiFormRequest
                 'nullable',
                 'string',
                 'max:1000',
+            ],
+            'referral_due_date' => [
+                'sometimes',
+                'nullable',
+                'date',
+            ],
+            'expert_name' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:160',
+            ],
+            'expert_contact' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:320',
+            ],
+            'consult_status' => [
+                'sometimes',
+                Rule::in(ReportReferral::statuses()),
             ],
             'case_state' => [
                 'sometimes',
@@ -200,6 +222,10 @@ class ReviewReportRequest extends ApiFormRequest
                 'referral_reference',
                 'referral_date',
                 'referral_note',
+                'referral_due_date',
+                'expert_name',
+                'expert_contact',
+                'consult_status',
                 'case_state',
                 'metadata_corrections',
             ];
@@ -268,6 +294,10 @@ class ReviewReportRequest extends ApiFormRequest
                 'referral_reference',
                 'referral_date',
                 'referral_note',
+                'referral_due_date',
+                'expert_name',
+                'expert_contact',
+                'consult_status',
             ];
             $hasReferralFields = collect($referralFields)
                 ->contains(fn (string $key): bool => array_key_exists($key, $this->all()));

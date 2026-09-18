@@ -31,7 +31,9 @@ class ExpertReferralResponseController extends Controller
             'qualityWarnings',
             'referral.referredBy',
             'referral.responseRecordedBy',
+            'referral.findingRecordedBy',
             'referral.officeReviewer',
+            'referrals',
             'audits.actor',
         ]));
     }

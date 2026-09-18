@@ -18,6 +18,7 @@ import {
 import type {
   AuthorityClassifiedCondition,
   DiseaseReport,
+  FindingSource,
   ReferralState,
   VerificationOutcome,
 } from "../../domain/report.types";
@@ -58,6 +59,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
   const [responseDate, setResponseDate] = useState("");
   const [responseNote, setResponseNote] = useState("");
   const [responseFinding, setResponseFinding] = useState("");
+  const [responseFindingSource, setResponseFindingSource] = useState<FindingSource | "">("");
   const [responseAuthority, setResponseAuthority] = useState<
     AuthorityClassifiedCondition | null | undefined
   >(undefined);
@@ -86,6 +88,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
         responseDate,
         responseNote,
         responseFinding,
+        ...(responseFindingSource ? { findingSource: responseFindingSource } : {}),
         authorityClassifiedCondition: responseAuthority,
         verificationOutcome: responseVerification || undefined,
         expectedVersion: report.reviewVersion,
@@ -123,7 +126,11 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
           <dl className="detail-list referral-details">
             <DetailField label="Destination">{referral.destination}</DetailField>
             <DetailField label="Reference">{referral.reference}</DetailField>
+            <DetailField label="Status">{referral.status ?? (referral.responseDate ? "completed" : "pending")}</DetailField>
             <DetailField label="Referral date">{referral.referralDate}</DetailField>
+            <DetailField label="Due date">{referral.dueDate ?? "Not set"}</DetailField>
+            <DetailField label="Expert">{referral.expertName ?? "Not attributed"}</DetailField>
+            <DetailField label="Expert contact">{referral.expertContact ?? "Not provided"}</DetailField>
             <DetailField label="Referred by">{referral.referredBy?.name ?? "Not available"}</DetailField>
             <DetailField label="Referral note">{referral.note ?? "Not provided"}</DetailField>
             <DetailField label="Response date">{referral.responseDate ?? "Pending"}</DetailField>
@@ -153,7 +160,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 <CalendarDays aria-hidden="true" />
                 <div>
                   <strong>Record expert response</strong>
-                  <span>Response evidence is separate from the original Possible Condition.</span>
+                  <span>Findings are attributed to this consult. External findings entered by staff are labelled as transcribed.</span>
                 </div>
               </div>
               <label className="select-filter" htmlFor="response-date">
@@ -184,7 +191,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
               />
               <TextArea
                 id="response-finding"
-                label="Expert finding (optional)"
+                label={responseFindingSource === "transcribed" ? "Expert finding (transcribed; optional)" : "Expert finding (optional)"}
                 rows={3}
                 maxLength={2000}
                 value={responseFinding}
@@ -195,6 +202,19 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 }}
                 placeholder="Capture the expert's finding as reported"
               />
+              <SelectFilter
+                label="Finding source (optional)"
+                value={responseFindingSource}
+                onChange={(event) => {
+                  setResponseFindingSource(event.target.value as FindingSource | "");
+                  setResponseSubmitted(false);
+                  recordResponse.reset();
+                }}
+              >
+                <option value="">Use transcribed source by default</option>
+                <option value="in_system">Entered in CaneGuard as part of this consult</option>
+                <option value="transcribed">Transcribed from an external expert response</option>
+              </SelectFilter>
               <SelectFilter
                 label="Staff-Classified Condition after response"
                 value={responseAuthority ?? ""}
@@ -252,7 +272,9 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
             <div className="referral-response-summary">
               <strong>Expert response</strong>
               <DetailField label="Response note">{referral.responseNote ?? "Not provided"}</DetailField>
-              <DetailField label="Response finding">{referral.responseFinding ?? "Not provided"}</DetailField>
+              <DetailField label={referral.findingSource === "transcribed" ? "Finding (transcribed)" : "Response finding"}>{referral.responseFinding ?? referral.findingDetails ?? "Not provided"}</DetailField>
+              <DetailField label="Recommendation">{referral.findingRecommendation ?? "Not provided"}</DetailField>
+              {referral.findingSource ? <small>Finding source: {referral.findingSource === "transcribed" ? "Transcribed from an external expert response" : "Entered in CaneGuard as part of this consult"}.</small> : null}
               {referral.responseRecordedBy ? (
                 <small>Recorded by {referral.responseRecordedBy.name}{referral.responseRecordedAt ? ` on ${formatDateTime(referral.responseRecordedAt)}` : ""}.</small>
               ) : null}

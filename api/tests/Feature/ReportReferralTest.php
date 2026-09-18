@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
+use App\Models\ReportReferral;
 use App\Models\User;
 use App\Notifications\ExpertReferralResponseReceivedNotification;
 use Carbon\CarbonImmutable;
@@ -74,6 +75,167 @@ class ReportReferralTest extends TestCase
             'office_case_state' => Report::CASE_STATE_OPEN,
             'office_verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
         ]);
+    }
+
+    public function test_attributed_consult_round_trip_preserves_provenance_and_finding_attribution(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Regional crop protection office',
+            'reference' => 'CONSULT-2026-0042',
+            'referral_date' => '2026-09-18',
+            'due_date' => '2026-09-25',
+            'expert_name' => 'Dr. Ada Expert',
+            'expert_contact' => 'ada@example.test',
+            'expected_version' => 0,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_PENDING)
+            ->assertJsonPath('data.referral.due_date', '2026-09-25')
+            ->assertJsonPath('data.referral.expert_name', 'Dr. Ada Expert')
+            ->assertJsonPath('data.referral.expert_contact', 'ada@example.test');
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-24',
+            'response_note' => 'The external consult was transcribed into the case record.',
+            'response_finding' => 'Observed evidence is consistent with smut.',
+            'finding_recommendation' => 'Schedule a follow-up field visit.',
+            'finding_source' => ReportReferral::FINDING_SOURCE_TRANSCRIBED,
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_COMPLETED)
+            ->assertJsonPath('data.referral.finding_source', ReportReferral::FINDING_SOURCE_TRANSCRIBED)
+            ->assertJsonPath('data.referral.finding_summary', 'The external consult was transcribed into the case record.')
+            ->assertJsonPath('data.referral.finding_details', 'Observed evidence is consistent with smut.')
+            ->assertJsonPath('data.referral.finding_recommendation', 'Schedule a follow-up field visit.')
+            ->assertJsonPath('data.referral.finding_recorded_by.uuid', $reviewer->uuid);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.referral.finding_source', ReportReferral::FINDING_SOURCE_TRANSCRIBED)
+            ->assertJsonPath('data.referral.finding_details', 'Observed evidence is consistent with smut.');
+
+        $this->assertDatabaseHas('report_referrals', [
+            'report_id' => $report->getKey(),
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'finding_source' => ReportReferral::FINDING_SOURCE_TRANSCRIBED,
+            'finding_recorded_by_id' => $reviewer->getKey(),
+        ]);
+    }
+
+    public function test_consult_state_machine_allows_progress_then_completion(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+        $this->recordReferral($report);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-20',
+            'status' => ReportReferral::STATUS_IN_PROGRESS,
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_IN_PROGRESS)
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_REFERRED);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-24',
+            'response_finding' => 'Completed finding.',
+            'expected_version' => 2,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_COMPLETED)
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED);
+    }
+
+    public function test_cancelled_consults_are_terminal_and_can_be_replaced(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+        $this->recordReferral($report);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'status' => ReportReferral::STATUS_CANCELLED,
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_CANCELLED)
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_NOT_REFERRED);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Replacement expert office',
+            'reference' => 'CONSULT-REPLACEMENT',
+            'referral_date' => '2026-09-21',
+            'expected_version' => 2,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_PENDING);
+    }
+
+    public function test_only_one_active_consult_is_allowed_but_completed_consults_can_repeat(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+        $this->recordReferral($report);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Another expert office',
+            'reference' => 'CONSULT-2',
+            'referral_date' => '2026-09-19',
+            'expected_version' => 1,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('referral');
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-20',
+            'response_finding' => 'The first consult is complete.',
+            'expected_version' => 1,
+        ])->assertOk();
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Another expert office',
+            'reference' => 'CONSULT-2',
+            'referral_date' => '2026-09-21',
+            'expected_version' => 2,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.referral.reference', 'CONSULT-2')
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_PENDING);
+
+        $this->assertDatabaseCount('report_referrals', 2);
+    }
+
+    public function test_consult_findings_do_not_change_the_reviewer_owned_disposition(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+        ]);
+        Sanctum::actingAs($reviewer);
+        $this->recordReferral($report);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-20',
+            'response_finding' => 'Finding is stored as consult evidence only.',
+            'finding_source' => ReportReferral::FINDING_SOURCE_IN_SYSTEM,
+            'expected_version' => 1,
+        ])->assertOk();
+
+        $updated = $report->fresh();
+        $this->assertSame(Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION, $updated->action_taken);
+        $this->assertSame(Report::CASE_STATE_OPEN, $updated->case_state);
+        $this->assertSame(Report::VERIFICATION_OUTCOME_NOT_DETERMINED, $updated->verification_outcome);
+        $this->assertNull($updated->authority_classified_condition);
     }
 
     public function test_referred_cases_remain_in_each_operational_queue_until_they_leave_open_work(): void

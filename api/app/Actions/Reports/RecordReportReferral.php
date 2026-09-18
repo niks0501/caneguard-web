@@ -35,11 +35,23 @@ class RecordReportReferral
                 ]);
             }
 
-            if ($lifecycle['referral_state'] !== Report::REFERRAL_STATE_NOT_REFERRED
-                || ReportReferral::query()->where('report_id', $locked->getKey())->exists()
-            ) {
+            $activeConsult = $locked->referrals()
+                ->whereIn('consult_status', ReportReferral::activeStatuses())
+                ->lockForUpdate()
+                ->first();
+            if ($activeConsult !== null) {
                 throw ValidationException::withMessages([
-                    'referral' => 'This case already has a referral record.',
+                    'referral' => 'This case already has an active expert consult.',
+                ]);
+            }
+
+            $requestedStatus = $data['consult_status'] ?? ReportReferral::STATUS_PENDING;
+            if (! in_array($requestedStatus, [
+                ReportReferral::STATUS_PENDING,
+                ReportReferral::STATUS_IN_PROGRESS,
+            ], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'A new expert consult must be pending or in progress.',
                 ]);
             }
 
@@ -71,12 +83,16 @@ class RecordReportReferral
                 'lock_version' => $locked->lock_version + 1,
             ]);
 
-            $locked->referral()->create([
+            $locked->referrals()->create([
                 'referred_by_id' => $actor->getKey(),
                 'destination' => $data['destination'],
                 'reference' => $data['reference'],
                 'referral_date' => $data['referral_date'],
+                'due_date' => $data['due_date'] ?? null,
+                'expert_name' => $data['expert_name'] ?? null,
+                'expert_contact' => $data['expert_contact'] ?? null,
                 'note' => $data['note'] ?? null,
+                'consult_status' => $requestedStatus,
                 'office_case_state' => $lifecycle['case_state'],
                 'office_verification_outcome' => $verificationOutcome,
                 'office_field_validation_state' => $lifecycle['field_validation_state'],
