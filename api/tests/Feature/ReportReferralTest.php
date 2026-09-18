@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -663,6 +664,65 @@ class ReportReferralTest extends TestCase
         $this->getJson("/api/v1/reports/{$report->uuid}/referral/summary")
             ->assertNotFound()
             ->assertJsonPath('code', 'NOT_FOUND');
+    }
+
+    public function test_referral_is_recorded_when_optional_review_history_table_is_missing(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Schema::dropIfExists('report_review_events');
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Regional crop protection office',
+            'reference' => 'SRA-2026-OPTIONAL-HISTORY',
+            'referral_date' => '2026-09-04',
+            'expected_version' => 0,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_REFERRED)
+            ->assertJsonPath('data.referral.reference', 'SRA-2026-OPTIONAL-HISTORY')
+            ->assertJsonMissingPath('data.review_events');
+
+        $this->assertDatabaseHas('report_referrals', [
+            'report_id' => $report->getKey(),
+            'reference' => 'SRA-2026-OPTIONAL-HISTORY',
+        ]);
+        $this->assertSame(
+            Report::REFERRAL_STATE_REFERRED,
+            $report->fresh()->referral_state,
+        );
+    }
+
+    public function test_expert_response_is_recorded_when_optional_review_history_table_is_missing(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+        $this->recordReferral($report);
+
+        Schema::dropIfExists('report_review_events');
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-24',
+            'response_finding' => 'Observed evidence is consistent with smut.',
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_COMPLETED)
+            ->assertJsonPath(
+                'data.lifecycle.referral_state',
+                Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+            )
+            ->assertJsonMissingPath('data.review_events');
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath(
+                'data.lifecycle.referral_state',
+                Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+            )
+            ->assertJsonMissingPath('data.review_events');
     }
 
     private function recordReferral(Report $report): void

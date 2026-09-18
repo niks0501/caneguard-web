@@ -14,6 +14,7 @@ class RecordReportReferral
 {
     public function __construct(
         private readonly CreateLifecycleNotifications $notifications,
+        private readonly RecordReportReviewEvent $reviewEvents,
     ) {}
 
     /**
@@ -138,7 +139,7 @@ class RecordReportReferral
                 'office_reviewed_at' => $reviewedAt,
             ]);
 
-            $locked->reviewEvents()->create([
+            $this->reviewEvents->handle($locked, [
                 'actor_id' => $actor->getKey(),
                 'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
                 'authority_classified_condition' => $authorityFinding,
