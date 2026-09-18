@@ -26,7 +26,10 @@ class AdvisoryRequest extends ApiFormRequest
             'title' => ['sometimes', 'required', 'string', 'max:160', 'not_regex:/^\\s*$/'],
             'content' => ['sometimes', 'required', 'string', 'max:10000', 'not_regex:/^\\s*$/'],
             'body' => ['sometimes', 'string', 'max:10000', 'not_regex:/^\\s*$/'],
+            'guidance' => ['sometimes', 'string', 'max:10000', 'not_regex:/^\\s*$/'],
             'validation_provenance' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'provenance' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'validation_source' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'status' => ['sometimes', Rule::in(Advisory::statuses())],
         ];
     }
@@ -36,6 +39,15 @@ class AdvisoryRequest extends ApiFormRequest
         $normalized = [];
         if (! $this->has('content') && $this->has('body')) {
             $normalized['content'] = $this->input('body');
+        }
+        if (! $this->has('content') && $this->has('guidance')) {
+            $normalized['content'] = $this->input('guidance');
+        }
+        if (! $this->has('validation_provenance') && $this->has('provenance')) {
+            $normalized['validation_provenance'] = $this->input('provenance');
+        }
+        if (! $this->has('validation_provenance') && $this->has('validation_source')) {
+            $normalized['validation_provenance'] = $this->input('validation_source');
         }
         if ($normalized !== []) {
             $this->merge($normalized);
