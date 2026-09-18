@@ -16,7 +16,7 @@ retain the original checkpoint for all pages.
 
 ## Advisory payload
 
-The `advisory` payload is delivered only for a validated office advisory:
+The `advisory` payload is delivered only after office validation. A later retirement remains visible for an already selected case so the reporter retains the guidance they received:
 
 | Field | Type | Description |
 | --- | --- | --- |
