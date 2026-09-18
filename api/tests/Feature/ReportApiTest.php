@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use RuntimeException;
@@ -433,6 +434,24 @@ class ReportApiTest extends TestCase
         $this->getJson('/api/v1/reports/not-a-real-uuid')
             ->assertNotFound()
             ->assertJsonPath('code', 'NOT_FOUND');
+    }
+
+    public function test_report_detail_stays_available_when_review_events_migration_is_not_present(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+
+        Schema::shouldReceive('hasTable')
+            ->once()
+            ->with('report_review_events')
+            ->andReturnFalse();
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.identity.uuid', $report->uuid)
+            ->assertJsonMissingPath('data.review_events');
     }
 
     public function test_report_detail_includes_completed_field_validation_evidence_for_reviewers(): void

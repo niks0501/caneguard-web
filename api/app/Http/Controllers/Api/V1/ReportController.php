@@ -9,6 +9,7 @@ use App\Http\Resources\ReportListResource;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
@@ -25,7 +26,7 @@ class ReportController extends Controller
     {
         $this->authorize('view', $report);
 
-        return new ReportResource($report->load([
+        $relations = [
             'reporter',
             'reviewer',
             'advisory',
@@ -43,7 +44,14 @@ class ReportController extends Controller
             'symptoms',
             'qualityWarnings',
             'audits.actor',
-            'reviewEvents.actor',
-        ]));
+        ];
+
+        // Review history was added after the original report schema. Keep the
+        // core detail response available while older deployments catch up.
+        if (Schema::hasTable('report_review_events')) {
+            $relations[] = 'reviewEvents.actor';
+        }
+
+        return new ReportResource($report->load($relations));
     }
 }
