@@ -191,11 +191,7 @@ class ReviewReportTest extends TestCase
                 'location_source' => 'gps',
                 'gps_accuracy' => 4.25,
             ]);
-            $modelEvidence = collect(Report::immutableEvidenceAttributes())
-                ->mapWithKeys(fn (string $attribute) => [
-                    $attribute => $report->getRawOriginal($attribute),
-                ])
-                ->all();
+            $modelEvidence = $this->immutableEvidenceSnapshot($report);
             $submittedObservationFields = [
                 'farmer_or_farm_owner_name',
                 'province',
@@ -232,11 +228,7 @@ class ReviewReportTest extends TestCase
             $this->assertSame($condition, $updated->authority_classified_condition);
             $this->assertSame(Report::LABEL_RUST, $updated->predicted_label);
             $this->assertSame('0.7400000', $updated->confidence);
-            $this->assertSame($modelEvidence, collect(Report::immutableEvidenceAttributes())
-                ->mapWithKeys(fn (string $attribute) => [
-                    $attribute => $updated->getRawOriginal($attribute),
-                ])
-                ->all());
+            $this->assertSame($modelEvidence, $this->immutableEvidenceSnapshot($updated));
             $this->assertSame(
                 $submittedObservations,
                 $this->submittedObservationSnapshot($updated, $submittedObservationFields),
@@ -266,6 +258,18 @@ class ReviewReportTest extends TestCase
             ->all();
     }
 
+    private function immutableEvidenceSnapshot(Report $report): array
+    {
+        return collect(Report::immutableEvidenceAttributes())
+            ->mapWithKeys(fn (string $attribute) => [
+                $attribute => $this->canonicalObservationValue(
+                    $attribute,
+                    $report->getRawOriginal($attribute),
+                ),
+            ])
+            ->all();
+    }
+
     private function canonicalObservationValue(string $attribute, mixed $value): mixed
     {
         if ($value === null) {
@@ -278,6 +282,10 @@ class ReviewReportTest extends TestCase
             'final_latitude',
             'final_longitude',
             'gps_accuracy',
+            'confidence',
+            'preprocess_ms',
+            'inference_ms',
+            'total_ms',
         ], true) ? (float) $value : $value;
     }
 

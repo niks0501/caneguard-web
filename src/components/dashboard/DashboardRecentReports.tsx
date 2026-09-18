@@ -38,9 +38,8 @@ export function DashboardRecentReports({
                     label={`Submitted evidence for ${report.referenceCode}`}
                     src={report.imageUrl}
                   />
-                  <div>
+                  <div className="report-identity__meta">
                     <strong>{report.referenceCode}</strong>
-                    <span>Submitted report</span>
                   </div>
                 </div>
               </td>

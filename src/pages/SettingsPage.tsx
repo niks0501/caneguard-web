@@ -161,148 +161,173 @@ export function SettingsPage() {
       />
 
       <div className="settings-layout">
-        {/* Profile Card */}
-        <section className="settings-card" aria-labelledby="profile-heading">
-          <div className="section-heading">
-            <div>
-              <h2 id="profile-heading">Account profile</h2>
+        {/* Profile Sidebar */}
+        <aside className="settings-sidebar">
+          <section className="settings-card settings-card--profile" aria-labelledby="profile-heading">
+            <div className="section-heading">
+              <div>
+                <h2 id="profile-heading">Account profile</h2>
+              </div>
+              <User aria-hidden="true" />
             </div>
-            <User aria-hidden="true" />
-          </div>
-          <dl className="detail-list">
-            <DetailField label="Full name">{user?.name ?? "Unavailable"}</DetailField>
-            <DetailField label="Email address">{user?.email ?? "Unavailable"}</DetailField>
-            <DetailField label="Assigned role">{roleLabel}</DetailField>
-            <DetailField label="User ID">
-              <span className="machine-text">{user?.uuid ?? "Unavailable"}</span>
-            </DetailField>
-          </dl>
-        </section>
 
-        {/* Change Password Card */}
-        <section className="settings-card" aria-labelledby="password-heading">
-          <div className="section-heading">
-            <div>
-              <h2 id="password-heading">Change password</h2>
-            </div>
-            <KeyRound aria-hidden="true" />
-          </div>
-
-          {passwordError ? (
-            <div className="govuk-error-summary" role="alert" tabIndex={-1}>
-              <h2 className="govuk-error-summary__title">There is a problem</h2>
-              <div className="govuk-error-summary__body">
-                <ul className="govuk-error-summary__list">
-                  <li>{passwordError}</li>
-                </ul>
+            <div className="settings-profile-header">
+              <div className="avatar avatar--large" aria-hidden="true">
+                {user?.name ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "CG"}
+              </div>
+              <div className="settings-profile-identity">
+                <span className="settings-profile-name">Active account</span>
+                <span className="settings-profile-status">Authorized workspace access</span>
               </div>
             </div>
-          ) : null}
 
-          {passwordSuccess ? (
-            <div className="settings-alert settings-alert--success" role="status">
-              <CheckCircle2 aria-hidden="true" />
-              <span>{passwordSuccess}</span>
+            <dl className="detail-list settings-detail-list">
+              <DetailField label="Full name">{user?.name ?? "Unavailable"}</DetailField>
+              <DetailField label="Email address">{user?.email ?? "Unavailable"}</DetailField>
+              <DetailField label="Assigned role">{roleLabel}</DetailField>
+              <DetailField label="User ID">
+                <span className="machine-text settings-uid">{user?.uuid ?? "Unavailable"}</span>
+              </DetailField>
+            </dl>
+
+            <div className="settings-auth-note">
+              <span className="settings-auth-note__title">SRA Don Pedro Workspace</span>
+              <span className="settings-auth-note__text">Role privileges are managed by office administrators.</span>
             </div>
-          ) : null}
+          </section>
+        </aside>
 
-          <form onSubmit={handlePasswordSubmit} className="settings-form">
-            <label className="settings-field">
-              <span>Current password</span>
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-              />
-            </label>
-
-            <label className="settings-field">
-              <span>New password</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                minLength={8}
-                required
-              />
-            </label>
-
-            <label className="settings-field">
-              <span>Confirm new password</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                minLength={8}
-                required
-              />
-            </label>
-
-            <div className="settings-form__actions">
-              <Button type="submit">Update password</Button>
-            </div>
-          </form>
-        </section>
-
-        {/* Change Email Card */}
-        <section className="settings-card" aria-labelledby="email-heading">
-          <div className="section-heading">
-            <div>
-              <h2 id="email-heading">Change email address</h2>
-            </div>
-            <Mail aria-hidden="true" />
-          </div>
-
-          {emailError ? (
-            <div className="govuk-error-summary" role="alert" tabIndex={-1}>
-              <h2 className="govuk-error-summary__title">There is a problem</h2>
-              <div className="govuk-error-summary__body">
-                <ul className="govuk-error-summary__list">
-                  <li>{emailError}</li>
-                </ul>
+        {/* Credentials and Security Section */}
+        <div className="settings-security-group">
+          {/* Change Password Card */}
+          <section className="settings-card settings-card--form" aria-labelledby="password-heading">
+            <div className="section-heading">
+              <div>
+                <h2 id="password-heading">Change password</h2>
               </div>
+              <KeyRound aria-hidden="true" />
             </div>
-          ) : null}
 
-          {emailSuccess ? (
-            <div className="settings-alert settings-alert--success" role="status">
-              <CheckCircle2 aria-hidden="true" />
-              <span>{emailSuccess}</span>
+            {passwordError ? (
+              <div className="govuk-error-summary" role="alert" tabIndex={-1}>
+                <h2 className="govuk-error-summary__title">There is a problem</h2>
+                <div className="govuk-error-summary__body">
+                  <ul className="govuk-error-summary__list">
+                    <li>{passwordError}</li>
+                  </ul>
+                </div>
+              </div>
+            ) : null}
+
+            {passwordSuccess ? (
+              <div className="settings-alert settings-alert--success" role="status">
+                <CheckCircle2 aria-hidden="true" />
+                <span>{passwordSuccess}</span>
+              </div>
+            ) : null}
+
+            <form onSubmit={handlePasswordSubmit} className="settings-form">
+              <label className="settings-field">
+                <span>Current password</span>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                />
+              </label>
+
+              <div className="settings-field-row">
+                <label className="settings-field">
+                  <span>New password</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    minLength={8}
+                    required
+                  />
+                </label>
+
+                <label className="settings-field">
+                  <span>Confirm new password</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    minLength={8}
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="settings-form__actions">
+                <Button type="submit">Update password</Button>
+              </div>
+            </form>
+          </section>
+
+          {/* Change Email Card */}
+          <section className="settings-card settings-card--form" aria-labelledby="email-heading">
+            <div className="section-heading">
+              <div>
+                <h2 id="email-heading">Change email address</h2>
+              </div>
+              <Mail aria-hidden="true" />
             </div>
-          ) : null}
 
-          <form onSubmit={handleEmailSubmit} className="settings-form">
-            <label className="settings-field">
-              <span>Current password (for verification)</span>
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={emailPassword}
-                onChange={(e) => setEmailPassword(e.target.value)}
-                required
-              />
-            </label>
+            {emailError ? (
+              <div className="govuk-error-summary" role="alert" tabIndex={-1}>
+                <h2 className="govuk-error-summary__title">There is a problem</h2>
+                <div className="govuk-error-summary__body">
+                  <ul className="govuk-error-summary__list">
+                    <li>{emailError}</li>
+                  </ul>
+                </div>
+              </div>
+            ) : null}
 
-            <label className="settings-field">
-              <span>New email address</span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                required
-              />
-            </label>
+            {emailSuccess ? (
+              <div className="settings-alert settings-alert--success" role="status">
+                <CheckCircle2 aria-hidden="true" />
+                <span>{emailSuccess}</span>
+              </div>
+            ) : null}
 
-            <div className="settings-form__actions">
-              <Button type="submit">Update email</Button>
-            </div>
-          </form>
-        </section>
+            <form onSubmit={handleEmailSubmit} className="settings-form">
+              <div className="settings-field-row">
+                <label className="settings-field">
+                  <span>Current password (for verification)</span>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    required
+                  />
+                </label>
+
+                <label className="settings-field">
+                  <span>New email address</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="settings-form__actions">
+                <Button type="submit">Update email</Button>
+              </div>
+            </form>
+          </section>
+        </div>
 
         {/* Mobile Devices Card */}
         <section className="settings-card settings-card--wide" aria-labelledby="devices-heading">
