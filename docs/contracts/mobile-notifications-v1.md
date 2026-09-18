@@ -4,6 +4,8 @@ The `mobile-notifications-v1` contract is the owner-scoped REST feed for durable
 
 The API returns the authenticated field reporter's notifications only.
 The `sync.before` checkpoint and cursor links describe one complete snapshot boundary.
+Advisory notifications include the validated office content in both `content`
+and the structured `advisory` payload; clients may render either representation.
 The client replaces its local snapshot only after every page validates successfully.
 
 Mobile does not connect to Reverb or any WebSocket service.
@@ -25,4 +27,4 @@ The feed is retrieval-oriented, so Mobile acknowledges items through two owner-s
 Both require the field-reporter role, the `mobile.token` middleware, and the `notification:read` ability.
 Each item is loaded through the authenticated user's notifications relation, so another account's notification can never be read or acknowledged, and a cross-owner identifier answers `404`.
 Marking an already-read item is idempotent and preserves the first `read_at` timestamp.
-Acknowledging a notification never blocks opening its destination on Mobile: a failed mutation leaves the item unread and surfaces a recoverable message.
+Acknowledging a notification never blocks opening its destination on Mobile: a failed mutation leaves the item unread and surfaces a recoverable message. Reading an `advisory_available` item advances that case's advisory delivery state to `acknowledged` when the notification is owned by the reporter.

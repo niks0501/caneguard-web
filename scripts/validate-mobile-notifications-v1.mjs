@@ -23,6 +23,8 @@ const FIELD_NAMES = [
   'message',
   'case',
   'assignment_uuid',
+  'content',
+  'advisory',
   'is_read',
   'read_at',
   'created_at',
@@ -124,6 +126,12 @@ export function validateMobileNotificationsArtifact(definition, source = 'artifa
       if (typeof field.nullable !== 'boolean') issues.push(`field ${name}.nullable must be boolean`);
     }
     validateObjectField(definition.fields.case, 'case', ['uuid', 'reference_code'], issues);
+    validateObjectField(
+      definition.fields.advisory,
+      'advisory',
+      ['uuid', 'code', 'title', 'content', 'status', 'selected_at'],
+      issues,
+    );
   }
 
   if (!isObject(definition.versioning)) issues.push('versioning must be an object');

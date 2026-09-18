@@ -6,6 +6,7 @@ use Database\Factories\AdvisoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
@@ -22,7 +23,7 @@ use LogicException;
     'retired_by_id',
     'retired_at',
 ])]
-class Advisory extends \Illuminate\Database\Eloquent\Model
+class Advisory extends Model
 {
     public const STATUS_DRAFT = 'draft';
 

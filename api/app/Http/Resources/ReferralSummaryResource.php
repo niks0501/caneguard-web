@@ -82,6 +82,22 @@ class ReferralSummaryResource extends JsonResource
                 'label_text' => 'Possible '.str_replace('_', ' ', $report->predicted_label),
                 'model_version' => $report->model_version,
             ],
+            'advisory' => $report->advisory ? [
+                'uuid' => $report->advisory->uuid,
+                'code' => $report->advisory->code,
+                'title' => $report->advisory->title,
+                'content' => $report->advisory->content,
+                'status' => $report->advisory->status,
+                'validation_provenance' => $report->advisory->validation_provenance,
+                'selected_at' => $report->advisory_selected_at?->utc()->toISOString(),
+                'delivery_state' => $report->advisory_delivery_state,
+                'delivered_at' => $report->advisory_delivered_at?->utc()->toISOString(),
+                'validated_at' => $report->advisory->validated_at?->utc()->toISOString(),
+                'validated_by' => $report->advisory->validatedBy ? [
+                    'uuid' => $report->advisory->validatedBy->uuid,
+                    'name' => $report->advisory->validatedBy->name,
+                ] : null,
+            ] : null,
             'office_context' => [
                 'case_state' => $referral->office_case_state,
                 'verification_outcome' => $referral->office_verification_outcome,

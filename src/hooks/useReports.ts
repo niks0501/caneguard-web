@@ -8,6 +8,7 @@ import type {
 } from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
 import {
+  advisoriesQueryOptions,
   expertReportsQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
@@ -15,6 +16,10 @@ import {
   reportsQueryOptions,
 } from "./reportQueries";
 import { invalidateReportDependentQueries } from "./reportInvalidation";
+
+export function useAdvisories() {
+  return useQuery(advisoriesQueryOptions());
+}
 
 export function useReports(
   filters: ReportFilters = {},

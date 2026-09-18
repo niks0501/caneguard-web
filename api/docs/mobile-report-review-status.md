@@ -1,10 +1,12 @@
 # Mobile report review status implementation notes
 
-The canonical wire contracts are [`mobile-report-status-v1.md`](../../docs/contracts/mobile-report-status-v1.md)
-and [`mobile-report-status-v2.md`](../../docs/contracts/mobile-report-status-v2.md).
+The canonical wire contracts are [`mobile-report-status-v1.md`](../../docs/contracts/mobile-report-status-v1.md),
+[`mobile-report-status-v2.md`](../../docs/contracts/mobile-report-status-v2.md), and
+[`mobile-report-status-v3.md`](../../docs/contracts/mobile-report-status-v3.md).
 This document records shared implementation behavior and does not duplicate their
-response schemas. The v2 route is the current route for Model V1 mobile clients;
-the v1 route remains available for legacy clients.
+response schemas. The v3 route is the current route for advisory-aware mobile
+clients; v2 remains the current Model V1 route and v1 remains available for
+legacy clients.
 
 ## Read status snapshots
 
@@ -47,7 +49,9 @@ Legacy status values are mapped without reopening completed
 See [`docs/contracts/report-lifecycle-v1.md`](../../docs/contracts/report-lifecycle-v1.md)
 for the values and mapping.
 
-These Mobile status contracts add no push notifications, unread state, replies,
-referral workflow, analytics, or optional report fields.
+The v1 and v2 Mobile status contracts add no push notifications, unread state,
+replies, referral workflow, analytics, or optional report fields. v3 adds only the
+validated office advisory snapshot described by its contract; durable delivery
+also appears in the owner-scoped notification feed.
 Reviewer-facing report details may expose the separate operational correction
 history described in the lifecycle contract.

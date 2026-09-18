@@ -22,10 +22,15 @@ class RecordReferralRequest extends ApiFormRequest
             'due_on' => 'due_date',
             'expert_contact_name' => 'expert_name',
             'contact' => 'expert_contact',
-            'advisory_id' => 'advisory_uuid',
             'selected_advisory_uuid' => 'advisory_uuid',
         ];
         $normalized = [];
+        if (! $this->has('advisory_uuid')
+            && $this->has('advisory_id')
+            && ! is_numeric($this->input('advisory_id'))
+        ) {
+            $normalized['advisory_uuid'] = $this->input('advisory_id');
+        }
 
         foreach ($aliases as $alias => $canonical) {
             if (! $this->has($canonical) && $this->has($alias)) {
@@ -88,6 +93,12 @@ class RecordReferralRequest extends ApiFormRequest
                 'uuid',
                 Rule::exists('advisories', 'uuid'),
             ],
+            'advisory_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('advisories', 'id'),
+            ],
             'expected_version' => ['required', 'integer', 'min:0'],
         ];
     }
@@ -109,9 +120,13 @@ class RecordReferralRequest extends ApiFormRequest
             }
 
             $report = $this->route('report');
-            if (filled($this->input('advisory_uuid'))
+            if ((filled($this->input('advisory_uuid')) || filled($this->input('advisory_id')))
                 && ! Advisory::query()
-                    ->where('uuid', $this->input('advisory_uuid'))
+                    ->when(
+                        filled($this->input('advisory_uuid')),
+                        fn ($query) => $query->where('uuid', $this->input('advisory_uuid')),
+                        fn ($query) => $query->whereKey($this->input('advisory_id')),
+                    )
                     ->where('status', Advisory::STATUS_VALIDATED)
                     ->exists()
             ) {

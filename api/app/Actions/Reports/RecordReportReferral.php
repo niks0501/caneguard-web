@@ -63,9 +63,15 @@ class RecordReportReferral
 
             $reviewedAt = now()->utc();
             $selectedAdvisory = null;
-            if (array_key_exists('advisory_uuid', $data) && filled($data['advisory_uuid'])) {
+            if ((array_key_exists('advisory_uuid', $data) && filled($data['advisory_uuid']))
+                || (array_key_exists('advisory_id', $data) && filled($data['advisory_id']))
+            ) {
                 $selectedAdvisory = Advisory::query()
-                    ->where('uuid', $data['advisory_uuid'])
+                    ->when(
+                        filled($data['advisory_uuid'] ?? null),
+                        fn ($query) => $query->where('uuid', $data['advisory_uuid']),
+                        fn ($query) => $query->whereKey($data['advisory_id']),
+                    )
                     ->where('status', Advisory::STATUS_VALIDATED)
                     ->firstOrFail();
             }
@@ -138,8 +144,8 @@ class RecordReportReferral
         $updated->load(['referral.expert', 'advisory']);
         $this->notifications->expertReferralAssigned($updated->referral);
         if ($updated->advisory !== null
-            && array_key_exists('advisory_uuid', $data)
-            && filled($data['advisory_uuid'])
+            && ((array_key_exists('advisory_uuid', $data) && filled($data['advisory_uuid']))
+                || (array_key_exists('advisory_id', $data) && filled($data['advisory_id'])))
         ) {
             $this->notifications->advisorySelected($updated, $updated->advisory);
             $updated->refresh();

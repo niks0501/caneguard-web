@@ -61,6 +61,7 @@ export interface ReportReviewInput {
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   verificationOutcome?: VerificationOutcome;
   actionTaken?: ActionTaken | null;
+  advisoryUuid?: string | null;
   fieldValidationState?: FieldValidationState;
   fieldValidationAssigneeUuid?: string | null;
   fieldValidationTargetDate?: string | null;

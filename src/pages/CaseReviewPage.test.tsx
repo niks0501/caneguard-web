@@ -14,6 +14,7 @@ import {
 } from "../test/fixtures";
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
+  useAdvisories,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useRecordExpertReferralResponse,
@@ -24,6 +25,7 @@ import {
 import { CaseReviewPage } from "./CaseReviewPage";
 
 vi.mock("../hooks/useReports", () => ({
+  useAdvisories: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
   useRecordExpertReferralResponse: vi.fn(),
@@ -126,6 +128,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
   vi.mocked(useRecordExpertReferralResponse).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useRecordExpertReferralResponse>);

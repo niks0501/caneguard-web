@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "uuid": "remote-report-uuid",
+      "client_uuid": "mobile-client-uuid",
+      "reference_code": "CG-2026-0001",
+      "review_status": "verified_by_staff",
+      "review_notes": "Office guidance is ready.",
+      "reviewed_at": "2026-09-20T10:00:00.000000Z",
+      "updated_at": "2026-09-20T10:00:00.000000Z",
+      "advisory": {
+        "uuid": "advisory-uuid",
+        "code": "ADV-SMUT-001",
+        "title": "Smut sanitation steps",
+        "content": "Remove affected stalks and disinfect tools before the next row.",
+        "status": "validated",
+        "selected_at": "2026-09-20T10:00:00.000000Z",
+        "delivery_state": "delivered",
+        "delivered_at": "2026-09-20T10:00:00.001000Z",
+        "validated_at": "2026-09-19T09:00:00.000000Z"
+      }
+    },
+    {
+      "uuid": "remote-report-uuid-without-advisory",
+      "client_uuid": "mobile-client-uuid-without-advisory",
+      "reference_code": "CG-2026-0002",
+      "review_status": "submitted_unverified",
+      "review_notes": null,
+      "reviewed_at": null,
+      "updated_at": "2026-09-20T10:05:00.000000Z",
+      "advisory": null
+    }
+  ],
+  "links": { "next": null },
+  "meta": {},
+  "sync": { "before": "2026-09-20T10:00:05.000000Z" }
+}

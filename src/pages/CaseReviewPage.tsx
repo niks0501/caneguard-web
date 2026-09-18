@@ -51,6 +51,7 @@ import type {
 import { legacyLifecycleForReviewStatus } from "../data/api/mappers/lifecycle.mapper";
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
+  useAdvisories,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useRecordReportReferral,
@@ -233,6 +234,7 @@ export function CaseReviewPage() {
   const [referralExpertName, setReferralExpertName] = useState("");
   const [referralExpertContact, setReferralExpertContact] = useState("");
   const [referralNote, setReferralNote] = useState("");
+  const [advisoryUuidOverride, setAdvisoryUuidOverride] = useState<string | null | undefined>(undefined);
   const [referralSubmitted, setReferralSubmitted] = useState(false);
   const [authorityClassificationOverride, setAuthorityClassificationOverride] =
     useState<AuthorityClassifiedCondition | null | undefined>(undefined);
@@ -257,11 +259,13 @@ export function CaseReviewPage() {
   const reportQuery = useReport(reportId);
   const possibleMatchesQuery = usePossibleRecentMatches(reportId);
   const fieldReportersQuery = useFieldReporters();
+  const advisoriesQuery = useAdvisories();
   const reviewMutation = useUpdateReportReview(reportId);
   const duplicateLinkMutation = useLinkDuplicateReport(reportId);
   const recordReferral = useRecordReportReferral(reportId);
   const report = reportQuery.data;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
+  const advisories = advisoriesQuery.data ?? [];
   const lifecycle = report
     ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus)
     : undefined;
@@ -281,6 +285,11 @@ export function CaseReviewPage() {
   )
     ? report.authorityClassifiedCondition
     : null;
+  const selectedAdvisoryUuid = advisoryUuidOverride !== undefined
+    ? advisoryUuidOverride
+    : report?.advisory?.uuid ?? null;
+  const selectedAdvisory = advisories.find((advisory) => advisory.uuid === selectedAdvisoryUuid)
+    ?? (report?.advisory?.status === "validated" ? report.advisory : null);
   const selectedVerificationOutcome =
     verificationOverride !== undefined
       ? verificationOverride
@@ -349,7 +358,8 @@ export function CaseReviewPage() {
     reopenCaseConfirmed ||
     authorityClassificationOverride !== undefined ||
     notesOverride !== null ||
-    metadataCorrections !== undefined;
+    metadataCorrections !== undefined ||
+    advisoryUuidOverride !== undefined;
 
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
@@ -391,7 +401,8 @@ export function CaseReviewPage() {
     (authorityClassificationOverride !== undefined &&
       authorityClassificationOverride !== (report?.authorityClassifiedCondition ?? null)) ||
     (verificationOverride !== undefined &&
-      verificationOverride !== (lifecycle?.verificationOutcome ?? ""));
+      verificationOverride !== (lifecycle?.verificationOutcome ?? "")) ||
+    (advisoryUuidOverride !== undefined && advisoryUuidOverride !== (report?.advisory?.uuid ?? null));
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -540,6 +551,9 @@ export function CaseReviewPage() {
           ? undefined
           : verificationOverride || "not_determined",
       actionTaken: nextActionTouched ? nextActionTaken : undefined,
+      ...(advisoryUuidOverride !== undefined
+        ? { advisoryUuid: advisoryUuidOverride }
+        : {}),
       fieldValidationState:
         nextActionTouched && !fieldValidationActive
           ? selectedNextAction === "needs_field_validation"
@@ -1003,6 +1017,43 @@ export function CaseReviewPage() {
                       );
                     })}
                   </fieldset>
+
+                  {selectedNextAction === "advisory_provided" ? (
+                    <div className="review-subform" aria-label="Office advisory selection">
+                      <p className="authority-classification-help">Choose validated office guidance when the field reporter should receive concrete follow-up steps. Draft and retired guidance cannot be delivered.</p>
+                      <SelectFilter
+                        id="office-advisory"
+                        label="Office advisory (optional)"
+                        value={selectedAdvisoryUuid ?? ""}
+                        onChange={(event) => {
+                          setAdvisoryUuidOverride(event.target.value || null);
+                          setSubmitted(false);
+                          reviewMutation.reset();
+                        }}
+                      >
+                        <option value="">No advisory selected</option>
+                        {advisories.filter((advisory) => advisory.status === "validated").map((advisory) => (
+                          <option value={advisory.uuid} key={advisory.uuid}>
+                            {advisory.code} - {advisory.title}
+                          </option>
+                        ))}
+                        {selectedAdvisory && !advisories.some((advisory) => advisory.uuid === selectedAdvisory.uuid) ? (
+                          <option value={selectedAdvisory.uuid}>
+                            {selectedAdvisory.code} - {selectedAdvisory.title} (current)
+                          </option>
+                        ) : null}
+                      </SelectFilter>
+                      {selectedAdvisory ? (
+                        <div className="review-state-summary" role="note">
+                          <strong>{selectedAdvisory.title}</strong>
+                          <span>{selectedAdvisory.content}</span>
+                        </div>
+                      ) : null}
+                      {advisoriesQuery.isError ? (
+                        <p className="form-error" role="alert">The advisory library could not be loaded. You can save the review without selecting guidance.</p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {fieldValidationNeeded ? (
                     <div className="review-subform" aria-label="Field validation assignment">

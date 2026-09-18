@@ -60,12 +60,12 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.advisories.show');
     Route::patch('/advisories/{advisory}', [AdvisoryController::class, 'update'])
         ->name('api.v1.advisories.update');
-    Route::post('/advisories/{advisory}/validate', function (\App\Http\Requests\AdvisoryTransitionRequest $request, \App\Models\Advisory $advisory, AdvisoryController $controller) {
-        return $controller->transition($request, $advisory, \App\Models\Advisory::STATUS_VALIDATED);
-    })->name('api.v1.advisories.validate');
-    Route::post('/advisories/{advisory}/retire', function (\App\Http\Requests\AdvisoryTransitionRequest $request, \App\Models\Advisory $advisory, AdvisoryController $controller) {
-        return $controller->transition($request, $advisory, \App\Models\Advisory::STATUS_RETIRED);
-    })->name('api.v1.advisories.retire');
+    Route::post('/advisories/{advisory}/validate', [AdvisoryController::class, 'validate'])
+        ->name('api.v1.advisories.validate');
+    Route::post('/advisories/{advisory}/retire', [AdvisoryController::class, 'retire'])
+        ->name('api.v1.advisories.retire');
+    Route::match(['patch', 'post'], '/advisories/{advisory}/status', [AdvisoryController::class, 'setStatus'])
+        ->name('api.v1.advisories.status');
     Route::get('/field-reporters', FieldReporterController::class);
     Route::get('/reports/expert-queue', ExpertQueueController::class)
         ->name('api.v1.reports.expert-queue');

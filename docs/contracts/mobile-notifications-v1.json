@@ -32,6 +32,22 @@
       }
     },
     "assignment_uuid": { "type": "uuid", "required": true, "nullable": true },
+    "content": { "type": "string", "required": true, "nullable": true, "max_length": 10000 },
+    "advisory": {
+      "type": "object",
+      "required": true,
+      "nullable": true,
+      "required_keys": ["uuid", "code", "title", "content", "status", "selected_at"],
+      "additional_properties": false,
+      "properties": {
+        "uuid": { "type": "uuid", "required": true, "nullable": false },
+        "code": { "type": "string", "required": true, "nullable": false, "max_length": 64 },
+        "title": { "type": "string", "required": true, "nullable": false, "max_length": 160 },
+        "content": { "type": "string", "required": true, "nullable": false, "max_length": 10000 },
+        "status": { "type": "string", "required": true, "nullable": false, "enum": ["validated"] },
+        "selected_at": { "type": "date-time", "required": true, "nullable": false }
+      }
+    },
     "is_read": { "type": "boolean", "required": true, "nullable": false },
     "read_at": { "type": "date-time", "required": true, "nullable": true },
     "created_at": { "type": "date-time", "required": true, "nullable": true }

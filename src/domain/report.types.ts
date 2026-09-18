@@ -75,6 +75,23 @@ export type ActionTaken =
   | "referred_for_expert_validation"
   | "no_further_action_required";
 
+export type AdvisoryStatus = "draft" | "validated" | "retired";
+export type AdvisoryDeliveryState =
+  | "not_selected"
+  | "pending"
+  | "delivered"
+  | "acknowledged";
+
+export interface Advisory {
+  uuid: string;
+  code: string;
+  title: string;
+  content: string;
+  status: AdvisoryStatus;
+  validationProvenance?: string | null;
+  validatedAt?: string | null;
+}
+
 export interface ReferralOfficeContext {
   caseState: CaseState;
   verificationOutcome: VerificationOutcome;
@@ -270,6 +287,12 @@ export interface DiseaseReport {
   updatedAt?: string;
   metadataCorrectionAudits?: ReportAudit[];
   canonicalLinkage?: CanonicalCaseLink;
+  advisory?: (Advisory & {
+    selectedAt?: string | null;
+    deliveryState?: AdvisoryDeliveryState;
+    deliveredAt?: string | null;
+    acknowledgedAt?: string | null;
+  }) | null;
 }
 
 export interface ReportAudit {

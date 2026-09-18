@@ -7,7 +7,6 @@ use App\Http\Requests\AdvisoryRequest;
 use App\Http\Requests\AdvisoryTransitionRequest;
 use App\Http\Resources\AdvisoryResource;
 use App\Models\Advisory;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\ValidationException;
 use LogicException;
@@ -71,6 +70,20 @@ class AdvisoryController extends Controller
         $advisory->update(collect($data)->only(['code', 'title', 'content'])->all());
 
         return new AdvisoryResource($advisory->fresh()->load(['validatedBy', 'retiredBy']));
+    }
+
+    public function validate(
+        AdvisoryTransitionRequest $request,
+        Advisory $advisory,
+    ): AdvisoryResource {
+        return $this->transition($request, $advisory, Advisory::STATUS_VALIDATED);
+    }
+
+    public function retire(
+        AdvisoryTransitionRequest $request,
+        Advisory $advisory,
+    ): AdvisoryResource {
+        return $this->transition($request, $advisory, Advisory::STATUS_RETIRED);
     }
 
     public function transition(

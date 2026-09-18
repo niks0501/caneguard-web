@@ -21,7 +21,9 @@ class ReviewReportRequest extends ApiFormRequest
 
     protected function prepareForValidation(): void
     {
-        if (! $this->has('advisory_uuid') && $this->has('advisory_id')) {
+        if (! $this->has('advisory_uuid') && $this->has('advisory_id')
+            && ! is_numeric($this->input('advisory_id'))
+        ) {
             $this->merge(['advisory_uuid' => $this->input('advisory_id')]);
         }
         if (! $this->has('advisory_uuid') && $this->has('selected_advisory_uuid')) {
@@ -85,6 +87,12 @@ class ReviewReportRequest extends ApiFormRequest
                 'nullable',
                 'uuid',
                 Rule::exists('advisories', 'uuid'),
+            ],
+            'advisory_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('advisories', 'id'),
             ],
             'referral_destination' => [
                 'sometimes',
@@ -255,6 +263,7 @@ class ReviewReportRequest extends ApiFormRequest
                 'field_validation_target_date',
                 'action_taken',
                 'advisory_uuid',
+                'advisory_id',
                 'referral_destination',
                 'referral_reference',
                 'referral_date',
@@ -317,9 +326,13 @@ class ReviewReportRequest extends ApiFormRequest
                 );
             }
 
-            if (filled($this->input('advisory_uuid'))
+            if ((filled($this->input('advisory_uuid')) || filled($this->input('advisory_id')))
                 && ! Advisory::query()
-                    ->where('uuid', $this->input('advisory_uuid'))
+                    ->when(
+                        filled($this->input('advisory_uuid')),
+                        fn ($query) => $query->where('uuid', $this->input('advisory_uuid')),
+                        fn ($query) => $query->whereKey($this->input('advisory_id')),
+                    )
                     ->where('status', Advisory::STATUS_VALIDATED)
                     ->exists()
             ) {

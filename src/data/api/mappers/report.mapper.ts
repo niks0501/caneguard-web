@@ -98,6 +98,21 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     reporterObservationText: dto.reporter_observation.reporter_observation_text,
     authorityClassifiedCondition: dto.review.authority_classified_condition,
     actionTaken: dto.review.action_taken ?? undefined,
+    advisory: dto.advisory
+      ? {
+          uuid: dto.advisory.uuid,
+          code: dto.advisory.code,
+          title: dto.advisory.title,
+          content: dto.advisory.content,
+          status: dto.advisory.status,
+          validationProvenance: dto.advisory.validation_provenance,
+          validatedAt: dto.advisory.validated_at,
+          selectedAt: dto.advisory.selected_at,
+          deliveryState: dto.advisory.delivery_state,
+          deliveredAt: dto.advisory.delivered_at,
+          acknowledgedAt: dto.advisory.acknowledged_at,
+        }
+      : dto.advisory,
     fieldValidationAssignment: dto.field_validation_assignment
       ? {
           uuid: dto.field_validation_assignment.uuid,

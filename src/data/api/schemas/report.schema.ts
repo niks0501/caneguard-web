@@ -108,6 +108,26 @@ export const reportLifecycleSchema = z.object({
   field_validation_state: fieldValidationStateSchema,
   referral_state: referralStateSchema,
 });
+export const advisoryStatusSchema = z.enum(["draft", "validated", "retired"]);
+export const advisoryDeliveryStateSchema = z.enum([
+  "not_selected",
+  "pending",
+  "delivered",
+  "acknowledged",
+]);
+export const advisorySchema = z.object({
+  uuid: z.string(),
+  code: z.string(),
+  title: z.string(),
+  content: z.string(),
+  status: advisoryStatusSchema,
+  validation_provenance: z.string().nullable().optional(),
+  validated_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  selected_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  delivery_state: advisoryDeliveryStateSchema.optional(),
+  delivered_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  acknowledged_at: z.iso.datetime({ offset: true }).nullable().optional(),
+});
 export const fieldValidationCompletionSchema = z.object({
   uuid: z.string(),
   client_uuid: z.string(),
@@ -336,11 +356,16 @@ export const reportDetailSchema = z.object({
     ).optional(),
   }).optional(),
   lifecycle: reportLifecycleSchema.optional(),
+  advisory: advisorySchema.nullable().optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   referral: reportReferralSchema.nullable().optional(),
   consults: z.array(reportConsultSchema).optional(),
   version: z.number().int().nonnegative(),
   updated_at: z.iso.datetime({ offset: true }),
+});
+
+export const advisoriesResponseSchema = z.object({
+  data: z.array(advisorySchema),
 });
 
 export const reportDetailResponseSchema = z.object({
