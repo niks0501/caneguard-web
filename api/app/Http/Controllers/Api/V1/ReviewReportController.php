@@ -7,6 +7,7 @@ use App\Actions\Reports\RecordReportReferral;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewReportRequest;
 use App\Http\Resources\ReportResource;
+use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportAudit;
 use App\Models\ReportReferral;
@@ -47,6 +48,8 @@ class ReviewReportController extends Controller
                     ? trim((string) $data['referral_note'])
                     : null,
                 'consult_status' => $data['consult_status'] ?? null,
+                'advisory_uuid' => $data['advisory_uuid'] ?? null,
+                'advisory_id' => $data['advisory_id'] ?? null,
                 'expected_version' => $data['expected_version'],
             ];
             foreach ([
@@ -68,6 +71,7 @@ class ReviewReportController extends Controller
             return new ReportResource($updated->load([
                 'reporter',
                 'reviewer',
+                'advisory',
                 'fieldValidationAssignment.assignee',
                 'fieldValidationAssignment.assignedBy',
                 'classScores',
@@ -83,7 +87,8 @@ class ReviewReportController extends Controller
             ]));
         }
 
-        $updated = DB::transaction(function () use ($request, $report, $data, $notifications): Report {
+        $advisoryForDelivery = null;
+        $updated = DB::transaction(function () use ($request, $report, $data, $notifications, &$advisoryForDelivery): Report {
             $locked = Report::query()
                 ->lockForUpdate()
                 ->findOrFail($report->getKey());
@@ -196,6 +201,41 @@ class ReviewReportController extends Controller
                 }
             }
 
+            if (array_key_exists('advisory_uuid', $data) || array_key_exists('advisory_id', $data)) {
+                $advisoryForDelivery = null;
+                if (filled($data['advisory_uuid'] ?? null) || filled($data['advisory_id'] ?? null)) {
+                    $selectedAdvisory = Advisory::query()
+                        ->when(
+                            filled($data['advisory_uuid'] ?? null),
+                            fn ($query) => $query->where('uuid', $data['advisory_uuid']),
+                            fn ($query) => $query->whereKey($data['advisory_id']),
+                        )
+                        ->where('status', Advisory::STATUS_VALIDATED)
+                        ->firstOrFail();
+                    $sameDeliveredAdvisory = (string) $locked->advisory_id === (string) $selectedAdvisory->getKey()
+                        && in_array($locked->advisory_delivery_state, [
+                            Report::ADVISORY_DELIVERY_DELIVERED,
+                            Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
+                        ], true);
+                    if (! $sameDeliveredAdvisory) {
+                        $advisoryForDelivery = $selectedAdvisory;
+                        $reviewUpdate['advisory_id'] = $selectedAdvisory->getKey();
+                        $reviewUpdate['advisory_selected_by_id'] = $request->user()->getKey();
+                        $reviewUpdate['advisory_selected_at'] = now()->utc();
+                        $reviewUpdate['advisory_delivery_state'] = Report::ADVISORY_DELIVERY_PENDING;
+                        $reviewUpdate['advisory_delivered_at'] = null;
+                        $reviewUpdate['advisory_acknowledged_at'] = null;
+                    }
+                } else {
+                    $reviewUpdate['advisory_id'] = null;
+                    $reviewUpdate['advisory_selected_by_id'] = null;
+                    $reviewUpdate['advisory_selected_at'] = null;
+                    $reviewUpdate['advisory_delivery_state'] = Report::ADVISORY_DELIVERY_NOT_SELECTED;
+                    $reviewUpdate['advisory_delivered_at'] = null;
+                    $reviewUpdate['advisory_acknowledged_at'] = null;
+                }
+            }
+
             $reviewUpdate['reviewer_id'] = $request->user()->getKey();
             $reviewUpdate['reviewed_at'] = now()->utc();
             $reviewUpdate['lock_version'] = $locked->lock_version + 1;
@@ -245,16 +285,25 @@ class ReviewReportController extends Controller
                 }
             }
 
-            if (! $assignmentSelected && $this->isFinalOfficeReview($data, $reviewUpdate)) {
+            if (! $assignmentSelected
+                && $advisoryForDelivery === null
+                && $this->isFinalOfficeReview($data, $reviewUpdate)
+            ) {
                 $notifications->officeReviewCompleted($locked);
             }
 
             return $locked;
         }, attempts: 3);
 
+        if ($advisoryForDelivery !== null) {
+            $notifications->advisorySelected($updated, $advisoryForDelivery);
+            $updated->refresh();
+        }
+
         return new ReportResource($updated->load([
             'reporter',
             'reviewer',
+            'advisory',
             'canonicalReport',
             'fieldValidationAssignment.assignee',
             'fieldValidationAssignment.assignedBy',

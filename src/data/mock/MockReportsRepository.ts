@@ -1,5 +1,6 @@
 import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type {
+  Advisory,
   DiseaseReport,
   PaginatedReports,
   PossibleRecentMatches,
@@ -62,6 +63,10 @@ function csvCell(value: unknown): string {
 
 export class MockReportsRepository implements ReportsRepository {
   private reports = mockReports.map(cloneReport);
+
+  async listAdvisories(): Promise<Advisory[]> {
+    return [];
+  }
 
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {
     const search = filters?.search?.trim().toLowerCase();

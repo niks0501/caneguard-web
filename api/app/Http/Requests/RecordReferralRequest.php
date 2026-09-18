@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
@@ -21,8 +22,15 @@ class RecordReferralRequest extends ApiFormRequest
             'due_on' => 'due_date',
             'expert_contact_name' => 'expert_name',
             'contact' => 'expert_contact',
+            'selected_advisory_uuid' => 'advisory_uuid',
         ];
         $normalized = [];
+        if (! $this->has('advisory_uuid')
+            && $this->has('advisory_id')
+            && ! is_numeric($this->input('advisory_id'))
+        ) {
+            $normalized['advisory_uuid'] = $this->input('advisory_id');
+        }
 
         foreach ($aliases as $alias => $canonical) {
             if (! $this->has($canonical) && $this->has($alias)) {
@@ -79,6 +87,18 @@ class RecordReferralRequest extends ApiFormRequest
                 'sometimes',
                 Rule::in(Report::verificationOutcomes()),
             ],
+            'advisory_uuid' => [
+                'sometimes',
+                'nullable',
+                'uuid',
+                Rule::exists('advisories', 'uuid'),
+            ],
+            'advisory_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('advisories', 'id'),
+            ],
             'expected_version' => ['required', 'integer', 'min:0'],
         ];
     }
@@ -100,6 +120,22 @@ class RecordReferralRequest extends ApiFormRequest
             }
 
             $report = $this->route('report');
+            if ((filled($this->input('advisory_uuid')) || filled($this->input('advisory_id')))
+                && ! Advisory::query()
+                    ->when(
+                        filled($this->input('advisory_uuid')),
+                        fn ($query) => $query->where('uuid', $this->input('advisory_uuid')),
+                        fn ($query) => $query->whereKey($this->input('advisory_id')),
+                    )
+                    ->where('status', Advisory::STATUS_VALIDATED)
+                    ->exists()
+            ) {
+                $validator->errors()->add(
+                    'advisory_uuid',
+                    'Only a validated advisory can be delivered to a field reporter.',
+                );
+            }
+
             if (
                 $report instanceof Report
                 && array_key_exists('authority_classified_condition', $this->all())

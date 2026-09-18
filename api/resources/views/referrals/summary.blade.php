@@ -156,6 +156,22 @@
             </dl>
         </section>
 
+        @if ($summary['advisory'])
+            <section>
+                <h2>Office advisory</h2>
+                <dl>
+                    <div><dt>Advisory code</dt><dd>{{ $summary['advisory']['code'] }}</dd></div>
+                    <div><dt>Title</dt><dd>{{ $summary['advisory']['title'] }}</dd></div>
+                    <div><dt>Status</dt><dd>{{ $summary['advisory']['status'] }}</dd></div>
+                    <div><dt>Selected at</dt><dd>{{ $summary['advisory']['selected_at'] ?: 'Not recorded' }}</dd></div>
+                    <div><dt>Delivery state</dt><dd>{{ $summary['advisory']['delivery_state'] }}</dd></div>
+                    <div><dt>Validated at</dt><dd>{{ $summary['advisory']['validated_at'] ?: 'Not recorded' }}</dd></div>
+                    <div class="full"><dt>Guidance</dt><dd>{{ $summary['advisory']['content'] }}</dd></div>
+                    <div class="full"><dt>Validation provenance</dt><dd>{{ $summary['advisory']['validation_provenance'] ?: 'Not recorded' }}</dd></div>
+                </dl>
+            </section>
+        @endif
+
         <section>
             <h2>Referral record</h2>
             <dl>

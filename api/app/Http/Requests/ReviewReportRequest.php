@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
@@ -16,6 +17,18 @@ class ReviewReportRequest extends ApiFormRequest
 
         return $report instanceof Report
             && ($this->user()?->can('review', $report) ?? false);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('advisory_uuid') && $this->has('advisory_id')
+            && ! is_numeric($this->input('advisory_id'))
+        ) {
+            $this->merge(['advisory_uuid' => $this->input('advisory_id')]);
+        }
+        if (! $this->has('advisory_uuid') && $this->has('selected_advisory_uuid')) {
+            $this->merge(['advisory_uuid' => $this->input('selected_advisory_uuid')]);
+        }
     }
 
     public function rules(): array
@@ -68,6 +81,18 @@ class ReviewReportRequest extends ApiFormRequest
                 'sometimes',
                 'nullable',
                 Rule::in(Report::actionTakenValues()),
+            ],
+            'advisory_uuid' => [
+                'sometimes',
+                'nullable',
+                'uuid',
+                Rule::exists('advisories', 'uuid'),
+            ],
+            'advisory_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('advisories', 'id'),
             ],
             'referral_destination' => [
                 'sometimes',
@@ -237,6 +262,8 @@ class ReviewReportRequest extends ApiFormRequest
                 'field_validation_assignee_uuid',
                 'field_validation_target_date',
                 'action_taken',
+                'advisory_uuid',
+                'advisory_id',
                 'referral_destination',
                 'referral_reference',
                 'referral_date',
@@ -296,6 +323,22 @@ class ReviewReportRequest extends ApiFormRequest
                 $validator->errors()->add(
                     'field_validation_state',
                     'Only open cases can be assigned for field validation.',
+                );
+            }
+
+            if ((filled($this->input('advisory_uuid')) || filled($this->input('advisory_id')))
+                && ! Advisory::query()
+                    ->when(
+                        filled($this->input('advisory_uuid')),
+                        fn ($query) => $query->where('uuid', $this->input('advisory_uuid')),
+                        fn ($query) => $query->whereKey($this->input('advisory_id')),
+                    )
+                    ->where('status', Advisory::STATUS_VALIDATED)
+                    ->exists()
+            ) {
+                $validator->errors()->add(
+                    'advisory_uuid',
+                    'Only a validated advisory can be delivered to a field reporter.',
                 );
             }
 

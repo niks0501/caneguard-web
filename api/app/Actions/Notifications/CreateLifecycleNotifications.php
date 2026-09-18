@@ -2,11 +2,13 @@
 
 namespace App\Actions\Notifications;
 
+use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
+use App\Notifications\AdvisoryAvailableNotification;
 use App\Notifications\CaseAttentionNotification;
 use App\Notifications\ExpertReferralAssignedNotification;
 use App\Notifications\ExpertReferralResponseReceivedNotification;
@@ -132,6 +134,32 @@ class CreateLifecycleNotifications
                 $this->send($recipient, $notification);
                 $this->broadcast->handle($recipient, ExpertReferralResponseReceivedNotification::EVENT_TYPE);
             });
+    }
+
+    public function advisorySelected(Report $report, Advisory $advisory): void
+    {
+        $report->loadMissing(['reporter']);
+        $recipient = $report->reporter;
+        if ($recipient === null || $recipient->role !== User::ROLE_FIELD_REPORTER) {
+            return;
+        }
+
+        $notification = new AdvisoryAvailableNotification(
+            $recipient->uuid,
+            $report->uuid,
+            $report->reference_code,
+            $advisory,
+            (string) $report->lock_version,
+        );
+        $this->send($recipient, $notification);
+
+        // A database notification and the v3 status snapshot are the two
+        // agreed delivery channels. Mark the case delivered only after the
+        // durable notification exists; retries remain idempotent by key.
+        $report->newQuery()->whereKey($report->getKey())->update([
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+            'advisory_delivered_at' => now()->utc(),
+        ]);
     }
 
     public function officeReviewCompleted(Report $report): void

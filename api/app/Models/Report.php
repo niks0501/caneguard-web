@@ -62,6 +62,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'verification_outcome',
     'field_validation_state',
     'referral_state',
+    'advisory_id',
+    'advisory_selected_by_id',
+    'advisory_selected_at',
+    'advisory_delivery_state',
+    'advisory_delivered_at',
+    'advisory_acknowledged_at',
     'action_taken',
     'review_notes',
     'authority_classified_condition',
@@ -173,6 +179,14 @@ class Report extends Model
     public const ACTION_REFERRED_FOR_EXPERT_VALIDATION = 'referred_for_expert_validation';
 
     public const ACTION_NO_FURTHER_ACTION_REQUIRED = 'no_further_action_required';
+
+    public const ADVISORY_DELIVERY_NOT_SELECTED = 'not_selected';
+
+    public const ADVISORY_DELIVERY_PENDING = 'pending';
+
+    public const ADVISORY_DELIVERY_DELIVERED = 'delivered';
+
+    public const ADVISORY_DELIVERY_ACKNOWLEDGED = 'acknowledged';
 
     public const AUDIT_FIELD_CANONICAL_REPORT = 'canonical_report_id';
 
@@ -540,6 +554,18 @@ class Report extends Model
         return $this->hasOne(ReportReferral::class)->latestOfMany();
     }
 
+    /** @return BelongsTo<Advisory, $this> */
+    public function advisory(): BelongsTo
+    {
+        return $this->belongsTo(Advisory::class, 'advisory_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function advisorySelectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'advisory_selected_by_id');
+    }
+
     /**
      * @return HasMany<ReportReferral, $this>
      */
@@ -630,6 +656,9 @@ class Report extends Model
             'observed_at' => 'immutable_datetime',
             'submitted_at' => 'immutable_datetime',
             'reviewed_at' => 'immutable_datetime',
+            'advisory_selected_at' => 'immutable_datetime',
+            'advisory_delivered_at' => 'immutable_datetime',
+            'advisory_acknowledged_at' => 'immutable_datetime',
             'lock_version' => 'integer',
         ];
     }

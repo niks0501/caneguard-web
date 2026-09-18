@@ -1,0 +1,61 @@
+{
+  "$id": "https://github.com/niks0501/caneguard-web/blob/main/docs/contracts/mobile-report-status-v3.json",
+  "artifact_format": "caneguard-json-contract",
+  "contract": "mobile-report-status-v3",
+  "version": 3,
+  "wire": {
+    "method": "GET",
+    "path": "/api/v3/mobile/reports/statuses",
+    "content_type": "application/json",
+    "undeclared_fields": "ignored"
+  },
+  "envelope": {
+    "required_keys": ["data", "links", "meta", "sync"],
+    "data_key": "data",
+    "next_link": "links.next",
+    "checkpoint": "sync.before"
+  },
+  "fields": {
+    "uuid": { "type": "uuid", "required": true, "nullable": false },
+    "client_uuid": { "type": "uuid", "required": true, "nullable": false },
+    "reference_code": { "type": "string", "required": true, "nullable": false, "max_length": 32 },
+    "review_status": {
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "enum": ["submitted_unverified", "for_field_validation", "verified_by_staff", "unable_to_verify", "resolved"]
+    },
+    "review_notes": { "type": "string", "required": true, "nullable": true, "max_length": 1000 },
+    "reviewed_at": { "type": "date-time", "required": true, "nullable": true },
+    "updated_at": { "type": "date-time", "required": true, "nullable": false },
+    "advisory": {
+      "type": "object",
+      "required": true,
+      "nullable": true,
+      "required_keys": ["uuid", "code", "title", "content", "status", "selected_at", "delivery_state", "delivered_at", "validated_at"],
+      "additional_properties": false,
+      "properties": {
+        "uuid": { "type": "uuid", "required": true, "nullable": false },
+        "code": { "type": "string", "required": true, "nullable": false, "max_length": 64 },
+        "title": { "type": "string", "required": true, "nullable": false, "max_length": 160 },
+        "content": { "type": "string", "required": true, "nullable": false, "max_length": 10000 },
+        "status": { "type": "string", "required": true, "nullable": false, "enum": ["validated", "retired"] },
+        "selected_at": { "type": "date-time", "required": true, "nullable": false },
+        "delivery_state": { "type": "string", "required": true, "nullable": false, "enum": ["pending", "delivered", "acknowledged"] },
+        "delivered_at": { "type": "date-time", "required": true, "nullable": true },
+        "validated_at": { "type": "date-time", "required": true, "nullable": true }
+      }
+    }
+  },
+  "versioning": {
+    "same_major_compatible_widening": [
+      "adding optional response fields",
+      "increasing documented text bounds"
+    ],
+    "new_major_required": [
+      "removing or renaming a field",
+      "changing a field type or nullability",
+      "changing owner-scope or checkpoint semantics"
+    ]
+  }
+}

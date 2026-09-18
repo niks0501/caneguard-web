@@ -17,6 +17,7 @@ class ReferralSummaryController extends Controller
 
         $report->load([
             'reporter',
+            'advisory.validatedBy',
             'referral.officeReviewer',
             'referral.expert',
             'referral.findingRecordedBy',

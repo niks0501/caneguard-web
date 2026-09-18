@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Actions\Notifications\CreateLifecycleNotifications;
+use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
@@ -61,6 +62,19 @@ class RecordReportReferral
             }
 
             $reviewedAt = now()->utc();
+            $selectedAdvisory = null;
+            if ((array_key_exists('advisory_uuid', $data) && filled($data['advisory_uuid']))
+                || (array_key_exists('advisory_id', $data) && filled($data['advisory_id']))
+            ) {
+                $selectedAdvisory = Advisory::query()
+                    ->when(
+                        filled($data['advisory_uuid'] ?? null),
+                        fn ($query) => $query->where('uuid', $data['advisory_uuid']),
+                        fn ($query) => $query->whereKey($data['advisory_id']),
+                    )
+                    ->where('status', Advisory::STATUS_VALIDATED)
+                    ->firstOrFail();
+            }
             $authorityFinding = array_key_exists('authority_classified_condition', $data)
                 ? $data['authority_classified_condition']
                 : $locked->authority_classified_condition;
@@ -81,6 +95,14 @@ class RecordReportReferral
                 'verification_outcome' => $verificationOutcome,
                 'referral_state' => Report::REFERRAL_STATE_REFERRED,
                 'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+                ...($selectedAdvisory ? [
+                    'advisory_id' => $selectedAdvisory->getKey(),
+                    'advisory_selected_by_id' => $actor->getKey(),
+                    'advisory_selected_at' => $reviewedAt,
+                    'advisory_delivery_state' => Report::ADVISORY_DELIVERY_PENDING,
+                    'advisory_delivered_at' => null,
+                    'advisory_acknowledged_at' => null,
+                ] : []),
                 'authority_classified_condition' => $authorityFinding,
                 'review_notes' => $reviewNotes,
                 'reviewer_id' => $actor->getKey(),
@@ -119,8 +141,15 @@ class RecordReportReferral
             return $locked;
         }, attempts: 3);
 
-        $updated->load('referral.expert');
+        $updated->load(['referral.expert', 'advisory']);
         $this->notifications->expertReferralAssigned($updated->referral);
+        if ($updated->advisory !== null
+            && ((array_key_exists('advisory_uuid', $data) && filled($data['advisory_uuid']))
+                || (array_key_exists('advisory_id', $data) && filled($data['advisory_id'])))
+        ) {
+            $this->notifications->advisorySelected($updated, $updated->advisory);
+            $updated->refresh();
+        }
 
         return $updated;
     }

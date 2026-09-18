@@ -1,4 +1,5 @@
 import type {
+  Advisory,
   DiseaseReport,
   PaginatedReports,
   PossibleRecentMatches,
@@ -12,6 +13,7 @@ import type {
 } from "../../domain/review.types";
 
 export interface ReportsRepository {
+  listAdvisories(): Promise<Advisory[]>;
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
   listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports>;
   exportReports(filters?: ReportFilters): Promise<Blob>;

@@ -3,6 +3,7 @@ import { ApiError } from "../../api/ApiError";
 import { axiosClient } from "../../api/axiosClient";
 import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type {
+  Advisory,
   DiseaseReport,
   PaginatedReports,
   PossibleRecentMatches,
@@ -21,6 +22,7 @@ import {
   mapReportListItem,
 } from "./mappers/report.mapper";
 import {
+  advisoriesResponseSchema,
   possibleRecentMatchesResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
@@ -80,6 +82,19 @@ export class ApiReportsRepository implements ReportsRepository {
 
   constructor(client: AxiosInstance = axiosClient) {
     this.client = client;
+  }
+
+  async listAdvisories(): Promise<Advisory[]> {
+    const response = await this.client.get('/api/v1/advisories');
+    return advisoriesResponseSchema.parse(response.data).data.map((advisory) => ({
+      uuid: advisory.uuid,
+      code: advisory.code,
+      title: advisory.title,
+      content: advisory.content,
+      status: advisory.status,
+      validationProvenance: advisory.validation_provenance,
+      validatedAt: advisory.validated_at,
+    }));
   }
 
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {
@@ -163,6 +178,9 @@ export class ApiReportsRepository implements ReportsRepository {
     }
     if (input.actionTaken !== undefined) {
       payload.action_taken = input.actionTaken;
+    }
+    if (input.advisoryUuid !== undefined) {
+      payload.advisory_uuid = input.advisoryUuid;
     }
     if (input.fieldValidationState !== undefined) {
       payload.field_validation_state = input.fieldValidationState;

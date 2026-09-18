@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MobileNotificationMutationRequest;
 use App\Http\Requests\MobileNotificationRequest;
 use App\Http\Resources\MobileNotificationResource;
+use App\Models\Report;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -60,6 +61,20 @@ class MobileNotificationController extends Controller
 
         if ($owned->read_at === null) {
             $owned->markAsRead();
+        }
+
+        $data = is_array($owned->data) ? $owned->data : [];
+        if (($data['event_type'] ?? null) === 'advisory_available'
+            && filled($data['report_uuid'] ?? null)
+        ) {
+            Report::query()
+                ->where('uuid', $data['report_uuid'])
+                ->whereBelongsTo($user, 'reporter')
+                ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
+                ->update([
+                    'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
+                    'advisory_acknowledged_at' => now()->utc(),
+                ]);
         }
 
         return (new MobileNotificationResource($owned->refresh()))->additional([
