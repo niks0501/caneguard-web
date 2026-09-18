@@ -64,4 +64,11 @@ class UserFactory extends Factory
             'role' => User::ROLE_ADMIN,
         ]);
     }
+
+    public function expert(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_EXPERT,
+        ]);
+    }
 }

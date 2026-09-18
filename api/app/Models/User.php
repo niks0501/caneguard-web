@@ -23,6 +23,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public const ROLE_ADMIN = 'admin';
 
+    public const ROLE_EXPERT = 'expert';
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
@@ -47,15 +49,16 @@ class User extends Authenticatable implements MustVerifyEmail
             self::ROLE_FIELD_REPORTER,
             self::ROLE_REVIEWER,
             self::ROLE_ADMIN,
+            self::ROLE_EXPERT,
         ];
     }
 
     /**
-     * Get the roles that can use the Web office workspace.
+     * Get the roles that can use the broad office workspace and queues.
      *
      * @return array<int, string>
      */
-    public static function webRoles(): array
+    public static function officeRoles(): array
     {
         return [
             self::ROLE_REVIEWER,
@@ -63,9 +66,32 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /**
+     * Get the roles that can use the authenticated Web workspace.
+     *
+     * @return array<int, string>
+     */
+    public static function webRoles(): array
+    {
+        return [
+            ...self::officeRoles(),
+            self::ROLE_EXPERT,
+        ];
+    }
+
+    public function isOfficeUser(): bool
+    {
+        return in_array($this->role, self::officeRoles(), true);
+    }
+
     public function isWebUser(): bool
     {
         return in_array($this->role, self::webRoles(), true);
+    }
+
+    public function isExpert(): bool
+    {
+        return $this->role === self::ROLE_EXPERT;
     }
 
     /**

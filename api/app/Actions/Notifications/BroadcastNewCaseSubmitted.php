@@ -13,7 +13,7 @@ class BroadcastNewCaseSubmitted
     public function handle(Report $report): void
     {
         User::query()
-            ->whereIn('role', User::webRoles())
+            ->whereIn('role', User::officeRoles())
             ->get(['uuid'])
             ->each(function (User $recipient) use ($report): void {
                 try {

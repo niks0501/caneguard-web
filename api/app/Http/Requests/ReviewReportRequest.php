@@ -102,6 +102,12 @@ class ReviewReportRequest extends ApiFormRequest
                 'string',
                 'max:160',
             ],
+            'expert_uuid' => [
+                'sometimes',
+                'nullable',
+                'uuid',
+                Rule::exists('users', 'uuid'),
+            ],
             'expert_contact' => [
                 'sometimes',
                 'nullable',
@@ -195,6 +201,19 @@ class ReviewReportRequest extends ApiFormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            if (
+                filled($this->input('expert_uuid'))
+                && ! User::query()
+                    ->where('uuid', $this->input('expert_uuid'))
+                    ->where('role', User::ROLE_EXPERT)
+                    ->exists()
+            ) {
+                $validator->errors()->add(
+                    'expert_uuid',
+                    'The selected expert must be an in-system expert.',
+                );
+            }
+
             $report = $this->route('report');
             if (
                 $report instanceof Report
@@ -224,6 +243,7 @@ class ReviewReportRequest extends ApiFormRequest
                 'referral_note',
                 'referral_due_date',
                 'expert_name',
+                'expert_uuid',
                 'expert_contact',
                 'consult_status',
                 'case_state',
@@ -296,6 +316,7 @@ class ReviewReportRequest extends ApiFormRequest
                 'referral_note',
                 'referral_due_date',
                 'expert_name',
+                'expert_uuid',
                 'expert_contact',
                 'consult_status',
             ];

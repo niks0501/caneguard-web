@@ -42,6 +42,7 @@ class ReviewReportController extends Controller
                 'expert_contact' => isset($data['expert_contact'])
                     ? trim((string) $data['expert_contact'])
                     : null,
+                'expert_uuid' => $data['expert_uuid'] ?? null,
                 'note' => isset($data['referral_note'])
                     ? trim((string) $data['referral_note'])
                     : null,
@@ -73,10 +74,11 @@ class ReviewReportController extends Controller
                 'symptoms',
                 'qualityWarnings',
                 'referral.referredBy',
+                'referral.expert',
                 'referral.responseRecordedBy',
                 'referral.findingRecordedBy',
                 'referral.officeReviewer',
-                'referrals',
+                'referrals.expert',
                 'audits.actor',
             ]));
         }
@@ -260,10 +262,11 @@ class ReviewReportController extends Controller
             'symptoms',
             'qualityWarnings',
             'referral.referredBy',
+            'referral.expert',
             'referral.responseRecordedBy',
             'referral.findingRecordedBy',
             'referral.officeReviewer',
-            'referrals',
+            'referrals.expert',
             'audits.actor',
         ]));
     }

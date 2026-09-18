@@ -1,4 +1,4 @@
-export type WebRole = "reviewer" | "admin";
+export type WebRole = "reviewer" | "admin" | "expert";
 
 export interface AppUser {
   uuid: string;

@@ -5,8 +5,10 @@ namespace App\Actions\Notifications;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
+use App\Models\ReportReferral;
 use App\Models\User;
 use App\Notifications\CaseAttentionNotification;
+use App\Notifications\ExpertReferralAssignedNotification;
 use App\Notifications\ExpertReferralResponseReceivedNotification;
 use App\Notifications\FieldValidationAssignedNotification;
 use App\Notifications\FieldValidationAssignmentChangedNotification;
@@ -70,7 +72,7 @@ class CreateLifecycleNotifications
         $report = $assignment->report;
 
         User::query()
-            ->whereIn('role', User::webRoles())
+            ->whereIn('role', User::officeRoles())
             ->get()
             ->each(function (User $recipient) use ($assignment, $completion, $report): void {
                 $this->send(
@@ -87,6 +89,27 @@ class CreateLifecycleNotifications
             });
     }
 
+    public function expertReferralAssigned(ReportReferral $referral): void
+    {
+        $referral->loadMissing(['report', 'expert']);
+        $report = $referral->report;
+        $expert = $referral->expert;
+
+        if ($report === null || $expert === null || ! $expert->isExpert()) {
+            return;
+        }
+
+        $this->send(
+            $expert,
+            new ExpertReferralAssignedNotification(
+                $expert->uuid,
+                $report->uuid,
+                $report->reference_code,
+                $referral,
+            ),
+        );
+    }
+
     public function expertReferralResponseReceived(Report $report): void
     {
         $report->loadMissing(['referral']);
@@ -96,7 +119,7 @@ class CreateLifecycleNotifications
         }
 
         User::query()
-            ->whereIn('role', User::webRoles())
+            ->whereIn('role', User::officeRoles())
             ->get()
             ->each(function (User $recipient) use ($report, $responseDate): void {
                 $notification = new ExpertReferralResponseReceivedNotification(
@@ -167,7 +190,7 @@ class CreateLifecycleNotifications
                     ->where(function ($query) use ($assignment): void {
                         $query
                             ->whereKey($assignment->assignee_id)
-                            ->orWhereIn('role', User::webRoles());
+                            ->orWhereIn('role', User::officeRoles());
                     })
                     ->get();
 

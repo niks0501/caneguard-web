@@ -124,6 +124,10 @@ class ReportResource extends JsonResource
                     'reference' => $this->referral->reference,
                     'referral_date' => $this->referral->referral_date?->format('Y-m-d'),
                     'due_date' => $this->referral->due_date?->format('Y-m-d'),
+                    'expert' => $this->referral->expert ? [
+                        'uuid' => $this->referral->expert->uuid,
+                        'name' => $this->referral->expert->name,
+                    ] : null,
                     'expert_name' => $this->referral->expert_name,
                     'expert_contact' => $this->referral->expert_contact,
                     'note' => $this->referral->note,
@@ -176,6 +180,10 @@ class ReportResource extends JsonResource
                     'reference' => $consult->reference,
                     'referral_date' => $consult->referral_date?->format('Y-m-d'),
                     'due_date' => $consult->due_date?->format('Y-m-d'),
+                    'expert' => $consult->expert ? [
+                        'uuid' => $consult->expert->uuid,
+                        'name' => $consult->expert->name,
+                    ] : null,
                     'expert_name' => $consult->expert_name,
                     'expert_contact' => $consult->expert_contact,
                     'finding_summary' => $consult->finding_summary ?? $consult->response_note,

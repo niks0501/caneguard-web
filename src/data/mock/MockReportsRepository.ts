@@ -146,6 +146,10 @@ export class MockReportsRepository implements ReportsRepository {
     };
   }
 
+  async listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports> {
+    return this.listReports(filters);
+  }
+
   async exportReports(filters?: ReportFilters): Promise<Blob> {
     const result = await this.listReports({
       ...filters,

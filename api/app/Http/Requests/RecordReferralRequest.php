@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Report;
 use App\Models\ReportReferral;
+use App\Models\User;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
@@ -60,6 +61,7 @@ class RecordReferralRequest extends ApiFormRequest
             'reference' => ['required', 'string', 'max:160', 'not_regex:/^\\s*$/'],
             'referral_date' => ['required', 'date'],
             'due_date' => ['sometimes', 'nullable', 'date'],
+            'expert_uuid' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'uuid')],
             'consult_status' => [
                 'sometimes',
                 Rule::in(ReportReferral::statuses()),
@@ -84,6 +86,19 @@ class RecordReferralRequest extends ApiFormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            if (
+                filled($this->input('expert_uuid'))
+                && ! User::query()
+                    ->where('uuid', $this->input('expert_uuid'))
+                    ->where('role', User::ROLE_EXPERT)
+                    ->exists()
+            ) {
+                $validator->errors()->add(
+                    'expert_uuid',
+                    'The selected expert must be an in-system expert.',
+                );
+            }
+
             $report = $this->route('report');
             if (
                 $report instanceof Report

@@ -26,6 +26,7 @@ export interface ReportReferralInput {
   reference: string;
   referralDate: string;
   dueDate?: string | null;
+  expertUuid?: string | null;
   expertName?: string | null;
   expertContact?: string | null;
   note?: string | null;

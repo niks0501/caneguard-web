@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'report_id',
     'referred_by_id',
+    'expert_id',
     'destination',
     'reference',
     'referral_date',
@@ -74,6 +75,14 @@ class ReportReferral extends Model
     public function referredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'referred_by_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function expert(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'expert_id');
     }
 
     /**
