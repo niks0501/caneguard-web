@@ -1,8 +1,18 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { DiseaseReport } from "../../domain/report.types";
 import { ReportTable } from "./ReportTable";
+
+const mockNavigate = vi.fn();
+vi.mock("react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 function report(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
   return {
@@ -82,5 +92,45 @@ describe("ReportTable", () => {
     renderTable([report({ followUp: { dueOn: null, overdue: false } })]);
 
     expect(screen.getByText("No visit scheduled")).toBeInTheDocument();
+  });
+
+  it("navigates to report details when a row is clicked", async () => {
+    const user = userEvent.setup();
+    renderTable([report({ uuid: "00000000-0000-4000-8000-000000000001" })]);
+
+    const row = screen.getByRole("row", { name: /CG-2026-0001/i });
+    await user.click(row);
+
+    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001");
+  });
+
+  it("navigates to report details when Enter is pressed on the focused row", async () => {
+    const user = userEvent.setup();
+    renderTable([report({ uuid: "00000000-0000-4000-8000-000000000001" })]);
+
+    const row = screen.getByRole("row", { name: /CG-2026-0001/i });
+    row.focus();
+    await user.keyboard("{Enter}");
+
+    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001");
+  });
+
+  it("toggles row expansion without navigating when expand chevron is clicked", async () => {
+    const user = userEvent.setup();
+    renderTable([report({ submittedByName: "Ramon Dela Cruz" })]);
+
+    mockNavigate.mockClear();
+    const expandBtn = screen.getByRole("button", { name: /Details for CG-2026-0001/i });
+    expect(screen.queryByText(/Reporter:/i)).not.toBeInTheDocument();
+
+    await user.click(expandBtn);
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByText(/Reporter:/i)).toBeInTheDocument();
+    expect(screen.getByText("Ramon Dela Cruz")).toBeInTheDocument();
+
+    // Clicking inside the expanded content does not navigate
+    await user.click(screen.getByText("Ramon Dela Cruz"));
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
