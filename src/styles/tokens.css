@@ -1,52 +1,90 @@
 :root {
-  --color-primary: #445d48;
-  --color-primary-dark: #2e4031;
-  --color-primary-light: #6e8b74;
-  --color-primary-tint: #e8f0e8;
+  /* GOV.UK-aligned functional colour roles in CaneGuard brand */
+  --color-brand: #2d6b40;
+  --color-brand-hover: #225331;
+  --color-primary: #2d6b40;
+  --color-primary-dark: #1e452a;
+  --color-primary-light: #447a54;
+  --color-primary-tint: #e8f2ea;
   --color-accent: #d6cc99;
   --color-accent-dark: #b8ad73;
+
   --color-page: #f4f7f3;
   --color-surface: #ffffff;
   --color-surface-soft: #edf3ed;
   --color-surface-muted: #f8faf8;
-  --color-text: #243228;
-  --color-muted: #66736a;
-  --color-border: #d9e3da;
-  --color-border-strong: #c5d2c6;
+  --color-surface-tint: #e2ece3;
+
+  --color-text: #1d2720;
+  --color-secondary-text: #4d5c52;
+  --color-muted: #4d5c52;
+  --color-inverse-text: #ffffff;
+
+  --color-border: #cbd8ce;
+  --color-border-strong: #98aba0;
+
+  --color-focus: #ffdd00;
+  --focus-ring: 0 0 0 3px #ffdd00, 0 0 0 5px #1d2720;
+
   --color-danger: #a64637;
-  --color-danger-soft: #f9e9e5;
-  --color-warning: #765e1d;
-  --color-warning-soft: #f7eecb;
+  --color-danger-soft: #fbeee8;
+  --color-error: #a64637;
+  --color-error-soft: #fbeee8;
+  --color-warning: #6e5213;
+  --color-warning-soft: #fef5d6;
   --color-success: #2d6b40;
   --color-success-soft: #e5f2e8;
-  --disease-healthy: #2e7d32;
-  --disease-mosaic: #a97209;
+
+  --disease-healthy: #2d6b40;
+  --disease-mosaic: #8c5d07;
   --disease-rust: #b54b17;
-  --disease-smut: #76508f;
+  --disease-smut: #6b4783;
+
+  /* Typography: Poppins with hard floor (16px minimum for normal text, 12px machine text) */
   --font-heading: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-body: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --text-page-title: clamp(30px, 3vw, 36px);
-  --text-section-title: 20px;
-  --text-metric: 34px;
-  --text-body: 14px;
-  --text-table: 12px;
-  --text-meta: 11px;
-  --control-height: 42px;
-  --control-height-large: 46px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 32px;
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --shadow-surface: 0 8px 24px rgba(45, 64, 49, 0.05);
-  --shadow-floating: 0 14px 34px rgba(34, 52, 39, 0.14);
-  --shadow-raised: 0 12px 28px rgba(34, 52, 39, 0.1);
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-primary-light) 15%, transparent);
+
+  --text-machine: 12px;
+  --text-body-sm: 16px;
+  --text-body: 19px;
+  --text-h3: 24px;
+  --text-h2: 27px;
+  --text-h1: 36px;
+  --text-xl: 48px;
+
+  /* Legacy semantic scale aliases mapped to the 16px floor scale */
+  --text-page-title: 36px;
+  --text-section-title: 24px;
+  --text-metric: 36px;
+  --text-body: 19px;
+  --text-table: 16px;
+  --text-meta: 16px;
+
+  --control-height: 44px;
+  --control-height-large: 48px;
+
+  /* Spacing: 10 units in multiples of 5px */
+  --space-0: 0px;
+  --space-1: 5px;
+  --space-2: 10px;
+  --space-3: 15px;
+  --space-4: 20px;
+  --space-5: 25px;
+  --space-6: 30px;
+  --space-7: 40px;
+  --space-8: 50px;
+  --space-9: 60px;
+
+  /* Radius: 2 values (sm=4px, md=8px) and pill */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-pill: 9999px;
+
+  --shadow-surface: 0 4px 16px rgba(29, 39, 32, 0.05);
+  --shadow-floating: 0 12px 32px rgba(29, 39, 32, 0.12);
+  --shadow-raised: 0 8px 24px rgba(29, 39, 32, 0.08);
+
   --transition-fast: 150ms ease;
 }

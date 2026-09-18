@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1789704400.403741,
-    "seen": 1789704919.8492796,
-    "ast_hash": "717d7165d3c857869eb3e1c587e8a5aa",
+    "mtime": 1789711239.9459724,
+    "seen": 1789711558.127367,
+    "ast_hash": "5efc19302fcd0676e1157f5c3fa99446",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -30,15 +30,15 @@
     "semantic_hash": ""
   },
   "src/components/layout/AppHeader.tsx": {
-    "mtime": 1789028377.908651,
-    "seen": 1789704919.8493366,
-    "ast_hash": "6ddc17cfa4e0da88b6bce670b84fdb7b",
+    "mtime": 1789710609.3848505,
+    "seen": 1789711558.1274314,
+    "ast_hash": "1d24bd802045f6041605b2aa56c93cda",
     "semantic_hash": ""
   },
   "src/components/layout/AppShell.tsx": {
-    "mtime": 1789028377.9090874,
-    "seen": 1789704919.849338,
-    "ast_hash": "76cd2534028a123eb6585c51161c1e52",
+    "mtime": 1789710585.065005,
+    "seen": 1789711558.1274333,
+    "ast_hash": "16b2a210c3269e17101569c66fe1c02d",
     "semantic_hash": ""
   },
   "src/components/layout/Page.tsx": {
@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "src/components/navigation/AppSidebar.tsx": {
-    "mtime": 1789704400.407753,
-    "seen": 1789704919.8493433,
-    "ast_hash": "614886da6d4331ed084292fd72686b47",
+    "mtime": 1789710618.7887971,
+    "seen": 1789711558.1274378,
+    "ast_hash": "edb334f91d25c77f9a21d37529bfa342",
     "semantic_hash": ""
   },
   "src/components/reports/ConfidenceDisplay.tsx": {
@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "src/components/reports/ReportTable.tsx": {
-    "mtime": 1789704400.407753,
-    "seen": 1789704919.849348,
-    "ast_hash": "8da5d4ffb38f6c8e6a2cae101e612d6f",
+    "mtime": 1789710728.2682776,
+    "seen": 1789711558.1274426,
+    "ast_hash": "d35b11205b84cd8115a62cab0b6f90f4",
     "semantic_hash": ""
   },
   "src/components/reports/SymptomResponseItem.tsx": {
@@ -162,15 +162,15 @@
     "semantic_hash": ""
   },
   "src/main.tsx": {
-    "mtime": 1789028377.913419,
-    "seen": 1789704919.8493974,
-    "ast_hash": "d7347d0048d80e05d1cd3c503ec4a381",
+    "mtime": 1789710472.2137072,
+    "seen": 1789711558.1274927,
+    "ast_hash": "5b4567cb29b14f1f6db6394e462c243d",
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.tsx": {
-    "mtime": 1789704400.4117649,
-    "seen": 1789704919.8494005,
-    "ast_hash": "333420e944273a130907e7c4c3b34c3d",
+    "mtime": 1789711058.9147909,
+    "seen": 1789711558.1274958,
+    "ast_hash": "107f002756f2404aacbed89754f25488",
     "semantic_hash": ""
   },
   "src/pages/NotFoundPage.tsx": {
@@ -738,8 +738,8 @@
     "semantic_hash": ""
   },
   "src/App.mock.test.tsx": {
-    "mtime": 1789704400.407753,
-    "seen": 1789704919.8493102,
+    "mtime": 1789711178.438245,
+    "seen": 1789711558.127403,
     "ast_hash": "052ebf371c5394dab74648a518a3b5cf",
     "semantic_hash": ""
   },
@@ -882,9 +882,9 @@
     "semantic_hash": ""
   },
   "src/hooks/useDashboard.ts": {
-    "mtime": 1789028377.913419,
-    "seen": 1789704919.8493917,
-    "ast_hash": "330be48bb3d37b1b792d6454b4815961",
+    "mtime": 1789711185.134214,
+    "seen": 1789711558.1274862,
+    "ast_hash": "5ce32e6630e2a5d519183989997eddd4",
     "semantic_hash": ""
   },
   "src/hooks/useReports.ts": {
@@ -972,9 +972,9 @@
     "semantic_hash": ""
   },
   "src/auth/AuthRouting.test.tsx": {
-    "mtime": 1789704400.407753,
-    "seen": 1789704919.8493226,
-    "ast_hash": "07c51338160bf5800c3f670d55938b1d",
+    "mtime": 1789711210.5461059,
+    "seen": 1789711558.1274161,
+    "ast_hash": "32333d8e8fe342b025caa1b4c91fd874",
     "semantic_hash": ""
   },
   "src/auth/RequireAuth.tsx": {
@@ -1038,15 +1038,15 @@
     "semantic_hash": ""
   },
   "src/pages/DashboardPage.test.tsx": {
-    "mtime": 1789704400.4117649,
-    "seen": 1789704919.849401,
-    "ast_hash": "64c0ac1fde50a40f87cd7d038480a58c",
+    "mtime": 1789710691.9524453,
+    "seen": 1789711558.1274962,
+    "ast_hash": "a894c27a3a883eda9d425d41718b305b",
     "semantic_hash": ""
   },
   "src/pages/DashboardPage.tsx": {
-    "mtime": 1789704400.4117649,
-    "seen": 1789704919.849402,
-    "ast_hash": "882a5703fb78e7a76e43df9684e494f6",
+    "mtime": 1789711331.9695632,
+    "seen": 1789711558.1274967,
+    "ast_hash": "c5cdcd6500355b2640181cdf42052f92",
     "semantic_hash": ""
   },
   "src/pages/SubmittedReportsPage.test.tsx": {
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.test.tsx": {
-    "mtime": 1789704400.4117649,
-    "seen": 1789704919.8493998,
-    "ast_hash": "f4b52e8eb8470b0eace147766e9c06b8",
+    "mtime": 1789711026.6629407,
+    "seen": 1789711558.1274948,
+    "ast_hash": "cafff5df2344dc15c35dd4b15f890625",
     "semantic_hash": ""
   },
   "api/database/migrations/2026_07_27_020000_add_lock_version_to_reports_table.php": {
@@ -1122,9 +1122,9 @@
     "semantic_hash": ""
   },
   "src/components/layout/ServerStatus.tsx": {
-    "mtime": 1789028377.9090874,
-    "seen": 1789704919.8493428,
-    "ast_hash": "3478d513750facf1f1c36f9f512d26f6",
+    "mtime": 1789710601.4489005,
+    "seen": 1789711558.127437,
+    "ast_hash": "5f99b3aae7e27f8faf80d919833f6fc6",
     "semantic_hash": ""
   },
   "api/tests/MySql/ReleaseDemoFlowMySqlTest.php": {
@@ -5568,9 +5568,9 @@
     "semantic_hash": ""
   },
   "src/components/layout/NotificationBell.tsx": {
-    "mtime": 1789028377.9090874,
-    "seen": 1789704919.8493395,
-    "ast_hash": "01c8ab27fdcdee949d9497711a428d85",
+    "mtime": 1789710633.0567148,
+    "seen": 1789711558.1274345,
+    "ast_hash": "d3efa2a74fae3271c353841a25f4942e",
     "semantic_hash": ""
   },
   "src/components/layout/RealtimeStatus.tsx": {
@@ -5808,8 +5808,8 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/ReportReferralTest.php": {
-    "mtime": 1789706887.3152273,
-    "seen": 1789706955.3398564,
+    "mtime": 1789710026.9324565,
+    "seen": 1789711558.1273255,
     "ast_hash": "b335e85b19b40d7f38067b4066c94eda",
     "semantic_hash": ""
   },
@@ -5820,8 +5820,8 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/ApplyOperationalQueueFilter.php": {
-    "mtime": 1789706857.4357328,
-    "seen": 1789706955.3396716,
+    "mtime": 1789710026.9324565,
+    "seen": 1789711558.127149,
     "ast_hash": "dfe233f1ada394e152a731e45ec29418",
     "semantic_hash": ""
   },
@@ -6192,9 +6192,9 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/MonthlyCaseSummary.tsx": {
-    "mtime": 1789704400.407753,
-    "seen": 1789704919.8493297,
-    "ast_hash": "468734394ca7658c27e7757920638334",
+    "mtime": 1789710680.1925023,
+    "seen": 1789711558.1274235,
+    "ast_hash": "635e663f23a9e0c34d6a0909e14d5a20",
     "semantic_hash": ""
   },
   "src/pages/AuthPageFrame.tsx": {
@@ -6405,6 +6405,18 @@
     "mtime": 1789704400.0627258,
     "seen": 1789704919.849617,
     "ast_hash": "b4c91ea74ffd75dbe3d8a957080bf5a8",
+    "semantic_hash": ""
+  },
+  "scripts/validate-design-spine.mjs": {
+    "mtime": 1789710324.9506133,
+    "seen": 1789711558.1273901,
+    "ast_hash": "159ef6302dc8fda89d00908f211d8bfe",
+    "semantic_hash": ""
+  },
+  "scripts/validate-design-spine.node-test.mjs": {
+    "mtime": 1789710334.7985477,
+    "seen": 1789711558.1273913,
+    "ast_hash": "70de27dbcbfd0fc5275d89d2eb6e6cf3",
     "semantic_hash": ""
   }
 }

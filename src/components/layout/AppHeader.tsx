@@ -1,6 +1,5 @@
-import { Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import type { RefObject } from "react";
-import { useLocation } from "react-router";
 import { useAuth } from "../../auth/useAuth";
 import type { RealtimeStatus } from "../../hooks/useRealtimeInvalidation";
 import { NotificationBell } from "./NotificationBell";
@@ -25,16 +24,7 @@ export function AppHeader({
   menuButtonRef?: RefObject<HTMLButtonElement | null>;
   realtimeStatus?: RealtimeStatus;
 }) {
-  const location = useLocation();
   const auth = useAuth();
-  const isDetail = location.pathname.startsWith("/reports/");
-  const title = location.pathname.startsWith("/dashboard")
-    ? "Overview"
-    : location.pathname.startsWith("/map")
-      ? "Field-validation map"
-      : isDetail
-        ? "Case review"
-        : "Submitted reports";
 
   return (
     <header className="app-header">
@@ -49,18 +39,13 @@ export function AppHeader({
           <Menu aria-hidden="true" />
         </button>
         <div>
-          <span>Case monitoring</span>
-          <strong>{title}</strong>
+          <span>SRA Don Pedro</span>
+          <strong>Case monitoring workspace</strong>
         </div>
       </div>
       <div className="app-header__actions">
-        <ServerStatus />
+        <ServerStatus showOnlyDegraded />
         <RealtimeStatusIndicator status={realtimeStatus} />
-        <div className="header-search" aria-hidden="true">
-          <Search aria-hidden="true" />
-          <span>Search reports</span>
-          <kbd>/</kbd>
-        </div>
         <NotificationBell enabled={auth.status === "authenticated"} />
         <span className="avatar" aria-label={auth.user?.name}>
           {initials(auth.user?.name ?? "CaneGuard user")}

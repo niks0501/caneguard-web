@@ -120,10 +120,10 @@ describe("authenticated routing", () => {
       await screen.findByRole("link", { name: "Open CG-2026-0001" }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole("status", {
+      screen.queryByRole("status", {
         name: "Connectivity: Network Available; CaneGuard server Connected",
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText("Review User")).toHaveTextContent("RU");
   });
 
