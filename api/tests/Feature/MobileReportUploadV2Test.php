@@ -346,6 +346,9 @@ class MobileReportUploadV2Test extends TestCase
                 'barangay' => 'Mabini',
                 'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
                 'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+                // Multipart clients may include empty coordinate parts when no location was captured.
+                'final_latitude' => '',
+                'final_longitude' => '',
             ]))
             ->assertCreated()
             ->assertJsonPath('data.observations.location_source', Report::LOCATION_SOURCE_UNAVAILABLE)
@@ -360,6 +363,11 @@ class MobileReportUploadV2Test extends TestCase
         $report = Report::query()->where('client_uuid', $clientUuid)->sole();
         $this->assertTrue($report->hasLocationUnavailable());
         $this->assertNull($report->final_latitude);
+        $this->assertNull($report->final_longitude);
+        $this->assertSame(
+            Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            $report->location_unavailable_reason,
+        );
         $this->assertSame('Mabini', $report->barangay);
     }
 

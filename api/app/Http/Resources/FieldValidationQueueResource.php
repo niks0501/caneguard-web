@@ -31,6 +31,8 @@ class FieldValidationQueueResource extends JsonResource
                 ? null
                 : (float) $this->final_longitude,
             'location_source' => $this->location_source,
+            'location_unavailable' => $this->resource->hasLocationUnavailable(),
+            'location_unavailable_reason' => $this->location_unavailable_reason,
             'gps_accuracy' => $this->gps_accuracy === null
                 ? null
                 : (float) $this->gps_accuracy,

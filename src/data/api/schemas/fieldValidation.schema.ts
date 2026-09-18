@@ -1,12 +1,13 @@
 import { z } from "zod";
 import {
   diseaseKeySchema,
+  locationUnavailableReasonSchema,
   reportLifecycleSchema,
   reviewStatusSchema,
 } from "./report.schema";
 
 const nullableLocationSourceSchema = z
-  .enum(["gps", "manual_map"])
+  .enum(["gps", "manual_map", "unavailable"])
   .nullable();
 
 const sharedItemFields = {
@@ -25,6 +26,8 @@ const sharedItemFields = {
   final_latitude: z.number().min(-90).max(90).nullable(),
   final_longitude: z.number().min(-180).max(180).nullable(),
   location_source: nullableLocationSourceSchema,
+  location_unavailable: z.boolean().optional(),
+  location_unavailable_reason: locationUnavailableReasonSchema.nullable().optional(),
   gps_accuracy: z.number().nonnegative().nullable(),
   affected_area_hectares: z.number().positive().nullable(),
   affected_portion_percent: z.number().min(0).max(100).nullable(),

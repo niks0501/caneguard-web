@@ -8,6 +8,14 @@ import { diseaseLabels, reviewStatusLabels } from "../../domain/report.metadata"
 import { routes } from "../../app/routes";
 import { formatValidationDate } from "./fieldValidation.format";
 
+const locationUnavailableReasonLabels: Record<string, string> = {
+  permission_denied: "permission denied",
+  services_unavailable: "location services unavailable",
+  low_accuracy: "low accuracy",
+  offline_no_map: "offline with no map",
+  other: "other reason",
+};
+
 function queueItemMeta(item: FieldValidationQueueItem) {
   const affectedArea = item.affectedAreaHectares === null
     ? "Area not provided"
@@ -38,7 +46,14 @@ function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem;
         <div><dt>Visit details</dt><dd>{queueItemMeta(item)}</dd></div>
       </dl>
       {item.finalLatitude === null || item.finalLongitude === null ? (
-        <p className="validation-queue-item__warning"><MapPinOff aria-hidden="true" /> No coordinates - use the report details or field records.</p>
+        <p className="validation-queue-item__warning">
+          <MapPinOff aria-hidden="true" />
+          {item.locationSource === "unavailable"
+            ? `Location unavailable${item.locationUnavailableReason
+              ? `: ${locationUnavailableReasonLabels[item.locationUnavailableReason] ?? item.locationUnavailableReason}`
+              : ""}. Use the report details or field records.`
+            : "No coordinates - use the report details or field records."}
+        </p>
       ) : null}
       <Link className="button button--secondary" to={routes.reportDetail(item.uuid)}>
         Open Report

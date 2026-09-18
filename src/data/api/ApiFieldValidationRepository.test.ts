@@ -56,10 +56,12 @@ const queueDto = {
       confidence: 0.84,
       review_status: "for_field_validation",
       target_visit_date: "2026-08-12",
-      final_latitude: 10.1234567,
-      final_longitude: 122.9876543,
-      location_source: "gps",
-      gps_accuracy: 8.5,
+      final_latitude: null,
+      final_longitude: null,
+      location_source: "unavailable",
+      location_unavailable: true,
+      location_unavailable_reason: "offline_no_map",
+      gps_accuracy: null,
       affected_area_hectares: 2.5,
       affected_portion_percent: 18,
     },
@@ -123,5 +125,10 @@ describe("ApiFieldValidationRepository", () => {
     expect(result.count).toBe(1);
     expect(result.oldest?.referenceCode).toBe("CG-2026-0001");
     expect(result.oldest?.targetVisitDate).toBe("2026-08-12");
+    expect(result.oldest?.finalLatitude).toBeNull();
+    expect(result.oldest?.finalLongitude).toBeNull();
+    expect(result.oldest?.locationSource).toBe("unavailable");
+    expect(result.oldest?.locationUnavailable).toBe(true);
+    expect(result.oldest?.locationUnavailableReason).toBe("offline_no_map");
   });
 });

@@ -38,6 +38,7 @@ class QueryFieldValidationQueue
                 'final_latitude',
                 'final_longitude',
                 'location_source',
+                'location_unavailable_reason',
                 'gps_accuracy',
                 'observed_at',
                 'submitted_at',
