@@ -666,6 +666,33 @@ class ReportReferralTest extends TestCase
             ->assertJsonPath('code', 'NOT_FOUND');
     }
 
+    public function test_referral_is_recorded_when_optional_expert_assignment_column_is_missing(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Schema::table('report_referrals', function ($table): void {
+            $table->dropIndex(['expert_id', 'consult_status']);
+            $table->dropForeign(['expert_id']);
+            $table->dropColumn('expert_id');
+        });
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Regional crop protection office',
+            'reference' => 'SRA-2026-NO-EXPERT-COLUMN',
+            'referral_date' => '2026-09-04',
+            'expected_version' => 0,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_REFERRED)
+            ->assertJsonPath('data.referral.reference', 'SRA-2026-NO-EXPERT-COLUMN');
+
+        $this->assertDatabaseHas('report_referrals', [
+            'report_id' => $report->getKey(),
+            'reference' => 'SRA-2026-NO-EXPERT-COLUMN',
+        ]);
+    }
+
     public function test_referral_is_recorded_when_optional_review_history_table_is_missing(): void
     {
         $reviewer = User::factory()->reviewer()->create();
