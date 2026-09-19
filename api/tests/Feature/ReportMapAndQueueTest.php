@@ -196,6 +196,46 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.id', $observedInRange->uuid);
     }
 
+    public function test_field_validation_queue_can_bound_a_calendar_month_by_target_visit_date(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $inMonth = Report::factory()->create([
+            'reference_code' => 'CG-CALENDAR-IN',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $inMonth->fieldValidationAssignment()->create([
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-09-30',
+            'activated_at' => now(),
+        ]);
+        $outsideMonth = Report::factory()->create([
+            'reference_code' => 'CG-CALENDAR-OUT',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $outsideMonth->fieldValidationAssignment()->create([
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-10-01',
+            'activated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
+            'queue' => Report::QUEUE_NEEDS_VISIT,
+            'due_from' => '2026-09-01',
+            'due_to' => '2026-09-30',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.uuid', $inMonth->uuid)
+            ->assertJsonPath('data.items.0.target_visit_date', '2026-09-30');
+    }
+
     public function test_field_validation_queue_defaults_to_needs_visit_oldest_first_and_shares_non_status_filters(): void
     {
         $reviewer = User::factory()->reviewer()->create();

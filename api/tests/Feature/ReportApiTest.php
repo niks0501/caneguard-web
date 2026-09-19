@@ -228,6 +228,88 @@ class ReportApiTest extends TestCase
             ->assertJsonMissingPath('data.0.confidence');
     }
 
+    public function test_report_search_and_reported_concern_filter_keep_rssi_signals_separate(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reportedOnly = Report::factory()->create([
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'authority_classified_condition' => null,
+        ]);
+        $classifiedOnly = Report::factory()->create([
+            'farmer_or_farm_owner_name' => 'Farm Beta',
+            'reporter_suspected_condition' => null,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RSSI,
+        ]);
+        $reportedAndClassified = Report::factory()->create([
+            'farmer_or_farm_owner_name' => 'Farm Gamma',
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RSSI,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports?search='.urlencode('Farm Alpha'))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $reportedOnly->uuid)
+            ->assertJsonPath('data.0.farm_reference', 'Farm Alpha');
+
+        $this->getJson('/api/v1/reports?concern=rssi')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['uuid' => $reportedOnly->uuid])
+            ->assertJsonFragment(['uuid' => $reportedAndClassified->uuid])
+            ->assertJsonMissing(['uuid' => $classifiedOnly->uuid]);
+
+        $this->getJson('/api/v1/reports?concern=rssi&authority_classified_condition=rssi')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $reportedAndClassified->uuid)
+            ->assertJsonPath('data.0.reporter_suspected_condition', Report::REPORTER_CONCERN_RSSI)
+            ->assertJsonPath('data.0.authority_classified_condition', Report::AUTHORITY_CONDITION_RSSI);
+
+        $this->getJson('/api/v1/reports?concern=not-a-concern')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['errors' => ['concern']]);
+    }
+
+    public function test_report_list_exposes_monitoring_register_validation_summary(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create(['name' => 'Field Officer']);
+        $report = Report::factory()->create([
+            'farmer_or_farm_owner_name' => 'Farm Register Entry',
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-09-22',
+        ]);
+        FieldValidationCompletion::factory()->create([
+            'assignment_id' => $assignment->getKey(),
+            'visited_at' => '2026-09-23 08:00:00.000',
+            'field_finding' => 'Validation finding for the register.',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports?concern=rssi')
+            ->assertOk()
+            ->assertJsonPath('data.0.farm_reference', 'Farm Register Entry')
+            ->assertJsonPath('data.0.field_validation.target_visit_date', '2026-09-22')
+            ->assertJsonPath('data.0.field_validation.assignee.name', 'Field Officer')
+            ->assertJsonPath('data.0.latest_validation.finding', 'Validation finding for the register.')
+            ->assertJsonPath('data.0.latest_validation.visited_at', '2026-09-23T08:00:00.000000Z')
+            ->assertJsonPath('data.0.action_taken', Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED);
+    }
+
     public function test_report_search_treats_like_wildcards_as_literal_text(): void
     {
         $reviewer = User::factory()->reviewer()->create();
@@ -501,6 +583,44 @@ class ReportApiTest extends TestCase
             );
     }
 
+    public function test_validation_photo_is_private_and_policy_authorized(): void
+    {
+        Storage::fake('local');
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $completion = FieldValidationCompletion::factory()->create([
+            'assignment_id' => $assignment->getKey(),
+            'fresh_photo_path' => 'field-validation/'.$assignment->uuid.'/fresh.jpg',
+            'fresh_photo_mime_type' => 'image/jpeg',
+        ]);
+        Storage::disk('local')->put($completion->fresh_photo_path, 'validation-photo-content');
+        $path = "/api/v1/reports/{$report->uuid}/validation-photo";
+
+        $this->getJson($path)
+            ->assertUnauthorized()
+            ->assertJsonPath('code', 'UNAUTHENTICATED');
+
+        Sanctum::actingAs(User::factory()->fieldReporter()->create());
+        $this->getJson($path)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+
+        Sanctum::actingAs($reviewer);
+        $response = $this->get($path);
+        $response
+            ->assertOk()
+            ->assertHeader('content-type', 'image/jpeg')
+            ->assertHeader('cache-control', 'max-age=300, private')
+            ->assertHeader('x-content-type-options', 'nosniff');
+        $this->assertSame('validation-photo-content', $response->streamedContent());
+    }
+
     public function test_report_image_is_private_and_policy_authorized(): void
     {
         Storage::fake('local');
@@ -676,6 +796,13 @@ class ReportApiTest extends TestCase
                 ->assertJsonMissing(['reference_code' => $noDateVisit->reference_code])
                 ->assertJsonMissing(['reference_code' => $closedVisit->reference_code]);
 
+            $this->getJson('/api/v1/reports?queue=upcoming')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 1)
+                ->assertJsonFragment(['reference_code' => $todayVisit->reference_code])
+                ->assertJsonMissing(['reference_code' => $needsVisit->reference_code])
+                ->assertJsonMissing(['reference_code' => $noDateVisit->reference_code]);
+
             $this->getJson('/api/v1/reports/map?queue=needs_visit')
                 ->assertOk()
                 ->assertJsonPath('metadata.total_count', 3)
@@ -699,13 +826,13 @@ class ReportApiTest extends TestCase
 
     public function test_report_queue_rejects_unauthenticated_and_wrong_role_users(): void
     {
-        $this->getJson('/api/v1/reports')
+        $this->getJson('/api/v1/reports?concern=rssi')
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');
 
         Sanctum::actingAs(User::factory()->fieldReporter()->create());
 
-        $this->getJson('/api/v1/reports')
+        $this->getJson('/api/v1/reports?concern=rssi')
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
     }

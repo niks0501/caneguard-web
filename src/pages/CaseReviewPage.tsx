@@ -827,6 +827,19 @@ export function CaseReviewPage() {
                   <DetailField label="Finding">
                     {report.fieldValidationAssignment.completion.fieldFinding}
                   </DetailField>
+                  <DetailField label="Fresh validation photo">
+                    {report.fieldValidationAssignment.completion.freshPhoto?.available
+                    && report.fieldValidationAssignment.completion.freshPhoto.url ? (
+                      <a
+                        className="table-action"
+                        href={report.fieldValidationAssignment.completion.freshPhoto.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open authorized photo
+                      </a>
+                    ) : "Not provided"}
+                  </DetailField>
                 </dl>
               </section>
             ) : null}

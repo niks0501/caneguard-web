@@ -23,7 +23,8 @@ class QueryReports
         $query = Report::query()->with([
             'reporter',
             'reviewer',
-            'fieldValidationAssignment',
+            'fieldValidationAssignment.assignee',
+            'fieldValidationAssignment.completion',
         ]);
         $this->applyReportFilters->handle($query, $filters, 'submitted_at');
         if (isset($filters['queue'])) {

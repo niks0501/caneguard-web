@@ -81,10 +81,17 @@ export function FieldValidationQueuePanel({
   const pageSize = 10;
 
   const isFollowUpDue = data.queue === "follow_up_due";
-  const title = isFollowUpDue ? "Follow-up due" : "Field validations needed";
+  const isUpcoming = data.queue === "upcoming";
+  const title = isFollowUpDue
+    ? "Follow-up due"
+    : isUpcoming
+      ? "Upcoming visits"
+      : "Field validations needed";
   const description = isFollowUpDue
     ? "Target visit dates have passed and field validation is still incomplete."
-    : "Open cases requiring field validation, including legacy visits without a target date.";
+    : isUpcoming
+      ? "Target visit dates are today or later and field validation is still incomplete."
+      : "Open cases requiring field validation, including legacy visits without a target date.";
 
   const rawItems = data.items.length > 0
     ? data.items

@@ -34,15 +34,44 @@ function report(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
   };
 }
 
-function renderTable(reports: DiseaseReport[]) {
+function renderTable(
+  reports: DiseaseReport[],
+  variant: "default" | "monitoring" = "default",
+) {
   return render(
     <MemoryRouter>
-      <ReportTable reports={reports} />
+      <ReportTable reports={reports} variant={variant} />
     </MemoryRouter>,
   );
 }
 
 describe("ReportTable", () => {
+  it("renders the monitoring register signals without merging reporter and staff concerns", () => {
+    renderTable([
+      report({
+        farmReference: "Farm Alpha",
+        reporterSuspectedCondition: "RSSI",
+        authorityClassifiedCondition: "rssi",
+        actionTaken: "technical_assistance_provided",
+        latestValidation: {
+          visitedAt: "2026-08-14T09:30:00.000Z",
+          fieldObservation: "Fresh observation",
+          finding: "Validation finding",
+          actionTaken: "Field action",
+          assignee: { uuid: "officer-1", name: "Field Officer" },
+        },
+        followUp: { dueOn: "2026-08-20", overdue: true },
+      }),
+    ], "monitoring");
+
+    expect(screen.getByRole("columnheader", { name: "Reported concern" })).toBeInTheDocument();
+    expect(screen.getByText("Reported: RSSI")).toBeInTheDocument();
+    expect(screen.getByText("Staff: RSSI")).toBeInTheDocument();
+    expect(screen.getByText("Validation finding")).toBeInTheDocument();
+    expect(screen.getByText("Technical assistance provided")).toBeInTheDocument();
+    expect(screen.getByText("Overdue")).toBeInTheDocument();
+  });
+
   it("labels the derived badge as Work status and never shows AI confidence", () => {
     renderTable([report()]);
 

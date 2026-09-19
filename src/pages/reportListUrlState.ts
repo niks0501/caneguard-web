@@ -40,9 +40,12 @@ const staffClassifiedConditionSchema = z.enum([
   "mixed_or_multiple",
   "unable_to_classify",
 ]);
+const reportedConcernSchema = z.enum(["rssi"]);
+const calendarMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 const dateSchema = z.iso.date();
 
 export interface ReportListUrlState {
+  calendarMonth?: string;
   filters: ReportFilters;
   hasActiveFilters: boolean;
   invalid: boolean;
@@ -78,6 +81,8 @@ export function parseReportListUrl(
     searchParams,
     "authority_classified_condition",
   );
+  const rawReportedConcern = optionalValue(searchParams, "concern");
+  const rawCalendarMonth = optionalValue(searchParams, "calendar_month");
 
   const page =
     rawPage && /^\d+$/.test(rawPage) ? Number.parseInt(rawPage, 10) : 1;
@@ -94,6 +99,12 @@ export function parseReportListUrl(
     : null;
   const staffClassifiedCondition = rawStaffClassifiedCondition
     ? staffClassifiedConditionSchema.safeParse(rawStaffClassifiedCondition)
+    : null;
+  const reportedConcern = rawReportedConcern
+    ? reportedConcernSchema.safeParse(rawReportedConcern)
+    : null;
+  const calendarMonth = rawCalendarMonth
+    ? calendarMonthSchema.safeParse(rawCalendarMonth)
     : null;
   const dateFrom = rawDateFrom ? dateSchema.safeParse(rawDateFrom) : null;
   const dateTo = rawDateTo ? dateSchema.safeParse(rawDateTo) : null;
@@ -112,11 +123,14 @@ export function parseReportListUrl(
     Boolean(verificationOutcome && !verificationOutcome.success) ||
     Boolean(fieldValidationState && !fieldValidationState.success) ||
     Boolean(staffClassifiedCondition && !staffClassifiedCondition.success) ||
+    Boolean(reportedConcern && !reportedConcern.success) ||
+    Boolean(calendarMonth && !calendarMonth.success) ||
     Boolean(dateFrom && !dateFrom.success) ||
     Boolean(dateTo && !dateTo.success) ||
     Boolean(rawDateFrom && rawDateTo && rawDateTo < rawDateFrom);
 
   return {
+    ...(calendarMonth?.success ? { calendarMonth: calendarMonth.data } : {}),
     filters: {
       page,
       perPage: reportListPageSize,
@@ -141,6 +155,9 @@ export function parseReportListUrl(
       staffClassifiedCondition: staffClassifiedCondition?.success
         ? staffClassifiedCondition.data
         : undefined,
+      reportedConcern: reportedConcern?.success
+        ? reportedConcern.data
+        : undefined,
       // The unscoped work queue opens on the oldest submission; a due queue
       // opens on the nearest target visit date.
       sort: sort?.success
@@ -160,7 +177,8 @@ export function parseReportListUrl(
         rawCaseState ||
         rawVerificationOutcome ||
         rawFieldValidationState ||
-        rawStaffClassifiedCondition,
+        rawStaffClassifiedCondition ||
+        rawReportedConcern,
     ),
     invalid,
   };

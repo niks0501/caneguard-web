@@ -6,12 +6,15 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { ClipboardCheck, Download, RefreshCw } from "lucide-react";
 import {
+  Link,
   useLocation,
   useSearchParams,
 } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
+import { routes } from "../app/routes";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import { MonitoringCalendar } from "../components/reports/MonitoringCalendar";
 import { ReportTable } from "../components/reports/ReportTable";
 import { Button } from "../components/ui/Button";
 import { SearchInput, SelectFilter } from "../components/ui/FormControls";
@@ -45,6 +48,7 @@ type FilterKey =
   | "verification_outcome"
   | "field_validation_state"
   | "authority_classified_condition"
+  | "concern"
   | "predicted_label"
   | "barangay"
   | "date_from"
@@ -71,9 +75,15 @@ const queueLabels = {
   needs_review: "Needs Review",
   needs_visit: "Needs Visit",
   follow_up_due: "Follow-up Due",
+  upcoming: "Upcoming Visits",
 } as const;
 
-export function SubmittedReportsPage() {
+export function SubmittedReportsPage({
+  workspace = "reports",
+}: {
+  workspace?: "reports" | "monitoring";
+}) {
+  const isMonitoring = workspace === "monitoring";
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -188,8 +198,11 @@ export function SubmittedReportsPage() {
   return (
     <PageContent>
       <PageHeader
-        title="Submitted reports"
-        description="Review field observations and decide the appropriate SRA Don Pedro follow-up."
+        eyebrow={isMonitoring ? "Office monitoring" : undefined}
+        title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
+        description={isMonitoring
+          ? "Track reported concerns, validation evidence, and scheduled visits from one case register."
+          : "Review field observations and decide the appropriate SRA Don Pedro follow-up."}
         actions={(
           <>
           <Button
@@ -226,6 +239,16 @@ export function SubmittedReportsPage() {
         )}
       />
 
+      {isMonitoring ? (
+        <nav className="monitoring-saved-views" aria-label="Monitoring saved views">
+          <span className="monitoring-saved-views__label">Saved views</span>
+          <Link to={routes.monitoring} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All monitoring cases</Link>
+          <Link to={`${routes.monitoring}?concern=rssi`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI concerns</Link>
+          <Link to={`${routes.monitoring}?queue=follow_up_due`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
+          <Link to={`${routes.monitoring}?queue=upcoming`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
+        </nav>
+      ) : null}
+
       {reviewNotice ? (
         <div className="success-banner" role="status">
           <ClipboardCheck aria-hidden="true" />
@@ -244,7 +267,7 @@ export function SubmittedReportsPage() {
       >
         <div className="workspace-heading">
           <div>
-            <h2 id="report-table-heading">{activeQueueLabel ?? "Recent submissions"}</h2>
+            <h2 id="report-table-heading">{activeQueueLabel ?? (isMonitoring ? "Monitoring register" : "Recent submissions")}</h2>
           </div>
           <span>
             {activeQueueLabel
@@ -261,7 +284,7 @@ export function SubmittedReportsPage() {
           <SearchInput
             value={urlState.filters.search ?? ""}
             maxLength={120}
-            placeholder="Search ID, submitter, barangay..."
+            placeholder={isMonitoring ? "Search ID, farmer/farm, barangay..." : "Search ID, submitter, barangay..."}
             onChange={(event) =>
               updateFilter("search", event.target.value, { replace: true })
             }
@@ -275,6 +298,14 @@ export function SubmittedReportsPage() {
             {Object.entries(queueLabels).map(([value, label]) => (
               <option value={value} key={value}>{label}</option>
             ))}
+          </SelectFilter>
+          <SelectFilter
+            label="Reported concern"
+            value={urlState.filters.reportedConcern ?? ""}
+            onChange={(event) => updateFilter("concern", event.target.value)}
+          >
+            <option value="">Any reported concern</option>
+            <option value="rssi">RSSI</option>
           </SelectFilter>
           <SelectFilter
             label="Work status"
@@ -465,7 +496,7 @@ export function SubmittedReportsPage() {
         ) : null}
         {hasDisplayableData && reports.length > 0 && meta ? (
           <>
-            <ReportTable reports={reports} />
+            <ReportTable reports={reports} variant={isMonitoring ? "monitoring" : "default"} />
             <Pagination
               currentPage={meta.currentPage}
               pageCount={meta.lastPage}
@@ -474,6 +505,7 @@ export function SubmittedReportsPage() {
             />
           </>
         ) : null}
+        {isMonitoring && !urlState.invalid ? <MonitoringCalendar /> : null}
       </section>
     </PageContent>
   );

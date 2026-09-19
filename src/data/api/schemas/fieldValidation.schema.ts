@@ -88,7 +88,7 @@ export const fieldValidationQueueItemSchema = z.object(sharedItemFields);
 
 export const fieldValidationQueueResponseSchema = z.object({
   data: z.object({
-    queue: z.enum(["needs_visit", "follow_up_due"]).optional(),
+    queue: z.enum(["needs_visit", "follow_up_due", "upcoming"]).optional(),
     count: z.number().int().nonnegative(),
     total: z.number().int().nonnegative().optional(),
     page: z.number().int().positive().optional(),

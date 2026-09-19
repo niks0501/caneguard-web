@@ -9,6 +9,7 @@ export const routes = {
   dashboard: "/dashboard",
   expertQueue: "/expert/queue",
   reports: "/reports",
+  monitoring: "/monitoring",
   map: "/map",
   reportQueue: (queue: OperationalQueue) => `/reports?queue=${queue}`,
   fieldValidationQueue: (queue: FieldValidationQueue) => `/map?queue=${queue}`,

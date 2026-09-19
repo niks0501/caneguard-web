@@ -132,6 +132,11 @@ describe("report mappers", () => {
         "Fresh observation from the assigned validation visit.",
       fieldFinding: "The field finding is preserved as separate evidence.",
       actionTaken: "Provided field guidance and recorded the next action.",
+      visitedAt: "2026-08-14T09:30:00.000Z",
+      freshPhoto: {
+        available: false,
+        url: undefined,
+      },
     });
   });
 
