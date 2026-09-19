@@ -20,6 +20,7 @@ final class ApplyOperationalQueueFilter
             Report::QUEUE_NEEDS_REVIEW => $this->needsReview($query),
             Report::QUEUE_NEEDS_VISIT => $this->needsVisit($query),
             Report::QUEUE_FOLLOW_UP_DUE => $this->followUpDue($query),
+            Report::QUEUE_UPCOMING => $this->upcoming($query),
             default => throw new InvalidArgumentException("Unsupported operational queue: {$queue}"),
         };
     }
@@ -104,17 +105,34 @@ final class ApplyOperationalQueueFilter
     {
         $today = CarbonImmutable::now()->startOfDay()->toDateString();
 
+        return $this->scheduledOpenIncomplete($query)
+            ->whereHas('fieldValidationAssignment', function (Builder $query) use ($today): void {
+                $query
+                    ->whereNotNull('target_visit_date')
+                    ->whereDate('target_visit_date', '<', $today);
+            });
+    }
+
+    private function upcoming(Builder $query): Builder
+    {
+        $today = CarbonImmutable::now()->startOfDay()->toDateString();
+
+        return $this->scheduledOpenIncomplete($query)
+            ->whereHas('fieldValidationAssignment', function (Builder $query) use ($today): void {
+                $query
+                    ->whereNotNull('target_visit_date')
+                    ->whereDate('target_visit_date', '>=', $today);
+            });
+    }
+
+    private function scheduledOpenIncomplete(Builder $query): Builder
+    {
         return $query
             ->where('case_state', Report::CASE_STATE_OPEN)
             ->where(
                 'field_validation_state',
                 '!=',
                 Report::FIELD_VALIDATION_STATE_COMPLETED,
-            )
-            ->whereHas('fieldValidationAssignment', function (Builder $query) use ($today): void {
-                $query
-                    ->whereNotNull('target_visit_date')
-                    ->whereDate('target_visit_date', '<', $today);
-            });
+            );
     }
 }

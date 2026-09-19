@@ -21,6 +21,7 @@ describe("parseReportListUrl", () => {
         verification_outcome: "not_determined",
         field_validation_state: "assigned",
         authority_classified_condition: "rust",
+        concern: "rssi",
       }),
     );
 
@@ -39,6 +40,7 @@ describe("parseReportListUrl", () => {
         verificationOutcome: "not_determined",
         fieldValidationState: "assigned",
         staffClassifiedCondition: "rust",
+        reportedConcern: "rssi",
         sort: "oldest",
       },
       hasActiveFilters: true,
@@ -93,5 +95,18 @@ describe("parseReportListUrl", () => {
 
     expect(state.filters.search).toBe("Ana ");
     expect(state.filters.barangay).toBe("San Isidro");
+  });
+
+  it("accepts the reporter-concern saved view and rejects unknown concern values", () => {
+    expect(parseReportListUrl(new URLSearchParams("concern=rssi")).filters.reportedConcern)
+      .toBe("rssi");
+    expect(parseReportListUrl(new URLSearchParams("concern=rust")).invalid).toBe(true);
+  });
+
+  it("validates the date-only calendar month in the shared URL grammar", () => {
+    expect(parseReportListUrl(new URLSearchParams("calendar_month=2026-09")).calendarMonth)
+      .toBe("2026-09");
+    expect(parseReportListUrl(new URLSearchParams("calendar_month=2026-13")).invalid)
+      .toBe(true);
   });
 });

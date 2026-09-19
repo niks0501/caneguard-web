@@ -99,7 +99,11 @@ function FilterChips({
   if (filters.queue) {
     chips.push({
       key: "queue",
-      label: filters.queue === "follow_up_due" ? "Queue: Follow-up due" : "Queue: Needs visit",
+      label: filters.queue === "follow_up_due"
+        ? "Queue: Follow-up due"
+        : filters.queue === "upcoming"
+          ? "Queue: Upcoming visits"
+          : "Queue: Needs visit",
     });
   }
   if (filters.dateFrom) chips.push({ key: "dateFrom", label: `From ${filters.dateFrom}` });
@@ -143,6 +147,7 @@ export function FieldValidationMapPage() {
   const queueInitialError = queueAccessDenied || (queueQuery.isError && !hasQueueCachedData);
   const mapFrameKey = JSON.stringify(appliedFilters);
   const isFollowUpDue = appliedFilters.queue === "follow_up_due";
+  const isUpcoming = appliedFilters.queue === "upcoming";
 
   const applyFilters = (draft: FieldValidationFilters) => {
     setSearchParams(writeMapUrl({
@@ -169,10 +174,16 @@ export function FieldValidationMapPage() {
     <PageContent className="page-content--field-validation">
       <PageHeader
         eyebrow="Field operations"
-        title={isFollowUpDue ? "Follow-up due workspace" : "Field-validation map"}
+        title={isFollowUpDue
+          ? "Follow-up due workspace"
+          : isUpcoming
+            ? "Upcoming visits workspace"
+            : "Field-validation map"}
         description={isFollowUpDue
           ? "Review open submitted reports whose target visit date has passed while field validation remains incomplete. Possible Conditions are decision support, not Staff-Classified Conditions."
-          : "Locate submitted observations and prioritize the oldest submitted reports awaiting an on-site validation. Possible Conditions are decision support, not Staff-Classified Conditions."}
+          : isUpcoming
+            ? "Review open submitted reports with a target visit date today or later. Possible Conditions are decision support, not Staff-Classified Conditions."
+            : "Locate submitted observations and prioritize the oldest submitted reports awaiting an on-site validation. Possible Conditions are decision support, not Staff-Classified Conditions."}
         actions={(
           <Button
             variant="secondary"

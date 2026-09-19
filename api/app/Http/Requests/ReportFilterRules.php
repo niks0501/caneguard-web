@@ -36,6 +36,10 @@ final class ReportFilterRules
                 'sometimes',
                 Rule::in(Report::authorityClassifiedConditions()),
             ],
+            'concern' => [
+                'sometimes',
+                Rule::in(['rssi', Report::REPORTER_CONCERN_RSSI]),
+            ],
         ];
 
         if ($includeStatus) {

@@ -190,6 +190,23 @@ export interface FieldValidationCompletion {
   fieldObservation: string;
   fieldFinding: string;
   actionTaken: string;
+  visitedAt?: string;
+  freshPhoto?: {
+    available: boolean;
+    url?: string | null;
+  };
+}
+
+export interface LatestValidationSummary {
+  visitedAt: string;
+  fieldObservation: string;
+  finding: string;
+  actionTaken: string;
+  assignee?: { uuid: string; name: string } | null;
+  freshPhoto?: {
+    available: boolean;
+    url?: string | null;
+  };
 }
 
 export interface FieldValidationAssignment {
@@ -277,6 +294,7 @@ export interface DiseaseReport {
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   actionTaken?: ActionTaken | null;
   fieldValidationAssignment?: FieldValidationAssignment | null;
+  latestValidation?: LatestValidationSummary | null;
   referral?: ReportReferral | null;
   consults?: ReportConsult[];
   lifecycle?: ReportLifecycle;
@@ -328,6 +346,7 @@ export interface ReportFilters {
   verificationOutcome?: VerificationOutcome | "all";
   fieldValidationState?: FieldValidationState | "all";
   staffClassifiedCondition?: AuthorityClassifiedCondition | "all";
+  reportedConcern?: "rssi" | "all";
   disease?: DiseaseKey | "all";
   barangay?: string | "all";
   dateFrom?: string;

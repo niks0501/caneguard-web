@@ -107,6 +107,8 @@ describe("ApiFieldValidationRepository", () => {
         expect(query.get("status")).toBeNull();
         expect(query.get("queue")).toBe("follow_up_due");
         expect(query.get("predicted_label")).toBe("rust");
+        expect(query.get("due_from")).toBe("2026-08-01");
+        expect(query.get("due_to")).toBe("2026-08-31");
         expect(query.get("limit")).toBe("50");
         return HttpResponse.json(queueDto);
       }),
@@ -119,6 +121,8 @@ describe("ApiFieldValidationRepository", () => {
       queue: "follow_up_due",
       status: "verified_by_staff",
       disease: "rust",
+      dueFrom: "2026-08-01",
+      dueTo: "2026-08-31",
     });
 
     expect(result.queue).toBe("follow_up_due");

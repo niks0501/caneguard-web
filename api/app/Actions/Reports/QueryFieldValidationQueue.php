@@ -4,6 +4,7 @@ namespace App\Actions\Reports;
 
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class QueryFieldValidationQueue
@@ -23,6 +24,19 @@ class QueryFieldValidationQueue
         $query = Report::query();
         $this->applyOperationalQueueFilter->handle($query, $queue);
         $this->applyReportFilters->handle($query, $filters, 'observed_at');
+        if (isset($filters['due_from']) || isset($filters['due_to'])) {
+            $query->whereHas('fieldValidationAssignment', function (Builder $query) use ($filters): void {
+                $query
+                    ->when(
+                        $filters['due_from'] ?? null,
+                        fn (Builder $query, string $date) => $query->whereDate('target_visit_date', '>=', $date),
+                    )
+                    ->when(
+                        $filters['due_to'] ?? null,
+                        fn (Builder $query, string $date) => $query->whereDate('target_visit_date', '<=', $date),
+                    );
+            });
+        }
 
         if (isset($filters['assignment'])) {
             if ($filters['assignment'] === 'unassigned') {
@@ -65,7 +79,10 @@ class QueryFieldValidationQueue
                 'referral_state',
             ])
             ->when(
-                $queue === Report::QUEUE_FOLLOW_UP_DUE,
+                in_array($queue, [
+                    Report::QUEUE_FOLLOW_UP_DUE,
+                    Report::QUEUE_UPCOMING,
+                ], true),
                 fn ($query) => $query->orderBy(
                     FieldValidationAssignment::select('target_visit_date')
                         ->whereColumn('report_id', 'reports.id'),

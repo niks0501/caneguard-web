@@ -121,6 +121,7 @@ export class MockDashboardRepository implements DashboardRepository {
       needs_review: 0,
       needs_visit: 0,
       follow_up_due: 0,
+      upcoming: 0,
     };
 
     mockReports.forEach((report) => {

@@ -148,6 +148,9 @@ class Report extends Model
 
     public const QUEUE_FOLLOW_UP_DUE = 'follow_up_due';
 
+    /** Open, incomplete assignments whose target date is today or later. */
+    public const QUEUE_UPCOMING = 'upcoming';
+
     public const CASE_STATE_OPEN = 'open';
 
     public const CASE_STATE_CLOSED = 'closed';
@@ -381,6 +384,7 @@ class Report extends Model
             self::QUEUE_NEEDS_REVIEW,
             self::QUEUE_NEEDS_VISIT,
             self::QUEUE_FOLLOW_UP_DUE,
+            self::QUEUE_UPCOMING,
         ];
     }
 

@@ -163,6 +163,46 @@ class FieldValidationAssignmentTest extends TestCase
         ]);
     }
 
+    public function test_rescheduling_a_target_date_writes_a_report_audit(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-09-01',
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'field_validation_assignee_uuid' => $assignee->uuid,
+            'field_validation_target_date' => '2026-09-08',
+            'correction_reason' => 'The field officer requested a safer visit window.',
+            'expected_version' => $report->lock_version,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.audit.metadata_corrections.0.field', 'field_validation_target_date')
+            ->assertJsonPath('data.audit.metadata_corrections.0.original_value', '2026-09-01')
+            ->assertJsonPath('data.audit.metadata_corrections.0.corrected_value', '2026-09-08')
+            ->assertJsonPath('data.audit.metadata_corrections.0.reason', 'The field officer requested a safer visit window.');
+
+        $this->assertDatabaseHas('report_audits', [
+            'report_id' => $report->getKey(),
+            'field' => 'field_validation_target_date',
+            'original_value' => json_encode('2026-09-01'),
+            'corrected_value' => json_encode('2026-09-08'),
+            'reason' => 'The field officer requested a safer visit window.',
+            'actor_id' => $reviewer->getKey(),
+        ]);
+        $this->assertSame('2026-09-08', $assignment->fresh()->target_visit_date?->format('Y-m-d'));
+    }
+
     public function test_mobile_assignment_feed_preserves_smut_model_labels(): void
     {
         $reviewer = User::factory()->reviewer()->create();

@@ -12,7 +12,7 @@ const statusSchema = z.enum([
   "unable_to_verify",
   "resolved",
 ]);
-const queueSchema = z.enum(["needs_visit", "follow_up_due"]);
+const queueSchema = z.enum(["needs_visit", "follow_up_due", "upcoming"]);
 const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
 const dateSchema = z.iso.date();
 

@@ -81,7 +81,7 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
 
 export function mapFieldValidationQueue(
   data: {
-    queue?: "needs_visit" | "follow_up_due";
+    queue?: "needs_visit" | "follow_up_due" | "upcoming";
     count: number;
     total?: number;
     page?: number;

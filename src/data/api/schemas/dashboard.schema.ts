@@ -5,6 +5,7 @@ const dashboardQueueCountsSchema = z.object({
   needs_review: z.number().int().nonnegative(),
   needs_visit: z.number().int().nonnegative(),
   follow_up_due: z.number().int().nonnegative(),
+  upcoming: z.number().int().nonnegative().optional(),
 });
 
 const monthlyCaseSummarySchema = z.object({

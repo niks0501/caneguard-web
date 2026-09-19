@@ -17,6 +17,8 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     uuid: dto.uuid,
     referenceCode: dto.reference_code,
     barangay: dto.barangay,
+    farmerOrFarmOwnerName: dto.farmer_or_farm_owner_name ?? undefined,
+    farmReference: dto.farm_reference ?? undefined,
     province: dto.province ?? undefined,
     municipality: dto.municipality ?? undefined,
     observedAt: dto.observed_at ?? undefined,
@@ -33,6 +35,19 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     reviewStatus: dto.review_status,
     lifecycle: mapReportLifecycle(dto.lifecycle, dto.review_status),
     authorityClassifiedCondition: dto.authority_classified_condition ?? null,
+    reporterSuspectedCondition: dto.reporter_suspected_condition ?? null,
+    reporterObservationText: dto.reporter_observation_text ?? null,
+    actionTaken: dto.action_taken ?? null,
+    latestValidation: dto.latest_validation
+      ? {
+          visitedAt: dto.latest_validation.visited_at,
+          fieldObservation: dto.latest_validation.field_observation,
+          finding: dto.latest_validation.finding,
+          actionTaken: dto.latest_validation.action_taken,
+          assignee: dto.latest_validation.assignee,
+          freshPhoto: dto.latest_validation.fresh_photo,
+        }
+      : null,
     locationUnavailable: dto.location_unavailable ?? false,
     locationUnavailableReason: dto.location_unavailable_reason ?? null,
     affectedAreaMeasurement: dto.affected_area_measurement,
@@ -127,6 +142,11 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
                   dto.field_validation_assignment.completion.field_observation,
                 fieldFinding: dto.field_validation_assignment.completion.field_finding,
                 actionTaken: dto.field_validation_assignment.completion.action_taken,
+                visitedAt: dto.field_validation_assignment.completion.visited_at,
+                freshPhoto: {
+                  available: dto.field_validation_assignment.completion.fresh_photo.available,
+                  url: dto.field_validation_assignment.completion.fresh_photo.url,
+                },
               }
             : undefined,
         }

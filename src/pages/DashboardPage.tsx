@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   CalendarClock,
+  CalendarDays,
   CheckCircle2,
   ClipboardCheck,
   CircleHelp,
@@ -59,12 +60,20 @@ const queueCopy: Record<OperationalQueue, {
     icon: <CalendarClock aria-hidden="true" />,
     href: routes.fieldValidationQueue("follow_up_due"),
   },
+  upcoming: {
+    label: "Upcoming Visits",
+    description: "Target visit date is today or later; validation remains incomplete.",
+    icon: <CalendarDays aria-hidden="true" />,
+    href: routes.fieldValidationQueue("upcoming"),
+  },
 };
+
 
 const queueOrder: OperationalQueue[] = [
   "needs_review",
   "needs_visit",
   "follow_up_due",
+  "upcoming",
 ];
 
 export function DashboardPage() {

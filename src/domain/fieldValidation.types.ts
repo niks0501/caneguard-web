@@ -19,6 +19,8 @@ export interface FieldValidationFilters {
   barangay?: string;
   dateFrom?: string;
   dateTo?: string;
+  dueFrom?: string;
+  dueTo?: string;
   assignment?: "all" | "mine" | "unassigned";
   page?: number;
   limit?: number;

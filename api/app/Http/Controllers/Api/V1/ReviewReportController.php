@@ -186,6 +186,8 @@ class ReviewReportController extends Controller
             $assignmentForNotification = null;
             $existingAssignment = $locked->fieldValidationAssignment()->first();
             $assignmentWasChanged = false;
+            $targetVisitDateChanged = false;
+            $previousTargetVisitDate = $existingAssignment?->target_visit_date?->format('Y-m-d');
 
             if (($assignmentSelected || $assignmentRemoved)
                 && $existingAssignment?->completion()->exists()
@@ -281,9 +283,23 @@ class ReviewReportController extends Controller
                         'activated_at' => $existingAssignment?->activated_at ?? $reviewUpdate['reviewed_at'],
                     ],
                 );
+                $targetVisitDateChanged = $existingAssignment !== null
+                    && $previousTargetVisitDate !== $assignmentForNotification->target_visit_date?->format('Y-m-d');
                 $assignmentWasChanged = $existingAssignment === null
                     || (string) $existingAssignment->assignee_id !== (string) $assignmentForNotification->assignee_id
-                    || $existingAssignment->target_visit_date?->format('Y-m-d') !== $assignmentForNotification->target_visit_date?->format('Y-m-d');
+                    || $targetVisitDateChanged;
+                if ($targetVisitDateChanged) {
+                    ReportAudit::query()->create([
+                        'report_id' => $locked->getKey(),
+                        'actor_id' => $request->user()->getKey(),
+                        'field' => 'field_validation_target_date',
+                        'original_value' => $previousTargetVisitDate,
+                        'corrected_value' => $assignmentForNotification->target_visit_date?->format('Y-m-d'),
+                        'reason' => trim((string) ($data['correction_reason'] ?? ''))
+                            ?: 'Target visit date updated during office review.',
+                        'created_at' => $reviewUpdate['reviewed_at'],
+                    ]);
+                }
             } elseif ($assignmentRemoved) {
                 $locked->fieldValidationAssignment()->delete();
             }

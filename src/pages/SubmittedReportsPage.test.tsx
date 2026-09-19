@@ -8,11 +8,16 @@ import { ApiError } from "../api/ApiError";
 import { createQueryClient } from "../app/queryClient";
 import { mockReports } from "../data/mock/mockReports";
 import { useExportReports, useReports } from "../hooks/useReports";
+import { useFieldValidationQueue } from "../hooks/useFieldValidation";
 import { SubmittedReportsPage } from "./SubmittedReportsPage";
 
 vi.mock("../hooks/useReports", () => ({
   useExportReports: vi.fn(),
   useReports: vi.fn(),
+}));
+
+vi.mock("../hooks/useFieldValidation", () => ({
+  useFieldValidationQueue: vi.fn(),
 }));
 
 const pageData = {
@@ -48,12 +53,15 @@ function LocationProbe() {
   return <output data-testid="location">{location.search}</output>;
 }
 
-function renderPage(initialEntry = "/reports") {
+function renderPage(
+  initialEntry = "/reports",
+  workspace: "reports" | "monitoring" = "reports",
+) {
   const queryClient = createQueryClient();
   const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
-        <SubmittedReportsPage />
+        <SubmittedReportsPage workspace={workspace} />
         <LocationProbe />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -64,6 +72,24 @@ function renderPage(initialEntry = "/reports") {
 
 beforeEach(() => {
   vi.mocked(useReports).mockReturnValue(reportsResult());
+  vi.mocked(useFieldValidationQueue).mockReturnValue({
+    data: {
+      queue: "needs_visit",
+      count: 0,
+      total: 0,
+      page: 1,
+      perPage: 100,
+      oldest: null,
+      items: [],
+    },
+    error: null,
+    isError: false,
+    isFetching: false,
+    isPending: false,
+    isRefetchError: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useFieldValidationQueue>);
   vi.mocked(useExportReports).mockReturnValue({
     isError: false,
     isPending: false,
@@ -110,6 +136,27 @@ describe("SubmittedReportsPage", () => {
     expect(
       screen.getAllByRole("link", { name: /Open CG-/ })[0],
     ).toHaveTextContent("Open");
+  });
+
+  it("renders the monitoring workspace with shared saved views and register columns", () => {
+    renderPage("/monitoring?concern=rssi", "monitoring");
+
+    expect(screen.getByRole("heading", { name: "Monitoring workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "RSSI concerns" })).toHaveAttribute(
+      "href",
+      "/monitoring?concern=rssi",
+    );
+    expect(screen.getByRole("columnheader", { name: "Reported concern" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Latest validation" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Visit calendar" })).toBeInTheDocument();
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ reportedConcern: "rssi" }),
+      { enabled: true },
+    );
+    expect(useFieldValidationQueue).toHaveBeenCalledWith(
+      expect.objectContaining({ dueFrom: expect.any(String), dueTo: expect.any(String) }),
+      { enabled: true },
+    );
   });
 
   it("opens an operational queue as a filtered report workspace", () => {

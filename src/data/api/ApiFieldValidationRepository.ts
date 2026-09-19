@@ -26,6 +26,8 @@ function toQueryParams(
     barangay: filters.barangay?.trim() || undefined,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
+    due_from: filters.dueFrom,
+    due_to: filters.dueTo,
     assignment: filters.assignment,
     page: filters.page,
     limit: filters.limit,

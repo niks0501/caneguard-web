@@ -7,10 +7,11 @@ export function mapDashboard(dto: DashboardResponseDto): DashboardSummary {
 
   return {
     totalSubmitted: counts.total_submitted,
-    queues: dto.data.queues ?? {
-      needs_review: counts.submitted_unverified,
-      needs_visit: counts.for_field_validation,
-      follow_up_due: 0,
+    queues: {
+      needs_review: dto.data.queues?.needs_review ?? counts.submitted_unverified,
+      needs_visit: dto.data.queues?.needs_visit ?? counts.for_field_validation,
+      follow_up_due: dto.data.queues?.follow_up_due ?? 0,
+      upcoming: dto.data.queues?.upcoming ?? 0,
     },
     counts: {
       submitted_unverified: counts.submitted_unverified,

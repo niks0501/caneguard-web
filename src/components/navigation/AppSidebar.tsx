@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   ChevronRight,
   LayoutDashboard,
   LogOut,
@@ -66,6 +67,17 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
               <span>Submitted reports</span>
               <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
             </NavLink>
+            {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
+              <NavLink
+                className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+                to={routes.monitoring}
+                onClick={onNavigate}
+              >
+                <CalendarDays aria-hidden="true" />
+                <span>Monitoring</span>
+                <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+              </NavLink>
+            ) : null}
           </>
         )}
 

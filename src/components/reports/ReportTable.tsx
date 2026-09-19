@@ -3,11 +3,17 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { routes } from "../../app/routes";
 import {
+  actionTakenLabels,
   authorityClassifiedConditionLabels,
   submitterRoleLabels,
 } from "../../domain/report.metadata";
 import type { DiseaseReport } from "../../domain/report.types";
-import { formatAge, formatDate, formatDueState } from "../../lib/formatters";
+import {
+  formatAge,
+  formatDate,
+  formatDateTime,
+  formatDueState,
+} from "../../lib/formatters";
 import { EvidenceThumbnail } from "./EvidenceThumbnail";
 import { DiseaseBadge, ReviewStatusBadge } from "./ReportBadges";
 
@@ -17,8 +23,15 @@ import { DiseaseBadge, ReviewStatusBadge } from "./ReportBadges";
  * Additional details like reporter information are available behind row expansion.
  * AI confidence is never a queue priority score.
  */
-export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
+export function ReportTable({
+  reports,
+  variant = "default",
+}: {
+  reports: DiseaseReport[];
+  variant?: "default" | "monitoring";
+}) {
   const navigate = useNavigate();
+  const isMonitoring = variant === "monitoring";
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggleRow = (uuid: string) => {
@@ -57,14 +70,25 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
 
   return (
     <div className="table-scroll">
-      <table className="report-table">
+      <table className={`report-table${isMonitoring ? " report-table--monitoring" : ""}`}>
         <thead>
           <tr>
             <th scope="col">Report</th>
-            <th scope="col">Possible Condition</th>
-            <th scope="col">Location</th>
-            <th scope="col">Submitted</th>
-            <th scope="col">Follow-up</th>
+            {isMonitoring ? (
+              <>
+                <th scope="col">Reported concern</th>
+                <th scope="col">Latest validation</th>
+                <th scope="col">Action taken</th>
+                <th scope="col">Next follow-up</th>
+              </>
+            ) : (
+              <>
+                <th scope="col">Possible Condition</th>
+                <th scope="col">Location</th>
+                <th scope="col">Submitted</th>
+                <th scope="col">Follow-up</th>
+              </>
+            )}
             <th scope="col">Work status</th>
           </tr>
         </thead>
@@ -99,7 +123,12 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                         <span className="sr-only">Open </span>
                         <strong>{report.referenceCode}</strong>
                       </Link>
-                      <span>{report.farmReference ?? "No farm reference"}</span>
+                      <span>{isMonitoring
+                        ? (report.farmReference ?? report.barangay)
+                        : (report.farmReference ?? "No farm reference")}</span>
+                      {isMonitoring ? (
+                        <span className="table-secondary">Barangay: {report.barangay}</span>
+                      ) : null}
                       {report.mismatchReported === true ? (
                         <span className="mismatch-table-marker">
                           AI mismatch flagged
@@ -108,55 +137,127 @@ export function ReportTable({ reports }: { reports: DiseaseReport[] }) {
                     </div>
                   </div>
                 </td>
-                <td>
-                  <DiseaseBadge disease={report.predictedDisease} />
-                  {report.authorityClassifiedCondition ? (
-                    <span className="table-secondary">
-                      Staff:{" "}
-                      {
-                        authorityClassifiedConditionLabels[
-                          report.authorityClassifiedCondition
-                        ]
-                      }
-                    </span>
-                  ) : null}
-                </td>
-                <td>
-                  <strong className="table-primary">{report.barangay}</strong>
-                  <span className="table-secondary">
-                    {report.locationUnavailable
-                      ? "Location unavailable"
-                      : [report.municipality, report.province]
-                          .filter(Boolean)
-                          .join(", ") || "Location not provided"}
-                  </span>
-                </td>
-                <td>
-                  <strong className="table-primary">
-                    {formatDate(report.submittedAt)}
-                  </strong>
-                  <span className="table-secondary">
-                    {formatAge(report.submittedAt)}
-                  </span>
-                </td>
-                <td>
-                  {due ? (
-                    <>
-                      <strong
-                        className={`table-primary${
-                          due.overdue ? " table-overdue" : ""
-                        }`}
-                      >
-                        {due.label}
+                {isMonitoring ? (
+                  <>
+                    <td className="monitoring-register-detail">
+                      {report.reporterSuspectedCondition ? (
+                        <strong className="table-primary">
+                          Reported: {report.reporterSuspectedCondition}
+                        </strong>
+                      ) : (
+                        <span className="table-secondary">No concern reported</span>
+                      )}
+                      {report.authorityClassifiedCondition ? (
+                        <span className="table-secondary">
+                          Staff: {authorityClassifiedConditionLabels[report.authorityClassifiedCondition]}
+                        </span>
+                      ) : (
+                        <span className="table-secondary">Staff: Not classified</span>
+                      )}
+                    </td>
+                    <td className="monitoring-register-detail">
+                      {report.latestValidation ? (
+                        <>
+                          <strong className="table-primary">
+                            {formatDateTime(report.latestValidation.visitedAt)}
+                          </strong>
+                          <span className="table-secondary">
+                            {report.latestValidation.finding}
+                          </span>
+                          <span className="table-secondary">
+                            {report.latestValidation.assignee?.name ?? "Assignee unavailable"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="table-secondary">
+                          {report.fieldValidationAssignment?.targetVisitDate
+                            ? "Visit assigned; evidence pending"
+                            : "No visit completed"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="monitoring-register-detail">
+                      {report.actionTaken ? (
+                        <span className="table-primary">
+                          {actionTakenLabels[report.actionTaken] ?? report.actionTaken}
+                        </span>
+                      ) : (
+                        <span className="table-secondary">Not recorded</span>
+                      )}
+                      {report.latestValidation?.actionTaken ? (
+                        <span className="table-secondary">
+                          Field: {report.latestValidation.actionTaken}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td>
+                      {due ? (
+                        <>
+                          <strong className={`table-primary${due.overdue ? " table-overdue" : ""}`}>
+                            {due.label}
+                          </strong>
+                          <span className="table-secondary">
+                            {due.overdue ? "Overdue" : "Scheduled"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="table-secondary">Not scheduled</span>
+                      )}
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td>
+                      <DiseaseBadge disease={report.predictedDisease} />
+                      {report.authorityClassifiedCondition ? (
+                        <span className="table-secondary">
+                          Staff:{" "}
+                          {
+                            authorityClassifiedConditionLabels[
+                              report.authorityClassifiedCondition
+                            ]
+                          }
+                        </span>
+                      ) : null}
+                    </td>
+                    <td>
+                      <strong className="table-primary">{report.barangay}</strong>
+                      <span className="table-secondary">
+                        {report.locationUnavailable
+                          ? "Location unavailable"
+                          : [report.municipality, report.province]
+                              .filter(Boolean)
+                              .join(", ") || "Location not provided"}
+                      </span>
+                    </td>
+                    <td>
+                      <strong className="table-primary">
+                        {formatDate(report.submittedAt)}
                       </strong>
                       <span className="table-secondary">
-                        {due.overdue ? "Overdue" : "Visit scheduled"}
+                        {formatAge(report.submittedAt)}
                       </span>
-                    </>
-                  ) : (
-                    <span className="table-secondary">No visit scheduled</span>
-                  )}
-                </td>
+                    </td>
+                    <td>
+                      {due ? (
+                        <>
+                          <strong
+                            className={`table-primary${
+                              due.overdue ? " table-overdue" : ""
+                            }`}
+                          >
+                            {due.label}
+                          </strong>
+                          <span className="table-secondary">
+                            {due.overdue ? "Overdue" : "Visit scheduled"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="table-secondary">No visit scheduled</span>
+                      )}
+                    </td>
+                  </>
+                )}
                 <td className="report-status-cell">
                   <div className="report-status-cell__wrapper">
                     <ReviewStatusBadge status={report.reviewStatus} />

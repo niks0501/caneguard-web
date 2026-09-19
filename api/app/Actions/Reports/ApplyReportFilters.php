@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Models\Report;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
@@ -38,6 +39,10 @@ class ApplyReportFilters
                             "barangay LIKE ? ESCAPE '!'",
                             [$pattern],
                         )
+                        ->orWhereRaw(
+                            "farmer_or_farm_owner_name LIKE ? ESCAPE '!'",
+                            [$pattern],
+                        )
                         ->orWhereHas(
                             'reporter',
                             fn (Builder $reporter) => $reporter->whereRaw(
@@ -71,6 +76,16 @@ class ApplyReportFilters
                 $filters['authority_classified_condition'] ?? null,
                 fn (Builder $query, string $condition) => $query
                     ->where('authority_classified_condition', $condition),
+            )
+            ->when(
+                $filters['concern'] ?? null,
+                fn (Builder $query, string $concern) => $query
+                    ->where(
+                        'reporter_suspected_condition',
+                        strtoupper($concern) === Report::REPORTER_CONCERN_RSSI
+                            ? Report::REPORTER_CONCERN_RSSI
+                            : $concern,
+                    ),
             )
             ->when(
                 $filters['predicted_label'] ?? null,

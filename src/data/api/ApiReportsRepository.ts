@@ -71,6 +71,10 @@ function toQueryParams(
       filters.staffClassifiedCondition !== "all"
         ? filters.staffClassifiedCondition
         : undefined,
+    concern:
+      filters.reportedConcern && filters.reportedConcern !== "all"
+        ? filters.reportedConcern
+        : undefined,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
     sort: filters.sort ? sortValues[filters.sort] : undefined,

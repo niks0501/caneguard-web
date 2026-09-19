@@ -51,6 +51,7 @@ export function AppRouter() {
               )}
             />
             <Route path="reports" element={<SubmittedReportsPage />} />
+            <Route path="monitoring" element={<SubmittedReportsPage workspace="monitoring" />} />
             <Route path="reports/:reportId" element={<CaseReviewPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
