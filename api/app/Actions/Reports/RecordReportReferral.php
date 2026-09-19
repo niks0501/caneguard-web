@@ -8,6 +8,7 @@ use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class RecordReportReferral
@@ -111,6 +112,13 @@ class RecordReportReferral
                 'lock_version' => $locked->lock_version + 1,
             ]);
 
+            $expertAssignmentAvailable = Schema::hasColumn('report_referrals', 'expert_id');
+            if (filled($data['expert_uuid'] ?? null) && ! $expertAssignmentAvailable) {
+                throw ValidationException::withMessages([
+                    'expert_uuid' => 'Expert assignment is not available until the referral schema is updated.',
+                ]);
+            }
+
             $expert = filled($data['expert_uuid'] ?? null)
                 ? User::query()
                     ->where('uuid', $data['expert_uuid'])
@@ -118,9 +126,8 @@ class RecordReportReferral
                     ->firstOrFail()
                 : null;
 
-            $locked->referrals()->create([
+            $referralData = [
                 'referred_by_id' => $actor->getKey(),
-                'expert_id' => $expert?->getKey(),
                 'destination' => $data['destination'],
                 'reference' => $data['reference'],
                 'referral_date' => $data['referral_date'],
@@ -137,7 +144,12 @@ class RecordReportReferral
                 'office_review_notes' => $reviewNotes,
                 'office_reviewer_id' => $actor->getKey(),
                 'office_reviewed_at' => $reviewedAt,
-            ]);
+            ];
+            if ($expertAssignmentAvailable) {
+                $referralData['expert_id'] = $expert?->getKey();
+            }
+
+            $locked->referrals()->create($referralData);
 
             $this->reviewEvents->handle($locked, [
                 'actor_id' => $actor->getKey(),

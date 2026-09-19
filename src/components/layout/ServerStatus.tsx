@@ -1,13 +1,5 @@
-import {
-  useCallback,
-  useSyncExternalStore,
-} from "react";
-import {
-  useIsFetching,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useIsFetching } from "@tanstack/react-query";
 import { LoaderCircle, Wifi, WifiOff } from "lucide-react";
-import { isTransientServerError } from "../../app/queryClient";
 import { env } from "../../config/env";
 import { useApiConnectivity } from "../../api/apiConnectivity.context";
 
@@ -15,26 +7,11 @@ type ServerStatusValue = "connected" | "refreshing" | "unavailable" | "offline";
 
 export function ServerStatus({ showOnlyDegraded = true }: { showOnlyDegraded?: boolean } = {}) {
   const { networkStatus, apiReachability } = useApiConnectivity();
-  const queryClient = useQueryClient();
-  const queryCache = queryClient.getQueryCache();
   const activeFetches = useIsFetching({ type: "active" });
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => queryCache.subscribe(onStoreChange),
-    [queryCache],
-  );
-  const getUnavailableSnapshot = useCallback(
-    () =>
-      queryCache
-        .findAll({ type: "active" })
-        .some((query) => isTransientServerError(query.state.error)),
-    [queryCache],
-  );
-  const unavailable = useSyncExternalStore(
-    subscribe,
-    getUnavailableSnapshot,
-    getUnavailableSnapshot,
-  );
-  const serverUnavailable = apiReachability === "unreachable" || unavailable;
+  // Endpoint failures are rendered by their owning feature. The health check
+  // is the source of truth for server reachability; otherwise a reachable API
+  // with one unavailable optional feature is reported as globally offline.
+  const serverUnavailable = apiReachability === "unreachable";
   const apiCheckPending =
     env.dataSource === "api" &&
     (apiReachability === "unknown" || apiReachability === "checking");
