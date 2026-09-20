@@ -123,6 +123,7 @@ class ReportListResource extends JsonResource
             'field_observation' => $completion->field_observation,
             'finding' => $completion->field_finding,
             'action_taken' => $completion->action_taken,
+            'follow_up_outcome' => $completion->follow_up_outcome,
             'assignee' => $assignment?->assignee ? [
                 'uuid' => $assignment->assignee->uuid,
                 'name' => $assignment->assignee->name,

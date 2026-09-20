@@ -5,6 +5,7 @@ import type {
   CaseState,
   DiseaseKey,
   FieldValidationState,
+  FollowUpOutcome,
   ImageStatus,
   LegacyAuthorityClassifiedCondition,
   MeasurementProvenance,
@@ -98,6 +99,13 @@ export const fieldValidationStateLabels: Record<FieldValidationState, string> = 
   assigned: "Assigned",
   in_progress: "In progress",
   completed: "Completed",
+};
+
+export const followUpOutcomeLabels: Record<FollowUpOutcome, string> = {
+  improved: "Improved",
+  unchanged: "Unchanged",
+  worsened: "Worsened",
+  unable_to_determine: "Unable to determine",
 };
 
 export const measurementProvenanceLabels: Record<

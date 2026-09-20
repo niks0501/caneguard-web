@@ -5,6 +5,7 @@ import { routes } from "../../app/routes";
 import {
   actionTakenLabels,
   authorityClassifiedConditionLabels,
+  followUpOutcomeLabels,
   submitterRoleLabels,
 } from "../../domain/report.metadata";
 import type { DiseaseReport } from "../../domain/report.types";
@@ -177,6 +178,11 @@ export function ReportTable({
                           <span className="table-secondary">
                             {report.latestValidation.assignee?.name ?? "Assignee unavailable"}
                           </span>
+                          {report.latestValidation.followUpOutcome ? (
+                            <span className="monitoring-outcome-chip">
+                              Follow-up: {followUpOutcomeLabels[report.latestValidation.followUpOutcome]}
+                            </span>
+                          ) : null}
                         </>
                       ) : (
                         <span className="table-secondary">

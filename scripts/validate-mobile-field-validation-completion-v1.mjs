@@ -11,6 +11,7 @@ const FIELD_NAMES = [
   'field_observation',
   'field_finding',
   'action_taken',
+  'follow_up_outcome',
   'visited_at',
   'gps_outcome',
   'gps_attempted_at',
@@ -81,6 +82,11 @@ export function validateMobileFieldValidationCompletionArtifact(definition, sour
     if (definition.fields.client_uuid?.required !== true) issues.push('client_uuid must be required');
     for (const name of ['field_observation', 'field_finding', 'action_taken']) {
       if (definition.fields[name]?.required !== true) issues.push(`${name} must be required`);
+    }
+    if (definition.fields.follow_up_outcome?.required !== false) issues.push('follow_up_outcome must remain optional');
+    if (definition.fields.follow_up_outcome?.nullable !== true) issues.push('follow_up_outcome must remain nullable');
+    if (JSON.stringify(definition.fields.follow_up_outcome?.enum) !== JSON.stringify(['improved', 'unchanged', 'worsened', 'unable_to_determine'])) {
+      issues.push('follow_up_outcome must declare the stable four-value enum');
     }
     if (definition.fields.fresh_photo?.required !== false) issues.push('fresh_photo must remain optional');
   }

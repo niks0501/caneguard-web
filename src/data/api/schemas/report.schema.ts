@@ -128,6 +128,13 @@ export const advisorySchema = z.object({
   delivered_at: z.iso.datetime({ offset: true }).nullable().optional(),
   acknowledged_at: z.iso.datetime({ offset: true }).nullable().optional(),
 });
+export const followUpOutcomeSchema = z.enum([
+  "improved",
+  "unchanged",
+  "worsened",
+  "unable_to_determine",
+]);
+
 export const fieldValidationCompletionSchema = z.object({
   uuid: z.string(),
   client_uuid: z.string(),
@@ -135,6 +142,7 @@ export const fieldValidationCompletionSchema = z.object({
   field_observation: z.string(),
   field_finding: z.string(),
   action_taken: z.string(),
+  follow_up_outcome: followUpOutcomeSchema.nullable().optional(),
   visited_at: z.iso.datetime({ offset: true }),
   gps: z.object({
     outcome: z.enum([
@@ -305,6 +313,7 @@ export const reportListItemSchema = z.object({
     field_observation: z.string(),
     finding: z.string(),
     action_taken: z.string(),
+    follow_up_outcome: followUpOutcomeSchema.nullable().optional(),
     assignee: userSchema.pick({ uuid: true, name: true }).nullable(),
     fresh_photo: z.object({
       available: z.boolean(),

@@ -23,6 +23,13 @@ const valid = {
     field_observation: { wire_type: 'text', type: 'string', required: true, nullable: false },
     field_finding: { wire_type: 'text', type: 'string', required: true, nullable: false },
     action_taken: { wire_type: 'text', type: 'string', required: true, nullable: false },
+    follow_up_outcome: {
+      wire_type: 'text',
+      type: 'string',
+      required: false,
+      nullable: true,
+      enum: ['improved', 'unchanged', 'worsened', 'unable_to_determine'],
+    },
     visited_at: { wire_type: 'text', type: 'date-time', required: true, nullable: false },
     gps_outcome: { wire_type: 'text', type: 'string', required: true, nullable: false },
     gps_attempted_at: { wire_type: 'text', type: 'date-time', required: true, nullable: false },
@@ -37,6 +44,29 @@ const valid = {
 
 test('accepts the completion artifact shape', () => {
   assert.equal(validateMobileFieldValidationCompletionArtifact(valid), valid);
+});
+
+test('rejects an invalid follow-up outcome enum', () => {
+  assert.throws(
+    () => validateMobileFieldValidationCompletionArtifact({
+      ...valid,
+      fields: {
+        ...valid.fields,
+        follow_up_outcome: {
+          ...valid.fields.follow_up_outcome,
+          enum: ['improved', 'unknown'],
+        },
+      },
+    }),
+    (error) => {
+      return (
+        typeof error === 'object'
+        && error !== null
+        && Array.isArray(error.issues)
+        && error.issues.includes('follow_up_outcome must declare the stable four-value enum')
+      );
+    },
+  );
 });
 
 test('rejects a required fresh photo', () => {

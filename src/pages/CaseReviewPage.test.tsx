@@ -322,9 +322,16 @@ describe("CaseReviewPage", () => {
     expect(
       within(evidence).getByText("Provided field guidance and recorded the next action."),
     ).toBeInTheDocument();
+    expect(within(evidence).getByText("Follow-up outcome")).toBeInTheDocument();
+    expect(within(evidence).getByText("Improved")).toBeInTheDocument();
     expect(
       within(evidence).getByText(/read-only here and does not verify or close the case/i),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Prior record — case history"));
+    const timeline = screen.getByRole("region", { name: "Case history" });
+    expect(within(timeline).getByText("Follow-up outcome")).toBeInTheDocument();
+    expect(within(timeline).getByText("Improved")).toBeInTheDocument();
   });
 
   it("does not render field validation evidence when completion data is absent", () => {

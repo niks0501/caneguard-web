@@ -436,6 +436,64 @@ class FieldValidationAssignmentTest extends TestCase
             ->assertJsonPath('data.lifecycle.verification_outcome', Report::VERIFICATION_OUTCOME_NOT_DETERMINED);
     }
 
+    public function test_follow_up_outcome_round_trips_supported_values_and_rejects_unknown_values(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+
+        foreach (['improved', 'unchanged', 'worsened', 'unable_to_determine'] as $outcome) {
+            $report = Report::factory()->create([
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            ]);
+            $assignment = FieldValidationAssignment::factory()->create([
+                'report_id' => $report->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+            ]);
+            $payload = [
+                'client_uuid' => fake()->uuid(),
+                'field_observation' => 'Observation for '.$outcome,
+                'field_finding' => 'Finding for '.$outcome,
+                'action_taken' => 'Action for '.$outcome,
+                'follow_up_outcome' => $outcome,
+                'visited_at' => '2026-09-02T04:05:06.123Z',
+                'gps_outcome' => 'unavailable',
+                'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+            ];
+
+            $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $payload)
+                ->assertCreated()
+                ->assertJsonPath('data.completion.follow_up_outcome', $outcome);
+            $this->assertDatabaseHas('field_validation_completions', [
+                'assignment_id' => $assignment->getKey(),
+                'follow_up_outcome' => $outcome,
+            ]);
+        }
+
+        $invalidReport = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $invalidAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $invalidReport->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        $this->post("/api/v1/mobile/assignments/{$invalidAssignment->uuid}/completion", [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+            'follow_up_outcome' => 'pending',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('follow_up_outcome');
+    }
+
     public function test_completion_requires_assignment_ownership_and_completion_ability(): void
     {
         $reviewer = User::factory()->reviewer()->create();
@@ -543,7 +601,7 @@ class FieldValidationAssignmentTest extends TestCase
         $this->assertSame('POST', $contract['wire']['method']);
         $this->assertSame('/api/v1/mobile/assignments/{assignment}/completion', $contract['wire']['path']);
         $this->assertSame(
-            ['client_uuid', 'field_observation', 'field_finding', 'action_taken', 'visited_at', 'gps_outcome', 'gps_attempted_at', 'gps_latitude', 'gps_longitude', 'gps_accuracy', 'fresh_photo'],
+            ['client_uuid', 'field_observation', 'field_finding', 'action_taken', 'follow_up_outcome', 'visited_at', 'gps_outcome', 'gps_attempted_at', 'gps_latitude', 'gps_longitude', 'gps_accuracy', 'fresh_photo'],
             array_keys($contract['fields']),
         );
     }

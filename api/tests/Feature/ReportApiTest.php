@@ -467,6 +467,7 @@ class ReportApiTest extends TestCase
             'assignment_id' => $assignment->getKey(),
             'visited_at' => '2026-09-23 08:00:00.000',
             'field_finding' => 'Validation finding for the register.',
+            'follow_up_outcome' => 'worsened',
         ]);
 
         Sanctum::actingAs($reviewer);
@@ -477,6 +478,7 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.0.field_validation.target_visit_date', '2026-09-22')
             ->assertJsonPath('data.0.field_validation.assignee.name', 'Field Officer')
             ->assertJsonPath('data.0.latest_validation.finding', 'Validation finding for the register.')
+            ->assertJsonPath('data.0.latest_validation.follow_up_outcome', 'worsened')
             ->assertJsonPath('data.0.latest_validation.visited_at', '2026-09-23T08:00:00.000000Z')
             ->assertJsonPath('data.0.action_taken', Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED);
     }
@@ -725,6 +727,7 @@ class ReportApiTest extends TestCase
             'field_observation' => 'Fresh observation from the assigned validation visit.',
             'field_finding' => 'The field finding is preserved as separate evidence.',
             'action_taken' => 'Provided field guidance and recorded the next action.',
+            'follow_up_outcome' => 'improved',
         ]);
 
         Sanctum::actingAs($reviewer);
@@ -743,6 +746,8 @@ class ReportApiTest extends TestCase
                 'data.field_validation_assignment.completion.action_taken',
                 'Provided field guidance and recorded the next action.',
             )
+            ->assertJsonPath('data.field_validation_assignment.completion.follow_up_outcome', 'improved')
+            ->assertJsonFragment(['label' => 'Follow-up outcome', 'value' => 'Improved'])
             ->assertJsonPath(
                 'data.lifecycle.field_validation_state',
                 Report::FIELD_VALIDATION_STATE_COMPLETED,
