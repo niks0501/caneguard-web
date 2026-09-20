@@ -1,4 +1,15 @@
 :root {
+  /* CaneGuard Master Brand Palette (synchronized with phone identity) */
+  --brand-structural-green: #074424;
+  --brand-structural-green-on-dark: #91B79A;
+  --brand-green: #3E7C30;
+  --brand-lime: #81A92A;
+  --brand-gold: #BB941D;
+  --brand-gold-on-dark: #E2A15F;
+  --brand-cream: #F0E4B8;
+  --brand-dark-field: #101711;
+  /* Theme deviation: UI functional tokens (--color-primary: #2d6b40, --color-primary-dark: #1e452a) remain calibrated for GOV.UK web accessibility and contrast ratios on light surfaces rather than raw mark fills. */
+
   /* GOV.UK-aligned functional colour roles in CaneGuard brand */
   --color-brand: #2d6b40;
   --color-brand-hover: #225331;

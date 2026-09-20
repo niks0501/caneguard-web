@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Eye, EyeOff, LockKeyhole, ShieldCheck, Sprout } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
+import caneGuardLogo from "../assets/brand/cane_guard_logo.png";
+import caneGuardLogoOnDark from "../assets/brand/cane_guard_logo_onDark.png";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { WebRoleError } from "../auth/auth.api";
@@ -100,7 +102,7 @@ export function LoginPage() {
       <section className="login-panel" aria-labelledby="login-heading">
         <div className="login-brand">
           <span className="brand__mark">
-            <Sprout aria-hidden="true" />
+            <img src={caneGuardLogo} alt="" aria-hidden="true" />
           </span>
           <div>
             <strong>CaneGuard</strong>
@@ -186,6 +188,11 @@ export function LoginPage() {
       </section>
       <aside className="login-visual" aria-label="CaneGuard decision support">
         <div>
+          <img
+            src={caneGuardLogoOnDark}
+            alt="CaneGuard"
+            className="login-visual__mark"
+          />
           <p className="eyebrow">Decision support for local teams</p>
           <h2>Turn field observations into timely SRA Don Pedro follow-up.</h2>
           <p>
