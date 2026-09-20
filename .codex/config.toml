@@ -8,15 +8,12 @@ model_reasoning_effort = "high"
 project_doc_fallback_filenames = ["PROJECT_CHECKS.md", "PROJECT_CONTEXT.md"]
 project_doc_max_bytes = 32768
 
-[agents]
-enabled = true
-max_concurrent_threads_per_session = 4
-
-
-
-# AkiDev manages only this project-local MCP block.
-
 # AkiDev manages only this project-local MCP block.
 # >>> AKIDEV MCP START
-# No AkiDev MCP integrations selected.
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@4.0.4"]
+startup_timeout_sec = 20
+enabled = true
+
 # <<< AKIDEV MCP END

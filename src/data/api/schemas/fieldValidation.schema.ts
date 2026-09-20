@@ -1,8 +1,13 @@
 import { z } from "zod";
-import { diseaseKeySchema, reviewStatusSchema } from "./report.schema";
+import {
+  diseaseKeySchema,
+  locationUnavailableReasonSchema,
+  reportLifecycleSchema,
+  reviewStatusSchema,
+} from "./report.schema";
 
 const nullableLocationSourceSchema = z
-  .enum(["gps", "manual_map"])
+  .enum(["gps", "manual_map", "unavailable"])
   .nullable();
 
 const sharedItemFields = {
@@ -16,9 +21,20 @@ const sharedItemFields = {
   predicted_label: diseaseKeySchema,
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
+  lifecycle: reportLifecycleSchema.optional(),
+  target_visit_date: z.iso.date().nullable().optional(),
+  assignee: z
+    .object({
+      uuid: z.string(),
+      name: z.string(),
+    })
+    .nullable()
+    .optional(),
   final_latitude: z.number().min(-90).max(90).nullable(),
   final_longitude: z.number().min(-180).max(180).nullable(),
   location_source: nullableLocationSourceSchema,
+  location_unavailable: z.boolean().optional(),
+  location_unavailable_reason: locationUnavailableReasonSchema.nullable().optional(),
   gps_accuracy: z.number().nonnegative().nullable(),
   affected_area_hectares: z.number().positive().nullable(),
   affected_portion_percent: z.number().min(0).max(100).nullable(),
@@ -35,6 +51,7 @@ export const mapFeaturePropertiesSchema = z.object({
   predicted_label: diseaseKeySchema,
   confidence: z.number().min(0).max(1),
   review_status: reviewStatusSchema,
+  lifecycle: reportLifecycleSchema.optional(),
   location_source: nullableLocationSourceSchema,
   gps_accuracy: z.number().nonnegative().nullable(),
   affected_area_hectares: z.number().positive().nullable(),
@@ -61,6 +78,9 @@ export const mapResponseSchema = z.object({
     total_count: z.number().int().nonnegative(),
     located_count: z.number().int().nonnegative(),
     unlocated_count: z.number().int().nonnegative(),
+    limit: z.number().int().positive(),
+    returned_count: z.number().int().nonnegative(),
+    truncated: z.boolean(),
   }),
 });
 
@@ -68,7 +88,11 @@ export const fieldValidationQueueItemSchema = z.object(sharedItemFields);
 
 export const fieldValidationQueueResponseSchema = z.object({
   data: z.object({
+    queue: z.enum(["needs_visit", "follow_up_due", "upcoming"]).optional(),
     count: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative().optional(),
+    page: z.number().int().positive().optional(),
+    per_page: z.number().int().positive().optional(),
     oldest: fieldValidationQueueItemSchema.nullable(),
     items: z.array(fieldValidationQueueItemSchema),
   }),

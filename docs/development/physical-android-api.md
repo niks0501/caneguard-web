@@ -6,6 +6,10 @@ The primary path is wireless ADB with an ADB reverse from the phone's `127.0.0.1
 
 The reverse path keeps the phone on its existing Wi-Fi connection and does not require the development server to be exposed to the LAN.
 
+> **Current mobile automation:** The companion Mobile repository owns device automation.
+>
+> Follow its [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md) for current device-flow commands and evidence.
+
 ## Primary workflow
 
 Run these commands from the root of this repository.
@@ -47,7 +51,7 @@ The Laravel development server started by `npm run api:dev` binds to `127.0.0.1:
 
 ADB reverse makes that loopback binding reachable from the phone without changing the server binding or opening a firewall port.
 
-Maestro and wireless ADB continue using the same wireless transport while the app's HTTP requests use the reverse port.
+Mobile device automation and wireless ADB continue using the same wireless transport while the app's HTTP requests use the reverse port.
 
 ## Checking the two connectivity states
 
@@ -83,7 +87,7 @@ Return to the ADB reverse workflow when the local WSL or Windows setup supports 
 
 ## Wireless-debugging test rules
 
-Keep Wi-Fi on while Maestro or wireless ADB is controlling the phone.
+Keep Wi-Fi on while a device flow or wireless ADB is controlling the phone.
 
 Do not automate a Wi-Fi-off step in a wireless ADB smoke test because it intentionally destroys the control channel.
 
@@ -101,4 +105,4 @@ If `adb reverse --list` does not show the port mapping, run `adb reverse tcp:800
 
 If the host health check works but the app reports the server as unavailable, verify the mobile build's `EXPO_PUBLIC_API_BASE_URL` and rebuild or restart the development client after changing environment values.
 
-If the app reports the server as unavailable while the phone remains controllable through Maestro, leave Wi-Fi on, restart Laravel, and trigger the normal resume or manual sync check.
+If the app reports the server as unavailable while the phone remains controllable through a device flow, leave Wi-Fi on, restart Laravel, and trigger the normal resume or manual sync check.

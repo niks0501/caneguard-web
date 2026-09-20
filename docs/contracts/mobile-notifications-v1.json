@@ -1,0 +1,67 @@
+{
+  "$id": "https://github.com/niks0501/caneguard-web/blob/main/docs/contracts/mobile-notifications-v1.json",
+  "artifact_format": "caneguard-json-contract",
+  "contract": "mobile-notifications-v1",
+  "version": 1,
+  "wire": {
+    "method": "GET",
+    "path": "/api/v1/mobile/notifications",
+    "content_type": "application/json",
+    "undeclared_fields": "ignored"
+  },
+  "envelope": {
+    "required_keys": ["data", "links", "meta", "sync"],
+    "data_key": "data",
+    "next_link": "links.next",
+    "checkpoint": "sync.before"
+  },
+  "fields": {
+    "id": { "type": "uuid", "required": true, "nullable": false },
+    "event_type": { "type": "string", "required": true, "nullable": false, "max_length": 80 },
+    "title": { "type": "string", "required": true, "nullable": false, "max_length": 160 },
+    "message": { "type": "string", "required": true, "nullable": false, "max_length": 500 },
+    "case": {
+      "type": "object",
+      "required": true,
+      "nullable": false,
+      "required_keys": ["uuid", "reference_code"],
+      "additional_properties": false,
+      "properties": {
+        "uuid": { "type": "uuid", "required": true, "nullable": true },
+        "reference_code": { "type": "string", "required": true, "nullable": true, "max_length": 32 }
+      }
+    },
+    "assignment_uuid": { "type": "uuid", "required": true, "nullable": true },
+    "content": { "type": "string", "required": true, "nullable": true, "max_length": 10000 },
+    "advisory": {
+      "type": "object",
+      "required": true,
+      "nullable": true,
+      "required_keys": ["uuid", "code", "title", "content", "status", "selected_at"],
+      "additional_properties": false,
+      "properties": {
+        "uuid": { "type": "uuid", "required": true, "nullable": false },
+        "code": { "type": "string", "required": true, "nullable": false, "max_length": 64 },
+        "title": { "type": "string", "required": true, "nullable": false, "max_length": 160 },
+        "content": { "type": "string", "required": true, "nullable": false, "max_length": 10000 },
+        "status": { "type": "string", "required": true, "nullable": false, "enum": ["validated"] },
+        "selected_at": { "type": "date-time", "required": true, "nullable": false }
+      }
+    },
+    "is_read": { "type": "boolean", "required": true, "nullable": false },
+    "read_at": { "type": "date-time", "required": true, "nullable": true },
+    "created_at": { "type": "date-time", "required": true, "nullable": true }
+  },
+  "versioning": {
+    "same_major_compatible_widening": [
+      "adding optional response fields",
+      "increasing documented text bounds"
+    ],
+    "new_major_required": [
+      "removing or renaming a field",
+      "changing a field type or nullability",
+      "changing owner-scope or read-state semantics",
+      "changing pagination checkpoint semantics"
+    ]
+  }
+}

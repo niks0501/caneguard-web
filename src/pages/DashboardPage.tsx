@@ -1,25 +1,30 @@
+import { useState } from "react";
 import {
-  ArrowRight,
-  BadgeCheck,
+  CalendarClock,
+  CalendarDays,
   CheckCircle2,
+  ClipboardCheck,
   CircleHelp,
   Clock3,
   FileStack,
-  MapPin,
   RefreshCw,
   Rows3,
+  ShieldCheck,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
+import { MonthlyCaseSummary } from "../components/dashboard/MonthlyCaseSummary";
+import { OperationalQueueCard } from "../components/dashboard/OperationalQueueCard";
 import { SecondaryMetric } from "../components/dashboard/SecondaryMetric";
 import { PageContent, PageHeader } from "../components/layout/Page";
-import { MetricCard } from "../components/reports/MetricCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
 import { useDashboard } from "../hooks/useDashboard";
+import type { OperationalQueue } from "../domain/operationalQueue";
 
 function formatRefreshTime(timestamp: number) {
   if (!timestamp) return "Not refreshed yet";
@@ -31,16 +36,70 @@ function formatRefreshTime(timestamp: number) {
   }).format(timestamp);
 }
 
+const queueCopy: Record<OperationalQueue, {
+  label: string;
+  description: string;
+  icon: ReactNode;
+  href: string;
+}> = {
+  needs_review: {
+    label: "Needs Review",
+    description: "Open submitted reports waiting for an office review decision.",
+    icon: <ShieldCheck aria-hidden="true" />,
+    href: routes.reportQueue("needs_review"),
+  },
+  needs_visit: {
+    label: "Needs Visit",
+    description: "Open submitted reports with field validation still incomplete.",
+    icon: <ClipboardCheck aria-hidden="true" />,
+    href: routes.fieldValidationQueue("needs_visit"),
+  },
+  follow_up_due: {
+    label: "Follow-up Due",
+    description: "Target visit date passed; validation remains incomplete.",
+    icon: <CalendarClock aria-hidden="true" />,
+    href: routes.fieldValidationQueue("follow_up_due"),
+  },
+  upcoming: {
+    label: "Upcoming Visits",
+    description: "Target visit date is today or later; validation remains incomplete.",
+    icon: <CalendarDays aria-hidden="true" />,
+    href: routes.fieldValidationQueue("upcoming"),
+  },
+  unverified_no_active_work: {
+    label: "Unverified, no active work",
+    description: "Open unverified cases with no active field or expert work.",
+    icon: <Rows3 aria-hidden="true" />,
+    href: routes.reportQueue("unverified_no_active_work"),
+  },
+};
+
+
+const queueOrder: OperationalQueue[] = [
+  "needs_review",
+  "needs_visit",
+  "follow_up_due",
+  "upcoming",
+  "unverified_no_active_work",
+];
+
 export function DashboardPage() {
-  const dashboard = useDashboard();
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const dashboard = useDashboard(selectedMonth ?? undefined);
   const summary = dashboard.data;
+
+  const activeMonth =
+    selectedMonth ??
+    (summary?.monthlySummary?.month ??
+      summary?.recentReports?.[0]?.submittedAt?.slice(0, 7) ??
+      new Date().toISOString().slice(0, 7));
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
   const isRateLimited =
     dashboard.error instanceof ApiError && dashboard.error.status === 429;
   const isMalformed = dashboard.error instanceof ZodError;
   const initialErrorMessage = isForbidden
-    ? "Your account does not have access to the municipal dashboard."
+    ? "Your account does not have access to the SRA Don Pedro dashboard."
     : isRateLimited
       ? "The dashboard is receiving too many requests. Wait a moment, then try again."
       : isMalformed
@@ -55,7 +114,7 @@ export function DashboardPage() {
   if (dashboard.isPending) {
     return (
       <PageContent>
-        <LoadingState message="Loading the municipal report overview..." />
+        <LoadingState message="Loading the SRA Don Pedro report overview..." />
       </PageContent>
     );
   }
@@ -76,9 +135,8 @@ export function DashboardPage() {
   return (
     <PageContent>
       <PageHeader
-        eyebrow="Municipal overview"
         title="CaneGuard dashboard"
-        description="Track incoming field observations and the staff review queue at a glance."
+        description="Incoming field reports and review queues for the SRA Don Pedro Mill District."
         actions={
           <>
             <Link className="button button--secondary" to={routes.reports}>
@@ -103,37 +161,92 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="dashboard-metrics-band" aria-label="Report metrics">
-        <section className="dashboard-primary-metrics" aria-label="Report overview">
-          <MetricCard
-            label="Submitted–unverified"
-            value={String(summary.counts.submitted_unverified)}
-            context="Awaiting staff review"
-            icon={<Clock3 aria-hidden="true" />}
-            priority="primary"
-          />
-          <MetricCard
-            label="For field validation"
-            value={String(summary.counts.for_field_validation)}
-            context="Requires an on-site follow-up"
-            icon={<MapPin aria-hidden="true" />}
-            priority="primary"
-          />
-          <MetricCard
+      <section className="dashboard-operational-section" aria-labelledby="operational-queues-heading">
+        <div className="dashboard-section-heading">
+          <div>
+            <h2 id="operational-queues-heading">Operational queues</h2>
+          </div>
+        </div>
+        <div className="dashboard-operational-queues">
+          {queueOrder.map((queue) => {
+            const copy = queueCopy[queue];
+            return (
+              <OperationalQueueCard
+                key={queue}
+                queue={queue}
+                label={copy.label}
+                count={summary.queues?.[queue] ?? 0}
+                description={copy.description}
+                href={copy.href}
+                icon={copy.icon}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      {summary.riskTriage?.enabled ? (
+        <section className="risk-triage-summary" aria-labelledby="risk-triage-heading">
+          <div className="dashboard-section-heading">
+            <div>
+              <h2 id="risk-triage-heading">Needs Review attention bands</h2>
+              <p>{summary.riskTriage.note}</p>
+            </div>
+            <span>Measured {new Date(summary.riskTriage.measuredAt).toLocaleDateString("en-PH")}</span>
+          </div>
+          <div className="risk-triage-summary__bands">
+            <span className="risk-triage-band risk-triage-band--green">Green · {summary.riskTriage.bands.green}</span>
+            <span className="risk-triage-band risk-triage-band--amber">Amber · {summary.riskTriage.bands.amber}</span>
+            <span className="risk-triage-band risk-triage-band--red">Red · {summary.riskTriage.bands.red}</span>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
+        <div className="workspace-heading">
+          <div>
+            <h2 id="recent-reports-heading">Recent reports</h2>
+          </div>
+          <span className="workspace-heading__meta">{summary.recentReports.length} latest submissions</span>
+        </div>
+
+        {summary.recentReports.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <DashboardRecentReports reports={summary.recentReports} />
+        )}
+      </section>
+
+      {summary.monthlySummary ? (
+        <MonthlyCaseSummary
+          summary={summary.monthlySummary}
+          month={activeMonth}
+          onMonthChange={setSelectedMonth}
+        />
+      ) : null}
+
+      <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
+        <div className="dashboard-section-heading">
+          <div>
+            <h2>Report totals</h2>
+          </div>
+          <p className="dashboard-refreshed" aria-live="polite">
+            <RefreshCw aria-hidden="true" />
+            <span>Last refreshed</span>
+            <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
+          </p>
+        </div>
+        <section className="dashboard-secondary-row" aria-label="Historical report status totals">
+          <SecondaryMetric
             label="Total submitted"
-            value={String(summary.totalSubmitted)}
-            context="All synchronized field reports"
+            value={summary.totalSubmitted}
             icon={<FileStack aria-hidden="true" />}
           />
-          <MetricCard
+          <SecondaryMetric
             label="Verified by staff"
-            value={String(summary.counts.verified_by_staff)}
-            context="Evidence reviewed by staff"
-            icon={<BadgeCheck aria-hidden="true" />}
+            value={summary.counts.verified_by_staff}
+            icon={<CheckCircle2 aria-hidden="true" />}
           />
-        </section>
-
-        <section className="dashboard-secondary-row" aria-label="Additional report status totals">
           <SecondaryMetric
             label="Unable to verify"
             value={summary.counts.unable_to_verify}
@@ -142,51 +255,9 @@ export function DashboardPage() {
           <SecondaryMetric
             label="Resolved"
             value={summary.counts.resolved}
-            icon={<CheckCircle2 aria-hidden="true" />}
+            icon={<Clock3 aria-hidden="true" />}
           />
-          <p className="dashboard-refreshed" aria-live="polite">
-            <RefreshCw aria-hidden="true" />
-            <span>Last refreshed</span>
-            <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
-          </p>
         </section>
-      </section>
-
-      <section className="dashboard-next-action" aria-labelledby="next-action-heading">
-        <div className="dashboard-next-action__icon"><MapPin aria-hidden="true" /></div>
-        <div>
-          <p className="eyebrow">Next safe action</p>
-          <h2 id="next-action-heading">
-            {summary.counts.for_field_validation > 0
-              ? "Start with the oldest field validation"
-              : "Review the submitted report queue"}
-          </h2>
-          <p>
-            {summary.counts.for_field_validation > 0
-              ? `${summary.counts.for_field_validation} report${summary.counts.for_field_validation === 1 ? " is" : "s are"} waiting for an on-site follow-up. The field workspace keeps the oldest observation first.`
-              : "Use the submitted report queue to choose the next review action without losing evidence context."}
-          </p>
-        </div>
-        <Link className="dashboard-next-action__link" to={summary.counts.for_field_validation > 0 ? routes.map : routes.reports}>
-          <span>{summary.counts.for_field_validation > 0 ? "Open field queue" : "Open report queue"}</span>
-          <ArrowRight aria-hidden="true" />
-        </Link>
-      </section>
-
-      <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
-        <div className="workspace-heading">
-          <div>
-            <p className="eyebrow">Latest field activity</p>
-            <h2 id="recent-reports-heading">Recent reports</h2>
-          </div>
-          <span>{summary.recentReports.length} latest submissions</span>
-        </div>
-
-        {summary.recentReports.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <DashboardRecentReports reports={summary.recentReports} />
-        )}
       </section>
     </PageContent>
   );

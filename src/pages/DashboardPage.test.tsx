@@ -14,6 +14,11 @@ vi.mock("../hooks/useDashboard", () => ({
 
 const summary = {
   totalSubmitted: 8,
+  queues: {
+    needs_review: 3,
+    needs_visit: 1,
+    follow_up_due: 0,
+  },
   counts: {
     submitted_unverified: 3,
     for_field_validation: 1,
@@ -53,23 +58,34 @@ beforeEach(() => {
 });
 
 describe("DashboardPage", () => {
-  it("shows all planned totals, recent reports, and safe language", () => {
+  it("leads with operational queues and keeps historical totals secondary", () => {
     renderDashboard();
 
-    const primary = within(
-      screen.getByRole("region", { name: "Report overview" }),
+    const queues = within(
+      screen.getByRole("region", { name: "Operational queues" }),
     );
-    expect(primary.getByText("Total submitted")).toBeInTheDocument();
-    expect(primary.getByText("Submitted–unverified")).toBeInTheDocument();
-    expect(primary.getByText("For field validation")).toBeInTheDocument();
-    expect(primary.getByText("Verified by staff")).toBeInTheDocument();
-    const secondary = within(
-      screen.getByRole("region", {
-        name: "Additional report status totals",
-      }),
+    expect(queues.getByText("Needs Review")).toBeInTheDocument();
+    expect(queues.getByText("Needs Visit")).toBeInTheDocument();
+    expect(queues.getByText("Follow-up Due")).toBeInTheDocument();
+    expect(queues.getByText("3")).toBeInTheDocument();
+    expect(queues.getByText("1")).toBeInTheDocument();
+    expect(
+      queues.getByRole("link", { name: "Open Needs Review queue" }),
+    ).toHaveAttribute("href", "/reports?queue=needs_review");
+    expect(
+      queues.getByRole("link", { name: "Open Needs Visit queue" }),
+    ).toHaveAttribute("href", "/map?queue=needs_visit");
+    expect(
+      queues.getByRole("link", { name: "Open Follow-up Due queue" }),
+    ).toHaveAttribute("href", "/map?queue=follow_up_due");
+
+    const historical = within(
+      screen.getByRole("region", { name: "Historical report totals" }),
     );
-    expect(secondary.getByText("Unable to verify")).toBeInTheDocument();
-    expect(secondary.getByText("Resolved")).toBeInTheDocument();
+    expect(historical.getByText("Total submitted")).toBeInTheDocument();
+    expect(historical.getByText("Verified by staff")).toBeInTheDocument();
+    expect(historical.getByText("Unable to verify")).toBeInTheDocument();
+    expect(historical.getByText("Resolved")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open CG-2026-0718" }),
     ).toHaveAttribute(
@@ -81,16 +97,56 @@ describe("DashboardPage", () => {
         name: "Submitted evidence for CG-2026-0718",
       }),
     ).toHaveAttribute("src", mockReports[0].imageUrl);
-    expect(
-      screen.queryByText(/confirmed cases?/i),
-    ).not.toBeInTheDocument();
-    const nextAction = screen.getByRole("region", {
-      name: "Start with the oldest field validation",
-    });
-    expect(nextAction).toHaveTextContent("oldest observation first");
-    expect(
-      within(nextAction).getByRole("link", { name: "Open field queue" }),
-    ).toHaveAttribute("href", "/map");
+    expect(screen.queryByRole("region", { name: /Start with Needs Review/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Recent reports" })).toBeInTheDocument();
+  });
+
+  it("renders monthly case summaries with an operational-statistics boundary", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: {
+          ...summary,
+          monthlySummary: {
+            month: "2026-07",
+            period: { from: "2026-07-01", to: "2026-07-31" },
+            reportedCases: 4,
+            casesByBarangay: [{ barangay: "Mabini", reportedCases: 3 }],
+            casesByPossibleCondition: [
+              { possibleCondition: "rust", reportedCases: 2 },
+              { possibleCondition: "smut", reportedCases: 1 },
+            ],
+            estimatedAffectedHectares: 3.75,
+            fieldValidationCounts: {
+              unassigned: 1,
+              assigned: 1,
+              inProgress: 0,
+              completed: 2,
+              requiringValidation: 1,
+            },
+            closedCases: 2,
+            reviewTime: {
+              source: "submitted_at_to_reviewed_at",
+              reviewedCases: 2,
+              averageHours: 30,
+              medianHours: 30,
+              minHours: 6,
+              maxHours: 54,
+            },
+          },
+        },
+      }),
+    );
+    renderDashboard();
+
+    expect(screen.getByRole("region", { name: "Monthly submitted report summary" })).toHaveTextContent(
+      "operational report counts, not population-level disease statistics",
+    );
+    const monthly = within(
+      screen.getByRole("region", { name: "Monthly submitted report summary" }),
+    );
+    expect(monthly.getByText("3 submitted reports")).toBeInTheDocument();
+    expect(monthly.getByText("Possible Condition: rust")).toBeInTheDocument();
+    expect(monthly.getByText("Possible Condition: smut")).toBeInTheDocument();
   });
 
   it("refreshes on demand and links to the full queue", async () => {
@@ -109,13 +165,28 @@ describe("DashboardPage", () => {
     ).toHaveAttribute("href", "/reports");
   });
 
+  it("shows a zero due queue without inventing a deadline", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: {
+          ...summary,
+          queues: { ...summary.queues, needs_review: 0, needs_visit: 0, follow_up_due: 0 },
+        },
+      }),
+    );
+    renderDashboard();
+
+    expect(screen.getByText("Target visit date passed; validation remains incomplete.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Follow-up Due queue" })).toBeInTheDocument();
+  });
+
   it("shows loading and empty states", () => {
     vi.mocked(useDashboard).mockReturnValue(
       dashboardResult({ data: undefined, isPending: true }),
     );
     const { rerender } = renderDashboard();
     expect(
-      screen.getByText("Loading the municipal report overview..."),
+      screen.getByText("Loading the SRA Don Pedro report overview..."),
     ).toBeInTheDocument();
 
     vi.mocked(useDashboard).mockReturnValue(
@@ -142,7 +213,7 @@ describe("DashboardPage", () => {
     const { rerender } = renderDashboard();
     expect(
       screen.getByText(
-        "Your account does not have access to the municipal dashboard.",
+        "Your account does not have access to the SRA Don Pedro dashboard.",
       ),
     ).toBeInTheDocument();
     expect(

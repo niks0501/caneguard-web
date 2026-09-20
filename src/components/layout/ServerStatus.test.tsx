@@ -38,12 +38,13 @@ function renderStatus(
   queryKey: string,
   queryFn: () => Promise<unknown>,
   connectivity: ApiConnectivitySnapshot = connected,
+  showOnlyDegraded = false,
 ) {
   return render(
     <QueryClientProvider client={queryClient()}>
       <ApiConnectivityContext value={connectivity}>
         <QueryProbe queryKey={queryKey} queryFn={queryFn} />
-        <ServerStatus />
+        <ServerStatus showOnlyDegraded={showOnlyDegraded} />
       </ApiConnectivityContext>
     </QueryClientProvider>,
   );
@@ -64,9 +65,11 @@ describe("ServerStatus", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows unavailable after a transient server failure", async () => {
-    renderStatus("unavailable-status", () =>
-      Promise.reject(new ApiError("Unavailable", { status: 503 })),
+  it("shows unavailable when the health check says the API is unreachable", async () => {
+    renderStatus(
+      "unavailable-status",
+      () => Promise.resolve({ ok: true }),
+      { ...connected, apiReachability: "unreachable" },
     );
 
     expect(
@@ -74,7 +77,22 @@ describe("ServerStatus", () => {
         name: "Connectivity: Network Available; CaneGuard server Unavailable",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Server unavailable")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Server unavailable", { exact: true }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a reachable server connected when an endpoint returns 503", async () => {
+    renderStatus("endpoint-failure-status", () =>
+      Promise.reject(new ApiError("Unavailable", { status: 503 })),
+    );
+
+    expect(
+      await screen.findByRole("status", {
+        name: "Connectivity: Network Available; CaneGuard server Connected",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
   });
 
   it("keeps a reachable server connected for intentional 403 responses", async () => {
@@ -103,5 +121,16 @@ describe("ServerStatus", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText("Offline")).toBeInTheDocument();
+  });
+
+  it("renders nothing when healthy by default (showOnlyDegraded=true)", () => {
+    const { container } = render(
+      <QueryClientProvider client={queryClient()}>
+        <ApiConnectivityContext value={connected}>
+          <ServerStatus />
+        </ApiConnectivityContext>
+      </QueryClientProvider>,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

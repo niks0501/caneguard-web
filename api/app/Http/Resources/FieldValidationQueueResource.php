@@ -20,6 +20,16 @@ class FieldValidationQueueResource extends JsonResource
             'predicted_label' => $this->predicted_label,
             'confidence' => (float) $this->confidence,
             'review_status' => $this->review_status,
+            'lifecycle' => $this->resource->lifecycleSnapshot(),
+            'target_visit_date' => $this->resource->relationLoaded('fieldValidationAssignment')
+                ? $this->resource->fieldValidationAssignment?->target_visit_date?->format('Y-m-d')
+                : null,
+            'assignee' => $this->resource->relationLoaded('fieldValidationAssignment') && $this->resource->fieldValidationAssignment?->assignee
+                ? [
+                    'uuid' => $this->resource->fieldValidationAssignment->assignee->uuid,
+                    'name' => $this->resource->fieldValidationAssignment->assignee->name,
+                ]
+                : null,
             'final_latitude' => $this->final_latitude === null
                 ? null
                 : (float) $this->final_latitude,
@@ -27,6 +37,8 @@ class FieldValidationQueueResource extends JsonResource
                 ? null
                 : (float) $this->final_longitude,
             'location_source' => $this->location_source,
+            'location_unavailable' => $this->resource->hasLocationUnavailable(),
+            'location_unavailable_reason' => $this->location_unavailable_reason,
             'gps_accuracy' => $this->gps_accuracy === null
                 ? null
                 : (float) $this->gps_accuracy,

@@ -3,15 +3,16 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-  DEFAULT_ARTIFACT_PATH,
-  readMobileReportUploadArtifact,
-} from './validate-mobile-report-upload-v1.mjs';
+import { readMobileReportUploadV2Artifact } from './validate-mobile-report-upload-v2.mjs';
 import {
   readGateConfig,
   resolveMobileRef,
 } from './resolve-mobile-report-upload-gate-config.mjs';
 
+const DEFAULT_ARTIFACT_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../docs/contracts/mobile-report-upload-v2.json',
+);
 const DEFAULT_TEST_PATH =
   'src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts';
 const FULL_SHA = /^[0-9a-f]{40}$/i;
@@ -46,12 +47,12 @@ async function main() {
   );
   const producerTestPath = args.testPath ?? config.producer_test_path ?? DEFAULT_TEST_PATH;
 
-  await readMobileReportUploadArtifact(artifactPath);
+  await readMobileReportUploadV2Artifact(artifactPath);
   await assertMobileCheckout(mobileDir, expectedMobileRef);
 
   const artifactTarget = path.join(
     mobileDir,
-    'references/mobile-report-upload-v1.json',
+    'references/mobile-report-upload-v2.json',
   );
   const originalArtifact = await readRegularFile(artifactTarget);
   const originalMode = (await lstat(artifactTarget)).mode;
@@ -65,7 +66,7 @@ async function main() {
   }
 
   console.log(
-    `[producer] PASS mobile-report-upload-v1 producer test at ${expectedMobileRef}. `
+    `[producer] PASS mobile-report-upload-v2 producer test at ${expectedMobileRef}. `
       + 'The producer was evaluated against the web-owned artifact.',
   );
 }

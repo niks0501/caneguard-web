@@ -1,14 +1,38 @@
 import { useEffect, useRef, useState } from "react";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { X } from "lucide-react";
 import { AppSidebar } from "../navigation/AppSidebar";
+import { useRealtimeInvalidation } from "../../hooks/useRealtimeInvalidation";
 import { AppHeader } from "./AppHeader";
 
 export function AppShell() {
   const [isNavigationOpen, setNavigationOpen] = useState(false);
+  const realtime = useRealtimeInvalidation();
+  const location = useLocation();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerPanelRef = useRef<HTMLDivElement>(null);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith("/expert/queue")) {
+      document.title = "CaneGuard | Assigned Expert Referrals";
+    } else if (path.startsWith("/reports/")) {
+      document.title = "CaneGuard | Case Review";
+    } else if (path.startsWith("/reports")) {
+      document.title = "CaneGuard | Submitted Reports";
+    } else if (path.startsWith("/needs-assessment")) {
+      document.title = "CaneGuard | Needs assessment";
+    } else if (path.startsWith("/monitoring")) {
+      document.title = "CaneGuard | Monitoring workspace";
+    } else if (path.startsWith("/map")) {
+      document.title = "CaneGuard | Field-Validation Map";
+    } else if (path.startsWith("/dashboard")) {
+      document.title = "CaneGuard | Dashboard";
+    } else {
+      document.title = "CaneGuard | Municipal Workspace";
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isNavigationOpen) return;
@@ -64,6 +88,9 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <div className="app-shell__desktop-nav"><AppSidebar /></div>
       {isNavigationOpen ? (
         <div className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
@@ -91,8 +118,9 @@ export function AppShell() {
         <AppHeader
           menuButtonRef={menuButtonRef}
           onOpenMenu={() => setNavigationOpen(true)}
+          realtimeStatus={realtime.status}
         />
-        <main><Outlet /></main>
+        <main id="main-content" tabIndex={-1}><Outlet /></main>
       </div>
     </div>
   );

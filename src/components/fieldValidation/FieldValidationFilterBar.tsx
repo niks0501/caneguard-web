@@ -49,13 +49,13 @@ export function FieldValidationFilterBar({
         />
       </label>
       <SelectFilter
-        label="Possible AI result"
+        label="Possible Condition"
         value={draft.disease ?? ""}
         onChange={(event) =>
           update({ disease: (event.target.value || undefined) as DiseaseKey | undefined })
         }
       >
-        <option value="">All possible results</option>
+        <option value="">All Possible Conditions</option>
         {Object.entries(diseaseLabels).map(([value, label]) => (
           <option value={value} key={value}>{label}</option>
         ))}

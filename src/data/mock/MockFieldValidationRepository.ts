@@ -28,8 +28,10 @@ function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
     observedAt: report.observedAt ?? null,
     submittedAt: report.submittedAt,
     predictedDisease: report.predictedDisease,
-    confidence: report.confidence,
+    confidence: report.confidence ?? 0,
     reviewStatus: report.reviewStatus,
+    targetVisitDate: report.fieldValidationAssignment?.targetVisitDate ?? null,
+    assignee: report.fieldValidationAssignment?.assignee ?? null,
     finalLatitude: report.finalLatitude ?? null,
     finalLongitude: report.finalLongitude ?? null,
     locationSource: report.locationSource ?? null,
@@ -46,6 +48,9 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
         (filters.status
           ? report.reviewStatus === filters.status
           : report.reviewStatus !== "resolved") &&
+        (filters.queue === "needs_visit"
+          ? report.reviewStatus === "for_field_validation"
+          : filters.queue !== "follow_up_due") &&
         matchesFilters(report, filters),
     );
     const located = reports.filter(
@@ -71,7 +76,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           observedAt: report.observedAt ?? null,
           submittedAt: report.submittedAt,
           predictedDisease: report.predictedDisease,
-          confidence: report.confidence,
+          confidence: report.confidence ?? 0,
           reviewStatus: report.reviewStatus,
           locationSource: report.locationSource ?? null,
           gpsAccuracy: report.gpsAccuracy ?? null,
@@ -83,15 +88,19 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
         totalCount: reports.length,
         locatedCount: located.length,
         unlocatedCount: reports.length - located.length,
+        limit: 1000,
+        returnedCount: located.length,
+        truncated: false,
       },
     };
   }
 
   async getQueue(filters: FieldValidationFilters = {}): Promise<FieldValidationQueueData> {
-    const items = mockReports
+    const rawItems = mockReports
       .filter(
         (report) =>
           report.reviewStatus === "for_field_validation" &&
+          filters.queue !== "follow_up_due" &&
           matchesFilters(report, filters),
       )
       .sort((first, second) => {
@@ -107,12 +116,29 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           first.uuid.localeCompare(second.uuid)
         );
       })
-      .map(toQueueItem);
+      .map(toQueueItem)
+      .filter((item) => {
+        if (!filters.assignment || filters.assignment === "all") return true;
+        if (filters.assignment === "unassigned") return !item.assignee;
+        if (filters.assignment === "mine") {
+          return item.assignee?.uuid === "00000000-0000-4000-8000-000000000100" || item.assignee?.name === "Maria Santos";
+        }
+        return true;
+      });
+
+    const page = Math.max(1, filters.page ?? 1);
+    const limit = Math.max(1, filters.limit ?? 50);
+    const startIndex = (page - 1) * limit;
+    const paginatedItems = rawItems.slice(startIndex, startIndex + limit);
 
     return {
-      count: items.length,
-      oldest: items[0] ?? null,
-      items: items.slice(0, 50),
+      queue: filters.queue ?? "needs_visit",
+      count: rawItems.length,
+      total: rawItems.length,
+      page,
+      perPage: limit,
+      oldest: rawItems[0] ?? null,
+      items: paginatedItems,
     };
   }
 }

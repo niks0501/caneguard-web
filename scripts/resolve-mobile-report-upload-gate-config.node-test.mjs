@@ -18,9 +18,21 @@ async function configFixture(overrides = {}) {
   await writeFile(configPath, JSON.stringify({
     mobile_repository: 'niks0501/caneguard-mobile',
     mobile_ref: VALID_SHA,
-    artifact_path: 'docs/contracts/mobile-report-upload-v1.json',
+    artifact_path: 'docs/contracts/mobile-report-upload-v2.json',
     producer_test_path:
       'src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts',
+    assignment_artifact_path: 'docs/contracts/mobile-field-validation-assignment-v1.json',
+    assignment_producer_test_path:
+      'src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.contract.test.ts',
+    completion_artifact_path: 'docs/contracts/mobile-field-validation-completion-v1.json',
+    completion_producer_test_path:
+      'src/features/assignments/api/__tests__/mobileFieldValidationCompletion.contract.test.ts',
+    notification_artifact_path: 'docs/contracts/mobile-notifications-v1.json',
+    notification_producer_test_path:
+      'src/features/notifications/api/__tests__/mobileNotificationsApi.contract.test.ts',
+    lifecycle_artifact_path: 'docs/contracts/report-lifecycle-v1.json',
+    lifecycle_producer_test_path:
+      'src/features/lifecycle/__tests__/reportLifecycleContract.test.ts',
     ...overrides,
   }));
   return { directory, configPath };

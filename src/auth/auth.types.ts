@@ -1,4 +1,4 @@
-export type WebRole = "reviewer" | "admin";
+export type WebRole = "reviewer" | "admin" | "expert";
 
 export interface AppUser {
   uuid: string;
@@ -10,6 +10,20 @@ export interface AppUser {
 export interface LoginCredentials {
   email: string;
   password: string;
+}
+
+export interface RegistrationCredentials {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation?: string;
+}
+
+export interface PasswordResetCredentials {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation?: string;
 }
 
 export type AuthStatus =

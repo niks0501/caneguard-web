@@ -44,6 +44,18 @@ jobs:
       - name: Install Laravel dependencies
         run: composer install --working-dir=api --no-interaction --no-progress --prefer-dist
 
+      - name: Verify dependency audit gate contract
+        run: npm run test:quality-gate-workflow
+
+      - name: Verify MapLibre dependency security contract
+        run: npm run security:dependency-check
+
+      - name: Audit Web dependencies (high and critical advisories fail)
+        run: npm audit --audit-level=high
+
+      - name: Audit Laravel dependencies (advisories and abandoned packages fail)
+        run: composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail
+
       - name: Prepare Laravel test environment
         run: |
           cp api/.env.example api/.env

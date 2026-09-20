@@ -4,14 +4,17 @@ import {
   useMemo,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ClipboardCheck, RefreshCw } from "lucide-react";
+import { ClipboardCheck, Download, RefreshCw } from "lucide-react";
 import {
+  Link,
   useLocation,
   useSearchParams,
 } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
+import { routes } from "../app/routes";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import { MonitoringCalendar } from "../components/reports/MonitoringCalendar";
 import { ReportTable } from "../components/reports/ReportTable";
 import { Button } from "../components/ui/Button";
 import { SearchInput, SelectFilter } from "../components/ui/FormControls";
@@ -23,19 +26,29 @@ import {
   NoResultsState,
 } from "../components/ui/States";
 import {
+  authorityClassifiedConditionLabels,
+  caseStateLabels,
   diseaseLabels,
+  fieldValidationStateLabels,
   reviewStatusLabels,
+  verificationOutcomeLabels,
 } from "../domain/report.metadata";
 import type { ReportFilters } from "../domain/report.types";
 import { reportKeys } from "../hooks/reportQueries";
-import { useReports } from "../hooks/useReports";
+import { useExportReports, useReports } from "../hooks/useReports";
 import {
   parseReportListUrl,
 } from "./reportListUrlState";
 
 type FilterKey =
   | "search"
+  | "queue"
   | "status"
+  | "case_state"
+  | "verification_outcome"
+  | "field_validation_state"
+  | "authority_classified_condition"
+  | "concern"
   | "predicted_label"
   | "barangay"
   | "date_from"
@@ -58,7 +71,22 @@ function isMalformedDataError(error: unknown) {
   return error instanceof ZodError;
 }
 
-export function SubmittedReportsPage() {
+const queueLabels = {
+  needs_review: "Needs Review",
+  needs_visit: "Needs Visit",
+  follow_up_due: "Follow-up Due",
+  upcoming: "Upcoming Visits",
+  unverified_no_active_work: "Unverified, no active work",
+} as const;
+
+export function SubmittedReportsPage({
+  workspace = "reports",
+  embedded = false,
+}: {
+  workspace?: "reports" | "monitoring";
+  embedded?: boolean;
+}) {
+  const isMonitoring = workspace === "monitoring";
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -75,11 +103,23 @@ export function SubmittedReportsPage() {
     }),
     [deferredSearch, urlState.filters],
   );
+  const exportFilters = useMemo<ReportFilters>(
+    () => ({
+      ...urlState.filters,
+      search: urlState.filters.search?.trim() || undefined,
+      barangay: urlState.filters.barangay?.trim() || undefined,
+    }),
+    [urlState.filters],
+  );
   const reportsQuery = useReports(queryFilters, {
     enabled: !urlState.invalid,
   });
+  const exportReports = useExportReports();
   const reports = reportsQuery.data?.reports ?? [];
   const meta = reportsQuery.data?.meta;
+  const activeQueueLabel = urlState.filters.queue
+    ? queueLabels[urlState.filters.queue]
+    : undefined;
 
   useEffect(() => {
     if (
@@ -122,6 +162,24 @@ export function SubmittedReportsPage() {
     setSearchParams(new URLSearchParams());
   };
 
+  const handleExport = async () => {
+    try {
+      const blob = await exportReports.mutateAsync(exportFilters);
+      if (typeof URL.createObjectURL !== "function") return;
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "caneguard-case-export.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      // The mutation state renders the actionable export error message.
+    }
+  };
+
   const refreshQueue = () =>
     queryClient.invalidateQueries({
       queryKey: reportKeys.list(queryFilters),
@@ -141,12 +199,28 @@ export function SubmittedReportsPage() {
     reportsQuery.isError && (!hasCachedData || accessDenied);
 
   return (
-    <PageContent>
-      <PageHeader
-        eyebrow="Case monitoring"
-        title="Submitted reports"
-        description="Review field observations and decide the appropriate municipal follow-up."
-        actions={
+    <PageContent className={embedded ? "page-content--embedded" : undefined}>
+      {!embedded ? <PageHeader
+        eyebrow={isMonitoring ? "Office monitoring" : undefined}
+        title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
+        description={isMonitoring
+          ? "Track reported concerns, validation evidence, and scheduled visits from one case register."
+          : "Review field observations and decide the appropriate SRA Don Pedro follow-up."}
+        actions={(
+          <>
+          <Button
+            variant="secondary"
+            icon={<Download aria-hidden="true" />}
+            disabled={
+              exportReports.isPending ||
+              reportsQuery.isFetching ||
+              urlState.invalid ||
+              !hasDisplayableData
+            }
+            onClick={() => void handleExport()}
+          >
+            {exportReports.isPending ? "Preparing CSV" : "Export CSV"}
+          </Button>
           <Button
             variant="secondary"
             icon={
@@ -164,13 +238,30 @@ export function SubmittedReportsPage() {
           >
             {reportsQuery.isFetching ? "Refreshing queue" : "Refresh queue"}
           </Button>
-        }
-      />
+          </>
+        )}
+      /> : null}
+
+      {isMonitoring ? (
+        <nav className="monitoring-saved-views" aria-label="Monitoring saved views">
+          <span className="monitoring-saved-views__label">Saved views</span>
+          <Link to={routes.monitoring} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All monitoring cases</Link>
+          <Link to={`${routes.monitoring}?concern=rssi`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI concerns</Link>
+          <Link to={`${routes.monitoring}?queue=follow_up_due`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
+          <Link to={`${routes.monitoring}?queue=upcoming`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
+          {!embedded ? <Link to={`${routes.monitoring}?view=calendar`} className={searchParams.get("view") === "calendar" ? "is-active" : undefined}>Inspector schedule</Link> : null}
+        </nav>
+      ) : null}
 
       {reviewNotice ? (
         <div className="success-banner" role="status">
           <ClipboardCheck aria-hidden="true" />
           {reviewNotice}
+        </div>
+      ) : null}
+      {exportReports.isError ? (
+        <div className="dashboard-refresh-warning" role="alert">
+          The filtered case export could not be downloaded. The report queue remains available.
         </div>
       ) : null}
 
@@ -180,15 +271,16 @@ export function SubmittedReportsPage() {
       >
         <div className="workspace-heading">
           <div>
-            <p className="eyebrow">Work queue</p>
-            <h2 id="report-table-heading">Recent submissions</h2>
+            <h2 id="report-table-heading">{activeQueueLabel ?? (isMonitoring ? "Monitoring register" : "Recent submissions")}</h2>
           </div>
           <span>
-            {meta && hasDisplayableData
-              ? `${meta.total} matching ${
-                  meta.total === 1 ? "report" : "reports"
-                }`
-              : "Server-filtered queue"}
+            {activeQueueLabel
+              ? "Filtered operational workspace"
+              : meta && hasDisplayableData
+                ? `${meta.total} matching ${
+                    meta.total === 1 ? "report" : "reports"
+                  }`
+                : "Server-filtered queue"}
           </span>
         </div>
 
@@ -196,29 +288,47 @@ export function SubmittedReportsPage() {
           <SearchInput
             value={urlState.filters.search ?? ""}
             maxLength={120}
-            placeholder="Search ID, submitter, barangay..."
+            placeholder={isMonitoring ? "Search ID, farmer/farm, barangay..." : "Search ID, submitter, barangay..."}
             onChange={(event) =>
               updateFilter("search", event.target.value, { replace: true })
             }
           />
           <SelectFilter
-            label="Status"
+            label="Queue"
+            value={urlState.filters.queue ?? ""}
+            onChange={(event) => updateFilter("queue", event.target.value)}
+          >
+            <option value="">All work queues</option>
+            {Object.entries(queueLabels).map(([value, label]) => (
+              <option value={value} key={value}>{label}</option>
+            ))}
+          </SelectFilter>
+          <SelectFilter
+            label="Reported concern"
+            value={urlState.filters.reportedConcern ?? ""}
+            onChange={(event) => updateFilter("concern", event.target.value)}
+          >
+            <option value="">Any reported concern</option>
+            <option value="rssi">RSSI</option>
+          </SelectFilter>
+          <SelectFilter
+            label="Work status"
             value={urlState.filters.status ?? ""}
             onChange={(event) => updateFilter("status", event.target.value)}
           >
-            <option value="">All statuses</option>
+            <option value="">All work statuses</option>
             {Object.entries(reviewStatusLabels).map(([value, label]) => (
               <option value={value} key={value}>{label}</option>
             ))}
           </SelectFilter>
           <SelectFilter
-            label="Possible result"
+            label="Possible Condition"
             value={urlState.filters.disease ?? ""}
             onChange={(event) =>
               updateFilter("predicted_label", event.target.value)
             }
           >
-            <option value="">All results</option>
+            <option value="">All Possible Conditions</option>
             {Object.entries(diseaseLabels).map(([value, label]) => (
               <option value={value} key={value}>{label}</option>
             ))}
@@ -261,17 +371,68 @@ export function SubmittedReportsPage() {
           </label>
           <SelectFilter
             label="Sort by"
-            value={urlState.filters.sort ?? "newest"}
+            value={urlState.filters.sort ?? "oldest"}
             onChange={(event) =>
               updateFilter("sort", event.target.value)
             }
           >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="confidence_desc">Highest confidence</option>
-            <option value="confidence_asc">Lowest confidence</option>
+            <option value="oldest">Oldest submitted first</option>
+            <option value="newest">Newest submitted first</option>
+            <option value="due_soonest">Due soonest</option>
           </SelectFilter>
         </div>
+
+        <details className="more-filters">
+          <summary>More filters</summary>
+          <div className="filter-bar">
+            <SelectFilter
+              label="Case state"
+              value={urlState.filters.caseState ?? ""}
+              onChange={(event) => updateFilter("case_state", event.target.value)}
+            >
+              <option value="">Any case state</option>
+              {Object.entries(caseStateLabels).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </SelectFilter>
+            <SelectFilter
+              label="Verification outcome"
+              value={urlState.filters.verificationOutcome ?? ""}
+              onChange={(event) =>
+                updateFilter("verification_outcome", event.target.value)
+              }
+            >
+              <option value="">Any verification outcome</option>
+              {Object.entries(verificationOutcomeLabels).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </SelectFilter>
+            <SelectFilter
+              label="Field validation state"
+              value={urlState.filters.fieldValidationState ?? ""}
+              onChange={(event) =>
+                updateFilter("field_validation_state", event.target.value)
+              }
+            >
+              <option value="">Any field validation state</option>
+              {Object.entries(fieldValidationStateLabels).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </SelectFilter>
+            <SelectFilter
+              label="Staff-classified condition"
+              value={urlState.filters.staffClassifiedCondition ?? ""}
+              onChange={(event) =>
+                updateFilter("authority_classified_condition", event.target.value)
+              }
+            >
+              <option value="">Any staff classification</option>
+              {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </SelectFilter>
+          </div>
+        </details>
 
         {reportsQuery.isFetching && hasDisplayableData ? (
           <p className="queue-refresh-status" role="status">
@@ -339,7 +500,7 @@ export function SubmittedReportsPage() {
         ) : null}
         {hasDisplayableData && reports.length > 0 && meta ? (
           <>
-            <ReportTable reports={reports} />
+            <ReportTable reports={reports} variant={isMonitoring ? "monitoring" : "default"} />
             <Pagination
               currentPage={meta.currentPage}
               pageCount={meta.lastPage}
@@ -348,6 +509,7 @@ export function SubmittedReportsPage() {
             />
           </>
         ) : null}
+        {isMonitoring && !urlState.invalid ? <MonitoringCalendar /> : null}
       </section>
     </PageContent>
   );

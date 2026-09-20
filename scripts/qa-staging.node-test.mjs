@@ -37,6 +37,7 @@ function validConfig() {
     APP_MAINTENANCE_DRIVER: "file",
     APP_MAINTENANCE_STORE: "database",
     APP_URL: "https://qa-device.example.ts.net",
+    APP_TRUSTED_HOSTS: "qa-device.example.ts.net",
     FRONTEND_URL: "https://qa-device.example.ts.net",
     CORS_ALLOWED_ORIGINS: "https://qa-device.example.ts.net",
     SANCTUM_STATEFUL_DOMAINS: "qa-device.example.ts.net",
@@ -105,6 +106,17 @@ test("uses one public origin and a private API proxy target", () => {
     true,
   );
   assert.equal(funnelStatusHasTarget({ Web: { Proxy: "http://127.0.0.1:19000" } }, "127.0.0.1:15173"), false);
+});
+
+test("rejects debug mode and trusted-host mismatches", () => {
+  const config = validConfig();
+  config.APP_DEBUG = "true";
+  config.APP_TRUSTED_HOSTS = "other.example.ts.net";
+
+  const errors = validateStagingConfig(config);
+  assert.ok(errors.includes("APP_DEBUG must be false for QA staging"));
+  assert.ok(errors.includes("APP_TRUSTED_HOSTS must include the public Funnel host without scheme or port"));
+  assert.equal(buildRuntimeEnv(config).APP_DEBUG, "false");
 });
 
 test("rejects public origin mismatches and non-private service bindings", () => {

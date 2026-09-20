@@ -80,26 +80,52 @@ class ReportFactory extends Factory
             'captured_at' => $capturedAt,
             'submitted_at' => fake()->dateTimeBetween($capturedAt, 'now'),
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+            'lock_version' => 0,
+            'action_taken' => null,
             'authority_classified_condition' => null,
         ];
     }
 
+    /**
+     * Build a report fixture using the Model V1 four-class evidence shape.
+     */
+    public function mobileModelV1(): static
+    {
+        return $this->state([
+            'predicted_label' => fake()->randomElement(Report::v2Labels()),
+            'model_version' => 'v1.0-mobilenetv2',
+        ]);
+    }
+
     public function configure(): static
     {
-        return $this->afterCreating(function (Report $report) {
-            $scores = collect(Report::labels())
-                ->map(fn (string $label) => [
-                    'label' => $label,
-                    'score' => $label === $report->predicted_label ? $report->confidence : 0.05,
-                ])
-                ->all();
+        return $this
+            ->afterMaking(function (Report $report): void {
+                foreach (Report::lifecycleForReviewStatus($report->review_status) as $attribute => $value) {
+                    if ($report->getAttribute($attribute) === null) {
+                        $report->setAttribute($attribute, $value);
+                    }
+                }
+            })
+            ->afterCreating(function (Report $report): void {
+                $labels = $report->model_version === 'v1.0-mobilenetv2'
+                    ? Report::v2Labels()
+                    : Report::labels();
+                $scores = collect($labels)
+                    ->map(fn (string $label) => [
+                        'label' => $label,
+                        'score' => $label === $report->predicted_label
+                            ? $report->confidence
+                            : 0.05,
+                    ])
+                    ->all();
 
-            $report->classScores()->createMany($scores);
-            $report->symptoms()->create([
-                'symptom_key' => $report->predicted_label === Report::LABEL_HEALTHY
-                    ? 'none'
-                    : $report->predicted_label,
-            ]);
-        });
+                $report->classScores()->createMany($scores);
+                $report->symptoms()->create([
+                    'symptom_key' => $report->predicted_label === Report::LABEL_HEALTHY
+                        ? 'none'
+                        : $report->predicted_label,
+                ]);
+            });
     }
 }

@@ -134,7 +134,7 @@
       "unique_items": true,
       "items": {
         "type": "string",
-        "enum": ["mosaic", "rust", "none", "unable-to-tell"]
+        "enum": ["mosaic", "rust", "yellow-midrib", "none", "something-else", "unable-to-tell"]
       }
     },
     "checklist_consistency": {

@@ -1,19 +1,16 @@
 import {
-  BarChart3,
+  CalendarDays,
+  SquareCheck,
   ChevronRight,
   LayoutDashboard,
   LogOut,
-  MapPinned,
+  Settings,
   ShieldCheck,
-  Sprout,
 } from "lucide-react";
 import { NavLink } from "react-router";
 import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
-
-const futureLinks = [
-  { label: "Analytics", icon: BarChart3 },
-];
+import caneGuardLogo from "../../assets/brand/cane_guard_logo.png";
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const auth = useAuth();
@@ -25,56 +22,80 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand">
-        <span className="brand__mark"><Sprout aria-hidden="true" /></span>
-        <span><strong>CaneGuard</strong><small>Municipal workspace</small></span>
+        <span className="brand__mark">
+          <img src={caneGuardLogo} alt="" aria-hidden="true" />
+        </span>
+        <span><strong>CaneGuard</strong><small>SRA Don Pedro Mill District Office</small></span>
       </div>
 
       <nav className="sidebar__nav">
         <p>Monitoring</p>
+        {auth.user?.role === "expert" ? (
+          <NavLink
+            className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+            to={routes.expertQueue}
+            onClick={onNavigate}
+          >
+            <ShieldCheck aria-hidden="true" />
+            <span>Assigned referrals</span>
+            <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+          </NavLink>
+        ) : (
+          <>
+            <NavLink
+              className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+              to={routes.dashboard}
+              onClick={onNavigate}
+            >
+              <LayoutDashboard aria-hidden="true" />
+              <span>Overview</span>
+              <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+            </NavLink>
+            <NavLink
+              className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+              to={routes.needsAssessment}
+              onClick={onNavigate}
+            >
+              <SquareCheck aria-hidden="true" />
+              <span>Needs assessment</span>
+              <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+            </NavLink>
+            <NavLink
+              className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+              to={routes.reports}
+              onClick={onNavigate}
+            >
+              <ShieldCheck aria-hidden="true" />
+              <span>Submitted reports</span>
+              <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+            </NavLink>
+            {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
+              <NavLink
+                className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+                to={routes.monitoring}
+                onClick={onNavigate}
+              >
+                <CalendarDays aria-hidden="true" />
+                <span>Monitoring</span>
+                <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+              </NavLink>
+            ) : null}
+          </>
+        )}
+
+        <p>Account</p>
         <NavLink
           className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-          to={routes.dashboard}
+          to={routes.settings}
           onClick={onNavigate}
         >
-          <LayoutDashboard aria-hidden="true" />
-          <span>Overview</span>
+          <Settings aria-hidden="true" />
+          <span>Account &amp; settings</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
-        <NavLink
-          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-          to={routes.map}
-          onClick={onNavigate}
-        >
-          <MapPinned aria-hidden="true" />
-          <span>Field-validation map</span>
-          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-        </NavLink>
-        <NavLink
-          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-          to={routes.reports}
-          onClick={onNavigate}
-        >
-          <ShieldCheck aria-hidden="true" />
-          <span>Submitted reports</span>
-          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-        </NavLink>
-        <div className="sidebar__planned" aria-label="Planned screens">
-          <p>Coming next</p>
-          {futureLinks.map(({ label, icon: Icon }) => (
-            <button className="sidebar-link" disabled key={label} title="Planned screen">
-              <Icon aria-hidden="true" />
-              <span>{label}</span>
-              <span className="sidebar-link__planned-label">Planned</span>
-            </button>
-          ))}
-        </div>
       </nav>
 
       <div className="sidebar__footer">
-        <div className="sync-card">
-          <ShieldCheck aria-hidden="true" />
-          <div><strong>Review session active</strong><span>{auth.user?.role === "admin" ? "Administrator access" : "Reviewer access"}</span></div>
-        </div>
         <button className="user-summary" type="button" onClick={logout}>
           <span className="avatar">
             {auth.user?.name
@@ -86,7 +107,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           </span>
           <div>
             <strong>{auth.user?.name}</strong>
-            <span>{auth.user?.role === "admin" ? "Administrator" : "Reviewer"}</span>
+            <span>{auth.user?.role === "admin" ? "Administrator" : auth.user?.role === "expert" ? "Expert" : "Reviewer"}</span>
           </div>
           <LogOut aria-hidden="true" />
           <span className="sr-only">Sign out</span>

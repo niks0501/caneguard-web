@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReportStatusesRequest;
 use App\Http\Resources\ReportStatusResource;
+use App\Http\Resources\ReportStatusV3Resource;
 use App\Models\Report;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -17,7 +18,9 @@ class MobileReportStatusController extends Controller
         $syncBefore = CarbonImmutable::parse(
             $request->validated('sync_before') ?? now(),
         )->utc();
+        $isV3 = $request->routeIs('api.v3.mobile.reports.statuses');
         $reports = Report::query()
+            ->when($isV3, fn ($query) => $query->with('advisory'))
             ->whereBelongsTo($request->user(), 'reporter')
             ->when(
                 $request->validated('updated_after'),
@@ -35,7 +38,11 @@ class MobileReportStatusController extends Controller
             ->withQueryString()
             ->appends(['sync_before' => $syncBefore->toISOString()]);
 
-        return ReportStatusResource::collection($reports)->additional([
+        $resource = $isV3
+            ? ReportStatusV3Resource::collection($reports)
+            : ReportStatusResource::collection($reports);
+
+        return $resource->additional([
             'sync' => [
                 'before' => $syncBefore->toISOString(),
             ],

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { paginatedReportsDto, reportDetailDto } from "../../../test/fixtures";
+import {
+  activeAuthorityClassifiedConditions,
+  legacyAuthorityClassifiedConditions,
+} from "../../../domain/report.metadata";
+import {
+  paginatedReportsDto,
+  reportDetailDto,
+  staffClassifiedReportDetailDto,
+} from "../../../test/fixtures";
 import {
   reportDetailResponseSchema,
   reportListResponseSchema,
@@ -11,6 +19,40 @@ describe("report API schemas", () => {
     expect(
       reportDetailResponseSchema.parse({ data: reportDetailDto }).data.identity.uuid,
     ).toBe(reportDetailDto.identity.uuid);
+  });
+
+  it("accepts possible-match and canonical-linkage response fields", () => {
+    const linked = {
+      ...reportDetailDto,
+      duplicate_linkage: {
+        is_duplicate: true,
+        canonical_case: {
+          uuid: "canonical-report",
+          reference_code: "CG-2026-0002",
+          submitted_at: "2026-07-20T10:00:00.000Z",
+        },
+        linked_by: { uuid: "reviewer-1", name: "Maria Reviewer" },
+        linked_at: "2026-07-20T11:00:00.000Z",
+        reason: "The cases may describe the same field observation.",
+      },
+      audit: {
+        metadata_corrections: [],
+        duplicate_linkages: [
+          {
+            id: 10,
+            canonical_case_uuid: "canonical-report",
+            actor: { uuid: "reviewer-1", name: "Maria Reviewer" },
+            created_at: "2026-07-20T11:00:00.000Z",
+            reason: "The cases may describe the same field observation.",
+          },
+        ],
+      },
+    };
+
+    expect(
+      reportDetailResponseSchema.parse({ data: linked }).data.duplicate_linkage
+        ?.canonical_case?.reference_code,
+    ).toBe("CG-2026-0002");
   });
 
   it("accepts nullable capture metadata from the database contract", () => {
@@ -66,24 +108,61 @@ describe("report API schemas", () => {
     ).toBeNull();
   });
 
+  it("accepts the V2 smut model label", () => {
+    const smut = {
+      ...paginatedReportsDto,
+      data: [{ ...paginatedReportsDto.data[0], predicted_label: "smut" }],
+    };
+
+    expect(reportListResponseSchema.parse(smut).data[0]?.predicted_label).toBe("smut");
+  });
+
   it("rejects an unknown backend disease label", () => {
     const invalid = {
       ...paginatedReportsDto,
-      data: [{ ...paginatedReportsDto.data[0], predicted_label: "smut" }],
+      data: [{ ...paginatedReportsDto.data[0], predicted_label: "downy_mildew" }],
     };
 
     expect(() => reportListResponseSchema.parse(invalid)).toThrow();
   });
 
-  it("keeps authority classifications separate from model labels", () => {
-    const invalid = {
-      ...reportDetailDto,
-      review: {
-        ...reportDetailDto.review,
-        authority_classified_condition: "rust",
-      },
-    };
+  it("accepts every active and legacy authority classification value", () => {
+    const values = [
+      ...activeAuthorityClassifiedConditions,
+      ...legacyAuthorityClassifiedConditions,
+    ];
 
-    expect(() => reportDetailResponseSchema.parse({ data: invalid })).toThrow();
+    for (const value of values) {
+      const parsed = reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          review: {
+            ...reportDetailDto.review,
+            authority_classified_condition: value,
+          },
+        },
+      });
+
+      expect(parsed.data.review.authority_classified_condition).toBe(value);
+    }
+  });
+
+  it("keeps authority classifications separate from model labels", () => {
+    const parsed = reportDetailResponseSchema.parse({
+      data: {
+        ...reportDetailDto,
+        review: {
+          ...reportDetailDto.review,
+          authority_classified_condition: "rssi",
+        },
+      },
+    });
+
+    expect(parsed.data.model.predicted_label).toBe("rust");
+    expect(parsed.data.review.authority_classified_condition).toBe("rssi");
+    expect(
+      reportDetailResponseSchema.parse({ data: staffClassifiedReportDetailDto }).data.review
+        .authority_classified_condition,
+    ).toBe("rssi");
   });
 });

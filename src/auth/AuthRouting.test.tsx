@@ -24,6 +24,12 @@ function installApiHealthHandler() {
     http.get(`${baseUrl}/api/health`, () =>
       HttpResponse.json(healthyApiResponse),
     ),
+    http.get(`${baseUrl}/api/v1/notifications`, () =>
+      HttpResponse.json({
+        data: [],
+        meta: { unread_count: 0, returned_count: 0 },
+      }),
+    ),
   );
 }
 
@@ -114,10 +120,10 @@ describe("authenticated routing", () => {
       await screen.findByRole("link", { name: "Open CG-2026-0001" }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole("status", {
+      screen.queryByRole("status", {
         name: "Connectivity: Network Available; CaneGuard server Connected",
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText("Review User")).toHaveTextContent("RU");
   });
 
@@ -150,7 +156,7 @@ describe("authenticated routing", () => {
 
     expect(
       await screen.findByText(
-        "This account is not authorized for the municipal web workspace.",
+        "This account is not authorized for the SRA Don Pedro Web workspace.",
       ),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/login");

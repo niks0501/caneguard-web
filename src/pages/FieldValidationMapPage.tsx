@@ -45,16 +45,25 @@ function coverageMessage({
   totalCount,
   locatedCount,
   unlocatedCount,
+  limit,
+  returnedCount,
+  truncated,
 }: {
   totalCount: number;
   locatedCount: number;
   unlocatedCount: number;
+  limit: number;
+  returnedCount: number;
+  truncated: boolean;
 }) {
   if (totalCount === 0) {
     return "No reports match the applied filters.";
   }
 
-  const counts = `${locatedCount} located, ${unlocatedCount} unlocated.`;
+  const truncation = truncated
+    ? ` Showing ${returnedCount} of ${totalCount} matching reports on the map (limit ${limit}); narrow the filters to see additional locations.`
+    : "";
+  const counts = `${locatedCount} located, ${unlocatedCount} unlocated.${truncation}`;
   if (unlocatedCount > 0) {
     const reportLabel = unlocatedCount === 1 ? "report has" : "reports have";
     return `${counts} ${unlocatedCount} filtered ${reportLabel} no valid coordinate pair. Continue in the queue or open the submitted report table to review every report.`;
@@ -87,6 +96,16 @@ function FilterChips({
   onRemove: (key: keyof FieldValidationFilters) => void;
 }) {
   const chips: Array<{ key: keyof FieldValidationFilters; label: string }> = [];
+  if (filters.queue) {
+    chips.push({
+      key: "queue",
+      label: filters.queue === "follow_up_due"
+        ? "Queue: Follow-up due"
+        : filters.queue === "upcoming"
+          ? "Queue: Upcoming visits"
+          : "Queue: Needs visit",
+    });
+  }
   if (filters.dateFrom) chips.push({ key: "dateFrom", label: `From ${filters.dateFrom}` });
   if (filters.dateTo) chips.push({ key: "dateTo", label: `To ${filters.dateTo}` });
   if (filters.disease) chips.push({ key: "disease", label: diseaseLabels[filters.disease] });
@@ -109,7 +128,7 @@ function FilterChips({
   );
 }
 
-export function FieldValidationMapPage() {
+export function FieldValidationMapPage({ embedded = false }: { embedded?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlState = useMemo(() => parseMapUrl(searchParams), [searchParams]);
   const appliedFilters = urlState.filters;
@@ -127,22 +146,30 @@ export function FieldValidationMapPage() {
   const mapInitialError = mapAccessDenied || (mapQuery.isError && !hasMapCachedData);
   const queueInitialError = queueAccessDenied || (queueQuery.isError && !hasQueueCachedData);
   const mapFrameKey = JSON.stringify(appliedFilters);
+  const isFollowUpDue = appliedFilters.queue === "follow_up_due";
+  const isUpcoming = appliedFilters.queue === "upcoming";
+
+  const writeWorkspaceUrl = (filters: FieldValidationFilters) => {
+    const next = writeMapUrl(filters);
+    if (embedded) next.set("view", "map");
+    return next;
+  };
 
   const applyFilters = (draft: FieldValidationFilters) => {
-    setSearchParams(writeMapUrl({
+    setSearchParams(writeWorkspaceUrl({
       ...draft,
       barangay: draft.barangay?.trim() || undefined,
     }));
   };
 
   const clearFilters = () => {
-    setSearchParams(new URLSearchParams());
+    setSearchParams(embedded ? new URLSearchParams("view=map") : new URLSearchParams());
   };
 
   const removeFilter = (key: keyof FieldValidationFilters) => {
     const next = { ...appliedFilters };
     delete next[key];
-    setSearchParams(writeMapUrl(next));
+    setSearchParams(writeWorkspaceUrl(next));
   };
 
   const refresh = () => {
@@ -150,11 +177,19 @@ export function FieldValidationMapPage() {
   };
 
   return (
-    <PageContent className="page-content--field-validation">
-      <PageHeader
+    <PageContent className={`page-content--field-validation${embedded ? " page-content--embedded" : ""}`}>
+      {!embedded ? <PageHeader
         eyebrow="Field operations"
-        title="Field-validation map"
-        description="Locate submitted observations and prioritize the oldest reports awaiting an on-site validation. Possible AI results are decision support, not staff confirmation."
+        title={isFollowUpDue
+          ? "Follow-up due workspace"
+          : isUpcoming
+            ? "Upcoming visits workspace"
+            : "Field-validation map"}
+        description={isFollowUpDue
+          ? "Review open submitted reports whose target visit date has passed while field validation remains incomplete. Possible Conditions are decision support, not Staff-Classified Conditions."
+          : isUpcoming
+            ? "Review open submitted reports with a target visit date today or later. Possible Conditions are decision support, not Staff-Classified Conditions."
+            : "Locate submitted observations and prioritize the oldest submitted reports awaiting an on-site validation. Possible Conditions are decision support, not Staff-Classified Conditions."}
         actions={(
           <Button
             variant="secondary"
@@ -165,7 +200,7 @@ export function FieldValidationMapPage() {
             {mapQuery.isFetching || queueQuery.isFetching ? "Refreshing workspace" : "Refresh workspace"}
           </Button>
         )}
-      />
+      /> : null}
 
       <section className="field-validation-workspace-card" aria-labelledby="field-validation-filters-heading">
         <div className="workspace-heading">

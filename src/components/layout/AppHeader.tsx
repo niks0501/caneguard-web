@@ -1,7 +1,11 @@
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import type { RefObject } from "react";
-import { useLocation } from "react-router";
+import { Link } from "react-router";
+import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
+import type { RealtimeStatus } from "../../hooks/useRealtimeInvalidation";
+import { NotificationBell } from "./NotificationBell";
+import { RealtimeStatus as RealtimeStatusIndicator } from "./RealtimeStatus";
 import { ServerStatus } from "./ServerStatus";
 
 function initials(name: string) {
@@ -16,20 +20,13 @@ function initials(name: string) {
 export function AppHeader({
   onOpenMenu,
   menuButtonRef,
+  realtimeStatus = "disabled",
 }: {
   onOpenMenu: () => void;
   menuButtonRef?: RefObject<HTMLButtonElement | null>;
+  realtimeStatus?: RealtimeStatus;
 }) {
-  const location = useLocation();
   const auth = useAuth();
-  const isDetail = location.pathname.startsWith("/reports/");
-  const title = location.pathname.startsWith("/dashboard")
-    ? "Overview"
-    : location.pathname.startsWith("/map")
-      ? "Field-validation map"
-      : isDetail
-        ? "Case review"
-        : "Submitted reports";
 
   return (
     <header className="app-header">
@@ -44,24 +41,23 @@ export function AppHeader({
           <Menu aria-hidden="true" />
         </button>
         <div>
-          <span>Case monitoring</span>
-          <strong>{title}</strong>
+          <span>SRA Don Pedro</span>
+          <strong>Case monitoring workspace</strong>
         </div>
       </div>
       <div className="app-header__actions">
-        <ServerStatus />
-        <div className="header-search" aria-hidden="true">
-          <Search aria-hidden="true" />
-          <span>Search reports</span>
-          <kbd>/</kbd>
-        </div>
-        <div className="header-icon header-notifications" aria-hidden="true">
-          <Bell aria-hidden="true" />
-          <span className="notification-dot" />
-        </div>
-        <span className="avatar" aria-label={auth.user?.name}>
-          {initials(auth.user?.name ?? "CaneGuard user")}
-        </span>
+        <ServerStatus showOnlyDegraded />
+        <RealtimeStatusIndicator status={realtimeStatus} />
+        <NotificationBell enabled={auth.status === "authenticated"} />
+        <Link
+          to={routes.settings}
+          className="header-avatar-link"
+          title="Account settings"
+        >
+          <span className="avatar" aria-label={auth.user?.name}>
+            {initials(auth.user?.name ?? "CaneGuard user")}
+          </span>
+        </Link>
       </div>
     </header>
   );

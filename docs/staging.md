@@ -31,17 +31,19 @@ Confirm that Tailscale reports the host and that HTTPS certificates and Funnel a
 Confirm that `eas --version` works after the EAS CLI setup in Step 2.
 Confirm that `git status` is for the intended Web repository before continuing.
 
-## A. FIRST-TIME SETUP - new PC
+## A. ONE-TIME SETUP - new PC
 
-Use the complete Steps 1 through 7 when setting up a staging host for the first time.
-This path creates the host prerequisites, isolated database, Web staging configuration, Web worktree dependencies, Mobile configuration, and EAS QA APK.
-After the first successful setup, keep `.qa-staging/staging.env` private and keep the worktree dependencies installed.
+Run the complete Steps 1 through 7 once on each new staging PC.
+This path creates the host prerequisites, isolated database, Web staging configuration, Web worktree dependencies, Mobile local QA configuration, and EAS access/configuration.
+It also includes the first remote QA APK build.
 
-## B. SUBSEQUENT FEATURES / NEW QA ROUND - existing PC
+After setup succeeds, keep `.qa-staging/staging.env` private and keep the worktree dependencies installed.
+Returning users can skip this section and use Section B for every new feature round or remote QA APK build.
 
-Use this short repeat loop when the host already has `.qa-staging/staging.env` and the selected worktree dependencies.
-There is no need to run `npm run staging -- init` again.
-There is no need to reinstall dependencies unless the staging worktree was recreated or the selected branch changes `package.json`, `package-lock.json`, `api/composer.json`, or `api/composer.lock`.
+## B. EVERY REMOTE QA APK BUILD / NEW FEATURE ROUND - existing PC
+
+Use this repeat loop on a PC that already completed Section A.
+Do not repeat `npm run staging -- init`, reinstall dependencies, or reconfigure EAS unless the worktree was recreated, dependencies changed, or the Expo account/project access changed.
 
 1. Update the development checkout from `main`.
 
@@ -78,19 +80,25 @@ There is no need to reinstall dependencies unless the staging worktree was recre
    cd ../..
    ```
 
-4. Run the one-command staging cycle.
+4. Start Web staging and wait for `CONFIDENCE PASS`.
 
    ```bash
    npm run staging
    ```
 
    The command verifies or adds the configured worktree, runs `migrate:fresh --seed`, starts the private services, starts the canonical Funnel, and runs the confidence checks.
-   Wait for `CONFIDENCE PASS` before sharing the public URL.
+   From the phone browser, open the displayed Funnel origin followed by `/api/health` and confirm the exact HTTPS origin that loads.
+   That origin is the `QA_PUBLIC_URL` shared by the Web browser and the APK.
 
-5. Have teammates refresh the browser and the APK at the same unchanged `QA_PUBLIC_URL`.
-   Rebuild the APK using Step 6 only when the Mobile code or Mobile environment changed.
+5. Before every remote APK build, complete the Step 5 phone/API sanity checks and confirm that the Mobile `preview` environment contains the exact current `QA_PUBLIC_URL`.
+   If the phone shows a different Funnel hostname from the last APK, update `EXPO_PUBLIC_API_BASE_URL` in EAS with the Step 2.4 command before rebuilding.
+   The API URL is embedded at build time, so an old APK must not be reused for a changed hostname.
 
-6. Stop the cycle when verification is complete.
+6. Run the environment-resolved EAS build in Step 6 for every remote QA APK build.
+   Do not use the old direct `eas build --profile qa --platform android` command.
+   Retain the submitted build ID, install the APK, and complete the phone/API sanity flow before sharing it.
+
+7. Stop the cycle when verification is complete.
 
    ```bash
    npm run staging -- stop
@@ -174,7 +182,37 @@ eas whoami
 ```
 
 Use the Expo account that owns or can access the Mobile project's EAS project.
+Confirm that `eas whoami` reports that account before continuing.
+This login and project-access check is one-time setup for a new PC.
 Do not put an Expo token in a repository file or command example.
+
+### 2.4 Configure the Mobile EAS `preview` environment
+
+Run these commands from the companion `caneguard-mobile` repository after Step 3 has a current `QA_PUBLIC_URL` in Web `.qa-staging/staging.env` and before Step 6 submits the APK.
+Web staging does not need to be running to set the variable, but the value must be the exact current HTTPS Funnel origin.
+Set `QA_PUBLIC_URL` to that origin.
+Use the origin with `https://`, no path, and no trailing slash.
+Do not substitute the private API URL, `localhost`, or `127.0.0.1`.
+
+```bash
+QA_PUBLIC_URL="https://device.tailnet.ts.net"
+eas env:set --name EXPO_PUBLIC_API_BASE_URL --value "$QA_PUBLIC_URL" --environment preview --visibility plaintext
+eas env:list --environment preview
+QA_PUBLIC_URL="$QA_PUBLIC_URL" eas env:exec preview 'test "$EXPO_PUBLIC_API_BASE_URL" = "$QA_PUBLIC_URL"'
+```
+
+The `eas env:set` command stores the public app URL as a plaintext variable in the EAS `preview` environment.
+The `eas env:list` command confirms that the variable is present.
+The `eas env:exec` command verifies that the stored value exactly matches the current Web `QA_PUBLIC_URL`.
+If the Funnel hostname changes, rerun `eas env:set` with the new URL before starting a replacement APK build.
+
+In `eas.json`, the `qa` profile must select `environment: preview` and its profile-local `env` block must contain only `EXPO_PUBLIC_QA_MODE=true`.
+`EXPO_PUBLIC_API_BASE_URL` must not be put in `eas.json` because it belongs to the EAS `preview` environment.
+
+`EXPO_NO_DOTENV=1` is not a persistent setup setting.
+Do not add it to `eas.json`, the EAS variable list, or a shell profile.
+The supported remote config and build commands set it inside the `eas env:exec` command string so a stale local `.env` value cannot override the selected EAS value.
+The local `npm run qa:export` path sets it for its Expo invocation automatically.
 
 ## 3. Create the Web `.qa-staging/staging.env`
 
@@ -220,6 +258,7 @@ Replace angle-bracket values with local values and never commit the file.
 | `APP_MAINTENANCE_DRIVER` | Keep `file`. |
 | `APP_MAINTENANCE_STORE` | Keep `database`. |
 | `APP_URL` | The same exact value as `QA_PUBLIC_URL`. |
+| `APP_TRUSTED_HOSTS` | The hostname from `QA_PUBLIC_URL` only, without scheme or port. |
 | `FRONTEND_URL` | The same exact value as `QA_PUBLIC_URL`. |
 | `CORS_ALLOWED_ORIGINS` | The same exact value as `QA_PUBLIC_URL`. |
 | `SANCTUM_STATEFUL_DOMAINS` | The host from `QA_PUBLIC_URL` only, such as `device.tailnet.ts.net`. |
@@ -256,6 +295,7 @@ Replace angle-bracket values with local values and never commit the file.
 | `CANEGUARD_FIELD_PASSWORD` | A local password you choose for `field@caneguard.test`. |
 | `CANEGUARD_REVIEWER_PASSWORD` | A local password you choose for `mao@caneguard.test`. |
 | `CANEGUARD_ADMIN_PASSWORD` | A local password you choose for `admin@caneguard.test`. |
+| `CANEGUARD_EXPERT_PASSWORD` | A local password you choose for `expert@caneguard.test`. |
 | `VITE_API_BASE_URL` | The same exact value as `QA_PUBLIC_URL`. Browser API paths use the Web proxy to reach the private API. |
 | `VITE_DATA_SOURCE` | Keep `api`. |
 | `VITE_REPORT_REFRESH_MS` | Keep `600000`. |
@@ -284,23 +324,44 @@ Do not copy development `.env` files into this worktree.
 The launcher rejects `.env`, `.env.local`, and `api/.env` files in the staging worktree.
 The launcher checks for both `node_modules` and `api/vendor/autoload.php` before a reset or service start.
 
-## 5. Configure Mobile `.env.qa.local`
+## 5. Configure Mobile local QA paths and run the pre-build checks
 
-In the companion `caneguard-mobile` repository, create or update the ignored `.env.qa.local` file.
+In the companion `caneguard-mobile` repository, create or update the ignored `.env.qa.local` file for local QA preflight and export paths.
 Use the exact same public origin as Web `QA_PUBLIC_URL`.
-Do not use the private API URL, `localhost`, or `127.0.0.1` in the APK.
+The origin must use `https://`, contain no path, and have no trailing slash.
+Do not use the private API URL, `localhost`, or `127.0.0.1` in local QA output or the APK.
+
+```bash
+cp .env.qa.example .env.qa.local
+# Replace the placeholder in .env.qa.local with the current QA_PUBLIC_URL.
+npm run qa:preflight
+npm run qa:export -- --platform android --output-dir .expo/qa-export-check
+rm -rf .expo/qa-export-check
+```
+
+The file should contain the two local QA values below, with the example origin replaced by the exact current Web `QA_PUBLIC_URL`.
 
 ```dotenv
 EXPO_PUBLIC_API_BASE_URL=https://device.tailnet.ts.net
 EXPO_PUBLIC_QA_MODE=true
 ```
 
-Replace the example origin with the value from `.qa-staging/staging.env`.
-Keep `EXPO_PUBLIC_QA_MODE=true` for the QA build.
+The local QA scripts load `.env.qa.local` explicitly.
+`npm run qa:export` sets `EXPO_NO_DOTENV=1` for its Expo invocation and does not fall back to `.env`, localhost, a stale Funnel hostname, or a blank URL.
+The `.env.qa.local` file is ignored by Git and is not uploaded to a remote EAS Build.
+For a remote EAS APK, the URL must still be supplied by the EAS `preview` environment using Step 2.4 and Step 6.
+
+`eas.json` is profile configuration: it selects the `preview` environment, the `qa` channel, and QA behavior.
+`EXPO_PUBLIC_API_BASE_URL` is public app configuration that Expo and Metro inject and inline into the JavaScript bundle at build time.
+Keeping that URL in EAS environment configuration instead of tracked `eas.json` avoids committing a stale Tailscale Funnel hostname.
+The URL is therefore required in the build environment even though it is intentionally absent from `eas.json`.
+
+Keep `EXPO_PUBLIC_QA_MODE=true` in the local file for local QA paths.
+The `qa` profile's only profile-local `eas.json` variable is also `EXPO_PUBLIC_QA_MODE=true`.
 
 ### Mobile pre-build checklist
 
-Complete this checklist after updating `.env.qa.local` and before running the EAS build.
+Complete this checklist after updating `.env.qa.local` and before every remote EAS build.
 Do not build or install the APK until the phone can load the public health URL.
 
 #### Before building
@@ -326,14 +387,17 @@ Do not build or install the APK until the phone can load the public health URL.
   The Funnel URL must be the exact `QA_PUBLIC_URL`, such as `https://device.tailnet.ts.net`.
 
 - [ ] Test the public API from the phone before starting any build.
-  Open this URL in the phone's browser, replacing the example origin with the exact `QA_PUBLIC_URL`.
+  Open this URL in the phone's browser, replacing the example origin with the exact current `QA_PUBLIC_URL`.
 
   ```text
   https://device.tailnet.ts.net/api/health
   ```
 
+  Read the address bar after the page loads and record the exact HTTPS origin before `/api/health`.
+  That origin is the current Funnel URL and must match `QA_PUBLIC_URL` character for character.
   Expect JSON with `data.status` set to `ok`, `data.checks.database` set to `ready`, and `data.checks.storage` set to `ready`.
-  If the phone cannot load the URL, fix Tailscale or Funnel first.
+  If the phone cannot load the URL, or the hostname differs from the last APK, fix Tailscale or Funnel first.
+  If the hostname changed, update the EAS `preview` variable with Step 2.4 before rebuilding.
   Do not build the APK yet.
 
 - [ ] Confirm the Mobile QA environment from the `caneguard-mobile` repository root.
@@ -359,12 +423,14 @@ Do not build or install the APK until the phone can load the public health URL.
 
   ```bash
   cat eas.json
+  npm run qa:config
   eas whoami
   ```
 
   Confirm that `build.qa` is intact, uses the existing `qa` channel and Preview EAS environment, and produces the Android APK for internal QA.
+  Confirm that its only profile-local `env` variable is `EXPO_PUBLIC_QA_MODE=true`.
   Confirm that `eas whoami` reports the Expo account that owns the Mobile project's EAS project.
-  Do not create a second profile.
+  Do not create a second profile or add `EXPO_PUBLIC_API_BASE_URL` to `eas.json`.
 
 #### Before installing
 
@@ -384,21 +450,37 @@ Do not build or install the APK until the phone can load the public health URL.
   Log in as `mao@caneguard.test` with the password stored in `CANEGUARD_REVIEWER_PASSWORD`.
   Confirm that the submitted report appears in the reviewer dashboard.
 
-## 6. Build the EAS QA Android APK
+## 6. Build the EAS QA Android APK for every remote build
 
-Run these commands from the companion `caneguard-mobile` repository.
-
-First confirm that `eas.json` contains the Mobile repository's `build.qa` profile.
-The profile must produce an Android APK for internal QA and use the repository's existing `qa` channel and Preview EAS environment.
-Do not create a second profile or change the Web repository to add EAS configuration.
+Run these commands from the companion `caneguard-mobile` repository after Web staging is running and the phone health check passes.
+Run `npm run qa:config` before the wrapped commands to verify the tracked QA profile shape.
+The `qa` profile must produce an Android APK for internal QA, use the existing `qa` channel, and select the EAS `preview` environment.
 
 ```bash
-cat eas.json
+npm run qa:config
+set -o pipefail
+eas env:exec preview \
+  'EXPO_NO_DOTENV=1 eas config --platform android --profile qa --json'
+eas env:exec preview \
+  'EXPO_NO_DOTENV=1 eas build --platform android --profile qa --json --no-wait' \
+  | tee qa-mobile-build.json
+```
+
+This is the supported remote command from Mobile PR #44.
+The `eas env:exec preview` wrapper supplies `EXPO_PUBLIC_API_BASE_URL` before EAS asks Expo to resolve `app.config.js` locally.
+`EXPO_NO_DOTENV=1` is deliberately inside each wrapped command so a stale local `.env` value cannot override the selected EAS value.
+It is not a persistent setup setting.
+
+Do not use the old direct command below.
+It can fail before submission because EAS resolves Expo config locally before the profile's remote environment variables are available to that process.
+
+```bash
+# Old and unsupported for the QA APK flow:
 eas build --profile qa --platform android
 ```
 
-Follow the EAS prompts if the project has not been linked on this host.
-The build command prints a build details URL and the build identifier when it is submitted.
+The wrapped build command returns after submission because it uses `--no-wait`.
+Verify that submission succeeded and retain the build ID and build details URL from the output and `qa-mobile-build.json`.
 The Expo dashboard build details page shows the same build ID and the Android artifact or install URL after the build completes.
 You can list recent builds if the terminal output is no longer available.
 
@@ -412,6 +494,7 @@ The build ID and artifact URL are needed when installing the APK for teammate ve
 
 Install the resulting APK on the QA device using the Mobile repository's normal installation procedure.
 Open the APK only after the Web staging Funnel is running.
+Complete the phone/API sanity flow in the checklist: open the APK, log in as the field reporter, submit and sync one report, then confirm it appears in the Web reviewer dashboard at the same `QA_PUBLIC_URL`.
 
 ## 7. Create and push the manual staging branch
 
@@ -474,7 +557,15 @@ npm run staging -- stop
 The stop command retains the `caneguard_staging` schema, seeded rows, and uploaded files for diagnosis.
 The next plain `npm run staging` is the explicit destructive boundary because it resets and reseeds that database.
 
-## 9. Troubleshooting
+## 9. Security boundary notes
+
+The canonical Tailscale Funnel command terminates public TLS at the Funnel and forwards HTTP to the private Web listener. Laravel therefore emits HSTS only when it receives a request it knows is HTTPS; the application does not trust an arbitrary `X-Forwarded-Proto` header. The Funnel or another approved edge must supply HSTS for the public origin. The non-browser regression test in `api/tests/Feature/SecurityHeadersTest.php` ensures a client-supplied forwarded scheme cannot opt a local HTTP request into HSTS.
+
+The Funnel path also presents one shared proxy address to Laravel. Login throttling keeps per-email, shared per-IP, and global buckets, with the latter two raised to 300 and 3,000 attempts per minute respectively so ordinary shared use does not trip them. This is an intentional staging limitation, not proof of client-specific IP throttling. A production deployment must sit behind a fixed forwarding proxy that strips/replaces client-supplied forwarding headers and supplies the real client IP before the per-IP bucket can be treated as client-specific.
+
+Do not add broad trusted-proxy settings or build a relay into this staging workflow to work around that limitation. Record and review the production proxy boundary before claiming full #91 coverage.
+
+## 10. Troubleshooting
 
 ### The preflight tool check fails
 
@@ -555,9 +646,40 @@ An empty `VITE_MAPTILER_KEY` intentionally renders the accessible map fallback a
 The Web confidence check also forces an empty map key so the test suite does not depend on a real MapTiler credential.
 A map provider key is not required for `CONFIDENCE PASS`.
 
+### The direct QA EAS build fails before submission
+
+Do not use this old command for the QA APK flow:
+
+```bash
+eas build --profile qa --platform android
+```
+
+After Mobile PR #43, this command can fail before submission because Expo validates the QA URL while EAS is resolving local Expo config, before the profile's remote environment is available.
+EAS may show only its wrapper error.
+The underlying error can be `EXPO_PUBLIC_API_BASE_URL must use https for QA staging.` when a stale local `.env` value is loaded, or an actionable missing-variable preflight message when no URL is present.
+
+First confirm the current EAS value, update it if the Funnel hostname changed, and then use the PR #44 wrapper:
+
+```bash
+eas env:list --environment preview
+QA_PUBLIC_URL="$QA_PUBLIC_URL" eas env:exec preview 'test "$EXPO_PUBLIC_API_BASE_URL" = "$QA_PUBLIC_URL"'
+npm run qa:config
+set -o pipefail
+eas env:exec preview \
+  'EXPO_NO_DOTENV=1 eas config --platform android --profile qa --json'
+eas env:exec preview \
+  'EXPO_NO_DOTENV=1 eas build --platform android --profile qa --json --no-wait' \
+  | tee qa-mobile-build.json
+```
+
+If the equality check fails, run the Step 2.4 `eas env:set` command with the exact current Web `QA_PUBLIC_URL`, then rerun the wrapped commands.
+Do not make `EXPO_NO_DOTENV=1` a persistent shell or EAS setting.
+
 ### The APK cannot connect
 
-Confirm that the APK was built after `.env.qa.local` was updated.
+For a local export, confirm that `.env.qa.local` contains the exact current HTTPS Funnel origin and rerun `npm run qa:preflight` and `npm run qa:export`.
+For a remote APK, confirm that the EAS `preview` variable was updated before the build and that the APK was rebuilt after any Funnel hostname change.
+The ignored `.env.qa.local` file is not the remote EAS environment source.
 Confirm that `EXPO_PUBLIC_API_BASE_URL` is the exact HTTPS Funnel origin.
 Confirm that it is not the private API URL, `localhost`, an old Tailscale hostname, or a URL with a trailing path.
 Confirm that the Web browser and APK use the same public origin.

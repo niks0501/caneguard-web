@@ -70,6 +70,7 @@ const REQUIRED_KEYS = [
   "APP_MAINTENANCE_DRIVER",
   "APP_MAINTENANCE_STORE",
   "APP_URL",
+  "APP_TRUSTED_HOSTS",
   "FRONTEND_URL",
   "CORS_ALLOWED_ORIGINS",
   "SANCTUM_STATEFUL_DOMAINS",
@@ -99,6 +100,7 @@ const APPLICATION_ENV_KEYS = [
   "APP_MAINTENANCE_DRIVER",
   "APP_MAINTENANCE_STORE",
   "APP_URL",
+  "APP_TRUSTED_HOSTS",
   "APP_LOCALE",
   "APP_FALLBACK_LOCALE",
   "APP_FAKER_LOCALE",
@@ -367,6 +369,13 @@ export function validateStagingConfig(config) {
     !config.SANCTUM_STATEFUL_DOMAINS.split(",").some((domain) => domain.trim() === publicHost)
   ) {
     errors.push("SANCTUM_STATEFUL_DOMAINS must include the public Funnel host and port");
+  }
+  if (
+    publicHost &&
+    config.APP_TRUSTED_HOSTS &&
+    !config.APP_TRUSTED_HOSTS.split(",").some((host) => host.trim() === publicHost)
+  ) {
+    errors.push("APP_TRUSTED_HOSTS must include the public Funnel host without scheme or port");
   }
 
   if (config.SESSION_DOMAIN) {
@@ -978,12 +987,13 @@ function buildMobileUploadForm(worktree) {
   append("class_scores[healthy]", 0.08);
   append("class_scores[mosaic]", 0.1);
   append("class_scores[rust]", 0.82);
+  append("class_scores[smut]", 0);
   append("symptom_keys[]", "rust");
   append("checklist_consistency", "consistent");
   append("reported_severity", "moderate");
   append("quality_warnings[]", "low-resolution");
   append("barangay", "Mabini");
-  append("model_version", "caneguard-mobile-v1.0.0");
+  append("model_version", "v1.0-mobilenetv2");
   append("preprocess_ms", 12.5);
   append("inference_ms", 95.75);
   append("total_ms", 122.25);
@@ -1013,7 +1023,7 @@ async function checkSeededMobileReportUpload(config, apiBaseUrl, worktree) {
     );
   }
 
-  const upload = await requestJson(`${apiBaseUrl}/api/v1/mobile/reports`, {
+  const upload = await requestJson(`${apiBaseUrl}/api/v2/mobile/reports`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${login.body.token}`,
@@ -1305,8 +1315,32 @@ async function runAutomatedConfidenceChecks(config, worktree) {
       args: ["run", "contract:artifact"],
     },
     {
+      label: "mobile field-validation completion contract artifact",
+      args: ["run", "contract:completion-artifact"],
+    },
+    {
+      label: "Phase 1 notification artifact",
+      args: ["run", "contract:notification-artifact"],
+    },
+    {
+      label: "Phase 1 lifecycle artifact",
+      args: ["run", "contract:lifecycle-artifact"],
+    },
+    {
       label: "Laravel mobile report-upload contract tests",
       args: ["run", "contract:consumer"],
+    },
+    {
+      label: "Laravel mobile field-validation completion contract tests",
+      args: ["run", "contract:completion-consumer"],
+    },
+    {
+      label: "Laravel Phase 1 notification consumer tests",
+      args: ["run", "contract:notification-consumer"],
+    },
+    {
+      label: "Laravel Phase 1 lifecycle consumer tests",
+      args: ["run", "contract:lifecycle-consumer"],
     },
     {
       label: "staging contract helper tests",

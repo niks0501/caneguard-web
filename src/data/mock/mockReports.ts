@@ -49,7 +49,7 @@ const sourceReports: DiseaseReport[] = [
     submitterRole: "field_reporter",
     capturedAt: "2026-07-17T15:20:00+08:00",
     submittedAt: "2026-07-17T16:02:00+08:00",
-    predictedDisease: "rust",
+    predictedDisease: "smut",
     confidence: 0.93,
     imageStatus: "available",
     symptoms: commonSymptoms.smut.map((symptom) => ({ ...symptom })),
@@ -58,6 +58,35 @@ const sourceReports: DiseaseReport[] = [
     reviewNotes: "Coordinate an on-site observation with the assigned field team.",
     reviewedBy: "Maria Santos",
     reviewedAt: "2026-07-18T08:30:00+08:00",
+    fieldValidationAssignment: {
+      uuid: "00000000-0000-4000-8000-000000000201",
+      assignee: {
+        uuid: "00000000-0000-4000-8000-000000000100",
+        name: "Maria Santos",
+      },
+      assignedBy: {
+        uuid: "00000000-0000-4000-8000-000000000100",
+        name: "Maria Santos",
+      },
+      targetVisitDate: "2026-07-22",
+      activatedAt: "2026-07-18T08:35:00+08:00",
+      updatedAt: "2026-07-18T08:35:00+08:00",
+    },
+    reviewEvents: [
+      {
+        id: 1,
+        actor: {
+          uuid: "00000000-0000-4000-8000-000000000100",
+          name: "Maria Santos",
+        },
+        actionTaken: null,
+        authorityClassifiedCondition: "smut",
+        verificationOutcome: "verified",
+        notes: "Coordinate an on-site observation with the assigned field team.",
+        caseState: "open",
+        createdAt: "2026-07-18T08:30:00+08:00",
+      },
+    ],
   },
   {
     uuid: "00000000-0000-4000-8000-000000000003",
@@ -75,6 +104,21 @@ const sourceReports: DiseaseReport[] = [
     reviewNotes: "Observation logged for comparison with the next field visit.",
     reviewedBy: "Maria Santos",
     reviewedAt: "2026-07-16T09:12:00+08:00",
+    reviewEvents: [
+      {
+        id: 1,
+        actor: {
+          uuid: "00000000-0000-4000-8000-000000000100",
+          name: "Maria Santos",
+        },
+        actionTaken: "advisory_provided",
+        authorityClassifiedCondition: "rust",
+        verificationOutcome: "verified",
+        notes: "Observation logged for comparison with the next field visit.",
+        caseState: "closed",
+        createdAt: "2026-07-16T09:12:00+08:00",
+      },
+    ],
   },
   {
     uuid: "00000000-0000-4000-8000-000000000004",
@@ -154,7 +198,25 @@ const sourceReports: DiseaseReport[] = [
     imageStatus: "available",
     symptoms: commonSymptoms.rust.map((symptom) => ({ ...symptom })),
     fieldNotes: "Observed on older leaves in two adjacent rows.",
-    reviewStatus: "submitted_unverified",
+    reviewStatus: "for_field_validation",
+    reviewNotes: "Needs validator inspection to confirm leaf rust spread.",
+    reviewedBy: "Maria Santos",
+    reviewedAt: "2026-07-10T14:00:00+08:00",
+    reviewEvents: [
+      {
+        id: 1,
+        actor: {
+          uuid: "00000000-0000-4000-8000-000000000100",
+          name: "Maria Santos",
+        },
+        actionTaken: null,
+        authorityClassifiedCondition: "rust",
+        verificationOutcome: "not_determined",
+        notes: "Needs validator inspection to confirm leaf rust spread.",
+        caseState: "open",
+        createdAt: "2026-07-10T14:00:00+08:00",
+      },
+    ],
   },
   {
     uuid: "00000000-0000-4000-8000-000000000008",

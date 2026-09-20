@@ -21,6 +21,7 @@ class DemoUserSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
             'caneguard.demo_users.admin_password' => 'admin-test-password',
+            'caneguard.demo_users.expert_password' => 'expert-test-password',
         ]);
 
         $this->seed(DatabaseSeeder::class);
@@ -29,6 +30,7 @@ class DemoUserSeederTest extends TestCase
             'email' => 'field@caneguard.test',
             'role' => User::ROLE_FIELD_REPORTER,
         ]);
+        $this->assertNotNull(User::query()->where('email', 'field@caneguard.test')->value('email_verified_at'));
         $this->assertDatabaseHas('users', [
             'email' => 'mao@caneguard.test',
             'role' => User::ROLE_REVIEWER,
@@ -37,12 +39,16 @@ class DemoUserSeederTest extends TestCase
             'email' => 'admin@caneguard.test',
             'role' => User::ROLE_ADMIN,
         ]);
+        $this->assertDatabaseHas('users', [
+            'email' => 'expert@caneguard.test',
+            'role' => User::ROLE_EXPERT,
+        ]);
 
         $expectedRoles = User::roles();
         sort($expectedRoles);
 
         $this->assertSame($expectedRoles, User::query()->pluck('role')->sort()->values()->all());
-        $this->assertSame(3, User::query()->whereNotNull('uuid')->count());
+        $this->assertSame(4, User::query()->whereNotNull('uuid')->count());
     }
 
     public function test_demo_users_require_local_password_configuration(): void
@@ -51,6 +57,7 @@ class DemoUserSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => null,
             'caneguard.demo_users.reviewer_password' => null,
             'caneguard.demo_users.admin_password' => null,
+            'caneguard.demo_users.expert_password' => null,
         ]);
 
         $this->expectException(LogicException::class);
@@ -65,6 +72,7 @@ class DemoUserSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => null,
             'caneguard.demo_users.admin_password' => 'admin-test-password',
+            'caneguard.demo_users.expert_password' => 'expert-test-password',
         ]);
 
         try {

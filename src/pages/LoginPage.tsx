@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Eye, EyeOff, LockKeyhole, ShieldCheck, Sprout } from "lucide-react";
-import { Navigate, useLocation, useNavigate } from "react-router";
+import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
+import caneGuardLogo from "../assets/brand/cane_guard_logo.png";
+import caneGuardLogoOnDark from "../assets/brand/cane_guard_logo_onDark.png";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { WebRoleError } from "../auth/auth.api";
@@ -37,6 +39,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [requiresVerification, setRequiresVerification] = useState(false);
 
   if (auth.status === "loading") {
     return (
@@ -54,6 +57,7 @@ export function LoginPage() {
     event.preventDefault();
     setSubmitting(true);
     setErrorMessage(null);
+    setRequiresVerification(false);
 
     try {
       await auth.login({ email, password });
@@ -65,6 +69,12 @@ export function LoginPage() {
         setErrorMessage(
           "Too many sign-in attempts. Wait a minute before trying again.",
         );
+      } else if (
+        error instanceof ApiError &&
+        error.code === "EMAIL_NOT_VERIFIED"
+      ) {
+        setErrorMessage("Verify your email address before signing in.");
+        setRequiresVerification(true);
       } else if (
         (error instanceof ApiError && error.status === 403) ||
         error instanceof WebRoleError
@@ -84,7 +94,7 @@ export function LoginPage() {
     routeState.reason === "session_expired"
       ? "Your session expired. Sign in again to continue where you left off."
       : routeState.reason === "access_denied"
-        ? "This account is not authorized for the municipal web workspace."
+        ? "This account is not authorized for the SRA Don Pedro Web workspace."
         : null;
 
   return (
@@ -92,11 +102,11 @@ export function LoginPage() {
       <section className="login-panel" aria-labelledby="login-heading">
         <div className="login-brand">
           <span className="brand__mark">
-            <Sprout aria-hidden="true" />
+            <img src={caneGuardLogo} alt="" aria-hidden="true" />
           </span>
           <div>
             <strong>CaneGuard</strong>
-            <span>Municipal agriculture workspace</span>
+            <span>SRA Don Pedro Mill District Office</span>
           </div>
         </div>
 
@@ -104,7 +114,7 @@ export function LoginPage() {
           <span className="login-icon"><ShieldCheck aria-hidden="true" /></span>
           <p className="eyebrow">Staff sign in</p>
           <h1 id="login-heading">Sign in to review field reports</h1>
-          <p>Use your municipal reviewer or administrator account.</p>
+          <p>Use your SRA Don Pedro reviewer or administrator account.</p>
         </div>
 
         <div className="login-notice-slot" aria-live="polite">
@@ -118,6 +128,11 @@ export function LoginPage() {
           ) : null}
           {errorMessage ? (
             <p className="login-notice login-notice--error" role="alert">{errorMessage}</p>
+          ) : null}
+          {requiresVerification ? (
+            <Link className="login-notice__link" to={routes.verifyEmail}>
+              Resend verification email
+            </Link>
           ) : null}
         </div>
 
@@ -156,20 +171,30 @@ export function LoginPage() {
               </button>
             </span>
           </label>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </Button>
+          <div className="login-form__actions">
+            <Link className="auth-inline-link" to={routes.forgotPassword}>
+              Forgot password?
+            </Link>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Signing in..." : "Sign in"}
+            </Button>
+          </div>
         </form>
 
         <p className="login-support">
-          No public registration is available. Contact the CaneGuard administrator
-          if you need workspace access.
+          Field Inspectors can <Link to={routes.register}>create an account</Link>.
+          Staff workspace access remains limited to reviewer and administrator accounts.
         </p>
       </section>
       <aside className="login-visual" aria-label="CaneGuard decision support">
         <div>
+          <img
+            src={caneGuardLogoOnDark}
+            alt="CaneGuard"
+            className="login-visual__mark"
+          />
           <p className="eyebrow">Decision support for local teams</p>
-          <h2>Turn field observations into timely municipal follow-up.</h2>
+          <h2>Turn field observations into timely SRA Don Pedro follow-up.</h2>
           <p>
             Securely review submitted evidence, coordinate validation, and keep
             sugarcane monitoring work visible.

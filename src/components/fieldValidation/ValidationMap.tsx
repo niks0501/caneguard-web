@@ -35,12 +35,12 @@ const statusColorExpression = [
   "match",
   ["get", "review_status"],
   "verified_by_staff",
-  "#2f855a",
+  "#2d6b40",
   "unable_to_verify",
-  "#64748b",
+  "#4d5c52",
   "resolved",
-  "#94a3a8",
-  "#bf8324",
+  "#98aba0",
+  "#6e5213",
 ] as ExpressionSpecification;
 
 const statusSymbolExpression = [
@@ -72,7 +72,7 @@ function MapLegend() {
 
   return (
     <div className="validation-map__legend" aria-label="Review state legend">
-      <p className="eyebrow">Review state</p>
+      <p className="map-legend__title">Review state</p>
       <ul>
         {entries.map(({ status, marker }) => (
           <li key={status}>
@@ -106,11 +106,11 @@ function PointPopup({
       maxWidth="320px"
     >
       <div className="validation-map__popup">
-        <p className="eyebrow">Submitted observation</p>
+        <p className="popup-subtitle">Submitted observation</p>
         <h3>{properties.referenceCode}</h3>
         <dl>
           <div><dt>Review state</dt><dd>{statusLabel(properties.reviewStatus)}</dd></div>
-          <div><dt>Possible result</dt><dd>{diseaseLabels[properties.predictedDisease]}</dd></div>
+          <div><dt>Possible Condition</dt><dd>{diseaseLabels[properties.predictedDisease]}</dd></div>
           <div><dt>Barangay</dt><dd>{properties.barangay}</dd></div>
           <div><dt>Observed</dt><dd>{formatValidationDate(properties.observedAt)}</dd></div>
           <div><dt>Location</dt><dd>{properties.locationSource === "gps" ? "GPS" : properties.locationSource === "manual_map" ? "Manual map" : "Not provided"}</dd></div>
@@ -276,7 +276,6 @@ export function ValidationMap({
     <div className="validation-map-card">
       <div className="validation-map-card__heading">
         <div>
-          <p className="eyebrow">Spatial index</p>
           <h2 id="validation-map-heading">Report locations</h2>
         </div>
         <span>{data.metadata.locatedCount} located</span>

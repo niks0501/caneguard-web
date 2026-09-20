@@ -2,29 +2,30 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Auth\CheckStepUpPassword;
+use App\Actions\Auth\IssueMobileToken;
+use App\Actions\Auth\RecordSecurityAudit;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EnrollMobileDeviceRequest;
 use App\Http\Requests\MobileLoginRequest;
 use App\Http\Requests\MobileSessionRequest;
 use App\Http\Resources\AuthenticatedUserResource;
+use App\Http\Resources\MobileDeviceResource;
+use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\NewAccessToken;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class MobileAuthController extends Controller
 {
-    private const TOKEN_ABILITIES = [
-        'report:submit',
-        'report:status',
-    ];
-
-    private const TOKEN_NAME_PREFIX = 'caneguard-mobile:';
-
-    public function login(MobileLoginRequest $request): JsonResponse
-    {
+    public function login(
+        MobileLoginRequest $request,
+        IssueMobileToken $issueToken,
+        RecordSecurityAudit $audits,
+    ): JsonResponse {
         $credentials = $request->safe()->only(['email', 'password']);
 
         if (! Auth::guard('web')->validate($credentials)) {
@@ -51,6 +52,13 @@ class MobileAuthController extends Controller
             ], 422);
         }
 
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Verify your email address before using Mobile.',
+                'code' => 'EMAIL_NOT_VERIFIED',
+            ], 403);
+        }
+
         if ($user->role !== User::ROLE_FIELD_REPORTER) {
             return response()->json([
                 'message' => 'This account cannot submit mobile field reports.',
@@ -58,24 +66,122 @@ class MobileAuthController extends Controller
             ], 403);
         }
 
-        $tokenName = self::TOKEN_NAME_PREFIX.$request->string('device_name');
-        $token = DB::transaction(
-            function () use ($tokenName, $user): NewAccessToken {
-                $user->tokens()->where('name', $tokenName)->delete();
-
-                return $user->createToken(
-                    $tokenName,
-                    self::TOKEN_ABILITIES,
-                );
-            },
+        $deviceId = $request->validated('device_id') ?: $request->validated('device_name');
+        $token = $issueToken->handle(
+            $user,
+            $request->validated('device_name'),
+            $deviceId,
+        );
+        $audits->handle(
+            SecurityAudit::ACTION_MOBILE_LOGIN,
+            SecurityAudit::OUTCOME_SUCCESS,
+            actor: $user,
+            target: $user,
+            metadata: [
+                'device_id_hash' => hash('sha256', $deviceId),
+            ],
         );
 
+        return $this->tokenResponse($token, $user, $request);
+    }
+
+    public function enroll(
+        EnrollMobileDeviceRequest $request,
+        CheckStepUpPassword $stepUp,
+        IssueMobileToken $issueToken,
+        RecordSecurityAudit $audits,
+    ): JsonResponse {
+        $user = $request->user();
+
+        if (! $user instanceof User || ! $stepUp->handle(
+            $user,
+            $request->validated('current_password'),
+            SecurityAudit::ACTION_MOBILE_DEVICE_ENROLLMENT,
+        )) {
+            return response()->json([
+                'message' => 'The current password is incorrect.',
+                'code' => 'STEP_UP_REQUIRED',
+            ], 422);
+        }
+
+        $deviceId = $request->validated('device_id');
+        $token = $issueToken->handle(
+            $user,
+            $request->validated('device_name'),
+            $deviceId,
+        );
+        $audits->handle(
+            SecurityAudit::ACTION_MOBILE_DEVICE_ENROLLMENT,
+            SecurityAudit::OUTCOME_SUCCESS,
+            actor: $user,
+            target: $user,
+            metadata: [
+                'device_id_hash' => hash('sha256', $deviceId),
+            ],
+        );
+
+        return $this->tokenResponse($token, $user, $request);
+    }
+
+    public function devices(MobileSessionRequest $request): JsonResponse
+    {
+        $tokens = $request->user()->tokens()
+            ->where('name', 'like', IssueMobileToken::TOKEN_NAME_PREFIX.'%')
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->orderByDesc('last_used_at')
+            ->orderByDesc('id')
+            ->get();
+
         return response()->json([
-            'token' => $token->plainTextToken,
-            'token_type' => 'Bearer',
-            'expires_at' => $token->accessToken->expires_at?->toISOString(),
-            'user' => (new AuthenticatedUserResource($user))->resolve($request),
-        ]);
+            'data' => MobileDeviceResource::collection($tokens)->resolve($request),
+            'meta' => [
+                'count' => $tokens->count(),
+            ],
+        ])->header('Cache-Control', 'private, no-store');
+    }
+
+    public function revokeDevice(
+        MobileSessionRequest $request,
+        string $device,
+        RecordSecurityAudit $audits,
+    ): JsonResponse {
+        $query = $request->user()->tokens()
+            ->where('name', 'like', IssueMobileToken::TOKEN_NAME_PREFIX.'%')
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
+        $tokens = $query->whereKey((int) $device)->get();
+
+        if ($tokens->isEmpty()) {
+            return response()->json([
+                'message' => 'The requested mobile device was not found.',
+                'code' => 'NOT_FOUND',
+            ], 404);
+        }
+
+        foreach ($tokens as $token) {
+            $audits->handle(
+                SecurityAudit::ACTION_MOBILE_DEVICE_REVOCATION,
+                SecurityAudit::OUTCOME_SUCCESS,
+                actor: $request->user(),
+                target: $request->user(),
+                metadata: [
+                    'token_id' => $token->getKey(),
+                    'device_id_hash' => $token->device_id === null
+                        ? null
+                        : hash('sha256', $token->device_id),
+                ],
+            );
+            $token->delete();
+        }
+
+        return response()->json([], 204);
     }
 
     public function me(MobileSessionRequest $request): JsonResponse
@@ -101,5 +207,18 @@ class MobileAuthController extends Controller
         $token->delete();
 
         return response()->json([], 204);
+    }
+
+    private function tokenResponse(
+        NewAccessToken $token,
+        User $user,
+        Request $request,
+    ): JsonResponse {
+        return response()->json([
+            'token' => $token->plainTextToken,
+            'token_type' => 'Bearer',
+            'expires_at' => $token->accessToken->expires_at?->toISOString(),
+            'user' => (new AuthenticatedUserResource($user))->resolve($request),
+        ]);
     }
 }

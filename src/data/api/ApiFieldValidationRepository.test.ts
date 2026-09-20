@@ -30,11 +30,19 @@ const mapDto = {
       },
     },
   ],
-  metadata: { total_count: 2, located_count: 1, unlocated_count: 1 },
+  metadata: {
+    total_count: 2,
+    located_count: 1,
+    unlocated_count: 1,
+    limit: 1000,
+    returned_count: 1,
+    truncated: false,
+  },
 } as const;
 
 const queueDto = {
   data: {
+    queue: "follow_up_due",
     count: 1,
     oldest: {
       uuid: "report-1",
@@ -47,10 +55,13 @@ const queueDto = {
       predicted_label: "rust",
       confidence: 0.84,
       review_status: "for_field_validation",
-      final_latitude: 10.1234567,
-      final_longitude: 122.9876543,
-      location_source: "gps",
-      gps_accuracy: 8.5,
+      target_visit_date: "2026-08-12",
+      final_latitude: null,
+      final_longitude: null,
+      location_source: "unavailable",
+      location_unavailable: true,
+      location_unavailable_reason: "offline_no_map",
+      gps_accuracy: null,
       affected_area_hectares: 2.5,
       affected_portion_percent: 18,
     },
@@ -94,7 +105,10 @@ describe("ApiFieldValidationRepository", () => {
       http.get(`${baseUrl}/api/v1/reports/field-validation-queue`, ({ request }) => {
         const query = new URL(request.url).searchParams;
         expect(query.get("status")).toBeNull();
+        expect(query.get("queue")).toBe("follow_up_due");
         expect(query.get("predicted_label")).toBe("rust");
+        expect(query.get("due_from")).toBe("2026-08-01");
+        expect(query.get("due_to")).toBe("2026-08-31");
         expect(query.get("limit")).toBe("50");
         return HttpResponse.json(queueDto);
       }),
@@ -104,11 +118,21 @@ describe("ApiFieldValidationRepository", () => {
       createAxiosClient({ apiBaseUrl: baseUrl }),
     );
     const result = await repository.getQueue({
+      queue: "follow_up_due",
       status: "verified_by_staff",
       disease: "rust",
+      dueFrom: "2026-08-01",
+      dueTo: "2026-08-31",
     });
 
+    expect(result.queue).toBe("follow_up_due");
     expect(result.count).toBe(1);
     expect(result.oldest?.referenceCode).toBe("CG-2026-0001");
+    expect(result.oldest?.targetVisitDate).toBe("2026-08-12");
+    expect(result.oldest?.finalLatitude).toBeNull();
+    expect(result.oldest?.finalLongitude).toBeNull();
+    expect(result.oldest?.locationSource).toBe("unavailable");
+    expect(result.oldest?.locationUnavailable).toBe(true);
+    expect(result.oldest?.locationUnavailableReason).toBe("offline_no_map");
   });
 });

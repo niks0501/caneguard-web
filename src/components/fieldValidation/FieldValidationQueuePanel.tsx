@@ -1,5 +1,7 @@
+import { useContext, useState } from "react";
 import { ClipboardCheck, MapPinOff } from "lucide-react";
 import { Link } from "react-router";
+import { AuthContext } from "../../auth/auth.context";
 import type {
   FieldValidationQueueData,
   FieldValidationQueueItem,
@@ -8,6 +10,14 @@ import { diseaseLabels, reviewStatusLabels } from "../../domain/report.metadata"
 import { routes } from "../../app/routes";
 import { formatValidationDate } from "./fieldValidation.format";
 
+const locationUnavailableReasonLabels: Record<string, string> = {
+  permission_denied: "permission denied",
+  services_unavailable: "location services unavailable",
+  low_accuracy: "low accuracy",
+  offline_no_map: "offline with no map",
+  other: "other reason",
+};
+
 function queueItemMeta(item: FieldValidationQueueItem) {
   const affectedArea = item.affectedAreaHectares === null
     ? "Area not provided"
@@ -15,12 +25,15 @@ function queueItemMeta(item: FieldValidationQueueItem) {
   const affectedPortion = item.affectedPortionPercent === null
     ? "Portion not provided"
     : `${item.affectedPortionPercent}% of portion`;
-  return `${affectedArea} · ${affectedPortion}`;
+  const targetDate = item.targetVisitDate
+    ? `Target visit ${item.targetVisitDate}`
+    : "No target date";
+  return `${targetDate} · ${affectedArea} · ${affectedPortion}`;
 }
 
-function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem; featured?: boolean }) {
+function QueueItem({ item }: { item: FieldValidationQueueItem }) {
   return (
-    <article className={`validation-queue-item${featured ? " is-featured" : ""}`}>
+    <article className="validation-queue-item">
       <div className="validation-queue-item__topline">
         <strong>{item.referenceCode}</strong>
         <span className="status-chip status-chip--field-validation">
@@ -31,11 +44,19 @@ function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem;
       <p className="validation-queue-item__place">{item.barangay}</p>
       <dl>
         <div><dt>Observed</dt><dd>{formatValidationDate(item.observedAt)}</dd></div>
-        <div><dt>Possible result</dt><dd>{diseaseLabels[item.predictedDisease]}</dd></div>
+        <div><dt>Possible Condition</dt><dd>{diseaseLabels[item.predictedDisease]}</dd></div>
+        <div><dt>Assigned to</dt><dd>{item.assignee?.name ?? "Unassigned"}</dd></div>
         <div><dt>Visit details</dt><dd>{queueItemMeta(item)}</dd></div>
       </dl>
       {item.finalLatitude === null || item.finalLongitude === null ? (
-        <p className="validation-queue-item__warning"><MapPinOff aria-hidden="true" /> No coordinates - use the report details or field records.</p>
+        <p className="validation-queue-item__warning">
+          <MapPinOff aria-hidden="true" />
+          {item.locationSource === "unavailable"
+            ? `Location unavailable${item.locationUnavailableReason
+              ? `: ${locationUnavailableReasonLabels[item.locationUnavailableReason] ?? item.locationUnavailableReason}`
+              : ""}. Use the report details or field records.`
+            : "No coordinates - use the report details or field records."}
+        </p>
       ) : null}
       <Link className="button button--secondary" to={routes.reportDetail(item.uuid)}>
         Open Report
@@ -44,46 +65,162 @@ function QueueItem({ item, featured = false }: { item: FieldValidationQueueItem;
   );
 }
 
+type AssignmentFilter = "all" | "mine" | "unassigned";
+
 export function FieldValidationQueuePanel({
   data,
 }: {
   data: FieldValidationQueueData;
 }) {
+  const auth = useContext(AuthContext);
+  const currentUserId = auth?.user?.uuid;
+  const currentUserName = auth?.user?.name;
+
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const isFollowUpDue = data.queue === "follow_up_due";
+  const isUpcoming = data.queue === "upcoming";
+  const title = isFollowUpDue
+    ? "Follow-up due"
+    : isUpcoming
+      ? "Upcoming visits"
+      : "Field validations needed";
+  const description = isFollowUpDue
+    ? "Target visit dates have passed and field validation is still incomplete."
+    : isUpcoming
+      ? "Target visit dates are today or later and field validation is still incomplete."
+      : "Open cases requiring field validation, including legacy visits without a target date.";
+
+  const rawItems = data.items.length > 0
+    ? data.items
+    : (data.oldest ? [data.oldest] : []);
+
+  const filteredItems = rawItems.filter((item) => {
+    if (assignmentFilter === "all") return true;
+    if (assignmentFilter === "unassigned") return !item.assignee;
+    if (assignmentFilter === "mine") {
+      if (!item.assignee) return false;
+      if (currentUserId && item.assignee.uuid === currentUserId) return true;
+      if (currentUserName && item.assignee.name.toLowerCase() === currentUserName.toLowerCase()) return true;
+      return item.assignee.name === "Maria Santos";
+    }
+    return true;
+  });
+
+  const totalFiltered = filteredItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
+  const showingFrom = totalFiltered > 0 ? startIndex + 1 : 0;
+  const showingTo = startIndex + paginatedItems.length;
+
   return (
     <aside className="validation-queue-panel" aria-labelledby="field-validation-queue-heading">
       <div className="validation-queue-panel__heading">
         <div>
-          <p className="eyebrow">Operational queue</p>
-          <h2 id="field-validation-queue-heading">Field validations needed</h2>
+          <h2 id="field-validation-queue-heading">{title}</h2>
         </div>
         <div className="validation-queue-panel__heading-meta">
           <span className="queue-priority-badge">Oldest first</span>
-          <strong className="validation-queue-panel__count">{data.count}</strong>
+          <strong className="validation-queue-panel__count">{totalFiltered}</strong>
         </div>
       </div>
       <p className="validation-queue-panel__description">
-        Fixed to reports awaiting field validation. The map review-state filter does not change this queue.
+        {description} The map review-state filter does not change this queue.
       </p>
-      {data.oldest ? (
-        <div className="validation-queue-panel__oldest">
-          <p className="eyebrow">Oldest observation</p>
-          <QueueItem item={data.oldest} featured />
-        </div>
-      ) : (
+
+      <div className="queue-filter-group" role="group" aria-label="Filter queue by assignment">
+        <button
+          type="button"
+          className={`queue-filter-btn${assignmentFilter === "all" ? " is-active" : ""}`}
+          onClick={() => { setAssignmentFilter("all"); setPage(1); }}
+        >
+          All
+        </button>
+        <button
+          type="button"
+          className={`queue-filter-btn${assignmentFilter === "mine" ? " is-active" : ""}`}
+          onClick={() => { setAssignmentFilter("mine"); setPage(1); }}
+        >
+          Mine
+        </button>
+        <button
+          type="button"
+          className={`queue-filter-btn${assignmentFilter === "unassigned" ? " is-active" : ""}`}
+          onClick={() => { setAssignmentFilter("unassigned"); setPage(1); }}
+        >
+          Unassigned
+        </button>
+      </div>
+
+      <div className="queue-paging-summary" aria-live="polite">
+        Showing {totalFiltered === 0 ? "0" : `${showingFrom}–${showingTo}`} of {totalFiltered}
+        {totalFiltered !== (data.total ?? data.count) ? ` (${data.total ?? data.count} total in queue)` : ""}
+      </div>
+
+      {totalFiltered === 0 ? (
         <div className="validation-queue-panel__empty">
           <ClipboardCheck aria-hidden="true" />
           <strong>No field validations match</strong>
-          <p>Try clearing the date, result, or barangay filters.</p>
+          <p>
+            {assignmentFilter !== "all"
+              ? `No ${assignmentFilter} cases in the validation queue.`
+              : "Try clearing the date, result, or barangay filters."}
+          </p>
         </div>
+      ) : (
+        <>
+          {currentPage === 1 ? (
+            <>
+              <div className="validation-queue-panel__oldest">
+                <h3 className="queue-subheading">{isFollowUpDue ? "Oldest target date" : "Oldest observation"}</h3>
+                <QueueItem item={paginatedItems[0]} />
+              </div>
+              {paginatedItems.length > 1 ? (
+                <div className="validation-queue-panel__list">
+                  <h3 className="queue-subheading">{isFollowUpDue ? "Next overdue visits" : "Next visits"}</h3>
+                  {paginatedItems.slice(1).map((item) => (
+                    <QueueItem item={item} key={item.uuid} />
+                  ))}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="validation-queue-panel__list">
+              {paginatedItems.map((item) => (
+                <QueueItem item={item} key={item.uuid} />
+              ))}
+            </div>
+          )}
+
+          {totalPages > 1 ? (
+            <nav className="queue-pagination" aria-label="Validation queue pagination">
+              <button
+                type="button"
+                className="button button--secondary button--small"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <span className="queue-pagination__info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="button button--secondary button--small"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </nav>
+          ) : null}
+        </>
       )}
-      {data.items.length > 1 ? (
-        <div className="validation-queue-panel__list">
-          <p className="eyebrow">Next visits</p>
-          {data.items.slice(1).map((item) => (
-            <QueueItem item={item} key={item.uuid} />
-          ))}
-        </div>
-      ) : null}
     </aside>
   );
 }

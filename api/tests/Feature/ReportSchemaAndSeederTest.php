@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Report;
 use App\Models\ReportClassScore;
+use App\Models\ReportReferral;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -58,15 +61,24 @@ class ReportSchemaAndSeederTest extends TestCase
             'captured_at',
             'submitted_at',
             'review_status',
+            'case_state',
+            'verification_outcome',
+            'field_validation_state',
+            'referral_state',
+            'action_taken',
             'review_notes',
             'authority_classified_condition',
             'reviewer_id',
             'reviewed_at',
+            'first_reviewed_at',
             'lock_version',
+            'canonical_report_id',
         ]));
         $this->assertTrue(Schema::hasTable('report_class_scores'));
         $this->assertTrue(Schema::hasTable('report_symptoms'));
         $this->assertTrue(Schema::hasTable('report_quality_warnings'));
+        $this->assertTrue(Schema::hasTable('report_audits'));
+        $this->assertTrue(Schema::hasTable('report_referrals'));
     }
 
     public function test_report_factory_supports_smart_field_values_and_casts_them(): void
@@ -119,6 +131,47 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('smut', $report->reporter_suspected_condition);
         $this->assertSame('Dark whip-like growths are visible.', $report->reporter_observation_text);
         $this->assertSame(Report::AUTHORITY_CONDITION_SMUT, $report->authority_classified_condition);
+        $this->assertSame(Report::CASE_STATE_OPEN, $report->case_state);
+        $this->assertSame(
+            Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            $report->verification_outcome,
+        );
+        $this->assertSame(
+            Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            $report->field_validation_state,
+        );
+        $this->assertSame(Report::REFERRAL_STATE_NOT_REFERRED, $report->referral_state);
+    }
+
+    public function test_report_factory_supports_every_active_and_legacy_classification_value(): void
+    {
+        foreach (Report::authorityClassifiedConditions() as $condition) {
+            $report = Report::factory()->create([
+                'authority_classified_condition' => $condition,
+            ]);
+
+            $this->assertSame($condition, $report->fresh()->authority_classified_condition);
+        }
+
+        $this->assertSame(
+            [Report::AUTHORITY_CONDITION_DOWNY_MILDEW],
+            Report::legacyAuthorityClassifiedConditions(),
+        );
+    }
+
+    public function test_report_referral_factory_preserves_the_handoff_fields(): void
+    {
+        $referral = ReportReferral::factory()->create([
+            'destination' => 'Expert office',
+            'reference' => 'REF-123',
+            'referral_date' => '2026-09-04',
+            'note' => 'Review the evidence.',
+        ]);
+
+        $this->assertSame('Expert office', $referral->destination);
+        $this->assertSame('REF-123', $referral->reference);
+        $this->assertSame('2026-09-04', $referral->referral_date->format('Y-m-d'));
+        $this->assertSame('Review the evidence.', $referral->note);
     }
 
     public function test_legacy_report_values_can_leave_new_contract_fields_null(): void
@@ -152,6 +205,116 @@ class ReportSchemaAndSeederTest extends TestCase
         ] as $field) {
             $this->assertNull($report->{$field}, "Expected {$field} to remain nullable.");
         }
+    }
+
+    public function test_seeder_preserves_existing_report_evidence(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'reference_code' => 'CG-2026-0001',
+            'predicted_label' => Report::LABEL_RUST,
+            'confidence' => 0.7312345,
+            'model_version' => 'caneguard-mobile-v1.0.0',
+            'review_status' => Report::STATUS_RESOLVED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+            'reviewer_id' => $reviewer->id,
+            'reviewed_at' => CarbonImmutable::parse('2026-07-20 12:00:00', 'UTC'),
+        ]);
+        $originalReport = (array) DB::table('reports')
+            ->where('id', $report->id)
+            ->first();
+        $originalEvidence = [
+            'class_scores' => DB::table('report_class_scores')
+                ->where('report_id', $report->id)
+                ->orderBy('label')
+                ->get(['label', 'score'])
+                ->map(fn ($score) => ['label' => $score->label, 'score' => $score->score])
+                ->all(),
+            'symptoms' => DB::table('report_symptoms')
+                ->where('report_id', $report->id)
+                ->orderBy('symptom_key')
+                ->pluck('symptom_key')
+                ->all(),
+            'quality_warnings' => DB::table('report_quality_warnings')
+                ->where('report_id', $report->id)
+                ->orderBy('warning_key')
+                ->pluck('warning_key')
+                ->all(),
+        ];
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(
+            $originalReport,
+            (array) DB::table('reports')->where('id', $report->id)->first(),
+        );
+        $this->assertSame($originalEvidence, [
+            'class_scores' => DB::table('report_class_scores')
+                ->where('report_id', $report->id)
+                ->orderBy('label')
+                ->get(['label', 'score'])
+                ->map(fn ($score) => ['label' => $score->label, 'score' => $score->score])
+                ->all(),
+            'symptoms' => DB::table('report_symptoms')
+                ->where('report_id', $report->id)
+                ->orderBy('symptom_key')
+                ->pluck('symptom_key')
+                ->all(),
+            'quality_warnings' => DB::table('report_quality_warnings')
+                ->where('report_id', $report->id)
+                ->orderBy('warning_key')
+                ->pluck('warning_key')
+                ->all(),
+        ]);
+    }
+
+    public function test_seeder_completes_an_existing_partial_seed_fixture(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $report = Report::factory()->create([
+            'reference_code' => 'CG-2026-0001',
+            'client_uuid' => '30000000-0000-4000-8000-000000000001',
+            'image_path' => 'seeded/report-01.png',
+            'predicted_label' => Report::LABEL_SMUT,
+            'confidence' => 0.7312345,
+            'model_version' => 'v1.0-mobilenetv2',
+            'review_status' => Report::STATUS_RESOLVED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+        ]);
+        DB::table('report_class_scores')->where('report_id', $report->id)->delete();
+        DB::table('report_symptoms')->where('report_id', $report->id)->delete();
+        $originalReport = (array) DB::table('reports')
+            ->where('id', $report->id)
+            ->first();
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(
+            $originalReport,
+            (array) DB::table('reports')->where('id', $report->id)->first(),
+        );
+        $this->assertSame(4, DB::table('report_class_scores')
+            ->where('report_id', $report->id)
+            ->count());
+        $this->assertDatabaseHas('report_symptoms', [
+            'report_id' => $report->id,
+            'symptom_key' => Report::LABEL_SMUT,
+        ]);
+        $this->assertTrue(Storage::disk('local')->exists('seeded/report-01.png'));
+        $this->assertSame(12, Report::query()->count());
     }
 
     public function test_seeder_creates_twelve_varied_reports_with_valid_images(): void
@@ -191,14 +354,18 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('120.6350000', $manualDemoReport->final_longitude);
         $this->assertSame('manual_map', $manualDemoReport->location_source);
         $this->assertNull($manualDemoReport->gps_accuracy);
-        $this->assertDatabaseCount('report_class_scores', 36);
-        $this->assertSame(Report::labels(), Report::query()
+        $this->assertDatabaseCount('report_class_scores', 48);
+        $this->assertSame(Report::v2Labels(), Report::query()
             ->distinct()
             ->orderBy('predicted_label')
             ->pluck('predicted_label')
             ->sort()
             ->values()
             ->all());
+        $this->assertDatabaseHas('reports', [
+            'predicted_label' => Report::LABEL_SMUT,
+            'model_version' => 'v1.0-mobilenetv2',
+        ]);
         $expectedStatuses = Report::reviewStatuses();
         sort($expectedStatuses);
 
@@ -208,6 +375,27 @@ class ReportSchemaAndSeederTest extends TestCase
             ->sort()
             ->values()
             ->all());
+        $this->assertSame(
+            Report::lifecycleForReviewStatus(Report::STATUS_SUBMITTED_UNVERIFIED),
+            Report::query()
+                ->where('review_status', Report::STATUS_SUBMITTED_UNVERIFIED)
+                ->firstOrFail()
+                ->lifecycleSnapshot(),
+        );
+        $this->assertSame(
+            Report::lifecycleForReviewStatus(Report::STATUS_VERIFIED_BY_STAFF),
+            Report::query()
+                ->where('review_status', Report::STATUS_VERIFIED_BY_STAFF)
+                ->firstOrFail()
+                ->lifecycleSnapshot(),
+        );
+        $this->assertSame(
+            Report::lifecycleForReviewStatus(Report::STATUS_RESOLVED),
+            Report::query()
+                ->where('review_status', Report::STATUS_RESOLVED)
+                ->firstOrFail()
+                ->lifecycleSnapshot(),
+        );
 
         $files = Storage::disk('local')->allFiles('seeded');
         $this->assertCount(12, $files);
@@ -218,7 +406,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(512, $dimensions[1]);
         $this->assertGreaterThan(10_000, strlen($seededImage));
         $this->assertSame(
-            3,
+            4,
             ReportClassScore::query()
                 ->where('report_id', Report::query()->firstOrFail()->id)
                 ->count(),

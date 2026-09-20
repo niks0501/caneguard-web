@@ -44,10 +44,18 @@ const mapData: FieldValidationMapData = {
       },
     },
   ],
-  metadata: { totalCount: 2, locatedCount: 1, unlocatedCount: 1 },
+  metadata: {
+    totalCount: 2,
+    locatedCount: 1,
+    unlocatedCount: 1,
+    limit: 1000,
+    returnedCount: 1,
+    truncated: false,
+  },
 };
 
 const queueData: FieldValidationQueueData = {
+  queue: "needs_visit",
   count: 1,
   oldest: {
     uuid: "report-1",
@@ -102,7 +110,7 @@ beforeEach(() => {
 });
 
 describe("FieldValidationMapPage", () => {
-  it("renders the map fallback, coverage warning, fixed queue, and report links", () => {
+  it("renders the map fallback, coverage warning, operational queue, and report links", () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "Field-validation map" })).toBeInTheDocument();
@@ -115,6 +123,26 @@ describe("FieldValidationMapPage", () => {
       "href",
       "/reports/report-1",
     );
+  });
+
+  it("communicates when the API bounds the map result set", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult({
+        ...mapData,
+        metadata: {
+          ...mapData.metadata,
+          totalCount: 1001,
+          locatedCount: 1001,
+          unlocatedCount: 0,
+          limit: 1000,
+          returnedCount: 1000,
+          truncated: true,
+        },
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByText(/Showing 1000 of 1001 matching reports on the map/)).toBeInTheDocument();
   });
 
   it("keeps the queue available when the map request fails", () => {
@@ -186,7 +214,14 @@ describe("FieldValidationMapPage", () => {
     const emptyMap: FieldValidationMapData = {
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 0, locatedCount: 0, unlocatedCount: 0 },
+      metadata: {
+        totalCount: 0,
+        locatedCount: 0,
+        unlocatedCount: 0,
+        limit: 1000,
+        returnedCount: 0,
+        truncated: false,
+      },
     };
     vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(emptyMap));
     renderPage();
@@ -199,7 +234,14 @@ describe("FieldValidationMapPage", () => {
     const unlocatedMap: FieldValidationMapData = {
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 2, locatedCount: 0, unlocatedCount: 2 },
+      metadata: {
+        totalCount: 2,
+        locatedCount: 0,
+        unlocatedCount: 2,
+        limit: 1000,
+        returnedCount: 0,
+        truncated: false,
+      },
     };
     vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(unlocatedMap));
     renderPage();
@@ -221,11 +263,11 @@ describe("FieldValidationMapPage", () => {
     expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
   });
 
-  it("applies draft filters to the URL without changing the fixed queue scope", async () => {
+  it("applies draft filters to the URL without changing the queue scope", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText("Possible AI result"), "rust");
+    await user.selectOptions(screen.getByLabelText("Possible Condition"), "rust");
     await user.type(screen.getByLabelText("Barangay"), "Mabini");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
 
@@ -238,6 +280,20 @@ describe("FieldValidationMapPage", () => {
     );
     expect(useFieldValidationQueue).toHaveBeenLastCalledWith(
       expect.objectContaining({ disease: "rust", barangay: "Mabini", status: undefined }),
+      { enabled: true },
+    );
+  });
+
+  it("preserves the follow-up-due queue in the filtered workspace", () => {
+    vi.mocked(useFieldValidationQueue).mockReturnValue(
+      queryResult({ ...queueData, queue: "follow_up_due" }),
+    );
+    renderPage("/map?queue=follow_up_due");
+
+    expect(screen.getByRole("heading", { name: "Follow-up due workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Follow-up due" })).toBeInTheDocument();
+    expect(useFieldValidationQueue).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: "follow_up_due" }),
       { enabled: true },
     );
   });

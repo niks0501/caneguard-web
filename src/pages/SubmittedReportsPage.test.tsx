@@ -7,11 +7,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { createQueryClient } from "../app/queryClient";
 import { mockReports } from "../data/mock/mockReports";
-import { useReports } from "../hooks/useReports";
+import { useExportReports, useReports } from "../hooks/useReports";
+import { useFieldValidationQueue } from "../hooks/useFieldValidation";
 import { SubmittedReportsPage } from "./SubmittedReportsPage";
 
 vi.mock("../hooks/useReports", () => ({
+  useExportReports: vi.fn(),
   useReports: vi.fn(),
+}));
+
+vi.mock("../hooks/useFieldValidation", () => ({
+  useFieldValidationQueue: vi.fn(),
 }));
 
 const pageData = {
@@ -47,12 +53,15 @@ function LocationProbe() {
   return <output data-testid="location">{location.search}</output>;
 }
 
-function renderPage(initialEntry = "/reports") {
+function renderPage(
+  initialEntry = "/reports",
+  workspace: "reports" | "monitoring" = "reports",
+) {
   const queryClient = createQueryClient();
   const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
-        <SubmittedReportsPage />
+        <SubmittedReportsPage workspace={workspace} />
         <LocationProbe />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -63,12 +72,35 @@ function renderPage(initialEntry = "/reports") {
 
 beforeEach(() => {
   vi.mocked(useReports).mockReturnValue(reportsResult());
+  vi.mocked(useFieldValidationQueue).mockReturnValue({
+    data: {
+      queue: "needs_visit",
+      count: 0,
+      total: 0,
+      page: 1,
+      perPage: 100,
+      oldest: null,
+      items: [],
+    },
+    error: null,
+    isError: false,
+    isFetching: false,
+    isPending: false,
+    isRefetchError: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useFieldValidationQueue>);
+  vi.mocked(useExportReports).mockReturnValue({
+    isError: false,
+    isPending: false,
+    mutateAsync: vi.fn().mockResolvedValue(new Blob(["csv"])),
+  } as unknown as ReturnType<typeof useExportReports>);
 });
 
 describe("SubmittedReportsPage", () => {
   it("uses URL filters for the server query and renders Laravel pagination", () => {
     renderPage(
-      "/reports?page=2&status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27&sort=confidence_desc",
+      "/reports?page=2&status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27&sort=oldest",
     );
 
     expect(useReports).toHaveBeenCalledWith(
@@ -80,19 +112,23 @@ describe("SubmittedReportsPage", () => {
         barangay: "Mabini",
         dateFrom: "2026-07-01",
         dateTo: "2026-07-27",
-        sort: "confidence_desc",
+        sort: "oldest",
       }),
       { enabled: true },
     );
     expect(screen.getByText("32 matching reports")).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Possible result" }),
+      screen.getByRole("columnheader", { name: "Possible Condition" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Observed" }),
+      screen.getByRole("columnheader", { name: "Work status" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", { name: "Observed" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Bago, Negros Occidental")).toBeInTheDocument();
     expect(screen.getByText("AI mismatch flagged")).toBeInTheDocument();
+    expect(screen.getAllByText("Possible Condition: Smut").length).toBeGreaterThanOrEqual(1);
     const statusCell = screen.getByRole("cell", { name: "Needs field validation" });
     const longStatusLabel = statusCell.querySelector(".status-badge__label");
     expect(longStatusLabel).toHaveClass("status-badge__label");
@@ -102,12 +138,77 @@ describe("SubmittedReportsPage", () => {
     ).toHaveTextContent("Open");
   });
 
+  it("renders the monitoring workspace with shared saved views and register columns", () => {
+    renderPage("/monitoring?concern=rssi", "monitoring");
+
+    expect(screen.getByRole("heading", { name: "Monitoring workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "RSSI concerns" })).toHaveAttribute(
+      "href",
+      "/monitoring?concern=rssi",
+    );
+    expect(screen.getByRole("columnheader", { name: "Reported concern" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Latest validation" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Visit calendar" })).toBeInTheDocument();
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ reportedConcern: "rssi" }),
+      { enabled: true },
+    );
+    expect(useFieldValidationQueue).toHaveBeenCalledWith(
+      expect.objectContaining({ dueFrom: expect.any(String), dueTo: expect.any(String) }),
+      { enabled: true },
+    );
+  });
+
+  it("opens an operational queue as a filtered report workspace", () => {
+    renderPage("/reports?queue=needs_review");
+
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: "needs_review", page: 1 }),
+      { enabled: true },
+    );
+    expect(screen.getByRole("heading", { name: "Needs Review" })).toBeInTheDocument();
+    expect(screen.getByText("Filtered operational workspace")).toBeInTheDocument();
+  });
+
+  it("exports the active filters without changing the report workspace", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(new Blob(["csv"]));
+    vi.mocked(useExportReports).mockReturnValue({
+      isError: false,
+      isPending: false,
+      mutateAsync,
+    } as unknown as ReturnType<typeof useExportReports>);
+    const createObjectUrl = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
+    const revokeObjectUrl = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const clickLink = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    renderPage(
+      "/reports?status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27",
+    );
+    await user.click(screen.getByRole("button", { name: "Export CSV" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      page: 1,
+      perPage: 15,
+      status: "submitted_unverified",
+      disease: "rust",
+      barangay: "Mabini",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-27",
+    }));
+    expect(createObjectUrl).toHaveBeenCalledOnce();
+    expect(screen.getByRole("heading", { name: "Recent submissions" })).toBeInTheDocument();
+    createObjectUrl.mockRestore();
+    revokeObjectUrl.mockRestore();
+    clickLink.mockRestore();
+  });
+
   it("stores filter and page changes in the URL and resets the page", async () => {
     const user = userEvent.setup();
     renderPage("/reports?page=3&status=resolved");
 
     await user.selectOptions(
-      screen.getByLabelText("Status"),
+      screen.getByLabelText("Work status"),
       "for_field_validation",
     );
 
@@ -279,4 +380,65 @@ describe("SubmittedReportsPage", () => {
     ).toBeDisabled();
     expect(screen.queryByText(/latest refresh failed/i)).not.toBeInTheDocument();
   });
+  it("defaults the unscoped work queue to the oldest submission", () => {
+    renderPage("/reports");
+
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: "oldest" }),
+      { enabled: true },
+    );
+  });
+
+  it("offers queue, work-status, and operational sorts without confidence sorting", () => {
+    renderPage("/reports");
+
+    const sort = screen.getByLabelText("Sort by");
+    const sortOptions = Array.from(sort.querySelectorAll("option")).map(
+      (option) => option.textContent,
+    );
+    expect(sortOptions).toEqual([
+      "Oldest submitted first",
+      "Newest submitted first",
+      "Due soonest",
+    ]);
+    expect(screen.getByLabelText("Queue")).toBeInTheDocument();
+    expect(screen.getByLabelText("Work status")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Staff-classified condition"),
+    ).toBeInTheDocument();
+  });
+
+  it("filters by the independent lifecycle and classification concepts", async () => {
+    const user = userEvent.setup();
+    renderPage("/reports");
+
+    await user.selectOptions(screen.getByLabelText("Case state"), "open");
+    expect(screen.getByTestId("location")).toHaveTextContent("?case_state=open");
+
+    await user.selectOptions(
+      screen.getByLabelText("Field validation state"),
+      "assigned",
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "field_validation_state=assigned",
+    );
+
+    await user.selectOptions(
+      screen.getByLabelText("Staff-classified condition"),
+      "rust",
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "authority_classified_condition=rust",
+    );
+  });
+
+  it("orders the follow-up queue by the nearest due date", () => {
+    renderPage("/reports?queue=follow_up_due");
+
+    expect(useReports).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: "follow_up_due", sort: "due_soonest" }),
+      { enabled: true },
+    );
+  });
+
 });

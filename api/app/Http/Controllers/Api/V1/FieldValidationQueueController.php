@@ -20,7 +20,11 @@ class FieldValidationQueueController extends Controller
 
         return response()->json([
             'data' => [
+                'queue' => $result['queue'],
                 'count' => $result['count'],
+                'total' => $result['total'] ?? $result['count'],
+                'page' => $result['page'] ?? 1,
+                'per_page' => $result['limit'] ?? 50,
                 'oldest' => $items[0] ?? null,
                 'items' => $items,
             ],

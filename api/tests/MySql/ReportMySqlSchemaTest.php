@@ -57,6 +57,17 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertColumn($columns, 'image_source_type', 'varchar', 20);
         $this->assertColumn($columns, 'predicted_label', 'varchar', 32);
         $this->assertColumn($columns, 'review_status', 'varchar', 40);
+        $this->assertColumn($columns, 'case_state', 'varchar', 16);
+        $this->assertColumn($columns, 'verification_outcome', 'varchar', 32);
+        $this->assertColumn($columns, 'field_validation_state', 'varchar', 32);
+        $this->assertColumn($columns, 'referral_state', 'varchar', 32);
+        $this->assertColumn($columns, 'action_taken', 'varchar', 64);
+        $this->assertNullable($columns, 'action_taken');
+        $this->assertSame('NO', $columns->get('case_state')->IS_NULLABLE);
+        $this->assertSame('open', $columns->get('case_state')->COLUMN_DEFAULT);
+        $this->assertSame('not_determined', $columns->get('verification_outcome')->COLUMN_DEFAULT);
+        $this->assertSame('unassigned', $columns->get('field_validation_state')->COLUMN_DEFAULT);
+        $this->assertSame('not_referred', $columns->get('referral_state')->COLUMN_DEFAULT);
         $this->assertDecimal($columns, 'confidence', 8, 7);
         $this->assertDecimal($columns, 'affected_area_hectares', 12, 2);
         $this->assertDecimal($columns, 'affected_portion_percent', 5, 2);
@@ -76,6 +87,8 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertNullable($columns, 'observed_at');
         $this->assertDateTime($columns, 'submitted_at', 3);
         $this->assertDateTime($columns, 'reviewed_at', 3);
+        $this->assertDateTime($columns, 'first_reviewed_at', 3);
+        $this->assertNullable($columns, 'first_reviewed_at');
         $this->assertDateTime($columns, 'created_at', 0);
         $this->assertDateTime($columns, 'updated_at', 0);
         $this->assertSame('bigint', $columns->get('lock_version')->DATA_TYPE);
@@ -84,6 +97,12 @@ class ReportMySqlSchemaTest extends TestCase
             $columns->get('lock_version')->COLUMN_TYPE,
         );
         $this->assertSame('0', $columns->get('lock_version')->COLUMN_DEFAULT);
+        $this->assertSame('bigint', $columns->get('canonical_report_id')->DATA_TYPE);
+        $this->assertStringContainsString(
+            'unsigned',
+            $columns->get('canonical_report_id')->COLUMN_TYPE,
+        );
+        $this->assertNullable($columns, 'canonical_report_id');
         $this->assertStringContainsString(
             'unsigned',
             $columns->get('image_size_bytes')->COLUMN_TYPE,
@@ -134,6 +153,21 @@ class ReportMySqlSchemaTest extends TestCase
         );
         $this->assertIndex(
             $indexes,
+            'reports_case_state_submitted_at_index',
+            'case_state,submitted_at',
+        );
+        $this->assertIndex(
+            $indexes,
+            'reports_case_state_first_reviewed_at_index',
+            'case_state,first_reviewed_at',
+        );
+        $this->assertIndex(
+            $indexes,
+            'reports_field_validation_state_submitted_at_index',
+            'field_validation_state,submitted_at',
+        );
+        $this->assertIndex(
+            $indexes,
             'reports_predicted_label_submitted_at_index',
             'predicted_label,submitted_at',
         );
@@ -146,6 +180,11 @@ class ReportMySqlSchemaTest extends TestCase
             $indexes,
             'reports_reporter_id_updated_at_index',
             'reporter_id,updated_at',
+        );
+        $this->assertIndex(
+            $indexes,
+            'reports_canonical_report_id_submitted_at_index',
+            'canonical_report_id,submitted_at',
         );
 
         $foreignKeys = DB::table('information_schema.key_column_usage')
@@ -163,6 +202,10 @@ class ReportMySqlSchemaTest extends TestCase
             'users',
             $foreignKeys->get('reviewer_id')->REFERENCED_TABLE_NAME,
         );
+        $this->assertSame(
+            'reports',
+            $foreignKeys->get('canonical_report_id')->REFERENCED_TABLE_NAME,
+        );
 
         $deleteRules = DB::table('information_schema.referential_constraints')
             ->where('constraint_schema', 'caneguard_test')
@@ -176,6 +219,10 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertSame(
             'SET NULL',
             $deleteRules->get('reports_reviewer_id_foreign'),
+        );
+        $this->assertSame(
+            'SET NULL',
+            $deleteRules->get('reports_canonical_report_id_foreign'),
         );
 
         $childPrimaryKeys = [

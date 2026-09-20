@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -15,13 +15,15 @@ use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     public const ROLE_FIELD_REPORTER = 'field_reporter';
 
     public const ROLE_REVIEWER = 'reviewer';
 
     public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_EXPERT = 'expert';
 
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasUuids, Notifiable;
@@ -47,7 +49,49 @@ class User extends Authenticatable
             self::ROLE_FIELD_REPORTER,
             self::ROLE_REVIEWER,
             self::ROLE_ADMIN,
+            self::ROLE_EXPERT,
         ];
+    }
+
+    /**
+     * Get the roles that can use the broad office workspace and queues.
+     *
+     * @return array<int, string>
+     */
+    public static function officeRoles(): array
+    {
+        return [
+            self::ROLE_REVIEWER,
+            self::ROLE_ADMIN,
+        ];
+    }
+
+    /**
+     * Get the roles that can use the authenticated Web workspace.
+     *
+     * @return array<int, string>
+     */
+    public static function webRoles(): array
+    {
+        return [
+            ...self::officeRoles(),
+            self::ROLE_EXPERT,
+        ];
+    }
+
+    public function isOfficeUser(): bool
+    {
+        return in_array($this->role, self::officeRoles(), true);
+    }
+
+    public function isWebUser(): bool
+    {
+        return in_array($this->role, self::webRoles(), true);
+    }
+
+    public function isExpert(): bool
+    {
+        return $this->role === self::ROLE_EXPERT;
     }
 
     /**
@@ -67,6 +111,22 @@ class User extends Authenticatable
     }
 
     /**
+     * @return HasMany<FieldValidationAssignment, $this>
+     */
+    public function fieldValidationAssignments(): HasMany
+    {
+        return $this->hasMany(FieldValidationAssignment::class, 'assignee_id');
+    }
+
+    /**
+     * @return HasMany<FieldValidationAssignment, $this>
+     */
+    public function createdFieldValidationAssignments(): HasMany
+    {
+        return $this->hasMany(FieldValidationAssignment::class, 'assigned_by_id');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -75,6 +135,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'biometric_enabled' => 'boolean',
             'password' => 'hashed',
         ];
     }

@@ -20,11 +20,17 @@ function toQueryParams(
   includeStatus = true,
 ) {
   return {
+    queue: filters.queue,
     status: includeStatus ? filters.status : undefined,
     predicted_label: filters.disease,
     barangay: filters.barangay?.trim() || undefined,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
+    due_from: filters.dueFrom,
+    due_to: filters.dueTo,
+    assignment: filters.assignment,
+    page: filters.page,
+    limit: filters.limit,
   };
 }
 
@@ -48,7 +54,7 @@ export class ApiFieldValidationRepository implements FieldValidationRepository {
       {
         params: {
           ...toQueryParams(filters, false),
-          limit: 50,
+          limit: filters?.limit ?? 50,
         },
       },
     );

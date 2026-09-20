@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\QueryReports;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListReportsRequest;
@@ -21,16 +22,31 @@ class ReportController extends Controller
         );
     }
 
-    public function show(Report $report): ReportResource
+    public function show(Report $report, BuildReportCaseHistory $caseHistory): ReportResource
     {
         $this->authorize('view', $report);
 
-        return new ReportResource($report->load([
+        $relations = [
             'reporter',
             'reviewer',
+            'advisory',
+            'canonicalReport',
+            'fieldValidationAssignment.assignee',
+            'fieldValidationAssignment.assignedBy',
+            'fieldValidationAssignment.completion',
+            'referral.referredBy',
+            'referral.expert',
+            'referral.responseRecordedBy',
+            'referral.findingRecordedBy',
+            'referral.officeReviewer',
+            'referrals.expert',
             'classScores',
             'symptoms',
             'qualityWarnings',
-        ]));
+            'audits.actor',
+            ...$caseHistory->relations(),
+        ];
+
+        return new ReportResource($report->load(array_values(array_unique($relations))));
     }
 }

@@ -14,9 +14,13 @@ Make development-build testing on a real Android phone predictable while preserv
 
 This is P0 because an app can currently appear "Online" while the Laravel server is unreachable, making synchronization failures difficult to diagnose.
 
+> **Current mobile automation:** The companion Mobile repository owns device automation.
+>
+> Follow its [Agent Device guide](https://github.com/niks0501/caneguard-mobile/blob/main/.agent-device/README.md) for current device-flow commands and evidence.
+
 ## User stories
 
-**Developer:** As a developer using a physical Android development build with wireless debugging and Maestro, I want one documented API connectivity path so I can reproduce mobile ↔ Laravel integration reliably.
+**Developer:** As a developer using a physical Android development build with wireless debugging and the mobile device workflow, I want one documented API connectivity path so I can reproduce mobile ↔ Laravel integration reliably.
 
 **Field reporter:** As a field reporter, I want CaneGuard to distinguish "network available" from "CaneGuard server unavailable" so I understand why a saved report is not synchronizing.
 
@@ -28,8 +32,7 @@ This is P0 because an app can currently appear "Online" while the Laravel server
 - `src/features/sync/providers/SyncProvider.tsx` derives `isOnline` from NetInfo:
   `isConnected === true && isInternetReachable !== false`.
 - That signal represents network/internet reachability, **not** Laravel health.
-- Mobile scripts already include Maestro support in `package.json`:
-  `e2e`, `e2e:flow`, `e2e:doctor`.
+- The Mobile repository owns its device-flow scripts in `package.json`.
 
 ### Web / API
 
@@ -39,7 +42,7 @@ This is P0 because an app can currently appear "Online" while the Laravel server
 
 ## Important test constraint: wireless debugging
 
-Do **not** automate a test that turns the phone's Wi-Fi off while Maestro is controlling the phone through wireless ADB. The control channel itself depends on Wi-Fi and will disappear.
+Do **not** automate a test that turns the phone's Wi-Fi off while a device flow is controlling the phone through wireless ADB. The control channel itself depends on Wi-Fi and will disappear.
 
 Actual Wi-Fi-off/on acceptance is intentionally moved to:
 
@@ -74,7 +77,7 @@ flowchart LR
     M[Android development build] -->|HTTP 127.0.0.1:8000| R[ADB reverse]
     R -->|wireless ADB transport| PC[Development PC / WSL-host setup]
     PC --> API[Laravel :8000]
-    T[Maestro] -->|wireless ADB| M
+    T[Mobile device flow] -->|wireless ADB| M
 ```
 
 This is the preferred normal development path **only after it is verified in the actual WSL/Windows setup**.
@@ -132,7 +135,7 @@ With wireless ADB connected:
 4. Observe current mobile behavior.
 5. Confirm that `isOnline` can remain true even though sync requests fail.
 
-This proves P0B without disconnecting Maestro.
+This proves P0B without disconnecting the device flow.
 
 ### Phase 2 — Standardize the development connection procedure
 
@@ -275,13 +278,13 @@ Unit/component tests should prove:
 - health-check failure does not crash the provider;
 - session changes do not leak old reachability state into another user.
 
-Maestro/wireless ADB development smoke:
+Mobile device-flow/wireless ADB development smoke:
 
-1. Run `npm run e2e:doctor`.
+1. Follow the Mobile repository's current device preflight.
 2. Keep Wi-Fi on.
 3. Verify app can sign in / reach API with Laravel running.
 4. Stop Laravel from the development machine.
-5. Verify the app communicates server unavailability while Maestro remains connected.
+5. Verify the app communicates server unavailability while the device flow remains connected.
 6. Restart Laravel.
 7. Trigger resume/manual sync or the P0E retry path.
 8. Verify API connectivity recovers.
@@ -296,7 +299,6 @@ Do not toggle Android Wi-Fi in this automated suite.
 npm run typecheck
 npm run lint
 npm test
-npm run e2e:doctor
 ```
 
 Run the narrow SyncProvider/API health tests during iteration, then the full test suite.

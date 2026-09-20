@@ -13,6 +13,12 @@ class DashboardSummaryRequest extends ApiFormRequest
 
     public function rules(): array
     {
-        return [];
+        return [
+            'month' => [
+                'sometimes',
+                'date_format:Y-m',
+                'regex:/^\\d{4}-(0[1-9]|1[0-2])$/',
+            ],
+        ];
     }
 }

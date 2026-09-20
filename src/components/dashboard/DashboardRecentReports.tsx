@@ -17,10 +17,10 @@ export function DashboardRecentReports({
         <thead>
           <tr>
             <th scope="col">Report</th>
-            <th scope="col">Possible result</th>
+            <th scope="col">Possible Condition</th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
-            <th scope="col">Review status</th>
+            <th scope="col">Work status</th>
             <th scope="col"><span className="sr-only">Action</span></th>
           </tr>
         </thead>
@@ -38,9 +38,8 @@ export function DashboardRecentReports({
                     label={`Submitted evidence for ${report.referenceCode}`}
                     src={report.imageUrl}
                   />
-                  <div>
+                  <div className="report-identity__meta">
                     <strong>{report.referenceCode}</strong>
-                    <span>Field report</span>
                   </div>
                 </div>
               </td>

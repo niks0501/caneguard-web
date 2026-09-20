@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/v1/mobile/reports
+  url: {{baseUrl}}/api/v2/mobile/reports
   body: multipartForm
   auth: bearer
 }
@@ -24,16 +24,17 @@ body:multipart-form {
   image_source_type: camera
   source_width: 1254
   source_height: 1254
-  predicted_label: rust
+  predicted_label: smut
   confidence: 0.82
   class_scores[healthy]: 0.08
   class_scores[mosaic]: 0.10
-  class_scores[rust]: 0.82
-  symptom_keys[]: rust
+  class_scores[rust]: 0.01
+  class_scores[smut]: 0.97
+  symptom_keys[]: smut
   checklist_consistency: consistent
   reported_severity: moderate
   barangay: Mabini
-  model_version: caneguard-mobile-v1.0.0
+  model_version: v1.0-mobilenetv2
   preprocess_ms: 12.5
   inference_ms: 95.75
   total_ms: 122.25

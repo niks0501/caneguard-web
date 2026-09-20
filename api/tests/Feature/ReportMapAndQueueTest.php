@@ -33,6 +33,8 @@ class ReportMapAndQueueTest extends TestCase
             'barangay' => 'Mabini',
             'final_latitude' => null,
             'final_longitude' => null,
+            'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
+            'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
             'observed_at' => CarbonImmutable::parse('2026-08-13T12:00:00Z'),
         ]);
         Report::factory()->create([
@@ -69,7 +71,10 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_FOR_FIELD_VALIDATION)
             ->assertJsonPath('metadata.total_count', 2)
             ->assertJsonPath('metadata.located_count', 1)
-            ->assertJsonPath('metadata.unlocated_count', 1);
+            ->assertJsonPath('metadata.unlocated_count', 1)
+            ->assertJsonPath('metadata.limit', 1000)
+            ->assertJsonPath('metadata.returned_count', 1)
+            ->assertJsonPath('metadata.truncated', false);
 
         $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
             'date_from' => '2026-08-13',
@@ -83,12 +88,85 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('data.items.0.final_latitude', 10.1234567)
             ->assertJsonPath('data.items.0.final_longitude', 122.9876543)
             ->assertJsonPath('data.items.1.final_latitude', null)
-            ->assertJsonPath('data.items.1.final_longitude', null);
+            ->assertJsonPath('data.items.1.final_longitude', null)
+            ->assertJsonPath('data.items.1.location_source', Report::LOCATION_SOURCE_UNAVAILABLE)
+            ->assertJsonPath(
+                'data.items.1.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+            )
+            ->assertJsonPath('data.items.1.location_unavailable', true);
 
         $this->getJson('/api/v1/reports/map?status='.Report::STATUS_RESOLVED)
             ->assertOk()
             ->assertJsonCount(1, 'features')
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_RESOLVED);
+    }
+
+    public function test_smut_model_reports_are_available_in_map_and_field_validation_queue(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->mobileModelV1()->create([
+            'reference_code' => 'CG-SMUT-MAP-QUEUE',
+            'predicted_label' => Report::LABEL_SMUT,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'barangay' => 'Mabini',
+            'final_latitude' => 10.1234567,
+            'final_longitude' => 122.9876543,
+            'observed_at' => CarbonImmutable::parse('2026-08-13T10:20:30Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/map?'.http_build_query([
+            'predicted_label' => Report::LABEL_SMUT,
+            'barangay' => 'Mabini',
+        ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'features')
+            ->assertJsonPath('features.0.id', $report->uuid)
+            ->assertJsonPath('features.0.properties.predicted_label', Report::LABEL_SMUT);
+
+        $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
+            'predicted_label' => Report::LABEL_SMUT,
+            'barangay' => 'Mabini',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.uuid', $report->uuid)
+            ->assertJsonPath('data.items.0.predicted_label', Report::LABEL_SMUT);
+    }
+
+    public function test_map_limits_results_and_reports_the_truncation_contract(): void
+    {
+        config([
+            'caneguard.map.default_limit' => 2,
+            'caneguard.map.max_limit' => 2,
+        ]);
+        $reviewer = User::factory()->reviewer()->create();
+        $reports = collect(range(1, 3))->map(fn (int $index) => Report::factory()->create([
+            'reference_code' => 'CG-MAP-LIMIT-'.$index,
+            'final_latitude' => 10 + ($index / 100),
+            'final_longitude' => 122 + ($index / 100),
+        ]));
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/map')
+            ->assertOk()
+            ->assertJsonCount(2, 'features')
+            ->assertJsonPath('features.0.id', $reports[0]->uuid)
+            ->assertJsonPath('features.1.id', $reports[1]->uuid)
+            ->assertJsonPath('metadata.total_count', 3)
+            ->assertJsonPath('metadata.located_count', 3)
+            ->assertJsonPath('metadata.unlocated_count', 0)
+            ->assertJsonPath('metadata.limit', 2)
+            ->assertJsonPath('metadata.returned_count', 2)
+            ->assertJsonPath('metadata.truncated', true);
+
+        $this->getJson('/api/v1/reports/map?limit=3')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['errors' => ['limit']]);
     }
 
     public function test_map_date_filter_uses_observed_at_and_excludes_null_observations(): void
@@ -118,7 +196,47 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.id', $observedInRange->uuid);
     }
 
-    public function test_field_validation_queue_is_fixed_oldest_first_and_shares_non_status_filters(): void
+    public function test_field_validation_queue_can_bound_a_calendar_month_by_target_visit_date(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $inMonth = Report::factory()->create([
+            'reference_code' => 'CG-CALENDAR-IN',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $inMonth->fieldValidationAssignment()->create([
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-09-30',
+            'activated_at' => now(),
+        ]);
+        $outsideMonth = Report::factory()->create([
+            'reference_code' => 'CG-CALENDAR-OUT',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $outsideMonth->fieldValidationAssignment()->create([
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-10-01',
+            'activated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
+            'queue' => Report::QUEUE_NEEDS_VISIT,
+            'due_from' => '2026-09-01',
+            'due_to' => '2026-09-30',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.uuid', $inMonth->uuid)
+            ->assertJsonPath('data.items.0.target_visit_date', '2026-09-30');
+    }
+
+    public function test_field_validation_queue_defaults_to_needs_visit_oldest_first_and_shares_non_status_filters(): void
     {
         $reviewer = User::factory()->reviewer()->create();
         $oldest = Report::factory()->create([
@@ -223,5 +341,56 @@ class ReportMapAndQueueTest extends TestCase
                 ->assertJsonPath('code', 'VALIDATION_ERROR')
                 ->assertJsonStructure(['errors' => ['date_to', 'predicted_label', 'barangay']]);
         }
+    }
+
+    public function test_queue_exposes_assignee_and_supports_assignment_filter_and_pagination(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create(['name' => 'Assigned Officer']);
+
+        $assignedReport = Report::factory()->create([
+            'reference_code' => 'CR-ASSIGNED',
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'observed_at' => '2026-08-10 10:00:00.000',
+        ]);
+        $assignedReport->fieldValidationAssignment()->create([
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-08-15',
+            'activated_at' => now(),
+        ]);
+
+        $unassignedReport = Report::factory()->create([
+            'reference_code' => 'CR-UNASSIGNED',
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'observed_at' => '2026-08-11 10:00:00.000',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        // Verify assignee is exposed
+        $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit')
+            ->assertOk()
+            ->assertJsonPath('data.count', 2)
+            ->assertJsonPath('data.items.0.reference_code', 'CR-ASSIGNED')
+            ->assertJsonPath('data.items.0.assignee.uuid', $assignee->uuid)
+            ->assertJsonPath('data.items.0.assignee.name', 'Assigned Officer')
+            ->assertJsonPath('data.items.1.reference_code', 'CR-UNASSIGNED')
+            ->assertJsonPath('data.items.1.assignee', null);
+
+        // Filter: unassigned
+        $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit&assignment=unassigned')
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.reference_code', 'CR-UNASSIGNED');
+
+        // Pagination
+        $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit&limit=1&page=2')
+            ->assertOk()
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.page', 2)
+            ->assertJsonPath('data.per_page', 1)
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.reference_code', 'CR-UNASSIGNED');
     }
 }

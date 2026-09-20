@@ -1,1 +1,60 @@
-/home/aki/.config/agents/AGENTS.md
+## Engineering Practice
+
+- Inspect the repository and existing patterns before making changes.
+- Prefer the simplest complete solution and avoid unnecessary abstractions or dependencies.
+- Keep changes focused, readable, deterministic, and maintainable.
+- Preserve unrelated user work and never overwrite, reset, stash, delete, or rewrite unrelated changes.
+- Treat secrets, credentials, tokens, environment values, production data, and personal data as sensitive.
+- Do not expose sensitive values in output, logs, commits, examples, or generated files.
+- Ask before destructive actions, production changes, deployments, publishing, force operations, dependency changes, credential access, or other externally consequential actions.
+- Resolve facts that can be discovered from the repository before asking the user.
+- Ask only when a genuine product decision, missing credential, destructive behavior, or material tradeoff requires user input.
+
+## Graphify
+
+When `graphify-out/graph.json` exists, use Graphify as the first source for understanding repository structure and relationships.
+
+- For codebase questions, start with `graphify query "<question>"`.
+- Use `graphify path "<A>" "<B>"` to understand relationships between components.
+- Use `graphify explain "<concept>"` for focused explanations of a component or concept.
+- Prefer these scoped commands over reading the full graph or performing broad source searches.
+- If `graphify-out/wiki/index.md` exists, use it for broad repository navigation.
+- Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when `query`, `path`, and `explain` do not provide enough context.
+- Dirty files under `graphify-out/` are expected after hooks or incremental updates and are not a reason to avoid Graphify.
+- After modifying code, run `graphify update .` to keep the graph current.
+- When the user explicitly invokes `/graphify`, follow the installed Graphify skill or instructions before doing anything else.
+
+## Verification
+
+- Match verification effort to the risk and scope of the change.
+- Start with the smallest relevant automated checks, such as targeted unit tests, integration tests, type checks, and lint.
+- Expand to broader tests, builds, E2E, browser, or device verification only when justified.
+- Never claim a check passed unless it actually ran and succeeded.
+- Never hide failures by deleting tests, weakening assertions, or disabling validation.
+
+## Failure Handling
+
+- Read the actual error before attempting a fix.
+- Determine whether a failure comes from the change, environment, configuration, or existing repository state.
+- Make evidence-based corrective attempts rather than repeatedly rerunning the same failing command unchanged.
+- Report blockers clearly when further progress requires user action or an unsafe assumption.
+
+## No-Mistakes Test Policy
+
+During no-mistakes validation, never run E2E, UI, browser, device, or interactive acceptance tests such as agent-device, Playwright, Appium, Detox, Cypress, or Selenium.
+
+Use only fast non-interactive automated checks, including targeted unit tests, integration tests, type checks, lint, and static validation.
+
+E2E validation belongs to the implementation phase and must not be repeated by no-mistakes unless explicitly requested.
+
+## Completion
+
+- Report what changed, what verification actually ran, and any remaining meaningful risks or gaps.
+- Keep reports proportional to the task.
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.

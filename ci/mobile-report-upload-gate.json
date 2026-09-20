@@ -1,6 +1,14 @@
 {
   "mobile_repository": "niks0501/caneguard-mobile",
-  "mobile_ref": "592267f55f983b3f6ff4bbed9702c541f9327cda",
-  "artifact_path": "docs/contracts/mobile-report-upload-v1.json",
-  "producer_test_path": "src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts"
+  "mobile_ref": "4cdb7427b75a2cf85bb6be90d8e88052d6eb3b4f",
+  "artifact_path": "docs/contracts/mobile-report-upload-v2.json",
+  "producer_test_path": "src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts",
+  "assignment_artifact_path": "docs/contracts/mobile-field-validation-assignment-v1.json",
+  "assignment_producer_test_path": "src/features/assignments/api/__tests__/mobileFieldValidationAssignmentsApi.contract.test.ts",
+  "completion_artifact_path": "docs/contracts/mobile-field-validation-completion-v1.json",
+  "completion_producer_test_path": "src/features/assignments/api/__tests__/mobileFieldValidationCompletion.contract.test.ts",
+  "notification_artifact_path": "docs/contracts/mobile-notifications-v1.json",
+  "notification_producer_test_path": "src/features/notifications/api/__tests__/mobileNotificationsApi.contract.test.ts",
+  "lifecycle_artifact_path": "docs/contracts/report-lifecycle-v1.json",
+  "lifecycle_producer_test_path": "src/features/lifecycle/__tests__/reportLifecycleContract.test.ts"
 }
