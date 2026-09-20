@@ -29,6 +29,7 @@ const ITEM_FIELDS = [
   'assigned_at',
   'updated_at',
   'case',
+  'previous_visit',
 ];
 
 export class AssignmentContractArtifactError extends Error {
@@ -142,6 +143,16 @@ export function validateMobileFieldValidationAssignmentArtifact(definition, sour
       'submitted_at',
       'predicted_label',
       'confidence',
+    ], issues);
+    validateObjectField(definition.fields.previous_visit, 'previous_visit', [
+      'reference_code',
+      'visited_at',
+      'reporter_suspected_condition',
+      'authority_classified_condition',
+      'action_taken',
+      'field_observation',
+      'field_finding',
+      'fresh_photo_available',
     ], issues);
   }
 

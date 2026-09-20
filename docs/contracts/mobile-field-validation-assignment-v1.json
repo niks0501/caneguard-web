@@ -83,6 +83,32 @@
         "predicted_label": { "type": "string", "required": true, "nullable": false, "enum": ["healthy", "mosaic", "rust", "smut"] },
         "confidence": { "type": "number", "required": true, "nullable": false, "minimum": 0, "maximum": 1 }
       }
+    },
+    "previous_visit": {
+      "type": "object",
+      "required": false,
+      "nullable": true,
+      "required_keys": [
+        "reference_code",
+        "visited_at",
+        "reporter_suspected_condition",
+        "authority_classified_condition",
+        "action_taken",
+        "field_observation",
+        "field_finding",
+        "fresh_photo_available"
+      ],
+      "additional_properties": false,
+      "properties": {
+        "reference_code": { "type": "string", "required": true, "nullable": false, "max_length": 32 },
+        "visited_at": { "type": "date-time", "required": true, "nullable": false },
+        "reporter_suspected_condition": { "type": "string", "required": true, "nullable": true },
+        "authority_classified_condition": { "type": "string", "required": true, "nullable": true },
+        "action_taken": { "type": "string", "required": true, "nullable": false },
+        "field_observation": { "type": "string", "required": true, "nullable": true },
+        "field_finding": { "type": "string", "required": true, "nullable": true },
+        "fresh_photo_available": { "type": "boolean", "required": true, "nullable": false }
+      }
     }
   },
   "versioning": {

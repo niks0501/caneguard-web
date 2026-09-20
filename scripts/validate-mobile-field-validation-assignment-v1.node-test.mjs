@@ -24,14 +24,18 @@ function artifact() {
       checkpoint: 'sync.before',
     },
     fields: Object.fromEntries(ITEM_FIELDS.map((name) => [name, {
-      type: name === 'case' || name === 'submitter' || name === 'assignee' ? 'object' : 'string',
-      required: true,
-      nullable: false,
-      ...(name === 'case' || name === 'submitter' || name === 'assignee'
+      type: name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit'
+        ? 'object'
+        : 'string',
+      required: name !== 'previous_visit',
+      nullable: name === 'previous_visit',
+      ...(name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit'
         ? {
             required_keys: name === 'case'
               ? ['barangay', 'province', 'municipality', 'farmer_or_farm_owner_name', 'affected_area_hectares', 'affected_portion_percent', 'captured_at', 'observed_at', 'submitted_at', 'predicted_label', 'confidence']
-              : ['uuid', 'name'],
+              : name === 'previous_visit'
+                ? ['reference_code', 'visited_at', 'reporter_suspected_condition', 'authority_classified_condition', 'action_taken', 'field_observation', 'field_finding', 'fresh_photo_available']
+                : ['uuid', 'name'],
             properties: {},
           }
         : {}),

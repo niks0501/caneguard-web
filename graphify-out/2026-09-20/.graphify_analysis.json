@@ -1,0 +1,525 @@
+{
+  "communities": {
+    "0": [
+      "agents_core_agent_rules",
+      "agents_graphify_workflow",
+      "agents_progressive_context",
+      "agents_task_risk_workflows",
+      "agents_verification_reporting",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_00_start_here_caneguard_web_monorepo_implementation_plan",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_00_start_here_single_repository_model",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_00_start_here_tuesday_persistence_demo",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_01_monorepo_architecture_and_directory_rules_monorepo_architecture_and_directory_rules",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_01_monorepo_architecture_and_directory_rules_react_root_laravel_api_boundary",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_02_locked_technical_decisions_locked_technical_decisions",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_02_locked_technical_decisions_sanctum_authentication_model",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_03_repository_restructure_and_migration_plan_repository_restructure_and_migration_plan",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_04_tools_packages_and_commands_tools_packages_and_commands",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_05_mysql_schema_and_data_rules_mysql_schema_and_data_rules",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_05_mysql_schema_and_data_rules_reports_relational_model",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_05_mysql_schema_and_data_rules_transactional_report_storage",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_06_api_contract_api_contract",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_06_api_contract_idempotent_mobile_submission",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_06_api_contract_review_update_endpoint",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_07_phase_0_baseline_and_scope_lock_phase_0_baseline_and_scope_lock",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_08_phase_1_create_laravel_inside_existing_repository_phase_1_create_laravel_inside_existing_repository",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_09_phase_2_mysql_report_api_and_storage_phase_2_mysql_report_api_and_storage",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_10_phase_3_web_api_infrastructure_phase_3_web_api_infrastructure",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_11_phase_4_authentication_and_protected_routes_phase_4_authentication_and_protected_routes",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_12_phase_5_dashboard_overview_phase_5_dashboard_overview",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_13_phase_6_submitted_reports_list_phase_6_submitted_reports_list",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_14_phase_7_report_detail_image_and_review_phase_7_report_detail_image_and_review",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_14_phase_7_report_detail_image_and_review_review_persistence_and_invalidation",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_15_phase_8_refresh_errors_and_resilience_phase_8_refresh_errors_and_resilience",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_16_phase_9_testing_demo_and_release_phase_9_testing_demo_and_release",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_16_phase_9_testing_demo_and_release_release_demo_flow",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_17_ai_agent_operating_protocol_ai_agent_operating_protocol",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_18_master_definition_of_done_master_definition_of_done"
+    ],
+    "1": [
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_api_location",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_backend",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_database",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_documents",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_mobile_implementation_included",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_project",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_repository",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_repository_model",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_version",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_web_location",
+      "ref_00_start_here_md",
+      "ref_01_monorepo_architecture_and_directory_rules_md",
+      "ref_02_locked_technical_decisions_md",
+      "ref_03_repository_restructure_and_migration_plan_md",
+      "ref_04_tools_packages_and_commands_md",
+      "ref_05_mysql_schema_and_data_rules_md",
+      "ref_06_api_contract_md",
+      "ref_07_phase_0_baseline_and_scope_lock_md",
+      "ref_08_phase_1_create_laravel_inside_existing_repository_md",
+      "ref_09_phase_2_mysql_report_api_and_storage_md",
+      "ref_10_phase_3_web_api_infrastructure_md",
+      "ref_11_phase_4_authentication_and_protected_routes_md",
+      "ref_12_phase_5_dashboard_overview_md",
+      "ref_13_phase_6_submitted_reports_list_md",
+      "ref_14_phase_7_report_detail_image_and_review_md",
+      "ref_15_phase_8_refresh_errors_and_resilience_md",
+      "ref_16_phase_9_testing_demo_and_release_md",
+      "ref_17_ai_agent_operating_protocol_md",
+      "ref_18_master_definition_of_done_md",
+      "ref_19_official_references_md"
+    ],
+    "2": [
+      "src_components_layout_page",
+      "src_components_layout_page_detailfield",
+      "src_components_layout_page_pagecontent",
+      "src_components_layout_page_pageheader",
+      "src_components_reports_confidencedisplay",
+      "src_components_reports_confidencedisplay_confidencedisplay",
+      "src_components_reports_evidencethumbnail",
+      "src_components_reports_evidencethumbnail_evidencethumbnail",
+      "src_components_reports_reportbadges",
+      "src_components_reports_reportbadges_diseasebadge",
+      "src_components_reports_reportbadges_reviewstatusbadge",
+      "src_components_reports_reporttable",
+      "src_components_reports_reporttable_reporttable",
+      "src_components_ui_states_imagependingstate",
+      "src_domain_report_metadata",
+      "src_domain_report_metadata_diseaselabels",
+      "src_domain_report_metadata_imagestatuslabels",
+      "src_domain_report_metadata_reviewstatuslabels",
+      "src_domain_report_metadata_submitterrolelabels",
+      "src_domain_report_types_diseasekey",
+      "src_domain_report_types_imagestatus",
+      "src_domain_report_types_submitterrole",
+      "src_lib_formatters",
+      "src_lib_formatters_formatconfidence",
+      "src_lib_formatters_formatdate",
+      "src_lib_formatters_formatdatetime",
+      "src_pages_casereviewpage",
+      "src_pages_casereviewpage_actions",
+      "src_pages_casereviewpage_casereviewpage",
+      "src_pages_casereviewpage_reviewaction"
+    ],
+    "3": [
+      "src_components_reports_metriccard",
+      "src_components_reports_metriccard_metriccard",
+      "src_components_ui_button",
+      "src_components_ui_button_button",
+      "src_components_ui_button_buttonprops",
+      "src_components_ui_button_buttonvariant",
+      "src_components_ui_formcontrols",
+      "src_components_ui_formcontrols_searchinput",
+      "src_components_ui_formcontrols_searchinputprops",
+      "src_components_ui_formcontrols_selectfilter",
+      "src_components_ui_formcontrols_selectfilterprops",
+      "src_components_ui_formcontrols_textarea",
+      "src_components_ui_formcontrols_textareaprops",
+      "src_components_ui_pagination",
+      "src_components_ui_pagination_pagination",
+      "src_components_ui_pagination_paginationprops",
+      "src_components_ui_states",
+      "src_components_ui_states_emptystate",
+      "src_components_ui_states_errorstate",
+      "src_components_ui_states_loadingstate",
+      "src_components_ui_states_noresultsstate",
+      "src_components_ui_states_statepanel",
+      "src_components_ui_states_stateprops",
+      "src_pages_submittedreportspage",
+      "src_pages_submittedreportspage_initialfilters",
+      "src_pages_submittedreportspage_sortoption",
+      "src_services_reports_service",
+      "src_services_reports_service_reportsrepository"
+    ],
+    "4": [
+      "eslint",
+      "eslint_js",
+      "eslint_plugin_react_hooks",
+      "eslint_plugin_react_refresh",
+      "globals",
+      "package_devdependencies",
+      "package_devdependencies_eslint",
+      "package_devdependencies_eslint_js",
+      "package_devdependencies_eslint_plugin_react_hooks",
+      "package_devdependencies_eslint_plugin_react_refresh",
+      "package_devdependencies_globals",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_typescript",
+      "package_devdependencies_typescript_eslint",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react",
+      "types_node",
+      "types_react",
+      "types_react_dom",
+      "typescript",
+      "typescript_eslint",
+      "vite",
+      "vitejs_plugin_react"
+    ],
+    "5": [
+      "ref_dom",
+      "ref_src",
+      "ref_vite_client",
+      "tsconfig_app",
+      "tsconfig_app_compileroptions",
+      "tsconfig_app_compileroptions_allowarbitraryextensions",
+      "tsconfig_app_compileroptions_allowimportingtsextensions",
+      "tsconfig_app_compileroptions_erasablesyntaxonly",
+      "tsconfig_app_compileroptions_jsx",
+      "tsconfig_app_compileroptions_lib",
+      "tsconfig_app_compileroptions_module",
+      "tsconfig_app_compileroptions_moduledetection",
+      "tsconfig_app_compileroptions_moduleresolution",
+      "tsconfig_app_compileroptions_noemit",
+      "tsconfig_app_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_app_compileroptions_nounusedlocals",
+      "tsconfig_app_compileroptions_nounusedparameters",
+      "tsconfig_app_compileroptions_skiplibcheck",
+      "tsconfig_app_compileroptions_target",
+      "tsconfig_app_compileroptions_tsbuildinfofile",
+      "tsconfig_app_compileroptions_types",
+      "tsconfig_app_compileroptions_verbatimmodulesyntax",
+      "tsconfig_app_include",
+      "tsconfig_app_json_ref_es2023"
+    ],
+    "6": [
+      "src_components_reports_symptomresponseitem",
+      "src_components_reports_symptomresponseitem_answerlabels",
+      "src_components_reports_symptomresponseitem_symptomresponseitem",
+      "src_data_contracts_reportsrepository",
+      "src_data_contracts_reportsrepository_reportsrepository",
+      "src_data_contracts_reportsrepository_reportsrepository_getreportbyid",
+      "src_data_contracts_reportsrepository_reportsrepository_listreports",
+      "src_data_contracts_reportsrepository_reportsrepository_updatereview",
+      "src_data_mock_mockreports",
+      "src_data_mock_mockreports_commonsymptoms",
+      "src_data_mock_mockreports_mockreports",
+      "src_data_mock_mockreportsrepository",
+      "src_data_mock_mockreportsrepository_clonereport",
+      "src_data_mock_mockreportsrepository_mockreportsrepository",
+      "src_data_mock_mockreportsrepository_mockreportsrepository_getreportbyid",
+      "src_data_mock_mockreportsrepository_mockreportsrepository_listreports",
+      "src_data_mock_mockreportsrepository_mockreportsrepository_updatereview",
+      "src_domain_report_types",
+      "src_domain_report_types_diseasereport",
+      "src_domain_report_types_reportfilters",
+      "src_domain_report_types_reviewstatus",
+      "src_domain_report_types_symptomresponse",
+      "src_domain_review_types",
+      "src_domain_review_types_reportreviewinput"
+    ],
+    "7": [
+      "lucide_react",
+      "package",
+      "package_dependencies",
+      "package_dependencies_lucide_react",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_router",
+      "package_dependencies_tailwindcss",
+      "package_dependencies_tailwindcss_vite",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_type",
+      "package_version",
+      "react",
+      "react_dom",
+      "react_router",
+      "tailwindcss",
+      "tailwindcss_vite"
+    ],
+    "8": [
+      "ref_node",
+      "ref_vite_config_ts",
+      "tsconfig_node",
+      "tsconfig_node_compileroptions",
+      "tsconfig_node_compileroptions_allowimportingtsextensions",
+      "tsconfig_node_compileroptions_erasablesyntaxonly",
+      "tsconfig_node_compileroptions_lib",
+      "tsconfig_node_compileroptions_module",
+      "tsconfig_node_compileroptions_moduledetection",
+      "tsconfig_node_compileroptions_noemit",
+      "tsconfig_node_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_node_compileroptions_nounusedlocals",
+      "tsconfig_node_compileroptions_nounusedparameters",
+      "tsconfig_node_compileroptions_skiplibcheck",
+      "tsconfig_node_compileroptions_target",
+      "tsconfig_node_compileroptions_tsbuildinfofile",
+      "tsconfig_node_compileroptions_types",
+      "tsconfig_node_compileroptions_verbatimmodulesyntax",
+      "tsconfig_node_include",
+      "tsconfig_node_json_ref_es2023"
+    ],
+    "9": [
+      "src_app",
+      "src_app_app",
+      "src_app_router",
+      "src_app_router_approuter",
+      "src_app_routes",
+      "src_app_routes_routes",
+      "src_components_layout_appheader",
+      "src_components_layout_appheader_appheader",
+      "src_components_layout_appshell",
+      "src_components_layout_appshell_appshell",
+      "src_components_navigation_appsidebar",
+      "src_components_navigation_appsidebar_appsidebar",
+      "src_components_navigation_appsidebar_futurelinks",
+      "src_main",
+      "src_pages_notfoundpage",
+      "src_pages_notfoundpage_notfoundpage",
+      "src_pages_submittedreportspage_submittedreportspage"
+    ],
+    "10": [
+      "docs_caneguard_frontend_implementation_plan_design_system_backend_neutral_architecture",
+      "docs_caneguard_frontend_implementation_plan_design_system_caneguard_web_frontend_implementation_plan",
+      "docs_caneguard_frontend_implementation_plan_design_system_decision_support_terminology",
+      "docs_caneguard_frontend_implementation_plan_design_system_reports_repository_contract",
+      "docs_caneguard_frontend_implementation_plan_design_system_submitted_reports_case_review_workflow",
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_10_phase_3_web_api_infrastructure_page_query_repository_axios_laravel_boundary",
+      "readme_caneguard_web",
+      "readme_mock_report_review_workflow"
+    ],
+    "11": [
+      "public_icons_bluesky_clip",
+      "public_icons_bluesky_icon",
+      "public_icons_discord_icon",
+      "public_icons_documentation_icon",
+      "public_icons_github_icon",
+      "public_icons_icon_sprite",
+      "public_icons_social_icon",
+      "public_icons_x_icon"
+    ],
+    "12": [
+      "src_assets_vite_accessible_title",
+      "src_assets_vite_brand",
+      "src_assets_vite_dark_mode_adaptation",
+      "src_assets_vite_glow_effect",
+      "src_assets_vite_lightning_bolt",
+      "src_assets_vite_logo",
+      "src_assets_vite_parentheses"
+    ],
+    "13": [
+      "src_assets_hero_layered_platform_illustration",
+      "src_assets_hero_layered_system_architecture",
+      "src_assets_hero_lower_purple_layer",
+      "src_assets_hero_upper_floating_layer",
+      "src_assets_hero_vertical_separation_guides"
+    ],
+    "14": [
+      "public_favicon_blur_filters",
+      "public_favicon_brand_mark",
+      "public_favicon_lightning_silhouette",
+      "public_favicon_masked_glow"
+    ],
+    "15": [
+      "src_assets_react_atomic_orbits",
+      "src_assets_react_central_nucleus",
+      "src_assets_react_cyan_brand_color",
+      "src_assets_react_logo"
+    ],
+    "16": [
+      "tsconfig",
+      "tsconfig_files",
+      "tsconfig_references"
+    ],
+    "17": [
+      "docs_harness_sync_conflict_preserving_sync",
+      "docs_harness_sync_harness_sync_command"
+    ],
+    "18": [
+      "index_caneguard_document_shell",
+      "index_react_root_mount"
+    ],
+    "19": [
+      "src_domain_user_types",
+      "src_domain_user_types_appuser"
+    ],
+    "20": [
+      "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_19_official_references_official_references"
+    ],
+    "21": [
+      "eslint_config"
+    ],
+    "22": [
+      "vite_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.0766488413547237,
+    "1": 0.06451612903225806,
+    "2": 0.13793103448275862,
+    "3": 0.10317460317460317,
+    "4": 0.08,
+    "5": 0.08333333333333333,
+    "6": 0.19202898550724637,
+    "7": 0.08695652173913043,
+    "8": 0.1,
+    "9": 0.19852941176470587,
+    "10": 0.25,
+    "11": 0.4642857142857143,
+    "12": 0.38095238095238093,
+    "13": 0.5,
+    "14": 0.6666666666666666,
+    "15": 0.6666666666666666,
+    "16": 0.6666666666666666,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0
+  },
+  "gods": [
+    {
+      "id": "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_manifest_documents",
+      "label": "documents",
+      "degree": 21
+    },
+    {
+      "id": "docs_caneguard_web_monorepo_laravel_mysql_plan_v4_00_start_here_caneguard_web_monorepo_implementation_plan",
+      "label": "CaneGuard Web Monorepo Implementation Plan",
+      "degree": 20
+    },
+    {
+      "id": "tsconfig_app_compileroptions",
+      "label": "compilerOptions",
+      "degree": 18
+    },
+    {
+      "id": "tsconfig_node_compileroptions",
+      "label": "compilerOptions",
+      "degree": 15
+    },
+    {
+      "id": "src_domain_report_types_diseasereport",
+      "label": "DiseaseReport",
+      "degree": 13
+    },
+    {
+      "id": "src_domain_report_types_reviewstatus",
+      "label": "ReviewStatus",
+      "degree": 7
+    },
+    {
+      "id": "src_app_routes_routes",
+      "label": "routes",
+      "degree": 6
+    },
+    {
+      "id": "src_data_contracts_reportsrepository_reportsrepository",
+      "label": "ReportsRepository",
+      "degree": 6
+    },
+    {
+      "id": "src_data_mock_mockreportsrepository_mockreportsrepository",
+      "label": "MockReportsRepository",
+      "degree": 6
+    },
+    {
+      "id": "src_domain_review_types_reportreviewinput",
+      "label": "ReportReviewInput",
+      "degree": 6
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Mock Report Review Workflow",
+      "target": "Submitted Reports to Case Review Workflow",
+      "source_files": [
+        "README.md",
+        "docs/CaneGuard_Frontend_Implementation_Plan_Design_System.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "Repository Restructure and Migration Plan",
+      "target": "Core Agent Rules",
+      "source_files": [
+        "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/03_REPOSITORY_RESTRUCTURE_AND_MIGRATION_PLAN.md",
+        "AGENTS.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; peripheral node `Repository Restructure and Migration Plan` unexpectedly reaches hub `Core Agent Rules`"
+    },
+    {
+      "source": "Master Definition of Done",
+      "target": "Verification and Reporting",
+      "source_files": [
+        "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/18_MASTER_DEFINITION_OF_DONE.md",
+        "AGENTS.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories"
+    },
+    {
+      "source": "Backend-Neutral Architecture",
+      "target": "Page Query Repository Axios Laravel Boundary",
+      "source_files": [
+        "docs/CaneGuard_Frontend_Implementation_Plan_Design_System.md",
+        "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/10_PHASE_3_WEB_API_INFRASTRUCTURE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "Release Demo Flow",
+      "target": "Tuesday Persistence Demo",
+      "source_files": [
+        "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/16_PHASE_9_TESTING_DEMO_AND_RELEASE.md",
+        "docs/CaneGuard_Web_Monorepo_Laravel_MySQL_Plan_v4/00_START_HERE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; semantically similar concepts with no structural link"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `devDependencies` connect `Community 4` to `Community 7`?",
+      "why": "High betweenness centrality (0.018) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `DiseaseReport` connect `Community 6` to `Community 2`, `Community 3`?",
+      "why": "High betweenness centrality (0.016) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `project`, `version`, `repository` to the rest of the system?",
+      "why": "129 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.0766488413547237 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.06451612903225806 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.13793103448275862 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 3` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10317460317460317 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

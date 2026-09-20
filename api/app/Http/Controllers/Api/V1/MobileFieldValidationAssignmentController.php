@@ -49,6 +49,7 @@ class MobileFieldValidationAssignmentController extends Controller
             ->with([
                 'assignee',
                 'report.reporter',
+                'completion',
             ]);
         $assignments = $query
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))

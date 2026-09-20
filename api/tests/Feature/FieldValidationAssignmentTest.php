@@ -548,6 +548,129 @@ class FieldValidationAssignmentTest extends TestCase
         );
     }
 
+    public function test_mobile_assignment_feed_includes_previous_visit_context_for_the_same_farm(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $previousReport = Report::factory()->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RSSI,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $previousAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $previousReport->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $previousCompletion = FieldValidationCompletion::factory()->create([
+            'assignment_id' => $previousAssignment->getKey(),
+            'field_observation' => 'Previous observation',
+            'field_finding' => 'Previous finding',
+            'action_taken' => 'Previous action',
+            'visited_at' => '2026-09-10T08:30:00.000Z',
+            'fresh_photo_path' => 'field-validation/previous/photo.jpg',
+        ]);
+        $currentReport = Report::factory()->create([
+            'barangay' => ' mabini ',
+            'farmer_or_farm_owner_name' => '  FARM   ALPHA  ',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $currentAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $currentReport->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($assignee, ['assignment:read']);
+        $response = $this->getJson('/api/v1/mobile/assignments')->assertOk();
+        $current = collect($response->json('data'))->firstWhere('report_uuid', $currentReport->uuid);
+
+        $this->assertNotNull($current);
+        $this->assertSame([
+            'reference_code' => $previousReport->reference_code,
+            'visited_at' => $previousCompletion->fresh()->visited_at->utc()->toISOString(),
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RSSI,
+            'action_taken' => 'Previous action',
+            'field_observation' => 'Previous observation',
+            'field_finding' => 'Previous finding',
+            'fresh_photo_available' => true,
+        ], $current['previous_visit']);
+    }
+
+    public function test_mobile_assignment_feed_returns_a_null_previous_visit_when_none_exists(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($assignee, ['assignment:read']);
+        $this->getJson('/api/v1/mobile/assignments')
+            ->assertOk()
+            ->assertJsonPath('data.0.previous_visit', null);
+    }
+
+    public function test_previous_evidence_photo_is_owner_scoped_and_private(): void
+    {
+        Storage::fake('local');
+        $reviewer = User::factory()->reviewer()->create();
+        $owner = User::factory()->fieldReporter()->create();
+        $other = User::factory()->fieldReporter()->create();
+        $previousReport = Report::factory()->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $previousAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $previousReport->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $photoPath = 'field-validation/previous/evidence.jpg';
+        FieldValidationCompletion::factory()->create([
+            'assignment_id' => $previousAssignment->getKey(),
+            'visited_at' => '2026-09-10T08:30:00.000Z',
+            'fresh_photo_path' => $photoPath,
+            'fresh_photo_mime_type' => 'image/jpeg',
+        ]);
+        Storage::disk('local')->put($photoPath, 'previous evidence');
+        $currentReport = Report::factory()->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $currentAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $currentReport->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $path = "/api/v1/mobile/assignments/{$currentAssignment->uuid}/previous-evidence-photo";
+
+        Sanctum::actingAs($owner, ['assignment:read']);
+        $response = $this->get($path)
+            ->assertOk()
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('max-age=300', $response->headers->get('Cache-Control'));
+
+        Sanctum::actingAs($other, ['assignment:read']);
+        $this->get($path)->assertForbidden();
+    }
+
     public function test_assignment_contract_artifact_matches_the_mobile_response_boundary(): void
     {
         $contract = MobileFieldValidationAssignmentContract::definition();
@@ -567,12 +690,28 @@ class FieldValidationAssignmentTest extends TestCase
                 'assigned_at',
                 'updated_at',
                 'case',
+                'previous_visit',
             ],
             array_keys($contract['fields']),
         );
         $this->assertSame(
             ['healthy', 'mosaic', 'rust', 'smut'],
             $contract['fields']['case']['properties']['predicted_label']['enum'],
+        );
+        $this->assertFalse($contract['fields']['previous_visit']['required']);
+        $this->assertTrue($contract['fields']['previous_visit']['nullable']);
+        $this->assertSame(
+            [
+                'reference_code',
+                'visited_at',
+                'reporter_suspected_condition',
+                'authority_classified_condition',
+                'action_taken',
+                'field_observation',
+                'field_finding',
+                'fresh_photo_available',
+            ],
+            $contract['fields']['previous_visit']['required_keys'],
         );
     }
 }
