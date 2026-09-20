@@ -311,14 +311,14 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
         type: "referral",
         typeLabel: "Referral",
         timestamp: consult.referralDate,
-        actor: consult.referredBy?.name ?? "Authorized reviewer",
+        actor: "Authorized reviewer",
         fields: [
           { label: "Destination", value: consult.destination },
           { label: "Reference", value: consult.reference },
           ...(consult.dueDate ? [{ label: "Due date", value: consult.dueDate }] : []),
           ...(consult.expertName ? [{ label: "Expert", value: consult.expertName }] : []),
         ],
-        notes: consult.note,
+        notes: consult.findingSummary ?? null,
       });
       if (consult.responseDate) {
         entries.push({
@@ -329,9 +329,9 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
           actor: consult.expertName ?? "Expert",
           fields: [
             { label: "Response", value: "Expert response received" },
-            ...(consult.responseFinding ? [{ label: "Finding", value: consult.responseFinding }] : []),
+            ...(consult.findingSummary ? [{ label: "Finding", value: consult.findingSummary }] : []),
           ],
-          notes: consult.responseNote,
+          notes: consult.findingDetails ?? null,
         });
       }
     }
