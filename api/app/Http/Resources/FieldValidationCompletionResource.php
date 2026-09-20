@@ -16,6 +16,7 @@ class FieldValidationCompletionResource extends JsonResource
             'field_observation' => $this->field_observation,
             'field_finding' => $this->field_finding,
             'action_taken' => $this->action_taken,
+            'follow_up_outcome' => $this->follow_up_outcome,
             'visited_at' => $this->visited_at->utc()->toISOString(),
             'gps' => [
                 'outcome' => $this->gps_outcome,

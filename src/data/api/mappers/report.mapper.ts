@@ -97,6 +97,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
           fieldObservation: dto.latest_validation.field_observation,
           finding: dto.latest_validation.finding,
           actionTaken: dto.latest_validation.action_taken,
+          followUpOutcome: dto.latest_validation.follow_up_outcome,
           assignee: dto.latest_validation.assignee,
           freshPhoto: dto.latest_validation.fresh_photo,
         }
@@ -200,6 +201,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
                   dto.field_validation_assignment.completion.field_observation,
                 fieldFinding: dto.field_validation_assignment.completion.field_finding,
                 actionTaken: dto.field_validation_assignment.completion.action_taken,
+                followUpOutcome: dto.field_validation_assignment.completion.follow_up_outcome,
                 visitedAt: dto.field_validation_assignment.completion.visited_at,
                 freshPhoto: {
                   available: dto.field_validation_assignment.completion.fresh_photo.available,

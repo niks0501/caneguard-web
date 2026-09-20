@@ -133,6 +133,9 @@ final class BuildReportCaseHistory
                         ['label' => 'Action taken', 'value' => $completion->action_taken],
                         ['label' => 'Observation', 'value' => $completion->field_observation],
                         ['label' => 'Finding', 'value' => $completion->field_finding],
+                        ...($completion->follow_up_outcome ? [
+                            ['label' => 'Follow-up outcome', 'value' => $this->label($completion->follow_up_outcome)],
+                        ] : []),
                     ],
                 );
             }

@@ -8,7 +8,7 @@ The endpoint requires an authenticated `field_reporter` bearer token with the `a
 
 The authenticated reporter must own the assignment.
 
-The request requires fresh field observation, field finding evidence, action taken, visit time, and a recorded GPS attempt.
+The request requires fresh field observation, field finding evidence, action taken, visit time, and a recorded GPS attempt. Newer Mobile builds may also send the optional `follow_up_outcome` value: `improved`, `unchanged`, `worsened`, or `unable_to_determine`.
 
 GPS coordinates are optional because insufficient GPS must not block a valid completion.
 

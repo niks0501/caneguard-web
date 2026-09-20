@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'field_observation',
     'field_finding',
     'action_taken',
+    'follow_up_outcome',
     'visited_at',
     'gps_outcome',
     'gps_attempted_at',
@@ -55,6 +56,7 @@ class FieldValidationCompletion extends Model
     {
         return [
             'client_uuid' => 'string',
+            'follow_up_outcome' => 'string',
             'visited_at' => 'immutable_datetime',
             'gps_attempted_at' => 'immutable_datetime',
             'gps_latitude' => 'decimal:7',

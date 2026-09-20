@@ -58,6 +58,7 @@ describe("ReportTable", () => {
           fieldObservation: "Fresh observation",
           finding: "Validation finding",
           actionTaken: "Field action",
+          followUpOutcome: "worsened",
           assignee: { uuid: "officer-1", name: "Field Officer" },
         },
         followUp: { dueOn: "2026-08-20", overdue: true },
@@ -68,6 +69,7 @@ describe("ReportTable", () => {
     expect(screen.getByText("Reported: RSSI")).toBeInTheDocument();
     expect(screen.getByText("Staff: RSSI")).toBeInTheDocument();
     expect(screen.getByText("Validation finding")).toBeInTheDocument();
+    expect(screen.getByText("Follow-up: Worsened")).toBeInTheDocument();
     expect(screen.getByText("Technical assistance provided")).toBeInTheDocument();
     expect(screen.getByText("Overdue")).toBeInTheDocument();
   });

@@ -107,6 +107,7 @@ class CompleteFieldValidationAssignment
                     'field_observation' => $data['field_observation'],
                     'field_finding' => $data['field_finding'],
                     'action_taken' => $data['action_taken'],
+                    'follow_up_outcome' => $data['follow_up_outcome'] ?? null,
                     'visited_at' => $data['visited_at'],
                     'gps_outcome' => $data['gps_outcome'],
                     'gps_attempted_at' => $data['gps_attempted_at'],

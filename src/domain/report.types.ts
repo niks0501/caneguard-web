@@ -57,6 +57,12 @@ export type FieldValidationState =
   | "in_progress"
   | "completed";
 
+export type FollowUpOutcome =
+  | "improved"
+  | "unchanged"
+  | "worsened"
+  | "unable_to_determine";
+
 export type ReferralState =
   | "not_referred"
   | "referred"
@@ -191,6 +197,7 @@ export interface FieldValidationCompletion {
   fieldObservation: string;
   fieldFinding: string;
   actionTaken: string;
+  followUpOutcome?: FollowUpOutcome | null;
   visitedAt?: string;
   freshPhoto?: {
     available: boolean;
@@ -203,6 +210,7 @@ export interface LatestValidationSummary {
   fieldObservation: string;
   finding: string;
   actionTaken: string;
+  followUpOutcome?: FollowUpOutcome | null;
   assignee?: { uuid: string; name: string } | null;
   freshPhoto?: {
     available: boolean;

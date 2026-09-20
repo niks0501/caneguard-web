@@ -141,6 +141,7 @@ export const completedFieldValidationAssignmentDto = {
     field_observation: "Fresh observation from the assigned validation visit.",
     field_finding: "The field finding is preserved as separate evidence.",
     action_taken: "Provided field guidance and recorded the next action.",
+    follow_up_outcome: "improved",
     visited_at: "2026-08-14T09:30:00.000Z",
     gps: {
       outcome: "resolved",

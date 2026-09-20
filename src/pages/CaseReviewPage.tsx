@@ -35,6 +35,7 @@ import {
   authorityClassifiedConditionLabels,
   caseStateLabels,
   fieldValidationStateLabels,
+  followUpOutcomeLabels,
   imageStatusLabels,
   isLegacyAuthorityClassifiedCondition,
   submitterRoleLabels,
@@ -311,6 +312,12 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
           { label: "Action taken", value: assignment.completion.actionTaken },
           { label: "Observation", value: assignment.completion.fieldObservation },
           { label: "Finding", value: assignment.completion.fieldFinding },
+          ...(assignment.completion.followUpOutcome
+            ? [{
+                label: "Follow-up outcome",
+                value: followUpOutcomeLabels[assignment.completion.followUpOutcome],
+              }]
+            : []),
         ],
         notes: null,
       });
@@ -1463,6 +1470,11 @@ export function CaseReviewPage() {
                       </DetailField>
                       <DetailField label="Finding">
                         {report.fieldValidationAssignment.completion.fieldFinding}
+                      </DetailField>
+                      <DetailField label="Follow-up outcome">
+                        {report.fieldValidationAssignment.completion.followUpOutcome
+                          ? followUpOutcomeLabels[report.fieldValidationAssignment.completion.followUpOutcome]
+                          : "Not provided"}
                       </DetailField>
                       <DetailField label="Fresh validation photo">
                         {report.fieldValidationAssignment.completion.freshPhoto?.available

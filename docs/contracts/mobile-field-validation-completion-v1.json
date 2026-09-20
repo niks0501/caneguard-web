@@ -48,6 +48,13 @@
       "nullable": false,
       "max_length": 2000
     },
+    "follow_up_outcome": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "enum": ["improved", "unchanged", "worsened", "unable_to_determine"]
+    },
     "visited_at": {
       "wire_type": "text",
       "type": "date-time",
