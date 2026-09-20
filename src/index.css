@@ -763,6 +763,49 @@ a {
   font-size: var(--text-body-sm);
 }
 
+.risk-triage-summary {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-primary);
+}
+
+.risk-triage-summary .dashboard-section-heading p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-body-sm);
+}
+
+.risk-triage-summary__bands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.risk-triage-band {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+}
+
+.risk-triage-band--green {
+  color: var(--color-success-dark, #176b43);
+  background: var(--color-success-soft, #e7f5ed);
+}
+
+.risk-triage-band--amber {
+  color: var(--color-warning-dark, #805b00);
+  background: var(--color-warning-soft);
+}
+
+.risk-triage-band--red {
+  color: var(--color-danger-dark, #8b2b2b);
+  background: var(--color-danger-soft);
+}
+
 .dashboard-recent {
   overflow: hidden;
 }
@@ -4019,12 +4062,68 @@ textarea:focus-visible {
   min-width: 190px;
 }
 
+.attention-band {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-machine);
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.attention-band--green {
+  color: var(--color-success-dark, #176b43);
+  background: var(--color-success-soft, #e7f5ed);
+}
+
+.attention-band--amber {
+  color: var(--color-warning-dark, #805b00);
+  background: var(--color-warning-soft);
+}
+
+.attention-band--red {
+  color: var(--color-danger-dark, #8b2b2b);
+  background: var(--color-danger-soft);
+}
+
 .report-status-cell__wrapper {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
   flex-wrap: nowrap;
+}
+
+.machine-fact-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+.machine-fact-chips--compact {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.machine-fact-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 7px;
+  color: var(--color-muted);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-machine);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.machine-facts-empty {
+  color: var(--color-muted);
+  font-size: var(--text-machine);
 }
 
 .row-expand-btn {
@@ -5702,6 +5801,37 @@ body {
   margin-top: 4px;
 }
 
+.attention-band-note {
+  display: grid;
+  gap: 3px;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  color: var(--color-muted);
+  border-left: 3px solid var(--color-border);
+  font-size: var(--text-body-sm);
+}
+
+.attention-band-note strong {
+  color: var(--color-primary-dark);
+  text-transform: capitalize;
+}
+
+.attention-band-note small {
+  font-size: var(--text-machine);
+}
+
+.attention-band-note--green {
+  border-left-color: var(--color-success, #2d9b68);
+}
+
+.attention-band-note--amber {
+  border-left-color: var(--color-warning);
+}
+
+.attention-band-note--red {
+  border-left-color: var(--color-danger);
+}
+
 .scan-hero__commit-row .button {
   min-height: 42px;
   padding: 0 24px;
@@ -5743,6 +5873,28 @@ body {
 .status-chip strong {
   color: var(--color-primary-dark);
   font-weight: 600;
+}
+
+.machine-facts-tier {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.machine-facts-tier__label {
+  color: var(--color-muted);
+  font-size: var(--text-machine);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.machine-facts-tier .machine-fact-chips {
+  margin-top: 0;
 }
 
 .evidence-section {
@@ -5984,6 +6136,10 @@ body {
 
 .operational-queue-card--follow_up_due {
   border-top-color: var(--color-danger);
+}
+
+.operational-queue-card--unverified_no_active_work {
+  border-top-color: var(--color-secondary-text);
 }
 
 .operational-queue-card__header {

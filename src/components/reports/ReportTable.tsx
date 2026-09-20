@@ -15,6 +15,7 @@ import {
   formatDueState,
 } from "../../lib/formatters";
 import { EvidenceThumbnail } from "./EvidenceThumbnail";
+import { MachineFactsChips } from "./MachineFactsChips";
 import { DiseaseBadge, ReviewStatusBadge } from "./ReportBadges";
 
 /**
@@ -95,6 +96,15 @@ export function ReportTable({
         <tbody>
           {reports.map((report) => {
             const due = formatDueState(report.followUp);
+            const machineFacts = report.machineFacts ?? {
+              confidence: report.confidence ?? null,
+              checklistConsistency: report.checklistConsistency ?? null,
+              qualityWarnings: report.qualityWarnings ?? [],
+              gpsAccuracy: report.gpsAccuracy ?? null,
+              locationSource: report.locationSource ?? null,
+              reporterConcern: report.reporterSuspectedCondition ?? null,
+              reporterMismatch: report.mismatchReported ?? null,
+            };
             const isExpanded = Boolean(expandedRows[report.uuid]);
             return (
               <tr
@@ -261,6 +271,15 @@ export function ReportTable({
                 <td className="report-status-cell">
                   <div className="report-status-cell__wrapper">
                     <ReviewStatusBadge status={report.reviewStatus} />
+                    {report.attentionBand ? (
+                      <span
+                        className={`attention-band attention-band--${report.attentionBand}`}
+                        title={report.attentionBandReasons?.join(" ")}
+                      >
+                        {report.attentionBand}
+                      </span>
+                    ) : null}
+                    <MachineFactsChips facts={machineFacts} compact />
                     <button
                       type="button"
                       className="row-expand-btn"
@@ -297,6 +316,12 @@ export function ReportTable({
                           </strong>
                         </div>
                       ) : null}
+                      <div className="report-row-expanded-item">
+                        <span className="table-secondary">First reviewed: </span>
+                        <strong className="table-primary">
+                          {report.firstReviewedAt ? formatDate(report.firstReviewedAt) : "Not reviewed"}
+                        </strong>
+                      </div>
                     </div>
                   ) : null}
                 </td>

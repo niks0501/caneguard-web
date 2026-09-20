@@ -70,6 +70,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'authority_classified_condition',
             'reviewer_id',
             'reviewed_at',
+            'first_reviewed_at',
             'lock_version',
             'canonical_report_id',
         ]));

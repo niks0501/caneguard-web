@@ -1,4 +1,8 @@
-import type { DiseaseReport, PaginationMeta } from "../../../domain/report.types";
+import type {
+  DiseaseReport,
+  PaginationMeta,
+  ReportCaseHistory,
+} from "../../../domain/report.types";
 import type {
   ReportDetailDto,
   ReportListItemDto,
@@ -11,6 +15,51 @@ const humanize = (value: string) =>
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+
+function mapCaseHistory(dto: ReportDetailDto["case_history"]): ReportCaseHistory | undefined {
+  if (!dto) return undefined;
+
+  return {
+    entries: dto.entries.map((entry) => ({
+      id: entry.id,
+      type: entry.type,
+      typeLabel: entry.type_label,
+      timestamp: entry.timestamp,
+      actor: entry.actor,
+      fields: entry.fields,
+      notes: entry.notes ?? null,
+    })),
+    available: dto.available,
+    sources: {
+      reviewEvents: dto.sources.review_events,
+      corrections: dto.sources.corrections,
+      assignments: dto.sources.assignments,
+      consults: dto.sources.consults,
+    },
+  };
+}
+
+function mapMachineFacts(dto: {
+  confidence?: number | null;
+  checklist_consistency?: string | null;
+  quality_warnings: string[];
+  gps_accuracy?: number | null;
+  location_source?: "gps" | "manual_map" | "unavailable" | null;
+  reporter_concern?: string | null;
+  reporter_mismatch?: boolean | null;
+} | undefined) {
+  if (!dto) return undefined;
+
+  return {
+    confidence: dto.confidence ?? null,
+    checklistConsistency: dto.checklist_consistency ?? null,
+    qualityWarnings: dto.quality_warnings,
+    gpsAccuracy: dto.gps_accuracy ?? null,
+    locationSource: dto.location_source ?? null,
+    reporterConcern: dto.reporter_concern ?? null,
+    reporterMismatch: dto.reporter_mismatch ?? null,
+  };
+}
 
 export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
   return {
@@ -27,6 +76,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     submitterRole: "field_reporter",
     capturedAt: dto.captured_at,
     submittedAt: dto.submitted_at,
+    firstReviewedAt: dto.first_reviewed_at ?? undefined,
     predictedDisease: dto.predicted_label,
     mismatchReported: dto.mismatch_reported,
     imageUrl: dto.image_url,
@@ -38,6 +88,9 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     reporterSuspectedCondition: dto.reporter_suspected_condition ?? null,
     reporterObservationText: dto.reporter_observation_text ?? null,
     actionTaken: dto.action_taken ?? null,
+    machineFacts: mapMachineFacts(dto.machine_facts),
+    attentionBand: dto.attention_band ?? null,
+    attentionBandReasons: dto.attention_band_reasons ?? [],
     latestValidation: dto.latest_validation
       ? {
           visitedAt: dto.latest_validation.visited_at,
@@ -72,6 +125,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     capturedAt: dto.timestamps.captured_at,
     observedAt: dto.timestamps.observed_at ?? undefined,
     submittedAt: dto.timestamps.submitted_at,
+    firstReviewedAt: dto.first_reviewed_at ?? undefined,
     finalLatitude: dto.observations.final_latitude ?? undefined,
     finalLongitude: dto.observations.final_longitude ?? undefined,
     locationSource: dto.observations.location_source ?? undefined,
@@ -112,6 +166,10 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
       dto.reporter_observation.reporter_suspected_condition,
     reporterObservationText: dto.reporter_observation.reporter_observation_text,
     authorityClassifiedCondition: dto.review.authority_classified_condition,
+    machineFacts: mapMachineFacts(dto.machine_facts),
+    caseHistory: mapCaseHistory(dto.case_history),
+    attentionBand: dto.attention_band ?? null,
+    attentionBandReasons: dto.attention_band_reasons ?? [],
     actionTaken: dto.review.action_taken ?? undefined,
     advisory: dto.advisory
       ? {

@@ -87,6 +87,8 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertNullable($columns, 'observed_at');
         $this->assertDateTime($columns, 'submitted_at', 3);
         $this->assertDateTime($columns, 'reviewed_at', 3);
+        $this->assertDateTime($columns, 'first_reviewed_at', 3);
+        $this->assertNullable($columns, 'first_reviewed_at');
         $this->assertDateTime($columns, 'created_at', 0);
         $this->assertDateTime($columns, 'updated_at', 0);
         $this->assertSame('bigint', $columns->get('lock_version')->DATA_TYPE);
@@ -153,6 +155,11 @@ class ReportMySqlSchemaTest extends TestCase
             $indexes,
             'reports_case_state_submitted_at_index',
             'case_state,submitted_at',
+        );
+        $this->assertIndex(
+            $indexes,
+            'reports_case_state_first_reviewed_at_index',
+            'case_state,first_reviewed_at',
         );
         $this->assertIndex(
             $indexes,

@@ -1,6 +1,7 @@
 import type { OperationalQueue } from "./operationalQueue";
 
 export type DiseaseKey = "healthy" | "mosaic" | "rust" | "smut";
+export type AttentionBand = "green" | "amber" | "red";
 
 /** Stable reporter-observation value sent by Mobile for the RSSI quick choice. */
 export const REPORTER_OBSERVED_CONCERN_RSSI = "RSSI" as const;
@@ -236,6 +237,39 @@ export interface SymptomResponse {
   answer: "yes" | "no" | "not_sure";
 }
 
+export interface ReportMachineFacts {
+  confidence?: number | null;
+  checklistConsistency?: string | null;
+  qualityWarnings: string[];
+  gpsAccuracy?: number | null;
+  locationSource?: LocationSource | null;
+  reporterConcern?: string | null;
+  reporterMismatch?: boolean | null;
+}
+
+export type CaseHistoryEntryType = "review" | "field_validation" | "referral" | "correction";
+
+export interface ReportCaseHistoryEntry {
+  id: string;
+  type: CaseHistoryEntryType;
+  typeLabel: string;
+  timestamp: string;
+  actor: string;
+  fields: Array<{ label: string; value: string | null }>;
+  notes?: string | null;
+}
+
+export interface ReportCaseHistory {
+  entries: ReportCaseHistoryEntry[];
+  available: boolean;
+  sources: {
+    reviewEvents: boolean;
+    corrections: boolean;
+    assignments: boolean;
+    consults: boolean;
+  };
+}
+
 export interface DiseaseReport {
   uuid: string;
   referenceCode: string;
@@ -250,6 +284,7 @@ export interface DiseaseReport {
   capturedAt: string;
   observedAt?: string;
   submittedAt: string;
+  firstReviewedAt?: string;
   finalLatitude?: number;
   finalLongitude?: number;
   locationSource?: LocationSource;
@@ -312,6 +347,10 @@ export interface DiseaseReport {
     acknowledgedAt?: string | null;
   }) | null;
   reviewEvents?: ReportReviewEvent[];
+  machineFacts?: ReportMachineFacts;
+  attentionBand?: AttentionBand | null;
+  attentionBandReasons?: string[];
+  caseHistory?: ReportCaseHistory;
 }
 
 export interface ReportReviewEvent {

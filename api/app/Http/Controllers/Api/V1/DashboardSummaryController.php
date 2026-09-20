@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Reports\ApplyOperationalQueueFilter;
 use App\Actions\Reports\BuildMonthlyReportSummary;
+use App\Actions\Reports\CalibrateReportTriage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardSummaryRequest;
 use App\Http\Resources\ReportListResource;
@@ -16,6 +17,7 @@ class DashboardSummaryController extends Controller
         DashboardSummaryRequest $request,
         ApplyOperationalQueueFilter $applyOperationalQueueFilter,
         BuildMonthlyReportSummary $buildMonthlyReportSummary,
+        CalibrateReportTriage $calibrateReportTriage,
     ): JsonResponse {
         $counts = array_fill_keys(Report::reviewStatuses(), 0);
 
@@ -35,10 +37,27 @@ class DashboardSummaryController extends Controller
         }
 
         $recentReports = Report::query()
-            ->with(['reporter', 'reviewer', 'fieldValidationAssignment'])
+            ->with(['reporter', 'reviewer', 'fieldValidationAssignment', 'qualityWarnings'])
             ->latest('submitted_at')
             ->limit(5)
             ->get();
+
+        $riskCalibration = $calibrateReportTriage->handle();
+        $riskBands = array_fill_keys(['green', 'amber', 'red'], 0);
+        if ($riskCalibration['enabled']) {
+            $applyOperationalQueueFilter
+                ->handle(
+                    Report::query()->with('qualityWarnings'),
+                    Report::QUEUE_NEEDS_REVIEW,
+                )
+                ->get()
+                ->each(function (Report $report) use (&$riskBands, $calibrateReportTriage, $riskCalibration): void {
+                    $band = $calibrateReportTriage->classify($report, $riskCalibration)['band'];
+                    if ($band !== null) {
+                        $riskBands[$band] += 1;
+                    }
+                });
+        }
 
         return response()->json([
             'data' => [
@@ -47,6 +66,10 @@ class DashboardSummaryController extends Controller
                     ...$counts,
                 ],
                 'queues' => $queueCounts,
+                'risk_triage' => [
+                    ...$riskCalibration,
+                    'bands' => $riskBands,
+                ],
                 'recent_reports' => ReportListResource::collection($recentReports)
                     ->resolve($request),
                 'monthly_summary' => $buildMonthlyReportSummary->handle(

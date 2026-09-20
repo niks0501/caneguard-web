@@ -743,6 +743,9 @@ class ReviewReportTest extends TestCase
             ->assertJsonPath('data.review_events.0.action_taken', Report::ACTION_ADVISORY_PROVIDED)
             ->assertJsonPath('data.review_events.0.notes', 'First review notes by staff.');
 
+        $firstReviewedAt = $firstResponse->json('data.first_reviewed_at');
+        $this->assertNotNull($firstReviewedAt);
+
         $secondReviewer = User::factory()->reviewer()->create();
         Sanctum::actingAs($secondReviewer);
 
@@ -760,6 +763,7 @@ class ReviewReportTest extends TestCase
 
         $this->assertDatabaseCount('report_review_events', 2);
         $report->refresh();
+        $this->assertSame($firstReviewedAt, $report->first_reviewed_at?->utc()->toISOString());
         $this->assertSame('Second review note: case resolved.', $report->review_notes);
         $this->assertSame(Report::ACTION_NO_FURTHER_ACTION_REQUIRED, $report->action_taken);
     }

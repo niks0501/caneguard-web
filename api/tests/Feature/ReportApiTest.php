@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
+use App\Models\ReportReviewEvent;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -151,6 +152,176 @@ class ReportApiTest extends TestCase
                 ->assertStatus(422)
                 ->assertJsonPath('code', 'VALIDATION_ERROR');
         }
+    }
+
+    public function test_unverified_no_active_work_queue_catches_the_open_gap(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $unqueued = Report::factory()->create([
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+        ]);
+        $activeReferral = Report::factory()->create([
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+            'referral_state' => Report::REFERRAL_STATE_REFERRED,
+        ]);
+        $technicalAssistance = Report::factory()->create([
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
+        ]);
+        $cancelledReferral = Report::factory()->create([
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+            'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
+        ]);
+        $closed = Report::factory()->create([
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports?queue='.Report::QUEUE_UNVERIFIED_NO_ACTIVE_WORK)
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonFragment(['uuid' => $unqueued->uuid])
+            ->assertJsonFragment(['uuid' => $technicalAssistance->uuid])
+            ->assertJsonFragment(['uuid' => $cancelledReferral->uuid])
+            ->assertJsonMissing(['uuid' => $activeReferral->uuid])
+            ->assertJsonMissing(['uuid' => $closed->uuid]);
+    }
+
+    public function test_queue_rows_expose_existing_machine_facts_without_confidence_sorting(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'confidence' => 0.93,
+            'checklist_consistency' => 'inconsistent',
+            'gps_accuracy' => 6.5,
+            'location_source' => Report::LOCATION_SOURCE_GPS,
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'mismatch_reported' => true,
+        ]);
+        $report->qualityWarnings()->create([
+            'warning_key' => 'low_light',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports')
+            ->assertOk()
+            ->assertJsonMissingPath('data.0.machine_facts.confidence')
+            ->assertJsonPath('data.0.machine_facts.checklist_consistency', 'inconsistent')
+            ->assertJsonPath('data.0.machine_facts.quality_warnings.0', 'low_light')
+            ->assertJsonPath('data.0.machine_facts.gps_accuracy', 6.5)
+            ->assertJsonPath('data.0.machine_facts.location_source', Report::LOCATION_SOURCE_GPS)
+            ->assertJsonPath('data.0.machine_facts.reporter_concern', Report::REPORTER_CONCERN_RSSI)
+            ->assertJsonPath('data.0.machine_facts.reporter_mismatch', true);
+    }
+
+    public function test_calibrated_attention_bands_reorder_needs_review_without_hiding_cases(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->create([
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
+            'predicted_label' => Report::LABEL_RUST,
+            'confidence' => 0.9,
+            'checklist_consistency' => 'consistent',
+            'mismatch_reported' => false,
+            'location_source' => Report::LOCATION_SOURCE_GPS,
+            'gps_accuracy' => 5,
+            'first_reviewed_at' => '2026-09-01 10:00:00.000',
+        ]);
+        $red = Report::factory()->create([
+            'reference_code' => 'CG-TRIAGE-RED',
+            'submitted_at' => '2026-09-20 12:00:00.000',
+            'confidence' => 0.95,
+            'checklist_consistency' => 'inconclusive',
+            'mismatch_reported' => true,
+            'location_source' => Report::LOCATION_SOURCE_GPS,
+            'gps_accuracy' => 5,
+            'reported_severity' => 'high',
+        ]);
+        $amber = Report::factory()->create([
+            'reference_code' => 'CG-TRIAGE-AMBER',
+            'submitted_at' => '2026-09-20 11:00:00.000',
+            'confidence' => 0.7,
+            'checklist_consistency' => 'consistent',
+            'mismatch_reported' => false,
+            'location_source' => Report::LOCATION_SOURCE_GPS,
+            'gps_accuracy' => 5,
+            'reported_severity' => 'moderate',
+        ]);
+        $green = Report::factory()->create([
+            'reference_code' => 'CG-TRIAGE-GREEN',
+            'submitted_at' => '2026-09-20 10:00:00.000',
+            'confidence' => 0.92,
+            'checklist_consistency' => 'consistent',
+            'mismatch_reported' => false,
+            'location_source' => Report::LOCATION_SOURCE_GPS,
+            'gps_accuracy' => 5,
+            'reported_severity' => 'low',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports?'.http_build_query([
+            'queue' => Report::QUEUE_NEEDS_REVIEW,
+            'sort' => 'submitted_at',
+            'per_page' => 10,
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.0.reference_code', 'CG-TRIAGE-RED')
+            ->assertJsonPath('data.0.attention_band', 'red')
+            ->assertJsonPath('data.1.reference_code', 'CG-TRIAGE-AMBER')
+            ->assertJsonPath('data.1.attention_band', 'amber')
+            ->assertJsonPath('data.2.reference_code', 'CG-TRIAGE-GREEN')
+            ->assertJsonPath('data.2.attention_band', 'green')
+            ->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_report_detail_projects_typed_case_history_from_existing_review_sources(): void
+    {
+        $reviewer = User::factory()->reviewer()->create(['name' => 'Office reviewer']);
+        $report = Report::factory()->create();
+        $report->audits()->create([
+            'actor_id' => $reviewer->getKey(),
+            'field' => 'barangay',
+            'original_value' => 'Mabini',
+            'corrected_value' => 'Poblacion',
+            'reason' => 'Corrected from the field sheet.',
+            'created_at' => '2026-09-20 10:00:00.000',
+        ]);
+        ReportReviewEvent::query()->create([
+            'report_id' => $report->getKey(),
+            'actor_id' => $reviewer->getKey(),
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'created_at' => '2026-09-20 11:00:00.000',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.case_history.available', true)
+            ->assertJsonPath('data.case_history.sources.review_events', true)
+            ->assertJsonPath('data.case_history.sources.corrections', true)
+            ->assertJsonFragment(['type' => 'review'])
+            ->assertJsonFragment(['type' => 'correction'])
+            ->assertJsonPath('data.first_reviewed_at', null);
     }
 
     public function test_report_queue_filters_by_the_independent_lifecycle_concepts(): void
@@ -687,6 +858,7 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.queues.needs_review', 3)
             ->assertJsonPath('data.queues.needs_visit', 1)
             ->assertJsonPath('data.queues.follow_up_due', 0)
+            ->assertJsonPath('data.queues.unverified_no_active_work', 0)
             ->assertJsonCount(5, 'data.recent_reports');
     }
 

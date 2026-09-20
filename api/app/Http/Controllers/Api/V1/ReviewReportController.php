@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Notifications\CreateLifecycleNotifications;
+use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\RecordReportReferral;
 use App\Actions\Reports\RecordReportReviewEvent;
 use App\Http\Controllers\Controller;
@@ -244,6 +245,8 @@ class ReviewReportController extends Controller
 
             $reviewUpdate['reviewer_id'] = $request->user()->getKey();
             $reviewUpdate['reviewed_at'] = now()->utc();
+            $reviewUpdate['first_reviewed_at'] = $locked->first_reviewed_at
+                ?? $reviewUpdate['reviewed_at'];
             $reviewUpdate['lock_version'] = $locked->lock_version + 1;
 
             $this->applyMetadataCorrections(
@@ -359,9 +362,13 @@ class ReviewReportController extends Controller
      */
     private function reviewEventRelations(): array
     {
-        return Schema::hasTable('report_review_events')
-            ? ['reviewEvents.actor']
-            : [];
+        $relations = app(BuildReportCaseHistory::class)->relations();
+
+        if (Schema::hasTable('report_review_events')) {
+            $relations[] = 'reviewEvents.actor';
+        }
+
+        return array_values(array_unique($relations));
     }
 
     private function isNewReferral(Report $report, array $data): bool

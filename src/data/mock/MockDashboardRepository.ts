@@ -122,6 +122,7 @@ export class MockDashboardRepository implements DashboardRepository {
       needs_visit: 0,
       follow_up_due: 0,
       upcoming: 0,
+      unverified_no_active_work: 0,
     };
 
     mockReports.forEach((report) => {
@@ -131,6 +132,23 @@ export class MockDashboardRepository implements DashboardRepository {
       }
       if (report.reviewStatus === "for_field_validation") {
         queues.needs_visit += 1;
+      }
+      const lifecycle = report.lifecycle;
+      const caseState = lifecycle?.caseState
+        ?? (report.reviewStatus === "submitted_unverified" ? "open" : "closed");
+      const verificationOutcome = lifecycle?.verificationOutcome
+        ?? (report.reviewStatus === "submitted_unverified" ? "not_determined" : "verified");
+      const fieldValidationState = lifecycle?.fieldValidationState ?? "unassigned";
+      const referralState = lifecycle?.referralState ?? "not_referred";
+      if (
+        caseState === "open"
+        && verificationOutcome === "not_determined"
+        && fieldValidationState === "unassigned"
+        && referralState !== "referred"
+        && referralState !== "expert_response_received"
+        && report.actionTaken != null
+      ) {
+        queues.unverified_no_active_work += 1;
       }
     });
 

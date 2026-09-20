@@ -73,6 +73,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'authority_classified_condition',
     'reviewer_id',
     'reviewed_at',
+    'first_reviewed_at',
     'lock_version',
     'canonical_report_id',
 ])]
@@ -150,6 +151,9 @@ class Report extends Model
 
     /** Open, incomplete assignments whose target date is today or later. */
     public const QUEUE_UPCOMING = 'upcoming';
+
+    /** Open, unverified cases with no active field or expert work. */
+    public const QUEUE_UNVERIFIED_NO_ACTIVE_WORK = 'unverified_no_active_work';
 
     public const CASE_STATE_OPEN = 'open';
 
@@ -385,6 +389,7 @@ class Report extends Model
             self::QUEUE_NEEDS_VISIT,
             self::QUEUE_FOLLOW_UP_DUE,
             self::QUEUE_UPCOMING,
+            self::QUEUE_UNVERIFIED_NO_ACTIVE_WORK,
         ];
     }
 
@@ -670,6 +675,7 @@ class Report extends Model
             'observed_at' => 'immutable_datetime',
             'submitted_at' => 'immutable_datetime',
             'reviewed_at' => 'immutable_datetime',
+            'first_reviewed_at' => 'immutable_datetime',
             'advisory_selected_at' => 'immutable_datetime',
             'advisory_delivered_at' => 'immutable_datetime',
             'advisory_acknowledged_at' => 'immutable_datetime',

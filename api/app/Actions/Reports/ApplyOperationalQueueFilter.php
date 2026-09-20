@@ -21,6 +21,7 @@ final class ApplyOperationalQueueFilter
             Report::QUEUE_NEEDS_VISIT => $this->needsVisit($query),
             Report::QUEUE_FOLLOW_UP_DUE => $this->followUpDue($query),
             Report::QUEUE_UPCOMING => $this->upcoming($query),
+            Report::QUEUE_UNVERIFIED_NO_ACTIVE_WORK => $this->unverifiedNoActiveWork($query),
             default => throw new InvalidArgumentException("Unsupported operational queue: {$queue}"),
         };
     }
@@ -134,5 +135,21 @@ final class ApplyOperationalQueueFilter
                 '!=',
                 Report::FIELD_VALIDATION_STATE_COMPLETED,
             );
+    }
+
+    private function unverifiedNoActiveWork(Builder $query): Builder
+    {
+        return $query
+            ->where('case_state', Report::CASE_STATE_OPEN)
+            ->where(
+                'verification_outcome',
+                Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            )
+            ->where('field_validation_state', Report::FIELD_VALIDATION_STATE_UNASSIGNED)
+            ->whereNotIn('referral_state', [
+                Report::REFERRAL_STATE_REFERRED,
+                Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+            ])
+            ->whereNotNull('action_taken');
     }
 }
