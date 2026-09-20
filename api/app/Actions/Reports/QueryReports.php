@@ -25,6 +25,7 @@ class QueryReports
             'reporter',
             'reviewer',
             'fieldValidationAssignment.assignee',
+            'fieldValidationAssignment.assignedBy',
             'fieldValidationAssignment.completion',
             'qualityWarnings',
         ]);

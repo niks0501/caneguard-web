@@ -1,9 +1,9 @@
 import {
   CalendarDays,
+  SquareCheck,
   ChevronRight,
   LayoutDashboard,
   LogOut,
-  MapPinned,
   Settings,
   ShieldCheck,
 } from "lucide-react";
@@ -53,11 +53,11 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             </NavLink>
             <NavLink
               className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-              to={routes.map}
+              to={routes.needsAssessment}
               onClick={onNavigate}
             >
-              <MapPinned aria-hidden="true" />
-              <span>Field-validation map</span>
+              <SquareCheck aria-hidden="true" />
+              <span>Needs assessment</span>
               <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
             </NavLink>
             <NavLink

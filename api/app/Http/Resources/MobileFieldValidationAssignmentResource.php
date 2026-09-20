@@ -77,6 +77,7 @@ class MobileFieldValidationAssignmentResource extends JsonResource
             'action_taken' => $completion->action_taken,
             'field_observation' => $completion->field_observation,
             'field_finding' => $completion->field_finding,
+            'follow_up_outcome' => $completion->follow_up_outcome,
             'fresh_photo_available' => $completion->fresh_photo_path !== null,
         ];
     }

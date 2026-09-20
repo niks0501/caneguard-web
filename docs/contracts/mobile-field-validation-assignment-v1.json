@@ -96,6 +96,7 @@
         "action_taken",
         "field_observation",
         "field_finding",
+        "follow_up_outcome",
         "fresh_photo_available"
       ],
       "additional_properties": false,
@@ -107,6 +108,12 @@
         "action_taken": { "type": "string", "required": true, "nullable": false },
         "field_observation": { "type": "string", "required": true, "nullable": true },
         "field_finding": { "type": "string", "required": true, "nullable": true },
+        "follow_up_outcome": {
+          "type": "string",
+          "required": true,
+          "nullable": true,
+          "enum": ["improved", "unchanged", "worsened", "unable_to_determine"]
+        },
         "fresh_photo_available": { "type": "boolean", "required": true, "nullable": false }
       }
     }

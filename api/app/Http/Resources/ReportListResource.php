@@ -50,6 +50,7 @@ class ReportListResource extends JsonResource
             'machine_facts' => $this->machineFacts(),
             'attention_band' => $this->attention_band,
             'attention_band_reasons' => $this->attention_band_reasons ?? [],
+            'version' => $this->lock_version,
             'image_url' => route(
                 'api.v1.reports.image',
                 ['report' => $this->uuid],
@@ -91,11 +92,18 @@ class ReportListResource extends JsonResource
 
         return [
             'state' => $this->resource->lifecycleSnapshot()['field_validation_state'],
+            'assignment_uuid' => $assignment?->uuid,
             'target_visit_date' => $assignment?->target_visit_date?->format('Y-m-d'),
             'assignee' => $assignment?->assignee ? [
                 'uuid' => $assignment->assignee->uuid,
                 'name' => $assignment->assignee->name,
             ] : null,
+            'assigned_by' => $assignment?->assignedBy ? [
+                'uuid' => $assignment->assignedBy->uuid,
+                'name' => $assignment->assignedBy->name,
+            ] : null,
+            'activated_at' => $assignment?->activated_at?->utc()->toISOString(),
+            'updated_at' => $assignment?->updated_at?->utc()->toISOString(),
         ];
     }
 

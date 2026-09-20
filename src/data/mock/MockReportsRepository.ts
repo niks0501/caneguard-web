@@ -68,6 +68,13 @@ function csvCell(value: unknown): string {
     : cell;
 }
 
+function reportersForMockAssignment(uuid: string) {
+  return {
+    uuid,
+    name: "Field Inspector",
+  };
+}
+
 export class MockReportsRepository implements ReportsRepository {
   private reports = mockReports.map(cloneReport);
 
@@ -241,8 +248,34 @@ export class MockReportsRepository implements ReportsRepository {
             caseState: input.caseState ?? lifecycle.caseState,
             verificationOutcome:
               input.verificationOutcome ?? lifecycle.verificationOutcome,
+            fieldValidationState:
+              input.fieldValidationState
+              ?? (input.fieldValidationAssigneeUuid ? "assigned" : lifecycle.fieldValidationState),
           };
     const now = new Date().toISOString();
+    const nextAssignment = input.fieldValidationAssigneeUuid === undefined
+      && input.fieldValidationTargetDate === undefined
+      ? current.fieldValidationAssignment
+      : input.fieldValidationAssigneeUuid
+        ? {
+            uuid: current.fieldValidationAssignment?.uuid ?? `mock-assignment-${reportId}`,
+            assignee: reportersForMockAssignment(input.fieldValidationAssigneeUuid),
+            assignedBy: current.fieldValidationAssignment?.assignedBy ?? {
+              uuid: "00000000-0000-4000-8000-000000000100",
+              name: "Maria Santos",
+            },
+            ...(input.fieldValidationTargetDate !== undefined
+              ? input.fieldValidationTargetDate
+                ? { targetVisitDate: input.fieldValidationTargetDate }
+                : {}
+              : current.fieldValidationAssignment?.targetVisitDate
+                ? { targetVisitDate: current.fieldValidationAssignment.targetVisitDate }
+                : {}),
+            activatedAt: current.fieldValidationAssignment?.activatedAt ?? now,
+            updatedAt: now,
+            completion: current.fieldValidationAssignment?.completion,
+          }
+        : null;
     const newEvent: ReportReviewEvent = {
       id: (current.reviewEvents?.length ?? 0) + 1,
       actor: {
@@ -279,6 +312,7 @@ export class MockReportsRepository implements ReportsRepository {
       actionTaken:
         input.actionTaken === undefined ? current.actionTaken : input.actionTaken,
       lifecycle: nextLifecycle,
+      fieldValidationAssignment: nextAssignment ?? undefined,
       reviewedAt: now,
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       updatedAt: now,

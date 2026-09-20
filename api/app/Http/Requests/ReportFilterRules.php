@@ -40,6 +40,10 @@ final class ReportFilterRules
                 'sometimes',
                 Rule::in(['rssi', Report::REPORTER_CONCERN_RSSI]),
             ],
+            'follow_up_outcome' => [
+                'sometimes',
+                Rule::in(['improved', 'unchanged', 'worsened', 'unable_to_determine']),
+            ],
         ];
 
         if ($includeStatus) {

@@ -128,7 +128,7 @@ function FilterChips({
   );
 }
 
-export function FieldValidationMapPage() {
+export function FieldValidationMapPage({ embedded = false }: { embedded?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlState = useMemo(() => parseMapUrl(searchParams), [searchParams]);
   const appliedFilters = urlState.filters;
@@ -149,21 +149,27 @@ export function FieldValidationMapPage() {
   const isFollowUpDue = appliedFilters.queue === "follow_up_due";
   const isUpcoming = appliedFilters.queue === "upcoming";
 
+  const writeWorkspaceUrl = (filters: FieldValidationFilters) => {
+    const next = writeMapUrl(filters);
+    if (embedded) next.set("view", "map");
+    return next;
+  };
+
   const applyFilters = (draft: FieldValidationFilters) => {
-    setSearchParams(writeMapUrl({
+    setSearchParams(writeWorkspaceUrl({
       ...draft,
       barangay: draft.barangay?.trim() || undefined,
     }));
   };
 
   const clearFilters = () => {
-    setSearchParams(new URLSearchParams());
+    setSearchParams(embedded ? new URLSearchParams("view=map") : new URLSearchParams());
   };
 
   const removeFilter = (key: keyof FieldValidationFilters) => {
     const next = { ...appliedFilters };
     delete next[key];
-    setSearchParams(writeMapUrl(next));
+    setSearchParams(writeWorkspaceUrl(next));
   };
 
   const refresh = () => {
@@ -171,8 +177,8 @@ export function FieldValidationMapPage() {
   };
 
   return (
-    <PageContent className="page-content--field-validation">
-      <PageHeader
+    <PageContent className={`page-content--field-validation${embedded ? " page-content--embedded" : ""}`}>
+      {!embedded ? <PageHeader
         eyebrow="Field operations"
         title={isFollowUpDue
           ? "Follow-up due workspace"
@@ -194,7 +200,7 @@ export function FieldValidationMapPage() {
             {mapQuery.isFetching || queueQuery.isFetching ? "Refreshing workspace" : "Refresh workspace"}
           </Button>
         )}
-      />
+      /> : null}
 
       <section className="field-validation-workspace-card" aria-labelledby="field-validation-filters-heading">
         <div className="workspace-heading">

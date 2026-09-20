@@ -305,8 +305,12 @@ export const reportListItemSchema = z.object({
   farm_reference: z.string().nullable().optional(),
   field_validation: z.object({
     state: fieldValidationStateSchema,
+    assignment_uuid: z.string().nullable().optional(),
     target_visit_date: z.string().nullable(),
     assignee: userSchema.pick({ uuid: true, name: true }).nullable(),
+    assigned_by: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
+    activated_at: z.iso.datetime({ offset: true }).nullable().optional(),
+    updated_at: z.iso.datetime({ offset: true }).nullable().optional(),
   }).optional(),
   latest_validation: z.object({
     visited_at: z.iso.datetime({ offset: true }),
@@ -332,6 +336,7 @@ export const reportListItemSchema = z.object({
   machine_facts: reportMachineFactsSchema.optional(),
   attention_band: attentionBandSchema.nullable().optional(),
   attention_band_reasons: z.array(z.string()).optional(),
+  version: z.number().int().nonnegative().optional(),
   image_url: z.string(),
 });
 
