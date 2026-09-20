@@ -792,17 +792,17 @@ a {
 }
 
 .risk-triage-band--green {
-  color: var(--color-success-dark, #176b43);
-  background: var(--color-success-soft, #e7f5ed);
+  color: var(--color-success);
+  background: var(--color-success-soft);
 }
 
 .risk-triage-band--amber {
-  color: var(--color-warning-dark, #805b00);
+  color: var(--color-warning);
   background: var(--color-warning-soft);
 }
 
 .risk-triage-band--red {
-  color: var(--color-danger-dark, #8b2b2b);
+  color: var(--color-danger);
   background: var(--color-danger-soft);
 }
 
@@ -4068,22 +4068,22 @@ textarea:focus-visible {
   padding: 3px 7px;
   border-radius: var(--radius-pill);
   font-size: var(--text-machine);
-  font-weight: 800;
+  font-weight: 700;
   text-transform: capitalize;
 }
 
 .attention-band--green {
-  color: var(--color-success-dark, #176b43);
-  background: var(--color-success-soft, #e7f5ed);
+  color: var(--color-success);
+  background: var(--color-success-soft);
 }
 
 .attention-band--amber {
-  color: var(--color-warning-dark, #805b00);
+  color: var(--color-warning);
   background: var(--color-warning-soft);
 }
 
 .attention-band--red {
-  color: var(--color-danger-dark, #8b2b2b);
+  color: var(--color-danger);
   background: var(--color-danger-soft);
 }
 
@@ -5821,7 +5821,7 @@ body {
 }
 
 .attention-band-note--green {
-  border-left-color: var(--color-success, #2d9b68);
+  border-left-color: var(--color-success);
 }
 
 .attention-band-note--amber {
