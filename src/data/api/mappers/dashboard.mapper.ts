@@ -12,7 +12,21 @@ export function mapDashboard(dto: DashboardResponseDto): DashboardSummary {
       needs_visit: dto.data.queues?.needs_visit ?? counts.for_field_validation,
       follow_up_due: dto.data.queues?.follow_up_due ?? 0,
       upcoming: dto.data.queues?.upcoming ?? 0,
+      unverified_no_active_work: dto.data.queues?.unverified_no_active_work ?? 0,
     },
+    riskTriage: dto.data.risk_triage
+      ? {
+          enabled: dto.data.risk_triage.enabled,
+          greenMinConfidence: dto.data.risk_triage.green_min_confidence,
+          reviewedCases: dto.data.risk_triage.reviewed_cases,
+          calibrationCases: dto.data.risk_triage.calibration_cases,
+          greenMisfires: dto.data.risk_triage.green_misfires,
+          measuredAt: dto.data.risk_triage.measured_at,
+          nextMeasurementDueAt: dto.data.risk_triage.next_measurement_due_at,
+          note: dto.data.risk_triage.note,
+          bands: dto.data.risk_triage.bands,
+        }
+      : undefined,
     counts: {
       submitted_unverified: counts.submitted_unverified,
       for_field_validation: counts.for_field_validation,

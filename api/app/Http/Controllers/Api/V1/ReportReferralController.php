@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\RecordReportReferral;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RecordReferralRequest;
@@ -38,6 +39,7 @@ class ReportReferralController extends Controller
             'referral.officeReviewer',
             'referrals.expert',
             'audits.actor',
+            ...app(BuildReportCaseHistory::class)->relations(),
         ])))
             ->response()
             ->setStatusCode(201);

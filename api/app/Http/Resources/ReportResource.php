@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Actions\Reports\BuildReportCaseHistory;
+use App\Actions\Reports\CalibrateReportTriage;
 use App\Models\Report;
 use App\Models\ReportAudit;
 use Illuminate\Http\Request;
@@ -11,6 +13,10 @@ class ReportResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $triage = app(CalibrateReportTriage::class);
+        $riskCalibration = $triage->handle();
+        $riskBand = $triage->classify($this->resource, $riskCalibration);
+
         return [
             'identity' => [
                 'uuid' => $this->uuid,
@@ -96,6 +102,7 @@ class ReportResource extends JsonResource
                 'reporter_suspected_condition' => $this->reporter_suspected_condition,
                 'reporter_observation_text' => $this->reporter_observation_text,
             ],
+            'machine_facts' => $this->machineFacts(),
             'review' => [
                 'status' => $this->review_status,
                 'notes' => $this->review_notes,
@@ -242,6 +249,11 @@ class ReportResource extends JsonResource
                     ])
                     ->values(),
             ],
+            'first_reviewed_at' => $this->first_reviewed_at?->utc()->toISOString(),
+            'attention_band' => $riskBand['band'],
+            'attention_band_reasons' => $riskBand['reasons'],
+            'case_history' => app(BuildReportCaseHistory::class)
+                ->handle($this->resource),
             'review_events' => $this->when(
                 $this->relationLoaded('reviewEvents'),
                 fn () => $this->reviewEvents->map(fn ($event) => [
@@ -260,6 +272,27 @@ class ReportResource extends JsonResource
             ),
             'version' => $this->lock_version,
             'updated_at' => $this->updated_at->utc()->toISOString(),
+        ];
+    }
+
+    /**
+     * Existing report evidence grouped for a compact decision-support tier.
+     * No field here is an office decision or queue priority.
+     *
+     * @return array<string, mixed>
+     */
+    private function machineFacts(): array
+    {
+        return [
+            'confidence' => $this->confidence === null ? null : (float) $this->confidence,
+            'checklist_consistency' => $this->checklist_consistency,
+            'quality_warnings' => $this->qualityWarnings
+                ->pluck('warning_key')
+                ->values(),
+            'gps_accuracy' => $this->gps_accuracy === null ? null : (float) $this->gps_accuracy,
+            'location_source' => $this->location_source,
+            'reporter_concern' => $this->reporter_suspected_condition,
+            'reporter_mismatch' => $this->mismatch_reported,
         ];
     }
 

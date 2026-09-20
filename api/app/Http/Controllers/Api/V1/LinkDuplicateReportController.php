@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\LinkDuplicateReport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LinkDuplicateReportRequest;
@@ -35,6 +36,7 @@ class LinkDuplicateReportController extends Controller
             'symptoms',
             'qualityWarnings',
             'audits.actor',
+            ...app(BuildReportCaseHistory::class)->relations(),
         ]));
     }
 }

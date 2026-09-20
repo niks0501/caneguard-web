@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\QueryReports;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListReportsRequest;
@@ -9,7 +10,6 @@ use App\Http\Resources\ReportListResource;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
@@ -22,7 +22,7 @@ class ReportController extends Controller
         );
     }
 
-    public function show(Report $report): ReportResource
+    public function show(Report $report, BuildReportCaseHistory $caseHistory): ReportResource
     {
         $this->authorize('view', $report);
 
@@ -44,14 +44,9 @@ class ReportController extends Controller
             'symptoms',
             'qualityWarnings',
             'audits.actor',
+            ...$caseHistory->relations(),
         ];
 
-        // Review history was added after the original report schema. Keep the
-        // core detail response available while older deployments catch up.
-        if (Schema::hasTable('report_review_events')) {
-            $relations[] = 'reviewEvents.actor';
-        }
-
-        return new ReportResource($report->load($relations));
+        return new ReportResource($report->load(array_values(array_unique($relations))));
     }
 }

@@ -80,6 +80,7 @@ class RecordExpertReferralResponse
                 'authority_classified_condition' => $authorityFinding,
                 'reviewer_id' => $actor->getKey(),
                 'reviewed_at' => $reviewedAt,
+                'first_reviewed_at' => $locked->first_reviewed_at ?? $reviewedAt,
                 'lock_version' => $locked->lock_version + 1,
             ]);
 

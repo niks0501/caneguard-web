@@ -228,6 +228,42 @@ export const reportConsultSchema = z.object({
   response_date: z.string().nullable(),
 });
 
+export const attentionBandSchema = z.enum(["green", "amber", "red"]);
+
+export const reportMachineFactsSchema = z.object({
+  confidence: z.number().min(0).max(1).nullable().optional(),
+  checklist_consistency: z.string().nullable().optional(),
+  quality_warnings: z.array(z.string()),
+  gps_accuracy: z.number().nonnegative().nullable().optional(),
+  location_source: z.enum(["gps", "manual_map", "unavailable"]).nullable().optional(),
+  reporter_concern: z.string().nullable().optional(),
+  reporter_mismatch: z.boolean().nullable().optional(),
+});
+
+export const reportCaseHistoryEntrySchema = z.object({
+  id: z.string(),
+  type: z.enum(["review", "field_validation", "referral", "correction"]),
+  type_label: z.string(),
+  timestamp: z.iso.datetime({ offset: true }),
+  actor: z.string(),
+  fields: z.array(z.object({
+    label: z.string(),
+    value: z.string().nullable(),
+  })),
+  notes: z.string().nullable().optional(),
+});
+
+export const reportCaseHistorySchema = z.object({
+  entries: z.array(reportCaseHistoryEntrySchema),
+  available: z.boolean(),
+  sources: z.object({
+    review_events: z.boolean(),
+    corrections: z.boolean(),
+    assignments: z.boolean(),
+    consults: z.boolean(),
+  }),
+});
+
 export const reportReviewEventSchema = z.object({
   id: z.number().int().positive(),
   actor: userSchema.pick({ uuid: true, name: true }).nullable().optional(),
@@ -249,6 +285,7 @@ export const reportListItemSchema = z.object({
   observed_at: z.iso.datetime({ offset: true }).nullable().optional(),
   captured_at: z.iso.datetime({ offset: true }),
   submitted_at: z.iso.datetime({ offset: true }),
+  first_reviewed_at: z.iso.datetime({ offset: true }).nullable().optional(),
   predicted_label: diseaseKeySchema,
   review_status: reviewStatusSchema,
   lifecycle: reportLifecycleSchema.optional(),
@@ -283,6 +320,9 @@ export const reportListItemSchema = z.object({
     overdue: z.boolean(),
   }).optional(),
   mismatch_reported: z.boolean().nullable(),
+  machine_facts: reportMachineFactsSchema.optional(),
+  attention_band: attentionBandSchema.nullable().optional(),
+  attention_band_reasons: z.array(z.string()).optional(),
   image_url: z.string(),
 });
 
@@ -389,6 +429,11 @@ export const reportDetailSchema = z.object({
     ).optional(),
   }).optional(),
   lifecycle: reportLifecycleSchema.optional(),
+  machine_facts: reportMachineFactsSchema.optional(),
+  first_reviewed_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  case_history: reportCaseHistorySchema.optional(),
+  attention_band: attentionBandSchema.nullable().optional(),
+  attention_band_reasons: z.array(z.string()).optional(),
   advisory: advisorySchema.nullable().optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   referral: reportReferralSchema.nullable().optional(),

@@ -76,6 +76,7 @@ const queueLabels = {
   needs_visit: "Needs Visit",
   follow_up_due: "Follow-up Due",
   upcoming: "Upcoming Visits",
+  unverified_no_active_work: "Unverified, no active work",
 } as const;
 
 export function SubmittedReportsPage({

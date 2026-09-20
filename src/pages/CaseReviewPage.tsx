@@ -22,6 +22,7 @@ import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { ConfidenceDisplay } from "../components/reports/ConfidenceDisplay";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
+import { MachineFactsChips } from "../components/reports/MachineFactsChips";
 import { ReferralWorkflow } from "../components/reports/ReferralWorkflow";
 import { DiseaseBadge, ReviewStatusBadge } from "../components/reports/ReportBadges";
 import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
@@ -225,6 +226,18 @@ export interface CaseHistoryEntry {
 }
 
 function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
+  if (report.caseHistory) {
+    return report.caseHistory.entries.map((entry) => ({
+      id: entry.id,
+      type: entry.type,
+      typeLabel: entry.typeLabel,
+      timestamp: entry.timestamp,
+      actor: entry.actor,
+      fields: entry.fields,
+      notes: entry.notes,
+    }));
+  }
+
   const entries: CaseHistoryEntry[] = [];
 
   if (report.reviewEvents?.length) {
@@ -606,9 +619,12 @@ export function CaseReviewPage() {
   const fieldEvidenceSummary = `${imageSummary} · ${symptomsSummary} · ${mismatchSummary}`;
 
   const latestHistoryDate = mergedHistory[0]?.timestamp;
-  const caseHistorySummary = mergedHistory.length === 0
-    ? "No prior entries"
-    : `${mergedHistory.length} ${mergedHistory.length === 1 ? "entry" : "entries"}${latestHistoryDate ? ` · last ${formatShortDate(latestHistoryDate)}` : ""}`;
+  const caseHistoryAvailable = report?.caseHistory?.available ?? true;
+  const caseHistorySummary = !caseHistoryAvailable
+    ? "History unavailable on this legacy record"
+    : mergedHistory.length === 0
+      ? "No prior entries"
+      : `${mergedHistory.length} ${mergedHistory.length === 1 ? "entry" : "entries"}${latestHistoryDate ? ` · last ${formatShortDate(latestHistoryDate)}` : ""}`;
   const metadataDraft = report
     ? metadataDraftOverride ?? metadataDraftFor(report)
     : undefined;
@@ -931,6 +947,13 @@ export function CaseReviewPage() {
           <p className="scan-hero__consequence">
             {heroContent.consequence}
           </p>
+          {report.attentionBand ? (
+            <p className={`attention-band-note attention-band-note--${report.attentionBand}`}>
+              <strong>Attention band: {report.attentionBand}</strong>
+              <span>{report.attentionBandReasons?.join(" ")}</span>
+              <small>Decision support only. The reviewer keeps the final call.</small>
+            </p>
+          ) : null}
         </div>
 
         {referralPending ? (
@@ -1309,6 +1332,24 @@ export function CaseReviewPage() {
             <span className="status-chip__label">Last activity:</span>
             <strong>{formatLastActivity(report)}</strong>
           </div>
+          <div className="status-chip">
+            <span className="status-chip__label">First reviewed:</span>
+            <strong>{report.firstReviewedAt ? formatShortDate(report.firstReviewedAt) : "Not reviewed"}</strong>
+          </div>
+        </div>
+        <div className="machine-facts-tier" aria-label="Machine facts — decision support">
+          <span className="machine-facts-tier__label">Machine facts · decision support</span>
+          <MachineFactsChips
+            facts={report.machineFacts ?? {
+              confidence: report.confidence ?? null,
+              checklistConsistency: report.checklistConsistency ?? null,
+              qualityWarnings: report.qualityWarnings ?? [],
+              gpsAccuracy: report.gpsAccuracy ?? null,
+              locationSource: report.locationSource ?? null,
+              reporterConcern: report.reporterSuspectedCondition ?? null,
+              reporterMismatch: report.mismatchReported ?? null,
+            }}
+          />
         </div>
       </section>
 
@@ -1555,7 +1596,11 @@ export function CaseReviewPage() {
                     </button>
                   </div>
 
-                  {visibleHistory.length > 0 ? (
+                  {!caseHistoryAvailable ? (
+                    <p className="timeline-empty">
+                      Case history is not available for this legacy record; no events are inferred.
+                    </p>
+                  ) : visibleHistory.length > 0 ? (
                     <ol className="timeline-list">
                       {visibleHistory.map((entry) => (
                         <li key={entry.id} className={`timeline-item timeline-item--${entry.type}`}>

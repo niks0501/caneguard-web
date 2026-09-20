@@ -26,6 +26,7 @@ class ReportListResource extends JsonResource
             'observed_at' => $this->observed_at?->utc()->toISOString(),
             'captured_at' => $this->captured_at->utc()->toISOString(),
             'submitted_at' => $this->submitted_at->utc()->toISOString(),
+            'first_reviewed_at' => $this->first_reviewed_at?->utc()->toISOString(),
             'predicted_label' => $this->predicted_label,
             'review_status' => $this->review_status,
             'lifecycle' => $this->resource->lifecycleSnapshot(),
@@ -46,10 +47,33 @@ class ReportListResource extends JsonResource
                         ->lt(now()->startOfDay()),
             ],
             'mismatch_reported' => $this->mismatch_reported,
+            'machine_facts' => $this->machineFacts(),
+            'attention_band' => $this->attention_band,
+            'attention_band_reasons' => $this->attention_band_reasons ?? [],
             'image_url' => route(
                 'api.v1.reports.image',
                 ['report' => $this->uuid],
             ),
+        ];
+    }
+
+    /**
+     * Machine facts are existing submitted fields presented together for queue
+     * scanning. They are descriptive only and never define queue priority.
+     *
+     * @return array<string, mixed>
+     */
+    private function machineFacts(): array
+    {
+        return [
+            'checklist_consistency' => $this->checklist_consistency,
+            'quality_warnings' => $this->resource->relationLoaded('qualityWarnings')
+                ? $this->qualityWarnings->pluck('warning_key')->values()->all()
+                : [],
+            'gps_accuracy' => $this->gps_accuracy === null ? null : (float) $this->gps_accuracy,
+            'location_source' => $this->location_source,
+            'reporter_concern' => $this->reporter_suspected_condition,
+            'reporter_mismatch' => $this->mismatch_reported,
         ];
     }
 
