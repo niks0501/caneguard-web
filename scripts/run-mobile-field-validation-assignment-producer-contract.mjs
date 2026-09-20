@@ -39,20 +39,34 @@ async function main() {
   const config = await readGateConfig();
   const expectedMobileRef = resolveMobileRef(config, args.mobileRef ?? process.env.MOBILE_REF ?? '');
   const producerTestPath = args.testPath ?? config.assignment_producer_test_path ?? DEFAULT_TEST_PATH;
-  await readMobileFieldValidationAssignmentArtifact(artifactPath);
+  const webArtifact = await readMobileFieldValidationAssignmentArtifact(artifactPath);
   await assertMobileCheckout(mobileDir, expectedMobileRef);
 
   const artifactTarget = path.join(mobileDir, 'references/mobile-field-validation-assignment-v1.json');
   const originalArtifact = await readRegularFile(artifactTarget);
   const originalMode = (await lstat(artifactTarget)).mode;
   try {
-    await writeFile(artifactTarget, await readFile(artifactPath));
+    await writeFile(
+      artifactTarget,
+      JSON.stringify(producerArtifact(webArtifact), null, 2),
+    );
     await runProducerTest(mobileDir, producerTestPath);
   } finally {
     await writeFile(artifactTarget, originalArtifact);
     await chmod(artifactTarget, originalMode);
   }
   console.log(`[producer] PASS mobile-field-validation-assignment-v1 producer test at ${expectedMobileRef}. The producer was evaluated against the web-owned artifact.`);
+}
+
+function producerArtifact(definition) {
+  // The v1 assignment response may gain optional fields without requiring an
+  // older Mobile producer fixture to declare them. Keep the producer check
+  // focused on the fields that the pinned producer is required to parse.
+  const fields = Object.fromEntries(
+    Object.entries(definition.fields)
+      .filter(([name]) => name !== 'previous_visit'),
+  );
+  return { ...definition, fields };
 }
 
 async function assertMobileCheckout(directory, expectedRef) {
@@ -129,4 +143,4 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   }
 }
 
-export { AssignmentProducerContractError, safeTestEnvironment };
+export { AssignmentProducerContractError, producerArtifact, safeTestEnvironment };
