@@ -627,6 +627,7 @@ class FieldValidationAssignmentTest extends TestCase
             'assignment_id' => $previousAssignment->getKey(),
             'field_observation' => 'Previous observation',
             'field_finding' => 'Previous finding',
+            'follow_up_outcome' => 'worsened',
             'action_taken' => 'Previous action',
             'visited_at' => '2026-09-10T08:30:00.000Z',
             'fresh_photo_path' => 'field-validation/previous/photo.jpg',
@@ -656,6 +657,7 @@ class FieldValidationAssignmentTest extends TestCase
             'action_taken' => 'Previous action',
             'field_observation' => 'Previous observation',
             'field_finding' => 'Previous finding',
+            'follow_up_outcome' => 'worsened',
             'fresh_photo_available' => true,
         ], $current['previous_visit']);
     }
@@ -767,6 +769,7 @@ class FieldValidationAssignmentTest extends TestCase
                 'action_taken',
                 'field_observation',
                 'field_finding',
+                'follow_up_outcome',
                 'fresh_photo_available',
             ],
             $contract['fields']['previous_visit']['required_keys'],

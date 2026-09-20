@@ -21,6 +21,10 @@ export function AppShell() {
       document.title = "CaneGuard | Case Review";
     } else if (path.startsWith("/reports")) {
       document.title = "CaneGuard | Submitted Reports";
+    } else if (path.startsWith("/needs-assessment")) {
+      document.title = "CaneGuard | Needs assessment";
+    } else if (path.startsWith("/monitoring")) {
+      document.title = "CaneGuard | Monitoring workspace";
     } else if (path.startsWith("/map")) {
       document.title = "CaneGuard | Field-Validation Map";
     } else if (path.startsWith("/dashboard")) {

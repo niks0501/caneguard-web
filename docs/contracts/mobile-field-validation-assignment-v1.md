@@ -21,6 +21,6 @@ A failed refresh must leave the last valid local snapshot available.
 
 The `case` object contains the original report identity, submitter-independent field context, observation dates, possible AI result, and confidence needed to render assigned work and support the later T07 completion contract.
 
-The optional `previous_visit` object carries the latest earlier validation for the same farm when one exists. It is nullable and may be omitted by older producers. Its evidence photo is served only to the authenticated assignment owner through `GET /api/v1/mobile/assignments/{assignment}/previous-evidence-photo`; the route uses private storage, private caching, and `nosniff` headers.
+The optional `previous_visit` object carries the latest earlier validation for the same farm when one exists, including its nullable `follow_up_outcome` (`improved`, `unchanged`, `worsened`, or `unable_to_determine`). It is nullable and may be omitted by older producers. Its evidence photo is served only to the authenticated assignment owner through `GET /api/v1/mobile/assignments/{assignment}/previous-evidence-photo`; the route uses private storage, private caching, and `nosniff` headers.
 
 Field-validation completion and synchronization back to the API use the separate `mobile-field-validation-completion-v1` contract.

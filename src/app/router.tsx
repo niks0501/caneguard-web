@@ -8,6 +8,8 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { LoadingState } from "../components/ui/States";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SubmittedReportsPage } from "../pages/SubmittedReportsPage";
+import { MonitoringWorkspacePage } from "../pages/MonitoringWorkspacePage";
+import { NeedsAssessmentPage } from "../pages/NeedsAssessmentPage";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
@@ -51,7 +53,8 @@ export function AppRouter() {
               )}
             />
             <Route path="reports" element={<SubmittedReportsPage />} />
-            <Route path="monitoring" element={<SubmittedReportsPage workspace="monitoring" />} />
+            <Route path="monitoring" element={<MonitoringWorkspacePage />} />
+            <Route path="needs-assessment" element={<NeedsAssessmentPage />} />
             <Route path="reports/:reportId" element={<CaseReviewPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>

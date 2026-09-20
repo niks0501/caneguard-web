@@ -91,6 +91,17 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     machineFacts: mapMachineFacts(dto.machine_facts),
     attentionBand: dto.attention_band ?? null,
     attentionBandReasons: dto.attention_band_reasons ?? [],
+    reviewVersion: dto.version ?? 0,
+    fieldValidationAssignment: dto.field_validation?.assignee && dto.field_validation.assignment_uuid
+      ? {
+          uuid: dto.field_validation.assignment_uuid,
+          assignee: dto.field_validation.assignee,
+          assignedBy: dto.field_validation.assigned_by ?? dto.field_validation.assignee,
+          targetVisitDate: dto.field_validation.target_visit_date ?? undefined,
+          activatedAt: dto.field_validation.activated_at ?? dto.submitted_at,
+          updatedAt: dto.field_validation.updated_at ?? dto.submitted_at,
+        }
+      : null,
     latestValidation: dto.latest_validation
       ? {
           visitedAt: dto.latest_validation.visited_at,

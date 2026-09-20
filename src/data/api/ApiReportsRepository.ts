@@ -75,6 +75,10 @@ function toQueryParams(
       filters.reportedConcern && filters.reportedConcern !== "all"
         ? filters.reportedConcern
         : undefined,
+    follow_up_outcome:
+      filters.followUpOutcome && filters.followUpOutcome !== "all"
+        ? filters.followUpOutcome
+        : undefined,
     date_from: filters.dateFrom,
     date_to: filters.dateTo,
     sort: filters.sort ? sortValues[filters.sort] : undefined,

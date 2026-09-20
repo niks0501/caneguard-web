@@ -394,6 +394,7 @@ export interface ReportFilters {
   fieldValidationState?: FieldValidationState | "all";
   staffClassifiedCondition?: AuthorityClassifiedCondition | "all";
   reportedConcern?: "rssi" | "all";
+  followUpOutcome?: FollowUpOutcome | "all";
   disease?: DiseaseKey | "all";
   barangay?: string | "all";
   dateFrom?: string;

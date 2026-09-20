@@ -88,6 +88,13 @@ class ApplyReportFilters
                     ),
             )
             ->when(
+                $filters['follow_up_outcome'] ?? null,
+                fn (Builder $query, string $outcome) => $query->whereHas(
+                    'fieldValidationAssignment.completion',
+                    fn (Builder $completion) => $completion->where('follow_up_outcome', $outcome),
+                ),
+            )
+            ->when(
                 $filters['predicted_label'] ?? null,
                 fn (Builder $query, string $label) => $query
                     ->where('predicted_label', $label),

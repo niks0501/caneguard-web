@@ -81,8 +81,10 @@ const queueLabels = {
 
 export function SubmittedReportsPage({
   workspace = "reports",
+  embedded = false,
 }: {
   workspace?: "reports" | "monitoring";
+  embedded?: boolean;
 }) {
   const isMonitoring = workspace === "monitoring";
   const location = useLocation();
@@ -197,8 +199,8 @@ export function SubmittedReportsPage({
     reportsQuery.isError && (!hasCachedData || accessDenied);
 
   return (
-    <PageContent>
-      <PageHeader
+    <PageContent className={embedded ? "page-content--embedded" : undefined}>
+      {!embedded ? <PageHeader
         eyebrow={isMonitoring ? "Office monitoring" : undefined}
         title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
         description={isMonitoring
@@ -238,7 +240,7 @@ export function SubmittedReportsPage({
           </Button>
           </>
         )}
-      />
+      /> : null}
 
       {isMonitoring ? (
         <nav className="monitoring-saved-views" aria-label="Monitoring saved views">
@@ -247,6 +249,7 @@ export function SubmittedReportsPage({
           <Link to={`${routes.monitoring}?concern=rssi`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI concerns</Link>
           <Link to={`${routes.monitoring}?queue=follow_up_due`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
           <Link to={`${routes.monitoring}?queue=upcoming`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
+          {!embedded ? <Link to={`${routes.monitoring}?view=calendar`} className={searchParams.get("view") === "calendar" ? "is-active" : undefined}>Inspector schedule</Link> : null}
         </nav>
       ) : null}
 

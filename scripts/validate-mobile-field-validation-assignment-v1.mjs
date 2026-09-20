@@ -152,6 +152,7 @@ export function validateMobileFieldValidationAssignmentArtifact(definition, sour
       'action_taken',
       'field_observation',
       'field_finding',
+      'follow_up_outcome',
       'fresh_photo_available',
     ], issues);
   }
