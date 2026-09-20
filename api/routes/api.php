@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\MobileFieldValidationCompletionController;
 use App\Http\Controllers\Api\V1\MobileMapTileController;
 use App\Http\Controllers\Api\V1\MobileNotificationController;
 use App\Http\Controllers\Api\V1\MobilePossibleRecentMatchesController;
+use App\Http\Controllers\Api\V1\MobilePreviousEvidencePhotoController;
 use App\Http\Controllers\Api\V1\MobileReportController;
 use App\Http\Controllers\Api\V1\MobileReportStatusController;
 use App\Http\Controllers\Api\V1\MonthlyReportSummaryController;
@@ -127,6 +128,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.mobile.map-tiles');
     Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
         ->middleware(['mobile.token', 'abilities:assignment:read']);
+    Route::get('/mobile/assignments/{assignment}/previous-evidence-photo', MobilePreviousEvidencePhotoController::class)
+        ->middleware(['mobile.token', 'abilities:assignment:read'])
+        ->name('api.v1.mobile.assignments.previous-evidence-photo');
     Route::get('/mobile/notifications', MobileNotificationController::class)
         ->middleware(['mobile.token', 'abilities:notification:read']);
     Route::post('/mobile/notifications/read-all', [MobileNotificationController::class, 'markAllAsRead'])
