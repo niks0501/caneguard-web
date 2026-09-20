@@ -174,12 +174,21 @@ describe("CaseReviewPage", () => {
       screen.getByText("Reporter observation: Possible Condition reported as not matching"),
     ).toBeInTheDocument();
     expect(screen.getByText("Reporter flagged AI mismatch")).toBeInTheDocument();
-    const reviewSummary = screen.getByRole("region", {
-      name: "Review evidence, choose a next action, then save",
+    const caseStatus = screen.getByRole("region", {
+      name: "Case status",
     });
-    expect(reviewSummary).toHaveTextContent("Case state");
-    expect(screen.getByText("Work status")).toHaveClass("review-summary__label");
-    expect(reviewSummary.querySelector(".status-badge")).not.toHaveClass("review-summary__label");
+    expect(caseStatus).toHaveTextContent("Work status");
+    expect(caseStatus).toHaveTextContent("Needs review");
+    expect(caseStatus).toHaveTextContent("Case");
+    expect(caseStatus).toHaveTextContent("Open");
+    expect(caseStatus).toHaveTextContent("Field validation");
+    expect(caseStatus).toHaveTextContent("Unassigned");
+    expect(caseStatus).toHaveTextContent("Referral");
+    expect(caseStatus).toHaveTextContent("Not referred");
+    expect(caseStatus).toHaveTextContent("Verification");
+    expect(caseStatus).toHaveTextContent("Not determined");
+    expect(caseStatus).toHaveTextContent("Last activity");
+    expect(screen.getByText(/^Work status/)).toHaveClass("status-chip__label");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
     expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("");
@@ -192,7 +201,7 @@ describe("CaseReviewPage", () => {
     // D-01: the submitted Possible Condition label and confidence stay behind a
     // closed disclosure so they never lead the initial review.
     const submittedAiEvidence = screen
-      .getByText("Possible Condition and confidence")
+      .getByText("Model evidence — decision support")
       .closest("details");
     expect(submittedAiEvidence).not.toHaveAttribute("open");
     expect(
@@ -215,7 +224,7 @@ describe("CaseReviewPage", () => {
       }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByText("Possible Condition and confidence"));
+    await user.click(screen.getByText("Model evidence — decision support"));
     expect(submittedAiEvidence).toHaveAttribute("open");
     expect(screen.getByRole("region", { name: "Possible Condition" })).toHaveTextContent(
       "Possible Condition",
@@ -379,7 +388,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     expect(screen.getByText("Possible Condition: Smut")).not.toBeVisible();
-    await user.click(screen.getByText("Possible Condition and confidence"));
+    await user.click(screen.getByText("Model evidence — decision support"));
     expect(screen.getByText("Possible Condition: Smut")).toBeVisible();
     await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "smut");
     await user.type(screen.getByLabelText(/^Review notes/), "Authority confirmed Smut.");
@@ -1013,7 +1022,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithEvents }));
     renderPage();
 
-    const timeline = screen.getByRole("region", { name: "Review history" });
+    const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Maria Santos")).toBeInTheDocument();
     expect(within(timeline).getByText("Advisory provided")).toBeInTheDocument();
     expect(within(timeline).getByText("Sugarcane Rust")).toBeInTheDocument();
