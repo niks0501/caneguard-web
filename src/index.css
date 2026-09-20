@@ -184,17 +184,19 @@ a {
 }
 
 .brand__mark {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 42px;
   height: 42px;
-  place-items: center;
-  color: var(--color-primary-dark);
-  background: var(--color-accent);
-  border-radius: var(--radius-md) 14px 14px 5px;
+  flex-shrink: 0;
 }
 
+.brand__mark img,
 .brand__mark svg {
-  width: 24px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand > span:last-child,
@@ -2199,6 +2201,14 @@ blockquote {
   max-width: 560px;
 }
 
+.login-visual__mark {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-4);
+  object-fit: contain;
+}
+
 .login-visual .eyebrow {
   color: var(--color-accent);
 }
@@ -3166,15 +3176,20 @@ textarea:focus-visible {
 }
 
 .brand__mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
-  color: var(--color-surface);
-  background: var(--color-primary);
-  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  background: transparent;
 }
 
+.brand__mark img,
 .brand__mark svg {
-  width: 22px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand strong {

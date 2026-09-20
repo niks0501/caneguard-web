@@ -6,11 +6,11 @@ import {
   MapPinned,
   Settings,
   ShieldCheck,
-  Sprout,
 } from "lucide-react";
 import { NavLink } from "react-router";
 import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
+import caneGuardLogo from "../../assets/brand/cane_guard_logo.png";
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const auth = useAuth();
@@ -22,7 +22,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand">
-        <span className="brand__mark"><Sprout aria-hidden="true" /></span>
+        <span className="brand__mark">
+          <img src={caneGuardLogo} alt="" aria-hidden="true" />
+        </span>
         <span><strong>CaneGuard</strong><small>SRA Don Pedro Mill District Office</small></span>
       </div>
 

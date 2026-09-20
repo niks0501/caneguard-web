@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { Sprout } from "lucide-react";
 import { Link } from "react-router";
 import { routes } from "../app/routes";
+import caneGuardLogo from "../assets/brand/cane_guard_logo.png";
+import caneGuardLogoOnDark from "../assets/brand/cane_guard_logo_onDark.png";
 
 interface AuthPageFrameProps {
   headingId: string;
@@ -25,7 +26,7 @@ export function AuthPageFrame({
       <section className="login-panel" aria-labelledby={headingId}>
         <div className="login-brand">
           <span className="brand__mark">
-            <Sprout aria-hidden="true" />
+            <img src={caneGuardLogo} alt="" aria-hidden="true" />
           </span>
           <div>
             <strong>CaneGuard</strong>
@@ -48,6 +49,12 @@ export function AuthPageFrame({
       </section>
       <aside className="login-visual" aria-label="CaneGuard decision support">
         <div>
+          <img
+            src={caneGuardLogoOnDark}
+            alt="CaneGuard"
+            className="login-visual__mark"
+          />
+          <p className="eyebrow">{eyebrow}</p>
           <h2>Turn field observations into timely SRA Don Pedro follow-up.</h2>
           <p>
             Securely review submitted evidence, coordinate validation, and keep

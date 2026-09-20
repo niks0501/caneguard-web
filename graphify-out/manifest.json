@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "src/components/navigation/AppSidebar.tsx": {
-    "mtime": 1789876427.05767,
-    "seen": 1789877096.241061,
-    "ast_hash": "04550fd7bb0d695dce7e2e2f7355828d",
+    "mtime": 1789911852.0820467,
+    "seen": 1789912085.6243818,
+    "ast_hash": "e243995b65f5ac551cd08231520dbb49",
     "semantic_hash": ""
   },
   "src/components/reports/ConfidenceDisplay.tsx": {
@@ -216,22 +216,22 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1789876426.8853471,
-    "seen": 1789877096.2413774,
-    "ast_hash": "57a45b18bd7d362f039473521e85d80a",
+    "mtime": 1789911817.786712,
+    "seen": 1789912085.6246755,
+    "ast_hash": "3891dd2b615852c4c536611d1496a770",
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1788156492.4598713,
-    "seen": 1789877096.2414093,
-    "ast_hash": "012295620a30427ba3067b432822eec8",
-    "semantic_hash": "012295620a30427ba3067b432822eec8"
+    "mtime": 1789911813.3101695,
+    "seen": 1789912085.624707,
+    "ast_hash": "b88925c49b7c753b433ff7ea25d39483",
+    "semantic_hash": ""
   },
   "public/favicon.svg": {
-    "mtime": 1788156492.4598713,
-    "seen": 1789877096.2414382,
-    "ast_hash": "7e840862161341271697daa99a40d76b",
-    "semantic_hash": "7e840862161341271697daa99a40d76b"
+    "mtime": 1789911799.3818026,
+    "seen": 1789912085.62474,
+    "ast_hash": "46a7b3ba42cac9cba528b35d6665d8bb",
+    "semantic_hash": ""
   },
   "public/icons.svg": {
     "mtime": 1788156492.4646597,
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "src/pages/LoginPage.tsx": {
-    "mtime": 1789459423.4057465,
-    "seen": 1789877096.241166,
-    "ast_hash": "399258cbb5e71dc181d343b65e25714e",
+    "mtime": 1789911881.8436189,
+    "seen": 1789912085.6244948,
+    "ast_hash": "f6a2bf64ccddfd1765d8b6615399596e",
     "semantic_hash": ""
   },
   "src/components/dashboard/DashboardRecentReports.tsx": {
@@ -6198,9 +6198,9 @@
     "semantic_hash": ""
   },
   "src/pages/AuthPageFrame.tsx": {
-    "mtime": 1789876427.06167,
-    "seen": 1789877096.241159,
-    "ast_hash": "793e43b054aaaa07675ffa5a6acee32a",
+    "mtime": 1789911895.0349422,
+    "seen": 1789912085.624487,
+    "ast_hash": "8236218d2537de17411c43c8f957d751",
     "semantic_hash": ""
   },
   "src/pages/AuthPages.test.tsx": {
@@ -6726,15 +6726,93 @@
     "semantic_hash": ""
   },
   "src/components/reports/MachineFactsChips.tsx": {
-    "mtime": 1789904486.4135127,
-    "seen": 1789904698.9908512,
-    "ast_hash": "d66ab8262286c56ed0cdfd0616d0bbd0",
+    "mtime": 1789904750.8203764,
+    "seen": 1789912085.6243849,
+    "ast_hash": "cecbf0d0d1cc7c5a550cea3708fa2e40",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/CalibrateReportTriage.php": {
     "mtime": 1789903750.9974484,
     "seen": 1789904698.9905646,
     "ast_hash": "d4236bc3fe78b9700bd3621fc9bf7c4a",
+    "semantic_hash": ""
+  },
+  "brand/README.md": {
+    "mtime": 1789911807.7651777,
+    "seen": 1789912085.6246815,
+    "ast_hash": "fd6ebb5b758b26a98cd4ef13064859d9",
+    "semantic_hash": ""
+  },
+  "brand/CaneGuard_favicon_mark.svg": {
+    "mtime": 1789911799.3582113,
+    "seen": 1789912085.6247087,
+    "ast_hash": "46a7b3ba42cac9cba528b35d6665d8bb",
+    "semantic_hash": ""
+  },
+  "brand/CaneGuard_logo_flat.svg": {
+    "mtime": 1789911799.3601027,
+    "seen": 1789912085.6247096,
+    "ast_hash": "f36ca162af6a113ba8e8391813c8af5c",
+    "semantic_hash": ""
+  },
+  "brand/CaneGuard_logo_flat_onDark.svg": {
+    "mtime": 1789911799.3612792,
+    "seen": 1789912085.6247103,
+    "ast_hash": "ea7dcbca4a140b5f30cdbe3c7d2bb278",
+    "semantic_hash": ""
+  },
+  "brand/CaneGuard_logo_flat_preview.png": {
+    "mtime": 1789911799.363568,
+    "seen": 1789912085.6247115,
+    "ast_hash": "023f5e20e32e322ad62d73a90c858ba7",
+    "semantic_hash": ""
+  },
+  "public/apple-touch-icon.png": {
+    "mtime": 1789911799.3891182,
+    "seen": 1789912085.6247382,
+    "ast_hash": "33f32b0314c6799a962976af6f19a8bc",
+    "semantic_hash": ""
+  },
+  "public/favicon.png": {
+    "mtime": 1789911799.3832805,
+    "seen": 1789912085.6247392,
+    "ast_hash": "ed5e88411b4daba6352ac0e3c4cdb143",
+    "semantic_hash": ""
+  },
+  "src/assets/brand/CaneGuard_favicon_mark.svg": {
+    "mtime": 1789911799.3685586,
+    "seen": 1789912085.6247413,
+    "ast_hash": "46a7b3ba42cac9cba528b35d6665d8bb",
+    "semantic_hash": ""
+  },
+  "src/assets/brand/CaneGuard_logo_flat.svg": {
+    "mtime": 1789911799.3702211,
+    "seen": 1789912085.6247418,
+    "ast_hash": "f36ca162af6a113ba8e8391813c8af5c",
+    "semantic_hash": ""
+  },
+  "src/assets/brand/CaneGuard_logo_flat_onDark.svg": {
+    "mtime": 1789911799.3717818,
+    "seen": 1789912085.6247427,
+    "ast_hash": "ea7dcbca4a140b5f30cdbe3c7d2bb278",
+    "semantic_hash": ""
+  },
+  "src/assets/brand/cane_guard_logo.png": {
+    "mtime": 1789911799.3734303,
+    "seen": 1789912085.6247435,
+    "ast_hash": "6f2f172b89ca52d1bc855aad7ffd81a9",
+    "semantic_hash": ""
+  },
+  "src/assets/brand/cane_guard_logo_onDark.png": {
+    "mtime": 1789911799.3764143,
+    "seen": 1789912085.624744,
+    "ast_hash": "8f77d5df3a7373af2c7fb7d2296d2290",
+    "semantic_hash": ""
+  },
+  "src/assets/brand/cane_guard_wordmark.png": {
+    "mtime": 1789911799.3791208,
+    "seen": 1789912085.6247444,
+    "ast_hash": "b9a45bcda256c2274317afb3f8c5d05c",
     "semantic_hash": ""
   }
 }

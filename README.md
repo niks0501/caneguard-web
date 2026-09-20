@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/CaneGuard_logo_flat.svg" alt="CaneGuard logo" width="160" />
+</p>
+
 # CaneGuard Web + API
 
 CaneGuard is a local decision-support system for municipal agriculture staff reviewing sugarcane field observations.
