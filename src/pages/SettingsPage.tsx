@@ -37,6 +37,7 @@ export function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [isPasswordSubmitting, setPasswordSubmitting] = useState(false);
 
   // Email state
   const [emailPassword, setEmailPassword] = useState("");
@@ -47,6 +48,7 @@ export function SettingsPage() {
   // Device status state
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [deviceSuccess, setDeviceSuccess] = useState<string | null>(null);
+  const [isEmailSubmitting, setEmailSubmitting] = useState(false);
 
   // Mobile devices query
   const devicesQuery = useQuery({
@@ -71,6 +73,7 @@ export function SettingsPage() {
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isPasswordSubmitting) return;
     setPasswordError(null);
     setPasswordSuccess(null);
 
@@ -87,6 +90,7 @@ export function SettingsPage() {
       return;
     }
 
+    setPasswordSubmitting(true);
     try {
       const result = await changePassword({
         currentPassword,
@@ -101,11 +105,14 @@ export function SettingsPage() {
       setPasswordError(
         error instanceof ApiError ? error.message : "Failed to update password.",
       );
+    } finally {
+      setPasswordSubmitting(false);
     }
   };
 
   const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isEmailSubmitting) return;
     setEmailError(null);
     setEmailSuccess(null);
 
@@ -118,6 +125,7 @@ export function SettingsPage() {
       return;
     }
 
+    setEmailSubmitting(true);
     try {
       const result = await changeEmail({
         currentPassword: emailPassword,
@@ -133,6 +141,8 @@ export function SettingsPage() {
       setEmailError(
         error instanceof ApiError ? error.message : "Failed to update email address.",
       );
+    } finally {
+      setEmailSubmitting(false);
     }
   };
 
@@ -265,7 +275,9 @@ export function SettingsPage() {
               </div>
 
               <div className="settings-form__actions">
-                <Button type="submit">Update password</Button>
+                <Button type="submit" disabled={isPasswordSubmitting}>
+                  {isPasswordSubmitting ? "Updating password..." : "Update password"}
+                </Button>
               </div>
             </form>
           </section>
@@ -323,7 +335,9 @@ export function SettingsPage() {
               </div>
 
               <div className="settings-form__actions">
-                <Button type="submit">Update email</Button>
+                <Button type="submit" disabled={isEmailSubmitting}>
+                  {isEmailSubmitting ? "Updating email..." : "Update email"}
+                </Button>
               </div>
             </form>
           </section>

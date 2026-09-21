@@ -56,6 +56,9 @@ describe("useUpdateReportReview", () => {
       queryKey: reportKeys.lists(),
     });
     expect(invalidate).toHaveBeenCalledWith({
+      queryKey: reportKeys.expertLists(),
+    });
+    expect(invalidate).toHaveBeenCalledWith({
       queryKey: dashboardKeys.all,
     });
     expect(invalidate).toHaveBeenCalledWith({
