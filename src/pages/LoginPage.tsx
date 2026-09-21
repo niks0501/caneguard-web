@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
-import caneGuardLogo from "../assets/brand/cane_guard_logo.png";
-import caneGuardLogoOnDark from "../assets/brand/cane_guard_logo_onDark.png";
+import caneGuardLogoFlat from "../assets/brand/CaneGuard_logo_flat.svg";
+import caneGuardLogoFlatOnDark from "../assets/brand/CaneGuard_logo_flat_onDark.svg";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { WebRoleError } from "../auth/auth.api";
@@ -100,21 +100,17 @@ export function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-panel" aria-labelledby="login-heading">
-        <div className="login-brand">
-          <span className="brand__mark">
-            <img src={caneGuardLogo} alt="" aria-hidden="true" />
-          </span>
-          <div>
-            <strong>CaneGuard</strong>
-            <span>SRA Don Pedro Mill District Office</span>
-          </div>
+        <div className="login-brand login-brand--hero">
+          <img
+            src={caneGuardLogoFlat}
+            alt="CaneGuard"
+            className="login-brand__logo"
+          />
         </div>
 
         <div className="login-copy">
-          <span className="login-icon"><ShieldCheck aria-hidden="true" /></span>
-          <p className="eyebrow">Staff sign in</p>
           <h1 id="login-heading">Sign in to review field reports</h1>
-          <p>Use your SRA Don Pedro reviewer or administrator account.</p>
+          <p className="login-subtitle">Sign in with your SRA Don Pedro staff account.</p>
         </div>
 
         <div className="login-notice-slot" aria-live="polite">
@@ -182,22 +178,19 @@ export function LoginPage() {
         </form>
 
         <p className="login-support">
-          Field Inspectors can <Link to={routes.register}>create an account</Link>.
-          Staff workspace access remains limited to reviewer and administrator accounts.
+          Field inspector? <Link to={routes.register}>Create an account</Link>
         </p>
       </section>
+
       <aside className="login-visual" aria-label="CaneGuard decision support">
-        <div>
+        <div className="login-visual__hero">
           <img
-            src={caneGuardLogoOnDark}
+            src={caneGuardLogoFlatOnDark}
             alt="CaneGuard"
-            className="login-visual__mark"
+            className="login-visual__hero-logo"
           />
-          <p className="eyebrow">Decision support for local teams</p>
-          <h2>Turn field observations into timely SRA Don Pedro follow-up.</h2>
-          <p>
-            Securely review submitted evidence, coordinate validation, and keep
-            sugarcane monitoring work visible.
+          <p className="login-visual__tagline">
+            Sugarcane monitoring &amp; field verification
           </p>
         </div>
       </aside>
