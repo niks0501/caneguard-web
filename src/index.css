@@ -2362,7 +2362,7 @@ blockquote {
   border: 1px solid rgba(145, 183, 154, 0.2);
   border-radius: var(--radius-pill);
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: var(--text-machine);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -2379,7 +2379,7 @@ blockquote {
 }
 
 .login-visual__meta {
-  font-size: 12px;
+  font-size: var(--text-machine);
   font-weight: 500;
   letter-spacing: 0.02em;
   color: rgba(240, 228, 184, 0.65);
@@ -2429,7 +2429,7 @@ blockquote {
 .login-visual__mission {
   margin: 0;
   max-width: 420px;
-  font-size: clamp(12.5px, 1.3vh, 14px);
+  font-size: var(--text-body-sm);
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.72);
   text-align: center;
@@ -2450,7 +2450,7 @@ blockquote {
 }
 
 .login-visual__pillar-label {
-  font-size: 10px;
+  font-size: var(--text-machine);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2458,9 +2458,9 @@ blockquote {
 }
 
 .login-visual__pillar-value {
-  font-size: 12px;
+  font-size: var(--text-machine);
   font-weight: 500;
-  color: #ffffff;
+  color: var(--color-inverse-text);
   white-space: nowrap;
 }
 
@@ -2489,7 +2489,7 @@ blockquote {
 }
 
 .login-card__badge {
-  font-size: 11px;
+  font-size: var(--text-machine);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -2510,7 +2510,7 @@ blockquote {
 
 .login-page--portal .login-subtitle {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--text-body-sm);
   line-height: 1.4;
   color: var(--color-muted);
 }
@@ -2526,7 +2526,7 @@ blockquote {
 .login-page--portal .login-notice {
   margin: 0;
   padding: 7px 12px;
-  font-size: 13px;
+  font-size: var(--text-body-sm);
   line-height: 1.4;
   border-radius: var(--radius-md);
 }
@@ -2543,7 +2543,7 @@ blockquote {
 }
 
 .login-page--portal .login-form > label > span:first-child {
-  font-size: 13px;
+  font-size: var(--text-body-sm);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -2551,7 +2551,7 @@ blockquote {
 .login-page--portal .login-form input {
   height: clamp(38px, 4.6vh, 42px);
   padding: 0 12px;
-  font-size: 14px;
+  font-size: var(--text-body-sm);
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
@@ -2577,7 +2577,7 @@ blockquote {
 
 .login-page--portal .auth-inline-link {
   align-self: flex-end;
-  font-size: 13px;
+  font-size: var(--text-body-sm);
   font-weight: 600;
   color: var(--color-primary);
 }
@@ -2585,7 +2585,7 @@ blockquote {
 .login-page--portal .login-form .button {
   min-height: clamp(38px, 4.6vh, 44px);
   width: 100%;
-  font-size: 14px;
+  font-size: var(--text-body-sm);
   font-weight: 600;
   border-radius: var(--radius-md);
   justify-content: center;
@@ -2593,7 +2593,7 @@ blockquote {
 
 .login-page--portal .login-support {
   margin-top: clamp(10px, 1.4vh, 16px);
-  font-size: 13px;
+  font-size: var(--text-body-sm);
   line-height: 1.4;
   color: var(--color-muted);
   text-align: center;
