@@ -72,6 +72,9 @@ class DatabaseSeeder extends Seeder
             ])->save();
         }
 
-        $this->call(ReportSeeder::class);
+        $this->call([
+            ReportSeeder::class,
+            AdvisorDemoSeeder::class,
+        ]);
     }
 }
