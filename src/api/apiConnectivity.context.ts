@@ -7,6 +7,7 @@ export interface ApiConnectivitySnapshot {
   networkStatus: NetworkStatus;
   apiReachability: ApiReachability;
   checkApiReachability: () => Promise<ApiHealthResult | null>;
+  isDegraded?: boolean;
 }
 
 export const ApiConnectivityContext =

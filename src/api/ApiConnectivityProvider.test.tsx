@@ -84,6 +84,32 @@ describe("ApiConnectivityProvider", () => {
     );
   });
 
+  it("reports an online browser with a degraded API when health check returns unhealthy reason", async () => {
+    const healthCheck = vi.fn().mockResolvedValue({
+      reachability: "unreachable",
+      reason: "unhealthy",
+    } satisfies ApiHealthResult);
+
+    renderProvider(healthCheck);
+
+    await waitFor(() =>
+      expect(screen.getByText("available:degraded")).toBeInTheDocument(),
+    );
+  });
+
+  it("reports an online browser with a degraded API when health check returns degraded reachability", async () => {
+    const healthCheck = vi.fn().mockResolvedValue({
+      reachability: "degraded",
+      checks: { database: "unavailable", storage: "ready" },
+    } satisfies ApiHealthResult);
+
+    renderProvider(healthCheck);
+
+    await waitFor(() =>
+      expect(screen.getByText("available:degraded")).toBeInTheDocument(),
+    );
+  });
+
   it("does not crash when the health client rejects unexpectedly", async () => {
     const healthCheck = vi.fn().mockRejectedValue(new Error("request failed"));
 

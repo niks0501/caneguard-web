@@ -32,6 +32,7 @@ const connected: ApiConnectivitySnapshot = {
   networkStatus: "available",
   apiReachability: "reachable",
   checkApiReachability: async (): Promise<ApiHealthResult | null> => null,
+  isDegraded: false,
 };
 
 function renderStatus(
@@ -82,17 +83,38 @@ describe("ServerStatus", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps a reachable server connected when an endpoint returns 503", async () => {
+  it("shows degraded when an endpoint returns 503", async () => {
     renderStatus("endpoint-failure-status", () =>
       Promise.reject(new ApiError("Unavailable", { status: 503 })),
     );
 
     expect(
       await screen.findByRole("status", {
-        name: "Connectivity: Network Available; CaneGuard server Connected",
+        name: "Connectivity: Network Available; CaneGuard server Degraded",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Server degraded", { exact: true }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Degraded", { exact: true })).toBeInTheDocument();
+  });
+
+  it("shows degraded when the health check says the API is degraded", async () => {
+    renderStatus(
+      "degraded-status",
+      () => Promise.resolve({ ok: true }),
+      { ...connected, apiReachability: "degraded", isDegraded: true },
+    );
+
+    expect(
+      await screen.findByRole("status", {
+        name: "Connectivity: Network Available; CaneGuard server Degraded",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Server degraded", { exact: true }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Degraded", { exact: true })).toBeInTheDocument();
   });
 
   it("keeps a reachable server connected for intentional 403 responses", async () => {
@@ -132,5 +154,19 @@ describe("ServerStatus", () => {
       </QueryClientProvider>,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders degraded status by default when degraded (showOnlyDegraded=true)", () => {
+    render(
+      <QueryClientProvider client={queryClient()}>
+        <ApiConnectivityContext
+          value={{ ...connected, apiReachability: "degraded", isDegraded: true }}
+        >
+          <ServerStatus />
+        </ApiConnectivityContext>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText("Degraded")).toBeInTheDocument();
   });
 });
