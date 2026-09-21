@@ -66,10 +66,12 @@ class MobileNotificationController extends Controller
         $data = is_array($owned->data) ? $owned->data : [];
         if (($data['event_type'] ?? null) === 'advisory_available'
             && filled($data['report_uuid'] ?? null)
+            && filled($data['advisory_uuid'] ?? null)
         ) {
             Report::query()
                 ->where('uuid', $data['report_uuid'])
                 ->whereBelongsTo($user, 'reporter')
+                ->whereHas('advisory', fn ($query) => $query->where('uuid', $data['advisory_uuid']))
                 ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
                 ->update([
                     'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,

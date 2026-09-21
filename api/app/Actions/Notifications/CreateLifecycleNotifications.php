@@ -114,10 +114,15 @@ class CreateLifecycleNotifications
         );
     }
 
-    public function expertReferralResponseReceived(Report $report): void
-    {
-        $report->loadMissing(['referral']);
-        $responseDate = $report->referral?->response_date?->format('Y-m-d');
+    public function expertReferralResponseReceived(
+        Report $report,
+        ?ReportReferral $referral = null,
+    ): void {
+        if ($referral === null) {
+            $report->loadMissing(['referral']);
+            $referral = $report->referral;
+        }
+        $responseDate = $referral?->response_date?->format('Y-m-d');
         if ($responseDate === null) {
             return;
         }
@@ -236,10 +241,14 @@ class CreateLifecycleNotifications
         // A database notification and the v3 status snapshot are the two
         // agreed delivery channels. Mark the case delivered only after the
         // durable notification exists; retries remain idempotent by key.
-        $report->newQuery()->whereKey($report->getKey())->update([
-            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
-            'advisory_delivered_at' => now()->utc(),
-        ]);
+        $report->newQuery()
+            ->whereKey($report->getKey())
+            ->where('advisory_id', $advisory->getKey())
+            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_PENDING)
+            ->update([
+                'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+                'advisory_delivered_at' => now()->utc(),
+            ]);
     }
 
     public function officeReviewCompleted(Report $report): void

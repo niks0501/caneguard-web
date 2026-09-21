@@ -24,7 +24,8 @@ class RecordExpertFinding
      */
     public function handle(User $actor, Report $report, array $data): Report
     {
-        $updated = DB::transaction(function () use ($actor, $report, $data): Report {
+        $recordedReferralId = null;
+        $updated = DB::transaction(function () use ($actor, $report, $data, &$recordedReferralId): Report {
             $locked = Report::query()
                 ->lockForUpdate()
                 ->findOrFail($report->getKey());
@@ -50,6 +51,14 @@ class RecordExpertFinding
                 throw ValidationException::withMessages([
                     'referral' => 'An active expert consult is required before recording a finding.',
                 ]);
+            }
+
+            // The request policy authorizes the route before this transaction
+            // acquires the report lock. Re-check the locked consult owner so a
+            // consult completed and reassigned between those steps cannot
+            // receive a finding from the previous expert.
+            if ($actor->isExpert() && (int) $referral->expert_id !== (int) $actor->getKey()) {
+                abort(403);
             }
 
             $consultStatus = $data['consult_status'] ?? ReportReferral::STATUS_COMPLETED;
@@ -120,6 +129,7 @@ class RecordExpertFinding
                     ? null
                     : $recordedAt,
             ]);
+            $recordedReferralId = $referral->getKey();
 
             if ($consultCancelled) {
                 $referral->symptomFindings()->delete();
@@ -150,9 +160,9 @@ class RecordExpertFinding
             return $locked;
         }, attempts: 3);
 
-        $updated->load(['referral.expert']);
-        if ($updated->referral?->consult_status === ReportReferral::STATUS_COMPLETED) {
-            $this->notifications->expertReferralResponseReceived($updated);
+        $recordedReferral = ReportReferral::query()->findOrFail($recordedReferralId);
+        if ($recordedReferral->consult_status === ReportReferral::STATUS_COMPLETED) {
+            $this->notifications->expertReferralResponseReceived($updated, $recordedReferral);
         }
 
         return $updated;

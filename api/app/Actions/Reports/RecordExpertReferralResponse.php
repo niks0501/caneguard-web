@@ -120,7 +120,7 @@ class RecordExpertReferralResponse
             ]);
 
             if ($consultCompleted) {
-                $this->notifications->expertReferralResponseReceived($locked);
+                $this->notifications->expertReferralResponseReceived($locked, $referral);
             }
 
             return $locked;
