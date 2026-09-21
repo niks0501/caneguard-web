@@ -21,14 +21,16 @@ class QueryReports
      */
     public function handle(array $filters): LengthAwarePaginator
     {
-        $query = Report::query()->with([
-            'reporter',
-            'reviewer',
-            'fieldValidationAssignment.assignee',
-            'fieldValidationAssignment.assignedBy',
-            'fieldValidationAssignment.completion',
-            'qualityWarnings',
-        ]);
+        $query = Report::query()
+            ->whereNull('canonical_report_id')
+            ->with([
+                'reporter',
+                'reviewer',
+                'fieldValidationAssignment.assignee',
+                'fieldValidationAssignment.assignedBy',
+                'fieldValidationAssignment.completion',
+                'qualityWarnings',
+            ]);
         $this->applyReportFilters->handle($query, $filters, 'submitted_at');
         if (isset($filters['queue'])) {
             $this->applyOperationalQueueFilter->handle($query, $filters['queue']);

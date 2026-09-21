@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import type {
   DuplicateLinkInput,
+  DuplicateUnlinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -94,5 +95,12 @@ export function useLinkDuplicateReport(reportId: string) {
   return useReportMutation<DuplicateLinkInput>(
     reportId,
     (input) => reportsRepository.linkDuplicate(reportId, input),
+  );
+}
+
+export function useUnlinkDuplicateReport(reportId: string) {
+  return useReportMutation<DuplicateUnlinkInput>(
+    reportId,
+    (input) => reportsRepository.unlinkDuplicate(reportId, input),
   );
 }

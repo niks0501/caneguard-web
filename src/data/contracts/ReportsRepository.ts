@@ -8,6 +8,7 @@ import type {
 } from "../../domain/report.types";
 import type {
   DuplicateLinkInput,
+  DuplicateUnlinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -36,6 +37,10 @@ export interface ReportsRepository {
   linkDuplicate(
     reportId: string,
     input: DuplicateLinkInput,
+  ): Promise<DiseaseReport>;
+  unlinkDuplicate(
+    reportId: string,
+    input: DuplicateUnlinkInput,
   ): Promise<DiseaseReport>;
 }
 

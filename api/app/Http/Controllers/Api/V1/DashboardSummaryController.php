@@ -22,6 +22,7 @@ class DashboardSummaryController extends Controller
         $counts = array_fill_keys(Report::reviewStatuses(), 0);
 
         Report::query()
+            ->whereNull('canonical_report_id')
             ->selectRaw('review_status, COUNT(*) AS aggregate')
             ->groupBy('review_status')
             ->pluck('aggregate', 'review_status')
@@ -37,6 +38,7 @@ class DashboardSummaryController extends Controller
         }
 
         $recentReports = Report::query()
+            ->whereNull('canonical_report_id')
             ->with(['reporter', 'reviewer', 'fieldValidationAssignment', 'qualityWarnings'])
             ->latest('submitted_at')
             ->limit(5)

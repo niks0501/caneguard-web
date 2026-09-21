@@ -54,12 +54,14 @@ final class ExportReports
      */
     public function handle(array $filters): StreamedResponse
     {
-        $query = Report::query()->with([
-            'reporter',
-            'fieldValidationAssignment.assignee',
-            'fieldValidationAssignment.assignedBy',
-            'referral',
-        ]);
+        $query = Report::query()
+            ->whereNull('canonical_report_id')
+            ->with([
+                'reporter',
+                'fieldValidationAssignment.assignee',
+                'fieldValidationAssignment.assignedBy',
+                'referral',
+            ]);
         $this->applyReportFilters->handle($query, $filters, 'submitted_at');
 
         if (isset($filters['queue'])) {

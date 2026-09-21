@@ -12,6 +12,7 @@ import type {
 } from "../../domain/report.types";
 import type {
   DuplicateLinkInput,
+  DuplicateUnlinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -324,6 +325,24 @@ export class ApiReportsRepository implements ReportsRepository {
       {
         canonical_report_uuid: input.canonicalReportUuid,
         reason: input.reason?.trim() || undefined,
+        expected_version: input.expectedVersion,
+      },
+    );
+
+    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async unlinkDuplicate(
+    reportId: string,
+    input: DuplicateUnlinkInput,
+  ): Promise<DiseaseReport> {
+    const response = await this.client.delete(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/duplicate-link`,
+      {
+        data: {
+          reason: input.reason?.trim() || undefined,
+          expected_version: input.expectedVersion,
+        },
       },
     );
 

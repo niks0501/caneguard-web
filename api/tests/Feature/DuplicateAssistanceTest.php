@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Report;
+use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -194,6 +195,7 @@ class DuplicateAssistanceTest extends TestCase
         $response = $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
             'reason' => 'The submissions describe the same observed field condition.',
+            'expected_version' => 0,
         ]);
 
         $response
@@ -230,6 +232,7 @@ class DuplicateAssistanceTest extends TestCase
 
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
+            'expected_version' => 1,
         ])
             ->assertOk()
             ->assertJsonPath('data.version', 1);
@@ -244,6 +247,7 @@ class DuplicateAssistanceTest extends TestCase
 
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
+            'expected_version' => 0,
         ])
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');
@@ -251,6 +255,7 @@ class DuplicateAssistanceTest extends TestCase
         Sanctum::actingAs(User::factory()->fieldReporter()->create());
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
+            'expected_version' => 0,
         ])
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
@@ -258,6 +263,7 @@ class DuplicateAssistanceTest extends TestCase
         Sanctum::actingAs(User::factory()->reviewer()->create());
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $duplicate->uuid,
+            'expected_version' => 0,
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canonical_report_uuid');
@@ -267,6 +273,7 @@ class DuplicateAssistanceTest extends TestCase
         ]);
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $alreadyDuplicate->uuid,
+            'expected_version' => 0,
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canonical_report_uuid');
@@ -276,6 +283,7 @@ class DuplicateAssistanceTest extends TestCase
         Sanctum::actingAs($admin);
         $this->postJson("/api/v1/reports/{$adminDuplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
+            'expected_version' => 0,
         ])
             ->assertOk()
             ->assertJsonPath('data.duplicate_linkage.is_duplicate', true)
@@ -311,6 +319,7 @@ class DuplicateAssistanceTest extends TestCase
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
             'reason' => 'Reviewer compared the submitted evidence.',
+            'expected_version' => 0,
         ])->assertOk();
 
         $this->patchJson("/api/v1/reports/{$duplicate->uuid}/review", [
@@ -332,6 +341,191 @@ class DuplicateAssistanceTest extends TestCase
             'case_state' => Report::CASE_STATE_CLOSED,
         ]);
         $this->assertDatabaseCount('report_audits', 1);
+    }
+
+    public function test_link_rejects_active_consults_completed_evidence_and_closed_cases(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Sanctum::actingAs($reviewer);
+
+        $cases = [
+            [
+                'attributes' => [],
+                'error' => 'referral',
+                'referral' => true,
+            ],
+            [
+                'attributes' => [
+                    'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+                ],
+                'error' => 'field_validation_state',
+            ],
+            [
+                'attributes' => [
+                    'case_state' => Report::CASE_STATE_CLOSED,
+                ],
+                'error' => 'case_state',
+            ],
+        ];
+
+        foreach ($cases as $case) {
+            $duplicate = Report::factory()->create($case['attributes']);
+            $canonical = Report::factory()->create();
+            if ($case['referral'] ?? false) {
+                ReportReferral::factory()->create([
+                    'report_id' => $duplicate->getKey(),
+                    'referred_by_id' => $reviewer->getKey(),
+                ]);
+            }
+
+            $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+                'canonical_report_uuid' => $canonical->uuid,
+                'expected_version' => 0,
+            ])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors($case['error']);
+
+            $this->assertDatabaseHas('reports', [
+                'id' => $duplicate->getKey(),
+                'canonical_report_id' => null,
+                'lock_version' => 0,
+            ]);
+        }
+    }
+
+    public function test_link_rejects_a_stale_version(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $canonical = Report::factory()->create();
+        $duplicate = Report::factory()->create();
+        $duplicate->update(['lock_version' => 1]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'expected_version' => 0,
+        ])
+            ->assertConflict()
+            ->assertJsonPath('code', 'CONFLICT');
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $duplicate->getKey(),
+            'canonical_report_id' => null,
+            'lock_version' => 1,
+        ]);
+    }
+
+    public function test_link_requires_an_expected_version(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $canonical = Report::factory()->create();
+        $duplicate = Report::factory()->create();
+
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('expected_version');
+    }
+
+    public function test_reviewer_can_unlink_a_duplicate_with_a_current_version(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $canonical = Report::factory()->create();
+        $duplicate = Report::factory()->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+
+        $this->deleteJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'expected_version' => 1,
+            'reason' => 'The duplicate assessment was reversed after review.',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.duplicate_linkage.is_duplicate', false)
+            ->assertJsonPath('data.duplicate_linkage.canonical_case', null)
+            ->assertJsonPath('data.version', 2);
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $duplicate->getKey(),
+            'canonical_report_id' => null,
+            'lock_version' => 2,
+        ]);
+        $this->assertDatabaseCount('report_audits', 2);
+        $this->assertDatabaseHas('report_audits', [
+            'report_id' => $duplicate->getKey(),
+            'original_value' => json_encode($canonical->uuid),
+            'corrected_value' => null,
+            'reason' => 'The duplicate assessment was reversed after review.',
+        ]);
+    }
+
+    public function test_linked_duplicates_are_excluded_from_operational_views_and_counts(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $expert = User::factory()->expert()->create();
+        $submittedAt = CarbonImmutable::parse('2026-09-15T10:00:00Z');
+        $canonical = Report::factory()->create([
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'submitted_at' => $submittedAt,
+            'observed_at' => $submittedAt,
+        ]);
+        $duplicate = Report::factory()->create([
+            'canonical_report_id' => $canonical->getKey(),
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'submitted_at' => $submittedAt->addMinute(),
+            'observed_at' => $submittedAt->addMinute(),
+        ]);
+        ReportReferral::factory()->create([
+            'report_id' => $duplicate->getKey(),
+            'referred_by_id' => $reviewer->getKey(),
+            'expert_id' => $expert->getKey(),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $this->getJson('/api/v1/reports')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonFragment(['uuid' => $canonical->uuid])
+            ->assertJsonMissing(['uuid' => $duplicate->uuid]);
+        $this->getJson('/api/v1/reports/map')
+            ->assertOk()
+            ->assertJsonPath('metadata.total_count', 1)
+            ->assertJsonPath('features.0.id', $canonical->uuid);
+        $this->getJson('/api/v1/reports/field-validation-queue')
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.uuid', $canonical->uuid);
+        $exportResponse = $this->get('/api/v1/reports/export');
+        $exportResponse->assertOk();
+        $exportRows = array_map(
+            'str_getcsv',
+            array_filter(preg_split('/\\r\\n|\\r|\\n/', trim($exportResponse->streamedContent())) ?: []),
+        );
+        $this->assertCount(2, $exportRows);
+        $this->assertSame($canonical->reference_code, $exportRows[1][0]);
+        $this->getJson('/api/v1/reports/summary?month=2026-09')
+            ->assertOk()
+            ->assertJsonPath('data.reported_cases', 1);
+
+        Sanctum::actingAs($expert);
+        $this->getJson('/api/v1/reports/expert-queue')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+
+        Sanctum::actingAs($reviewer);
+        $this->getJson('/api/v1/dashboard/summary?month=2026-09')
+            ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', 1)
+            ->assertJsonPath('data.monthly_summary.reported_cases', 1);
     }
 
     /**

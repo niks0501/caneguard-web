@@ -25,6 +25,7 @@ final class BuildMonthlyReportSummary
         $periodEnd = $periodStart->addMonth();
 
         $baseQuery = Report::query()
+            ->whereNull('canonical_report_id')
             ->where('submitted_at', '>=', $periodStart)
             ->where('submitted_at', '<', $periodEnd);
 

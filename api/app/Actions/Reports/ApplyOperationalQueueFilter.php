@@ -16,6 +16,10 @@ final class ApplyOperationalQueueFilter
      */
     public function handle(Builder $query, string $queue): Builder
     {
+        // Linked duplicates remain visible on the case detail page but are not
+        // active work for any operational queue.
+        $query->whereNull('canonical_report_id');
+
         return match ($queue) {
             Report::QUEUE_NEEDS_REVIEW => $this->needsReview($query),
             Report::QUEUE_NEEDS_VISIT => $this->needsVisit($query),
