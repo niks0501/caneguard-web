@@ -52,7 +52,7 @@ export function ExpertCasePage() {
       </PageContent>
     );
   }
-  if (!packet) return <PageContent><EmptyState message="No expert consult is available for this case." /></PageContent>;
+  if (!packet) return <PageContent><EmptyState /></PageContent>;
 
   const saveFinding = async () => {
     setSubmitted(true);
