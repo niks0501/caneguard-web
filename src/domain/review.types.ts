@@ -21,6 +21,12 @@ export interface OperationalMetadataCorrections {
   gpsAccuracy?: number | null;
 }
 
+export interface ExpertDirectoryEntry {
+  uuid: string;
+  name: string;
+  email: string;
+}
+
 export interface ReportReferralInput {
   destination: string;
   reference: string;

@@ -187,6 +187,14 @@ export const referralOfficeContextSchema = z.object({
   reviewer: referralPersonSchema.nullable(),
   reviewed_at: z.iso.datetime({ offset: true }).nullable(),
 });
+export const expertDirectoryResponseSchema = z.object({
+  data: z.array(z.object({
+    uuid: z.string(),
+    name: z.string(),
+    email: z.email(),
+  })),
+});
+
 export const reportReferralSchema = z.object({
   id: z.number().int().positive().optional(),
   status: consultStatusSchema.optional(),

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AdminUserRoleController;
 use App\Http\Controllers\Api\V1\AdvisoryController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\ExpertDirectoryController;
 use App\Http\Controllers\Api\V1\ExpertQueueController;
 use App\Http\Controllers\Api\V1\ExpertReferralResponseController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
@@ -69,6 +70,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::match(['patch', 'post'], '/advisories/{advisory}/status', [AdvisoryController::class, 'setStatus'])
         ->name('api.v1.advisories.status');
     Route::get('/field-reporters', FieldReporterController::class);
+    Route::get('/experts', ExpertDirectoryController::class)
+        ->name('api.v1.experts.index');
     Route::get('/reports/expert-queue', ExpertQueueController::class)
         ->name('api.v1.reports.expert-queue');
     Route::get('/notifications', [NotificationController::class, 'index']);

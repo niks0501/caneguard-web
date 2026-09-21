@@ -32,6 +32,37 @@ class ExpertAuthorizationTest extends TestCase
             ->assertJsonPath('data.role', User::ROLE_EXPERT);
     }
 
+    public function test_office_can_list_only_expert_accounts_in_the_directory(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $admin = User::factory()->admin()->create();
+        $expert = User::factory()->expert()->create();
+        $anotherExpert = User::factory()->expert()->create();
+        $fieldReporter = User::factory()->fieldReporter()->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->getJson('/api/v1/experts')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment([
+                'uuid' => $expert->uuid,
+                'name' => $expert->name,
+                'email' => $expert->email,
+            ])
+            ->assertJsonMissing(['uuid' => $fieldReporter->uuid]);
+
+        Sanctum::actingAs($admin);
+        $this->getJson('/api/v1/experts')->assertOk();
+
+        Sanctum::actingAs($expert);
+        $this->getJson('/api/v1/experts')->assertForbidden();
+
+        Sanctum::actingAs($fieldReporter);
+        $this->getJson('/api/v1/experts')->assertForbidden();
+
+        $this->assertNotSame($expert->uuid, $anotherExpert->uuid);
+    }
+
     public function test_expert_queue_and_report_detail_are_scoped_to_assigned_consults(): void
     {
         $expert = User::factory()->expert()->create();

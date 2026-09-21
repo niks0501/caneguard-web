@@ -10,6 +10,7 @@ import type {
 import { reportsRepository } from "../services/reports.service";
 import {
   advisoriesQueryOptions,
+  expertDirectoryQueryOptions,
   expertReportsQueryOptions,
   monthlySummaryQueryOptions,
   possibleRecentMatchesQueryOptions,
@@ -25,6 +26,10 @@ export function useMonthlyReportSummary(month?: string) {
 
 export function useAdvisories() {
   return useQuery(advisoriesQueryOptions());
+}
+
+export function useExpertDirectory() {
+  return useQuery(expertDirectoryQueryOptions());
 }
 
 export function useReports(

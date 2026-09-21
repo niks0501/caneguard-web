@@ -11,6 +11,7 @@ import type {
 import type {
   DuplicateLinkInput,
   DuplicateUnlinkInput,
+  ExpertDirectoryEntry,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -81,6 +82,10 @@ export class MockReportsRepository implements ReportsRepository {
   private reports = mockReports.map(cloneReport);
 
   async listAdvisories(): Promise<Advisory[]> {
+    return [];
+  }
+
+  async listExperts(): Promise<ExpertDirectoryEntry[]> {
     return [];
   }
 

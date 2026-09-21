@@ -13,6 +13,7 @@ import type {
 import type {
   DuplicateLinkInput,
   DuplicateUnlinkInput,
+  ExpertDirectoryEntry,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -27,6 +28,7 @@ import { mapMonthlyReportSummary } from "./mappers/reporting.mapper";
 import {
   advisoriesResponseSchema,
   possibleRecentMatchesResponseSchema,
+  expertDirectoryResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
   reviewResponseSchema,
@@ -107,6 +109,11 @@ export class ApiReportsRepository implements ReportsRepository {
       validationProvenance: advisory.validation_provenance,
       validatedAt: advisory.validated_at,
     }));
+  }
+
+  async listExperts(): Promise<ExpertDirectoryEntry[]> {
+    const response = await this.client.get('/api/v1/experts');
+    return expertDirectoryResponseSchema.parse(response.data).data;
   }
 
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {

@@ -1,4 +1,5 @@
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
+import type { ExpertDirectoryEntry } from "../../domain/review.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -16,6 +17,7 @@ import type {
 
 export interface ReportsRepository {
   listAdvisories(): Promise<Advisory[]>;
+  listExperts(): Promise<ExpertDirectoryEntry[]>;
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
   listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports>;
   exportReports(filters?: ReportFilters): Promise<Blob>;

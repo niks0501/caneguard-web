@@ -114,15 +114,15 @@
     "semantic_hash": ""
   },
   "src/data/contracts/ReportsRepository.ts": {
-    "mtime": 1789994740.3495417,
-    "seen": 1789996299.5572188,
-    "ast_hash": "2c965c4b87499ed83f88a7e8e96fe54e",
+    "mtime": 1790003106.546784,
+    "seen": 1790003292.7145665,
+    "ast_hash": "f898365b5dacbabd0627cfa8358e40f2",
     "semantic_hash": ""
   },
   "src/data/mock/MockReportsRepository.ts": {
-    "mtime": 1789994740.3495417,
-    "seen": 1789996299.557222,
-    "ast_hash": "0492dfb329936496bc07616d0eada1a0",
+    "mtime": 1790003143.9747744,
+    "seen": 1790003292.7145698,
+    "ast_hash": "31509fbcd8b7294ff52279fb5b2dc207",
     "semantic_hash": ""
   },
   "src/data/mock/mockReports.ts": {
@@ -144,9 +144,9 @@
     "semantic_hash": ""
   },
   "src/domain/review.types.ts": {
-    "mtime": 1789723200.9469814,
-    "seen": 1789996299.5572267,
-    "ast_hash": "dda40bf4c3d033b9245dbfda937a9bd7",
+    "mtime": 1790003112.2387812,
+    "seen": 1790003292.7145753,
+    "ast_hash": "1ac975616a71414f0c0152ea100f6997",
     "semantic_hash": ""
   },
   "src/domain/user.types.ts": {
@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.tsx": {
-    "mtime": 1789963521.4229443,
-    "seen": 1789996299.5572724,
-    "ast_hash": "50c7ba269f2520c4c65812e1478b7a2d",
+    "mtime": 1790003213.0107598,
+    "seen": 1790003292.7146277,
+    "ast_hash": "11647d8cbd1f560c78d973f10fc94eab",
     "semantic_hash": ""
   },
   "src/pages/NotFoundPage.tsx": {
@@ -444,9 +444,9 @@
     "semantic_hash": ""
   },
   "api/routes/api.php": {
-    "mtime": 1789963521.329866,
-    "seen": 1789996299.5570726,
-    "ast_hash": "7e62cb95ed9f1bbf96ddf5c6d2c25c06",
+    "mtime": 1790003089.8667858,
+    "seen": 1790003292.7143862,
+    "ast_hash": "45fbb9f1e2e6c4c0318aa0869e5f9283",
     "semantic_hash": ""
   },
   "api/routes/console.php": {
@@ -498,9 +498,9 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/QueryReports.php": {
-    "mtime": 1789963521.3260248,
-    "seen": 1789996299.5568922,
-    "ast_hash": "5660246626553f5740d26cc1a53c83ba",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142155,
+    "ast_hash": "585ce32156444a208e6ac379b5733af1",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/StoreReport.php": {
@@ -510,9 +510,9 @@
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/DashboardSummaryController.php": {
-    "mtime": 1789963521.3260248,
-    "seen": 1789996299.556909,
-    "ast_hash": "d8d731f30948221e82a0f6830975a024",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142332,
+    "ast_hash": "880113d8634b92d191ad16ea0fdf0c37",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/MobileReportController.php": {
@@ -534,9 +534,9 @@
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/ReviewReportController.php": {
-    "mtime": 1789963521.329866,
-    "seen": 1789996299.5569308,
-    "ast_hash": "180abeb58ac198bbd6444e0d8d48f332",
+    "mtime": 1790000327.851357,
+    "seen": 1790003292.7142572,
+    "ast_hash": "2aa2dd86cb1467cd46cfea563e0225b1",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/ApiFormRequest.php": {
@@ -564,9 +564,9 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/ReviewReportRequest.php": {
-    "mtime": 1789723200.8669817,
-    "seen": 1789996299.5569844,
-    "ast_hash": "76ffd0fd8f3975ac848326993bdc6849",
+    "mtime": 1790000327.851357,
+    "seen": 1790003292.7142975,
+    "ast_hash": "baec0ab38880427695e108bd0c0e13bb",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/StoreMobileReportRequest.php": {
@@ -582,9 +582,9 @@
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportResource.php": {
-    "mtime": 1789963521.329866,
-    "seen": 1789996299.5569992,
-    "ast_hash": "0a3800de0d4ff54ec8723526c249d7c5",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7143114,
+    "ast_hash": "2468a06e7717af4904af2a16f40444fa",
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReportStatusResource.php": {
@@ -798,15 +798,15 @@
     "semantic_hash": ""
   },
   "src/data/api/ApiReportsRepository.test.ts": {
-    "mtime": 1789994740.3495417,
-    "seen": 1789996299.5572047,
-    "ast_hash": "0aabf55cdef1146e699c2f6e52d7a117",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7145495,
+    "ast_hash": "7f99c1f9dfa1b59d1f8edc7c86fe04e1",
     "semantic_hash": ""
   },
   "src/data/api/ApiReportsRepository.ts": {
-    "mtime": 1789994740.3495417,
-    "seen": 1789996299.5572052,
-    "ast_hash": "5612a525b024bc7b9ea9d351be04ac3f",
+    "mtime": 1790003128.4347742,
+    "seen": 1790003292.7145503,
+    "ast_hash": "996942e3be91c38d55bf010f2fa9a03f",
     "semantic_hash": ""
   },
   "src/data/api/mappers/dashboard.mapper.ts": {
@@ -852,9 +852,9 @@
     "semantic_hash": ""
   },
   "src/data/api/schemas/report.schema.ts": {
-    "mtime": 1789963521.4229443,
-    "seen": 1789996299.5572147,
-    "ast_hash": "1786e9bd2fd917b1204a950dd6170676",
+    "mtime": 1790003118.5027783,
+    "seen": 1790003292.714561,
+    "ast_hash": "2e2f4f6663f3a8805bfaf0bb04e8b35c",
     "semantic_hash": ""
   },
   "src/data/contracts/DashboardRepository.ts": {
@@ -876,9 +876,9 @@
     "semantic_hash": ""
   },
   "src/hooks/reportQueries.ts": {
-    "mtime": 1789994740.3495417,
-    "seen": 1789996299.557263,
-    "ast_hash": "a4ad340355df45ec950f72e840fd61cb",
+    "mtime": 1790003155.6027703,
+    "seen": 1790003292.7146173,
+    "ast_hash": "3c4893889aa51c605cdef029f5e9bb06",
     "semantic_hash": ""
   },
   "src/hooks/useDashboard.ts": {
@@ -888,9 +888,9 @@
     "semantic_hash": ""
   },
   "src/hooks/useReports.ts": {
-    "mtime": 1789994740.3495417,
-    "seen": 1789996299.5572681,
-    "ast_hash": "96a55551757111afefe054e7fda7f7e3",
+    "mtime": 1790003164.1347733,
+    "seen": 1790003292.714623,
+    "ast_hash": "810f059c3429c9597ccada88c6b897d5",
     "semantic_hash": ""
   },
   "src/services/dashboard.service.ts": {
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.test.tsx": {
-    "mtime": 1789963521.4229443,
-    "seen": 1789996299.5572717,
-    "ast_hash": "5120a98cebf85fd53cfbac2f444c5311",
+    "mtime": 1790003241.5147502,
+    "seen": 1790003292.714627,
+    "ast_hash": "9ce5c07e5e30706b9b9e0f0027aac5fc",
     "semantic_hash": ""
   },
   "api/database/migrations/2026_07_27_020000_add_lock_version_to_reports_table.php": {
@@ -1362,15 +1362,15 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/QueryFieldValidationQueue.php": {
-    "mtime": 1789820807.33407,
-    "seen": 1789996299.5568902,
-    "ast_hash": "b66c7988a9f2fae225f7c1e66593df70",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142136,
+    "ast_hash": "4c429f345b8060125459ab19d51fa30c",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/QueryMapReports.php": {
-    "mtime": 1789030007.0987113,
-    "seen": 1789996299.5568912,
-    "ast_hash": "5f31b55d54818ae7f07a8272bcf6d444",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142143,
+    "ast_hash": "0916a0b127d6891a03c84fa37b364995",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/FieldValidationQueueController.php": {
@@ -5766,9 +5766,9 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/RecordReferralRequest.php": {
-    "mtime": 1789723200.8669817,
-    "seen": 1789996299.5569766,
-    "ast_hash": "93830e5bf6fe48eb46d128154e05c64b",
+    "mtime": 1790003098.5507874,
+    "seen": 1790003292.7142935,
+    "ast_hash": "7a0d77d1c682ca038dfaf679fba5e7ed",
     "semantic_hash": ""
   },
   "api/app/Http/Resources/ReferralSummaryResource.php": {
@@ -5808,9 +5808,9 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/ReportReferralTest.php": {
-    "mtime": 1789815509.3442218,
-    "seen": 1789996299.5570943,
-    "ast_hash": "f9fce9ef452fdebd7c6f7c91eccf5fcd",
+    "mtime": 1790000327.851357,
+    "seen": 1790003292.7144084,
+    "ast_hash": "a19891f9859da34958fa820acdd69c04",
     "semantic_hash": ""
   },
   "src/components/reports/ReferralWorkflow.tsx": {
@@ -5820,9 +5820,9 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/ApplyOperationalQueueFilter.php": {
-    "mtime": 1789963521.3260248,
-    "seen": 1789996299.5568793,
-    "ast_hash": "d32ad0e0e42cd2e207a1d644465d7bae",
+    "mtime": 1790002741.3228548,
+    "seen": 1790003292.7141998,
+    "ast_hash": "617920d474120c3cf912107679480ea4",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/FindPossibleRecentMatches.php": {
@@ -5832,15 +5832,15 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/LinkDuplicateReport.php": {
-    "mtime": 1789028377.4386542,
-    "seen": 1789996299.5568874,
-    "ast_hash": "6589a1d6c89c699d704217434bb63242",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142105,
+    "ast_hash": "dcbb20ac4f75d33dbcac14bd9c3c5626",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/LinkDuplicateReportController.php": {
-    "mtime": 1789963521.3260248,
-    "seen": 1789996299.5569136,
-    "ast_hash": "656bd8ebe03af3f800e28306b0d932e3",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142396,
+    "ast_hash": "fd0d3cea7b614d052b7aee304970470c",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/MobilePossibleRecentMatchesController.php": {
@@ -5856,9 +5856,9 @@
     "semantic_hash": ""
   },
   "api/app/Http/Requests/LinkDuplicateReportRequest.php": {
-    "mtime": 1789028377.4473243,
-    "seen": 1789996299.5569544,
-    "ast_hash": "bb364a8102fef8dab0dbe71dcb7b789d",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.714282,
+    "ast_hash": "465fc25c98d05dc1f4042091893c2bab",
     "semantic_hash": ""
   },
   "api/app/Http/Requests/PossibleRecentMatchesRequest.php": {
@@ -5880,9 +5880,9 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/DuplicateAssistanceTest.php": {
-    "mtime": 1789704400.05069,
-    "seen": 1789996299.5570796,
-    "ast_hash": "a6f3a8b232141f23e62ed51787b0afda",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.714394,
+    "ast_hash": "b4a3593438f0b6d9aee9a7bcb1b95241",
     "semantic_hash": ""
   },
   "docs/contracts/mobile-duplicate-assistance-v1.json": {
@@ -5946,15 +5946,15 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/BuildMonthlyReportSummary.php": {
-    "mtime": 1789724591.142525,
-    "seen": 1789996299.5568814,
-    "ast_hash": "c85dce313b48af94e9a72530448ffc58",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142024,
+    "ast_hash": "3ff14b21886126cf1d8e228dcfa8a1c4",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/ExportReports.php": {
-    "mtime": 1789704400.046678,
-    "seen": 1789996299.5568855,
-    "ast_hash": "e2920e21747468dc6389cd7f3610549a",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142072,
+    "ast_hash": "07f93fb34e45ce3183436ee20adc7d71",
     "semantic_hash": ""
   },
   "api/app/Console/Commands/PruneSecurityAudits.php": {
@@ -6426,9 +6426,9 @@
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/QueryExpertQueue.php": {
-    "mtime": 1789719110.0765018,
-    "seen": 1789996299.5568895,
-    "ast_hash": "5ac63c09d5d31a558c569721c5ac7242",
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142131,
+    "ast_hash": "6b0d01ac254c8a6696ca9483780d5f73",
     "semantic_hash": ""
   },
   "api/app/Http/Controllers/Api/V1/ExpertQueueController.php": {
@@ -6903,6 +6903,36 @@
     "mtime": 1789996246.4376557,
     "seen": 1789996299.5572789,
     "ast_hash": "0fc237b8b3ee43c4a1f539f022189781",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Reports/GuardDuplicateLinkLifecycle.php": {
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142096,
+    "ast_hash": "4aca5b34162c856b3e4d650bc5b035d2",
+    "semantic_hash": ""
+  },
+  "api/app/Actions/Reports/UnlinkDuplicateReport.php": {
+    "mtime": 1790002741.3268547,
+    "seen": 1790003292.7142198,
+    "ast_hash": "d653ef89329341e5b3596f979828d39a",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Controllers/Api/V1/ExpertDirectoryController.php": {
+    "mtime": 1790003079.8387864,
+    "seen": 1790003292.7142339,
+    "ast_hash": "8abc728dda845a6db85331f532b0e88c",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Requests/ExpertDirectoryRequest.php": {
+    "mtime": 1790003065.4987938,
+    "seen": 1790003292.7142766,
+    "ast_hash": "5456c947bd7a59226ad7d6b31de013fb",
+    "semantic_hash": ""
+  },
+  "api/app/Http/Resources/ExpertDirectoryResource.php": {
+    "mtime": 1790003071.654786,
+    "seen": 1790003292.714301,
+    "ast_hash": "bc24b2291a4b3feeabdd75668f669b19",
     "semantic_hash": ""
   }
 }

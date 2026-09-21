@@ -34,6 +34,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Regional crop protection office',
             'reference' => 'SRA-2026-0042',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'note' => 'Please review the mismatch between the image and reporter observation.',
             'expected_version' => 0,
         ])
@@ -173,6 +174,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Replacement expert office',
             'reference' => 'CONSULT-REPLACEMENT',
             'referral_date' => '2026-09-21',
+            'expert_name' => 'Replacement specialist',
             'expected_version' => 2,
         ])
             ->assertCreated()
@@ -190,6 +192,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Another expert office',
             'reference' => 'CONSULT-2',
             'referral_date' => '2026-09-19',
+            'expert_name' => 'Second specialist',
             'expected_version' => 1,
         ])
             ->assertUnprocessable()
@@ -205,6 +208,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Another expert office',
             'reference' => 'CONSULT-2',
             'referral_date' => '2026-09-21',
+            'expert_name' => 'Second specialist',
             'expected_version' => 2,
         ])
             ->assertCreated()
@@ -232,6 +236,7 @@ class ReportReferralTest extends TestCase
             'referral_destination' => 'Replacement expert office',
             'referral_reference' => 'CONSULT-REVIEW-COMPLETED',
             'referral_date' => '2026-09-21',
+            'expert_name' => 'Replacement specialist',
             'expected_version' => 2,
         ])
             ->assertOk()
@@ -259,6 +264,7 @@ class ReportReferralTest extends TestCase
             'referral_destination' => 'Replacement expert office',
             'referral_reference' => 'CONSULT-REVIEW-CANCELLED',
             'referral_date' => '2026-09-21',
+            'expert_name' => 'Replacement specialist',
             'expected_version' => 2,
         ])
             ->assertOk()
@@ -387,6 +393,7 @@ class ReportReferralTest extends TestCase
             'referral_destination' => 'Crop disease specialist',
             'referral_reference' => 'CASE-77',
             'referral_date' => '2026-09-05',
+            'expert_name' => 'External specialist',
             'referral_note' => 'Review the independent field observations.',
             'notes' => 'The office is awaiting expert input.',
             'expected_version' => 0,
@@ -404,6 +411,24 @@ class ReportReferralTest extends TestCase
             'reference' => 'CASE-77',
             'office_review_notes' => 'The office is awaiting expert input.',
         ]);
+    }
+
+    public function test_referral_requires_an_expert_account_or_external_name(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Specialist office',
+            'reference' => 'MISSING-EXPERT',
+            'referral_date' => '2026-09-04',
+            'expected_version' => 0,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['expert_uuid', 'expert_name']);
+
+        $this->assertDatabaseCount('report_referrals', 0);
     }
 
     public function test_referral_requires_an_open_case_and_reviewer_or_admin_authority(): void
@@ -432,6 +457,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Specialist',
             'reference' => 'S-2',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'expected_version' => 0,
         ])
             ->assertUnprocessable()
@@ -450,6 +476,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Specialist office',
             'reference' => 'REF-DOWNY',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
             'expected_version' => 0,
         ])
@@ -628,6 +655,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Regional crop protection office',
             'reference' => 'SRA-2026-0099',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'note' => 'Please compare the image with the reported observation.',
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY,
@@ -683,6 +711,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Regional crop protection office',
             'reference' => 'SRA-2026-0100',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'expected_version' => 0,
         ])->assertCreated();
 
@@ -736,6 +765,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Regional crop protection office',
             'reference' => 'SRA-2026-NO-EXPERT-COLUMN',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'expected_version' => 0,
         ])
             ->assertCreated()
@@ -759,6 +789,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Regional crop protection office',
             'reference' => 'SRA-2026-OPTIONAL-HISTORY',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'expected_version' => 0,
         ])
             ->assertCreated()
@@ -813,6 +844,7 @@ class ReportReferralTest extends TestCase
             'destination' => 'Specialist office',
             'reference' => 'REF-1',
             'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
             'expected_version' => 0,
         ])->assertCreated();
     }
