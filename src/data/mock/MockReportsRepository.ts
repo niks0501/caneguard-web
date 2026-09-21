@@ -3,6 +3,7 @@ import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type {
   Advisory,
   DiseaseReport,
+  ExpertConsultPacket,
   PaginatedReports,
   PossibleRecentMatches,
   ReportFilters,
@@ -292,6 +293,47 @@ export class MockReportsRepository implements ReportsRepository {
   async getReportById(reportId: string): Promise<DiseaseReport | null> {
     const report = this.reports.find((item) => item.uuid === reportId);
     return report ? cloneReport(report) : null;
+  }
+
+  async getExpertConsult(reportId: string): Promise<ExpertConsultPacket> {
+    const report = await this.getReportById(reportId);
+    if (!report?.referral) throw new Error("No expert consult");
+    return {
+      referenceCode: report.referenceCode,
+      submittedAt: report.submittedAt,
+      photoUrl: report.imageUrl ?? "",
+      reporterObservations: {
+        symptomKeys: report.symptoms.map((symptom) => symptom.id),
+        reporterObservationText: report.reporterObservationText,
+        fieldNotes: report.fieldNotes,
+        reporterSuspectedCondition: report.reporterSuspectedCondition,
+        checklistConsistency: report.checklistConsistency,
+        reportedSeverity: report.reportedSeverity,
+        qualityWarnings: report.qualityWarnings ?? [],
+      },
+      reporterSuspectedCondition: report.reporterSuspectedCondition,
+      aiPossibleCondition: { label: report.predictedDisease, decisionSupportLabel: "Decision-support only. This is not a diagnosis." },
+      location: { barangay: report.barangay, municipality: report.municipality, province: report.province },
+      affectedArea: { value: report.affectedAreaHectares ?? null, unit: "hectares", measurement: report.affectedAreaMeasurement ?? "not_measured" },
+      affectedPortion: { value: report.affectedPortionPercent ?? null, unit: "percent", measurement: report.affectedPortionMeasurement ?? "not_measured" },
+      officeContext: report.referral.officeContext,
+      consult: {
+        id: report.referral.id ?? 1,
+        status: report.referral.status ?? "pending",
+        reference: report.referral.reference,
+        referralDate: report.referral.referralDate,
+        dueDate: report.referral.dueDate ?? null,
+        question: report.referral.note,
+        conditionOpinion: report.referral.conditionOpinion,
+        basis: report.referral.findingDetails,
+        confidence: report.referral.findingConfidence,
+        recommendation: report.referral.findingRecommendation,
+        symptomVerdicts: report.referral.symptomVerdicts ?? {},
+        responseDate: report.referral.responseDate,
+      },
+      priorConsults: [],
+      version: report.reviewVersion ?? 0,
+    };
   }
 
   async getPossibleRecentMatches(): Promise<PossibleRecentMatches> {

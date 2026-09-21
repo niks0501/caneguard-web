@@ -76,6 +76,76 @@ export type ConsultStatus =
 
 export type FindingSource = "in_system" | "transcribed";
 export type ConsultReviewOutcome = "accepted" | "overridden";
+export type IdentificationGapState = "identified" | "provisional" | "unidentified";
+
+export interface IdentificationGap {
+  state: IdentificationGapState;
+  reasons: string[];
+}
+
+export interface ExpertConsultSummary {
+  id: number;
+  status: ConsultStatus;
+  referralDate: string | null;
+  dueDate: string | null;
+  expert?: { uuid: string; name: string } | null;
+  daysUntilDue: number | null;
+  overdue: boolean;
+  ageLabel: string;
+}
+
+export type SymptomFindingVerdict = "present" | "absent" | "unsure";
+
+export interface ExpertConsultPacket {
+  referenceCode: string;
+  submittedAt: string;
+  photoUrl: string;
+  reporterObservations: {
+    symptomKeys: string[];
+    reporterObservationText?: string | null;
+    fieldNotes?: string | null;
+    reporterSuspectedCondition?: string | null;
+    checklistConsistency?: string | null;
+    reportedSeverity?: string | null;
+    qualityWarnings: string[];
+  };
+  reporterSuspectedCondition?: string | null;
+  aiPossibleCondition: {
+    label: string;
+    decisionSupportLabel: string;
+  };
+  location: { barangay: string; municipality?: string | null; province?: string | null };
+  affectedArea: { value: number | null; unit: string; measurement: string };
+  affectedPortion: { value: number | null; unit: string; measurement: string };
+  officeContext: ReferralOfficeContext;
+  consult: {
+    id: number;
+    status: ConsultStatus;
+    reference: string;
+    referralDate: string | null;
+    dueDate: string | null;
+    question?: string | null;
+    conditionOpinion?: AuthorityClassifiedCondition | null;
+    basis?: string | null;
+    confidence?: "low" | "medium" | "high" | null;
+    recommendation?: string | null;
+    symptomVerdicts: Record<string, { verdict: SymptomFindingVerdict; note?: string | null }>;
+    responseDate?: string | null;
+  };
+  priorConsults: Array<{
+    id: number;
+    status: ConsultStatus;
+    reference: string;
+    referralDate: string | null;
+    dueDate: string | null;
+    question?: string | null;
+    conditionOpinion?: AuthorityClassifiedCondition | null;
+    basis?: string | null;
+    confidence?: "low" | "medium" | "high" | null;
+    recommendation?: string | null;
+  }>;
+  version: number;
+}
 
 export type ActionTaken =
   | "advisory_provided"
@@ -374,6 +444,8 @@ export interface DiseaseReport {
   attentionBand?: AttentionBand | null;
   attentionBandReasons?: string[];
   caseHistory?: ReportCaseHistory;
+  identificationGap?: IdentificationGap;
+  expertConsult?: ExpertConsultSummary | null;
 }
 
 export interface ReportReviewEvent {

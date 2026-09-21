@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Notifications\AdvisoryAvailableNotification;
 use App\Notifications\CaseAttentionNotification;
 use App\Notifications\ExpertReferralAssignedNotification;
+use App\Notifications\ExpertReferralDueSoonNotification;
+use App\Notifications\ExpertReferralOverdueNotification;
 use App\Notifications\ExpertReferralResponseReceivedNotification;
 use App\Notifications\FieldValidationAssignedNotification;
 use App\Notifications\FieldValidationAssignmentChangedNotification;
@@ -134,6 +136,84 @@ class CreateLifecycleNotifications
                 $this->send($recipient, $notification);
                 $this->broadcast->handle($recipient, ExpertReferralResponseReceivedNotification::EVENT_TYPE);
             });
+    }
+
+    /**
+     * Create one database reminder for each active consult and reminder state.
+     * Dates are compared in the configured application timezone.
+     */
+    public function ensureExpertReferralReminderNotifications(): int
+    {
+        $today = CarbonImmutable::now()->startOfDay();
+        $created = 0;
+
+        ReportReferral::query()
+            ->whereIn('consult_status', ReportReferral::activeStatuses())
+            ->whereNotNull('due_date')
+            ->whereDate('due_date', $today->addDay()->toDateString())
+            ->with(['report', 'expert'])
+            ->each(function (ReportReferral $referral) use (&$created): void {
+                $report = $referral->report;
+                $expert = $referral->expert;
+                if ($report === null || $expert === null || ! $expert->isExpert()) {
+                    return;
+                }
+
+                $notification = new ExpertReferralDueSoonNotification(
+                    $expert->uuid,
+                    $report->uuid,
+                    $report->reference_code,
+                    $referral,
+                );
+                if (! DatabaseNotification::query()->whereKey($notification->id)->exists()) {
+                    $this->send($expert, $notification);
+                    $created++;
+                }
+            });
+
+        ReportReferral::query()
+            ->whereIn('consult_status', ReportReferral::activeStatuses())
+            ->whereNotNull('due_date')
+            ->whereDate('due_date', '<', $today->toDateString())
+            ->with(['report', 'expert'])
+            ->each(function (ReportReferral $referral) use (&$created): void {
+                $report = $referral->report;
+                if ($report === null) {
+                    return;
+                }
+
+                if ($referral->expert?->isExpert()) {
+                    $notification = new ExpertReferralOverdueNotification(
+                        $referral->expert->uuid,
+                        $report->uuid,
+                        $report->reference_code,
+                        $referral,
+                    );
+                    if (! DatabaseNotification::query()->whereKey($notification->id)->exists()) {
+                        $this->send($referral->expert, $notification);
+                        $created++;
+                    }
+                }
+
+                User::query()
+                    ->whereIn('role', User::officeRoles())
+                    ->get()
+                    ->each(function (User $recipient) use ($referral, $report, &$created): void {
+                        $notification = new ExpertReferralOverdueNotification(
+                            $recipient->uuid,
+                            $report->uuid,
+                            $report->reference_code,
+                            $referral,
+                            officeRecipient: true,
+                        );
+                        if (! DatabaseNotification::query()->whereKey($notification->id)->exists()) {
+                            $this->send($recipient, $notification);
+                            $created++;
+                        }
+                    });
+            });
+
+        return $created;
     }
 
     public function advisorySelected(Report $report, Advisory $advisory): void

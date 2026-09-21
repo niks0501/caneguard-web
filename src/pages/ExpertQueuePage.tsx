@@ -13,7 +13,7 @@ import { useExpertQueue } from "../hooks/useReports";
 export function ExpertQueuePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
-  const filters = useMemo(() => ({ sort: "oldest" as const, page }), [page]);
+  const filters = useMemo(() => ({ sort: "due_soonest" as const, page }), [page]);
   const queue = useExpertQueue(filters);
   const reports = queue.data?.reports ?? [];
 
@@ -37,7 +37,7 @@ export function ExpertQueuePage() {
       {!queue.isPending && !queue.isError && reports.length > 0 ? (
         <section aria-labelledby="expert-queue-heading">
           <h2 id="expert-queue-heading" className="sr-only">Assigned expert referrals</h2>
-          <ReportTable reports={reports} />
+          <ReportTable reports={reports} variant="expert" />
           {queue.data?.meta ? (
             <Pagination
               currentPage={queue.data.meta.currentPage}

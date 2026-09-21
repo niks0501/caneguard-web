@@ -3,6 +3,7 @@ import type { ExpertDirectoryEntry } from "../../domain/review.types";
 import type {
   Advisory,
   DiseaseReport,
+  ExpertConsultPacket,
   PaginatedReports,
   PossibleRecentMatches,
   ReportFilters,
@@ -25,6 +26,7 @@ export interface ReportsRepository {
   exportReports(filters?: ReportFilters): Promise<Blob>;
   getMonthlySummary(month?: string): Promise<MonthlyReportSummary>;
   getReportById(reportId: string): Promise<DiseaseReport | null>;
+  getExpertConsult(reportId: string): Promise<ExpertConsultPacket>;
   getPossibleRecentMatches(reportId: string): Promise<PossibleRecentMatches>;
   updateReview(
     reportId: string,

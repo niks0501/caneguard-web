@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AdvisoryController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\ConfirmExpertReferralController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\ExpertConsultController;
 use App\Http\Controllers\Api\V1\ExpertDirectoryController;
 use App\Http\Controllers\Api\V1\ExpertQueueController;
 use App\Http\Controllers\Api\V1\ExpertReferralFindingController;
@@ -90,6 +91,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.reports.field-validation-queue');
     Route::get('/reports/{report}/image', ReportImageController::class)
         ->name('api.v1.reports.image');
+    Route::get('/reports/{report}/consult', ExpertConsultController::class)
+        ->name('api.v1.reports.consult');
     Route::get('/reports/{report}/validation-photo', FieldValidationPhotoController::class)
         ->name('api.v1.reports.validation-photo');
     Route::get('/reports/{report}/referral/summary', ReferralSummaryController::class)

@@ -24,6 +24,7 @@ class ExpertQueueRequest extends ApiFormRequest
                 Rule::in([
                     '-submitted_at',
                     'submitted_at',
+                    'due_soonest',
                 ]),
             ],
         ];

@@ -7,6 +7,7 @@ use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -132,7 +133,9 @@ class RecordReportReferral
                 'destination' => $data['destination'],
                 'reference' => $data['reference'],
                 'referral_date' => $data['referral_date'],
-                'due_date' => $data['due_date'] ?? null,
+                'due_date' => array_key_exists('due_date', $data)
+                    ? $data['due_date']
+                    : CarbonImmutable::parse($data['referral_date'], config('app.timezone'))->addDays(7)->toDateString(),
                 'expert_name' => $data['expert_name'] ?? null,
                 'expert_contact' => $data['expert_contact'] ?? null,
                 'note' => $data['note'] ?? null,

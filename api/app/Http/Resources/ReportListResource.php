@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Actions\Reports\AssessIdentificationGap;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -50,11 +51,54 @@ class ReportListResource extends JsonResource
             'machine_facts' => $this->machineFacts(),
             'attention_band' => $this->attention_band,
             'attention_band_reasons' => $this->attention_band_reasons ?? [],
+            'identification_gap' => app(AssessIdentificationGap::class)->handle($this->resource),
+            'expert_consult' => $this->activeConsultSummary(),
+            'referral' => $this->activeConsultSummary(),
             'version' => $this->lock_version,
             'image_url' => route(
                 'api.v1.reports.image',
                 ['report' => $this->uuid],
             ),
+        ];
+    }
+
+    /**
+     * Keep the active consult's clock available in every office queue and the
+     * expert queue without creating a second operational queue.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function activeConsultSummary(): ?array
+    {
+        $consult = $this->resource->relationLoaded('referral')
+            ? $this->referral
+            : null;
+
+        if (! $consult || ! $consult->isActive()) {
+            return null;
+        }
+
+        $today = now()->startOfDay();
+        $daysUntilDue = $consult->due_date === null
+            ? null
+            : $today->diffInDays($consult->due_date->copy()->startOfDay(), false);
+
+        return [
+            'id' => $consult->getKey(),
+            'status' => $consult->consult_status,
+            'referral_date' => $consult->referral_date?->format('Y-m-d'),
+            'due_date' => $consult->due_date?->format('Y-m-d'),
+            'expert' => $consult->expert ? [
+                'uuid' => $consult->expert->uuid,
+                'name' => $consult->expert->name,
+            ] : null,
+            'days_until_due' => $daysUntilDue,
+            'overdue' => $daysUntilDue !== null && $daysUntilDue < 0,
+            'age_label' => $daysUntilDue === null
+                ? 'No due date'
+                : ($daysUntilDue < 0
+                    ? 'Overdue'
+                    : ($daysUntilDue === 0 ? 'Due today' : 'Due in '.$daysUntilDue.' '.($daysUntilDue === 1 ? 'day' : 'days'))),
         ];
     }
 

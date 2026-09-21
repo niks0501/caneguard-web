@@ -117,6 +117,12 @@ const referralStateLabels: Record<ReferralState, string> = {
   expert_response_received: "Expert response received",
 };
 
+function referralDueDateFor(referralDate: string): string {
+  const date = new Date(`${referralDate}T00:00:00`);
+  date.setDate(date.getDate() + 7);
+  return date.toISOString().slice(0, 10);
+}
+
 function isActiveConsultStatus(status?: ConsultStatus): boolean {
   return status === "pending" || status === "in_progress";
 }
@@ -521,6 +527,7 @@ export function CaseReviewPage() {
   const [referralReference, setReferralReference] = useState("");
   const [referralDate, setReferralDate] = useState("");
   const [referralDueDate, setReferralDueDate] = useState("");
+  const [referralDueDateTouched, setReferralDueDateTouched] = useState(false);
   const [referralExpertUuid, setReferralExpertUuid] = useState<string | null>(null);
   const [referralExpertName, setReferralExpertName] = useState("");
   const [referralExpertContact, setReferralExpertContact] = useState("");
@@ -953,7 +960,7 @@ export function CaseReviewPage() {
         destination: referralDestination,
         reference: referralReference,
         referralDate,
-        ...(referralDueDate ? { dueDate: referralDueDate } : {}),
+        ...(referralDueDateTouched ? { dueDate: referralDueDate || null } : {}),
         ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
         ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
         ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
@@ -1049,6 +1056,11 @@ export function CaseReviewPage() {
               <strong>Attention band: {report.attentionBand}</strong>
               <span>{report.attentionBandReasons?.join(" ")}</span>
               <small>Decision support only. The reviewer keeps the final call.</small>
+            </p>
+          ) : null}
+          {report.identificationGap?.state === "unidentified" ? (
+            <p className="identification-gap-banner" role="status">
+              <strong>No condition has been identified yet.</strong> Referring to an expert is the recommended next action. <a href="#review-next-action">Choose an expert referral</a>.
             </p>
           ) : null}
         </div>
@@ -2152,7 +2164,14 @@ export function CaseReviewPage() {
               type="date"
               value={referralDate}
               onChange={(event) => {
-                setReferralDate(event.target.value);
+                const nextReferralDate = event.target.value;
+                const previousDefaultDueDate = referralDate
+                  ? referralDueDateFor(referralDate)
+                  : "";
+                setReferralDate(nextReferralDate);
+                if (!referralDueDate || referralDueDate === previousDefaultDueDate) {
+                  setReferralDueDate(nextReferralDate ? referralDueDateFor(nextReferralDate) : "");
+                }
                 setReferralSubmitted(false);
                 recordReferral.reset();
               }}
@@ -2166,6 +2185,7 @@ export function CaseReviewPage() {
               value={referralDueDate}
               onChange={(event) => {
                 setReferralDueDate(event.target.value);
+                setReferralDueDateTouched(true);
                 setReferralSubmitted(false);
                 recordReferral.reset();
               }}

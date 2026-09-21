@@ -267,6 +267,107 @@ export const reportConsultSchema = z.object({
 });
 
 export const attentionBandSchema = z.enum(["green", "amber", "red"]);
+export const identificationGapSchema = z.object({
+  state: z.enum(["identified", "provisional", "unidentified"]),
+  reasons: z.array(z.string()),
+});
+export const expertConsultSummarySchema = z.object({
+  id: z.number().int().positive(),
+  status: consultStatusSchema,
+  referral_date: z.string().nullable(),
+  due_date: z.string().nullable(),
+  expert: referralPersonSchema.nullable(),
+  days_until_due: z.number().int().nullable(),
+  overdue: z.boolean(),
+  age_label: z.string(),
+});
+
+const expertConsultFindingSchema = z.object({
+  id: z.number().int().positive(),
+  status: consultStatusSchema,
+  reference: z.string(),
+  referral_date: z.string().nullable(),
+  due_date: z.string().nullable(),
+  question: z.string().nullable().optional(),
+  expert: referralPersonSchema.nullable().optional(),
+  condition_opinion: authorityClassifiedConditionSchema.nullable().optional(),
+  basis: z.string().nullable().optional(),
+  finding_details: z.string().nullable().optional(),
+  confidence: z.enum(["low", "medium", "high"]).nullable().optional(),
+  recommendation: z.string().nullable().optional(),
+  symptom_verdicts: symptomVerdictsSchema,
+  response_date: z.string().nullable().optional(),
+  finding_source: findingSourceSchema.nullable().optional(),
+  finding_recorded_at: z.iso.datetime({ offset: true }).nullable().optional(),
+});
+export const expertConsultResponseSchema = z.object({
+  data: z.object({
+    case: z.object({
+      uuid: z.string(),
+      reference_code: z.string(),
+      submitted_at: z.iso.datetime({ offset: true }),
+      photo_url: z.string(),
+      reporter_observations: z.object({
+        symptom_keys: z.array(z.string()),
+        reporter_observation_text: z.string().nullable().optional(),
+        field_notes: z.string().nullable().optional(),
+        reporter_suspected_condition: z.string().nullable().optional(),
+        checklist_consistency: z.string().nullable().optional(),
+        reported_severity: z.string().nullable().optional(),
+        quality_warnings: z.array(z.string()),
+      }),
+      reporter_suspected_condition: z.string().nullable().optional(),
+      ai_possible_condition: z.object({
+        label: z.string(),
+        predicted_label: z.string(),
+        decision_support_label: z.string(),
+      }),
+      location: z.object({
+        barangay: z.string(),
+        municipality: z.string().nullable().optional(),
+        province: z.string().nullable().optional(),
+      }),
+      measurements: z.object({
+        affected_area_hectares: z.number().nullable(),
+        affected_area_measurement: z.string(),
+        affected_portion_percent: z.number().nullable(),
+        affected_portion_measurement: z.string(),
+      }),
+    }),
+    reference_code: z.string(),
+    submitted_at: z.iso.datetime({ offset: true }),
+    photo_url: z.string(),
+    reporter_observations: z.object({
+      symptom_keys: z.array(z.string()),
+      reporter_observation_text: z.string().nullable().optional(),
+      field_notes: z.string().nullable().optional(),
+      reporter_suspected_condition: z.string().nullable().optional(),
+      checklist_consistency: z.string().nullable().optional(),
+      reported_severity: z.string().nullable().optional(),
+      quality_warnings: z.array(z.string()),
+    }),
+    reporter_suspected_condition: z.string().nullable().optional(),
+    symptom_keys: z.array(z.string()),
+    ai_possible_condition: z.object({
+      label: z.string(),
+      predicted_label: z.string(),
+      decision_support_label: z.string(),
+    }),
+    location: z.object({
+      barangay: z.string(),
+      municipality: z.string().nullable().optional(),
+      province: z.string().nullable().optional(),
+    }),
+    affected_area: z.object({ value: z.number().nullable(), unit: z.string(), measurement: z.string() }),
+    affected_portion: z.object({ value: z.number().nullable(), unit: z.string(), measurement: z.string() }),
+    office_context: referralOfficeContextSchema,
+    consult: expertConsultFindingSchema,
+    due_date: z.string().nullable(),
+    question: z.string().nullable(),
+    prior_consults: z.array(expertConsultFindingSchema),
+    version: z.number().int().nonnegative(),
+  }),
+});
 
 export const reportMachineFactsSchema = z.object({
   confidence: z.number().min(0).max(1).nullable().optional(),
@@ -366,6 +467,9 @@ export const reportListItemSchema = z.object({
   machine_facts: reportMachineFactsSchema.optional(),
   attention_band: attentionBandSchema.nullable().optional(),
   attention_band_reasons: z.array(z.string()).optional(),
+  identification_gap: identificationGapSchema.optional(),
+  expert_consult: expertConsultSummarySchema.nullable().optional(),
+  referral: expertConsultSummarySchema.nullable().optional(),
   version: z.number().int().nonnegative().optional(),
   image_url: z.string(),
 });
@@ -478,6 +582,7 @@ export const reportDetailSchema = z.object({
   case_history: reportCaseHistorySchema.optional(),
   attention_band: attentionBandSchema.nullable().optional(),
   attention_band_reasons: z.array(z.string()).optional(),
+  identification_gap: identificationGapSchema.optional(),
   advisory: advisorySchema.nullable().optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   referral: reportReferralSchema.nullable().optional(),
@@ -497,6 +602,7 @@ export const reportDetailResponseSchema = z.object({
 
 export const reviewResponseSchema = reportDetailResponseSchema;
 
+export type ExpertConsultResponseDto = z.infer<typeof expertConsultResponseSchema>;
 export type ReportLifecycleDto = z.infer<typeof reportLifecycleSchema>;
 export type ReportListItemDto = z.infer<typeof reportListItemSchema>;
 export type ReportListResponseDto = z.infer<typeof reportListResponseSchema>;

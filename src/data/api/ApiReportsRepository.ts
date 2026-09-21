@@ -6,6 +6,7 @@ import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type {
   Advisory,
   DiseaseReport,
+  ExpertConsultPacket,
   PaginatedReports,
   PossibleRecentMatches,
   ReportFilters,
@@ -22,6 +23,7 @@ import type {
 } from "../../domain/review.types";
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
 import {
+  mapExpertConsult,
   mapPaginationMeta,
   mapReportDetail,
   mapReportListItem,
@@ -31,6 +33,7 @@ import {
   advisoriesResponseSchema,
   possibleRecentMatchesResponseSchema,
   expertDirectoryResponseSchema,
+  expertConsultResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
   reviewResponseSchema,
@@ -175,6 +178,13 @@ export class ApiReportsRepository implements ReportsRepository {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;
     }
+  }
+
+  async getExpertConsult(reportId: string): Promise<ExpertConsultPacket> {
+    const response = await this.client.get(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/consult`,
+    );
+    return mapExpertConsult(expertConsultResponseSchema.parse(response.data));
   }
 
   async getPossibleRecentMatches(

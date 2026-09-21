@@ -1,8 +1,9 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router";
 import { RequireAuth } from "../auth/RequireAuth";
 import { AppShell } from "../components/layout/AppShell";
 import { CaseReviewPage } from "../pages/CaseReviewPage";
+import { ExpertCasePage } from "../pages/ExpertCasePage";
 import { ExpertQueuePage } from "../pages/ExpertQueuePage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LoadingState } from "../components/ui/States";
@@ -22,6 +23,21 @@ import { useAuth } from "../auth/useAuth";
 function HomeRedirect() {
   const auth = useAuth();
   return <Navigate replace to={auth.user?.role === "expert" ? routes.expertQueue : routes.dashboard} />;
+}
+
+function OfficeCaseRoute() {
+  const auth = useAuth();
+  const { reportId = "" } = useParams();
+  return auth.user?.role === "expert"
+    ? <Navigate replace to={routes.expertReportDetail(reportId)} />
+    : <CaseReviewPage />;
+}
+
+function ExpertOnlyRoute() {
+  const auth = useAuth();
+  return auth.user?.role === "expert"
+    ? <ExpertCasePage />
+    : <Navigate replace to={routes.dashboard} />;
 }
 
 const FieldValidationMapPage = lazy(() =>
@@ -44,6 +60,7 @@ export function AppRouter() {
           <Route element={<AppShell />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="expert/queue" element={<ExpertQueuePage />} />
+            <Route path="expert/queue/:reportId" element={<ExpertOnlyRoute />} />
             <Route
               path="map"
               element={(
@@ -55,7 +72,7 @@ export function AppRouter() {
             <Route path="reports" element={<SubmittedReportsPage />} />
             <Route path="monitoring" element={<MonitoringWorkspacePage />} />
             <Route path="needs-assessment" element={<NeedsAssessmentPage />} />
-            <Route path="reports/:reportId" element={<CaseReviewPage />} />
+            <Route path="reports/:reportId" element={<OfficeCaseRoute />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>

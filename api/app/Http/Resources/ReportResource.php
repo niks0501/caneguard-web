@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Actions\Reports\AssessIdentificationGap;
 use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\CalibrateReportTriage;
 use App\Models\Report;
@@ -16,6 +17,7 @@ class ReportResource extends JsonResource
         $triage = app(CalibrateReportTriage::class);
         $riskCalibration = $triage->handle();
         $riskBand = $triage->classify($this->resource, $riskCalibration);
+        $identificationGap = app(AssessIdentificationGap::class)->handle($this->resource);
 
         return [
             'identity' => [
@@ -273,6 +275,7 @@ class ReportResource extends JsonResource
             'first_reviewed_at' => $this->first_reviewed_at?->utc()->toISOString(),
             'attention_band' => $riskBand['band'],
             'attention_band_reasons' => $riskBand['reasons'],
+            'identification_gap' => $identificationGap,
             'case_history' => app(BuildReportCaseHistory::class)
                 ->handle($this->resource),
             'review_events' => $this->when(
