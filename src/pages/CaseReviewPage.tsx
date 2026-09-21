@@ -46,6 +46,7 @@ import {
   type ActionTaken,
   type AuthorityClassifiedCondition,
   type CaseState,
+  type ConsultStatus,
   type DiseaseReport,
   type FieldValidationState,
   type ReferralState,
@@ -109,6 +110,21 @@ const referralStateLabels: Record<ReferralState, string> = {
   referred: "Awaiting expert input",
   expert_response_received: "Expert response received",
 };
+
+function isActiveConsultStatus(status?: ConsultStatus): boolean {
+  return status === "pending" || status === "in_progress";
+}
+
+function hasActiveConsult(report: DiseaseReport): boolean {
+  if (report.consults) {
+    return report.consults.some((consult) => isActiveConsultStatus(consult.status));
+  }
+
+  const latestReferralStatus = report.referral?.status;
+  return latestReferralStatus !== undefined
+    ? isActiveConsultStatus(latestReferralStatus)
+    : report.lifecycle?.referralState === "referred";
+}
 
 function actionTakenForNextAction(nextAction: NextAction): ActionTaken | undefined {
   return nextAction === "needs_field_validation" ? undefined : nextAction;
@@ -578,7 +594,9 @@ export function CaseReviewPage() {
   const fieldValidationNeeded =
     selectedNextAction === "needs_field_validation" && !fieldValidationActive;
   const referralNeeded =
-    selectedNextAction === "referred_for_expert_validation" && !report?.referral;
+    selectedNextAction === "referred_for_expert_validation" &&
+    report != null &&
+    !hasActiveConsult(report);
   const closeCaseForNextAction =
     selectedNextAction === "no_further_action_required" &&
     closeCaseConfirmed &&

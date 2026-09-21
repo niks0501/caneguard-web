@@ -369,9 +369,13 @@ class ReviewReportRequest extends ApiFormRequest
             $referralState = $report instanceof Report
                 ? $report->lifecycleSnapshot()['referral_state']
                 : Report::REFERRAL_STATE_NOT_REFERRED;
+            $hasActiveConsult = $report instanceof Report
+                && $report->referrals()
+                    ->whereIn('consult_status', ReportReferral::activeStatuses())
+                    ->exists();
             $selectingReferral = $this->input('action_taken') === Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION;
 
-            if ($referralState === Report::REFERRAL_STATE_NOT_REFERRED
+            if (! $hasActiveConsult
                 && $selectingReferral
                 && $this->input('case_state') === Report::CASE_STATE_CLOSED
             ) {
@@ -381,7 +385,7 @@ class ReviewReportRequest extends ApiFormRequest
                 );
             }
 
-            if ($referralState === Report::REFERRAL_STATE_NOT_REFERRED
+            if (! $hasActiveConsult
                 && ($selectingReferral || $hasReferralFields)
             ) {
                 if (! $selectingReferral) {
@@ -411,7 +415,7 @@ class ReviewReportRequest extends ApiFormRequest
                 );
             }
 
-            if ($referralState !== Report::REFERRAL_STATE_NOT_REFERRED && $hasReferralFields) {
+            if ($hasActiveConsult && $hasReferralFields) {
                 $validator->errors()->add(
                     'referral',
                     'Referral details cannot be replaced after the handoff is recorded.',
