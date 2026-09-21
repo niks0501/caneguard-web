@@ -811,15 +811,15 @@ export function CaseReviewPage() {
     setDuplicateLinkNotice(null);
     const canonicalUuid = canonicalReportUuid.trim();
 
-    if (!canonicalUuid || report?.canonicalLinkage?.isDuplicate) return;
+    if (!report || !canonicalUuid || report.canonicalLinkage?.isDuplicate) return;
+    const expectedVersion = report.reviewVersion;
+    if (expectedVersion === undefined) return;
 
     try {
-      if (report.reviewVersion === undefined) return;
-
       await duplicateLinkMutation.mutateAsync({
         canonicalReportUuid: canonicalUuid,
         reason: duplicateLinkReason.trim() || undefined,
-        expectedVersion: report.reviewVersion,
+        expectedVersion,
       });
       setDuplicateLinkNotice(
         "Link recorded as a possible duplicate. The submitted record remains preserved.",
