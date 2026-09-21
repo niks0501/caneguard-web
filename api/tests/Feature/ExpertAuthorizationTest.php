@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Reports\RecordExpertFinding;
 use App\Events\CaseAttentionChanged;
 use App\Models\Report;
 use App\Models\ReportReferral;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class ExpertAuthorizationTest extends TestCase
@@ -208,6 +210,25 @@ class ExpertAuthorizationTest extends TestCase
             'response_note' => 'The expert cannot use the office transcription endpoint.',
             'expected_version' => 1,
         ])->assertForbidden();
+    }
+
+    public function test_expert_finding_action_rechecks_the_locked_consult_owner(): void
+    {
+        $expert = User::factory()->expert()->create();
+        $otherExpert = User::factory()->expert()->create();
+        $referral = ReportReferral::factory()->assignedToExpert($otherExpert)->create();
+
+        $this->expectException(HttpException::class);
+
+        app(RecordExpertFinding::class)->handle(
+            $expert,
+            $referral->report,
+            [
+                'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+                'response_date' => '2026-09-19',
+                'expected_version' => 0,
+            ],
+        );
     }
 
     public function test_expert_cannot_subscribe_to_the_office_case_attention_channel(): void

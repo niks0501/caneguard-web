@@ -82,6 +82,22 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertTrue(Schema::hasTable('report_referrals'));
     }
 
+    public function test_report_referrals_cascade_when_their_report_is_deleted(): void
+    {
+        $report = Report::factory()->create();
+        $referral = ReportReferral::factory()->create([
+            'report_id' => $report->getKey(),
+        ]);
+
+        DB::table('reports')
+            ->where('id', $report->getKey())
+            ->delete();
+
+        $this->assertDatabaseMissing('report_referrals', [
+            'id' => $referral->getKey(),
+        ]);
+    }
+
     public function test_report_factory_supports_smart_field_values_and_casts_them(): void
     {
         $report = Report::factory()->create([

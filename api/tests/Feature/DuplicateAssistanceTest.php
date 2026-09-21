@@ -450,6 +450,9 @@ class DuplicateAssistanceTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.duplicate_linkage.is_duplicate', false)
             ->assertJsonPath('data.duplicate_linkage.canonical_case', null)
+            ->assertJsonPath('data.duplicate_linkage.linked_by', null)
+            ->assertJsonPath('data.duplicate_linkage.linked_at', null)
+            ->assertJsonPath('data.duplicate_linkage.reason', null)
             ->assertJsonPath('data.version', 2);
 
         $this->assertDatabaseHas('reports', [

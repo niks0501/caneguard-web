@@ -567,6 +567,35 @@ class FieldValidationAssignmentTest extends TestCase
         $this->assertDatabaseCount('field_validation_completions', 0);
     }
 
+    public function test_completion_rejects_impossible_iso_calendar_dates(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+            'visited_at' => '2026-02-30T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-02-28T04:05:01.123Z',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('visited_at');
+
+        $this->assertDatabaseCount('field_validation_completions', 0);
+    }
+
     public function test_completion_requires_all_field_evidence_but_allows_an_unavailable_gps_attempt_and_no_photo(): void
     {
         $reviewer = User::factory()->reviewer()->create();

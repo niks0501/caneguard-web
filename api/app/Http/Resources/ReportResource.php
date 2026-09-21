@@ -348,19 +348,21 @@ class ReportResource extends JsonResource
             ? $this->canonicalReport
             : null;
 
+        $isDuplicate = $this->canonical_report_id !== null;
+
         return [
-            'is_duplicate' => $this->canonical_report_id !== null,
-            'canonical_case' => $canonical ? [
+            'is_duplicate' => $isDuplicate,
+            'canonical_case' => $isDuplicate && $canonical ? [
                 'uuid' => $canonical->uuid,
                 'reference_code' => $canonical->reference_code,
                 'submitted_at' => $canonical->submitted_at->utc()->toISOString(),
             ] : null,
-            'linked_by' => $linkAudit?->actor ? [
+            'linked_by' => $isDuplicate && $linkAudit?->actor ? [
                 'uuid' => $linkAudit->actor->uuid,
                 'name' => $linkAudit->actor->name,
             ] : null,
-            'linked_at' => $linkAudit?->created_at?->utc()->toISOString(),
-            'reason' => $linkAudit?->reason,
+            'linked_at' => $isDuplicate ? $linkAudit?->created_at?->utc()->toISOString() : null,
+            'reason' => $isDuplicate ? $linkAudit?->reason : null,
         ];
     }
 }

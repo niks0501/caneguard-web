@@ -8,6 +8,7 @@ use App\Http\Requests\AdvisoryTransitionRequest;
 use App\Http\Resources\AdvisoryResource;
 use App\Models\Advisory;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use LogicException;
 
@@ -67,9 +68,21 @@ class AdvisoryController extends Controller
         }
 
         $data = $request->validated();
-        $advisory->update(collect($data)->only(['code', 'title', 'content'])->all());
+        $updated = DB::transaction(function () use ($advisory, $data): Advisory {
+            $locked = Advisory::query()
+                ->lockForUpdate()
+                ->findOrFail($advisory->getKey());
+            if ($locked->status !== Advisory::STATUS_DRAFT) {
+                throw ValidationException::withMessages([
+                    'status' => 'Only draft advisories can be edited.',
+                ]);
+            }
+            $locked->update(collect($data)->only(['code', 'title', 'content'])->all());
 
-        return new AdvisoryResource($advisory->fresh()->load(['validatedBy', 'retiredBy']));
+            return $locked;
+        });
+
+        return new AdvisoryResource($updated->load(['validatedBy', 'retiredBy']));
     }
 
     public function validate(
@@ -96,17 +109,24 @@ class AdvisoryController extends Controller
         $data = $request->validated();
         $provenance = $data['validation_provenance'] ?? null;
 
-        try {
-            $advisory->transitionTo($status, $request->user(), $provenance);
-        } catch (LogicException $exception) {
-            throw ValidationException::withMessages([
-                'status' => $exception->getMessage(),
-            ]);
-        }
+        $updated = DB::transaction(function () use ($advisory, $request, $provenance, $status): Advisory {
+            $locked = Advisory::query()
+                ->lockForUpdate()
+                ->findOrFail($advisory->getKey());
+            try {
+                $locked->transitionTo($status, $request->user(), $provenance);
+            } catch (LogicException $exception) {
+                throw ValidationException::withMessages([
+                    'status' => $exception->getMessage(),
+                ]);
+            }
 
-        $advisory->save();
+            $locked->save();
 
-        return new AdvisoryResource($advisory->fresh()->load(['validatedBy', 'retiredBy']));
+            return $locked;
+        });
+
+        return new AdvisoryResource($updated->load(['validatedBy', 'retiredBy']));
     }
 
     public function setStatus(
@@ -121,15 +141,22 @@ class AdvisoryController extends Controller
         }
 
         $provenance = $request->validated('validation_provenance');
-        try {
-            $advisory->transitionTo($status, $request->user(), $provenance);
-        } catch (LogicException $exception) {
-            throw ValidationException::withMessages([
-                'status' => $exception->getMessage(),
-            ]);
-        }
-        $advisory->save();
+        $updated = DB::transaction(function () use ($advisory, $request, $provenance, $status): Advisory {
+            $locked = Advisory::query()
+                ->lockForUpdate()
+                ->findOrFail($advisory->getKey());
+            try {
+                $locked->transitionTo($status, $request->user(), $provenance);
+            } catch (LogicException $exception) {
+                throw ValidationException::withMessages([
+                    'status' => $exception->getMessage(),
+                ]);
+            }
+            $locked->save();
 
-        return new AdvisoryResource($advisory->fresh()->load(['validatedBy', 'retiredBy']));
+            return $locked;
+        });
+
+        return new AdvisoryResource($updated->load(['validatedBy', 'retiredBy']));
     }
 }

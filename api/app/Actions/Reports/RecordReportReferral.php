@@ -27,7 +27,8 @@ class RecordReportReferral
      */
     public function handle(User $actor, Report $report, array $data): Report
     {
-        $updated = DB::transaction(function () use ($actor, $report, $data): Report {
+        $createdReferralId = null;
+        $updated = DB::transaction(function () use ($actor, $report, $data, &$createdReferralId): Report {
             $locked = Report::query()
                 ->lockForUpdate()
                 ->findOrFail($report->getKey());
@@ -154,7 +155,8 @@ class RecordReportReferral
                 $referralData['expert_id'] = $expert?->getKey();
             }
 
-            $locked->referrals()->create($referralData);
+            $createdReferral = $locked->referrals()->create($referralData);
+            $createdReferralId = $createdReferral->getKey();
 
             $this->reviewEvents->handle($locked, [
                 'actor_id' => $actor->getKey(),
@@ -169,8 +171,11 @@ class RecordReportReferral
             return $locked;
         }, attempts: 3);
 
-        $updated->load(['referral.expert', 'advisory']);
-        $this->notifications->expertReferralAssigned($updated->referral);
+        $updated->load(['advisory']);
+        $createdReferral = ReportReferral::query()
+            ->with('expert')
+            ->findOrFail($createdReferralId);
+        $this->notifications->expertReferralAssigned($createdReferral);
         if ($updated->advisory !== null
             && ((array_key_exists('advisory_uuid', $data) && filled($data['advisory_uuid']))
                 || (array_key_exists('advisory_id', $data) && filled($data['advisory_id'])))

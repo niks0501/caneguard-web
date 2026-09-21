@@ -134,6 +134,54 @@ class AdvisoryTest extends TestCase
         $this->assertCount(1, $reporter->notifications()->get());
     }
 
+    public function test_a_stale_advisory_notification_cannot_acknowledge_a_replacement(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $first = Advisory::factory()->validated($reviewer, 'First guidance source.')->create([
+            'code' => 'ADV-FIRST-001',
+        ]);
+        $replacement = Advisory::factory()->validated($reviewer, 'Replacement guidance source.')->create([
+            'code' => 'ADV-REPLACEMENT-001',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $first->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+
+        $firstNotification = $reporter->notifications()->sole();
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $replacement->uuid,
+            'expected_version' => 1,
+        ])->assertOk();
+
+        $replacementNotification = $reporter->notifications()
+            ->whereNotIn('id', [$firstNotification->getKey()])
+            ->sole();
+        $token = $reporter->createToken('advisory-stale-read', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/mobile/notifications/{$firstNotification->id}/read")
+            ->assertOk();
+        $this->assertSame(
+            Report::ADVISORY_DELIVERY_DELIVERED,
+            $report->fresh()->advisory_delivery_state,
+        );
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/mobile/notifications/{$replacementNotification->id}/read")
+            ->assertOk();
+        $this->assertSame(
+            Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
+            $report->fresh()->advisory_delivery_state,
+        );
+    }
+
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void
     {
         $reviewer = User::factory()->reviewer()->create(['name' => 'Office Reviewer']);

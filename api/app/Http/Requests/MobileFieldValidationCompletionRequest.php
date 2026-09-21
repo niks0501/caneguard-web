@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\FieldValidationAssignment;
 use App\Models\User;
-use Carbon\CarbonImmutable;
+use DateTimeImmutable;
 use Illuminate\Validation\Validator;
 
 class MobileFieldValidationCompletionRequest extends ApiFormRequest
@@ -73,12 +73,15 @@ class MobileFieldValidationCompletionRequest extends ApiFormRequest
             return false;
         }
 
-        try {
-            CarbonImmutable::parse($value);
+        $normalized = substr($value, 0, -1).'+00:00';
+        $parsed = DateTimeImmutable::createFromFormat(
+            '!Y-m-d\\TH:i:s.vP',
+            $normalized,
+        );
+        $errors = DateTimeImmutable::getLastErrors();
 
-            return true;
-        } catch (\Throwable) {
-            return false;
-        }
+        return $parsed !== false
+            && ($errors === false
+                || ($errors['warning_count'] === 0 && $errors['error_count'] === 0));
     }
 }
