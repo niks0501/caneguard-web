@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\Reports\PersistReport;
+use App\Actions\Reports\StoreReport;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -18,6 +19,7 @@ use Laravel\Sanctum\Sanctum;
 use Mockery;
 use PDOException;
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class MobileReportUploadTest extends TestCase
@@ -67,6 +69,26 @@ class MobileReportUploadTest extends TestCase
 
         $this->assertDatabaseCount('reports', 1);
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
+    }
+
+    public function test_mobile_report_conflict_echoes_the_submitted_client_uuid(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-upload-conflict-test')->plainTextToken;
+        $clientUuid = fake()->uuid();
+        $storeReport = Mockery::mock(StoreReport::class);
+        $storeReport->shouldReceive('handle')
+            ->once()
+            ->andThrow(new HttpException(409, 'This report conflicts with an existing submission.'));
+        $this->app->instance(StoreReport::class, $storeReport);
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid))
+            ->assertConflict()
+            ->assertJsonPath('code', 'CONFLICT')
+            ->assertJsonPath('client_uuid', $clientUuid);
     }
 
     public function test_upload_persists_and_returns_all_smart_field_report_fields(): void

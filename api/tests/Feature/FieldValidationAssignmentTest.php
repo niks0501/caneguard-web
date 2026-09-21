@@ -436,6 +436,46 @@ class FieldValidationAssignmentTest extends TestCase
             ->assertJsonPath('data.lifecycle.verification_outcome', Report::VERIFICATION_OUTCOME_NOT_DETERMINED);
     }
 
+    public function test_completion_conflict_echoes_the_submitted_client_uuid(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $conflictingClientUuid = fake()->uuid();
+        FieldValidationCompletion::factory()->create([
+            'assignment_id' => $assignment->getKey(),
+            'client_uuid' => $conflictingClientUuid,
+        ]);
+        $submittedClientUuid = fake()->uuid();
+        $payload = [
+            'client_uuid' => $submittedClientUuid,
+            'field_observation' => 'Observation from the conflicting retry.',
+            'field_finding' => 'Finding from the conflicting retry.',
+            'action_taken' => 'Action from the conflicting retry.',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ];
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $payload)
+            ->assertConflict()
+            ->assertJsonPath('code', 'CONFLICT')
+            ->assertJsonPath('client_uuid', $submittedClientUuid);
+
+        $this->assertDatabaseHas('field_validation_completions', [
+            'assignment_id' => $assignment->getKey(),
+            'client_uuid' => $conflictingClientUuid,
+        ]);
+    }
+
     public function test_follow_up_outcome_round_trips_supported_values_and_rejects_unknown_values(): void
     {
         $reviewer = User::factory()->reviewer()->create();
