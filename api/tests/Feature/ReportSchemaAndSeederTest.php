@@ -7,6 +7,7 @@ use App\Models\ReportClassScore;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Database\Seeders\AdvisorDemoSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -314,10 +315,13 @@ class ReportSchemaAndSeederTest extends TestCase
             'symptom_key' => Report::LABEL_SMUT,
         ]);
         $this->assertTrue(Storage::disk('local')->exists('seeded/report-01.png'));
-        $this->assertSame(12, Report::query()->count());
+        $this->assertSame(
+            12 + count(AdvisorDemoSeeder::demoReportReferences()),
+            Report::query()->count(),
+        );
     }
 
-    public function test_seeder_creates_twelve_varied_reports_with_valid_images(): void
+    public function test_seeder_creates_baseline_and_feature_demo_reports_with_valid_images(): void
     {
         Storage::fake('local');
         config([
@@ -329,12 +333,15 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseCount('reports', 12);
-        $this->assertSame(2, Report::query()
+        $this->assertDatabaseCount(
+            'reports',
+            12 + count(AdvisorDemoSeeder::demoReportReferences()),
+        );
+        $this->assertSame(8, Report::query()
             ->whereNotNull('final_latitude')
             ->whereNotNull('final_longitude')
             ->count());
-        $this->assertSame(10, Report::query()
+        $this->assertSame(11, Report::query()
             ->where(function ($query) {
                 $query
                     ->whereNull('final_latitude')
@@ -354,7 +361,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('120.6350000', $manualDemoReport->final_longitude);
         $this->assertSame('manual_map', $manualDemoReport->location_source);
         $this->assertNull($manualDemoReport->gps_accuracy);
-        $this->assertDatabaseCount('report_class_scores', 48);
+        $this->assertDatabaseCount('report_class_scores', 76);
         $this->assertSame(Report::v2Labels(), Report::query()
             ->distinct()
             ->orderBy('predicted_label')
@@ -398,7 +405,10 @@ class ReportSchemaAndSeederTest extends TestCase
         );
 
         $files = Storage::disk('local')->allFiles('seeded');
-        $this->assertCount(12, $files);
+        $this->assertCount(
+            12 + count(AdvisorDemoSeeder::demoReportReferences()),
+            $files,
+        );
         $seededImage = Storage::disk('local')->get($files[0]);
         $dimensions = getimagesizefromstring($seededImage);
         $this->assertNotFalse($dimensions);

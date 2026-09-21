@@ -212,6 +212,7 @@ php api/artisan db:seed
 
 The seed creates the local demo accounts and synthetic report data.
 The report seed is safe to rerun against an existing local database: it creates missing demo rows, files, and nested evidence without overwriting existing report rows or immutable submitted evidence.
+The expanded feature demo uses `DEMO-CG-01` through `DEMO-CG-07` and `ADV-DEMO-01` for monitoring assignments, validation evidence, expert consults, advisory delivery, follow-up outcomes, and unavailable-location V2 reports. Set `CANEGUARD_EXPERT_PASSWORD` to seed the attributed expert consult rows.
 Use a disposable reset/reseed when a fresh demo dataset is required.
 The accounts are `field@caneguard.test`, `mao@caneguard.test`, `admin@caneguard.test`, and (when `CANEGUARD_EXPERT_PASSWORD` is set) `expert@caneguard.test`.
 Use the local passwords you set in `CANEGUARD_FIELD_PASSWORD`, `CANEGUARD_REVIEWER_PASSWORD`, `CANEGUARD_ADMIN_PASSWORD`, and `CANEGUARD_EXPERT_PASSWORD`.
