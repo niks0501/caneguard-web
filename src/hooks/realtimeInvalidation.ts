@@ -26,6 +26,7 @@ export function invalidateRealtimeQueries(
   if (domains.includes("reports")) {
     invalidations.push(
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: reportKeys.expertLists() }),
     );
   }
   if (domains.includes("dashboard")) {

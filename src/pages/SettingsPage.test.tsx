@@ -138,6 +138,37 @@ describe("SettingsPage", () => {
     });
   });
 
+  it("disables credential submits while a request is in flight", async () => {
+    const user = userEvent.setup();
+    let resolvePassword!: (value: { message: string }) => void;
+    vi.mocked(accountApi.changePassword).mockReturnValue(
+      new Promise((resolve) => {
+        resolvePassword = resolve;
+      }),
+    );
+
+    renderSettingsPage();
+
+    await user.type(screen.getByLabelText("Current password"), "An old reviewer passphrase");
+    await user.type(screen.getByLabelText("New password"), "A replacement reviewer passphrase");
+    await user.type(screen.getByLabelText("Confirm new password"), "A replacement reviewer passphrase");
+    const submitBtn = screen.getByRole("button", { name: "Update password" });
+
+    await user.click(submitBtn);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Updating password..." })).toBeDisabled();
+    });
+    await user.click(screen.getByRole("button", { name: "Updating password..." }));
+
+    expect(accountApi.changePassword).toHaveBeenCalledTimes(1);
+
+    resolvePassword({ message: "Password updated successfully." });
+    await waitFor(() => {
+      expect(screen.getByText("Password updated successfully.")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Update password" })).toBeEnabled();
+  });
+
   it("validates and submits email change", async () => {
     const user = userEvent.setup();
     vi.mocked(accountApi.changeEmail).mockResolvedValue({
