@@ -55,6 +55,14 @@ export const consultStatusSchema = z.enum([
   "cancelled",
 ]);
 export const findingSourceSchema = z.enum(["in_system", "transcribed"]);
+export const consultReviewOutcomeSchema = z.enum(["accepted", "overridden"]);
+export const symptomVerdictsSchema = z.record(
+  z.string(),
+  z.object({
+    verdict: z.enum(["present", "absent", "unsure"]),
+    note: z.string().nullable().optional(),
+  }),
+);
 export const canonicalCaseSchema = z.object({
   uuid: z.string(),
   reference_code: z.string(),
@@ -210,7 +218,10 @@ export const reportReferralSchema = z.object({
   response_note: z.string().nullable(),
   response_finding: z.string().nullable(),
   finding_summary: z.string().nullable().optional(),
+  condition_opinion: authorityClassifiedConditionSchema.nullable().optional(),
+  symptom_verdicts: symptomVerdictsSchema.nullable().optional(),
   finding_details: z.string().nullable().optional(),
+  finding_confidence: z.enum(["low", "medium", "high"]).nullable().optional(),
   finding_recommendation: z.string().nullable().optional(),
   finding: z.string().nullable().optional(),
   recommendation: z.string().nullable().optional(),
@@ -221,6 +232,10 @@ export const reportReferralSchema = z.object({
   referred_by: referralPersonSchema.nullable(),
   response_recorded_by: referralPersonSchema.nullable(),
   response_recorded_at: z.iso.datetime({ offset: true }).nullable(),
+  consult_review_outcome: consultReviewOutcomeSchema.nullable().optional(),
+  consult_review_note: z.string().nullable().optional(),
+  consult_reviewed_by: referralPersonSchema.nullable().optional(),
+  consult_reviewed_at: z.iso.datetime({ offset: true }).nullable().optional(),
   office_context: referralOfficeContextSchema,
 });
 export const reportConsultSchema = z.object({
@@ -234,7 +249,10 @@ export const reportConsultSchema = z.object({
   expert_name: z.string().nullable().optional(),
   expert_contact: z.string().nullable().optional(),
   finding_summary: z.string().nullable().optional(),
+  condition_opinion: authorityClassifiedConditionSchema.nullable().optional(),
+  symptom_verdicts: symptomVerdictsSchema.nullable().optional(),
   finding_details: z.string().nullable().optional(),
+  finding_confidence: z.enum(["low", "medium", "high"]).nullable().optional(),
   finding_recommendation: z.string().nullable().optional(),
   finding: z.string().nullable().optional(),
   recommendation: z.string().nullable().optional(),
@@ -242,6 +260,10 @@ export const reportConsultSchema = z.object({
   source: findingSourceSchema.nullable().optional(),
   finding_recorded_at: z.iso.datetime({ offset: true }).nullable().optional(),
   response_date: z.string().nullable(),
+  consult_review_outcome: consultReviewOutcomeSchema.nullable().optional(),
+  consult_review_note: z.string().nullable().optional(),
+  consult_reviewed_by: referralPersonSchema.nullable().optional(),
+  consult_reviewed_at: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 
 export const attentionBandSchema = z.enum(["green", "amber", "red"]);

@@ -560,6 +560,8 @@ export function CaseReviewPage() {
     ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus)
     : undefined;
   const referralPending = lifecycle?.referralState === "referred";
+  const proposalNeedsDecision = report?.referral?.status === "completed"
+    && !report.referral.consultReviewOutcome;
   const notes = notesOverride ?? report?.reviewNotes ?? "";
   const selectedNextAction = nextActionTouched
     ? nextActionOverride
@@ -717,6 +719,12 @@ export function CaseReviewPage() {
       message: referralInputError,
     });
   }
+  if (submitted && !referralNeeded && proposalNeedsDecision) {
+    validationErrors.push({
+      id: "expert-proposal-decision",
+      message: "Accept or override the completed expert proposal before saving this review.",
+    });
+  }
 
   const isDirty =
     (notesOverride !== null && notesOverride !== (report?.reviewNotes ?? "")) ||
@@ -853,7 +861,7 @@ export function CaseReviewPage() {
   const saveReview = async () => {
     setSubmitted(true);
     setReferralSubmitted(true);
-    if (report?.reviewVersion === undefined) return;
+    if (report?.reviewVersion === undefined || proposalNeedsDecision) return;
 
     if (referralNeeded) {
       // The referral endpoint records the handoff, the visible Staff-Classified
@@ -1360,6 +1368,11 @@ export function CaseReviewPage() {
             <div className="scan-hero__commit-row">
               {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
               {referralRecordError ? <p className="form-error" role="alert">{referralRecordError}</p> : null}
+              {proposalNeedsDecision ? (
+                <p id="expert-proposal-decision" className="form-error" role="alert">
+                  Accept or override the completed expert proposal before saving this review.
+                </p>
+              ) : null}
               {conflict ? (
                 <div className="review-conflict" role="alert">
                   <p>This report changed after you opened it. Refresh before saving again.</p>
@@ -1374,7 +1387,7 @@ export function CaseReviewPage() {
               <Button
                 type="button"
                 icon={<Save aria-hidden="true" />}
-                disabled={reviewMutation.isPending || recordReferral.isPending}
+                disabled={reviewMutation.isPending || recordReferral.isPending || proposalNeedsDecision}
                 onClick={saveReview}
               >
                 {reviewMutation.isPending || recordReferral.isPending ? "Saving review..." : referralNeeded ? "Save referral" : "Save review"}

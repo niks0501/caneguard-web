@@ -22,7 +22,10 @@ import type {
   ReferralState,
   VerificationOutcome,
 } from "../../domain/report.types";
-import { useRecordExpertReferralResponse } from "../../hooks/useReports";
+import {
+  useConfirmExpertReferral,
+  useRecordExpertReferralResponse,
+} from "../../hooks/useReports";
 import { formatDateTime } from "../../lib/formatters";
 
 const verificationOutcomeLabels: Record<VerificationOutcome, string> = {
@@ -67,8 +70,12 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
     VerificationOutcome | "" | undefined
   >(undefined);
   const [responseSubmitted, setResponseSubmitted] = useState(false);
+  const [overrideNote, setOverrideNote] = useState("");
+  const [overrideMode, setOverrideMode] = useState(false);
+  const [confirmSubmitted, setConfirmSubmitted] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const recordResponse = useRecordExpertReferralResponse(report.uuid);
+  const confirmReferral = useConfirmExpertReferral(report.uuid);
 
   const responseInputError =
     !responseDate
@@ -77,6 +84,32 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
         ? "Add an expert response note or finding."
         : null;
   const responseFieldError = responseSubmitted ? responseInputError : null;
+  const proposalNeedsDecision =
+    referral?.status === "completed" && !referral.consultReviewOutcome;
+  const overrideError = confirmSubmitted && !overrideNote.trim()
+    ? "Add a reason before overriding the expert proposal."
+    : null;
+
+  const confirmProposal = async (outcome: "accepted" | "overridden") => {
+    setConfirmSubmitted(true);
+    setNotice(null);
+    if (outcome === "overridden" && !overrideNote.trim()) return;
+    if (report.reviewVersion === undefined) return;
+
+    try {
+      await confirmReferral.mutateAsync({
+        consultReviewOutcome: outcome,
+        ...(outcome === "overridden" ? { consultReviewNote: overrideNote } : {}),
+        expectedVersion: report.reviewVersion,
+      });
+      setNotice(outcome === "accepted"
+        ? "Expert proposal accepted. Save the office review to apply the office disposition."
+        : "Expert proposal overridden. Save the office review to apply the office disposition.");
+      setConfirmSubmitted(false);
+    } catch {
+      return;
+    }
+  };
 
   const saveResponse = async () => {
     setResponseSubmitted(true);
@@ -153,7 +186,75 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
             ) : null}
           </div>
 
-          {referralState === "referred" ? (
+          {proposalNeedsDecision ? (
+            <div className="referral-form referral-proposal" aria-label="Expert proposal">
+              <div className="referral-subheading">
+                <FileText aria-hidden="true" />
+                <div>
+                  <strong>Expert proposal</strong>
+                  <span>This is advisory input. The office must accept or override it before saving its own classification.</span>
+                </div>
+              </div>
+              <dl className="detail-list referral-details">
+                <DetailField label="Condition opinion">{referral.conditionOpinion ?? referral.findingDetails ?? "Not provided"}</DetailField>
+                <DetailField label="Basis">{referral.findingDetails ?? "Not provided"}</DetailField>
+                <DetailField label="Confidence">{referral.findingConfidence ?? "Not provided"}</DetailField>
+                <DetailField label="Recommendation">{referral.findingRecommendation ?? "Not provided"}</DetailField>
+              </dl>
+              <div className="referral-confirm-actions">
+                <Button
+                  type="button"
+                  icon={<FileText aria-hidden="true" />}
+                  disabled={confirmReferral.isPending}
+                  onClick={() => void confirmProposal("accepted")}
+                >
+                  Accept proposal
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={confirmReferral.isPending}
+                  onClick={() => {
+                    setOverrideMode(true);
+                    setConfirmSubmitted(false);
+                  }}
+                >
+                  Override proposal
+                </Button>
+              </div>
+              {overrideMode ? (
+                <>
+                  <TextArea
+                    id="consult-review-note"
+                    label="Override reason"
+                    rows={3}
+                    maxLength={2000}
+                    value={overrideNote}
+                    onChange={(event) => {
+                      setOverrideNote(event.target.value);
+                      setConfirmSubmitted(false);
+                      confirmReferral.reset();
+                    }}
+                    placeholder="Explain why the office is overriding the expert proposal"
+                  />
+                  {overrideError ? <p className="form-error" role="alert">{overrideError}</p> : null}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={confirmReferral.isPending}
+                    onClick={() => void confirmProposal("overridden")}
+                  >
+                    Confirm override
+                  </Button>
+                </>
+              ) : null}
+              {confirmReferral.isError ? (
+                <p className="form-error" role="alert">
+                  {errorMessage(confirmReferral.error, "The office decision could not be saved. No proposal decision was confirmed.")}
+                </p>
+              ) : null}
+            </div>
+          ) : referralState === "referred" ? (
             <div className="referral-form referral-response-form">
               <div className="referral-subheading">
                 <CalendarDays aria-hidden="true" />
@@ -269,7 +370,13 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
             </div>
           ) : (
             <div className="referral-response-summary">
-              <strong>Expert response</strong>
+              <strong>{referral.consultReviewOutcome ? "Expert proposal decision" : "Expert response"}</strong>
+              {referral.consultReviewOutcome ? (
+                <p className="referral-state">
+                  Office decision: <strong>{referral.consultReviewOutcome}</strong>
+                  {referral.consultReviewNote ? ` — ${referral.consultReviewNote}` : ""}
+                </p>
+              ) : null}
               <DetailField label="Response note">{referral.responseNote ?? "Not provided"}</DetailField>
               <DetailField label={referral.findingSource === "transcribed" ? "Finding (transcribed)" : "Response finding"}>{referral.responseFinding ?? referral.findingDetails ?? "Not provided"}</DetailField>
               <DetailField label="Recommendation">{referral.findingRecommendation ?? "Not provided"}</DetailField>

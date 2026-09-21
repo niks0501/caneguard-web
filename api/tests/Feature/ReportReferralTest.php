@@ -275,6 +275,130 @@ class ReportReferralTest extends TestCase
         $this->assertDatabaseCount('report_referrals', 2);
     }
 
+    public function test_expert_finding_is_a_proposal_and_cannot_write_office_disposition(): void
+    {
+        $expert = User::factory()->expert()->create();
+        $referral = ReportReferral::factory()->assignedToExpert($expert)->create();
+        $report = $referral->report;
+        $originalVerification = $report->verification_outcome;
+        $originalAuthority = $report->authority_classified_condition;
+        Sanctum::actingAs($expert);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/finding", [
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'symptom_verdicts' => [
+                'whip' => ['verdict' => 'present', 'note' => 'Visible in the submitted photo.'],
+                'lesions' => ['verdict' => 'unsure'],
+            ],
+            'basis' => 'The image and reported symptoms support this opinion.',
+            'confidence' => 'high',
+            'recommendation' => 'Inspect the adjacent rows.',
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'response_date' => '2026-09-20',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.condition_opinion', Report::AUTHORITY_CONDITION_SMUT)
+            ->assertJsonPath('data.referral.finding_confidence', 'high')
+            ->assertJsonPath('data.referral.finding_source', ReportReferral::FINDING_SOURCE_IN_SYSTEM)
+            ->assertJsonPath('data.referral.consult_review_outcome', null);
+
+        $updated = $report->fresh();
+        $this->assertSame($originalVerification, $updated->verification_outcome);
+        $this->assertSame($originalAuthority, $updated->authority_classified_condition);
+        $this->assertDatabaseHas('report_referrals', [
+            'id' => $referral->getKey(),
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'finding_confidence' => 'high',
+            'finding_source' => ReportReferral::FINDING_SOURCE_IN_SYSTEM,
+        ]);
+    }
+
+    public function test_expert_finding_rejects_disposition_fields(): void
+    {
+        $expert = User::factory()->expert()->create();
+        $referral = ReportReferral::factory()->assignedToExpert($expert)->create();
+        $report = $referral->report;
+        Sanctum::actingAs($expert);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/finding", [
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+            'response_date' => '2026-09-20',
+            'expected_version' => 0,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['verification_outcome', 'authority_classified_condition']);
+
+        $this->assertSame(
+            Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            $report->fresh()->verification_outcome,
+        );
+        $this->assertNull($report->fresh()->authority_classified_condition);
+    }
+
+    public function test_office_can_confirm_or_override_a_completed_expert_proposal(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $expert = User::factory()->expert()->create();
+        $referral = ReportReferral::factory()->assignedToExpert($expert)->create([
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'finding_details' => 'The evidence supports smut.',
+            'finding_recorded_by_id' => $expert->getKey(),
+            'finding_recorded_at' => now()->utc(),
+            'response_date' => now()->toDateString(),
+        ]);
+        $report = $referral->report;
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/confirm", [
+            'consult_review_outcome' => 'accepted',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.consult_review_outcome', 'accepted')
+            ->assertJsonPath('data.referral.consult_reviewed_by.uuid', $reviewer->uuid);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/confirm", [
+            'consult_review_outcome' => 'accepted',
+            'expected_version' => 1,
+        ])->assertOk();
+        $this->assertSame(1, $report->fresh()->lock_version);
+
+        $overrideReferral = ReportReferral::factory()->assignedToExpert($expert)->create([
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'condition_opinion' => Report::AUTHORITY_CONDITION_RUST,
+            'finding_recorded_by_id' => $expert->getKey(),
+            'finding_recorded_at' => now()->utc(),
+            'response_date' => now()->toDateString(),
+        ]);
+        $overrideReport = $overrideReferral->report;
+
+        $this->postJson("/api/v1/reports/{$overrideReport->uuid}/referral/confirm", [
+            'consult_review_outcome' => 'overridden',
+            'expected_version' => 0,
+        ])->assertUnprocessable()->assertJsonValidationErrors('consult_review_note');
+
+        Sanctum::actingAs($expert);
+        $this->postJson("/api/v1/reports/{$overrideReport->uuid}/referral/confirm", [
+            'consult_review_outcome' => 'overridden',
+            'consult_review_note' => 'The office found a conflicting field observation.',
+            'expected_version' => 0,
+        ])->assertForbidden();
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/reports/{$overrideReport->uuid}/referral/confirm", [
+            'consult_review_outcome' => 'overridden',
+            'consult_review_note' => 'The office found a conflicting field observation.',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.consult_review_outcome', 'overridden')
+            ->assertJsonPath('data.referral.consult_review_note', 'The office found a conflicting field observation.');
+    }
+
     public function test_consult_findings_do_not_change_the_reviewer_owned_disposition(): void
     {
         $reviewer = User::factory()->reviewer()->create();

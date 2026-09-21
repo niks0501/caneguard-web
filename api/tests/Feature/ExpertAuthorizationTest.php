@@ -110,7 +110,7 @@ class ExpertAuthorizationTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_expert_can_record_only_an_assigned_active_referral_response(): void
+    public function test_expert_can_record_only_an_assigned_active_referral_finding(): void
     {
         $expert = User::factory()->expert()->create();
         $otherExpert = User::factory()->expert()->create();
@@ -118,18 +118,27 @@ class ExpertAuthorizationTest extends TestCase
         $otherAssigned = ReportReferral::factory()->assignedToExpert($otherExpert)->create();
         Sanctum::actingAs($expert);
 
-        $this->postJson("/api/v1/reports/{$assigned->report->uuid}/referral/response", [
+        $this->postJson("/api/v1/reports/{$assigned->report->uuid}/referral/finding", [
             'response_date' => '2026-09-19',
-            'response_note' => 'The assigned expert response.',
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'basis' => 'The assigned expert reviewed the evidence.',
             'expected_version' => 0,
         ])
             ->assertOk()
-            ->assertJsonPath('data.referral.response_recorded_by.uuid', $expert->uuid);
+            ->assertJsonPath('data.referral.response_recorded_by.uuid', $expert->uuid)
+            ->assertJsonPath('data.referral.condition_opinion', Report::AUTHORITY_CONDITION_SMUT)
+            ->assertJsonPath('data.referral.finding_source', ReportReferral::FINDING_SOURCE_IN_SYSTEM);
 
-        $this->postJson("/api/v1/reports/{$otherAssigned->report->uuid}/referral/response", [
+        $this->postJson("/api/v1/reports/{$otherAssigned->report->uuid}/referral/finding", [
             'response_date' => '2026-09-19',
-            'response_note' => 'An unrelated response.',
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
             'expected_version' => 0,
+        ])->assertForbidden();
+
+        $this->postJson("/api/v1/reports/{$assigned->report->uuid}/referral/response", [
+            'response_date' => '2026-09-19',
+            'response_note' => 'The expert cannot use the office transcription endpoint.',
+            'expected_version' => 1,
         ])->assertForbidden();
     }
 

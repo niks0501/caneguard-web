@@ -36,7 +36,9 @@ class ExpertReferralResponseController extends Controller
             'referral.responseRecordedBy',
             'referral.findingRecordedBy',
             'referral.officeReviewer',
+            'referral.consultReviewedBy',
             'referrals.expert',
+            'referrals.consultReviewedBy',
             'audits.actor',
             ...app(BuildReportCaseHistory::class)->relations(),
         ]));

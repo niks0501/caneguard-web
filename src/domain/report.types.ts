@@ -75,6 +75,7 @@ export type ConsultStatus =
   | "cancelled";
 
 export type FindingSource = "in_system" | "transcribed";
+export type ConsultReviewOutcome = "accepted" | "overridden";
 
 export type ActionTaken =
   | "advisory_provided"
@@ -124,7 +125,10 @@ export interface ReportReferral {
   responseNote?: string | null;
   responseFinding?: string | null;
   findingSummary?: string | null;
+  conditionOpinion?: AuthorityClassifiedCondition | null;
+  symptomVerdicts?: Record<string, { verdict: "present" | "absent" | "unsure"; note?: string | null }> | null;
   findingDetails?: string | null;
+  findingConfidence?: "low" | "medium" | "high" | null;
   findingRecommendation?: string | null;
   findingSource?: FindingSource | null;
   findingRecordedBy?: { uuid: string; name: string } | null;
@@ -132,6 +136,10 @@ export interface ReportReferral {
   referredBy?: { uuid: string; name: string } | null;
   responseRecordedBy?: { uuid: string; name: string } | null;
   responseRecordedAt?: string | null;
+  consultReviewOutcome?: ConsultReviewOutcome | null;
+  consultReviewNote?: string | null;
+  consultReviewedBy?: { uuid: string; name: string } | null;
+  consultReviewedAt?: string | null;
   officeContext: ReferralOfficeContext;
 }
 
@@ -145,10 +153,17 @@ export interface ReportConsult {
   expertName?: string | null;
   expertContact?: string | null;
   findingSummary?: string | null;
+  conditionOpinion?: AuthorityClassifiedCondition | null;
+  symptomVerdicts?: Record<string, { verdict: "present" | "absent" | "unsure"; note?: string | null }> | null;
   findingDetails?: string | null;
+  findingConfidence?: "low" | "medium" | "high" | null;
   findingRecommendation?: string | null;
   findingSource?: FindingSource | null;
   responseDate?: string | null;
+  consultReviewOutcome?: ConsultReviewOutcome | null;
+  consultReviewNote?: string | null;
+  consultReviewedBy?: { uuid: string; name: string } | null;
+  consultReviewedAt?: string | null;
 }
 
 export type PossibleMatchBasis =

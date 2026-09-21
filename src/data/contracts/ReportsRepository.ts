@@ -8,8 +8,10 @@ import type {
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
+  ExpertFindingInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -35,6 +37,14 @@ export interface ReportsRepository {
   recordExpertReferralResponse(
     reportId: string,
     input: ExpertReferralResponseInput,
+  ): Promise<DiseaseReport>;
+  recordExpertFinding(
+    reportId: string,
+    input: ExpertFindingInput,
+  ): Promise<DiseaseReport>;
+  confirmExpertReferral(
+    reportId: string,
+    input: ConfirmExpertReferralInput,
   ): Promise<DiseaseReport>;
   linkDuplicate(
     reportId: string,

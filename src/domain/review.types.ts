@@ -2,6 +2,7 @@ import type {
   ActionTaken,
   AuthorityClassifiedCondition,
   CaseState,
+  ConsultReviewOutcome,
   FieldValidationState,
   FindingSource,
   ReviewStatus,
@@ -50,6 +51,23 @@ export interface ExpertReferralResponseInput {
   findingSource?: FindingSource | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   verificationOutcome?: VerificationOutcome;
+  expectedVersion: number;
+}
+
+export interface ExpertFindingInput {
+  conditionOpinion?: AuthorityClassifiedCondition | null;
+  symptomVerdicts?: Record<string, { verdict: "present" | "absent" | "unsure"; note?: string | null }>;
+  basis?: string | null;
+  confidence?: "low" | "medium" | "high" | null;
+  recommendation?: string | null;
+  consultStatus?: "in_progress" | "completed" | "cancelled";
+  responseDate?: string | null;
+  expectedVersion: number;
+}
+
+export interface ConfirmExpertReferralInput {
+  consultReviewOutcome: ConsultReviewOutcome;
+  consultReviewNote?: string | null;
   expectedVersion: number;
 }
 

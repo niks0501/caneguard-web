@@ -4,9 +4,11 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AdminUserRoleController;
 use App\Http\Controllers\Api\V1\AdvisoryController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
+use App\Http\Controllers\Api\V1\ConfirmExpertReferralController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\ExpertDirectoryController;
 use App\Http\Controllers\Api\V1\ExpertQueueController;
+use App\Http\Controllers\Api\V1\ExpertReferralFindingController;
 use App\Http\Controllers\Api\V1\ExpertReferralResponseController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldValidationPhotoController;
@@ -95,6 +97,10 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::get('/reports/{report}/referral-summary', ReferralSummaryController::class)
         ->name('api.v1.reports.referral-summary');
     Route::post('/reports/{report}/referral', [ReportReferralController::class, 'store']);
+    Route::post('/reports/{report}/referral/finding', ExpertReferralFindingController::class)
+        ->name('api.v1.reports.referral.finding');
+    Route::post('/reports/{report}/referral/confirm', ConfirmExpertReferralController::class)
+        ->name('api.v1.reports.referral.confirm');
     Route::post('/reports/{report}/referral/response', ExpertReferralResponseController::class);
     Route::get('/reports/{report}/possible-matches', ReportPossibleMatchesController::class)
         ->name('api.v1.reports.possible-matches');

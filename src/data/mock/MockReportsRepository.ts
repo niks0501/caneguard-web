@@ -9,9 +9,11 @@ import type {
   ReportReviewEvent,
 } from "../../domain/report.types";
 import type {
+  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
   ExpertDirectoryEntry,
+  ExpertFindingInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -544,6 +546,28 @@ export class MockReportsRepository implements ReportsRepository {
     };
     this.reports[index] = updated;
     return cloneReport(updated);
+  }
+
+  async recordExpertFinding(
+    reportId: string,
+    input: ExpertFindingInput,
+  ): Promise<DiseaseReport> {
+    void input;
+    return this.getReportById(reportId).then((report) => {
+      if (!report) throw new Error(`Report ${reportId} was not found.`);
+      return cloneReport(report);
+    });
+  }
+
+  async confirmExpertReferral(
+    reportId: string,
+    input: ConfirmExpertReferralInput,
+  ): Promise<DiseaseReport> {
+    void input;
+    return this.getReportById(reportId).then((report) => {
+      if (!report) throw new Error(`Report ${reportId} was not found.`);
+      return cloneReport(report);
+    });
   }
 
   async linkDuplicate(

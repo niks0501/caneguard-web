@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import type {
+  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
+  ExpertFindingInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -93,6 +95,20 @@ export function useRecordExpertReferralResponse(reportId: string) {
   return useReportMutation<ExpertReferralResponseInput>(
     reportId,
     (input) => reportsRepository.recordExpertReferralResponse(reportId, input),
+  );
+}
+
+export function useRecordExpertFinding(reportId: string) {
+  return useReportMutation<ExpertFindingInput>(
+    reportId,
+    (input) => reportsRepository.recordExpertFinding(reportId, input),
+  );
+}
+
+export function useConfirmExpertReferral(reportId: string) {
+  return useReportMutation<ConfirmExpertReferralInput>(
+    reportId,
+    (input) => reportsRepository.confirmExpertReferral(reportId, input),
   );
 }
 
