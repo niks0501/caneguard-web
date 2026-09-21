@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios";
 import { ApiError } from "../../api/ApiError";
 import { axiosClient } from "../../api/axiosClient";
 import type { ReportsRepository } from "../contracts/ReportsRepository";
+import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -21,6 +22,7 @@ import {
   mapReportDetail,
   mapReportListItem,
 } from "./mappers/report.mapper";
+import { mapMonthlyReportSummary } from "./mappers/reporting.mapper";
 import {
   advisoriesResponseSchema,
   possibleRecentMatchesResponseSchema,
@@ -28,6 +30,7 @@ import {
   reportListResponseSchema,
   reviewResponseSchema,
 } from "./schemas/report.schema";
+import { monthlyReportSummaryResponseSchema } from "./schemas/reporting.schema";
 
 const sortValues = {
   newest: "-submitted_at",
@@ -141,6 +144,15 @@ export class ApiReportsRepository implements ReportsRepository {
         ? contentType
         : "text/csv;charset=utf-8",
     });
+  }
+
+  async getMonthlySummary(month?: string): Promise<MonthlyReportSummary> {
+    const response = await this.client.get("/api/v1/reports/summary", {
+      params: month ? { month } : undefined,
+    });
+    return mapMonthlyReportSummary(
+      monthlyReportSummaryResponseSchema.parse(response.data),
+    );
   }
 
   async getReportById(reportId: string): Promise<DiseaseReport | null> {

@@ -10,12 +10,17 @@ import { reportsRepository } from "../services/reports.service";
 import {
   advisoriesQueryOptions,
   expertReportsQueryOptions,
+  monthlySummaryQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
   reportQueryOptions,
   reportsQueryOptions,
 } from "./reportQueries";
 import { invalidateReportDependentQueries } from "./reportInvalidation";
+
+export function useMonthlyReportSummary(month?: string) {
+  return useQuery(monthlySummaryQueryOptions(month));
+}
 
 export function useAdvisories() {
   return useQuery(advisoriesQueryOptions());

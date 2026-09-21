@@ -1,4 +1,5 @@
 import type { ReportsRepository } from "../contracts/ReportsRepository";
+import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -203,6 +204,81 @@ export class MockReportsRepository implements ReportsRepository {
     return new Blob([
       [exportHeaders.join(","), ...rows].join("\\r\\n"),
     ], { type: "text/csv;charset=utf-8" });
+  }
+
+  async getMonthlySummary(month?: string): Promise<MonthlyReportSummary> {
+    const selectedMonth = month ?? new Date().toISOString().slice(0, 7);
+    const monthlyReports = this.reports.filter((report) =>
+      report.submittedAt.startsWith(selectedMonth),
+    );
+
+    const hasReports = monthlyReports.length > 0;
+
+    return {
+      month: selectedMonth,
+      period: {
+        from: `${selectedMonth}-01`,
+        to: `${selectedMonth}-28`,
+      },
+      reportedCases: monthlyReports.length,
+      expertVerification: hasReports
+        ? {
+            consultVolume: {
+              total: 3,
+              consultedCases: 3,
+              pending: 1,
+              inProgress: 0,
+              completed: 2,
+              cancelled: 0,
+            },
+            expertAgreement: {
+              count: 2,
+              denominator: 2,
+              rate: 1.0,
+              percentage: 100,
+            },
+            unableToClassifyRate: {
+              count: 0,
+              denominator: 2,
+              rate: 0,
+              percentage: 0,
+            },
+            symptomVerificationDisagreement: {
+              count: 0,
+              denominator: 2,
+              rate: 0,
+              percentage: 0,
+            },
+          }
+        : {
+            consultVolume: {
+              total: 0,
+              consultedCases: 0,
+              pending: 0,
+              inProgress: 0,
+              completed: 0,
+              cancelled: 0,
+            },
+            expertAgreement: {
+              count: 0,
+              denominator: 0,
+              rate: null,
+              percentage: null,
+            },
+            unableToClassifyRate: {
+              count: 0,
+              denominator: 0,
+              rate: null,
+              percentage: null,
+            },
+            symptomVerificationDisagreement: {
+              count: 0,
+              denominator: 0,
+              rate: null,
+              percentage: null,
+            },
+          },
+    };
   }
 
   async getReportById(reportId: string): Promise<DiseaseReport | null> {

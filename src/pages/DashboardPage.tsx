@@ -17,6 +17,7 @@ import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
+import { ExpertVerificationPanel } from "../components/dashboard/ExpertVerificationPanel";
 import { MonthlyCaseSummary } from "../components/dashboard/MonthlyCaseSummary";
 import { OperationalQueueCard } from "../components/dashboard/OperationalQueueCard";
 import { SecondaryMetric } from "../components/dashboard/SecondaryMetric";
@@ -224,6 +225,8 @@ export function DashboardPage() {
           onMonthChange={setSelectedMonth}
         />
       ) : null}
+
+      <ExpertVerificationPanel month={activeMonth} />
 
       <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
         <div className="dashboard-section-heading">

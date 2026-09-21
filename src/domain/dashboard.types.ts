@@ -15,6 +15,44 @@ export interface RiskTriageSummary {
   bands: { green: number; amber: number; red: number };
 }
 
+export interface ExpertVerificationMetricRate {
+  count: number;
+  denominator: number;
+  rate: number | null;
+  percentage: number | null;
+}
+
+export interface ExpertVerificationConsultVolume {
+  total: number;
+  consultedCases: number;
+  pending: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface ExpertVerificationSummary {
+  consultVolume: ExpertVerificationConsultVolume;
+  expertAgreement: ExpertVerificationMetricRate;
+  unableToClassifyRate: ExpertVerificationMetricRate;
+  symptomVerificationDisagreement: ExpertVerificationMetricRate;
+  advisoryCoverage?: {
+    consultCases: number;
+    casesWithAdvisory: number;
+    coverageRate: number | null;
+    deliveredCases: number;
+    acknowledgedCases: number;
+  };
+  timeToFinding?: {
+    source: string;
+    findings: number;
+    averageHours: number | null;
+    medianHours: number | null;
+    minHours: number | null;
+    maxHours: number | null;
+  };
+}
+
 export interface MonthlyCaseSummary {
   month: string;
   period: {
@@ -47,6 +85,17 @@ export interface MonthlyCaseSummary {
     minHours: number | null;
     maxHours: number | null;
   };
+  expertVerification?: ExpertVerificationSummary;
+}
+
+export interface MonthlyReportSummary {
+  month: string;
+  period: {
+    from: string;
+    to: string;
+  };
+  reportedCases: number;
+  expertVerification?: ExpertVerificationSummary;
 }
 
 export interface DashboardSummary {
@@ -57,3 +106,4 @@ export interface DashboardSummary {
   recentReports: DiseaseReport[];
   monthlySummary?: MonthlyCaseSummary;
 }
+
