@@ -1,3 +1,4 @@
+import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -17,6 +18,7 @@ export interface ReportsRepository {
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
   listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports>;
   exportReports(filters?: ReportFilters): Promise<Blob>;
+  getMonthlySummary(month?: string): Promise<MonthlyReportSummary>;
   getReportById(reportId: string): Promise<DiseaseReport | null>;
   getPossibleRecentMatches(reportId: string): Promise<PossibleRecentMatches>;
   updateReview(
@@ -36,3 +38,4 @@ export interface ReportsRepository {
     input: DuplicateLinkInput,
   ): Promise<DiseaseReport>;
 }
+

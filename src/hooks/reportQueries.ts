@@ -17,7 +17,18 @@ export const reportKeys = {
     [...reportKeys.details(), reportId] as const,
   possibleMatches: (reportId: string) =>
     [...reportKeys.detail(reportId), "possible-matches"] as const,
+  summary: (month?: string) =>
+    [...reportKeys.all, "summary", month ?? "current"] as const,
 };
+
+export const monthlySummaryQueryOptions = (month?: string) =>
+  queryOptions({
+    queryKey: reportKeys.summary(month),
+    queryFn: () => reportsRepository.getMonthlySummary(month),
+    placeholderData: keepPreviousData,
+    ...getOperationalQueryRefreshOptions(),
+  });
+
 
 export const reportsQueryOptions = (
   filters: ReportFilters = {},

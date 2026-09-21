@@ -457,4 +457,98 @@ describe("ApiReportsRepository", () => {
     ).resolves.toMatchObject({ reviewStatus: "for_field_validation" });
     await expect(repository.getReportById("missing")).resolves.toBeNull();
   });
+
+  it("fetches and maps monthly report summary with expert verification metrics", async () => {
+    server.use(
+      http.get(`${baseUrl}/api/v1/reports/summary`, ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        expect(query.get("month")).toBe("2026-07");
+        return HttpResponse.json({
+          data: {
+            month: "2026-07",
+            period: { from: "2026-07-01", to: "2026-07-31" },
+            reported_cases: 3,
+            cases_by_barangay: [],
+            cases_by_possible_condition: [],
+            estimated_affected_hectares: 3.75,
+            field_validation_counts: {
+              unassigned: 1,
+              assigned: 1,
+              in_progress: 0,
+              completed: 1,
+              requiring_validation: 1,
+            },
+            closed_cases: 1,
+            review_time: {
+              source: "submitted_at_to_reviewed_at",
+              reviewed_cases: 2,
+              average_hours: 15,
+              median_hours: 15,
+              min_hours: 6,
+              max_hours: 24,
+            },
+            expert_verification: {
+              unable_to_classify_rate: {
+                count: 1,
+                denominator: 3,
+                rate: 0.3333,
+                percentage: 33.33,
+              },
+              consult_volume: {
+                total: 3,
+                consulted_cases: 3,
+                pending: 0,
+                in_progress: 0,
+                completed: 3,
+                cancelled: 0,
+              },
+              time_to_finding: {
+                source: "referral_date_to_finding_recorded_at",
+                findings: 3,
+                average_hours: 40,
+                median_hours: 32,
+                min_hours: 24,
+                max_hours: 48,
+              },
+              advisory_coverage: {
+                consult_cases: 3,
+                cases_with_advisory: 2,
+                coverage_rate: 0.6667,
+                delivered_cases: 1,
+                acknowledged_cases: 0,
+              },
+              expert_agreement: {
+                count: 1,
+                denominator: 2,
+                rate: 0.5,
+                percentage: 50,
+              },
+              symptom_verification_disagreement: {
+                count: 1,
+                denominator: 3,
+                rate: 0.3333,
+                percentage: 33.33,
+              },
+            },
+          },
+        });
+      }),
+    );
+
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    const summary = await repository.getMonthlySummary("2026-07");
+
+    expect(summary.month).toBe("2026-07");
+    expect(summary.reportedCases).toBe(3);
+    expect(summary.expertVerification).toBeDefined();
+    expect(summary.expertVerification?.consultVolume.total).toBe(3);
+    expect(summary.expertVerification?.consultVolume.completed).toBe(3);
+    expect(summary.expertVerification?.expertAgreement.count).toBe(1);
+    expect(summary.expertVerification?.unableToClassifyRate.count).toBe(1);
+    expect(summary.expertVerification?.symptomVerificationDisagreement.count).toBe(1);
+  });
 });
+

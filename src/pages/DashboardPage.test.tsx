@@ -6,11 +6,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { mockReports } from "../data/mock/mockReports";
 import { useDashboard } from "../hooks/useDashboard";
+import { useMonthlyReportSummary } from "../hooks/useReports";
 import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../hooks/useDashboard", () => ({
   useDashboard: vi.fn(),
 }));
+
+vi.mock("../hooks/useReports", () => ({
+  useMonthlyReportSummary: vi.fn(),
+}));
+
 
 const summary = {
   totalSubmitted: 8,
@@ -55,7 +61,46 @@ function renderDashboard() {
 
 beforeEach(() => {
   vi.mocked(useDashboard).mockReturnValue(dashboardResult());
+  vi.mocked(useMonthlyReportSummary).mockReturnValue({
+    data: {
+      month: "2026-07",
+      period: { from: "2026-07-01", to: "2026-07-31" },
+      reportedCases: 3,
+      expertVerification: {
+        consultVolume: {
+          total: 3,
+          consultedCases: 3,
+          pending: 1,
+          inProgress: 0,
+          completed: 2,
+          cancelled: 0,
+        },
+        expertAgreement: {
+          count: 2,
+          denominator: 2,
+          rate: 1.0,
+          percentage: 100,
+        },
+        unableToClassifyRate: {
+          count: 0,
+          denominator: 2,
+          rate: 0,
+          percentage: 0,
+        },
+        symptomVerificationDisagreement: {
+          count: 0,
+          denominator: 2,
+          rate: 0,
+          percentage: 0,
+        },
+      },
+    },
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useMonthlyReportSummary>);
 });
+
 
 describe("DashboardPage", () => {
   it("leads with operational queues and keeps historical totals secondary", () => {
@@ -281,4 +326,21 @@ describe("DashboardPage", () => {
       screen.getByRole("link", { name: "Open CG-2026-0718" }),
     ).toBeInTheDocument();
   });
+
+  it("renders the expert verification panel on the overview dashboard", () => {
+    renderDashboard();
+
+    const expertPanel = screen.getByRole("region", {
+      name: "Expert verification",
+    });
+    expect(expertPanel).toBeInTheDocument();
+    expect(within(expertPanel).getByText("Total consults")).toBeInTheDocument();
+    expect(within(expertPanel).getAllByText("Completed").length).toBeGreaterThanOrEqual(1);
+    const findingOutcomes = within(expertPanel).getByRole("region", {
+      name: "Finding outcomes",
+    });
+    expect(within(findingOutcomes).getByText("Agreed with AI")).toBeInTheDocument();
+  });
 });
+
+
