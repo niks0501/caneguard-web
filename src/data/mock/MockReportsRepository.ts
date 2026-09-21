@@ -10,6 +10,7 @@ import type {
   ReportReviewEvent,
 } from "../../domain/report.types";
 import type {
+  ConsultInvite,
   ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
@@ -610,6 +611,37 @@ export class MockReportsRepository implements ReportsRepository {
       if (!report) throw new Error(`Report ${reportId} was not found.`);
       return cloneReport(report);
     });
+  }
+
+  async issueConsultInvite(
+    reportId: string,
+    shareFullContext = false,
+  ): Promise<ConsultInvite> {
+    const report = await this.getReportById(reportId);
+    if (!report?.referral) throw new Error(`Report ${reportId} was not found.`);
+    return {
+      url: `https://example.test/consult/${reportId}`,
+      consultId: report.referral.id ?? 1,
+      issuedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+      revokedAt: null,
+      accessCount: 0,
+      shareFullContext,
+    };
+  }
+
+  async revokeConsultInvite(reportId: string): Promise<ConsultInvite> {
+    const report = await this.getReportById(reportId);
+    if (!report?.referral) throw new Error(`Report ${reportId} was not found.`);
+    return {
+      url: "",
+      consultId: report.referral.id ?? 1,
+      issuedAt: report.referral.inviteIssuedAt ?? null,
+      expiresAt: report.referral.inviteExpiresAt ?? null,
+      revokedAt: new Date().toISOString(),
+      accessCount: report.referral.inviteAccessCount ?? 0,
+      shareFullContext: report.referral.shareFullContext ?? false,
+    };
   }
 
   async linkDuplicate(

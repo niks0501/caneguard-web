@@ -90,12 +90,12 @@
         <section>
             <h2>Farmer, farm, and location</h2>
             <dl>
-                <div><dt>Farmer or farm reference</dt><dd>{{ $summary['farmer_or_farm_reference'] ?: 'Not provided' }}</dd></div>
-                <div><dt>Reporter</dt><dd>{{ $summary['reporter']['name'] }}</dd></div>
+                <div><dt>Farmer or farm reference</dt><dd>{{ $summary['farmer_or_farm_reference'] ?? 'Not shared' }}</dd></div>
+                <div><dt>Reporter</dt><dd>{{ $summary['reporter']['name'] ?? 'Not shared' }}</dd></div>
                 <div><dt>Barangay</dt><dd>{{ $summary['location']['barangay'] }}</dd></div>
                 <div><dt>Municipality</dt><dd>{{ $summary['location']['municipality'] ?: 'Not provided' }}</dd></div>
                 <div><dt>Province</dt><dd>{{ $summary['location']['province'] ?: 'Not provided' }}</dd></div>
-                <div><dt>Coordinates</dt><dd>{{ $summary['location']['latitude'] !== null && $summary['location']['longitude'] !== null ? $summary['location']['latitude'].', '.$summary['location']['longitude'] : 'Not provided' }}</dd></div>
+                <div><dt>Coordinates</dt><dd>{{ ($summary['location']['latitude'] ?? null) !== null && ($summary['location']['longitude'] ?? null) !== null ? $summary['location']['latitude'].', '.$summary['location']['longitude'] : 'Not shared' }}</dd></div>
             </dl>
         </section>
 

@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Models\Report;
+use App\Models\ReportReferral;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
@@ -92,6 +93,16 @@ class ApplyReportFilters
                 fn (Builder $query, string $outcome) => $query->whereHas(
                     'fieldValidationAssignment.completion',
                     fn (Builder $completion) => $completion->where('follow_up_outcome', $outcome),
+                ),
+            )
+            ->when(
+                ($filters['referral'] ?? null) === 'active',
+                fn (Builder $query) => $query->whereHas(
+                    'referrals',
+                    fn (Builder $referrals) => $referrals->whereIn(
+                        'consult_status',
+                        ReportReferral::activeStatuses(),
+                    ),
                 ),
             )
             ->when(

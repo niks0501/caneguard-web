@@ -138,6 +138,7 @@ class RecordReportReferral
                     : CarbonImmutable::parse($data['referral_date'], config('app.timezone'))->addDays(7)->toDateString(),
                 'expert_name' => $data['expert_name'] ?? null,
                 'expert_contact' => $data['expert_contact'] ?? null,
+                'share_full_context' => (bool) ($data['share_full_context'] ?? false),
                 'note' => $data['note'] ?? null,
                 'consult_status' => $requestedStatus,
                 'office_case_state' => $lifecycle['case_state'],

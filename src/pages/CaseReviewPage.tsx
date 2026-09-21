@@ -531,6 +531,7 @@ export function CaseReviewPage() {
   const [referralExpertUuid, setReferralExpertUuid] = useState<string | null>(null);
   const [referralExpertName, setReferralExpertName] = useState("");
   const [referralExpertContact, setReferralExpertContact] = useState("");
+  const [referralShareFullContext, setReferralShareFullContext] = useState(false);
   const [referralNote, setReferralNote] = useState("");
   const [advisoryUuidOverride, setAdvisoryUuidOverride] = useState<string | null | undefined>(undefined);
   const [referralSubmitted, setReferralSubmitted] = useState(false);
@@ -728,6 +729,7 @@ export function CaseReviewPage() {
     referralExpertUuid !== null ||
     referralExpertName.trim() ||
     referralExpertContact.trim() ||
+    referralShareFullContext ||
     referralDueDate ||
     referralNote.trim(),
   );
@@ -964,6 +966,7 @@ export function CaseReviewPage() {
         ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
         ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
         ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
+        ...(referralShareFullContext ? { shareFullContext: true } : {}),
         note: referralNote,
         authorityClassifiedCondition: selectedAuthorityClassification,
         verificationOutcome: selectedVerificationOutcome || undefined,
@@ -2094,7 +2097,7 @@ export function CaseReviewPage() {
       <Modal
         id="referral-modal"
         title="Record expert referral"
-        description="Capture the external handoff as plain operational text. CaneGuard does not send the referral or connect to an external SRA account."
+        description="Print/download remains the default handoff. You can optionally create a signed, time-limited read-only link after saving."
         open={referralModalOpen}
         onClose={closeReferralModal}
         disabled={recordReferral.isPending}
@@ -2121,7 +2124,7 @@ export function CaseReviewPage() {
       >
         <div className="review-subform" aria-label="Expert referral details">
           <p className="authority-classification-help">
-            Capture the external handoff as plain operational text. CaneGuard does not send the referral or connect to an external SRA account.
+            Capture the handoff as plain operational text. Print/download remains the default; a secure link can be created from the saved consult.
           </p>
           {referralFieldError ? (
             <p id="referral-destination-error" className="form-error" role="alert">
@@ -2240,6 +2243,22 @@ export function CaseReviewPage() {
               }}
               placeholder="Email, phone, or office contact"
             />
+          </label>
+          <label className="case-confirmation" htmlFor="referral-share-full-context">
+            <input
+              id="referral-share-full-context"
+              type="checkbox"
+              checked={referralShareFullContext}
+              onChange={(event) => {
+                setReferralShareFullContext(event.target.checked);
+                setReferralSubmitted(false);
+                recordReferral.reset();
+              }}
+            />
+            <span>
+              <strong>Share full case context</strong>
+              <small>Include the farmer/farm owner name and exact coordinates in the expert packet.</small>
+            </span>
           </label>
           <TextArea
             id="referral-note"

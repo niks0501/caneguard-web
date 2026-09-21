@@ -139,6 +139,7 @@ class ReviewReportRequest extends ApiFormRequest
                 'string',
                 'max:320',
             ],
+            'share_full_context' => ['sometimes', 'boolean'],
             'consult_status' => [
                 'sometimes',
                 Rule::in(ReportReferral::statuses()),

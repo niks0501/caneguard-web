@@ -89,7 +89,9 @@ export interface ExpertConsultSummary {
   referralDate: string | null;
   dueDate: string | null;
   expert?: { uuid: string; name: string } | null;
+  expertName?: string | null;
   daysUntilDue: number | null;
+  daysOut: number | null;
   overdue: boolean;
   ageLabel: string;
 }
@@ -190,6 +192,13 @@ export interface ReportReferral {
   dueDate?: string | null;
   expertName?: string | null;
   expertContact?: string | null;
+  shareFullContext?: boolean;
+  inviteIssuedAt?: string | null;
+  inviteExpiresAt?: string | null;
+  inviteRevokedAt?: string | null;
+  inviteAccessCount?: number;
+  inviteFirstAccessedAt?: string | null;
+  inviteLastAccessedAt?: string | null;
   note?: string | null;
   responseDate?: string | null;
   responseNote?: string | null;
@@ -222,6 +231,13 @@ export interface ReportConsult {
   dueDate?: string | null;
   expertName?: string | null;
   expertContact?: string | null;
+  shareFullContext?: boolean;
+  inviteIssuedAt?: string | null;
+  inviteExpiresAt?: string | null;
+  inviteRevokedAt?: string | null;
+  inviteAccessCount?: number;
+  inviteFirstAccessedAt?: string | null;
+  inviteLastAccessedAt?: string | null;
   findingSummary?: string | null;
   conditionOpinion?: AuthorityClassifiedCondition | null;
   symptomVerdicts?: Record<string, { verdict: "present" | "absent" | "unsure"; note?: string | null }> | null;
@@ -473,6 +489,7 @@ export type ReportSort = "newest" | "oldest" | "due_soonest";
 
 export interface ReportFilters {
   queue?: OperationalQueue;
+  referral?: "active";
   search?: string;
   /** Derived compatibility projection; the actual lifecycle axes sit below. */
   status?: ReviewStatus | "all";

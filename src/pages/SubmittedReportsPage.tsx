@@ -43,6 +43,7 @@ import {
 type FilterKey =
   | "search"
   | "queue"
+  | "referral"
   | "status"
   | "case_state"
   | "verification_outcome"
@@ -117,9 +118,11 @@ export function SubmittedReportsPage({
   const exportReports = useExportReports();
   const reports = reportsQuery.data?.reports ?? [];
   const meta = reportsQuery.data?.meta;
-  const activeQueueLabel = urlState.filters.queue
-    ? queueLabels[urlState.filters.queue]
-    : undefined;
+  const activeQueueLabel = urlState.filters.referral === "active"
+    ? "Out with experts"
+    : urlState.filters.queue
+      ? queueLabels[urlState.filters.queue]
+      : undefined;
 
   useEffect(() => {
     if (
@@ -242,7 +245,13 @@ export function SubmittedReportsPage({
         )}
       /> : null}
 
-      {isMonitoring ? (
+      {!isMonitoring ? (
+        <nav className="monitoring-saved-views" aria-label="Report saved views">
+          <span className="monitoring-saved-views__label">Saved views</span>
+          <Link to={routes.reports} className={!urlState.filters.referral ? "is-active" : undefined}>All submitted reports</Link>
+          <Link to={`${routes.reports}?referral=active&sort=due_soonest`} className={urlState.filters.referral === "active" ? "is-active" : undefined}>Out with experts</Link>
+        </nav>
+      ) : isMonitoring ? (
         <nav className="monitoring-saved-views" aria-label="Monitoring saved views">
           <span className="monitoring-saved-views__label">Saved views</span>
           <Link to={routes.monitoring} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All monitoring cases</Link>
@@ -303,6 +312,16 @@ export function SubmittedReportsPage({
               <option value={value} key={value}>{label}</option>
             ))}
           </SelectFilter>
+          {!isMonitoring ? (
+            <SelectFilter
+              label="Referral view"
+              value={urlState.filters.referral ?? ""}
+              onChange={(event) => updateFilter("referral", event.target.value)}
+            >
+              <option value="">All referrals</option>
+              <option value="active">Out with experts</option>
+            </SelectFilter>
+          ) : null}
           <SelectFilter
             label="Reported concern"
             value={urlState.filters.reportedConcern ?? ""}
@@ -500,7 +519,10 @@ export function SubmittedReportsPage({
         ) : null}
         {hasDisplayableData && reports.length > 0 && meta ? (
           <>
-            <ReportTable reports={reports} variant={isMonitoring ? "monitoring" : "default"} />
+            <ReportTable
+              reports={reports}
+              variant={isMonitoring ? "monitoring" : urlState.filters.referral === "active" ? "out-with-experts" : "default"}
+            />
             <Pagination
               currentPage={meta.currentPage}
               pageCount={meta.lastPage}

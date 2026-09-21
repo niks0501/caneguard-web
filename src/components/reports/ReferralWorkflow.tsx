@@ -27,8 +27,11 @@ import type {
 } from "../../domain/report.types";
 import {
   useConfirmExpertReferral,
+  useIssueConsultInvite,
   useRecordExpertReferralResponse,
+  useRevokeConsultInvite,
 } from "../../hooks/useReports";
+import type { ConsultInvite } from "../../domain/review.types";
 import { formatDateTime } from "../../lib/formatters";
 
 const verificationOutcomeLabels: Record<VerificationOutcome, string> = {
@@ -91,6 +94,9 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
   const [notice, setNotice] = useState<string | null>(null);
   const recordResponse = useRecordExpertReferralResponse(report.uuid);
   const confirmReferral = useConfirmExpertReferral(report.uuid);
+  const issueInvite = useIssueConsultInvite(report.uuid);
+  const revokeInvite = useRevokeConsultInvite(report.uuid);
+  const [invite, setInvite] = useState<ConsultInvite | null>(null);
 
   const responseInputError =
     !responseDate
@@ -123,6 +129,28 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
       setConfirmSubmitted(false);
     } catch {
       return;
+    }
+  };
+
+  const createInvite = async () => {
+    setNotice(null);
+    try {
+      const created = await issueInvite.mutateAsync(referral?.shareFullContext ?? false);
+      setInvite(created);
+      setNotice("Secure consult link created. Print remains available as the default handoff.");
+    } catch {
+      setNotice("The secure consult link could not be created. The printable summary is still available.");
+    }
+  };
+
+  const revokeSecureInvite = async () => {
+    setNotice(null);
+    try {
+      const revoked = await revokeInvite.mutateAsync();
+      setInvite((current) => current ? { ...current, ...revoked, url: "" } : revoked);
+      setNotice("Secure consult link revoked. The printable summary remains available.");
+    } catch {
+      setNotice("The secure consult link could not be revoked. Try again.");
     }
   };
 
@@ -431,8 +459,36 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
             rel="noreferrer"
           >
             <FileText aria-hidden="true" />
-            <span>Print / download referral summary</span>
+            <span>Print / download referral summary (default)</span>
           </a>
+          {referral.status === "pending" || referral.status === "in_progress" ? (
+            <div className="referral-invite-actions">
+              {invite?.url ? (
+                <a className="button button--secondary" href={invite.url} target="_blank" rel="noreferrer">
+                  Open secure consult link
+                </a>
+              ) : null}
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={issueInvite.isPending || revokeInvite.isPending}
+                onClick={() => void createInvite()}
+              >
+                {issueInvite.isPending ? "Creating secure link..." : invite?.url ? "Issue new secure link" : "Create secure consult link"}
+              </Button>
+              {invite?.url ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={issueInvite.isPending || revokeInvite.isPending}
+                  onClick={() => void revokeSecureInvite()}
+                >
+                  {revokeInvite.isPending ? "Revoking link..." : "Revoke link"}
+                </Button>
+              ) : null}
+              {invite?.expiresAt ? <small>Link expires {invite.expiresAt.slice(0, 10)}. Accessed {invite.accessCount} times.</small> : null}
+            </div>
+          ) : null}
       </>
     </section>
   );

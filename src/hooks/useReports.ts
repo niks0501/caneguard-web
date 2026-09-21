@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import type {
+  ConsultInvite,
   ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
@@ -115,6 +116,31 @@ export function useConfirmExpertReferral(reportId: string) {
     reportId,
     (input) => reportsRepository.confirmExpertReferral(reportId, input),
   );
+}
+
+export function useIssueConsultInvite(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (shareFullContext?: boolean) =>
+      reportsRepository.issueConsultInvite(reportId, shareFullContext),
+    onSuccess: (invite: ConsultInvite) => {
+      void queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) });
+      return invite;
+    },
+  });
+}
+
+export function useRevokeConsultInvite(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => reportsRepository.revokeConsultInvite(reportId),
+    onSuccess: (invite: ConsultInvite) => {
+      void queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) });
+      return invite;
+    },
+  });
 }
 
 export function useLinkDuplicateReport(reportId: string) {

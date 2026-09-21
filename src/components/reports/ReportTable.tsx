@@ -34,10 +34,11 @@ export function ReportTable({
   variant = "default",
 }: {
   reports: DiseaseReport[];
-  variant?: "default" | "monitoring" | "expert";
+  variant?: "default" | "monitoring" | "expert" | "out-with-experts";
 }) {
   const navigate = useNavigate();
   const isMonitoring = variant === "monitoring";
+  const isOutWithExperts = variant === "out-with-experts";
   const isExpert = variant === "expert";
   const detailRoute = (uuid: string) => isExpert
     ? routes.expertReportDetail(uuid)
@@ -91,6 +92,13 @@ export function ReportTable({
                 <th scope="col">Action taken</th>
                 <th scope="col">Next follow-up</th>
               </>
+            ) : isOutWithExperts ? (
+              <>
+                <th scope="col">Expert</th>
+                <th scope="col">Referral date</th>
+                <th scope="col">Due date</th>
+                <th scope="col">Days out</th>
+              </>
             ) : (
               <>
                 <th scope="col">Possible Condition</th>
@@ -115,6 +123,9 @@ export function ReportTable({
               reporterMismatch: report.mismatchReported ?? null,
             };
             const isExpanded = Boolean(expandedRows[report.uuid]);
+            const expertName = report.expertConsult?.expertName
+              ?? report.expertConsult?.expert?.name
+              ?? (report.expertConsult?.status === "pending" ? "Unassigned" : "Unknown expert");
             return (
               <tr
                 className={`report-row report-row--${report.reviewStatus}${
@@ -227,6 +238,24 @@ export function ReportTable({
                       ) : (
                         <span className="table-secondary">Not scheduled</span>
                       )}
+                    </td>
+                  </>
+                ) : isOutWithExperts ? (
+                  <>
+                    <td>
+                      <strong className="table-primary">{expertName}</strong>
+                    </td>
+                    <td>
+                      <strong className="table-primary">{report.expertConsult?.referralDate ?? "Not set"}</strong>
+                    </td>
+                    <td>
+                      <strong className={`table-primary${report.expertConsult?.overdue ? " table-overdue" : ""}`}>
+                        {report.expertConsult?.dueDate ?? "No due date"}
+                      </strong>
+                      {report.expertConsult?.overdue ? <span className="table-secondary">Overdue</span> : null}
+                    </td>
+                    <td>
+                      <strong className="table-primary">{report.expertConsult?.daysOut === null || report.expertConsult?.daysOut === undefined ? "Not available" : `${report.expertConsult.daysOut} ${report.expertConsult.daysOut === 1 ? "day" : "days"}`}</strong>
                     </td>
                   </>
                 ) : (
