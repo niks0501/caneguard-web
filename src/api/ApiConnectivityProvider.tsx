@@ -62,7 +62,14 @@ export function ApiConnectivityProvider({
     }
 
     if (version === requestVersion.current && auth.status === "authenticated") {
-      setApiReachability(result.reachability);
+      if (
+        result.reachability === "degraded" ||
+        (result.reachability === "unreachable" && result.reason === "unhealthy")
+      ) {
+        setApiReachability("degraded");
+      } else {
+        setApiReachability(result.reachability);
+      }
     }
 
     return result;
@@ -131,6 +138,7 @@ export function ApiConnectivityProvider({
       networkStatus,
       apiReachability: effectiveApiReachability,
       checkApiReachability,
+      isDegraded: effectiveApiReachability === "degraded",
     }}>
       {children}
     </ApiConnectivityContext>

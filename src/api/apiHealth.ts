@@ -12,12 +12,17 @@ const healthResponseSchema = z.object({
 
 type ApiHealthChecks = Record<string, "ready" | "unavailable">;
 
-export type ApiReachability = "unknown" | "checking" | "reachable" | "unreachable";
+export type ApiReachability = "unknown" | "checking" | "reachable" | "degraded" | "unreachable";
 
 export type ApiHealthResult =
   | {
       reachability: "reachable";
       checks: ApiHealthChecks;
+    }
+  | {
+      reachability: "degraded";
+      checks?: ApiHealthChecks;
+      reason?: "unhealthy";
     }
   | {
       reachability: "unreachable";

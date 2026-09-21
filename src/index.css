@@ -420,7 +420,8 @@ a {
   line-height: 1.1;
 }
 
-.server-status--refreshing {
+.server-status--refreshing,
+.server-status--degraded {
   color: var(--color-warning);
   background: var(--color-warning-soft);
   border-color: var(--color-warning-soft);
@@ -3404,7 +3405,8 @@ textarea:focus-visible {
   font-size: var(--text-body-sm);
 }
 
-.server-status--refreshing {
+.server-status--refreshing,
+.server-status--degraded {
   color: var(--color-warning);
   background: var(--color-warning-soft);
   border-color: var(--color-warning-soft);
