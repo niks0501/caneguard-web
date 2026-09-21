@@ -1,4 +1,5 @@
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
+import type { ExpertDirectoryEntry } from "../../domain/review.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -7,8 +8,10 @@ import type {
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
+  ExpertFindingInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -16,6 +19,7 @@ import type {
 
 export interface ReportsRepository {
   listAdvisories(): Promise<Advisory[]>;
+  listExperts(): Promise<ExpertDirectoryEntry[]>;
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
   listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports>;
   exportReports(filters?: ReportFilters): Promise<Blob>;
@@ -33,6 +37,14 @@ export interface ReportsRepository {
   recordExpertReferralResponse(
     reportId: string,
     input: ExpertReferralResponseInput,
+  ): Promise<DiseaseReport>;
+  recordExpertFinding(
+    reportId: string,
+    input: ExpertFindingInput,
+  ): Promise<DiseaseReport>;
+  confirmExpertReferral(
+    reportId: string,
+    input: ConfirmExpertReferralInput,
   ): Promise<DiseaseReport>;
   linkDuplicate(
     reportId: string,

@@ -27,7 +27,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'expert_name',
     'expert_contact',
     'finding_summary',
+    'condition_opinion',
+    'symptom_verdicts',
     'finding_details',
+    'finding_confidence',
     'finding_recommendation',
     'finding_source',
     'source',
@@ -41,6 +44,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'office_review_notes',
     'office_reviewer_id',
     'office_reviewed_at',
+    'consult_review_outcome',
+    'consult_review_note',
+    'consult_reviewed_by_id',
+    'consult_reviewed_at',
 ])]
 class ReportReferral extends Model
 {
@@ -109,6 +116,14 @@ class ReportReferral extends Model
         return $this->belongsTo(User::class, 'office_reviewer_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function consultReviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'consult_reviewed_by_id');
+    }
+
     protected function casts(): array
     {
         return [
@@ -116,8 +131,10 @@ class ReportReferral extends Model
             'due_date' => 'date:Y-m-d',
             'response_date' => 'date:Y-m-d',
             'response_recorded_at' => 'immutable_datetime',
+            'symptom_verdicts' => 'array',
             'finding_recorded_at' => 'immutable_datetime',
             'office_reviewed_at' => 'immutable_datetime',
+            'consult_reviewed_at' => 'immutable_datetime',
         ];
     }
 

@@ -21,6 +21,7 @@ class ReferralSummaryController extends Controller
             'referral.officeReviewer',
             'referral.expert',
             'referral.findingRecordedBy',
+            'referral.consultReviewedBy',
             'symptoms',
         ]);
         abort_unless($report->referral !== null, 404);

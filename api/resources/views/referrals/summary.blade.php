@@ -184,9 +184,13 @@
                 <div><dt>Response date</dt><dd>{{ $summary['referral']['response_date'] ?: 'Pending' }}</dd></div>
                 <div class="full"><dt>Response note</dt><dd>{{ $summary['referral']['response_note'] ?: 'Not provided' }}</dd></div>
                 <div class="full"><dt>Finding summary{{ $summary['referral']['finding_source'] === 'transcribed' ? ' (transcribed)' : '' }}</dt><dd>{{ $summary['referral']['finding_summary'] ?: 'Not provided' }}</dd></div>
+                <div><dt>Condition opinion</dt><dd>{{ $summary['referral']['condition_opinion'] ?: 'Not provided' }}</dd></div>
+                <div><dt>Finding confidence</dt><dd>{{ $summary['referral']['finding_confidence'] ?: 'Not provided' }}</dd></div>
                 <div class="full"><dt>Finding details{{ $summary['referral']['finding_source'] === 'transcribed' ? ' (transcribed)' : '' }}</dt><dd>{{ $summary['referral']['finding_details'] ?: 'Not provided' }}</dd></div>
                 <div class="full"><dt>Recommendation</dt><dd>{{ $summary['referral']['finding_recommendation'] ?: 'Not provided' }}</dd></div>
                 <div><dt>Finding source</dt><dd>{{ $summary['referral']['finding_source'] ?: 'Not recorded' }}</dd></div>
+                <div><dt>Office consult decision</dt><dd>{{ $summary['referral']['consult_review_outcome'] ?: 'Not yet recorded' }}</dd></div>
+                <div class="full"><dt>Office decision note</dt><dd>{{ $summary['referral']['consult_review_note'] ?: 'Not provided' }}</dd></div>
             </dl>
         </section>
     </main>

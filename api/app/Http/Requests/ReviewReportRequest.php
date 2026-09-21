@@ -403,6 +403,16 @@ class ReviewReportRequest extends ApiFormRequest
                         $validator->errors()->add($field, trim($message));
                     }
                 }
+                if (blank($this->input('expert_uuid')) && blank($this->input('expert_name'))) {
+                    $validator->errors()->add(
+                        'expert_uuid',
+                        'Choose an in-system expert or provide an external expert name.',
+                    );
+                    $validator->errors()->add(
+                        'expert_name',
+                        'Choose an in-system expert or provide an external expert name.',
+                    );
+                }
             }
 
             if ($referralState === Report::REFERRAL_STATE_REFERRED

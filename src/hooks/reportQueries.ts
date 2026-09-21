@@ -6,6 +6,7 @@ import { getOperationalQueryRefreshOptions } from "./queryRefresh";
 export const reportKeys = {
   all: ["reports"] as const,
   advisories: () => ["advisories"] as const,
+  experts: () => ["experts"] as const,
   lists: () => [...reportKeys.all, "list"] as const,
   list: (filters: ReportFilters) =>
     [...reportKeys.lists(), filters] as const,
@@ -58,6 +59,13 @@ export const advisoriesQueryOptions = () =>
   queryOptions({
     queryKey: reportKeys.advisories(),
     queryFn: () => reportsRepository.listAdvisories(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const expertDirectoryQueryOptions = () =>
+  queryOptions({
+    queryKey: reportKeys.experts(),
+    queryFn: () => reportsRepository.listExperts(),
     staleTime: 5 * 60 * 1000,
   });
 

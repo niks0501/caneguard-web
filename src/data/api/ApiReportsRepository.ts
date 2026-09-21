@@ -11,8 +11,11 @@ import type {
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
+  ExpertDirectoryEntry,
+  ExpertFindingInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -27,6 +30,7 @@ import { mapMonthlyReportSummary } from "./mappers/reporting.mapper";
 import {
   advisoriesResponseSchema,
   possibleRecentMatchesResponseSchema,
+  expertDirectoryResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
   reviewResponseSchema,
@@ -107,6 +111,11 @@ export class ApiReportsRepository implements ReportsRepository {
       validationProvenance: advisory.validation_provenance,
       validatedAt: advisory.validated_at,
     }));
+  }
+
+  async listExperts(): Promise<ExpertDirectoryEntry[]> {
+    const response = await this.client.get('/api/v1/experts');
+    return expertDirectoryResponseSchema.parse(response.data).data;
   }
 
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {
@@ -311,6 +320,43 @@ export class ApiReportsRepository implements ReportsRepository {
     const response = await this.client.post(
       `/api/v1/reports/${encodeURIComponent(reportId)}/referral/response`,
       payload,
+    );
+
+    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async recordExpertFinding(
+    reportId: string,
+    input: ExpertFindingInput,
+  ): Promise<DiseaseReport> {
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/finding`,
+      {
+        condition_opinion: input.conditionOpinion,
+        symptom_verdicts: input.symptomVerdicts,
+        basis: input.basis?.trim() || null,
+        confidence: input.confidence,
+        recommendation: input.recommendation?.trim() || null,
+        consult_status: input.consultStatus,
+        response_date: input.responseDate,
+        expected_version: input.expectedVersion,
+      },
+    );
+
+    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async confirmExpertReferral(
+    reportId: string,
+    input: ConfirmExpertReferralInput,
+  ): Promise<DiseaseReport> {
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/confirm`,
+      {
+        consult_review_outcome: input.consultReviewOutcome,
+        consult_review_note: input.consultReviewNote?.trim() || null,
+        expected_version: input.expectedVersion,
+      },
     );
 
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);

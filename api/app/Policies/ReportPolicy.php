@@ -82,9 +82,26 @@ class ReportPolicy
 
     private function hasAssignedConsult(User $user, Report $report): bool
     {
-        return $user->isExpert()
-            && $report->referrals()
-                ->where('expert_id', $user->getKey())
-                ->exists();
+        if (! $user->isExpert()) {
+            return false;
+        }
+
+        $accessCutoff = now()->subDays(
+            (int) config('caneguard.expert_consult_access_days', 14),
+        );
+
+        return $report->referrals()
+            ->where('expert_id', $user->getKey())
+            ->where(function ($query) use ($accessCutoff): void {
+                $query
+                    ->whereIn('consult_status', ReportReferral::activeStatuses())
+                    ->orWhere(function ($completed) use ($accessCutoff): void {
+                        $completed
+                            ->where('consult_status', ReportReferral::STATUS_COMPLETED)
+                            ->whereNotNull('finding_recorded_at')
+                            ->where('finding_recorded_at', '>=', $accessCutoff);
+                    });
+            })
+            ->exists();
     }
 }

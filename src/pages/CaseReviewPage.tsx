@@ -60,6 +60,7 @@ import { legacyLifecycleForReviewStatus } from "../data/api/mappers/lifecycle.ma
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
   useAdvisories,
+  useExpertDirectory,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useUnlinkDuplicateReport,
@@ -516,6 +517,7 @@ export function CaseReviewPage() {
   const [referralReference, setReferralReference] = useState("");
   const [referralDate, setReferralDate] = useState("");
   const [referralDueDate, setReferralDueDate] = useState("");
+  const [referralExpertUuid, setReferralExpertUuid] = useState<string | null>(null);
   const [referralExpertName, setReferralExpertName] = useState("");
   const [referralExpertContact, setReferralExpertContact] = useState("");
   const [referralNote, setReferralNote] = useState("");
@@ -545,6 +547,7 @@ export function CaseReviewPage() {
   const reportQuery = useReport(reportId);
   const possibleMatchesQuery = usePossibleRecentMatches(reportId);
   const fieldReportersQuery = useFieldReporters();
+  const expertDirectoryQuery = useExpertDirectory();
   const advisoriesQuery = useAdvisories();
   const reviewMutation = useUpdateReportReview(reportId);
   const duplicateLinkMutation = useLinkDuplicateReport(reportId);
@@ -557,6 +560,8 @@ export function CaseReviewPage() {
     ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus)
     : undefined;
   const referralPending = lifecycle?.referralState === "referred";
+  const proposalNeedsDecision = report?.referral?.status === "completed"
+    && !report.referral.consultReviewOutcome;
   const notes = notesOverride ?? report?.reviewNotes ?? "";
   const selectedNextAction = nextActionTouched
     ? nextActionOverride
@@ -621,7 +626,9 @@ export function CaseReviewPage() {
       ? "Add the referral reference."
       : !referralDate
         ? "Add the referral date."
-        : null;
+        : !referralExpertUuid && !referralExpertName.trim()
+          ? "Select an in-system expert or enter an external expert name."
+          : null;
   const referralFieldError = referralSubmitted && referralNeeded ? referralInputError : null;
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
   const visibleHistory = historyFilter === "all"
@@ -710,6 +717,12 @@ export function CaseReviewPage() {
     validationErrors.push({
       id: "referral-destination",
       message: referralInputError,
+    });
+  }
+  if (submitted && !referralNeeded && proposalNeedsDecision) {
+    validationErrors.push({
+      id: "expert-proposal-decision",
+      message: "Accept or override the completed expert proposal before saving this review.",
     });
   }
 
@@ -848,7 +861,7 @@ export function CaseReviewPage() {
   const saveReview = async () => {
     setSubmitted(true);
     setReferralSubmitted(true);
-    if (report?.reviewVersion === undefined) return;
+    if (report?.reviewVersion === undefined || proposalNeedsDecision) return;
 
     if (referralNeeded) {
       // The referral endpoint records the handoff, the visible Staff-Classified
@@ -861,6 +874,7 @@ export function CaseReviewPage() {
           reference: referralReference,
           referralDate,
           ...(referralDueDate ? { dueDate: referralDueDate } : {}),
+          ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
           ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
           ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
           note: referralNote,
@@ -1249,8 +1263,30 @@ export function CaseReviewPage() {
                     }}
                   />
                 </label>
+                <SelectFilter
+                  id="referral-expert"
+                  label="In-system expert (optional)"
+                  value={referralExpertUuid ?? ""}
+                  onChange={(event) => {
+                    setReferralExpertUuid(event.target.value || null);
+                    setReferralSubmitted(false);
+                    recordReferral.reset();
+                  }}
+                >
+                  <option value="">Choose an in-system expert or use the external path below</option>
+                  {(expertDirectoryQuery.data ?? []).map((expert) => (
+                    <option value={expert.uuid} key={expert.uuid}>
+                      {expert.name} ({expert.email})
+                    </option>
+                  ))}
+                </SelectFilter>
+                {expertDirectoryQuery.isError ? (
+                  <p className="form-error" role="alert">
+                    In-system experts could not be loaded. You can still enter an external expert name.
+                  </p>
+                ) : null}
                 <label className="select-filter" htmlFor="referral-expert-name">
-                  <span>Expert name (optional)</span>
+                  <span>External expert name (optional)</span>
                   <input
                     id="referral-expert-name"
                     maxLength={160}
@@ -1332,6 +1368,11 @@ export function CaseReviewPage() {
             <div className="scan-hero__commit-row">
               {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
               {referralRecordError ? <p className="form-error" role="alert">{referralRecordError}</p> : null}
+              {proposalNeedsDecision ? (
+                <p id="expert-proposal-decision" className="form-error" role="alert">
+                  Accept or override the completed expert proposal before saving this review.
+                </p>
+              ) : null}
               {conflict ? (
                 <div className="review-conflict" role="alert">
                   <p>This report changed after you opened it. Refresh before saving again.</p>
@@ -1346,7 +1387,7 @@ export function CaseReviewPage() {
               <Button
                 type="button"
                 icon={<Save aria-hidden="true" />}
-                disabled={reviewMutation.isPending || recordReferral.isPending}
+                disabled={reviewMutation.isPending || recordReferral.isPending || proposalNeedsDecision}
                 onClick={saveReview}
               >
                 {reviewMutation.isPending || recordReferral.isPending ? "Saving review..." : referralNeeded ? "Save referral" : "Save review"}

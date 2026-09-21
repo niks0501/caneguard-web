@@ -15,6 +15,8 @@ import {
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
   useAdvisories,
+  useConfirmExpertReferral,
+  useExpertDirectory,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useUnlinkDuplicateReport,
@@ -27,6 +29,8 @@ import { CaseReviewPage } from "./CaseReviewPage";
 
 vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),
+  useConfirmExpertReferral: vi.fn(),
+  useExpertDirectory: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
   useUnlinkDuplicateReport: vi.fn(),
@@ -154,6 +158,8 @@ function renderPage() {
 
 beforeEach(() => {
   vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
+  vi.mocked(useConfirmExpertReferral).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useConfirmExpertReferral>);
+  vi.mocked(useExpertDirectory).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useExpertDirectory>);
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
   vi.mocked(useRecordExpertReferralResponse).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useRecordExpertReferralResponse>);
@@ -871,6 +877,7 @@ describe("CaseReviewPage", () => {
     await user.type(screen.getByLabelText("Expert destination"), " Regional office ");
     await user.type(screen.getByLabelText("Referral reference"), " SRA-2026-0042 ");
     await user.type(screen.getByLabelText("Referral date"), "2026-09-04");
+    await user.type(screen.getByLabelText("External expert name (optional)"), " Dr. External Expert ");
     await user.type(screen.getByLabelText(/Referral note \(optional\)/), " Review the mismatch. ");
     await user.click(screen.getByRole("button", { name: "Save referral" }));
 
@@ -880,6 +887,7 @@ describe("CaseReviewPage", () => {
       destination: " Regional office ",
       reference: " SRA-2026-0042 ",
       referralDate: "2026-09-04",
+      expertName: " Dr. External Expert ",
       note: " Review the mismatch. ",
       authorityClassifiedCondition: null,
       verificationOutcome: undefined,
@@ -889,6 +897,32 @@ describe("CaseReviewPage", () => {
     expect(
       await screen.findByText("Returned to report queue"),
     ).toBeInTheDocument();
+  });
+
+  it("assigns an in-system expert from the directory", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(referredReport);
+    vi.mocked(useExpertDirectory).mockReturnValue({
+      data: [{ uuid: "expert-uuid", name: "Dr. Ada Expert", email: "ada@example.test" }],
+      isError: false,
+    } as unknown as ReturnType<typeof useExpertDirectory>);
+    vi.mocked(useRecordReportReferral).mockReturnValue(
+      referralMutationResult({ mutateAsync }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
+    await user.type(screen.getByLabelText("Expert destination"), " Regional office ");
+    await user.type(screen.getByLabelText("Referral reference"), " SRA-2026-0042 ");
+    await user.type(screen.getByLabelText("Referral date"), "2026-09-04");
+    await user.selectOptions(screen.getByLabelText("In-system expert (optional)"), "expert-uuid");
+    await user.click(screen.getByRole("button", { name: "Save referral" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      expertUuid: "expert-uuid",
+      expectedVersion: report.reviewVersion,
+    }));
+    expect(mutateAsync.mock.calls[0][0]).not.toHaveProperty("expertName");
   });
 
   it.each([
@@ -906,6 +940,34 @@ describe("CaseReviewPage", () => {
     expect(screen.getByLabelText("Expert destination")).toBeInTheDocument();
     expect(screen.getByLabelText("Referral reference")).toBeInTheDocument();
     expect(screen.getByLabelText("Referral date")).toBeInTheDocument();
+  });
+
+  it("requires an explicit office decision before saving a completed expert proposal", async () => {
+    const user = userEvent.setup();
+    const completedProposal = {
+      ...reportAfterTerminalConsult("completed", "expert_response_received"),
+      referral: {
+        ...reportAfterTerminalConsult("completed", "expert_response_received").referral!,
+        conditionOpinion: "smut" as const,
+        findingDetails: "The evidence supports smut.",
+        findingConfidence: "high" as const,
+        findingRecommendation: "Inspect adjacent rows.",
+      },
+    };
+    const mutateAsync = vi.fn().mockResolvedValue(completedProposal);
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: completedProposal }));
+    vi.mocked(useConfirmExpertReferral).mockReturnValue(
+      referralMutationResult({ mutateAsync }) as unknown as ReturnType<typeof useConfirmExpertReferral>,
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    expect(screen.getByRole("button", { name: "Save review" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Accept proposal" }));
+    expect(mutateAsync).toHaveBeenCalledWith({
+      consultReviewOutcome: "accepted",
+      expectedVersion: completedProposal.reviewVersion,
+    });
   });
 
   it("records an expert response without closing the case", async () => {
