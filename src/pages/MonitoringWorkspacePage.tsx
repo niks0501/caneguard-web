@@ -32,11 +32,7 @@ export function MonitoringWorkspacePage() {
 
   return (
     <PageContent>
-      <PageHeader
-        eyebrow="Office monitoring"
-        title="Monitoring workspace"
-        description="Move between the case register, visit schedule, location map, and Field Operations planner without leaving the monitoring workspace."
-      />
+      <PageHeader title="Monitoring workspace" />
       <nav className="monitoring-workspace-tabs" aria-label="Monitoring workspace views">
         <span className="monitoring-workspace-tabs__label">Workspace views</span>
         {views.map(({ key, label, icon }) => (
