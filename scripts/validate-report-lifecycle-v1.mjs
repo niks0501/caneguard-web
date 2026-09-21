@@ -28,7 +28,7 @@ const LEGACY_STATUSES = [
   'unknown',
 ];
 const PAYLOAD_CONTRACTS = [
-  'mobile-report-upload-v1',
+  'mobile-report-upload-v2',
   'mobile-field-validation-assignment-v1',
   'mobile-field-validation-completion-v1',
   'mobile-notifications-v1',

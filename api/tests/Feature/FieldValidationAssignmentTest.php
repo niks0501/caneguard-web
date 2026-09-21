@@ -596,6 +596,40 @@ class FieldValidationAssignmentTest extends TestCase
         $this->assertDatabaseCount('field_validation_completions', 0);
     }
 
+    public function test_completion_accepts_contract_iso_date_time_forms(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+
+        foreach ([
+            ['visited_at' => '2026-09-02T04:05:06Z', 'gps_attempted_at' => '2026-09-02T04:05:01Z'],
+            ['visited_at' => '2026-09-02T04:05:06.1Z', 'gps_attempted_at' => '2026-09-02T04:05:01.123456Z'],
+            ['visited_at' => '2026-09-02T04:05:06+08:00', 'gps_attempted_at' => '2026-09-02T04:05:01+08:00'],
+        ] as $timestamps) {
+            $report = Report::factory()->create([
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            ]);
+            $assignment = FieldValidationAssignment::factory()->create([
+                'report_id' => $report->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+            ]);
+
+            $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+                'client_uuid' => fake()->uuid(),
+                'field_observation' => 'Observation',
+                'field_finding' => 'Finding',
+                'action_taken' => 'Action',
+                'visited_at' => $timestamps['visited_at'],
+                'gps_outcome' => 'unavailable',
+                'gps_attempted_at' => $timestamps['gps_attempted_at'],
+            ])->assertCreated();
+        }
+
+        $this->assertDatabaseCount('field_validation_completions', 3);
+    }
+
     public function test_completion_requires_all_field_evidence_but_allows_an_unavailable_gps_attempt_and_no_photo(): void
     {
         $reviewer = User::factory()->reviewer()->create();

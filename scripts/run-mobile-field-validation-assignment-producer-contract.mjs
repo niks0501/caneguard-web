@@ -59,14 +59,9 @@ async function main() {
 }
 
 function producerArtifact(definition) {
-  // The v1 assignment response may gain optional fields without requiring an
-  // older Mobile producer fixture to declare them. Keep the producer check
-  // focused on the fields that the pinned producer is required to parse.
-  const fields = Object.fromEntries(
-    Object.entries(definition.fields)
-      .filter(([name]) => name !== 'previous_visit'),
-  );
-  return { ...definition, fields };
+  // The pinned Mobile producer consumes the optional previous-visit context,
+  // so evaluate it against the complete Web-owned assignment artifact.
+  return definition;
 }
 
 async function assertMobileCheckout(directory, expectedRef) {

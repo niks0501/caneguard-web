@@ -4,6 +4,7 @@ import {
   ITEM_FIELDS,
   validateMobileFieldValidationAssignmentArtifact,
 } from './validate-mobile-field-validation-assignment-v1.mjs';
+import { producerArtifact } from './run-mobile-field-validation-assignment-producer-contract.mjs';
 
 function artifact() {
   return {
@@ -49,6 +50,12 @@ test('accepts the assignment artifact shape', () => {
     Object.keys(validateMobileFieldValidationAssignmentArtifact(artifact()).fields),
     ITEM_FIELDS,
   );
+});
+
+test('keeps optional previous-visit context in the current producer gate', () => {
+  const definition = artifact();
+  assert.equal(producerArtifact(definition), definition);
+  assert.ok('previous_visit' in producerArtifact(definition).fields);
 });
 
 test('rejects a changed owner-scoped endpoint', () => {
