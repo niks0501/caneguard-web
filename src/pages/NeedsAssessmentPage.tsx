@@ -84,7 +84,7 @@ export function NeedsAssessmentPage() {
   return (
     <PageContent>
       <PageHeader
-        eyebrow="Outcome triage"
+        eyebrow="To check"
         title="Needs assessment"
         description="Review the outcome of completed field visits, focus attention on Worsened and Unable to determine, and hand open visits to the Field Operations planner."
         actions={(
@@ -94,7 +94,7 @@ export function NeedsAssessmentPage() {
             disabled={assessmentQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching}
             onClick={() => void Promise.all([assessmentQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
           >
-            {assessmentQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching ? "Refreshing triage" : "Refresh triage"}
+            {assessmentQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching ? "Refreshing" : "Refresh"}
           </Button>
         )}
       />
@@ -103,9 +103,9 @@ export function NeedsAssessmentPage() {
         <div className="needs-assessment-summary__attention"><TriangleAlert aria-hidden="true" /><strong>{attention.length}</strong><span>Needs attention</span></div>
         <div className="needs-assessment-summary__overdue"><RefreshCw aria-hidden="true" /><strong>{overdue.length}</strong><span>Overdue visits</span></div>
       </div>
-      {assessmentQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError ? <p className="queue-refresh-warning" role="alert">The latest triage refresh failed. Showing the most recently loaded results.</p> : null}
-      {isLoading && !assessmentQuery.data ? <LoadingState message="Loading outcome triage..." /> : null}
-      {hasInitialError ? <ErrorState message="Outcome triage could not be loaded. Please try again." onRetry={() => void Promise.all([assessmentQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])} /> : null}
+      {assessmentQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError ? <p className="queue-refresh-warning" role="alert">New updates could not load. Showing the list from before.</p> : null}
+      {isLoading && !assessmentQuery.data ? <LoadingState message="Loading..." /> : null}
+      {hasInitialError ? <ErrorState message="This list could not be loaded. Please try again." onRetry={() => void Promise.all([assessmentQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])} /> : null}
       {!hasInitialError && assessmentQuery.data && visitQuery.data ? (
         <>
           <ReportSection title="Needs assessment" description="Completed visits are ready for an office decision; unassigned open visits can be handed to the planner from here." reports={reports} empty="No completed field visits or unassigned visits are waiting for assessment." />
