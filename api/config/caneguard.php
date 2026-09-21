@@ -34,6 +34,10 @@ return [
     'security_audit' => [
         'retention_days' => (int) env('CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS', 2555),
     ],
+    'expert_consult_access_days' => max(
+        0,
+        (int) env('CANEGUARD_EXPERT_CONSULT_ACCESS_DAYS', 14),
+    ),
     'rate_limits' => [
         'login' => [
             'per_email_ip_per_minute' => max(

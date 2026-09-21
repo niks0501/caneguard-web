@@ -7,8 +7,10 @@ use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
 use App\Notifications\ExpertReferralAssignedNotification;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -86,6 +88,72 @@ class ExpertAuthorizationTest extends TestCase
             ->assertForbidden();
         $this->getJson("/api/v1/reports/{$unassigned->uuid}")
             ->assertForbidden();
+    }
+
+    public function test_expert_access_ends_after_the_configured_consult_window(): void
+    {
+        Storage::fake('local');
+        CarbonImmutable::setTestNow('2026-09-20 09:00:00');
+
+        try {
+            $expert = User::factory()->expert()->create();
+            $reviewer = User::factory()->reviewer()->create();
+            $assigned = ReportReferral::factory()->assignedToExpert($expert)->create();
+            $report = $assigned->report;
+            Storage::disk('local')->put($report->image_path, 'primary evidence');
+            Sanctum::actingAs($expert);
+
+            foreach ([
+                "/api/v1/reports/{$report->uuid}",
+                "/api/v1/reports/{$report->uuid}/image",
+                "/api/v1/reports/{$report->uuid}/referral/summary",
+            ] as $path) {
+                $this->getJson($path)->assertOk();
+            }
+
+            $assigned->update([
+                'consult_status' => ReportReferral::STATUS_COMPLETED,
+                'finding_summary' => 'The expert proposal.',
+                'finding_recorded_by_id' => $expert->getKey(),
+                'finding_recorded_at' => now()->utc(),
+                'response_date' => now()->toDateString(),
+            ]);
+
+            $assigned->update(['consult_status' => ReportReferral::STATUS_CANCELLED]);
+            CarbonImmutable::setTestNow('2026-09-21 09:00:00');
+            Sanctum::actingAs($expert);
+            $this->getJson("/api/v1/reports/{$report->uuid}")->assertForbidden();
+
+            $assigned->update(['consult_status' => ReportReferral::STATUS_COMPLETED]);
+            CarbonImmutable::setTestNow('2026-10-01 09:00:00');
+            Sanctum::actingAs($expert);
+            foreach ([
+                "/api/v1/reports/{$report->uuid}",
+                "/api/v1/reports/{$report->uuid}/image",
+                "/api/v1/reports/{$report->uuid}/referral/summary",
+            ] as $path) {
+                $this->getJson($path)->assertOk();
+            }
+
+            CarbonImmutable::setTestNow('2026-10-05 09:00:00');
+            foreach ([
+                "/api/v1/reports/{$report->uuid}",
+                "/api/v1/reports/{$report->uuid}/image",
+                "/api/v1/reports/{$report->uuid}/referral/summary",
+            ] as $path) {
+                $this->getJson($path)->assertForbidden();
+            }
+
+            Sanctum::actingAs($reviewer);
+            $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk();
+            $this->getJson("/api/v1/reports/{$report->uuid}/referral/summary")->assertOk();
+
+            $assigned->update(['consult_status' => ReportReferral::STATUS_CANCELLED]);
+            Sanctum::actingAs($expert);
+            $this->getJson("/api/v1/reports/{$report->uuid}")->assertForbidden();
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_expert_cannot_use_office_report_routes_or_review_a_case(): void
