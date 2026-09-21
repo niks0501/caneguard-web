@@ -58,4 +58,14 @@ class ReportLifecycleContractTest extends TestCase
         $this->assertSame(['reviewer', 'admin'], $rules['final_disposition_roles']);
         $this->assertSame('decision_support_only', $rules['ai_evidence_role']);
     }
+
+    public function test_lifecycle_payload_contracts_follow_the_current_mobile_transport(): void
+    {
+        $this->assertSame([
+            'mobile-report-upload-v2',
+            'mobile-field-validation-assignment-v1',
+            'mobile-field-validation-completion-v1',
+            'mobile-notifications-v1',
+        ], ReportLifecycleContract::definition()['payload_contracts']);
+    }
 }

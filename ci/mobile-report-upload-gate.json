@@ -1,6 +1,6 @@
 {
   "mobile_repository": "niks0501/caneguard-mobile",
-  "mobile_ref": "4cdb7427b75a2cf85bb6be90d8e88052d6eb3b4f",
+  "mobile_ref": "cc06cbf7c8c02751d88f22258abff2d49dd14ec3",
   "artifact_path": "docs/contracts/mobile-report-upload-v2.json",
   "producer_test_path": "src/features/sync/mappers/__tests__/reportMultipartMapper.contract.test.ts",
   "assignment_artifact_path": "docs/contracts/mobile-field-validation-assignment-v1.json",

@@ -67,17 +67,27 @@ class MobileFieldValidationCompletionRequest extends ApiFormRequest
         });
     }
 
+    /**
+     * Keep the contract's ISO-8601 range broader than the current Mobile
+     * serializer, while still rejecting impossible calendar dates.
+     */
     private function isDateTime(string $value): bool
     {
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/', $value)) {
+        if (preg_match(
+            '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D',
+            $value,
+        ) !== 1) {
             return false;
         }
 
-        $normalized = substr($value, 0, -1).'+00:00';
-        $parsed = DateTimeImmutable::createFromFormat(
-            '!Y-m-d\\TH:i:s.vP',
-            $normalized,
-        );
+        $hasFraction = str_contains($value, '.');
+        $format = $hasFraction
+            ? '!Y-m-d\\TH:i:s.uP'
+            : '!Y-m-d\\TH:i:sP';
+        $normalized = str_ends_with($value, 'Z')
+            ? substr($value, 0, -1).'+00:00'
+            : $value;
+        $parsed = DateTimeImmutable::createFromFormat($format, $normalized);
         $errors = DateTimeImmutable::getLastErrors();
 
         return $parsed !== false
