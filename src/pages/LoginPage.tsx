@@ -43,7 +43,7 @@ export function LoginPage() {
 
   if (auth.status === "loading") {
     return (
-      <main className="login-page">
+      <main className="login-page login-page--portal">
         <LoadingState message="Checking your CaneGuard session..." />
       </main>
     );
@@ -98,7 +98,48 @@ export function LoginPage() {
         : null;
 
   return (
-    <main className="login-page">
+    <main className="login-page login-page--portal">
+      <aside className="login-visual" aria-label="CaneGuard decision support">
+        <div className="login-visual__header">
+          <span className="login-visual__badge">
+            <span className="login-visual__badge-dot" aria-hidden="true" />
+            SRA Don Pedro Mill District
+          </span>
+          <span className="login-visual__meta">District 04 • Western Batangas</span>
+        </div>
+
+        <div className="login-visual__hero">
+          <div className="login-visual__hero-frame">
+            <img
+              src={caneGuardLogoFlatOnDark}
+              alt="CaneGuard"
+              className="login-visual__hero-logo"
+            />
+          </div>
+          <p className="login-visual__tagline">
+            Sugarcane monitoring &amp; field verification
+          </p>
+          <p className="login-visual__mission">
+            Official operational portal for field inspection review, disease triage, and grower case validation.
+          </p>
+        </div>
+
+        <div className="login-visual__pillars" aria-label="Operational jurisdiction and status">
+          <div className="login-visual__pillar">
+            <span className="login-visual__pillar-label">Jurisdiction</span>
+            <span className="login-visual__pillar-value">Don Pedro Mill District</span>
+          </div>
+          <div className="login-visual__pillar">
+            <span className="login-visual__pillar-label">Surveillance</span>
+            <span className="login-visual__pillar-value">Active Season 2026</span>
+          </div>
+          <div className="login-visual__pillar">
+            <span className="login-visual__pillar-label">Security</span>
+            <span className="login-visual__pillar-value">Role-Governed Access</span>
+          </div>
+        </div>
+      </aside>
+
       <section className="login-panel" aria-labelledby="login-heading">
         <div className="login-brand login-brand--hero">
           <img
@@ -106,6 +147,10 @@ export function LoginPage() {
             alt="CaneGuard"
             className="login-brand__logo"
           />
+        </div>
+
+        <div className="login-card__header">
+          <span className="login-card__badge">Staff Portal</span>
         </div>
 
         <div className="login-copy">
@@ -181,19 +226,6 @@ export function LoginPage() {
           Field inspector? <Link to={routes.register}>Create an account</Link>
         </p>
       </section>
-
-      <aside className="login-visual" aria-label="CaneGuard decision support">
-        <div className="login-visual__hero">
-          <img
-            src={caneGuardLogoFlatOnDark}
-            alt="CaneGuard"
-            className="login-visual__hero-logo"
-          />
-          <p className="login-visual__tagline">
-            Sugarcane monitoring &amp; field verification
-          </p>
-        </div>
-      </aside>
     </main>
   );
 }
