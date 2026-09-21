@@ -214,6 +214,61 @@ class ReportReferralTest extends TestCase
         $this->assertDatabaseCount('report_referrals', 2);
     }
 
+    public function test_review_form_records_a_repeat_referral_after_a_completed_consult(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+        $this->recordReferral($report);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'response_date' => '2026-09-20',
+            'response_finding' => 'The first consult is complete.',
+            'expected_version' => 1,
+        ])->assertOk();
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+            'referral_destination' => 'Replacement expert office',
+            'referral_reference' => 'CONSULT-REVIEW-COMPLETED',
+            'referral_date' => '2026-09-21',
+            'expected_version' => 2,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_PENDING)
+            ->assertJsonPath('data.referral.reference', 'CONSULT-REVIEW-COMPLETED')
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_REFERRED);
+
+        $this->assertDatabaseCount('report_referrals', 2);
+    }
+
+    public function test_review_form_records_a_repeat_referral_after_a_cancelled_consult(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+        $this->recordReferral($report);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'status' => ReportReferral::STATUS_CANCELLED,
+            'expected_version' => 1,
+        ])->assertOk();
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+            'referral_destination' => 'Replacement expert office',
+            'referral_reference' => 'CONSULT-REVIEW-CANCELLED',
+            'referral_date' => '2026-09-21',
+            'expected_version' => 2,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.status', ReportReferral::STATUS_PENDING)
+            ->assertJsonPath('data.referral.reference', 'CONSULT-REVIEW-CANCELLED')
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_REFERRED);
+
+        $this->assertDatabaseCount('report_referrals', 2);
+    }
+
     public function test_consult_findings_do_not_change_the_reviewer_owned_disposition(): void
     {
         $reviewer = User::factory()->reviewer()->create();

@@ -66,6 +66,25 @@ const referredReport = mapReportDetail(
   }).data,
 );
 
+function reportAfterTerminalConsult(
+  status: "completed" | "cancelled",
+  referralState: "expert_response_received" | "not_referred",
+) {
+  return {
+    ...referredReport,
+    lifecycle: { ...referredReport.lifecycle!, referralState },
+    referral: { ...referredReport.referral!, status },
+    consults: [{
+      id: status === "completed" ? 1 : 2,
+      status,
+      destination: referredReport.referral!.destination,
+      reference: referredReport.referral!.reference,
+      referralDate: referredReport.referral!.referralDate,
+      responseDate: status === "completed" ? "2026-09-08" : null,
+    }],
+  };
+}
+
 function queryResult(overrides: Record<string, unknown> = {}) {
   return {
     data: report,
@@ -830,6 +849,23 @@ describe("CaseReviewPage", () => {
     expect(
       await screen.findByText("Returned to report queue"),
     ).toBeInTheDocument();
+  });
+
+  it.each([
+    ["completed", "expert_response_received"],
+    ["cancelled", "not_referred"],
+  ] as const)("shows referral fields again after a %s consult", (status, referralState) => {
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({
+        data: reportAfterTerminalConsult(status, referralState),
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByRole("radio", { name: /Refer to expert/ })).toBeChecked();
+    expect(screen.getByLabelText("Expert destination")).toBeInTheDocument();
+    expect(screen.getByLabelText("Referral reference")).toBeInTheDocument();
+    expect(screen.getByLabelText("Referral date")).toBeInTheDocument();
   });
 
   it("records an expert response without closing the case", async () => {

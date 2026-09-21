@@ -373,8 +373,13 @@ class ReviewReportController extends Controller
 
     private function isNewReferral(Report $report, array $data): bool
     {
-        return ($data['action_taken'] ?? null) === Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION
-            && $report->lifecycleSnapshot()['referral_state'] === Report::REFERRAL_STATE_NOT_REFERRED;
+        if (($data['action_taken'] ?? null) !== Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION) {
+            return false;
+        }
+
+        return ! $report->referrals()
+            ->whereIn('consult_status', ReportReferral::activeStatuses())
+            ->exists();
     }
 
     /**
