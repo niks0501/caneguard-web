@@ -158,9 +158,21 @@ return Application::configure(basePath: dirname(__DIR__))
                     : ['The request could not be processed.', 'HTTP_ERROR'],
             };
 
+            $payload = ['message' => $message, 'code' => $code];
+            $path = $request->path();
+            $clientUuid = $request->input('client_uuid');
+
+            if (
+                $status === 409
+                && in_array($path, ['api/v1/mobile/reports', 'api/v2/mobile/reports'], true)
+                && is_string($clientUuid)
+            ) {
+                $payload['client_uuid'] = $clientUuid;
+            }
+
             return $respond(
                 $request,
-                ['message' => $message, 'code' => $code],
+                $payload,
                 $status,
                 $exception->getHeaders(),
             );
