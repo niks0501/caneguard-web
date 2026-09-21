@@ -46,6 +46,7 @@ import {
   type ActionTaken,
   type AuthorityClassifiedCondition,
   type CaseState,
+  type ConsultStatus,
   type DiseaseReport,
   type FieldValidationState,
   type ReferralState,
@@ -594,7 +595,7 @@ export function CaseReviewPage() {
     selectedNextAction === "needs_field_validation" && !fieldValidationActive;
   const referralNeeded =
     selectedNextAction === "referred_for_expert_validation" &&
-    report !== undefined &&
+    report != null &&
     !hasActiveConsult(report);
   const closeCaseForNextAction =
     selectedNextAction === "no_further_action_required" &&
