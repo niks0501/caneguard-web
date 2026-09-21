@@ -17,11 +17,13 @@ import {
   useAdvisories,
   useConfirmExpertReferral,
   useExpertDirectory,
+  useIssueConsultInvite,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useUnlinkDuplicateReport,
   useRecordExpertReferralResponse,
   useRecordReportReferral,
+  useRevokeConsultInvite,
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
@@ -31,11 +33,13 @@ vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),
   useConfirmExpertReferral: vi.fn(),
   useExpertDirectory: vi.fn(),
+  useIssueConsultInvite: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
   useUnlinkDuplicateReport: vi.fn(),
   useRecordExpertReferralResponse: vi.fn(),
   useRecordReportReferral: vi.fn(),
+  useRevokeConsultInvite: vi.fn(),
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
 }));
@@ -159,10 +163,12 @@ function renderPage() {
 beforeEach(() => {
   vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
   vi.mocked(useConfirmExpertReferral).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useConfirmExpertReferral>);
+  vi.mocked(useIssueConsultInvite).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useIssueConsultInvite>);
   vi.mocked(useExpertDirectory).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useExpertDirectory>);
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
   vi.mocked(useRecordExpertReferralResponse).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useRecordExpertReferralResponse>);
+  vi.mocked(useRevokeConsultInvite).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useRevokeConsultInvite>);
   vi.mocked(useRecordReportReferral).mockReturnValue(referralMutationResult());
   vi.mocked(useReport).mockReturnValue(queryResult());
   vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult());

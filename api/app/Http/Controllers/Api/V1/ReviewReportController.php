@@ -48,6 +48,7 @@ class ReviewReportController extends Controller
                     ? trim((string) $data['expert_contact'])
                     : null,
                 'expert_uuid' => $data['expert_uuid'] ?? null,
+                'share_full_context' => $data['share_full_context'] ?? false,
                 'note' => isset($data['referral_note'])
                     ? trim((string) $data['referral_note'])
                     : null,

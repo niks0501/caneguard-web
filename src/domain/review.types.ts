@@ -36,6 +36,7 @@ export interface ReportReferralInput {
   expertUuid?: string | null;
   expertName?: string | null;
   expertContact?: string | null;
+  shareFullContext?: boolean;
   note?: string | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   verificationOutcome?: VerificationOutcome;
@@ -63,6 +64,17 @@ export interface ExpertFindingInput {
   consultStatus?: "in_progress" | "completed" | "cancelled";
   responseDate?: string | null;
   expectedVersion: number;
+}
+
+export interface ConsultInvite {
+  url: string;
+  photoUrl?: string;
+  consultId: number;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  accessCount: number;
+  shareFullContext: boolean;
 }
 
 export interface ConfirmExpertReferralInput {

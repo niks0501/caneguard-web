@@ -82,6 +82,9 @@ class ReportListResource extends JsonResource
         $daysUntilDue = $consult->due_date === null
             ? null
             : $today->diffInDays($consult->due_date->copy()->startOfDay(), false);
+        $daysOut = $consult->referral_date === null
+            ? null
+            : $consult->referral_date->copy()->startOfDay()->diffInDays($today, false);
 
         return [
             'id' => $consult->getKey(),
@@ -92,7 +95,9 @@ class ReportListResource extends JsonResource
                 'uuid' => $consult->expert->uuid,
                 'name' => $consult->expert->name,
             ] : null,
+            'expert_name' => $consult->expert?->name ?? $consult->expert_name,
             'days_until_due' => $daysUntilDue,
+            'days_out' => $daysOut,
             'overdue' => $daysUntilDue !== null && $daysUntilDue < 0,
             'age_label' => $daysUntilDue === null
                 ? 'No due date'

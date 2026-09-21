@@ -111,7 +111,9 @@ class AdvisorDemoSeederTest extends TestCase
         $this->getJson('/api/v1/reports/expert-queue')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.reference_code', 'DEMO-CG-04');
+            ->assertJsonPath('data.0.reference_code', 'DEMO-CG-04')
+            ->assertJsonPath('data.0.expert_consult.status', ReportReferral::STATUS_PENDING)
+            ->assertJsonPath('data.0.expert_consult.due_date', '2026-09-26');
     }
 
     public function test_cleanup_removes_only_demo_rows_and_files(): void

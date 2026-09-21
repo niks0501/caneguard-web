@@ -68,6 +68,14 @@ class ExpertConsultController extends Controller
             'municipality' => $report->municipality,
             'province' => $report->province,
         ];
+        if ($consult->share_full_context) {
+            $location['latitude'] = $report->final_latitude === null
+                ? null
+                : (float) $report->final_latitude;
+            $location['longitude'] = $report->final_longitude === null
+                ? null
+                : (float) $report->final_longitude;
+        }
         $measurements = [
             'affected_area_hectares' => $report->affected_area_hectares === null
                 ? null
@@ -88,22 +96,27 @@ class ExpertConsultController extends Controller
             'reviewed_at' => $consult->office_reviewed_at?->utc()->toISOString(),
         ];
 
-        return [
-            'case' => [
-                'uuid' => $report->uuid,
-                'reference_code' => $report->reference_code,
-                'submitted_at' => $report->submitted_at->utc()->toISOString(),
-                'photo_url' => route('api.v1.reports.image', ['report' => $report->uuid]),
-                'reporter_observations' => $evidence,
-                'reporter_suspected_condition' => $report->reporter_suspected_condition,
-                'ai_possible_condition' => [
-                    'label' => $report->predicted_label,
-                    'predicted_label' => $report->predicted_label,
-                    'decision_support_label' => 'Decision-support only. This is not a diagnosis.',
-                ],
-                'location' => $location,
-                'measurements' => $measurements,
+        $case = [
+            'uuid' => $report->uuid,
+            'reference_code' => $report->reference_code,
+            'submitted_at' => $report->submitted_at->utc()->toISOString(),
+            'photo_url' => route('api.v1.reports.image', ['report' => $report->uuid]),
+            'reporter_observations' => $evidence,
+            'reporter_suspected_condition' => $report->reporter_suspected_condition,
+            'ai_possible_condition' => [
+                'label' => $report->predicted_label,
+                'predicted_label' => $report->predicted_label,
+                'decision_support_label' => 'Decision-support only. This is not a diagnosis.',
             ],
+            'location' => $location,
+            'measurements' => $measurements,
+        ];
+        if ($consult->share_full_context) {
+            $case['farmer_or_farm_owner_name'] = $report->farmer_or_farm_owner_name;
+        }
+
+        $payload = [
+            'case' => $case,
             // These top-level aliases keep the packet easy to consume for a
             // narrow workspace without making the office form reusable here.
             'reference_code' => $report->reference_code,
@@ -134,7 +147,13 @@ class ExpertConsultController extends Controller
             'question' => $consult->note,
             'prior_consults' => $priorConsults,
             'version' => $report->lock_version,
+            'share_full_context' => (bool) $consult->share_full_context,
         ];
+        if ($consult->share_full_context) {
+            $payload['farmer_or_farm_owner_name'] = $report->farmer_or_farm_owner_name;
+        }
+
+        return $payload;
     }
 
     /** @return array<string, mixed> */

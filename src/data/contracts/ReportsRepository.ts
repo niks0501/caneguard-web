@@ -9,6 +9,7 @@ import type {
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  ConsultInvite,
   ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
@@ -48,6 +49,11 @@ export interface ReportsRepository {
     reportId: string,
     input: ConfirmExpertReferralInput,
   ): Promise<DiseaseReport>;
+  issueConsultInvite(
+    reportId: string,
+    shareFullContext?: boolean,
+  ): Promise<ConsultInvite>;
+  revokeConsultInvite(reportId: string): Promise<ConsultInvite>;
   linkDuplicate(
     reportId: string,
     input: DuplicateLinkInput,

@@ -16,6 +16,8 @@ class ReferralSummaryResource extends JsonResource
         $referral = $report->referral;
         $lifecycle = $report->lifecycleSnapshot();
         $primaryImageAvailable = Storage::disk('local')->exists($report->image_path);
+        $redactPersonalContext = $request->user()?->isExpert()
+            && ! $referral->share_full_context;
 
         return [
             'case' => [
@@ -31,22 +33,26 @@ class ReferralSummaryResource extends JsonResource
                 'due_date' => $referral->due_date?->format('Y-m-d'),
                 'response_date' => $referral->response_date?->format('Y-m-d'),
             ],
-            'farmer_or_farm_reference' => $report->farmer_or_farm_owner_name,
-            'farmer_or_farm_owner_name' => $report->farmer_or_farm_owner_name,
-            'reporter' => [
-                'uuid' => $report->reporter->uuid,
-                'name' => $report->reporter->name,
-            ],
+            ...($redactPersonalContext ? [] : [
+                'farmer_or_farm_reference' => $report->farmer_or_farm_owner_name,
+                'farmer_or_farm_owner_name' => $report->farmer_or_farm_owner_name,
+                'reporter' => [
+                    'uuid' => $report->reporter->uuid,
+                    'name' => $report->reporter->name,
+                ],
+            ]),
             'location' => [
                 'barangay' => $report->barangay,
                 'municipality' => $report->municipality,
                 'province' => $report->province,
-                'latitude' => $report->final_latitude === null
-                    ? null
-                    : (float) $report->final_latitude,
-                'longitude' => $report->final_longitude === null
-                    ? null
-                    : (float) $report->final_longitude,
+                ...($redactPersonalContext ? [] : [
+                    'latitude' => $report->final_latitude === null
+                        ? null
+                        : (float) $report->final_latitude,
+                    'longitude' => $report->final_longitude === null
+                        ? null
+                        : (float) $report->final_longitude,
+                ]),
                 'source' => $report->location_source,
                 'gps_accuracy' => $report->gps_accuracy === null
                     ? null
@@ -120,6 +126,13 @@ class ReferralSummaryResource extends JsonResource
                 'due_date' => $referral->due_date?->format('Y-m-d'),
                 'expert_name' => $referral->expert_name,
                 'expert_contact' => $referral->expert_contact,
+                'share_full_context' => (bool) $referral->share_full_context,
+                'invite_issued_at' => $referral->invite_issued_at?->utc()->toISOString(),
+                'invite_expires_at' => $referral->invite_expires_at?->utc()->toISOString(),
+                'invite_revoked_at' => $referral->invite_revoked_at?->utc()->toISOString(),
+                'invite_access_count' => (int) $referral->invite_access_count,
+                'invite_first_accessed_at' => $referral->invite_first_accessed_at?->utc()->toISOString(),
+                'invite_last_accessed_at' => $referral->invite_last_accessed_at?->utc()->toISOString(),
                 'note' => $referral->note,
                 'response_date' => $referral->response_date?->format('Y-m-d'),
                 'response_note' => $referral->response_note,

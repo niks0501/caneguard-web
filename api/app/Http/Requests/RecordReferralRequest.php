@@ -86,6 +86,7 @@ class RecordReferralRequest extends ApiFormRequest
                 'required_without:expert_uuid',
             ],
             'expert_contact' => ['sometimes', 'nullable', 'string', 'max:320'],
+            'share_full_context' => ['sometimes', 'boolean'],
             'note' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'office_notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'authority_classified_condition' => [

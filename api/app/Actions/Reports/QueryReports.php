@@ -4,6 +4,7 @@ namespace App\Actions\Reports;
 
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
+use App\Models\ReportReferral;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -44,8 +45,11 @@ class QueryReports
 
         $this->applySort(
             $query,
-            (string) ($filters['sort'] ?? '-submitted_at'),
+            (string) ($filters['sort'] ?? (($filters['referral'] ?? null) === 'active'
+                ? 'due_soonest'
+                : '-submitted_at')),
             $calibration,
+            ($filters['referral'] ?? null) === 'active',
         );
 
         $paginator = $query
@@ -74,6 +78,7 @@ class QueryReports
         Builder $query,
         string $sort,
         ?array $calibration,
+        bool $referralActive = false,
     ): void {
         if ($calibration !== null && $calibration['enabled'] && $sort === 'submitted_at') {
             $this->applyTriageSort($query, $calibration);
@@ -82,20 +87,29 @@ class QueryReports
         }
 
         if ($sort === 'due_soonest') {
+            $dueSubquery = $referralActive
+                ? ReportReferral::query()
+                    ->selectRaw('report_id, MIN(due_date) as due_on')
+                    ->whereIn('consult_status', ReportReferral::activeStatuses())
+                    ->whereNotNull('due_date')
+                    ->groupBy('report_id')
+                : FieldValidationAssignment::query()
+                    ->selectRaw('report_id, MIN(target_visit_date) as due_on')
+                    ->whereNotNull('target_visit_date')
+                    ->groupBy('report_id');
+            $alias = $referralActive ? 'due_referrals' : 'due_assignments';
+
             $query
                 ->leftJoinSub(
-                    FieldValidationAssignment::query()
-                        ->selectRaw('report_id, MIN(target_visit_date) as due_on')
-                        ->whereNotNull('target_visit_date')
-                        ->groupBy('report_id'),
-                    'due_assignments',
-                    'due_assignments.report_id',
+                    $dueSubquery,
+                    $alias,
+                    $alias.'.report_id',
                     '=',
                     'reports.id',
                 )
                 ->select('reports.*')
-                ->orderByRaw('due_assignments.due_on is null')
-                ->orderBy('due_assignments.due_on')
+                ->orderByRaw($alias.'.due_on is null')
+                ->orderBy($alias.'.due_on')
                 ->orderBy('reports.submitted_at')
                 ->orderBy('reports.id');
 

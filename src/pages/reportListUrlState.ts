@@ -16,6 +16,7 @@ const statusSchema = z.enum([
   "resolved",
 ]);
 const queueSchema = z.enum(operationalQueueValues);
+const referralSchema = z.enum(["active"]);
 const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
 const sortSchema = z.enum(["newest", "oldest", "due_soonest"]);
 const caseStateSchema = z.enum(["open", "closed"]);
@@ -61,6 +62,7 @@ export function parseReportListUrl(
 ): ReportListUrlState {
   const rawPage = optionalValue(searchParams, "page");
   const rawQueue = optionalValue(searchParams, "queue");
+  const rawReferral = optionalValue(searchParams, "referral");
   const rawSearch = optionalValue(searchParams, "search");
   const rawStatus = optionalValue(searchParams, "status");
   const rawDisease = optionalValue(searchParams, "predicted_label");
@@ -87,6 +89,7 @@ export function parseReportListUrl(
   const page =
     rawPage && /^\d+$/.test(rawPage) ? Number.parseInt(rawPage, 10) : 1;
   const queue = rawQueue ? queueSchema.safeParse(rawQueue) : null;
+  const referral = rawReferral ? referralSchema.safeParse(rawReferral) : null;
   const status = rawStatus ? statusSchema.safeParse(rawStatus) : null;
   const disease = rawDisease ? diseaseSchema.safeParse(rawDisease) : null;
   const sort = rawSort ? sortSchema.safeParse(rawSort) : null;
@@ -116,6 +119,7 @@ export function parseReportListUrl(
     (rawSearch?.length ?? 0) > 120 ||
     (rawBarangay?.length ?? 0) > 120 ||
     Boolean(queue && !queue.success) ||
+    Boolean(referral && !referral.success) ||
     Boolean(status && !status.success) ||
     Boolean(disease && !disease.success) ||
     Boolean(sort && !sort.success) ||
@@ -135,6 +139,7 @@ export function parseReportListUrl(
       page,
       perPage: reportListPageSize,
       ...(queue?.success ? { queue: queue.data } : {}),
+      ...(referral?.success ? { referral: referral.data } : {}),
       search: rawSearch,
       status: status?.success
         ? (status.data as ReviewStatus)
@@ -162,12 +167,15 @@ export function parseReportListUrl(
       // opens on the nearest target visit date.
       sort: sort?.success
         ? sort.data
-        : queue?.success && queue.data === "follow_up_due"
+        : referral?.success && referral.data === "active"
           ? "due_soonest"
-          : "oldest",
+          : queue?.success && queue.data === "follow_up_due"
+            ? "due_soonest"
+            : "oldest",
     },
     hasActiveFilters: Boolean(
       rawQueue ||
+        rawReferral ||
         rawSearch ||
         rawStatus ||
         rawDisease ||

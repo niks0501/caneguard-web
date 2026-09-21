@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AdminUserRoleController;
 use App\Http\Controllers\Api\V1\AdvisoryController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\ConfirmExpertReferralController;
+use App\Http\Controllers\Api\V1\ConsultInviteController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\ExpertConsultController;
 use App\Http\Controllers\Api\V1\ExpertDirectoryController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\V1\ExpertReferralResponseController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldValidationPhotoController;
 use App\Http\Controllers\Api\V1\FieldValidationQueueController;
+use App\Http\Controllers\Api\V1\IssueConsultInviteController;
 use App\Http\Controllers\Api\V1\LinkDuplicateReportController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MapReportController;
@@ -35,6 +37,7 @@ use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReportReferralController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
+use App\Http\Controllers\Api\V1\RevokeConsultInviteController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
 use App\Http\Controllers\Auth\ChangeEmailController;
 use App\Http\Controllers\Auth\ChangePasswordController;
@@ -42,6 +45,13 @@ use App\Http\Controllers\Auth\DisableBiometricController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
+
+Route::get('/v1/consult-invites/{token}', ConsultInviteController::class)
+    ->middleware('signed')
+    ->name('api.v1.consult-invites.show');
+Route::get('/v1/consult-invites/{token}/image', [ConsultInviteController::class, 'image'])
+    ->middleware('signed')
+    ->name('api.v1.consult-invites.image');
 
 Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
     ->middleware('throttle:login');
@@ -100,6 +110,12 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::get('/reports/{report}/referral-summary', ReferralSummaryController::class)
         ->name('api.v1.reports.referral-summary');
     Route::post('/reports/{report}/referral', [ReportReferralController::class, 'store']);
+    Route::post('/reports/{report}/referral/invite', IssueConsultInviteController::class)
+        ->name('api.v1.reports.referral.invite');
+    Route::delete('/reports/{report}/referral/invite', RevokeConsultInviteController::class)
+        ->name('api.v1.reports.referral.invite.revoke');
+    Route::post('/reports/{report}/referral/invite/revoke', RevokeConsultInviteController::class)
+        ->name('api.v1.reports.referral.invite.revoke.post');
     Route::post('/reports/{report}/referral/finding', ExpertReferralFindingController::class)
         ->name('api.v1.reports.referral.finding');
     Route::post('/reports/{report}/referral/confirm', ConfirmExpertReferralController::class)

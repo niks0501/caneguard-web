@@ -38,6 +38,10 @@ return [
         0,
         (int) env('CANEGUARD_EXPERT_CONSULT_ACCESS_DAYS', 14),
     ),
+    'expert_consult_invite_days' => max(
+        1,
+        (int) env('CANEGUARD_EXPERT_CONSULT_INVITE_DAYS', 7),
+    ),
     'rate_limits' => [
         'login' => [
             'per_email_ip_per_minute' => max(

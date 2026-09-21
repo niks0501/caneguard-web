@@ -12,6 +12,7 @@ import type {
   ReportFilters,
 } from "../../domain/report.types";
 import type {
+  ConsultInvite,
   ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
@@ -54,6 +55,7 @@ function toQueryParams(
     page: includePagination ? filters.page : undefined,
     per_page: includePagination ? filters.perPage : undefined,
     queue: filters.queue,
+    referral: filters.referral,
     search: filters.search?.trim() || undefined,
     status:
       filters.status && filters.status !== "all" ? filters.status : undefined,
@@ -285,6 +287,9 @@ export class ApiReportsRepository implements ReportsRepository {
     if (input.expertContact !== undefined) {
       payload.expert_contact = input.expertContact?.trim() || null;
     }
+    if (input.shareFullContext !== undefined) {
+      payload.share_full_context = input.shareFullContext;
+    }
     if (input.authorityClassifiedCondition !== undefined) {
       payload.authority_classified_condition = input.authorityClassifiedCondition;
     }
@@ -370,6 +375,43 @@ export class ApiReportsRepository implements ReportsRepository {
     );
 
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async issueConsultInvite(
+    reportId: string,
+    shareFullContext?: boolean,
+  ): Promise<ConsultInvite> {
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/invite`,
+      shareFullContext === undefined ? undefined : { share_full_context: shareFullContext },
+    );
+    const data = response.data?.data;
+    return {
+      url: data.url,
+      photoUrl: data.photo_url,
+      consultId: data.consult_id,
+      issuedAt: data.issued_at ?? null,
+      expiresAt: data.expires_at ?? null,
+      revokedAt: data.revoked_at ?? null,
+      accessCount: data.access_count ?? 0,
+      shareFullContext: data.share_full_context ?? false,
+    };
+  }
+
+  async revokeConsultInvite(reportId: string): Promise<ConsultInvite> {
+    const response = await this.client.delete(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/invite`,
+    );
+    const data = response.data?.data;
+    return {
+      url: "",
+      consultId: data.consult_id,
+      issuedAt: data.issued_at ?? null,
+      expiresAt: data.expires_at ?? null,
+      revokedAt: data.revoked_at ?? null,
+      accessCount: data.access_count ?? 0,
+      shareFullContext: data.share_full_context ?? false,
+    };
   }
 
   async linkDuplicate(

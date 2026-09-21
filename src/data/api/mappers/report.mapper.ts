@@ -56,7 +56,9 @@ function mapExpertConsultSummary(dto: {
   referral_date: string | null;
   due_date: string | null;
   expert?: { uuid: string; name: string } | null;
+  expert_name?: string | null;
   days_until_due: number | null;
+  days_out: number | null;
   overdue: boolean;
   age_label: string;
 } | null | undefined): ExpertConsultSummary | null {
@@ -68,7 +70,9 @@ function mapExpertConsultSummary(dto: {
     referralDate: dto.referral_date,
     dueDate: dto.due_date,
     expert: dto.expert,
+    expertName: dto.expert_name ?? dto.expert?.name ?? null,
     daysUntilDue: dto.days_until_due,
+    daysOut: dto.days_out,
     overdue: dto.overdue,
     ageLabel: dto.age_label,
   };
@@ -337,6 +341,13 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
           dueDate: dto.referral.due_date,
           expertName: dto.referral.expert_name,
           expertContact: dto.referral.expert_contact,
+          shareFullContext: dto.referral.share_full_context ?? false,
+          inviteIssuedAt: dto.referral.invite_issued_at ?? null,
+          inviteExpiresAt: dto.referral.invite_expires_at ?? null,
+          inviteRevokedAt: dto.referral.invite_revoked_at ?? null,
+          inviteAccessCount: dto.referral.invite_access_count ?? 0,
+          inviteFirstAccessedAt: dto.referral.invite_first_accessed_at ?? null,
+          inviteLastAccessedAt: dto.referral.invite_last_accessed_at ?? null,
           note: dto.referral.note,
           responseDate: dto.referral.response_date,
           responseNote: dto.referral.response_note,
@@ -379,6 +390,13 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
       dueDate: consult.due_date,
       expertName: consult.expert_name,
       expertContact: consult.expert_contact,
+      shareFullContext: consult.share_full_context ?? false,
+      inviteIssuedAt: consult.invite_issued_at ?? null,
+      inviteExpiresAt: consult.invite_expires_at ?? null,
+      inviteRevokedAt: consult.invite_revoked_at ?? null,
+      inviteAccessCount: consult.invite_access_count ?? 0,
+      inviteFirstAccessedAt: consult.invite_first_accessed_at ?? null,
+      inviteLastAccessedAt: consult.invite_last_accessed_at ?? null,
       findingSummary: consult.finding_summary,
       conditionOpinion: consult.condition_opinion ?? null,
       symptomVerdicts: consult.symptom_verdicts ?? null,
