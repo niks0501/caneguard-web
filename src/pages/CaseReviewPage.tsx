@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -11,7 +11,6 @@ import {
   Link2,
   MapPin,
   MoreHorizontal,
-  Save,
   ScanLine,
   Smartphone,
 } from "lucide-react";
@@ -29,11 +28,16 @@ import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
 import { Button } from "../components/ui/Button";
 import { SelectFilter, TextArea } from "../components/ui/FormControls";
 import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/States";
+import { CappedDetailList } from "../components/ui/CappedDetailList";
+import { ClampedText } from "../components/ui/ClampedText";
+import { Modal } from "../components/ui/Modal";
+import { confirmDiscardUnsavedChanges } from "../components/ui/confirmDiscard";
 import {
   actionTakenLabels,
   activeAuthorityClassifiedConditions,
   authorityClassifiedConditionLabels,
   caseStateLabels,
+  diseaseLabels,
   fieldValidationStateLabels,
   followUpOutcomeLabels,
   imageStatusLabels,
@@ -540,7 +544,14 @@ export function CaseReviewPage() {
   const [duplicateLinkReason, setDuplicateLinkReason] = useState("");
   const [duplicateLinkSubmitted, setDuplicateLinkSubmitted] = useState(false);
   const [duplicateLinkNotice, setDuplicateLinkNotice] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [officeDecisionSubmitted, setOfficeDecisionSubmitted] = useState(false);
+  const [officeDecisionModalOpen, setOfficeDecisionModalOpen] = useState(false);
+  const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
+  const [referralModalOpen, setReferralModalOpen] = useState(false);
+  const [duplicateLinkModalOpen, setDuplicateLinkModalOpen] = useState(false);
+  const [metadataCorrectionModalOpen, setMetadataCorrectionModalOpen] = useState(false);
+  const [fieldValidationAssignSubmitted, setFieldValidationAssignSubmitted] = useState(false);
+  const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
   const [historyFilter, setHistoryFilter] = useState<"all" | CaseHistoryEntryType>("all");
@@ -686,45 +697,54 @@ export function CaseReviewPage() {
     metadataCorrections !== undefined ||
     advisoryUuidOverride !== undefined;
 
-  const errorSummaryRef = useRef<HTMLDivElement>(null);
+  const officeDecisionInvalid = officeDecisionSubmitted && (!hasReviewInput || noteError !== null);
 
-  const validationErrors: Array<{ id: string; message: string }> = [];
-  if (submitted && !referralNeeded && !hasReviewInput) {
-    validationErrors.push({
-      id: "review-next-action",
-      message: "Choose a next action or another review field before saving.",
-    });
-  }
-  if (submitted && !referralNeeded && fieldValidationError) {
-    validationErrors.push({
-      id: "field-validation-assignee",
-      message: fieldValidationError,
-    });
-  }
-  if (submitted && !referralNeeded && noteError) {
-    validationErrors.push({
-      id: "review-notes",
-      message: noteError,
-    });
-  }
-  if (submitted && !referralNeeded && correctionError) {
-    validationErrors.push({
-      id: "correction-reason",
-      message: correctionError,
-    });
-  }
-  if (submitted && referralNeeded && referralInputError) {
-    validationErrors.push({
-      id: "referral-destination",
-      message: referralInputError,
-    });
-  }
-  if (submitted && !referralNeeded && proposalNeedsDecision) {
-    validationErrors.push({
-      id: "expert-proposal-decision",
-      message: "Accept or override the completed expert proposal before saving this review.",
-    });
-  }
+  // Dirty signals per modal so Cancel, backdrop, and Escape all confirm
+  // before discarding an edited draft (the shared Modal guard covers
+  // backdrop/Escape/close-button; the guarded closers below cover Cancel).
+  const officeDecisionDirty = Boolean(
+    (notesOverride !== null && notesOverride !== (report?.reviewNotes ?? "")) ||
+    (authorityClassificationOverride !== undefined &&
+      authorityClassificationOverride !== (report?.authorityClassifiedCondition ?? null)) ||
+    (verificationOverride !== undefined &&
+      verificationOverride !== (lifecycle?.verificationOutcome ?? "")) ||
+    (advisoryUuidOverride !== undefined &&
+      advisoryUuidOverride !== (report?.advisory?.uuid ?? null)),
+  );
+  const assignmentDirty = Boolean(
+    fieldValidationAssigneeOverride || fieldValidationTargetDateOverride,
+  );
+  const referralHandoffDirty = Boolean(
+    referralDestination.trim() ||
+    referralReference.trim() ||
+    referralDate ||
+    referralExpertUuid !== null ||
+    referralExpertName.trim() ||
+    referralExpertContact.trim() ||
+    referralDueDate ||
+    referralNote.trim(),
+  );
+  const duplicateLinkDirty = Boolean(
+    canonicalReportUuid.trim() || duplicateLinkReason.trim(),
+  );
+  const metadataCorrectionDirty = Boolean(
+    metadataCorrections !== undefined || correctionReason.trim(),
+  );
+  const closeOfficeDecisionModal = () => {
+    if (confirmDiscardUnsavedChanges(officeDecisionDirty)) setOfficeDecisionModalOpen(false);
+  };
+  const closeAssignmentModal = () => {
+    if (confirmDiscardUnsavedChanges(assignmentDirty)) setAssignmentModalOpen(false);
+  };
+  const closeReferralModal = () => {
+    if (confirmDiscardUnsavedChanges(referralHandoffDirty)) setReferralModalOpen(false);
+  };
+  const closeDuplicateLinkModal = () => {
+    if (confirmDiscardUnsavedChanges(duplicateLinkDirty)) setDuplicateLinkModalOpen(false);
+  };
+  const closeMetadataCorrectionModal = () => {
+    if (confirmDiscardUnsavedChanges(metadataCorrectionDirty)) setMetadataCorrectionModalOpen(false);
+  };
 
   const isDirty =
     (notesOverride !== null && notesOverride !== (report?.reviewNotes ?? "")) ||
@@ -747,20 +767,17 @@ export function CaseReviewPage() {
   }, [isDirty]);
 
   useEffect(() => {
-    if (submitted && validationErrors.length > 0) {
-      errorSummaryRef.current?.focus();
-      if (report?.referenceCode) {
-        document.title = `Error: CaneGuard | Case Review ${report.referenceCode}`;
-      }
+    if (officeDecisionInvalid && report?.referenceCode) {
+      document.title = `Error: CaneGuard | Case Review ${report.referenceCode}`;
     } else if (report?.referenceCode) {
       document.title = `CaneGuard | Case Review ${report.referenceCode}`;
     }
-  }, [submitted, validationErrors.length, report?.referenceCode]);
+  }, [officeDecisionInvalid, report?.referenceCode]);
 
   const updateMetadataDraft = (field: keyof MetadataDraft, value: string) => {
     if (!metadataDraft) return;
     setMetadataDraftOverride({ ...metadataDraft, [field]: value });
-    setSubmitted(false);
+    setCorrectionSubmitted(false);
     reviewMutation.reset();
   };
   const mutationError =
@@ -840,6 +857,7 @@ export function CaseReviewPage() {
       setCanonicalReportUuid("");
       setDuplicateLinkReason("");
       setDuplicateLinkSubmitted(false);
+      setDuplicateLinkModalOpen(false);
     } catch {
       return;
     }
@@ -858,43 +876,10 @@ export function CaseReviewPage() {
     }
   };
 
-  const saveReview = async () => {
-    setSubmitted(true);
-    setReferralSubmitted(true);
+  const saveOfficeDecision = async () => {
+    setOfficeDecisionSubmitted(true);
     if (report?.reviewVersion === undefined || proposalNeedsDecision) return;
-
-    if (referralNeeded) {
-      // The referral endpoint records the handoff, the visible Staff-Classified
-      // Condition, verification, and notes atomically and keeps the case open.
-      if (referralInputError) return;
-
-      try {
-        await recordReferral.mutateAsync({
-          destination: referralDestination,
-          reference: referralReference,
-          referralDate,
-          ...(referralDueDate ? { dueDate: referralDueDate } : {}),
-          ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
-          ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
-          ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
-          note: referralNote,
-          authorityClassifiedCondition: selectedAuthorityClassification,
-          verificationOutcome: selectedVerificationOutcome || undefined,
-          officeNotes: notes,
-          expectedVersion: report.reviewVersion,
-        });
-        navigate(routes.reports, {
-          state: {
-            notice: `${report.referenceCode} - Expert referral recorded. The case remains open while input is pending.`,
-          },
-        });
-      } catch {
-        return;
-      }
-      return;
-    }
-
-    if (!hasReviewInput || noteError || correctionError || fieldValidationError) return;
+    if (!hasReviewInput || noteError) return;
 
     const nextActionTaken = selectedNextAction
       ? actionTakenForNextAction(selectedNextAction)
@@ -910,36 +895,104 @@ export function CaseReviewPage() {
       ...(advisoryUuidOverride !== undefined
         ? { advisoryUuid: advisoryUuidOverride }
         : {}),
-      fieldValidationState:
-        nextActionTouched && !fieldValidationActive
-          ? selectedNextAction === "needs_field_validation"
-            ? "assigned"
-            : "unassigned"
-          : undefined,
-      fieldValidationAssigneeUuid: fieldValidationNeeded
-        ? selectedFieldValidationAssignee || null
-        : undefined,
-      fieldValidationTargetDate: fieldValidationNeeded
-        ? selectedFieldValidationTargetDate || null
-        : undefined,
       caseState: closeCaseForNextAction
         ? "closed"
         : reopenCaseConfirmed && caseAlreadyClosed
           ? "open"
           : undefined,
-      metadataCorrections,
-      correctionReason: metadataCorrections ? correctionReason : undefined,
       expectedVersion: report.reviewVersion,
     };
 
     try {
       await reviewMutation.mutateAsync(input);
+      setOfficeDecisionModalOpen(false);
       const notice = selectedNextAction
         ? `Next action recorded: ${nextActionLabels[selectedNextAction]}.`
         : "The office review was updated.";
       navigate(routes.reports, {
         state: {
           notice: `${report.referenceCode} - ${notice}`,
+        },
+      });
+    } catch {
+      return;
+    }
+  };
+
+  const saveAssignment = async () => {
+    setFieldValidationAssignSubmitted(true);
+    if (!selectedFieldValidationAssignee) return;
+    if (report?.reviewVersion === undefined) return;
+
+    try {
+      await reviewMutation.mutateAsync({
+        actionTaken: undefined,
+        fieldValidationState: "assigned",
+        fieldValidationAssigneeUuid: selectedFieldValidationAssignee,
+        fieldValidationTargetDate: selectedFieldValidationTargetDate || null,
+        expectedVersion: report.reviewVersion,
+      });
+      setAssignmentModalOpen(false);
+      navigate(routes.reports, {
+        state: {
+          notice: `${report.referenceCode} - Field validation visit assigned.`,
+        },
+      });
+    } catch {
+      return;
+    }
+  };
+
+  const saveReferralHandoff = async () => {
+    setReferralSubmitted(true);
+    if (referralInputError) return;
+    if (report?.reviewVersion === undefined) return;
+
+    try {
+      await recordReferral.mutateAsync({
+        destination: referralDestination,
+        reference: referralReference,
+        referralDate,
+        ...(referralDueDate ? { dueDate: referralDueDate } : {}),
+        ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
+        ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
+        ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
+        note: referralNote,
+        authorityClassifiedCondition: selectedAuthorityClassification,
+        verificationOutcome: selectedVerificationOutcome || undefined,
+        officeNotes: notes,
+        expectedVersion: report.reviewVersion,
+      });
+      setReferralModalOpen(false);
+      navigate(routes.reports, {
+        state: {
+          notice: `${report.referenceCode} - Expert referral recorded. The case remains open while input is pending.`,
+        },
+      });
+    } catch {
+      return;
+    }
+  };
+
+  const saveMetadataCorrection = async () => {
+    setCorrectionSubmitted(true);
+    if (!metadataCorrections) {
+      setMetadataCorrectionModalOpen(false);
+      return;
+    }
+    if (!correctionReason.trim()) return;
+    if (report?.reviewVersion === undefined) return;
+
+    try {
+      await reviewMutation.mutateAsync({
+        metadataCorrections,
+        correctionReason,
+        expectedVersion: report.reviewVersion,
+      });
+      setMetadataCorrectionModalOpen(false);
+      navigate(routes.reports, {
+        state: {
+          notice: `${report.referenceCode} - Operational metadata corrected.`,
         },
       });
     } catch {
@@ -978,28 +1031,7 @@ export function CaseReviewPage() {
         </div>
       ) : null}
 
-      {submitted && validationErrors.length > 0 ? (
-        <div
-          className="govuk-error-summary"
-          role="alert"
-          tabIndex={-1}
-          ref={errorSummaryRef}
-          aria-labelledby="error-summary-title"
-        >
-          <h2 className="govuk-error-summary__title" id="error-summary-title">
-            There is a problem
-          </h2>
-          <ul className="govuk-error-summary__list">
-            {validationErrors.map((err) => (
-              <li key={err.id}>
-                <a href={`#${err.id}`}>{err.message}</a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {/* 1. Answer hero above .review-layout */}
+      {/* 1. Answer hero */}
       <section className="review-card scan-hero" aria-labelledby="scan-hero-heading">
         <div className="scan-hero__header">
           <h2 id="scan-hero-heading">What this case needs from me</h2>
@@ -1027,14 +1059,6 @@ export function CaseReviewPage() {
               <a href="#referral-response-form" className="button button--secondary">
                 Record expert response
               </a>
-              <Button
-                type="button"
-                icon={<Save aria-hidden="true" />}
-                disabled={reviewMutation.isPending}
-                onClick={saveReview}
-              >
-                {reviewMutation.isPending ? "Saving review..." : "Save review"}
-              </Button>
             </div>
           </div>
         ) : (
@@ -1042,11 +1066,6 @@ export function CaseReviewPage() {
             <fieldset
               className="review-actions review-actions--hero"
               id="review-next-action"
-              aria-describedby={
-                submitted && !referralNeeded && !hasReviewInput
-                  ? "review-next-action-error"
-                  : undefined
-              }
             >
               <legend>Next action - choose one</legend>
               <div className="review-actions__pills">
@@ -1074,7 +1093,6 @@ export function CaseReviewPage() {
                         onChange={() => {
                           setNextActionOverride(action.value);
                           setNextActionTouched(true);
-                          setSubmitted(false);
                           setReferralSubmitted(false);
                           reviewMutation.reset();
                           recordReferral.reset();
@@ -1094,242 +1112,6 @@ export function CaseReviewPage() {
               </div>
             </fieldset>
 
-            {selectedNextAction === "advisory_provided" ? (
-              <div className="review-subform" aria-label="Office advisory selection">
-                <p className="authority-classification-help">Choose validated office guidance when the field contact should receive concrete follow-up steps. Draft and retired guidance cannot be delivered.</p>
-                <SelectFilter
-                  id="office-advisory"
-                  label="Office advisory (optional)"
-                  value={selectedAdvisoryUuid ?? ""}
-                  onChange={(event) => {
-                    setAdvisoryUuidOverride(event.target.value || null);
-                    setSubmitted(false);
-                    reviewMutation.reset();
-                  }}
-                >
-                  <option value="">No advisory selected</option>
-                  {advisories.filter((advisory) => advisory.status === "validated").map((advisory) => (
-                    <option value={advisory.uuid} key={advisory.uuid}>
-                      {advisory.code} - {advisory.title}
-                    </option>
-                  ))}
-                  {selectedAdvisory && !advisories.some((advisory) => advisory.uuid === selectedAdvisory.uuid) ? (
-                    <option value={selectedAdvisory.uuid}>
-                      {selectedAdvisory.code} - {selectedAdvisory.title} (current)
-                    </option>
-                  ) : null}
-                </SelectFilter>
-                {selectedAdvisory ? (
-                  <div className="review-state-summary" role="note">
-                    <strong>{selectedAdvisory.title}</strong>
-                    <span>{selectedAdvisory.content}</span>
-                  </div>
-                ) : null}
-                {advisoriesQuery.isError ? (
-                  <p className="form-error" role="alert">The advisory library could not be loaded. You can save the review without selecting guidance.</p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {fieldValidationNeeded ? (
-              <div className="review-subform" aria-label="Field validation assignment">
-                <p className="authority-classification-help">An assignment activates immediately. Choose a Field Inspector; a target visit date is optional.</p>
-                {submitted && fieldValidationError ? (
-                  <p id="field-validation-assignee-error" className="form-error" role="alert">
-                    {fieldValidationError}
-                  </p>
-                ) : null}
-                <SelectFilter
-                  id="field-validation-assignee"
-                  label="Field Inspector assignee"
-                  aria-describedby={
-                    submitted && fieldValidationError
-                      ? "field-validation-assignee-error"
-                      : undefined
-                  }
-                  value={selectedFieldValidationAssignee}
-                  onChange={(event) => {
-                    setFieldValidationAssigneeOverride(event.target.value || null);
-                    setSubmitted(false);
-                    reviewMutation.reset();
-                  }}
-                >
-                  <option value="">Select a Field Inspector</option>
-                  {(fieldReportersQuery.data ?? []).map((fieldReporter) => (
-                    <option value={fieldReporter.uuid} key={fieldReporter.uuid}>
-                      {fieldReporter.name}
-                    </option>
-                  ))}
-                </SelectFilter>
-                <label className="select-filter" htmlFor="field-validation-target-date">
-                  <span>Target visit date (optional)</span>
-                  <input
-                    id="field-validation-target-date"
-                    type="date"
-                    value={selectedFieldValidationTargetDate}
-                    onChange={(event) => {
-                      setFieldValidationTargetDateOverride(event.target.value || null);
-                      setSubmitted(false);
-                      reviewMutation.reset();
-                    }}
-                  />
-                </label>
-                {selectedFieldValidationAssignee === report.submitterUuid ? (
-                  <p className="authority-classification-help" role="status">
-                    Same person: the original submitter is also the field validator.
-                  </p>
-                ) : null}
-                {fieldReportersQuery.isError ? (
-                  <p className="form-error" role="alert">Eligible Field Inspectors could not be loaded. Try again before assigning.</p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {fieldValidationActive && selectedNextAction === "needs_field_validation" ? (
-              <div className="review-state-summary" role="status">
-                <strong>Field validation: {fieldValidationStateLabels[currentFieldValidationState]}</strong>
-                <span>
-                  {report.fieldValidationAssignment?.assignee.name
-                    ? `Assigned to ${report.fieldValidationAssignment.assignee.name}. `
-                    : ""}
-                  {report.fieldValidationAssignment?.targetVisitDate
-                    ? `Target visit ${report.fieldValidationAssignment.targetVisitDate}. `
-                    : ""}
-                  Active assignments and submitted field-validation evidence are not reassigned here.
-                </span>
-              </div>
-            ) : null}
-
-            {referralNeeded ? (
-              <div className="review-subform" aria-label="Expert referral details">
-                <p className="authority-classification-help">Capture the external handoff as plain operational text. CaneGuard does not send the referral or connect to an external SRA account.</p>
-                {referralFieldError ? (
-                  <p id="referral-destination-error" className="form-error" role="alert">
-                    {referralFieldError}
-                  </p>
-                ) : null}
-                <label className="select-filter" htmlFor="referral-destination">
-                  <span>Expert destination</span>
-                  <input
-                    id="referral-destination"
-                    value={referralDestination}
-                    maxLength={160}
-                    aria-describedby={referralFieldError ? "referral-destination-error" : undefined}
-                    onChange={(event) => {
-                      setReferralDestination(event.target.value);
-                      setReferralSubmitted(false);
-                      recordReferral.reset();
-                    }}
-                    placeholder="Office, laboratory, or expert group"
-                  />
-                </label>
-                <label className="select-filter" htmlFor="referral-reference">
-                  <span>Referral reference</span>
-                  <input
-                    id="referral-reference"
-                    value={referralReference}
-                    maxLength={160}
-                    onChange={(event) => {
-                      setReferralReference(event.target.value);
-                      setReferralSubmitted(false);
-                      recordReferral.reset();
-                    }}
-                    placeholder="Reference supplied by the receiving office"
-                  />
-                </label>
-                <label className="select-filter" htmlFor="referral-date">
-                  <span>Referral date</span>
-                  <input
-                    id="referral-date"
-                    type="date"
-                    value={referralDate}
-                    onChange={(event) => {
-                      setReferralDate(event.target.value);
-                      setReferralSubmitted(false);
-                      recordReferral.reset();
-                    }}
-                  />
-                </label>
-                <label className="select-filter" htmlFor="referral-due-date">
-                  <span>Consult due date (optional)</span>
-                  <input
-                    id="referral-due-date"
-                    type="date"
-                    value={referralDueDate}
-                    onChange={(event) => {
-                      setReferralDueDate(event.target.value);
-                      setReferralSubmitted(false);
-                      recordReferral.reset();
-                    }}
-                  />
-                </label>
-                <SelectFilter
-                  id="referral-expert"
-                  label="In-system expert (optional)"
-                  value={referralExpertUuid ?? ""}
-                  onChange={(event) => {
-                    setReferralExpertUuid(event.target.value || null);
-                    setReferralSubmitted(false);
-                    recordReferral.reset();
-                  }}
-                >
-                  <option value="">Choose an in-system expert or use the external path below</option>
-                  {(expertDirectoryQuery.data ?? []).map((expert) => (
-                    <option value={expert.uuid} key={expert.uuid}>
-                      {expert.name} ({expert.email})
-                    </option>
-                  ))}
-                </SelectFilter>
-                {expertDirectoryQuery.isError ? (
-                  <p className="form-error" role="alert">
-                    In-system experts could not be loaded. You can still enter an external expert name.
-                  </p>
-                ) : null}
-                <label className="select-filter" htmlFor="referral-expert-name">
-                  <span>External expert name (optional)</span>
-                  <input
-                    id="referral-expert-name"
-                    maxLength={160}
-                    value={referralExpertName}
-                    onChange={(event) => {
-                      setReferralExpertName(event.target.value);
-                      setReferralSubmitted(false);
-                      recordReferral.reset();
-                    }}
-                    placeholder="Named expert or service"
-                  />
-                </label>
-                <label className="select-filter" htmlFor="referral-expert-contact">
-                  <span>Expert contact (optional)</span>
-                  <input
-                    id="referral-expert-contact"
-                    maxLength={320}
-                    value={referralExpertContact}
-                    onChange={(event) => {
-                      setReferralExpertContact(event.target.value);
-                      setReferralSubmitted(false);
-                      recordReferral.reset();
-                    }}
-                    placeholder="Email, phone, or office contact"
-                  />
-                </label>
-                <TextArea
-                  id="referral-note"
-                  label="Referral note (optional)"
-                  hint="Keep the request neutral and grounded in the submitted evidence."
-                  rows={3}
-                  maxLength={1000}
-                  value={referralNote}
-                  onChange={(event) => {
-                    setReferralNote(event.target.value);
-                    setReferralSubmitted(false);
-                    recordReferral.reset();
-                  }}
-                  placeholder="What should the expert review?"
-                />
-              </div>
-            ) : null}
-
             {selectedNextAction === "no_further_action_required" && !caseAlreadyClosed ? (
               <label className="case-confirmation">
                 <input
@@ -1337,7 +1119,6 @@ export function CaseReviewPage() {
                   checked={closeCaseConfirmed}
                   onChange={(event) => {
                     setCloseCaseConfirmed(event.target.checked);
-                    setSubmitted(false);
                     reviewMutation.reset();
                   }}
                 />
@@ -1354,7 +1135,6 @@ export function CaseReviewPage() {
                   checked={reopenCaseConfirmed}
                   onChange={(event) => {
                     setReopenCaseConfirmed(event.target.checked);
-                    setSubmitted(false);
                     reviewMutation.reset();
                   }}
                 />
@@ -1364,35 +1144,6 @@ export function CaseReviewPage() {
                 </span>
               </label>
             ) : null}
-
-            <div className="scan-hero__commit-row">
-              {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
-              {referralRecordError ? <p className="form-error" role="alert">{referralRecordError}</p> : null}
-              {proposalNeedsDecision ? (
-                <p id="expert-proposal-decision" className="form-error" role="alert">
-                  Accept or override the completed expert proposal before saving this review.
-                </p>
-              ) : null}
-              {conflict ? (
-                <div className="review-conflict" role="alert">
-                  <p>This report changed after you opened it. Refresh before saving again.</p>
-                  <Button type="button" variant="secondary" onClick={() => { reviewMutation.reset(); reportQuery.refetch(); }}>Refresh report</Button>
-                </div>
-              ) : null}
-              {mutationRateLimited ? <p className="form-error" role="alert">Too many review attempts were received. Wait a moment before trying again.</p> : null}
-              {mutationForbidden ? <p className="form-error" role="alert">Your account no longer has permission to review this report.</p> : null}
-              {mutationValidation && !serverNoteError ? <p className="form-error" role="alert">The server rejected this review. Check the selected action and notes before trying again.</p> : null}
-              {malformedMutationResponse ? <p className="form-error" role="alert">The server returned an unexpected response. Refresh the report before trying again.</p> : null}
-              {reviewMutation.isError && !conflict && !serverNoteError && !mutationRateLimited && !mutationForbidden && !mutationValidation && !malformedMutationResponse ? <p className="form-error" role="alert">The review service is unavailable. No review change was confirmed.</p> : null}
-              <Button
-                type="button"
-                icon={<Save aria-hidden="true" />}
-                disabled={reviewMutation.isPending || recordReferral.isPending || proposalNeedsDecision}
-                onClick={saveReview}
-              >
-                {reviewMutation.isPending || recordReferral.isPending ? "Saving review..." : referralNeeded ? "Save referral" : "Save review"}
-              </Button>
-            </div>
           </>
         )}
       </section>
@@ -1445,13 +1196,153 @@ export function CaseReviewPage() {
         </div>
       </section>
 
-      {/* Evidence & Sidebar layout */}
-      <div className="review-layout">
-        <div className="review-main">
-          <section className="evidence-section" aria-labelledby="evidence-section-heading">
-            <h2 className="evidence-section__heading" id="evidence-section-heading">
-              Evidence behind this decision
-            </h2>
+      {/* 3. Decision summary card */}
+      <section className="review-card decision-summary" aria-labelledby="office-review-heading">
+        <div className="section-heading">
+          <div>
+            <h2 id="office-review-heading">Office decision summary</h2>
+          </div>
+          <CheckCircle2 aria-hidden="true" />
+        </div>
+
+        <div className="decision-summary__grid">
+          <div className="decision-summary__item">
+            <span className="decision-summary__label">Next action</span>
+            <strong>
+              {selectedNextAction
+                ? nextActionLabels[selectedNextAction]
+                : "Pending decision"}
+            </strong>
+          </div>
+          <div className="decision-summary__item">
+            <span className="decision-summary__label">Staff classification</span>
+            <strong>
+              {selectedAuthorityClassification
+                ? authorityClassifiedConditionLabels[selectedAuthorityClassification]
+                : "Not classified"}
+            </strong>
+          </div>
+          <div className="decision-summary__item">
+            <span className="decision-summary__label">Verification</span>
+            <strong>
+              {selectedVerificationOutcome
+                ? verificationOutcomeLabels[selectedVerificationOutcome]
+                : verificationOutcomeLabels[lifecycle?.verificationOutcome ?? "not_determined"]}
+            </strong>
+          </div>
+          <div className="decision-summary__item">
+            <span className="decision-summary__label">Last change</span>
+            <strong>
+              {report.reviewedBy
+                ? `Last classified by ${report.reviewedBy}${report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}`
+                : "Not yet reviewed"}
+            </strong>
+          </div>
+          {report.referral ? (
+            <div className="decision-summary__item">
+              <span className="decision-summary__label">Referral</span>
+              <strong>
+                {referralStateLabels[lifecycle?.referralState ?? "not_referred"]}
+                {report.referral.destination ? ` · ${report.referral.destination}` : ""}
+                {report.referral.reference ? ` · ${report.referral.reference}` : ""}
+              </strong>
+            </div>
+          ) : null}
+        </div>
+
+        {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
+        {conflict ? (
+          <div className="review-conflict" role="alert">
+            <p>This report changed after you opened it. Refresh before saving again.</p>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                reviewMutation.reset();
+                reportQuery.refetch();
+              }}
+            >
+              Refresh report
+            </Button>
+          </div>
+        ) : null}
+        {mutationRateLimited ? (
+          <p className="form-error" role="alert">
+            Too many review attempts were received. Wait a moment before trying again.
+          </p>
+        ) : null}
+        {mutationForbidden ? (
+          <p className="form-error" role="alert">
+            Your account no longer has permission to review this report.
+          </p>
+        ) : null}
+        {mutationValidation && !serverNoteError ? (
+          <p className="form-error" role="alert">
+            The server rejected this review. Check the selected action and notes before trying again.
+          </p>
+        ) : null}
+        {malformedMutationResponse ? (
+          <p className="form-error" role="alert">
+            The server returned an unexpected response. Refresh the report before trying again.
+          </p>
+        ) : null}
+
+        {fieldValidationActive && selectedNextAction === "needs_field_validation" ? (
+          <div className="review-state-summary" role="status">
+            <strong>Field validation: {fieldValidationStateLabels[currentFieldValidationState]}</strong>
+            <span>
+              {report.fieldValidationAssignment?.assignee.name
+                ? `Assigned to ${report.fieldValidationAssignment.assignee.name}. `
+                : ""}
+              {report.fieldValidationAssignment?.targetVisitDate
+                ? `Target visit ${report.fieldValidationAssignment.targetVisitDate}. `
+                : ""}
+              Active assignments and submitted field-validation evidence are not reassigned here.
+            </span>
+          </div>
+        ) : null}
+
+        <div className="decision-summary__actions">
+          {proposalNeedsDecision ? (
+            <p id="expert-proposal-decision" className="form-error" role="alert">
+              Accept or override the completed expert proposal before saving this review.
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            icon={<CheckCircle2 aria-hidden="true" />}
+            disabled={reviewMutation.isPending || proposalNeedsDecision}
+            onClick={() => setOfficeDecisionModalOpen(true)}
+          >
+            {reviewMutation.isPending ? "Saving review..." : "Record office decision"}
+          </Button>
+          {selectedNextAction === "needs_field_validation" && !fieldValidationActive ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setAssignmentModalOpen(true)}
+            >
+              Assign visit
+            </Button>
+          ) : null}
+          {selectedNextAction === "referred_for_expert_validation" && !hasActiveConsult(report) ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setReferralModalOpen(true)}
+            >
+              Record expert referral
+            </Button>
+          ) : null}
+        </div>
+      </section>
+
+      {/* 4. Single-column evidence flow */}
+      <div className="review-single-column">
+        <section className="evidence-section" aria-labelledby="evidence-section-heading">
+          <h2 className="evidence-section__heading" id="evidence-section-heading">
+            Evidence behind this decision
+          </h2>
 
             {/* Disclosure 1: Field evidence — what was submitted (Open by default) */}
             <details className="review-card evidence-disclosure" open>
@@ -1499,7 +1390,7 @@ export function CaseReviewPage() {
                   ) : null}
                   <dl className="detail-list reporter-observation-details">
                     <DetailField label="Observed or suspected concern">{report.reporterSuspectedCondition?.trim() || "None reported"}</DetailField>
-                    <DetailField label="Observation text">{report.reporterObservationText ?? "Not provided"}</DetailField>
+                    <DetailField label="Observation text"><ClampedText text={report.reporterObservationText ?? "Not provided"} /></DetailField>
                   </dl>
                 </section>
 
@@ -1518,14 +1409,14 @@ export function CaseReviewPage() {
 
                 <section aria-labelledby="notes-heading">
                   <div className="section-heading"><div><h3 id="notes-heading">Submitted observations</h3></div></div>
-                  <dl className="detail-list">
-                    <DetailField label="Checklist consistency">{report.checklistConsistency?.replaceAll("_", " ") ?? "Not provided"}</DetailField>
+                  <CappedDetailList className="detail-list" limit={4}>
                     <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
                     <DetailField label="Sugarcane variety">{report.sugarcaneVariety ?? "Not provided"}</DetailField>
                     <DetailField label="Crop age">{report.cropAge ?? "Not provided"}</DetailField>
+                    <DetailField label="Field notes"><ClampedText text={report.fieldNotes ?? "Not provided"} /></DetailField>
+                    <DetailField label="Checklist consistency">{report.checklistConsistency?.replaceAll("_", " ") ?? "Not provided"}</DetailField>
                     <DetailField label="Cane class">{report.caneClass ?? "Not provided"}</DetailField>
-                    <DetailField label="Field notes">{report.fieldNotes ?? "Not provided"}</DetailField>
-                  </dl>
+                  </CappedDetailList>
                 </section>
 
                 {report.fieldValidationAssignment?.completion ? (
@@ -1551,10 +1442,10 @@ export function CaseReviewPage() {
                     </div>
                     <dl className="detail-list reporter-observation-details">
                       <DetailField label="Observation">
-                        {report.fieldValidationAssignment.completion.fieldObservation}
+                        <ClampedText text={report.fieldValidationAssignment.completion.fieldObservation} />
                       </DetailField>
                       <DetailField label="Finding">
-                        {report.fieldValidationAssignment.completion.fieldFinding}
+                        <ClampedText text={report.fieldValidationAssignment.completion.fieldFinding} />
                       </DetailField>
                       <DetailField label="Follow-up outcome">
                         {report.fieldValidationAssignment.completion.followUpOutcome
@@ -1586,7 +1477,9 @@ export function CaseReviewPage() {
                 <div className="disclosure-left">
                   <span className="summary-tag">Decision support</span>
                   <strong>Model evidence — decision support</strong>
-                  <span className="disclosure-metric">Held back until you have reviewed the field evidence</span>
+                  <span className="disclosure-metric">
+                    {diseaseLabels[report.predictedDisease]} · {Math.round((report.confidence ?? 0) * 100)}% (decision support)
+                  </span>
                 </div>
                 <ScanLine aria-hidden="true" />
               </summary>
@@ -1630,7 +1523,7 @@ export function CaseReviewPage() {
                       <DetailField label="Image size">{report.imageSizeBytes ? `${Math.round(report.imageSizeBytes / 1024)} KB` : "Unavailable"}</DetailField>
                       <DetailField label="Dimensions">{report.sourceWidth && report.sourceHeight ? `${report.sourceWidth} × ${report.sourceHeight}` : "Not provided"}</DetailField>
                     </dl>
-                    <div className="decision-reminder"><Info aria-hidden="true" /><p><strong>Decision-support only</strong><span>This result is not a diagnosis. Compare it with the submitted observations and field context.</span></p></div>
+                    <div className="decision-reminder"><Info aria-hidden="true" /><p><strong>Audit reminder</strong><span>Compare this result with the submitted observations and field context.</span></p></div>
                   </div>
                 </details>
               </div>
@@ -1715,7 +1608,7 @@ export function CaseReviewPage() {
                               </DetailField>
                             ))}
                             {entry.notes ? (
-                              <DetailField label="Notes">{entry.notes}</DetailField>
+                              <DetailField label="Notes"><ClampedText text={entry.notes} /></DetailField>
                             ) : null}
                           </dl>
                         </li>
@@ -1738,16 +1631,16 @@ export function CaseReviewPage() {
                 <div className="disclosure-left">
                   <span className="summary-tag">Context</span>
                   <strong>Reference details</strong>
-                  <span className="disclosure-metric">Farm and location rows (11) · report context</span>
+                  <span className="disclosure-metric">
+                    Farm and location rows ({report.locationSource === "unavailable" ? 12 : 11}) · report context
+                  </span>
                 </div>
                 <MapPin aria-hidden="true" />
               </summary>
               <div className="disclosure-content">
                 <section aria-labelledby="reference-context-heading">
                   <div className="section-heading"><div><h3 id="reference-context-heading">Farm and location context</h3></div><Smartphone aria-hidden="true" /></div>
-                  <dl className="review-essential-context">
-                    <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
-                    <DetailField label="Farmer or farm owner">{report.farmerOrFarmOwnerName ?? "Not provided"}</DetailField>
+                  <CappedDetailList className="review-essential-context" limit={4}>
                     <DetailField label="Barangay">{report.barangay}</DetailField>
                     <DetailField label="Municipality">{report.municipality ?? "Not provided"}</DetailField>
                     <DetailField label="Province">{report.province ?? "Not provided"}</DetailField>
@@ -1758,6 +1651,8 @@ export function CaseReviewPage() {
                           ? `${report.finalLatitude}, ${report.finalLongitude}`
                           : "Not provided"}
                     </DetailField>
+                    <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
+                    <DetailField label="Farmer or farm owner">{report.farmerOrFarmOwnerName ?? "Not provided"}</DetailField>
                     <DetailField label="Location source">
                       {report.locationSource === "gps"
                         ? "GPS"
@@ -1790,7 +1685,7 @@ export function CaseReviewPage() {
                           : "Not provided"}
                     </DetailField>
                     <DetailField label="Reporter">{report.submittedByName}</DetailField>
-                  </dl>
+                  </CappedDetailList>
                   <div className="quality-summary">
                     <strong>Image quality checks</strong>
                     {report.qualityWarnings?.length ? (
@@ -1801,303 +1696,811 @@ export function CaseReviewPage() {
 
                 <section aria-labelledby="report-context-heading">
                   <div className="section-heading"><div><h3 id="report-context-heading">Report context</h3></div><MapPin aria-hidden="true" /></div>
-                  <dl className="detail-list">
+                  <CappedDetailList className="detail-list" limit={4}>
                     <DetailField label="Submitter role">{submitterRoleLabels[report.submitterRole]}</DetailField>
                     <DetailField label="Observed at">{report.observedAt ? formatDateTime(report.observedAt) : "Not provided"}</DetailField>
                     <DetailField label="Submitted at">{formatDateTime(report.submittedAt)}</DetailField>
                     {report.reviewedBy ? <DetailField label="Last reviewed by">{report.reviewedBy}</DetailField> : null}
                     {report.reviewedAt ? <DetailField label="Reviewed at">{formatDateTime(report.reviewedAt)}</DetailField> : null}
-                    {report.reviewNotes ? <DetailField label="Current review note">{report.reviewNotes}</DetailField> : null}
-                  </dl>
+                    {report.reviewNotes ? <DetailField label="Current review note"><ClampedText text={report.reviewNotes} /></DetailField> : null}
+                  </CappedDetailList>
                 </section>
               </div>
             </details>
           </section>
-        </div>
 
-        {/* Sidebar */}
-        <aside className="review-sidebar" aria-label="Office decision">
-          <section className="review-step" aria-labelledby="office-review-heading">
-            <section className="review-card office-review" aria-labelledby="office-review-heading">
-              <div className="section-heading"><div><h2 id="office-review-heading">Record the office decision</h2></div><CheckCircle2 aria-hidden="true" /></div>
+        {report.referral ? (
+          <div id="referral-response-form">
+            <ReferralWorkflow report={report} />
+          </div>
+        ) : null}
+
+        <section className="more-actions-section" aria-label="More actions">
+          <div className="section-heading">
+            <div>
+              <h3>More actions</h3>
+            </div>
+            <MoreHorizontal aria-hidden="true" />
+          </div>
+          {report.canonicalLinkage?.isDuplicate ? (
+            <div className="duplicate-linkage-summary" role="status">
+              <strong>Linked as a possible duplicate</strong>
+              <p>The submitted record and its audit history remain preserved. This link does not merge evidence or change the canonical case.</p>
+              {report.canonicalLinkage.canonicalCase ? (
+                <Link to={routes.reportDetail(report.canonicalLinkage.canonicalCase.uuid)}>
+                  Canonical case {report.canonicalLinkage.canonicalCase.referenceCode}
+                </Link>
+              ) : null}
+              {report.canonicalLinkage.linkedBy ? (
+                <small>
+                  Linked by {report.canonicalLinkage.linkedBy.name}
+                  {report.canonicalLinkage.linkedAt ? ` on ${formatDateTime(report.canonicalLinkage.linkedAt)}` : ""}.
+                </small>
+              ) : null}
+              {report.canonicalLinkage.reason ? <small>Reason: {report.canonicalLinkage.reason}</small> : null}
+              {duplicateUnlinkConflict ? <p className="form-error" role="alert">This case changed while the duplicate link was being removed. Refresh before trying again.</p> : null}
+              {duplicateUnlinkForbidden ? <p className="form-error" role="alert">You do not have permission to remove duplicate links.</p> : null}
+              {duplicateUnlinkValidation ? <p className="form-error" role="alert">This duplicate link cannot be removed while the case has active work or completed evidence.</p> : null}
+              {duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlink response had an unexpected format. Refresh the report before trying again.</p> : null}
+              {duplicateUnlinkMutation.isError && !duplicateUnlinkConflict && !duplicateUnlinkForbidden && !duplicateUnlinkValidation && !duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlinking service is unavailable. No link change was confirmed.</p> : null}
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={duplicateUnlinkMutation.isPending}
+                onClick={unlinkDuplicate}
+              >
+                {duplicateUnlinkMutation.isPending ? "Removing link..." : "Remove duplicate link"}
+              </Button>
+            </div>
+          ) : null}
+          {duplicateLinkNotice ? (
+            <p className="success-banner" role="status">{duplicateLinkNotice}</p>
+          ) : null}
+          <div className="more-actions-row">
+            {!report.canonicalLinkage?.isDuplicate ? (
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<GitBranch aria-hidden="true" />}
+                onClick={() => setDuplicateLinkModalOpen(true)}
+              >
+                Link as possible duplicate
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              icon={<Link2 aria-hidden="true" />}
+              onClick={() => setMetadataCorrectionModalOpen(true)}
+            >
+              Correct operational metadata
+            </Button>
+          </div>
+        </section>
+      </div>
+
+      {/* Modal 1: Office Decision (F1 + F4) */}
+      <Modal
+        id="office-decision-modal"
+        title="Record office decision"
+        description="Choose staff classification, verification outcome, guidance, and record intervention notes."
+        open={officeDecisionModalOpen}
+        onClose={closeOfficeDecisionModal}
+        disabled={reviewMutation.isPending}
+        isDirty={officeDecisionDirty}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={reviewMutation.isPending}
+              onClick={closeOfficeDecisionModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={reviewMutation.isPending}
+              onClick={saveOfficeDecision}
+            >
+              {reviewMutation.isPending ? "Saving decision..." : "Save decision"}
+            </Button>
+          </>
+        }
+      >
+        <div className="review-subform">
+          <SelectFilter
+            label="Staff-Classified Condition"
+            value={selectedAuthorityClassification ?? ""}
+            onChange={(event) => {
+              setAuthorityClassificationOverride(
+                (event.target.value || null) as AuthorityClassifiedCondition | null,
+              );
+              setOfficeDecisionSubmitted(false);
+              reviewMutation.reset();
+            }}
+          >
+            <option value="">Not classified</option>
+            {activeAuthorityClassifiedConditions.map((value) => (
+              <option value={value} key={value}>
+                {authorityClassifiedConditionLabels[value]}
+              </option>
+            ))}
+            {existingLegacyAuthorityClassification ? (
+              <option value={existingLegacyAuthorityClassification}>
+                {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
+                {" (legacy record; not offered for new review)"}
+              </option>
+            ) : null}
+          </SelectFilter>
+          <p className="authority-classification-help">
+            Staff-Classified Condition is a separate human finding and never changes the original Possible Condition.
+          </p>
+          {report.authorityClassifiedCondition && report.reviewedBy ? (
+            <p className="authority-provenance">
+              Last classified by {report.reviewedBy}
+              {report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.
+            </p>
+          ) : null}
+
+          <SelectFilter
+            label="Verification outcome"
+            value={selectedVerificationOutcome}
+            onChange={(event) => {
+              setVerificationOverride(event.target.value as VerificationOutcome | "");
+              setOfficeDecisionSubmitted(false);
+              reviewMutation.reset();
+            }}
+          >
+            <option value="">No verification decision</option>
+            <option value="not_determined">Not determined</option>
+            <option value="verified">Verified</option>
+            <option value="unable_to_verify">Unable to verify</option>
+          </SelectFilter>
+          <p className="authority-classification-help">
+            Verification is a separate human judgment. It never closes a case on its own.
+          </p>
+
+          {selectedNextAction === "advisory_provided" ? (
+            <div className="review-subform" aria-label="Office advisory selection">
+              <p className="authority-classification-help">
+                Choose validated office guidance when the field contact should receive concrete follow-up steps. Draft and retired guidance cannot be delivered.
+              </p>
               <SelectFilter
-                label="Staff-Classified Condition"
-                value={selectedAuthorityClassification ?? ""}
+                id="office-advisory"
+                label="Office advisory (optional)"
+                value={selectedAdvisoryUuid ?? ""}
                 onChange={(event) => {
-                  setAuthorityClassificationOverride(
-                    (event.target.value || null) as AuthorityClassifiedCondition | null,
-                  );
-                  setSubmitted(false);
+                  setAdvisoryUuidOverride(event.target.value || null);
+                  setOfficeDecisionSubmitted(false);
                   reviewMutation.reset();
                 }}
               >
-                <option value="">Not classified</option>
-                {activeAuthorityClassifiedConditions.map((value) => (
-                  <option value={value} key={value}>
-                    {authorityClassifiedConditionLabels[value]}
-                  </option>
-                ))}
-                {existingLegacyAuthorityClassification ? (
-                  <option value={existingLegacyAuthorityClassification}>
-                    {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
-                    {" (legacy record; not offered for new review)"}
+                <option value="">No advisory selected</option>
+                {advisories
+                  .filter((advisory) => advisory.status === "validated")
+                  .map((advisory) => (
+                    <option value={advisory.uuid} key={advisory.uuid}>
+                      {advisory.code} - {advisory.title}
+                    </option>
+                  ))}
+                {selectedAdvisory &&
+                !advisories.some((advisory) => advisory.uuid === selectedAdvisory.uuid) ? (
+                  <option value={selectedAdvisory.uuid}>
+                    {selectedAdvisory.code} - {selectedAdvisory.title} (current)
                   </option>
                 ) : null}
               </SelectFilter>
-              <p className="authority-classification-help">Staff-Classified Condition is a separate human finding and never changes the original Possible Condition.</p>
-              {report.authorityClassifiedCondition && report.reviewedBy ? (
-                <p className="authority-provenance">Last classified by {report.reviewedBy}{report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.</p>
+              {selectedAdvisory ? (
+                <div className="review-state-summary" role="note">
+                  <strong>{selectedAdvisory.title}</strong>
+                  <span>{selectedAdvisory.content}</span>
+                </div>
               ) : null}
-              <SelectFilter
-                label="Verification outcome"
-                value={selectedVerificationOutcome}
-                onChange={(event) => {
-                  setVerificationOverride(event.target.value as VerificationOutcome | "");
-                  setSubmitted(false);
-                  reviewMutation.reset();
-                }}
-              >
-                <option value="">No verification decision</option>
-                <option value="not_determined">Not determined</option>
-                <option value="verified">Verified</option>
-                <option value="unable_to_verify">Unable to verify</option>
-              </SelectFilter>
-              <p className="authority-classification-help">Verification is a separate human judgment. It never closes a case on its own.</p>
-
-              <div className="review-action-guidance" role="note">
-                <strong>Record intervention or action details</strong>
-                <p>Use Review notes to record the treatment, pesticide, medicine, technical assistance, or other action used when applicable. If no intervention was used, say so in the notes.</p>
-              </div>
-              {submitted && !referralNeeded && noteError ? (
-                <p id="review-notes-error" className="form-error" role="alert">
-                  {noteError}
+              {advisoriesQuery.isError ? (
+                <p className="form-error" role="alert">
+                  The advisory library could not be loaded. You can save the review without selecting guidance.
                 </p>
               ) : null}
-              <TextArea
-                id="review-notes"
-                label="Review notes"
-                hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review."
-                rows={5}
-                maxLength={1000}
-                value={notes}
-                aria-describedby={
-                  submitted && !referralNeeded && noteError
-                    ? "review-notes-error"
-                    : undefined
-                }
-                onChange={(event) => {
-                  setNotesOverride(event.target.value);
-                  setSubmitted(false);
+            </div>
+          ) : null}
+
+          <div className="review-action-guidance" role="note">
+            <strong>Record intervention or action details</strong>
+            <p>
+              Use Review notes to record the treatment, pesticide, medicine, technical assistance, or other action used when applicable. If no intervention was used, say so in the notes.
+            </p>
+          </div>
+          {officeDecisionSubmitted && !hasReviewInput ? (
+            <p id="office-decision-error" className="form-error" role="alert">
+              Choose a next action or another review field before saving.
+            </p>
+          ) : null}
+          {officeDecisionSubmitted && noteError ? (
+            <p id="review-notes-error" className="form-error" role="alert">
+              {noteError}
+            </p>
+          ) : null}
+          <TextArea
+            id="review-notes"
+            label="Review notes"
+            hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review."
+            rows={5}
+            maxLength={1000}
+            value={notes}
+            aria-describedby={
+              officeDecisionSubmitted && noteError
+                ? "review-notes-error"
+                : undefined
+            }
+            onChange={(event) => {
+              setNotesOverride(event.target.value);
+              setOfficeDecisionSubmitted(false);
+              reviewMutation.reset();
+            }}
+            placeholder="Describe the intervention or other action used, if applicable..."
+          />
+          <p className="review-note-count">{notes.length}/1,000</p>
+
+          {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
+          {conflict ? (
+            <div className="review-conflict" role="alert">
+              <p>This report changed after you opened it. Refresh before saving again.</p>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
                   reviewMutation.reset();
+                  reportQuery.refetch();
                 }}
-                placeholder="Describe the intervention or other action used, if applicable..."
-              />
-              <p className="review-note-count">{notes.length}/1,000</p>
-            </section>
+              >
+                Refresh report
+              </Button>
+            </div>
+          ) : null}
+          {mutationRateLimited ? (
+            <p className="form-error" role="alert">
+              Too many review attempts were received. Wait a moment before trying again.
+            </p>
+          ) : null}
+          {mutationForbidden ? (
+            <p className="form-error" role="alert">
+              Your account no longer has permission to review this report.
+            </p>
+          ) : null}
+          {mutationValidation && !serverNoteError ? (
+            <p className="form-error" role="alert">
+              The server rejected this review. Check the selected action and notes before trying again.
+            </p>
+          ) : null}
+          {malformedMutationResponse ? (
+            <p className="form-error" role="alert">
+              The server returned an unexpected response. Refresh the report before trying again.
+            </p>
+          ) : null}
+          {reviewMutation.isError &&
+          !conflict &&
+          !serverNoteError &&
+          !mutationRateLimited &&
+          !mutationForbidden &&
+          !mutationValidation &&
+          !malformedMutationResponse ? (
+            <p className="form-error" role="alert">
+              The review service is unavailable. No review change was confirmed.
+            </p>
+          ) : null}
+        </div>
+      </Modal>
 
-            <details className="review-card technical-evidence more-actions">
-              <summary>
-                <span>
-                  <span className="summary-tag">Rarely needed</span>
-                  <strong>More actions</strong>
-                </span>
-                <MoreHorizontal aria-hidden="true" />
-              </summary>
-              <div className="technical-evidence__content">
-                <section className="duplicate-link-card" aria-labelledby="duplicate-link-heading">
-                  <div className="section-heading">
-                    <div>
-                      <h2 id="duplicate-link-heading">Possible duplicate linkage</h2>
-                    </div>
-                    <GitBranch aria-hidden="true" />
-                  </div>
-                  {report.canonicalLinkage?.isDuplicate ? (
-                    <div className="duplicate-linkage-summary" role="status">
-                      <strong>Linked as a possible duplicate</strong>
-                      <p>The submitted record and its audit history remain preserved. This link does not merge evidence or change the canonical case.</p>
-                      {report.canonicalLinkage.canonicalCase ? (
-                        <Link to={routes.reportDetail(report.canonicalLinkage.canonicalCase.uuid)}>
-                          Canonical case {report.canonicalLinkage.canonicalCase.referenceCode}
-                        </Link>
-                      ) : null}
-                      {report.canonicalLinkage.linkedBy ? (
-                        <small>
-                          Linked by {report.canonicalLinkage.linkedBy.name}
-                          {report.canonicalLinkage.linkedAt ? ` on ${formatDateTime(report.canonicalLinkage.linkedAt)}` : ""}.
-                        </small>
-                      ) : null}
-                      {report.canonicalLinkage.reason ? <small>Reason: {report.canonicalLinkage.reason}</small> : null}
-                      {duplicateUnlinkConflict ? <p className="form-error" role="alert">This case changed while the duplicate link was being removed. Refresh before trying again.</p> : null}
-                      {duplicateUnlinkForbidden ? <p className="form-error" role="alert">You do not have permission to remove duplicate links.</p> : null}
-                      {duplicateUnlinkValidation ? <p className="form-error" role="alert">This duplicate link cannot be removed while the case has active work or completed evidence.</p> : null}
-                      {duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlink response had an unexpected format. Refresh the report before trying again.</p> : null}
-                      {duplicateUnlinkMutation.isError && !duplicateUnlinkConflict && !duplicateUnlinkForbidden && !duplicateUnlinkValidation && !duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlinking service is unavailable. No link change was confirmed.</p> : null}
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={duplicateUnlinkMutation.isPending}
-                        onClick={unlinkDuplicate}
-                      >
-                        {duplicateUnlinkMutation.isPending ? "Removing link..." : "Remove duplicate link"}
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="authority-classification-help">Possible matches are decision support only. Reviewers and admins choose whether to link this case; nothing is merged, deleted, or blocked automatically.</p>
-                      {possibleMatchesQuery.isPending ? <p className="duplicate-link-status" role="status">Checking recent submissions for a possible match...</p> : null}
-                      {possibleMatchesQuery.isError ? <p className="duplicate-link-status" role="alert">Possible matches could not be loaded. You can still enter a canonical case UUID below.</p> : null}
-                      {!possibleMatchesQuery.isPending && !possibleMatchesQuery.isError && possibleMatches.length === 0 ? (
-                        <p className="duplicate-link-status">No possible recent matches were found. A legitimate case can remain separate.</p>
-                      ) : null}
-                      {possibleMatches.length > 0 ? (
-                        <ul className="possible-match-list">
-                          {possibleMatches.map((match) => (
-                            <li key={match.uuid}>
-                              <div>
-                                <Link to={routes.reportDetail(match.uuid)}>{match.referenceCode}</Link>
-                                <small>
-                                  Possible match - {Math.round(match.distanceMeters)} m away - submitted {formatDateTime(match.submittedAt)}.
-                                </small>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => {
-                                  setCanonicalReportUuid(match.uuid);
-                                  setDuplicateLinkSubmitted(false);
-                                  setDuplicateLinkNotice(null);
-                                  duplicateLinkMutation.reset();
-                                }}
-                              >
-                                Use as canonical
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      <label className="select-filter" htmlFor="canonical-report-uuid">
-                        <span>Canonical case UUID</span>
-                        <input
-                          id="canonical-report-uuid"
-                          value={canonicalReportUuid}
-                          onChange={(event) => {
-                            setCanonicalReportUuid(event.target.value);
-                            setDuplicateLinkSubmitted(false);
-                            setDuplicateLinkNotice(null);
-                            duplicateLinkMutation.reset();
-                          }}
-                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                        />
-                      </label>
-                      <label className="select-filter" htmlFor="duplicate-link-reason">
-                        <span>Link reason (optional)</span>
-                        <input
-                          id="duplicate-link-reason"
-                          value={duplicateLinkReason}
-                          maxLength={320}
-                          onChange={(event) => {
-                            setDuplicateLinkReason(event.target.value);
-                            setDuplicateLinkSubmitted(false);
-                            setDuplicateLinkNotice(null);
-                            duplicateLinkMutation.reset();
-                          }}
-                          placeholder="Why is this case treated as a duplicate?"
-                        />
-                      </label>
-                      {duplicateLinkSubmitted && !canonicalReportUuid.trim() ? (
-                        <p className="form-error" role="alert">Choose a possible match or enter a canonical case UUID before linking.</p>
-                      ) : null}
-                      {duplicateLinkValidationError ? (
-                        <p className="form-error" role="alert">{duplicateLinkValidationError}</p>
-                      ) : null}
-                      {duplicateLinkConflict ? (
-                        <p className="form-error" role="alert">This case is already linked to another canonical case. Refresh before trying again.</p>
-                      ) : null}
-                      {duplicateLinkForbidden ? (
-                        <p className="form-error" role="alert">You do not have permission to link duplicate cases.</p>
-                      ) : null}
-                      {duplicateLinkMalformed ? (
-                        <p className="form-error" role="alert">The duplicate link response had an unexpected format. Refresh the report before trying again.</p>
-                      ) : null}
-                      {duplicateLinkMutation.isError && !duplicateLinkConflict && !duplicateLinkValidationError && !duplicateLinkForbidden && !duplicateLinkMalformed ? (
-                        <p className="form-error" role="alert">The duplicate linking service is unavailable. No link was recorded.</p>
-                      ) : null}
-                      {duplicateLinkNotice ? (
-                        <p className="success-banner" role="status">{duplicateLinkNotice}</p>
-                      ) : null}
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        icon={<Link2 aria-hidden="true" />}
-                        disabled={duplicateLinkMutation.isPending}
-                        onClick={linkDuplicate}
-                      >
-                        {duplicateLinkMutation.isPending ? "Linking case..." : "Link as possible duplicate"}
-                      </Button>
-                    </>
-                  )}
-                </section>
+      {/* Modal 2: Visit Assignment (F2) */}
+      <Modal
+        id="assignment-modal"
+        title="Assign visit"
+        description="Assign a Field Inspector to validate the sugarcane condition in the field."
+        open={assignmentModalOpen}
+        onClose={closeAssignmentModal}
+        disabled={reviewMutation.isPending}
+        isDirty={assignmentDirty}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={reviewMutation.isPending}
+              onClick={closeAssignmentModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={reviewMutation.isPending}
+              onClick={saveAssignment}
+            >
+              {reviewMutation.isPending ? "Assigning visit..." : "Assign visit"}
+            </Button>
+          </>
+        }
+      >
+        <div className="review-subform" aria-label="Field validation assignment">
+          <p className="authority-classification-help">
+            An assignment activates immediately. Choose a Field Inspector; a target visit date is optional.
+          </p>
+          {fieldValidationAssignSubmitted && fieldValidationError ? (
+            <p id="field-validation-assignee-error" className="form-error" role="alert">
+              {fieldValidationError}
+            </p>
+          ) : null}
+          <SelectFilter
+            id="field-validation-assignee"
+            label="Field Inspector assignee"
+            aria-describedby={
+              fieldValidationAssignSubmitted && fieldValidationError
+                ? "field-validation-assignee-error"
+                : undefined
+            }
+            value={selectedFieldValidationAssignee}
+            onChange={(event) => {
+              setFieldValidationAssigneeOverride(event.target.value || null);
+              setFieldValidationAssignSubmitted(false);
+              reviewMutation.reset();
+            }}
+          >
+            <option value="">Select a Field Inspector</option>
+            {(fieldReportersQuery.data ?? []).map((fieldReporter) => (
+              <option value={fieldReporter.uuid} key={fieldReporter.uuid}>
+                {fieldReporter.name}
+              </option>
+            ))}
+          </SelectFilter>
+          <label className="select-filter" htmlFor="field-validation-target-date">
+            <span>Target visit date (optional)</span>
+            <input
+              id="field-validation-target-date"
+              type="date"
+              value={selectedFieldValidationTargetDate}
+              onChange={(event) => {
+                setFieldValidationTargetDateOverride(event.target.value || null);
+                setFieldValidationAssignSubmitted(false);
+                reviewMutation.reset();
+              }}
+            />
+          </label>
+          {selectedFieldValidationAssignee === report.submitterUuid ? (
+            <p className="authority-classification-help" role="status">
+              Same person: the original submitter is also the field validator.
+            </p>
+          ) : null}
+          {fieldReportersQuery.isError ? (
+            <p className="form-error" role="alert">
+              Eligible Field Inspectors could not be loaded. Try again before assigning.
+            </p>
+          ) : null}
+        </div>
+      </Modal>
 
-                <details className="metadata-correction">
-                  <summary>Correct operational metadata</summary>
-                  <p className="authority-classification-help">Corrections preserve the submitted value, corrected value, actor, timestamp, and reason. Submitted AI and observation evidence cannot be edited here.</p>
-                  <div className="metadata-correction-grid">
-                    <label className="select-filter" htmlFor="correction-barangay"><span>Barangay</span><input id="correction-barangay" value={metadataDraft?.barangay ?? ""} onChange={(event) => updateMetadataDraft("barangay", event.target.value)} /></label>
-                    <label className="select-filter" htmlFor="correction-farmer"><span>Farmer or farm owner</span><input id="correction-farmer" value={metadataDraft?.farmerOrFarmOwnerName ?? ""} onChange={(event) => updateMetadataDraft("farmerOrFarmOwnerName", event.target.value)} /></label>
-                    <label className="select-filter" htmlFor="correction-province"><span>Province</span><input id="correction-province" value={metadataDraft?.province ?? ""} onChange={(event) => updateMetadataDraft("province", event.target.value)} /></label>
-                    <label className="select-filter" htmlFor="correction-municipality"><span>Municipality</span><input id="correction-municipality" value={metadataDraft?.municipality ?? ""} onChange={(event) => updateMetadataDraft("municipality", event.target.value)} /></label>
-                    <label className="select-filter" htmlFor="correction-area"><span>Affected area (ha)</span><input id="correction-area" type="number" min="0" step="0.01" value={metadataDraft?.affectedAreaHectares ?? ""} onChange={(event) => updateMetadataDraft("affectedAreaHectares", event.target.value)} /></label>
-                    <label className="select-filter" htmlFor="correction-portion"><span>Affected portion (%)</span><input id="correction-portion" type="number" min="0" max="100" step="0.01" value={metadataDraft?.affectedPortionPercent ?? ""} onChange={(event) => updateMetadataDraft("affectedPortionPercent", event.target.value)} /></label>
+      {/* Modal 3: Expert Referral (F3) */}
+      <Modal
+        id="referral-modal"
+        title="Record expert referral"
+        description="Capture the external handoff as plain operational text. CaneGuard does not send the referral or connect to an external SRA account."
+        open={referralModalOpen}
+        onClose={closeReferralModal}
+        disabled={recordReferral.isPending}
+        isDirty={referralHandoffDirty}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={recordReferral.isPending}
+              onClick={closeReferralModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={recordReferral.isPending}
+              onClick={saveReferralHandoff}
+            >
+              {recordReferral.isPending ? "Saving referral..." : "Save referral"}
+            </Button>
+          </>
+        }
+      >
+        <div className="review-subform" aria-label="Expert referral details">
+          <p className="authority-classification-help">
+            Capture the external handoff as plain operational text. CaneGuard does not send the referral or connect to an external SRA account.
+          </p>
+          {referralFieldError ? (
+            <p id="referral-destination-error" className="form-error" role="alert">
+              {referralFieldError}
+            </p>
+          ) : null}
+          <label className="select-filter" htmlFor="referral-destination">
+            <span>Expert destination</span>
+            <input
+              id="referral-destination"
+              value={referralDestination}
+              maxLength={160}
+              aria-describedby={referralFieldError ? "referral-destination-error" : undefined}
+              onChange={(event) => {
+                setReferralDestination(event.target.value);
+                setReferralSubmitted(false);
+                recordReferral.reset();
+              }}
+              placeholder="Office, laboratory, or expert group"
+            />
+          </label>
+          <label className="select-filter" htmlFor="referral-reference">
+            <span>Referral reference</span>
+            <input
+              id="referral-reference"
+              value={referralReference}
+              maxLength={160}
+              onChange={(event) => {
+                setReferralReference(event.target.value);
+                setReferralSubmitted(false);
+                recordReferral.reset();
+              }}
+              placeholder="Reference supplied by the receiving office"
+            />
+          </label>
+          <label className="select-filter" htmlFor="referral-date">
+            <span>Referral date</span>
+            <input
+              id="referral-date"
+              type="date"
+              value={referralDate}
+              onChange={(event) => {
+                setReferralDate(event.target.value);
+                setReferralSubmitted(false);
+                recordReferral.reset();
+              }}
+            />
+          </label>
+          <label className="select-filter" htmlFor="referral-due-date">
+            <span>Consult due date (optional)</span>
+            <input
+              id="referral-due-date"
+              type="date"
+              value={referralDueDate}
+              onChange={(event) => {
+                setReferralDueDate(event.target.value);
+                setReferralSubmitted(false);
+                recordReferral.reset();
+              }}
+            />
+          </label>
+          <SelectFilter
+            id="referral-expert"
+            label="In-system expert (optional)"
+            value={referralExpertUuid ?? ""}
+            onChange={(event) => {
+              setReferralExpertUuid(event.target.value || null);
+              setReferralSubmitted(false);
+              recordReferral.reset();
+            }}
+          >
+            <option value="">Choose an in-system expert or use the external path below</option>
+            {(expertDirectoryQuery.data ?? []).map((expert) => (
+              <option value={expert.uuid} key={expert.uuid}>
+                {expert.name} ({expert.email})
+              </option>
+            ))}
+          </SelectFilter>
+          {expertDirectoryQuery.isError ? (
+            <p className="form-error" role="alert">
+              In-system experts could not be loaded. You can still enter an external expert name.
+            </p>
+          ) : null}
+          <label className="select-filter" htmlFor="referral-expert-name">
+            <span>External expert name (optional)</span>
+            <input
+              id="referral-expert-name"
+              maxLength={160}
+              value={referralExpertName}
+              onChange={(event) => {
+                setReferralExpertName(event.target.value);
+                setReferralSubmitted(false);
+                recordReferral.reset();
+              }}
+              placeholder="Named expert or service"
+            />
+          </label>
+          <label className="select-filter" htmlFor="referral-expert-contact">
+            <span>Expert contact (optional)</span>
+            <input
+              id="referral-expert-contact"
+              maxLength={320}
+              value={referralExpertContact}
+              onChange={(event) => {
+                setReferralExpertContact(event.target.value);
+                setReferralSubmitted(false);
+                recordReferral.reset();
+              }}
+              placeholder="Email, phone, or office contact"
+            />
+          </label>
+          <TextArea
+            id="referral-note"
+            label="Referral note (optional)"
+            hint="Keep the request neutral and grounded in the submitted evidence."
+            rows={3}
+            maxLength={1000}
+            value={referralNote}
+            onChange={(event) => {
+              setReferralNote(event.target.value);
+              setReferralSubmitted(false);
+              recordReferral.reset();
+            }}
+            placeholder="What should the expert review?"
+          />
+          {referralRecordError ? <p className="form-error" role="alert">{referralRecordError}</p> : null}
+        </div>
+      </Modal>
+
+      {/* Modal 4: Duplicate Linkage (F5) */}
+      <Modal
+        id="duplicate-link-modal"
+        title="Link as possible duplicate"
+        description="Possible matches are decision support only. Reviewers and admins choose whether to link this case; nothing is merged, deleted, or blocked automatically."
+        open={duplicateLinkModalOpen}
+        onClose={closeDuplicateLinkModal}
+        disabled={duplicateLinkMutation.isPending}
+        isDirty={duplicateLinkDirty}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={duplicateLinkMutation.isPending}
+              onClick={closeDuplicateLinkModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={duplicateLinkMutation.isPending}
+              onClick={linkDuplicate}
+            >
+              {duplicateLinkMutation.isPending ? "Linking case..." : "Link as possible duplicate"}
+            </Button>
+          </>
+        }
+      >
+        <section className="duplicate-link-card" aria-labelledby="duplicate-link-heading">
+          <div className="section-heading">
+            <div>
+              <h3 id="duplicate-link-heading">Possible duplicate linkage</h3>
+            </div>
+            <GitBranch aria-hidden="true" />
+          </div>
+          {possibleMatchesQuery.isPending ? (
+            <p className="duplicate-link-status" role="status">Checking recent submissions for a possible match...</p>
+          ) : null}
+          {possibleMatchesQuery.isError ? (
+            <p className="duplicate-link-status" role="alert">
+              Possible matches could not be loaded. You can still enter a canonical case UUID below.
+            </p>
+          ) : null}
+          {!possibleMatchesQuery.isPending && !possibleMatchesQuery.isError && possibleMatches.length === 0 ? (
+            <p className="duplicate-link-status">No possible recent matches were found. A legitimate case can remain separate.</p>
+          ) : null}
+          {possibleMatches.length > 0 ? (
+            <ul className="possible-match-list">
+              {possibleMatches.map((match) => (
+                <li key={match.uuid}>
+                  <div>
+                    <Link to={routes.reportDetail(match.uuid)}>{match.referenceCode}</Link>
+                    <small>
+                      Possible match - {Math.round(match.distanceMeters)} m away - submitted {formatDateTime(match.submittedAt)}.
+                    </small>
                   </div>
-                  {submitted && !referralNeeded && correctionError ? (
-                    <p id="correction-reason-error" className="form-error" role="alert">
-                      {correctionError}
-                    </p>
-                  ) : null}
-                  <TextArea
-                    id="correction-reason"
-                    label="Correction reason"
-                    hint="Required when an operational value changes."
-                    rows={3}
-                    maxLength={1000}
-                    value={correctionReason}
-                    aria-describedby={
-                      submitted && !referralNeeded && correctionError
-                        ? "correction-reason-error"
-                        : undefined
-                    }
-                    onChange={(event) => {
-                      setCorrectionReason(event.target.value);
-                      setSubmitted(false);
-                      reviewMutation.reset();
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setCanonicalReportUuid(match.uuid);
+                      setDuplicateLinkSubmitted(false);
+                      setDuplicateLinkNotice(null);
+                      duplicateLinkMutation.reset();
                     }}
-                    placeholder="Explain the source of the correction..."
-                  />
-                  {report.metadataCorrectionAudits?.length ? (
-                    <div className="metadata-audit-history">
-                      <strong>Correction history</strong>
-                      <ol>
-                        {report.metadataCorrectionAudits.map((audit) => (
-                          <li key={audit.id}>
-                            <span>{audit.field.replaceAll("_", " ")}: {String(audit.originalValue ?? "Not provided")} to {String(audit.correctedValue ?? "Not provided")}</span>
-                            <small>{audit.actorName} on {formatDateTime(audit.createdAt)} - {audit.reason}</small>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  ) : <p className="authority-classification-help">No operational metadata corrections recorded.</p>}
-                </details>
-              </div>
-            </details>
+                  >
+                    Use as canonical
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <label className="select-filter" htmlFor="canonical-report-uuid">
+            <span>Canonical case UUID</span>
+            <input
+              id="canonical-report-uuid"
+              value={canonicalReportUuid}
+              onChange={(event) => {
+                setCanonicalReportUuid(event.target.value);
+                setDuplicateLinkSubmitted(false);
+                setDuplicateLinkNotice(null);
+                duplicateLinkMutation.reset();
+              }}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            />
+          </label>
+          <label className="select-filter" htmlFor="duplicate-link-reason">
+            <span>Link reason (optional)</span>
+            <input
+              id="duplicate-link-reason"
+              value={duplicateLinkReason}
+              maxLength={320}
+              onChange={(event) => {
+                setDuplicateLinkReason(event.target.value);
+                setDuplicateLinkSubmitted(false);
+                setDuplicateLinkNotice(null);
+                duplicateLinkMutation.reset();
+              }}
+              placeholder="Why is this case treated as a duplicate?"
+            />
+          </label>
+          {duplicateLinkSubmitted && !canonicalReportUuid.trim() ? (
+            <p className="form-error" role="alert">Choose a possible match or enter a canonical case UUID before linking.</p>
+          ) : null}
+          {duplicateLinkValidationError ? (
+            <p className="form-error" role="alert">{duplicateLinkValidationError}</p>
+          ) : null}
+          {duplicateLinkConflict ? (
+            <p className="form-error" role="alert">This case is already linked to another canonical case. Refresh before trying again.</p>
+          ) : null}
+          {duplicateLinkForbidden ? (
+            <p className="form-error" role="alert">You do not have permission to link duplicate cases.</p>
+          ) : null}
+          {duplicateLinkMalformed ? (
+            <p className="form-error" role="alert">The duplicate link response had an unexpected format. Refresh the report before trying again.</p>
+          ) : null}
+          {duplicateLinkMutation.isError &&
+          !duplicateLinkConflict &&
+          !duplicateLinkValidationError &&
+          !duplicateLinkForbidden &&
+          !duplicateLinkMalformed ? (
+            <p className="form-error" role="alert">The duplicate linking service is unavailable. No link was recorded.</p>
+          ) : null}
+        </section>
+      </Modal>
 
-            {report.referral ? (
-              <div id="referral-response-form">
-                <ReferralWorkflow report={report} />
-              </div>
-            ) : null}
-          </section>
-        </aside>
-      </div>
+      {/* Modal 5: Metadata Correction (F6) */}
+      <Modal
+        id="metadata-correction-modal"
+        title="Correct operational metadata"
+        description="Corrections preserve the submitted value, corrected value, actor, timestamp, and reason. Submitted AI and observation evidence cannot be edited here."
+        open={metadataCorrectionModalOpen}
+        onClose={closeMetadataCorrectionModal}
+        disabled={reviewMutation.isPending}
+        isDirty={metadataCorrectionDirty}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={reviewMutation.isPending}
+              onClick={closeMetadataCorrectionModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={reviewMutation.isPending}
+              onClick={saveMetadataCorrection}
+            >
+              {reviewMutation.isPending ? "Saving correction..." : "Save correction"}
+            </Button>
+          </>
+        }
+      >
+        <div className="metadata-correction">
+          <p className="authority-classification-help">
+            Corrections preserve the submitted value, corrected value, actor, timestamp, and reason. Submitted AI and observation evidence cannot be edited here.
+          </p>
+          <div className="metadata-correction-grid">
+            <label className="select-filter" htmlFor="correction-barangay">
+              <span>Barangay</span>
+              <input
+                id="correction-barangay"
+                value={metadataDraft?.barangay ?? ""}
+                onChange={(event) => updateMetadataDraft("barangay", event.target.value)}
+              />
+            </label>
+            <label className="select-filter" htmlFor="correction-farmer">
+              <span>Farmer or farm owner</span>
+              <input
+                id="correction-farmer"
+                value={metadataDraft?.farmerOrFarmOwnerName ?? ""}
+                onChange={(event) => updateMetadataDraft("farmerOrFarmOwnerName", event.target.value)}
+              />
+            </label>
+            <label className="select-filter" htmlFor="correction-province">
+              <span>Province</span>
+              <input
+                id="correction-province"
+                value={metadataDraft?.province ?? ""}
+                onChange={(event) => updateMetadataDraft("province", event.target.value)}
+              />
+            </label>
+            <label className="select-filter" htmlFor="correction-municipality">
+              <span>Municipality</span>
+              <input
+                id="correction-municipality"
+                value={metadataDraft?.municipality ?? ""}
+                onChange={(event) => updateMetadataDraft("municipality", event.target.value)}
+              />
+            </label>
+            <label className="select-filter" htmlFor="correction-area">
+              <span>Affected area (ha)</span>
+              <input
+                id="correction-area"
+                type="number"
+                min="0"
+                step="0.01"
+                value={metadataDraft?.affectedAreaHectares ?? ""}
+                onChange={(event) => updateMetadataDraft("affectedAreaHectares", event.target.value)}
+              />
+            </label>
+            <label className="select-filter" htmlFor="correction-portion">
+              <span>Affected portion (%)</span>
+              <input
+                id="correction-portion"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={metadataDraft?.affectedPortionPercent ?? ""}
+                onChange={(event) => updateMetadataDraft("affectedPortionPercent", event.target.value)}
+              />
+            </label>
+          </div>
+          {correctionSubmitted && correctionError ? (
+            <p id="correction-reason-error" className="form-error" role="alert">
+              {correctionError}
+            </p>
+          ) : null}
+          <TextArea
+            id="correction-reason"
+            label="Correction reason"
+            hint="Required when an operational value changes."
+            rows={3}
+            maxLength={1000}
+            value={correctionReason}
+            aria-describedby={
+              correctionSubmitted && correctionError
+                ? "correction-reason-error"
+                : undefined
+            }
+            onChange={(event) => {
+              setCorrectionReason(event.target.value);
+              setCorrectionSubmitted(false);
+              reviewMutation.reset();
+            }}
+            placeholder="Explain the source of the correction..."
+          />
+          {report.metadataCorrectionAudits?.length ? (
+            <div className="metadata-audit-history">
+              <strong>Correction history</strong>
+              <ol>
+                {report.metadataCorrectionAudits.map((audit) => (
+                  <li key={audit.id}>
+                    <span>
+                      {audit.field.replaceAll("_", " ")}: {String(audit.originalValue ?? "Not provided")} to {String(audit.correctedValue ?? "Not provided")}
+                    </span>
+                    <small>
+                      {audit.actorName} on {formatDateTime(audit.createdAt)} - {audit.reason}
+                    </small>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : (
+            <p className="authority-classification-help">No operational metadata corrections recorded.</p>
+          )}
+        </div>
+      </Modal>
     </PageContent>
   );
 }

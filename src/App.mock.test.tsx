@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -63,7 +63,11 @@ describe("mock data mode", () => {
       screen.getByRole("radio", { name: /Provide advisory/ }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Save review" }),
+      screen.getByRole("button", { name: "Record office decision" }),
+    );
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.click(
+      within(modal).getByRole("button", { name: "Save decision" }),
     );
 
     expect(

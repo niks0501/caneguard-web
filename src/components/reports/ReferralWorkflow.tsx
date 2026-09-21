@@ -1,5 +1,4 @@
 import {
-  CalendarDays,
   FileText,
   MessageSquareText,
 } from "lucide-react";
@@ -8,6 +7,10 @@ import { ApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
 import { DetailField } from "../layout/Page";
 import { Button } from "../ui/Button";
+import { CappedDetailList } from "../ui/CappedDetailList";
+import { ClampedText } from "../ui/ClampedText";
+import { Modal } from "../ui/Modal";
+import { confirmDiscardUnsavedChanges } from "../ui/confirmDiscard";
 import { SelectFilter, TextArea } from "../ui/FormControls";
 import {
   actionTakenLabels,
@@ -73,6 +76,18 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
   const [overrideNote, setOverrideNote] = useState("");
   const [overrideMode, setOverrideMode] = useState(false);
   const [confirmSubmitted, setConfirmSubmitted] = useState(false);
+  const [responseModalOpen, setResponseModalOpen] = useState(false);
+  const responseDirty = Boolean(
+    responseDate ||
+    responseNote.trim() ||
+    responseFinding.trim() ||
+    responseFindingSource ||
+    responseAuthority !== undefined ||
+    responseVerification !== undefined,
+  );
+  const closeResponseModal = () => {
+    if (confirmDiscardUnsavedChanges(responseDirty)) setResponseModalOpen(false);
+  };
   const [notice, setNotice] = useState<string | null>(null);
   const recordResponse = useRecordExpertReferralResponse(report.uuid);
   const confirmReferral = useConfirmExpertReferral(report.uuid);
@@ -127,6 +142,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
         expectedVersion: report.reviewVersion,
       });
       setNotice("Expert response recorded. Review the updated Staff-Classified Condition before closing the report.");
+      setResponseModalOpen(false);
     } catch {
       return;
     }
@@ -155,18 +171,18 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
       {notice ? <p className="success-banner referral-notice" role="status">{notice}</p> : null}
 
       <>
-          <dl className="detail-list referral-details">
+          <CappedDetailList className="detail-list referral-details" limit={4}>
             <DetailField label="Destination">{referral.destination}</DetailField>
             <DetailField label="Reference">{referral.reference}</DetailField>
-            <DetailField label="Status">{referral.status ?? (referral.responseDate ? "completed" : "pending")}</DetailField>
             <DetailField label="Referral date">{referral.referralDate}</DetailField>
+            <DetailField label="Response date">{referral.responseDate ?? "Pending"}</DetailField>
+            <DetailField label="Status">{referral.status ?? (referral.responseDate ? "completed" : "pending")}</DetailField>
             <DetailField label="Due date">{referral.dueDate ?? "Not set"}</DetailField>
             <DetailField label="Expert">{referral.expertName ?? "Not attributed"}</DetailField>
             <DetailField label="Expert contact">{referral.expertContact ?? "Not provided"}</DetailField>
             <DetailField label="Referred by">{referral.referredBy?.name ?? "Not available"}</DetailField>
-            <DetailField label="Referral note">{referral.note ?? "Not provided"}</DetailField>
-            <DetailField label="Response date">{referral.responseDate ?? "Pending"}</DetailField>
-          </dl>
+            <DetailField label="Referral note"><ClampedText text={referral.note ?? "Not provided"} /></DetailField>
+          </CappedDetailList>
           <div className="referral-office-context">
             <strong>Office context captured at referral</strong>
             <span>
@@ -180,7 +196,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 ? actionTakenLabels[referral.officeContext.actionTaken]
                 : "No office action"}
             </span>
-            {referral.officeContext.notes ? <p>{referral.officeContext.notes}</p> : null}
+            {referral.officeContext.notes ? <p><ClampedText text={referral.officeContext.notes} /></p> : null}
             {referral.officeContext.reviewedAt ? (
               <small>Captured {formatDateTime(referral.officeContext.reviewedAt)}</small>
             ) : null}
@@ -255,118 +271,140 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
               ) : null}
             </div>
           ) : referralState === "referred" ? (
-            <div className="referral-form referral-response-form">
-              <div className="referral-subheading">
-                <CalendarDays aria-hidden="true" />
-                <div>
-                  <strong>Record expert response</strong>
-                  <span>Findings are attributed to this consult. External findings entered by staff are labelled as transcribed.</span>
-                </div>
-              </div>
-              <label className="select-filter" htmlFor="response-date">
-                <span>Expert response date</span>
-                <input
-                  id="response-date"
-                  type="date"
-                  value={responseDate}
-                  onChange={(event) => {
-                    setResponseDate(event.target.value);
-                    setResponseSubmitted(false);
-                    recordResponse.reset();
-                  }}
-                />
-              </label>
-              <TextArea
-                id="response-note"
-                label="Expert response note"
-                rows={3}
-                maxLength={1000}
-                value={responseNote}
-                onChange={(event) => {
-                  setResponseNote(event.target.value);
-                  setResponseSubmitted(false);
-                  recordResponse.reset();
-                }}
-                placeholder="Record the response received from the expert"
-              />
-              <TextArea
-                id="response-finding"
-                label={responseFindingSource === "transcribed" ? "Expert finding (transcribed; optional)" : "Expert finding (optional)"}
-                rows={3}
-                maxLength={2000}
-                value={responseFinding}
-                onChange={(event) => {
-                  setResponseFinding(event.target.value);
-                  setResponseSubmitted(false);
-                  recordResponse.reset();
-                }}
-                placeholder="Capture the expert's finding as reported"
-              />
-              <SelectFilter
-                label="Finding source (optional)"
-                value={responseFindingSource}
-                onChange={(event) => {
-                  setResponseFindingSource(event.target.value as FindingSource | "");
-                  setResponseSubmitted(false);
-                  recordResponse.reset();
-                }}
-              >
-                <option value="">Use transcribed source by default</option>
-                <option value="in_system">Entered in CaneGuard as part of this consult</option>
-                <option value="transcribed">Transcribed from an external expert response</option>
-              </SelectFilter>
-              <SelectFilter
-                label="Staff-Classified Condition after response"
-                value={responseAuthority ?? ""}
-                onChange={(event) => {
-                  setResponseAuthority(
-                    (event.target.value || undefined) as AuthorityClassifiedCondition | undefined,
-                  );
-                  setResponseSubmitted(false);
-                  recordResponse.reset();
-                }}
-              >
-                <option value="">Keep or leave unclassified</option>
-                {activeAuthorityClassifiedConditions.map((value) => (
-                  <option value={value} key={value}>
-                    {authorityClassifiedConditionLabels[value]}
-                  </option>
-                ))}
-                {existingLegacyAuthorityClassification ? (
-                  <option value={existingLegacyAuthorityClassification}>
-                    {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
-                    {" (legacy record; not offered for new review)"}
-                  </option>
-                ) : null}
-              </SelectFilter>
-              <SelectFilter
-                label="Verification outcome after response"
-                value={responseVerification ?? ""}
-                onChange={(event) => {
-                  setResponseVerification(event.target.value as VerificationOutcome | "");
-                  setResponseSubmitted(false);
-                  recordResponse.reset();
-                }}
-              >
-                <option value="">Keep current outcome</option>
-                {Object.entries(verificationOutcomeLabels).map(([value, label]) => (
-                  <option value={value} key={value}>{label}</option>
-                ))}
-              </SelectFilter>
-              {responseFieldError ? <p className="form-error" role="alert">{responseFieldError}</p> : null}
-              {errorMessage(recordResponse.error, "The expert response service is unavailable. No response change was confirmed.") ? (
-                <p className="form-error" role="alert">
-                  {errorMessage(recordResponse.error, "The expert response service is unavailable. No response change was confirmed.")}
-                </p>
-              ) : null}
+            <div className="referral-response-action">
               <Button
                 type="button"
                 icon={<FileText aria-hidden="true" />}
-                disabled={recordResponse.isPending}
-                onClick={() => void saveResponse()}
+                onClick={() => setResponseModalOpen(true)}
               >
-                {recordResponse.isPending ? "Recording response..." : "Record expert response"}
+                Record expert response
               </Button>
+              <Modal
+                title="Record expert response"
+                description="Findings are attributed to this consult. External findings entered by staff are labelled as transcribed."
+                open={responseModalOpen}
+                onClose={closeResponseModal}
+                disabled={recordResponse.isPending}
+                isDirty={responseDirty}
+                footer={
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={recordResponse.isPending}
+                      onClick={closeResponseModal}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={recordResponse.isPending}
+                      onClick={() => void saveResponse()}
+                    >
+                      {recordResponse.isPending ? "Recording response..." : "Record expert response"}
+                    </Button>
+                  </>
+                }
+              >
+                <div className="referral-form referral-response-form">
+                  <label className="select-filter" htmlFor="response-date">
+                    <span>Expert response date</span>
+                    <input
+                      id="response-date"
+                      type="date"
+                      value={responseDate}
+                      onChange={(event) => {
+                        setResponseDate(event.target.value);
+                        setResponseSubmitted(false);
+                        recordResponse.reset();
+                      }}
+                    />
+                  </label>
+                  <TextArea
+                    id="response-note"
+                    label="Expert response note"
+                    rows={3}
+                    maxLength={1000}
+                    value={responseNote}
+                    onChange={(event) => {
+                      setResponseNote(event.target.value);
+                      setResponseSubmitted(false);
+                      recordResponse.reset();
+                    }}
+                    placeholder="Record the response received from the expert"
+                  />
+                  <TextArea
+                    id="response-finding"
+                    label={responseFindingSource === "transcribed" ? "Expert finding (transcribed; optional)" : "Expert finding (optional)"}
+                    rows={3}
+                    maxLength={2000}
+                    value={responseFinding}
+                    onChange={(event) => {
+                      setResponseFinding(event.target.value);
+                      setResponseSubmitted(false);
+                      recordResponse.reset();
+                    }}
+                    placeholder="Capture the expert's finding as reported"
+                  />
+                  <SelectFilter
+                    label="Finding source (optional)"
+                    value={responseFindingSource}
+                    onChange={(event) => {
+                      setResponseFindingSource(event.target.value as FindingSource | "");
+                      setResponseSubmitted(false);
+                      recordResponse.reset();
+                    }}
+                  >
+                    <option value="">Use transcribed source by default</option>
+                    <option value="in_system">Entered in CaneGuard as part of this consult</option>
+                    <option value="transcribed">Transcribed from an external expert response</option>
+                  </SelectFilter>
+                  <SelectFilter
+                    label="Staff-Classified Condition after response"
+                    value={responseAuthority ?? ""}
+                    onChange={(event) => {
+                      setResponseAuthority(
+                        (event.target.value || undefined) as AuthorityClassifiedCondition | undefined,
+                      );
+                      setResponseSubmitted(false);
+                      recordResponse.reset();
+                    }}
+                  >
+                    <option value="">Keep or leave unclassified</option>
+                    {activeAuthorityClassifiedConditions.map((value) => (
+                      <option value={value} key={value}>
+                        {authorityClassifiedConditionLabels[value]}
+                      </option>
+                    ))}
+                    {existingLegacyAuthorityClassification ? (
+                      <option value={existingLegacyAuthorityClassification}>
+                        {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
+                        {" (legacy record; not offered for new review)"}
+                      </option>
+                    ) : null}
+                  </SelectFilter>
+                  <SelectFilter
+                    label="Verification outcome after response"
+                    value={responseVerification ?? ""}
+                    onChange={(event) => {
+                      setResponseVerification(event.target.value as VerificationOutcome | "");
+                      setResponseSubmitted(false);
+                      recordResponse.reset();
+                    }}
+                  >
+                    <option value="">Keep current outcome</option>
+                    {Object.entries(verificationOutcomeLabels).map(([value, label]) => (
+                      <option value={value} key={value}>{label}</option>
+                    ))}
+                  </SelectFilter>
+                  {responseFieldError ? <p className="form-error" role="alert">{responseFieldError}</p> : null}
+                  {errorMessage(recordResponse.error, "The expert response service is unavailable. No response change was confirmed.") ? (
+                    <p className="form-error" role="alert">
+                      {errorMessage(recordResponse.error, "The expert response service is unavailable. No response change was confirmed.")}
+                    </p>
+                  ) : null}
+                </div>
+              </Modal>
             </div>
           ) : (
             <div className="referral-response-summary">
@@ -377,8 +415,8 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                   {referral.consultReviewNote ? ` — ${referral.consultReviewNote}` : ""}
                 </p>
               ) : null}
-              <DetailField label="Response note">{referral.responseNote ?? "Not provided"}</DetailField>
-              <DetailField label={referral.findingSource === "transcribed" ? "Finding (transcribed)" : "Response finding"}>{referral.responseFinding ?? referral.findingDetails ?? "Not provided"}</DetailField>
+              <DetailField label="Response note"><ClampedText text={referral.responseNote ?? "Not provided"} /></DetailField>
+              <DetailField label={referral.findingSource === "transcribed" ? "Finding (transcribed)" : "Response finding"}><ClampedText text={referral.responseFinding ?? referral.findingDetails ?? "Not provided"} /></DetailField>
               <DetailField label="Recommendation">{referral.findingRecommendation ?? "Not provided"}</DetailField>
               {referral.findingSource ? <small>Finding source: {referral.findingSource === "transcribed" ? "Transcribed from an external expert response" : "Entered in CaneGuard as part of this consult"}.</small> : null}
               {referral.responseRecordedBy ? (

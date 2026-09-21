@@ -199,7 +199,6 @@ describe("CaseReviewPage", () => {
     expect(
       screen.getByText("No image quality warnings were reported."),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Staff-Classified Condition is a separate human finding/)).toBeInTheDocument();
     expect(screen.getByText("Symptom agreement")).toBeInTheDocument();
     expect(screen.getByText("Checklist responses: Consistent with the Possible Condition")).toBeInTheDocument();
     expect(
@@ -221,9 +220,12 @@ describe("CaseReviewPage", () => {
     expect(caseStatus).toHaveTextContent("Not determined");
     expect(caseStatus).toHaveTextContent("Last activity");
     expect(screen.getByText(/^Work status/)).toHaveClass("status-chip__label");
-    expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    expect(screen.getByText(/Staff-Classified Condition is a separate human finding/)).toBeInTheDocument();
     expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("");
+    expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByText("Observed at")).toBeInTheDocument();
     expect(screen.getByText("Submitted at")).toBeInTheDocument();
     expect(
@@ -429,10 +431,12 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText("Possible Condition: Smut")).not.toBeVisible();
     await user.click(screen.getByText("Model evidence — decision support"));
     expect(screen.getByText("Possible Condition: Smut")).toBeVisible();
-    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "smut");
-    await user.type(screen.getByLabelText(/^Review notes/), "Authority confirmed Smut.");
     await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
-    await user.click(screen.getByRole("button", { name: "Save review" }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
+    await user.type(within(modal).getByLabelText(/^Review notes/), "Authority confirmed Smut.");
+    await user.click(within(modal).getByRole("button", { name: "Save decision" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       authorityClassifiedCondition: "smut",
@@ -440,9 +444,11 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("offers every active Staff-Classified Condition but not legacy Downy mildew", () => {
+  it("offers every active Staff-Classified Condition but not legacy Downy mildew", async () => {
+    const user = userEvent.setup();
     renderPage();
 
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
     const select = screen.getByLabelText("Staff-Classified Condition");
     expect(within(select).getAllByRole("option").map((option) => option.getAttribute("value"))).toEqual([
       "",
@@ -478,15 +484,17 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    const select = screen.getByLabelText("Staff-Classified Condition");
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    const select = within(modal).getByLabelText("Staff-Classified Condition");
     expect(select).toHaveValue("downy_mildew");
     expect(
       within(select).getByRole("option", {
         name: /Downy mildew \(legacy record; not offered for new review\)/,
       }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
-    await user.click(screen.getByRole("button", { name: "Save review" }));
+    await user.click(within(modal).getByRole("button", { name: "Save decision" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       authorityClassifiedCondition: "downy_mildew",
@@ -494,7 +502,8 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("does not select a next action or verification outcome automatically", () => {
+  it("does not select a next action or verification outcome automatically", async () => {
+    const user = userEvent.setup();
     renderPage();
 
     expect(
@@ -502,21 +511,28 @@ describe("CaseReviewPage", () => {
         .getAllByRole("radio")
         .every((radio) => !(radio as HTMLInputElement).checked),
     ).toBe(true);
-    expect(screen.getByLabelText("Verification outcome")).toHaveValue("");
     expect(
       screen.getByRole("group", { name: "Next action - choose one" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("No office action selected")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    expect(within(modal).getByLabelText("Verification outcome")).toHaveValue("");
   });
 
-  it("makes the existing review notes field explicit for intervention details", () => {
+  it("makes the existing review notes field explicit for intervention details", async () => {
+    const user = userEvent.setup();
     renderPage();
 
-    expect(screen.getByRole("note")).toHaveTextContent(
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+
+    expect(within(modal).getByRole("note")).toHaveTextContent(
       /Record intervention or action details.*treatment, pesticide, medicine, technical assistance, or other action/i,
     );
-    expect(screen.getByText(/Record treatment, pesticide, medicine, technical assistance, or other action details when applicable/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Review notes/)).toHaveAttribute(
+    expect(within(modal).getByText(/Record treatment, pesticide, medicine, technical assistance, or other action details when applicable/i)).toBeInTheDocument();
+    expect(within(modal).getByLabelText(/^Review notes/)).toHaveAttribute(
       "placeholder",
       "Describe the intervention or other action used, if applicable...",
     );
@@ -552,15 +568,16 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
-    await user.click(screen.getByText("More actions"));
-    expect(screen.getByText(/nothing is merged, deleted, or blocked automatically/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Use as canonical" }));
-    expect(screen.getByLabelText("Canonical case UUID")).toHaveValue("canonical-report");
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    expect(within(modal).getByText(/nothing is merged, deleted, or blocked automatically/i)).toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Use as canonical" }));
+    expect(within(modal).getByLabelText("Canonical case UUID")).toHaveValue("canonical-report");
     await user.type(
-      screen.getByLabelText(/^Link reason \(optional\)/),
+      within(modal).getByLabelText(/^Link reason \(optional\)/),
       " The cases may describe the same field observation. ",
     );
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
 
     expect(mutateAsync).toHaveBeenCalledWith({
       canonicalReportUuid: "canonical-report",
@@ -578,16 +595,16 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
-    await user.click(screen.getByText("More actions"));
-
     await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
 
-    expect(screen.getByText(/enter a canonical case UUID/i)).toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
+
+    expect(within(modal).getByText(/enter a canonical case UUID/i)).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("shows the preserved relationship after a case is linked", async () => {
-    const user = userEvent.setup();
+  it("shows the preserved relationship after a case is linked", () => {
     vi.mocked(useReport).mockReturnValue(
       queryResult({
         data: {
@@ -607,8 +624,6 @@ describe("CaseReviewPage", () => {
       }),
     );
     renderPage();
-
-    await user.click(screen.getByText("More actions"));
 
     expect(screen.getByText("Linked as a possible duplicate")).toBeInTheDocument();
     expect(screen.getByText(/Canonical case CG-2026-0002/)).toBeInTheDocument();
@@ -642,7 +657,6 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
-    await user.click(screen.getByText("More actions"));
     await user.click(screen.getByRole("button", { name: "Remove duplicate link" }));
 
     expect(mutateAsync).toHaveBeenCalledWith({ expectedVersion: report.reviewVersion });
@@ -655,7 +669,9 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
-    await user.click(screen.getByRole("button", { name: "Save review" }));
+    await user.click(screen.getByRole("button", { name: "Assign visit" }));
+    const modal = screen.getByRole("dialog", { name: "Assign visit" });
+    await user.click(within(modal).getByRole("button", { name: "Assign visit" }));
 
     expect(screen.getAllByText(/Select a Field Inspector before saving/i).length).toBeGreaterThan(0);
     expect(mutateAsync).not.toHaveBeenCalled();
@@ -672,12 +688,14 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
+    await user.click(screen.getByRole("button", { name: "Assign visit" }));
+    const modal = screen.getByRole("dialog", { name: "Assign visit" });
     await user.selectOptions(
-      screen.getByLabelText("Field Inspector assignee"),
+      within(modal).getByLabelText("Field Inspector assignee"),
       report.submitterUuid!,
     );
-    expect(screen.getByText(/original submitter is also the field validator/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Save review" }));
+    expect(within(modal).getByText(/original submitter is also the field validator/i)).toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Assign visit" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       actionTaken: undefined,
@@ -695,12 +713,15 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+
     await user.selectOptions(
-      screen.getByLabelText("Verification outcome"),
+      within(modal).getByLabelText("Verification outcome"),
       "unable_to_verify",
     );
     await user.click(
-      screen.getByRole("button", { name: "Save review" }),
+      within(modal).getByRole("button", { name: "Save decision" }),
     );
 
     expect(
@@ -709,17 +730,24 @@ describe("CaseReviewPage", () => {
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("renders GOV.UK error summary and prefixes document title on validation failure", async () => {
+  it("keeps decision validation inside the modal and prefixes document title on failure", async () => {
     const user = userEvent.setup();
+    const mutateAsync = vi.fn();
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      mutationResult({ mutateAsync }),
+    );
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Save review" }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.click(within(modal).getByRole("button", { name: "Save decision" }));
 
-    const errorSummary = screen.getByRole("alert", { name: "There is a problem" });
-    expect(errorSummary).toBeInTheDocument();
+    // The modal stays open with the inline validation message; nothing is sent.
     expect(
-      within(errorSummary).getByRole("link", { name: /Choose a next action/i }),
-    ).toHaveAttribute("href", "#review-next-action");
+      within(modal).getByText(/Choose a next action or another review field/i),
+    ).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Record office decision" })).toBeInTheDocument();
     expect(document.title).toMatch(/^Error: /);
   });
 
@@ -731,19 +759,23 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.selectOptions(
-      screen.getByLabelText("Staff-Classified Condition"),
-      "smut",
-    );
-    await user.type(
-      screen.getByLabelText(/^Review notes/),
-      "Field evidence reviewed.",
-    );
     await user.click(
       screen.getByRole("radio", { name: /Provide advisory/ }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Save review" }),
+      screen.getByRole("button", { name: "Record office decision" }),
+    );
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.selectOptions(
+      within(modal).getByLabelText("Staff-Classified Condition"),
+      "smut",
+    );
+    await user.type(
+      within(modal).getByLabelText(/^Review notes/),
+      "Field evidence reviewed.",
+    );
+    await user.click(
+      within(modal).getByRole("button", { name: "Save decision" }),
     );
 
     expect(mutateAsync).toHaveBeenCalledWith({
@@ -751,12 +783,7 @@ describe("CaseReviewPage", () => {
       authorityClassifiedCondition: "smut",
       verificationOutcome: undefined,
       actionTaken: "advisory_provided",
-      fieldValidationState: "unassigned",
-      fieldValidationAssigneeUuid: undefined,
-      fieldValidationTargetDate: undefined,
       caseState: undefined,
-      metadataCorrections: undefined,
-      correctionReason: undefined,
       expectedVersion: report.reviewVersion,
     });
     expect(
@@ -808,6 +835,91 @@ describe("CaseReviewPage", () => {
     expect(
       screen.getByRole("button", { name: "Saving review..." }),
     ).toBeDisabled();
+  });
+
+  it("keeps an over-long note inside the decision modal without saving", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn();
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      mutationResult({ mutateAsync }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    // One change event (not per-keystroke typing) keeps the 1,001-char
+    // draft fast under test; the component sees the same final value.
+    fireEvent.change(within(modal).getByLabelText(/^Review notes/), {
+      target: { value: "x".repeat(1001) },
+    });
+    await user.click(within(modal).getByRole("button", { name: "Save decision" }));
+
+    // The modal stays open with the existing note-length error inside it.
+    expect(
+      within(modal).getByText(/Review notes must be 1,000 characters or fewer/i),
+    ).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Record office decision" })).toBeInTheDocument();
+  });
+
+  it("shows a stale-review conflict with refresh inside the decision modal", async () => {
+    const user = userEvent.setup();
+    const refetch = vi.fn();
+    vi.mocked(useReport).mockReturnValue(queryResult({ refetch }));
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      mutationResult({
+        error: new ApiError("Conflict", { status: 409 }),
+        isError: true,
+      }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+
+    expect(
+      within(modal).getByText(/changed after you opened it/i),
+    ).toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Refresh report" }));
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it("disables the decision modal submit and cancel while saving and sends one request", async () => {
+    const user = userEvent.setup();
+    const savePromise = new Promise(() => {});
+    const mutateAsync = vi.fn().mockReturnValue(savePromise);
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      mutationResult({ mutateAsync }),
+    );
+    const { rerender } = renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.click(within(modal).getByRole("button", { name: "Save decision" }));
+    expect(mutateAsync).toHaveBeenCalledTimes(1);
+
+    // While the save is in flight the modal controls lock.
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      mutationResult({ mutateAsync, isPending: true }),
+    );
+    rerender(
+      <MemoryRouter initialEntries={[`/reports/${report.uuid}`]}>
+        <Routes>
+          <Route path="/reports/:reportId" element={<CaseReviewPage />} />
+          <Route path="/reports" element={<p>Returned to report queue</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const pendingModal = screen.getByRole("dialog", { name: "Record office decision" });
+    expect(within(pendingModal).getByRole("button", { name: "Saving decision..." })).toBeDisabled();
+    expect(within(pendingModal).getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    // A second click on the locked submit sends nothing more.
+    await user.click(within(pendingModal).getByRole("button", { name: "Saving decision..." }));
+    expect(mutateAsync).toHaveBeenCalledTimes(1);
   });
 
   it("keeps cached detail visible and offers retry after a failed refresh", async () => {
@@ -871,15 +983,17 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     // Referral fields are revealed only for the Refer to expert choice.
-    expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
-    await user.type(screen.getByLabelText("Expert destination"), " Regional office ");
-    await user.type(screen.getByLabelText("Referral reference"), " SRA-2026-0042 ");
-    await user.type(screen.getByLabelText("Referral date"), "2026-09-04");
-    await user.type(screen.getByLabelText("External expert name (optional)"), " Dr. External Expert ");
-    await user.type(screen.getByLabelText(/Referral note \(optional\)/), " Review the mismatch. ");
-    await user.click(screen.getByRole("button", { name: "Save referral" }));
+    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
+    const modal = screen.getByRole("dialog", { name: "Record expert referral" });
+    await user.type(within(modal).getByLabelText("Expert destination"), " Regional office ");
+    await user.type(within(modal).getByLabelText("Referral reference"), " SRA-2026-0042 ");
+    await user.type(within(modal).getByLabelText("Referral date"), "2026-09-04");
+    await user.type(within(modal).getByLabelText("External expert name (optional)"), " Dr. External Expert ");
+    await user.type(within(modal).getByLabelText(/Referral note \(optional\)/), " Review the mismatch. ");
+    await user.click(within(modal).getByRole("button", { name: "Save referral" }));
 
     // One save request through the existing atomic referral endpoint, carrying
     // the visible office classification, verification, and notes snapshot.
@@ -912,11 +1026,13 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
-    await user.type(screen.getByLabelText("Expert destination"), " Regional office ");
-    await user.type(screen.getByLabelText("Referral reference"), " SRA-2026-0042 ");
-    await user.type(screen.getByLabelText("Referral date"), "2026-09-04");
-    await user.selectOptions(screen.getByLabelText("In-system expert (optional)"), "expert-uuid");
-    await user.click(screen.getByRole("button", { name: "Save referral" }));
+    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
+    const expertModal = screen.getByRole("dialog", { name: "Record expert referral" });
+    await user.type(within(expertModal).getByLabelText("Expert destination"), " Regional office ");
+    await user.type(within(expertModal).getByLabelText("Referral reference"), " SRA-2026-0042 ");
+    await user.type(within(expertModal).getByLabelText("Referral date"), "2026-09-04");
+    await user.selectOptions(within(expertModal).getByLabelText("In-system expert (optional)"), "expert-uuid");
+    await user.click(within(expertModal).getByRole("button", { name: "Save referral" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       expertUuid: "expert-uuid",
@@ -928,7 +1044,8 @@ describe("CaseReviewPage", () => {
   it.each([
     ["completed", "expert_response_received"],
     ["cancelled", "not_referred"],
-  ] as const)("shows referral fields again after a %s consult", (status, referralState) => {
+  ] as const)("shows referral fields again after a %s consult", async (status, referralState) => {
+    const user = userEvent.setup();
     vi.mocked(useReport).mockReturnValue(
       queryResult({
         data: reportAfterTerminalConsult(status, referralState),
@@ -936,10 +1053,65 @@ describe("CaseReviewPage", () => {
     );
     renderPage();
 
+    // A terminal consult leaves no active handoff, so the guided choice is
+    // pre-selected and the referral modal carries the fields again.
     expect(screen.getByRole("radio", { name: /Refer to expert/ })).toBeChecked();
-    expect(screen.getByLabelText("Expert destination")).toBeInTheDocument();
-    expect(screen.getByLabelText("Referral reference")).toBeInTheDocument();
-    expect(screen.getByLabelText("Referral date")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
+    const modal = screen.getByRole("dialog", { name: "Record expert referral" });
+    expect(within(modal).getByLabelText("Expert destination")).toBeInTheDocument();
+    expect(within(modal).getByLabelText("Referral reference")).toBeInTheDocument();
+    expect(within(modal).getByLabelText("Referral date")).toBeInTheDocument();
+  });
+
+  it("closes the expert response modal on success and returns focus to its opener", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue({
+      ...referredReport,
+      lifecycle: {
+        ...referredReport.lifecycle!,
+        referralState: "expert_response_received",
+      },
+    });
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: referredReport }));
+    vi.mocked(useRecordExpertReferralResponse).mockReturnValue(
+      referralMutationResult({ mutateAsync }) as unknown as ReturnType<typeof useRecordExpertReferralResponse>,
+    );
+    renderPage();
+
+    const opener = screen.getByRole("button", { name: "Record expert response" });
+    await user.click(opener);
+    const modal = screen.getByRole("dialog", { name: "Record expert response" });
+    await user.type(within(modal).getByLabelText("Expert response date"), "2026-09-08");
+    await user.type(within(modal).getByLabelText("Expert response note"), " Response received. ");
+    await user.click(within(modal).getByRole("button", { name: "Record expert response" }));
+
+    expect(mutateAsync).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(/Review the updated Staff-Classified Condition/i)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Record expert response" })).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("exposes the decision summary with next action, classification, verification, and last change", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const summary = screen.getByRole("region", { name: "Office decision summary" });
+    expect(within(summary).getByText("Pending decision")).toBeInTheDocument();
+    expect(within(summary).getByText("Not classified")).toBeInTheDocument();
+    expect(within(summary).getByText("Not determined")).toBeInTheDocument();
+    expect(within(summary).getByText("Not yet reviewed")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    expect(within(summary).getByText("Provide advisory")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("Verification outcome"), "verified");
+
+    // The read-only summary tracks the modal draft while it stays open.
+    expect(within(summary).getByText("Sugarcane Smut")).toBeInTheDocument();
+    expect(within(summary).getByText("Verified")).toBeInTheDocument();
   });
 
   it("requires an explicit office decision before saving a completed expert proposal", async () => {
@@ -962,7 +1134,8 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
-    expect(screen.getByRole("button", { name: "Save review" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Record office decision" })).toBeDisabled();
+    expect(screen.getByText(/Accept or override the completed expert proposal/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Accept proposal" }));
     expect(mutateAsync).toHaveBeenCalledWith({
       consultReviewOutcome: "accepted",
@@ -986,12 +1159,14 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     expect(screen.getAllByText("Awaiting expert input").length).toBeGreaterThan(0);
-    await user.type(screen.getByLabelText("Expert response date"), "2026-09-08");
-    await user.type(screen.getByLabelText("Expert response note"), " Response received. ");
-    await user.type(screen.getByLabelText("Expert finding (optional)"), " Finding recorded. ");
-    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition after response"), "smut");
-    await user.selectOptions(screen.getByLabelText("Verification outcome after response"), "verified");
     await user.click(screen.getByRole("button", { name: "Record expert response" }));
+    const modal = screen.getByRole("dialog", { name: "Record expert response" });
+    await user.type(within(modal).getByLabelText("Expert response date"), "2026-09-08");
+    await user.type(within(modal).getByLabelText("Expert response note"), " Response received. ");
+    await user.type(within(modal).getByLabelText("Expert finding (optional)"), " Finding recorded. ");
+    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition after response"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("Verification outcome after response"), "verified");
+    await user.click(within(modal).getByRole("button", { name: "Record expert response" }));
 
     expect(mutateAsync).toHaveBeenCalledWith({
       responseDate: "2026-09-08",
@@ -1064,35 +1239,56 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
+    expect(screen.queryByRole("button", { name: "Assign visit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    expect(screen.queryByRole("button", { name: "Assign visit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
-    expect(screen.getByLabelText("Field Inspector assignee")).toBeInTheDocument();
-    expect(screen.getByLabelText("Target visit date (optional)")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Assign visit" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Assign visit" }));
+    const modal = screen.getByRole("dialog", { name: "Assign visit" });
+    expect(within(modal).getByLabelText("Field Inspector assignee")).toBeInTheDocument();
+    expect(within(modal).getByLabelText("Target visit date (optional)")).toBeInTheDocument();
+    expect(within(modal).queryByLabelText("Expert destination")).not.toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Cancel" }));
   });
 
   it("keeps duplicate linking and metadata correction under More actions", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const moreActions = screen.getByText("More actions").closest("details");
-    expect(moreActions).not.toHaveAttribute("open");
+    const moreActions = screen.getByRole("region", { name: "More actions" });
     expect(
-      within(moreActions!).getByText("Possible duplicate linkage"),
-    ).not.toBeVisible();
+      within(moreActions).getByRole("button", { name: "Link as possible duplicate" }),
+    ).toBeInTheDocument();
     expect(
-      within(moreActions!).getByText("Correct operational metadata"),
+      within(moreActions).getByRole("button", { name: "Correct operational metadata" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByText("More actions"));
-    expect(moreActions).toHaveAttribute("open");
-    expect(within(moreActions!).getByText("Possible duplicate linkage")).toBeVisible();
+    expect(screen.queryByLabelText("Canonical case UUID")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Farmer or farm owner")).not.toBeInTheDocument();
+
+    await user.click(within(moreActions).getByRole("button", { name: "Link as possible duplicate" }));
+    const dupModal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    expect(within(dupModal).getByLabelText("Canonical case UUID")).toBeInTheDocument();
+    await user.click(within(dupModal).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Link as possible duplicate" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Canonical case UUID")).not.toBeInTheDocument();
+
+    await user.click(within(moreActions).getByRole("button", { name: "Correct operational metadata" }));
+    const metaModal = screen.getByRole("dialog", { name: "Correct operational metadata" });
+    expect(within(metaModal).getByLabelText("Farmer or farm owner")).toBeInTheDocument();
+    await user.click(within(metaModal).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Correct operational metadata" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Farmer or farm owner")).not.toBeInTheDocument();
   });
 
   it("closes a case only through the confirmed No further action choice", async () => {
@@ -1113,7 +1309,9 @@ describe("CaseReviewPage", () => {
     await user.click(closeConfirmation);
     expect(closeConfirmation).not.toBeChecked();
 
-    await user.click(screen.getByRole("button", { name: "Save review" }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.click(within(modal).getByRole("button", { name: "Save decision" }));
     expect(mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         actionTaken: "no_further_action_required",
@@ -1130,7 +1328,9 @@ describe("CaseReviewPage", () => {
 
     await user.click(screen.getByRole("radio", { name: /No further action/ }));
     expect(screen.getByRole("checkbox", { name: /Close this case/ })).toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Save review" }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.click(within(modal).getByRole("button", { name: "Save decision" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
