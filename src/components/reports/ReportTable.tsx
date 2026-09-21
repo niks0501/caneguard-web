@@ -17,7 +17,11 @@ import {
 } from "../../lib/formatters";
 import { EvidenceThumbnail } from "./EvidenceThumbnail";
 import { MachineFactsChips } from "./MachineFactsChips";
-import { DiseaseBadge, ReviewStatusBadge } from "./ReportBadges";
+import {
+  DiseaseBadge,
+  IdentificationGapBadge,
+  ReviewStatusBadge,
+} from "./ReportBadges";
 
 /**
  * The work queue renders 6 scan columns at standard 1280px office laptop widths:
@@ -30,10 +34,14 @@ export function ReportTable({
   variant = "default",
 }: {
   reports: DiseaseReport[];
-  variant?: "default" | "monitoring";
+  variant?: "default" | "monitoring" | "expert";
 }) {
   const navigate = useNavigate();
   const isMonitoring = variant === "monitoring";
+  const isExpert = variant === "expert";
+  const detailRoute = (uuid: string) => isExpert
+    ? routes.expertReportDetail(uuid)
+    : routes.reportDetail(uuid);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggleRow = (uuid: string) => {
@@ -56,7 +64,7 @@ export function ReportTable({
     ) {
       return;
     }
-    navigate(routes.reportDetail(uuid));
+    navigate(detailRoute(uuid));
   };
 
   const handleRowKeyDown = (
@@ -66,7 +74,7 @@ export function ReportTable({
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      navigate(routes.reportDetail(uuid));
+      navigate(detailRoute(uuid));
     }
   };
 
@@ -128,7 +136,7 @@ export function ReportTable({
                     <div>
                       <Link
                         className="report-link"
-                        to={routes.reportDetail(report.uuid)}
+                        to={detailRoute(report.uuid)}
                         aria-label={`Open ${report.referenceCode}`}
                       >
                         <span className="sr-only">Open </span>
@@ -283,6 +291,12 @@ export function ReportTable({
                         title={report.attentionBandReasons?.join(" ")}
                       >
                         {report.attentionBand}
+                      </span>
+                    ) : null}
+                    <IdentificationGapBadge state={report.identificationGap?.state} />
+                    {report.expertConsult ? (
+                      <span className={`expert-consult-age${report.expertConsult.overdue ? " expert-consult-age--overdue" : ""}`}>
+                        {report.expertConsult.ageLabel}
                       </span>
                     ) : null}
                     <MachineFactsChips facts={machineFacts} compact />

@@ -60,10 +60,22 @@ class RecordExpertFinding
             $basis = $data['basis'] ?? null;
             $recommendation = $data['recommendation'] ?? null;
             $symptomVerdicts = $data['symptom_verdicts'] ?? null;
+            $validSymptomKeys = $locked->symptoms()->pluck('symptom_key')->map(
+                static fn ($key): string => (string) $key,
+            )->all();
+            $normalizedSymptomVerdicts = is_array($symptomVerdicts)
+                ? collect($symptomVerdicts)
+                    ->filter(fn ($finding, $key): bool => in_array((string) $key, $validSymptomKeys, true))
+                    ->map(fn ($finding): array => [
+                        'verdict' => is_array($finding) ? ($finding['verdict'] ?? null) : $finding,
+                        'note' => is_array($finding) ? ($finding['note'] ?? null) : null,
+                    ])
+                    ->all()
+                : null;
             $hasFinding = filled($conditionOpinion)
                 || filled($basis)
                 || filled($recommendation)
-                || (is_array($symptomVerdicts) && $symptomVerdicts !== []);
+                || (is_array($normalizedSymptomVerdicts) && $normalizedSymptomVerdicts !== []);
 
             if ($consultCompleted && ! $hasFinding) {
                 throw ValidationException::withMessages([
@@ -95,7 +107,7 @@ class RecordExpertFinding
                 'response_recorded_by_id' => $consultCancelled ? null : $actor->getKey(),
                 'response_recorded_at' => $consultCancelled ? null : $recordedAt,
                 'condition_opinion' => $consultCancelled ? null : $conditionOpinion,
-                'symptom_verdicts' => $consultCancelled ? null : $symptomVerdicts,
+                'symptom_verdicts' => $consultCancelled ? null : $normalizedSymptomVerdicts,
                 'finding_summary' => $consultCancelled ? null : $conditionOpinion,
                 'finding_details' => $consultCancelled ? null : $basis,
                 'finding_confidence' => $consultCancelled ? null : ($data['confidence'] ?? null),
@@ -108,6 +120,22 @@ class RecordExpertFinding
                     ? null
                     : $recordedAt,
             ]);
+
+            if ($consultCancelled) {
+                $referral->symptomFindings()->delete();
+            } elseif (is_array($normalizedSymptomVerdicts)) {
+                $referral->symptomFindings()->delete();
+                foreach ($normalizedSymptomVerdicts as $symptomKey => $finding) {
+                    if (! in_array($finding['verdict'], ['present', 'absent', 'unsure'], true)) {
+                        continue;
+                    }
+                    $referral->symptomFindings()->create([
+                        'symptom_key' => (string) $symptomKey,
+                        'verdict' => $finding['verdict'],
+                        'note' => $finding['note'],
+                    ]);
+                }
+            }
 
             $this->reviewEvents->handle($locked, [
                 'actor_id' => $actor->getKey(),

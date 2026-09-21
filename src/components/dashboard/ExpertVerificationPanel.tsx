@@ -19,6 +19,9 @@ export function ExpertVerificationPanelView({
 }: ExpertVerificationPanelViewProps) {
   const metrics = data?.expertVerification;
   const displayMonth = data?.month ?? month;
+  const medianFindingDays = metrics?.timeToFinding?.medianHours == null
+    ? null
+    : metrics.timeToFinding.medianHours / 24;
 
   return (
     <section
@@ -75,6 +78,10 @@ export function ExpertVerificationPanelView({
             <div className="monthly-summary-metric">
               <span>Unable to classify</span>
               <strong>{metrics.unableToClassifyRate.count}</strong>
+            </div>
+            <div className="monthly-summary-metric">
+              <span>Median days to finding</span>
+              <strong>{medianFindingDays == null ? "Not available" : medianFindingDays.toFixed(1)}</strong>
             </div>
           </div>
 

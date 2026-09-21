@@ -18,6 +18,8 @@ export const reportKeys = {
     [...reportKeys.details(), reportId] as const,
   possibleMatches: (reportId: string) =>
     [...reportKeys.detail(reportId), "possible-matches"] as const,
+  expertConsult: (reportId: string) =>
+    [...reportKeys.detail(reportId), "expert-consult"] as const,
   summary: (month?: string) =>
     [...reportKeys.all, "summary", month ?? "current"] as const,
 };
@@ -73,6 +75,13 @@ export const reportQueryOptions = (reportId: string) =>
   queryOptions({
     queryKey: reportKeys.detail(reportId),
     queryFn: () => reportsRepository.getReportById(reportId),
+    enabled: Boolean(reportId),
+  });
+
+export const expertConsultQueryOptions = (reportId: string) =>
+  queryOptions({
+    queryKey: reportKeys.expertConsult(reportId),
+    queryFn: () => reportsRepository.getExpertConsult(reportId),
     enabled: Boolean(reportId),
   });
 

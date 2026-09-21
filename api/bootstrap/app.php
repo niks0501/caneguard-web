@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureMobileTokenFresh;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('experts:referral-reminders')->dailyAt('00:05');
+    })
     ->withBroadcasting(__DIR__.'/../routes/channels.php', [
         'middleware' => ['web', 'auth'],
     ])

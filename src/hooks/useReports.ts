@@ -15,6 +15,7 @@ import {
   expertDirectoryQueryOptions,
   expertReportsQueryOptions,
   monthlySummaryQueryOptions,
+  expertConsultQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
   reportQueryOptions,
@@ -71,6 +72,10 @@ function useReportMutation<TInput>(
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });
+}
+
+export function useExpertConsult(reportId: string) {
+  return useQuery(expertConsultQueryOptions(reportId));
 }
 
 export function usePossibleRecentMatches(reportId: string) {

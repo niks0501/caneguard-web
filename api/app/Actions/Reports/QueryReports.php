@@ -30,6 +30,7 @@ class QueryReports
                 'fieldValidationAssignment.assignedBy',
                 'fieldValidationAssignment.completion',
                 'qualityWarnings',
+                'referral.expert',
             ]);
         $this->applyReportFilters->handle($query, $filters, 'submitted_at');
         if (isset($filters['queue'])) {

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'report_id',
@@ -122,6 +123,12 @@ class ReportReferral extends Model
     public function consultReviewedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'consult_reviewed_by_id');
+    }
+
+    /** @return HasMany<ReportReferralSymptomFinding, $this> */
+    public function symptomFindings(): HasMany
+    {
+        return $this->hasMany(ReportReferralSymptomFinding::class);
     }
 
     protected function casts(): array
