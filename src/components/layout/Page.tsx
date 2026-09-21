@@ -33,9 +33,19 @@ export function PageContent({
   return <div className={`page-content ${className}`.trim()}>{children}</div>;
 }
 
-export function DetailField({ label, children }: { label: string; children: ReactNode }) {
+export function DetailField({
+  label,
+  children,
+  hidden,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  hidden?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="detail-field">
+    <div className={`detail-field ${className ?? ""}`.trim()} hidden={hidden}>
       <dt>{label}</dt>
       <dd>{children}</dd>
     </div>
