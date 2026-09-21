@@ -147,6 +147,7 @@ describe("ApiReportsRepository", () => {
           expect(await request.json()).toEqual({
             canonical_report_uuid: "canonical-report",
             reason: "The cases may describe the same field observation.",
+            expected_version: reportDetailDto.version,
           });
           return HttpResponse.json({
             data: {
@@ -175,6 +176,7 @@ describe("ApiReportsRepository", () => {
       repository.linkDuplicate(reportDetailDto.identity.uuid, {
         canonicalReportUuid: "canonical-report",
         reason: " The cases may describe the same field observation. ",
+        expectedVersion: reportDetailDto.version,
       }),
     ).resolves.toMatchObject({
       canonicalLinkage: {
@@ -182,6 +184,49 @@ describe("ApiReportsRepository", () => {
         canonicalCase: { referenceCode: "CG-2026-0002" },
         reason: "The cases may describe the same field observation.",
       },
+    });
+  });
+
+  it("unlinks a possible duplicate with the current report version", async () => {
+    server.use(
+      http.delete(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/duplicate-link`,
+        async ({ request }) => {
+          expect(await request.json()).toEqual({
+            expected_version: reportDetailDto.version,
+            reason: "The duplicate assessment was reversed.",
+          });
+          return HttpResponse.json({
+            data: {
+              ...reportDetailDto,
+              version: reportDetailDto.version + 1,
+              duplicate_linkage: {
+                is_duplicate: false,
+                canonical_case: null,
+                linked_by: null,
+                linked_at: null,
+                reason: null,
+              },
+            },
+          });
+        },
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    await expect(
+      repository.unlinkDuplicate(reportDetailDto.identity.uuid, {
+        expectedVersion: reportDetailDto.version,
+        reason: " The duplicate assessment was reversed. ",
+      }),
+    ).resolves.toMatchObject({
+      canonicalLinkage: {
+        isDuplicate: false,
+        canonicalCase: null,
+      },
+      reviewVersion: reportDetailDto.version + 1,
     });
   });
 

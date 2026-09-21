@@ -10,6 +10,7 @@ import type {
 } from "../../domain/report.types";
 import type {
   DuplicateLinkInput,
+  DuplicateUnlinkInput,
   ExpertReferralResponseInput,
   ReportReferralInput,
   ReportReviewInput,
@@ -576,6 +577,40 @@ export class MockReportsRepository implements ReportsRepository {
       },
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       updatedAt: now,
+    };
+    this.reports[duplicateIndex] = updated;
+    return cloneReport(updated);
+  }
+
+  async unlinkDuplicate(
+    reportId: string,
+    input: DuplicateUnlinkInput,
+  ): Promise<DiseaseReport> {
+    const duplicateIndex = this.reports.findIndex((report) => report.uuid === reportId);
+    if (duplicateIndex === -1) {
+      throw new Error("The selected report was not found.");
+    }
+
+    const current = this.reports[duplicateIndex];
+    if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new Error("The report changed while the duplicate link was being removed.");
+    }
+    if (!current.canonicalLinkage?.isDuplicate) {
+      return cloneReport(current);
+    }
+
+    const updated: DiseaseReport = {
+      ...current,
+      canonicalLinkage: {
+        ...current.canonicalLinkage,
+        isDuplicate: false,
+        canonicalCase: null,
+        linkedBy: null,
+        linkedAt: undefined,
+        reason: undefined,
+      },
+      reviewVersion: (current.reviewVersion ?? 0) + 1,
+      updatedAt: new Date().toISOString(),
     };
     this.reports[duplicateIndex] = updated;
     return cloneReport(updated);

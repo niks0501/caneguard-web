@@ -20,12 +20,14 @@ class QueryExpertQueue
      */
     public function handle(User $expert, array $filters): LengthAwarePaginator
     {
-        $query = Report::query()->with([
-            'reporter',
-            'reviewer',
-            'fieldValidationAssignment',
-            'referral',
-        ]);
+        $query = Report::query()
+            ->whereNull('canonical_report_id')
+            ->with([
+                'reporter',
+                'reviewer',
+                'fieldValidationAssignment',
+                'referral',
+            ]);
 
         $query->whereHas('referrals', function (Builder $query) use ($expert): void {
             $query

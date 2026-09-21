@@ -62,6 +62,7 @@ import {
   useAdvisories,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
+  useUnlinkDuplicateReport,
   useRecordReportReferral,
   useReport,
   useUpdateReportReview,
@@ -547,6 +548,7 @@ export function CaseReviewPage() {
   const advisoriesQuery = useAdvisories();
   const reviewMutation = useUpdateReportReview(reportId);
   const duplicateLinkMutation = useLinkDuplicateReport(reportId);
+  const duplicateUnlinkMutation = useUnlinkDuplicateReport(reportId);
   const recordReferral = useRecordReportReferral(reportId);
   const report = reportQuery.data;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
@@ -776,6 +778,14 @@ export function CaseReviewPage() {
   const duplicateLinkConflict = duplicateLinkApiError?.status === 409;
   const duplicateLinkForbidden = duplicateLinkApiError?.status === 403;
   const duplicateLinkMalformed = duplicateLinkMutation.error instanceof ZodError;
+  const duplicateUnlinkApiError =
+    duplicateUnlinkMutation.error instanceof ApiError
+      ? duplicateUnlinkMutation.error
+      : null;
+  const duplicateUnlinkConflict = duplicateUnlinkApiError?.status === 409;
+  const duplicateUnlinkForbidden = duplicateUnlinkApiError?.status === 403;
+  const duplicateUnlinkValidation = duplicateUnlinkApiError?.status === 422;
+  const duplicateUnlinkMalformed = duplicateUnlinkMutation.error instanceof ZodError;
   const detailStatus =
     reportQuery.error instanceof ApiError ? reportQuery.error.status : undefined;
   const suppressCachedDetail = detailStatus === 403 || detailStatus === 404;
@@ -801,12 +811,15 @@ export function CaseReviewPage() {
     setDuplicateLinkNotice(null);
     const canonicalUuid = canonicalReportUuid.trim();
 
-    if (!canonicalUuid || report?.canonicalLinkage?.isDuplicate) return;
+    if (!report || !canonicalUuid || report.canonicalLinkage?.isDuplicate) return;
+    const expectedVersion = report.reviewVersion;
+    if (expectedVersion === undefined) return;
 
     try {
       await duplicateLinkMutation.mutateAsync({
         canonicalReportUuid: canonicalUuid,
         reason: duplicateLinkReason.trim() || undefined,
+        expectedVersion,
       });
       setDuplicateLinkNotice(
         "Link recorded as a possible duplicate. The submitted record remains preserved.",
@@ -814,6 +827,19 @@ export function CaseReviewPage() {
       setCanonicalReportUuid("");
       setDuplicateLinkReason("");
       setDuplicateLinkSubmitted(false);
+    } catch {
+      return;
+    }
+  };
+
+  const unlinkDuplicate = async () => {
+    if (report?.reviewVersion === undefined) return;
+
+    try {
+      await duplicateUnlinkMutation.mutateAsync({
+        expectedVersion: report.reviewVersion,
+      });
+      setDuplicateLinkNotice("Duplicate link removed. The submitted record remains preserved.");
     } catch {
       return;
     }
@@ -1860,6 +1886,19 @@ export function CaseReviewPage() {
                         </small>
                       ) : null}
                       {report.canonicalLinkage.reason ? <small>Reason: {report.canonicalLinkage.reason}</small> : null}
+                      {duplicateUnlinkConflict ? <p className="form-error" role="alert">This case changed while the duplicate link was being removed. Refresh before trying again.</p> : null}
+                      {duplicateUnlinkForbidden ? <p className="form-error" role="alert">You do not have permission to remove duplicate links.</p> : null}
+                      {duplicateUnlinkValidation ? <p className="form-error" role="alert">This duplicate link cannot be removed while the case has active work or completed evidence.</p> : null}
+                      {duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlink response had an unexpected format. Refresh the report before trying again.</p> : null}
+                      {duplicateUnlinkMutation.isError && !duplicateUnlinkConflict && !duplicateUnlinkForbidden && !duplicateUnlinkValidation && !duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlinking service is unavailable. No link change was confirmed.</p> : null}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={duplicateUnlinkMutation.isPending}
+                        onClick={unlinkDuplicate}
+                      >
+                        {duplicateUnlinkMutation.isPending ? "Removing link..." : "Remove duplicate link"}
+                      </Button>
                     </div>
                   ) : (
                     <>

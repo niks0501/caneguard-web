@@ -17,6 +17,7 @@ import {
   useAdvisories,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
+  useUnlinkDuplicateReport,
   useRecordExpertReferralResponse,
   useRecordReportReferral,
   useReport,
@@ -28,6 +29,7 @@ vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
+  useUnlinkDuplicateReport: vi.fn(),
   useRecordExpertReferralResponse: vi.fn(),
   useRecordReportReferral: vi.fn(),
   useReport: vi.fn(),
@@ -117,6 +119,10 @@ function duplicateMutationResult(overrides: Record<string, unknown> = {}) {
   return mutationResult(overrides) as unknown as ReturnType<typeof useLinkDuplicateReport>;
 }
 
+function duplicateUnlinkMutationResult(overrides: Record<string, unknown> = {}) {
+  return mutationResult(overrides) as unknown as ReturnType<typeof useUnlinkDuplicateReport>;
+}
+
 function possibleMatchesResult(overrides: Record<string, unknown> = {}) {
   return {
     data: {
@@ -154,6 +160,7 @@ beforeEach(() => {
   vi.mocked(useRecordReportReferral).mockReturnValue(referralMutationResult());
   vi.mocked(useReport).mockReturnValue(queryResult());
   vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult());
+  vi.mocked(useUnlinkDuplicateReport).mockReturnValue(duplicateUnlinkMutationResult());
   vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult());
 });
 
@@ -552,6 +559,7 @@ describe("CaseReviewPage", () => {
     expect(mutateAsync).toHaveBeenCalledWith({
       canonicalReportUuid: "canonical-report",
       reason: "The cases may describe the same field observation.",
+      expectedVersion: report.reviewVersion,
     });
     expect(await screen.findByText(/submitted record remains preserved/i)).toBeInTheDocument();
   });
@@ -600,6 +608,38 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText(/Canonical case CG-2026-0002/)).toBeInTheDocument();
     expect(screen.getByText(/submitted record and its audit history remain preserved/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Link as possible duplicate" })).not.toBeInTheDocument();
+  });
+
+  it("can remove a preserved duplicate relationship with the current version", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn();
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({
+        data: {
+          ...report,
+          canonicalLinkage: {
+            isDuplicate: true,
+            canonicalCase: {
+              uuid: "canonical-report",
+              referenceCode: "CG-2026-0002",
+              submittedAt: "2026-07-20T10:00:00.000Z",
+            },
+            linkedBy: { uuid: "reviewer-1", name: "Maria Reviewer" },
+            linkedAt: "2026-07-20T11:00:00.000Z",
+            reason: "The cases may describe the same field observation.",
+          },
+        },
+      }),
+    );
+    vi.mocked(useUnlinkDuplicateReport).mockReturnValue(
+      duplicateUnlinkMutationResult({ mutateAsync }),
+    );
+    renderPage();
+
+    await user.click(screen.getByText("More actions"));
+    await user.click(screen.getByRole("button", { name: "Remove duplicate link" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({ expectedVersion: report.reviewVersion });
   });
 
   it("requires a field reporter when field validation is selected", async () => {

@@ -236,7 +236,8 @@ class ReportResource extends JsonResource
                     ])
                     ->values(),
                 'duplicate_linkages' => $this->audits
-                    ->filter(fn (ReportAudit $audit): bool => $audit->field === Report::AUDIT_FIELD_CANONICAL_REPORT)
+                    ->filter(fn (ReportAudit $audit): bool => $audit->field === Report::AUDIT_FIELD_CANONICAL_REPORT
+                        && $audit->corrected_value !== null)
                     ->map(fn (ReportAudit $audit) => [
                         'id' => $audit->getKey(),
                         'canonical_case_uuid' => $audit->corrected_value,
@@ -302,7 +303,9 @@ class ReportResource extends JsonResource
     private function duplicateLinkage(): array
     {
         $linkAudit = $this->relationLoaded('audits')
-            ? $this->audits->firstWhere('field', Report::AUDIT_FIELD_CANONICAL_REPORT)
+            ? $this->audits
+                ->first(fn (ReportAudit $audit): bool => $audit->field === Report::AUDIT_FIELD_CANONICAL_REPORT
+                    && $audit->corrected_value !== null)
             : null;
         $canonical = $this->relationLoaded('canonicalReport')
             ? $this->canonicalReport

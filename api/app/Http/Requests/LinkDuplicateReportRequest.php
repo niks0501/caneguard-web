@@ -18,17 +18,20 @@ class LinkDuplicateReportRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
-            'canonical_report_uuid' => [
-                'required',
-                'uuid',
-                Rule::exists('reports', 'uuid'),
-            ],
+            'canonical_report_uuid' => $this->isMethod('delete')
+                ? ['prohibited']
+                : [
+                    'required',
+                    'uuid',
+                    Rule::exists('reports', 'uuid'),
+                ],
             'reason' => [
                 'sometimes',
                 'nullable',
                 'string',
                 'max:1000',
             ],
+            'expected_version' => ['required', 'integer', 'min:0'],
         ];
     }
 }

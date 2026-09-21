@@ -19,7 +19,7 @@ class QueryMapReports
     public function handle(array $filters): array
     {
         $query = $this->applyReportFilters->handle(
-            Report::query(),
+            Report::query()->whereNull('canonical_report_id'),
             $filters,
             'observed_at',
         );

@@ -21,7 +21,7 @@ class QueryFieldValidationQueue
     public function handle(array $filters): array
     {
         $queue = $filters['queue'] ?? Report::QUEUE_NEEDS_VISIT;
-        $query = Report::query();
+        $query = Report::query()->whereNull('canonical_report_id');
         $this->applyOperationalQueueFilter->handle($query, $queue);
         $this->applyReportFilters->handle($query, $filters, 'observed_at');
         if (isset($filters['due_from']) || isset($filters['due_to'])) {

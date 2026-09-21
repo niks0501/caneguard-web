@@ -50,7 +50,12 @@ export interface ExpertReferralResponseInput {
 export interface DuplicateLinkInput {
   canonicalReportUuid: string;
   reason?: string;
+  expectedVersion: number;
+}
 
+export interface DuplicateUnlinkInput {
+  reason?: string;
+  expectedVersion: number;
 }
 
 export interface ReportReviewInput {

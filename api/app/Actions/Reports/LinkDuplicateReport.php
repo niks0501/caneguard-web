@@ -10,16 +10,22 @@ use Illuminate\Validation\ValidationException;
 
 class LinkDuplicateReport
 {
+    public function __construct(
+        private readonly GuardDuplicateLinkLifecycle $guardLifecycle,
+    ) {}
+
     public function handle(
         User $actor,
         Report $duplicate,
         string $canonicalReportUuid,
+        int $expectedVersion,
         ?string $reason = null,
     ): Report {
         return DB::transaction(function () use (
             $actor,
             $duplicate,
             $canonicalReportUuid,
+            $expectedVersion,
             $reason,
         ): Report {
             $lockedDuplicate = Report::query()
@@ -29,6 +35,13 @@ class LinkDuplicateReport
                 ->lockForUpdate()
                 ->where('uuid', $canonicalReportUuid)
                 ->firstOrFail();
+
+            abort_unless(
+                (int) $lockedDuplicate->lock_version === $expectedVersion,
+                409,
+            );
+
+            $this->guardLifecycle->handle($lockedDuplicate);
 
             if ($lockedDuplicate->is($canonical)) {
                 throw ValidationException::withMessages([

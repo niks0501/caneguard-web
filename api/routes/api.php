@@ -97,8 +97,10 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.reports.possible-matches');
     Route::get('/reports/{report}', [ReportController::class, 'show']);
     Route::patch('/reports/{report}/review', ReviewReportController::class);
-    Route::post('/reports/{report}/duplicate-link', LinkDuplicateReportController::class)
+    Route::post('/reports/{report}/duplicate-link', [LinkDuplicateReportController::class, 'store'])
         ->name('api.v1.reports.duplicate-link');
+    Route::delete('/reports/{report}/duplicate-link', [LinkDuplicateReportController::class, 'destroy'])
+        ->name('api.v1.reports.duplicate-unlink');
 
     Route::get('/mobile/auth/me', [MobileAuthController::class, 'me'])
         ->middleware('mobile.token');
