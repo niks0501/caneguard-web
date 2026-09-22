@@ -126,8 +126,8 @@
     "semantic_hash": ""
   },
   "src/data/mock/mockReports.ts": {
-    "mtime": 1790040959.331337,
-    "seen": 1790041456.8130527,
+    "mtime": 1790042813.5608249,
+    "seen": 1790043381.4604967,
     "ast_hash": "834d0fda26de738837d22852730aead3",
     "semantic_hash": ""
   },
@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.tsx": {
-    "mtime": 1790031866.9022694,
-    "seen": 1790041456.8130753,
-    "ast_hash": "ca9e089fd9dbef93bed6cfbe92b645b7",
+    "mtime": 1790042795.2620885,
+    "seen": 1790043381.4605224,
+    "ast_hash": "b8036fd39ece68d83336f685ae60298c",
     "semantic_hash": ""
   },
   "src/pages/NotFoundPage.tsx": {
@@ -216,9 +216,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1790040971.7131724,
-    "seen": 1790041456.8132575,
-    "ast_hash": "d73cc0ca70cddac1e1f5049aa71eae53",
+    "mtime": 1790042813.4473884,
+    "seen": 1790043381.4607263,
+    "ast_hash": "d1210ee38603d8a3b90acbf3ec61fc09",
     "semantic_hash": ""
   },
   "index.html": {
@@ -414,8 +414,8 @@
     "semantic_hash": ""
   },
   "api/database/seeders/DatabaseSeeder.php": {
-    "mtime": 1790040814.0419428,
-    "seen": 1790041456.812855,
+    "mtime": 1790042813.4473884,
+    "seen": 1790043381.460258,
     "ast_hash": "9105396ed9de1f46484d6a0d15512a1e",
     "semantic_hash": ""
   },
@@ -654,8 +654,8 @@
     "semantic_hash": ""
   },
   "api/database/seeders/ReportSeeder.php": {
-    "mtime": 1790041674.9639068,
-    "seen": 1790041764.8692667,
+    "mtime": 1790042813.4473884,
+    "seen": 1790043381.46026,
     "ast_hash": "2de51d664947541b1c15d412fac574a3",
     "semantic_hash": ""
   },
@@ -702,8 +702,8 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/ReportSchemaAndSeederTest.php": {
-    "mtime": 1790041126.53551,
-    "seen": 1790041456.8128831,
+    "mtime": 1790042813.4473884,
+    "seen": 1790043381.460298,
     "ast_hash": "61cc08c75e120e7473a395e29af01f81",
     "semantic_hash": ""
   },
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.test.tsx": {
-    "mtime": 1790031866.9022694,
-    "seen": 1790041456.8130744,
-    "ast_hash": "3b5185d4810a5191c8cc90d50341a067",
+    "mtime": 1790042795.2620885,
+    "seen": 1790043381.4605215,
+    "ast_hash": "92bac9e6d884261036c1812bddf77f4b",
     "semantic_hash": ""
   },
   "api/database/migrations/2026_07_27_020000_add_lock_version_to_reports_table.php": {
@@ -3762,14 +3762,14 @@
     "semantic_hash": ""
   },
   "scripts/qa-staging.mjs": {
-    "mtime": 1790041164.1597552,
-    "seen": 1790041456.8129163,
+    "mtime": 1790042813.5608249,
+    "seen": 1790043381.4603338,
     "ast_hash": "0b7837f82ec0bc74edff9f1e5c442af8",
     "semantic_hash": ""
   },
   "scripts/qa-staging.node-test.mjs": {
-    "mtime": 1790041169.383849,
-    "seen": 1790041456.812919,
+    "mtime": 1790042813.5608249,
+    "seen": 1790043381.4603345,
     "ast_hash": "97fc9de58f4aa9d1131a34872a20a4cb",
     "semantic_hash": ""
   },
@@ -5412,9 +5412,9 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/FieldValidationAssignmentTest.php": {
-    "mtime": 1790032490.6534278,
-    "seen": 1790041456.812871,
-    "ast_hash": "2ceeeceaf2b223ceb9c6f87b2c351e3a",
+    "mtime": 1790043310.9054914,
+    "seen": 1790043381.4602814,
+    "ast_hash": "0879f9e7c4d3003d0edb0ae80b7a48b8",
     "semantic_hash": ""
   },
   "api/tests/Feature/NotificationTest.php": {
@@ -5520,9 +5520,9 @@
     "semantic_hash": ""
   },
   "scripts/validate-mobile-field-validation-assignment-v1.node-test.mjs": {
-    "mtime": 1790032987.0578024,
-    "seen": 1790041456.812934,
-    "ast_hash": "3c24ee9fbc39647e99e0b210dea95f9f",
+    "mtime": 1790043268.017278,
+    "seen": 1790043381.4603522,
+    "ast_hash": "2c4657122854099672d019ba55cd13fc",
     "semantic_hash": ""
   },
   "scripts/validate-mobile-field-validation-completion-v1.mjs": {
@@ -6864,14 +6864,14 @@
     "semantic_hash": ""
   },
   "api/database/seeders/AdvisorDemoSeeder.php": {
-    "mtime": 1790041575.7314866,
-    "seen": 1790041764.8692644,
+    "mtime": 1790042813.4473884,
+    "seen": 1790043381.4602544,
     "ast_hash": "365dd8e97c6cb8c107b41298e31789f1",
     "semantic_hash": ""
   },
   "api/tests/Feature/AdvisorDemoSeederTest.php": {
-    "mtime": 1790041346.5075858,
-    "seen": 1790041456.8128629,
+    "mtime": 1790042813.4473884,
+    "seen": 1790043381.4602723,
     "ast_hash": "82464a77988283b6fe948126d088c881",
     "semantic_hash": ""
   },
@@ -7062,9 +7062,9 @@
     "semantic_hash": ""
   },
   "src/pages/CaseReviewPage.declutter.test.tsx": {
-    "mtime": 1790008553.4296331,
-    "seen": 1790041456.8130736,
-    "ast_hash": "bf09c3033607ade460642fd926ad213e",
+    "mtime": 1790042795.2581813,
+    "seen": 1790043381.4605207,
+    "ast_hash": "5078c331212db7ec279c05bab2b8d578",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/BuildConsultInvitePayload.php": {
@@ -7113,6 +7113,48 @@
     "mtime": 1790031866.830014,
     "seen": 1790041456.8128524,
     "ast_hash": "3ca5ac90a51452bedb6746a874cdae06",
+    "semantic_hash": ""
+  },
+  "src/components/reports/ReportPicker.test.tsx": {
+    "mtime": 1790042795.2542741,
+    "seen": 1790043381.4604137,
+    "ast_hash": "ca1a1f4ecbefb003ed400cd013aacc40",
+    "semantic_hash": ""
+  },
+  "src/components/reports/ReportPicker.tsx": {
+    "mtime": 1790042795.2542741,
+    "seen": 1790043381.4604146,
+    "ast_hash": "59389329b729ec212d0ab99bae2001b7",
+    "semantic_hash": ""
+  },
+  "src/components/reports/reportPickerLabel.ts": {
+    "mtime": 1790042795.2542741,
+    "seen": 1790043381.4604185,
+    "ast_hash": "4f5f6144dc9c8deecae3aeea979c4b24",
+    "semantic_hash": ""
+  },
+  "data/cg-web-duplicate-link-ux-20260921/report.md": {
+    "mtime": 1790042794.9768636,
+    "seen": 1790043381.4607334,
+    "ast_hash": "e4d3a7d076e0a39f891428e1a39b0672",
+    "semantic_hash": ""
+  },
+  "data/cg-web-reports-plan-20260921/board.html": {
+    "mtime": 1790042794.9807708,
+    "seen": 1790043381.4607341,
+    "ast_hash": "a146d205268295c2eb2fedeaa5332570",
+    "semantic_hash": ""
+  },
+  "data/cg-web-reports-plan-20260921/report.md": {
+    "mtime": 1790042794.9807708,
+    "seen": 1790043381.460735,
+    "ast_hash": "1fcdd3d3944923b4badfd77bbe4dcf78",
+    "semantic_hash": ""
+  },
+  "data/cg-web-reports-plan-20260921/caneguard-logo.svg": {
+    "mtime": 1790042794.9807708,
+    "seen": 1790043381.4607658,
+    "ast_hash": "f36ca162af6a113ba8e8391813c8af5c",
     "semantic_hash": ""
   }
 }
