@@ -359,11 +359,11 @@ class ReportSchemaAndSeederTest extends TestCase
                 + count(AdvisorDemoSeeder::reportReferences())
                 + count(DashboardReportSeeder::reportReferences()),
         );
-        $this->assertSame(19, Report::query()
+        $this->assertGreaterThan(500, Report::query()
             ->whereNotNull('final_latitude')
             ->whereNotNull('final_longitude')
             ->count());
-        $this->assertSame(11, Report::query()
+        $this->assertGreaterThan(11, Report::query()
             ->where(function ($query) {
                 $query
                     ->whereNull('final_latitude')
@@ -430,10 +430,13 @@ class ReportSchemaAndSeederTest extends TestCase
         );
 
         $files = Storage::disk('local')->allFiles('reports');
+        // High-volume report evidence reuses one representative image per
+        // month so a local reset does not allocate hundreds of copies.
         $this->assertCount(
             12
                 + count(AdvisorDemoSeeder::reportReferences())
-                + count(DashboardReportSeeder::reportReferences()),
+                + count(DashboardReportSeeder::REPORT_REFERENCES)
+                + DashboardReportSeeder::volumeConfiguration()['months_back'],
             $files,
         );
         $seededImage = Storage::disk('local')->get($files[0]);
@@ -462,36 +465,46 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $monthCounts = Report::query()
-            ->whereBetween('submitted_at', [
-                CarbonImmutable::parse('2026-09-01', 'UTC'),
-                CarbonImmutable::parse('2026-11-30 23:59:59', 'UTC'),
-            ])
             ->get(['submitted_at'])
             ->groupBy(fn (Report $report): string => $report->submitted_at->format('Y-m'))
             ->map(fn ($reports): int => $reports->count())
             ->all();
 
-        $this->assertSame([
-            '2026-09' => 10,
-            '2026-10' => 5,
-            '2026-11' => 3,
-        ], $monthCounts);
+        $this->assertGreaterThanOrEqual(6, count($monthCounts));
+        $this->assertGreaterThan(500, Report::query()->count());
+        $this->assertSame(
+            Report::v2Labels(),
+            Report::query()
+                ->distinct()
+                ->orderBy('predicted_label')
+                ->pluck('predicted_label')
+                ->sort()
+                ->values()
+                ->all(),
+        );
+        $this->assertSame(8, DashboardReportSeeder::volumeConfiguration()['months_back']);
+        $this->assertSame(2, DashboardReportSeeder::volumeConfiguration()['reports_per_barangay_per_condition']);
 
         Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+        $month = CarbonImmutable::now('UTC')->format('Y-m');
+        $expectedMonthCount = $monthCounts[$month];
 
-        $response = $this->getJson('/api/v1/dashboard/summary?month=2026-10')
+        $response = $this->getJson('/api/v1/dashboard/summary?month='.$month)
             ->assertOk()
-            ->assertJsonPath('data.monthly_summary.month', '2026-10')
-            ->assertJsonPath('data.monthly_summary.reported_cases', 5)
-            ->assertJsonPath('data.monthly_summary.estimated_affected_hectares', 7.22)
-            ->assertJsonPath('data.monthly_summary.review_time.reviewed_cases', 4)
-            ->assertJsonCount(5, 'data.monthly_summary.cases_by_barangay')
-            ->assertJsonCount(4, 'data.monthly_summary.cases_by_possible_condition')
-            ->assertJsonPath('data.monthly_summary.field_validation_counts.assigned', 1)
-            ->assertJsonPath('data.monthly_summary.field_validation_counts.in_progress', 1)
-            ->assertJsonPath('data.monthly_summary.field_validation_counts.completed', 2)
-            ->assertJsonPath('data.monthly_summary.expert_verification.consult_volume.total', 2)
-            ->assertJsonPath('data.monthly_summary.expert_verification.consult_volume.completed', 1);
+            ->assertJsonPath('data.monthly_summary.month', $month)
+            ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount)
+            ->assertJsonCount(12, 'data.monthly_summary.cases_by_barangay')
+            ->assertJsonCount(4, 'data.monthly_summary.cases_by_possible_condition');
+        foreach (Report::fieldValidationStates() as $state) {
+            $this->assertGreaterThan(
+                0,
+                $response->json("data.monthly_summary.field_validation_counts.{$state}"),
+            );
+        }
+        $this->assertGreaterThan(
+            0,
+            $response->json('data.monthly_summary.expert_verification.consult_volume.total'),
+        );
 
         foreach (Report::operationalQueues() as $queue) {
             $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));

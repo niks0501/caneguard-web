@@ -49,6 +49,30 @@ return [
             explode(',', (string) env('CANEGUARD_REPORT_EMBED_ORIGINS', 'self')),
         ))),
     ],
+    'seeders' => [
+        'dashboard' => [
+            // Include the current month plus this many recent calendar months.
+            'months_back' => max(
+                1,
+                (int) env('CANEGUARD_DASHBOARD_SEED_MONTHS_BACK', 8),
+            ),
+            'reports_per_barangay_per_condition' => max(
+                1,
+                (int) env('CANEGUARD_DASHBOARD_SEED_REPORTS_PER_BARANGAY_CONDITION', 2),
+            ),
+            // Every Nth generated report enters field validation. The next
+            // report in that cycle is completed validation work.
+            'validation_spread' => max(
+                2,
+                (int) env('CANEGUARD_DASHBOARD_SEED_VALIDATION_SPREAD', 5),
+            ),
+            // Every Nth generated report is a closed case.
+            'closure_spread' => max(
+                2,
+                (int) env('CANEGUARD_DASHBOARD_SEED_CLOSURE_SPREAD', 4),
+            ),
+        ],
+    ],
     'rate_limits' => [
         'login' => [
             'per_email_ip_per_minute' => max(

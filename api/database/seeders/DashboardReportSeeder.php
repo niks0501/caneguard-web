@@ -2,19 +2,22 @@
 
 namespace Database\Seeders;
 
+use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
  * Seed the month-spanning records used by the local dashboard overview.
  *
- * The records are deliberately ordinary synthetic office reports: they share
+ * The records are deliberately ordinary office reports: they share
  * one geography, use stable fictional names, and exercise the operational
  * states that the overview summarizes. This seeder is add-only and is called
  * by DatabaseSeeder so a normal local reset gets the complete dashboard.
@@ -36,6 +39,51 @@ class DashboardReportSeeder extends Seeder
         'BGO-20261106-0840',
         'BGO-20261115-0720',
         'BGO-20261124-0900',
+    ];
+
+    /** @var array<int, string> */
+    private const BARANGAYS = [
+        'Abuanan',
+        'Balingasag',
+        'Dulao',
+        'Lag-asan',
+        'Mailum',
+        'Ma-ao',
+        'Malingin',
+        'Napoles',
+        'Poblacion',
+        'Sagasa',
+        'Taloc',
+        'Tinongan',
+    ];
+
+    /** @var array<string, array{latitude: float, longitude: float}> */
+    private const BARANGAY_COORDINATES = [
+        'Abuanan' => ['latitude' => 10.5204, 'longitude' => 122.8238],
+        'Balingasag' => ['latitude' => 10.6402, 'longitude' => 122.8712],
+        'Dulao' => ['latitude' => 10.5334, 'longitude' => 122.8387],
+        'Lag-asan' => ['latitude' => 10.5418, 'longitude' => 122.8392],
+        'Mailum' => ['latitude' => 10.5857, 'longitude' => 122.8432],
+        'Ma-ao' => ['latitude' => 10.6152, 'longitude' => 122.8854],
+        'Malingin' => ['latitude' => 10.5581, 'longitude' => 122.8669],
+        'Napoles' => ['latitude' => 10.5754, 'longitude' => 122.8581],
+        'Poblacion' => ['latitude' => 10.5384, 'longitude' => 122.8380],
+        'Sagasa' => ['latitude' => 10.5654, 'longitude' => 122.8401],
+        'Taloc' => ['latitude' => 10.5552, 'longitude' => 122.8201],
+        'Tinongan' => ['latitude' => 10.6010, 'longitude' => 122.8600],
+    ];
+
+    /** @var array<int, string> */
+    private const FARMER_FIRST_NAMES = [
+        'Amelia', 'Berto', 'Carmela', 'Danilo', 'Elena', 'Florencio',
+        'Gloria', 'Hector', 'Irene', 'Jonas', 'Lourdes', 'Mateo',
+        'Nena', 'Orlando', 'Perla', 'Rogelio', 'Sonia', 'Teodoro',
+    ];
+
+    /** @var array<int, string> */
+    private const FARMER_LAST_NAMES = [
+        'Alonzo', 'Bautista', 'Cabrera', 'Dizon', 'Escalante', 'Gamboa',
+        'Manalo', 'Magsino', 'Natividad', 'Panganiban', 'Salcedo', 'Villareal',
     ];
 
     public function run(): void
@@ -65,6 +113,25 @@ class DashboardReportSeeder extends Seeder
         }
 
         $this->seedExpertConsults($reports, $reviewer);
+        $this->seedVolume($reporter, $reviewer, $image);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public static function volumeConfiguration(): array
+    {
+        $configuration = config('caneguard.seeders.dashboard', []);
+
+        return [
+            'months_back' => max(1, (int) ($configuration['months_back'] ?? 8)),
+            'reports_per_barangay_per_condition' => max(
+                1,
+                (int) ($configuration['reports_per_barangay_per_condition'] ?? 2),
+            ),
+            'validation_spread' => max(2, (int) ($configuration['validation_spread'] ?? 5)),
+            'closure_spread' => max(2, (int) ($configuration['closure_spread'] ?? 4)),
+        ];
     }
 
     /**
@@ -72,7 +139,10 @@ class DashboardReportSeeder extends Seeder
      */
     public static function reportReferences(): array
     {
-        return self::REPORT_REFERENCES;
+        return [
+            ...self::REPORT_REFERENCES,
+            ...array_keys(self::volumeDefinitions(self::volumeConfiguration())),
+        ];
     }
 
     /**
@@ -277,6 +347,710 @@ class DashboardReportSeeder extends Seeder
     }
 
     /**
+     * Seed the high-volume dashboard fixture in bulk. The fixed records above
+     * retain the named workflow examples; this path supplies broad monthly
+     * coverage without issuing one insert/query cycle per report.
+     */
+    private function seedVolume(User $reporter, User $reviewer, string $image): void
+    {
+        $advisoryId = Advisory::query()
+            ->where('code', AdvisorDemoSeeder::ADVISORY_CODE)
+            ->value('id');
+        $plan = self::volumeDefinitions(
+            self::volumeConfiguration(),
+            $reviewer->getKey(),
+            $advisoryId === null ? null : (int) $advisoryId,
+        );
+        $references = array_keys($plan);
+        $reportIds = $this->reportIdsByReference($references);
+        $reportRows = [];
+
+        foreach ($plan as $referenceCode => $definition) {
+            if (isset($reportIds[$referenceCode])) {
+                continue;
+            }
+
+            $submittedAt = $definition['report']['submitted_at'];
+            $path = self::volumeImagePath($submittedAt);
+            $reportRows[] = [
+                ...$definition['report'],
+                'reference_code' => $referenceCode,
+                'reporter_id' => $reporter->getKey(),
+                'image_path' => $path,
+                'image_mime_type' => 'image/png',
+                'image_size_bytes' => strlen($image),
+                'image_source_type' => $definition['ordinal'] % 2 === 0 ? 'camera' : 'gallery',
+                'source_width' => 1254,
+                'source_height' => 1254,
+                'model_version' => 'v1.0-mobilenetv2',
+                'preprocess_ms' => 10 + ($definition['ordinal'] % 13),
+                'inference_ms' => 92 + ($definition['ordinal'] % 41),
+                'total_ms' => 126 + ($definition['ordinal'] % 47),
+                'captured_at' => $definition['report']['submitted_at']->subMinutes(20),
+                'review_notes' => $definition['report']['reviewed_at'] === null
+                    ? null
+                    : 'Reviewed against the submitted field evidence.',
+                'lock_version' => 0,
+                'created_at' => $submittedAt,
+                'updated_at' => $submittedAt,
+            ];
+        }
+
+        self::insertInChunks('reports', $reportRows);
+        $reportIds = $this->reportIdsByReference($references);
+        $disk = Storage::disk('local');
+
+        $reportImagePaths = [];
+        foreach ($plan as $definition) {
+            $path = self::volumeImagePath($definition['report']['submitted_at']);
+            $reportImagePaths[$path] = true;
+        }
+        foreach (array_keys($reportImagePaths) as $path) {
+            if (! $disk->exists($path) && ! $disk->put($path, $image)) {
+                throw new RuntimeException("Unable to store report image [{$path}].");
+            }
+        }
+
+        $labels = Report::v2Labels();
+        $existingScores = DB::table('report_class_scores')
+            ->whereIn('report_id', array_values($reportIds))
+            ->get(['report_id', 'label'])
+            ->mapWithKeys(fn (object $score): array => [
+                $score->report_id.'|'.$score->label => true,
+            ])
+            ->all();
+        $scoreRows = [];
+        $symptomRows = [];
+        $warningRows = [];
+
+        foreach ($plan as $referenceCode => $definition) {
+            $reportId = $reportIds[$referenceCode] ?? null;
+            if ($reportId === null) {
+                continue;
+            }
+
+            $confidence = (float) $definition['report']['confidence'];
+            foreach ($labels as $label) {
+                if (isset($existingScores[$reportId.'|'.$label])) {
+                    continue;
+                }
+
+                $scoreRows[] = [
+                    'report_id' => $reportId,
+                    'label' => $label,
+                    'score' => $label === $definition['report']['predicted_label']
+                        ? $confidence
+                        : round((1 - $confidence) / (count($labels) - 1), 7),
+                ];
+            }
+
+            $symptomRows[] = [
+                'report_id' => $reportId,
+                'symptom_key' => $definition['report']['predicted_label'] === Report::LABEL_HEALTHY
+                    ? 'none'
+                    : $definition['report']['predicted_label'],
+            ];
+            if ($definition['quality_warning']) {
+                $warningRows[] = [
+                    'report_id' => $reportId,
+                    'warning_key' => 'low-resolution',
+                ];
+            }
+        }
+
+        self::insertInChunks('report_class_scores', $scoreRows);
+        self::insertInChunks('report_symptoms', $symptomRows);
+        self::insertInChunks('report_quality_warnings', $warningRows);
+
+        $assignmentDefinitions = [];
+        foreach ($plan as $referenceCode => $definition) {
+            if ($definition['assignment'] !== null && isset($reportIds[$referenceCode])) {
+                $assignmentDefinitions[$referenceCode] = $definition['assignment'];
+            }
+        }
+        $assignmentIds = [];
+        if ($assignmentDefinitions !== []) {
+            $assignmentIds = DB::table('field_validation_assignments')
+                ->whereIn('report_id', array_values(array_intersect_key(
+                    $reportIds,
+                    $assignmentDefinitions,
+                )))
+                ->pluck('id', 'report_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+            $assignmentRows = [];
+            foreach ($assignmentDefinitions as $referenceCode => $assignment) {
+                $reportId = $reportIds[$referenceCode];
+                if (isset($assignmentIds[$reportId])) {
+                    continue;
+                }
+
+                $assignmentRows[] = [
+                    'uuid' => (string) Str::uuid(),
+                    'report_id' => $reportId,
+                    'assignee_id' => $reporter->getKey(),
+                    'assigned_by_id' => $reviewer->getKey(),
+                    'target_visit_date' => $assignment['target_visit_date'],
+                    'activated_at' => $assignment['activated_at'],
+                    'created_at' => $assignment['activated_at'],
+                    'updated_at' => $assignment['activated_at'],
+                ];
+            }
+            self::insertInChunks('field_validation_assignments', $assignmentRows);
+            $assignmentIds = DB::table('field_validation_assignments')
+                ->whereIn('report_id', array_values(array_intersect_key(
+                    $reportIds,
+                    $assignmentDefinitions,
+                )))
+                ->pluck('id', 'report_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+        }
+
+        $completionRows = [];
+        $completionDefinitions = [];
+        foreach ($plan as $referenceCode => $definition) {
+            if ($definition['completion'] !== null && isset($reportIds[$referenceCode])) {
+                $completionDefinitions[$referenceCode] = $definition['completion'];
+            }
+        }
+        if ($completionDefinitions !== []) {
+            $existingCompletions = DB::table('field_validation_completions')
+                ->whereIn('assignment_id', array_values($assignmentIds))
+                ->pluck('assignment_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+            $existingCompletions = array_fill_keys($existingCompletions, true);
+            $hasFollowUpOutcome = Schema::hasColumn(
+                'field_validation_completions',
+                'follow_up_outcome',
+            );
+
+            foreach ($completionDefinitions as $referenceCode => $completion) {
+                $assignmentId = $assignmentIds[$reportIds[$referenceCode]] ?? null;
+                if ($assignmentId === null || isset($existingCompletions[$assignmentId])) {
+                    continue;
+                }
+
+                $row = [
+                    'uuid' => (string) Str::uuid(),
+                    'assignment_id' => $assignmentId,
+                    'client_uuid' => (string) Str::uuid(),
+                    'field_observation' => $completion['field_observation'],
+                    'field_finding' => $completion['field_finding'],
+                    'action_taken' => $completion['action_taken'],
+                    'visited_at' => $completion['visited_at'],
+                    'gps_outcome' => $completion['gps_outcome'],
+                    'gps_attempted_at' => $completion['gps_attempted_at'],
+                    'gps_latitude' => $completion['gps_latitude'],
+                    'gps_longitude' => $completion['gps_longitude'],
+                    'gps_accuracy' => $completion['gps_accuracy'],
+                    'fresh_photo_path' => $completion['fresh_photo_path'],
+                    'fresh_photo_mime_type' => $completion['fresh_photo_path'] === null
+                        ? null
+                        : 'image/png',
+                    'fresh_photo_size_bytes' => $completion['fresh_photo_path'] === null
+                        ? null
+                        : strlen($image),
+                    'created_at' => $completion['visited_at'],
+                    'updated_at' => $completion['visited_at'],
+                ];
+                if ($hasFollowUpOutcome) {
+                    $row['follow_up_outcome'] = $completion['follow_up_outcome'];
+                }
+                $completionRows[] = $row;
+            }
+        }
+        self::insertInChunks('field_validation_completions', $completionRows);
+
+        $completionPhotoPaths = [];
+        foreach ($completionDefinitions as $completion) {
+            if ($completion['fresh_photo_path'] !== null) {
+                $completionPhotoPaths[$completion['fresh_photo_path']] = true;
+            }
+        }
+        foreach (array_keys($completionPhotoPaths) as $path) {
+            if (! $disk->exists($path) && ! $disk->put($path, $image)) {
+                throw new RuntimeException("Unable to store follow-up photo [{$path}].");
+            }
+        }
+
+        $consultDefinitions = [];
+        foreach ($plan as $referenceCode => $definition) {
+            if ($definition['consult'] !== null && isset($reportIds[$referenceCode])) {
+                $consultDefinitions[$referenceCode] = $definition['consult'];
+            }
+        }
+        if ($consultDefinitions !== []) {
+            $existingConsults = DB::table('report_referrals')
+                ->whereIn('report_id', array_values(array_intersect_key(
+                    $reportIds,
+                    $consultDefinitions,
+                )))
+                ->pluck('report_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+            $existingConsults = array_fill_keys($existingConsults, true);
+            $consultRows = [];
+            foreach ($consultDefinitions as $referenceCode => $consult) {
+                $reportId = $reportIds[$referenceCode];
+                if (isset($existingConsults[$reportId])) {
+                    continue;
+                }
+
+                $consultRows[] = [
+                    'report_id' => $reportId,
+                    'referred_by_id' => $reviewer->getKey(),
+                    'consult_status' => $consult['consult_status'],
+                    'destination' => 'CaneGuard Regional Agronomy Desk',
+                    'reference' => $consult['reference'],
+                    'referral_date' => $consult['referral_date'],
+                    'due_date' => $consult['due_date'],
+                    'expert_name' => 'Regional Agronomy Desk',
+                    'expert_contact' => 'agronomy-desk@caneguard.test',
+                    'share_full_context' => false,
+                    'note' => $consult['note'],
+                    'response_date' => $consult['response_date'],
+                    'response_note' => $consult['response_note'],
+                    'response_finding' => $consult['response_finding'],
+                    'response_recorded_by_id' => $consult['response_recorded_by_id'],
+                    'response_recorded_at' => $consult['response_recorded_at'],
+                    'finding_summary' => $consult['finding_summary'],
+                    'finding_details' => $consult['finding_details'],
+                    'finding_recommendation' => $consult['finding_recommendation'],
+                    'finding_source' => $consult['finding_source'],
+                    'finding_recorded_by_id' => $consult['finding_recorded_by_id'],
+                    'finding_recorded_at' => $consult['finding_recorded_at'],
+                    'office_case_state' => Report::CASE_STATE_OPEN,
+                    'office_verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                    'office_field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                    'office_action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+                    'office_authority_classified_condition' => null,
+                    'office_review_notes' => 'The office is waiting for an attributed finding.',
+                    'office_reviewer_id' => $reviewer->getKey(),
+                    'office_reviewed_at' => $consult['office_reviewed_at'],
+                    'created_at' => $consult['office_reviewed_at'],
+                    'updated_at' => $consult['office_reviewed_at'],
+                ];
+            }
+            self::insertInChunks('report_referrals', $consultRows);
+        }
+    }
+
+    /**
+     * @param  array<int, string>  $references
+     * @return array<string, int>
+     */
+    private function reportIdsByReference(array $references): array
+    {
+        $ids = [];
+        foreach (array_chunk($references, 400) as $referenceChunk) {
+            $ids += Report::query()
+                ->whereIn('reference_code', $referenceChunk)
+                ->pluck('id', 'reference_code')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    private static function insertInChunks(string $table, array $rows): void
+    {
+        foreach (array_chunk($rows, 400) as $chunk) {
+            DB::table($table)->insertOrIgnore($chunk);
+        }
+    }
+
+    /**
+     * Build deterministic records for each modeled month, barangay, condition,
+     * and configured sample count. The generated values intentionally use the
+     * same Bago geography as the named fixtures and contain no demo labels.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function volumeDefinitions(
+        array $configuration,
+        ?int $reviewerId = null,
+        ?int $advisoryId = null,
+    ): array {
+        $now = CarbonImmutable::now('UTC');
+        $anchorMonth = $now->startOfMonth();
+        $labels = Report::v2Labels();
+        $usedReferences = array_fill_keys(self::REPORT_REFERENCES, true);
+        $definitions = [];
+        $ordinal = 0;
+
+        for ($monthOffset = 0; $monthOffset < $configuration['months_back']; $monthOffset++) {
+            $month = $anchorMonth->subMonths($monthOffset);
+            $daysAvailable = $month->daysInMonth;
+            if ($month->isSameMonth($now)) {
+                $daysAvailable = max(1, min($daysAvailable, $now->day - 1));
+            }
+
+            foreach (self::BARANGAYS as $barangayIndex => $barangay) {
+                foreach ($labels as $conditionIndex => $label) {
+                    for ($sample = 0; $sample < $configuration['reports_per_barangay_per_condition']; $sample++) {
+                        $day = 1 + (($ordinal * 7 + $barangayIndex * 3 + $conditionIndex * 5 + $sample * 11) % $daysAvailable);
+                        $submittedAt = $month
+                            ->addDays($day - 1)
+                            ->setTime(
+                                6 + ($ordinal % 11),
+                                ($ordinal * 13 + 15) % 60,
+                            );
+                        if ($submittedAt->gte($now)) {
+                            $submittedAt = $now->subMinutes(30 + ($ordinal % 90));
+                        }
+
+                        $referenceCode = self::uniqueReference($submittedAt, $usedReferences);
+                        $usedReferences[$referenceCode] = true;
+                        $observedAt = $submittedAt->subMinutes(15 + ($ordinal % 30));
+                        $coordinates = self::BARANGAY_COORDINATES[$barangay];
+                        $latitude = round(
+                            $coordinates['latitude'] + (($ordinal % 7) - 3) * 0.00025,
+                            7,
+                        );
+                        $longitude = round(
+                            $coordinates['longitude'] + (($ordinal % 9) - 4) * 0.00025,
+                            7,
+                        );
+                        $closed = $ordinal % $configuration['closure_spread'] === 0;
+                        $validationCycle = $ordinal % $configuration['validation_spread'];
+                        $consult = null;
+                        $assignment = null;
+                        $completion = null;
+                        $reviewStatus = Report::STATUS_SUBMITTED_UNVERIFIED;
+                        $caseState = Report::CASE_STATE_OPEN;
+                        $verificationOutcome = Report::VERIFICATION_OUTCOME_NOT_DETERMINED;
+                        $fieldValidationState = Report::FIELD_VALIDATION_STATE_UNASSIGNED;
+                        $referralState = Report::REFERRAL_STATE_NOT_REFERRED;
+                        $actionTaken = null;
+                        $authorityCondition = null;
+
+                        if ($closed) {
+                            $closureKind = intdiv($ordinal, $configuration['closure_spread']) % 3;
+                            $caseState = Report::CASE_STATE_CLOSED;
+                            $fieldValidationState = Report::FIELD_VALIDATION_STATE_UNASSIGNED;
+                            if ($closureKind === 0) {
+                                $reviewStatus = Report::STATUS_VERIFIED_BY_STAFF;
+                                $verificationOutcome = Report::VERIFICATION_OUTCOME_VERIFIED;
+                                $actionTaken = Report::ACTION_ADVISORY_PROVIDED;
+                                $authorityCondition = $label;
+                            } elseif ($closureKind === 1) {
+                                $reviewStatus = Report::STATUS_UNABLE_TO_VERIFY;
+                                $verificationOutcome = Report::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY;
+                                $actionTaken = Report::ACTION_NO_FURTHER_ACTION_REQUIRED;
+                                $authorityCondition = Report::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY;
+                            } else {
+                                $reviewStatus = Report::STATUS_RESOLVED;
+                                $actionTaken = Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED;
+                            }
+                        } elseif ($ordinal % 13 === 0) {
+                            $reviewStatus = Report::STATUS_SUBMITTED_UNVERIFIED;
+                            $actionTaken = Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION;
+                            $referralState = $ordinal % 26 === 0
+                                ? Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED
+                                : Report::REFERRAL_STATE_REFERRED;
+                            $consult = self::consultDefinition(
+                                $referenceCode,
+                                $submittedAt,
+                                $label,
+                                $reviewerId,
+                                $ordinal % 26 === 0,
+                            );
+                            if ($consult['consult_status'] === ReportReferral::STATUS_COMPLETED) {
+                                $authorityCondition = $ordinal % 39 === 0
+                                    ? Report::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY
+                                    : $label;
+                            }
+                        } elseif ($validationCycle === 0) {
+                            $reviewStatus = Report::STATUS_FOR_FIELD_VALIDATION;
+                            $actionTaken = Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED;
+                            $fieldValidationState = $ordinal % 2 === 0
+                                ? Report::FIELD_VALIDATION_STATE_ASSIGNED
+                                : Report::FIELD_VALIDATION_STATE_IN_PROGRESS;
+                            $assignment = self::assignmentDefinition($submittedAt, $ordinal, false);
+                        } elseif ($validationCycle === 1) {
+                            $reviewStatus = Report::STATUS_FOR_FIELD_VALIDATION;
+                            $actionTaken = Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED;
+                            $fieldValidationState = Report::FIELD_VALIDATION_STATE_COMPLETED;
+                            $assignment = self::assignmentDefinition($submittedAt, $ordinal, true);
+                            $completion = self::completionDefinition(
+                                $submittedAt,
+                                $ordinal,
+                                $latitude,
+                                $longitude,
+                            );
+                        } elseif ($validationCycle === 2) {
+                            $reviewStatus = Report::STATUS_FOR_FIELD_VALIDATION;
+                            $actionTaken = Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED;
+                        } elseif ($validationCycle === 3) {
+                            $reviewStatus = Report::STATUS_SUBMITTED_UNVERIFIED;
+                            $actionTaken = Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED;
+                        }
+
+                        $reviewedAt = $actionTaken === null
+                            ? null
+                            : $submittedAt->addHours(2 + ($ordinal % 9));
+                        $advisorySelectedAt = null;
+                        $advisoryDeliveredAt = null;
+                        $advisoryAcknowledgedAt = null;
+                        $reportAdvisoryId = null;
+                        $advisoryDeliveryState = Report::ADVISORY_DELIVERY_NOT_SELECTED;
+                        if ($advisoryId !== null
+                            && $consult !== null
+                            && $consult['consult_status'] === ReportReferral::STATUS_COMPLETED) {
+                            $reportAdvisoryId = $advisoryId;
+                            $advisorySelectedAt = $reviewedAt ?? $submittedAt->addHours(2);
+                            $advisoryDeliveredAt = $advisorySelectedAt->addMinutes(2);
+                            $advisoryDeliveryState = $ordinal % 2 === 0
+                                ? Report::ADVISORY_DELIVERY_ACKNOWLEDGED
+                                : Report::ADVISORY_DELIVERY_DELIVERED;
+                            $advisoryAcknowledgedAt = $advisoryDeliveryState === Report::ADVISORY_DELIVERY_ACKNOWLEDGED
+                                ? $advisoryDeliveredAt->addDay()
+                                : null;
+                        }
+
+                        $report = [
+                            'uuid' => (string) Str::uuid(),
+                            'client_uuid' => (string) Str::uuid(),
+                            'scan_record_client_uuid' => (string) Str::uuid(),
+                            'barangay' => $barangay,
+                            'farmer_or_farm_owner_name' => self::farmerName($ordinal),
+                            'province' => 'Negros Occidental',
+                            'municipality' => 'Bago',
+                            'final_latitude' => $ordinal % 17 === 0 ? null : $latitude,
+                            'final_longitude' => $ordinal % 17 === 0 ? null : $longitude,
+                            'location_source' => $ordinal % 17 === 0
+                                ? Report::LOCATION_SOURCE_UNAVAILABLE
+                                : ($ordinal % 5 === 0
+                                    ? Report::LOCATION_SOURCE_MANUAL_MAP
+                                    : Report::LOCATION_SOURCE_GPS),
+                            'location_unavailable_reason' => $ordinal % 17 === 0
+                                ? Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP
+                                : null,
+                            'gps_accuracy' => $ordinal % 17 === 0
+                                ? null
+                                : round(3.5 + ($ordinal % 28) * 0.4, 2),
+                            'observed_at' => $observedAt,
+                            'submitted_at' => $submittedAt,
+                            'sugarcane_variety' => ['PSR 86', 'Co 86032', 'Magsasaka 1'][$ordinal % 3],
+                            'crop_age' => [
+                                '4 months',
+                                '6 months',
+                                '8 months',
+                                '10 months',
+                            ][$ordinal % 4],
+                            'cane_class' => ['Class A', 'Class B', 'Class C'][$ordinal % 3],
+                            'affected_area_hectares' => round(
+                                $label === Report::LABEL_HEALTHY
+                                    ? 0.25 + ($ordinal % 6) * 0.08
+                                    : 0.65 + ($ordinal % 17) * 0.19,
+                                2,
+                            ),
+                            'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
+                            'affected_portion_percent' => round(
+                                $label === Report::LABEL_HEALTHY
+                                    ? 4 + ($ordinal % 8)
+                                    : 12 + ($ordinal % 61),
+                                2,
+                            ),
+                            'affected_portion_measurement' => Report::MEASUREMENT_MEASURED,
+                            'field_notes' => $label === Report::LABEL_HEALTHY
+                                ? 'Rows remain evenly green with no visible lesion in the inspected block.'
+                                : sprintf(
+                                    'The %s pattern was recorded along the %s block for office follow-up.',
+                                    $label,
+                                    strtolower($barangay),
+                                ),
+                            'mismatch_reported' => $consult !== null || $ordinal % 7 === 0,
+                            'reporter_suspected_condition' => $label === Report::LABEL_HEALTHY
+                                ? null
+                                : ($ordinal % 4 === 0 ? Report::REPORTER_CONCERN_RSSI : $label),
+                            'reporter_observation_text' => $label === Report::LABEL_HEALTHY
+                                ? 'The grower observed uniform leaf color during the morning inspection.'
+                                : sprintf(
+                                    'The grower observed %s symptoms across a small group of rows.',
+                                    $label,
+                                ),
+                            'predicted_label' => $label,
+                            'confidence' => round(0.64 + ($ordinal % 29) * 0.011, 7),
+                            'checklist_consistency' => $consult !== null
+                                ? 'inconsistent'
+                                : ($ordinal % 6 === 0 ? 'inconclusive' : 'consistent'),
+                            'reported_severity' => $label === Report::LABEL_HEALTHY
+                                ? 'low'
+                                : (($ordinal % 5 === 0 || $closed && $ordinal % 3 === 0)
+                                    ? 'high'
+                                    : 'moderate'),
+                            'review_status' => $reviewStatus,
+                            'case_state' => $caseState,
+                            'verification_outcome' => $verificationOutcome,
+                            'field_validation_state' => $fieldValidationState,
+                            'referral_state' => $referralState,
+                            'advisory_id' => $reportAdvisoryId,
+                            'advisory_selected_by_id' => $reportAdvisoryId === null ? null : $reviewerId,
+                            'advisory_selected_at' => $advisorySelectedAt,
+                            'advisory_delivery_state' => $advisoryDeliveryState,
+                            'advisory_delivered_at' => $advisoryDeliveredAt,
+                            'advisory_acknowledged_at' => $advisoryAcknowledgedAt,
+                            'action_taken' => $actionTaken,
+                            'authority_classified_condition' => $authorityCondition,
+                            'reviewer_id' => $reviewedAt === null ? null : $reviewerId,
+                            'reviewed_at' => $reviewedAt,
+                            'first_reviewed_at' => $reviewedAt === null
+                                ? null
+                                : $reviewedAt->subHours(1 + ($ordinal % 3)),
+                        ];
+
+                        $definitions[$referenceCode] = [
+                            'ordinal' => $ordinal,
+                            'report' => $report,
+                            'assignment' => $assignment,
+                            'completion' => $completion,
+                            'consult' => $consult,
+                            'quality_warning' => $ordinal % 9 === 0,
+                        ];
+                        $ordinal++;
+                    }
+                }
+            }
+        }
+
+        return $definitions;
+    }
+
+    private static function uniqueReference(CarbonImmutable $submittedAt, array $used): string
+    {
+        $candidateAt = $submittedAt;
+        do {
+            $candidate = 'BGO-'.$candidateAt->format('Ymd-Hi');
+            $candidateAt = $candidateAt->addMinute();
+        } while (isset($used[$candidate]));
+
+        return $candidate;
+    }
+
+    private static function volumeImagePath(CarbonImmutable $submittedAt): string
+    {
+        return 'reports/'.$submittedAt->format('Y-m').'/dashboard-field-evidence.png';
+    }
+
+    private static function farmerName(int $ordinal): string
+    {
+        return self::FARMER_FIRST_NAMES[$ordinal % count(self::FARMER_FIRST_NAMES)]
+            .' '.self::FARMER_LAST_NAMES[
+                intdiv($ordinal, count(self::FARMER_FIRST_NAMES)) % count(self::FARMER_LAST_NAMES)
+            ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function assignmentDefinition(
+        CarbonImmutable $submittedAt,
+        int $ordinal,
+        bool $completed,
+    ): array {
+        $now = CarbonImmutable::now('UTC');
+        if ($completed) {
+            $target = $submittedAt->addDay();
+        } elseif ($ordinal % 3 === 0) {
+            $target = $now->subDays(2 + ($ordinal % 4));
+        } else {
+            $target = $now->addDays(1 + ($ordinal % 7));
+        }
+
+        return [
+            'target_visit_date' => $target->toDateString(),
+            'activated_at' => $submittedAt->addHours(2),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function completionDefinition(
+        CarbonImmutable $submittedAt,
+        int $ordinal,
+        float $latitude,
+        float $longitude,
+    ): array {
+        $visitedAt = $submittedAt->addDays(2)->addHours($ordinal % 5);
+        $now = CarbonImmutable::now('UTC');
+        if ($visitedAt->gte($now)) {
+            $visitedAt = $now->subHours(2);
+        }
+        $photoPath = $ordinal % 3 === 0
+            ? 'field-validation/'.$visitedAt->format('Y-m').'/follow-up-evidence.png'
+            : null;
+
+        return [
+            'field_observation' => 'The return visit recorded the condition across the marked rows.',
+            'field_finding' => $ordinal % 4 === 0
+                ? 'The affected area worsened and needs another office check.'
+                : 'The monitored block is stable after the field visit.',
+            'action_taken' => $ordinal % 4 === 0
+                ? 'Marked the affected rows for renewed inspection.'
+                : 'Reviewed sanitation steps with the grower and recorded the block for monitoring.',
+            'visited_at' => $visitedAt,
+            'gps_outcome' => $ordinal % 5 === 0 ? 'low_accuracy' : 'resolved',
+            'gps_attempted_at' => $visitedAt->subMinutes(10),
+            'gps_latitude' => $latitude,
+            'gps_longitude' => $longitude,
+            'gps_accuracy' => $ordinal % 5 === 0 ? 34.50 : round(4.5 + ($ordinal % 12), 2),
+            'fresh_photo_path' => $photoPath,
+            'follow_up_outcome' => ['improved', 'unchanged', 'worsened', 'monitoring'][$ordinal % 4],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function consultDefinition(
+        string $referenceCode,
+        CarbonImmutable $submittedAt,
+        string $label,
+        ?int $reviewerId,
+        bool $completed,
+    ): array {
+        $referralAt = $submittedAt->addDay();
+        $now = CarbonImmutable::now('UTC');
+        $findingAt = $referralAt->addDays(2)->setTime(10, 30);
+        if ($findingAt->gte($now)) {
+            $findingAt = $now->subHours(2);
+        }
+        if ($findingAt->lt($referralAt)) {
+            $findingAt = $referralAt;
+        }
+
+        return [
+            'consult_status' => $completed
+                ? ReportReferral::STATUS_COMPLETED
+                : ReportReferral::STATUS_PENDING,
+            'reference' => 'BGO-CONSULT-'.$submittedAt->format('Ymd').'-'.substr($referenceCode, -4),
+            'referral_date' => $referralAt->toDateString(),
+            'due_date' => $referralAt->addDays(5)->toDateString(),
+            'note' => 'Please compare the submitted field evidence with an attributed agronomy finding.',
+            'response_date' => $completed ? $findingAt->toDateString() : null,
+            'response_note' => $completed ? 'The attributed desk reviewed the supplied field evidence.' : null,
+            'response_finding' => $completed ? 'The field evidence supports the reported '.$label.' pattern.' : null,
+            'response_recorded_by_id' => $completed ? $reviewerId : null,
+            'response_recorded_at' => $completed ? $findingAt : null,
+            'finding_summary' => $completed ? 'The attributed desk recorded a finding for the office.' : null,
+            'finding_details' => $completed ? 'The supplied image and field notes were compared during review.' : null,
+            'finding_recommendation' => $completed ? 'Continue row monitoring and repeat the field check as needed.' : null,
+            'finding_source' => $completed ? ReportReferral::FINDING_SOURCE_IN_SYSTEM : null,
+            'finding_recorded_by_id' => $completed ? $reviewerId : null,
+            'finding_recorded_at' => $completed ? $findingAt : null,
+            'office_reviewed_at' => $submittedAt->addHours(3),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function attributes(
@@ -317,10 +1091,10 @@ class DashboardReportSeeder extends Seeder
             'cane_class' => 'Class A',
             'observed_at' => CarbonImmutable::parse($submittedAt, 'UTC')->subMinutes(20),
             'submitted_at' => $submittedAt,
-            'field_notes' => 'Synthetic field evidence recorded for local dashboard validation.',
+            'field_notes' => 'Field evidence recorded during the municipal agriculture office survey.',
             'mismatch_reported' => false,
             'reporter_suspected_condition' => null,
-            'reporter_observation_text' => 'Synthetic observation recorded during the local development survey.',
+            'reporter_observation_text' => 'The grower described the observed crop pattern during the morning survey.',
             'predicted_label' => $label,
             'confidence' => $confidence,
             'checklist_consistency' => $label === Report::LABEL_HEALTHY ? 'consistent' : 'inconclusive',
@@ -360,7 +1134,7 @@ class DashboardReportSeeder extends Seeder
                 'due_date' => '2026-10-23',
                 'note' => 'Compare the mosaic evidence with the submitted field observation.',
                 'response_date' => '2026-10-20',
-                'response_note' => 'The attributed desk reviewed the supplied synthetic evidence.',
+                'response_note' => 'The attributed desk reviewed the supplied field evidence.',
                 'response_finding' => 'The image and field notes support mosaic.',
                 'response_recorded_by_id' => $reviewer->getKey(),
                 'response_recorded_at' => '2026-10-20 10:30:00',
@@ -443,7 +1217,7 @@ class DashboardReportSeeder extends Seeder
                 'captured_at' => CarbonImmutable::parse($attributes['submitted_at'], 'UTC')->subMinutes(20),
                 'review_notes' => $attributes['reviewed_at'] === null
                     ? null
-                    : 'Reviewed against the submitted synthetic field evidence.',
+                    : 'Reviewed against the submitted field evidence.',
                 'lock_version' => 0,
             ],
         );
