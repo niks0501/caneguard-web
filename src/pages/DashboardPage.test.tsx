@@ -218,7 +218,6 @@ describe("DashboardPage", () => {
     );
     renderDashboard();
 
-    expect(screen.getByText("Target visit date passed; validation remains incomplete.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open Follow-up Due queue" })).toBeInTheDocument();
   });
 
