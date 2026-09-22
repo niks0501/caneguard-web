@@ -188,7 +188,7 @@ const sourceReports: DiseaseReport[] = [
     uuid: "00000000-0000-4000-8000-000000000007",
     referenceCode: "CG-2026-0709",
     barangay: "Poblacion",
-    farmReference: "Demonstration Plot A",
+    farmReference: "Block DLA-07",
     submittedByName: "Noel Garcia",
     submitterRole: "field_reporter",
     capturedAt: "2026-07-09T09:10:00+08:00",

@@ -235,7 +235,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $reviewer = User::factory()->reviewer()->create();
         $report = Report::factory()->create([
-            'reference_code' => 'CG-2026-0001',
+            'reference_code' => 'BGO-20260702-0915',
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.7312345,
             'model_version' => 'caneguard-mobile-v1.0.0',
@@ -302,9 +302,9 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
 
         $report = Report::factory()->create([
-            'reference_code' => 'CG-2026-0001',
-            'client_uuid' => '30000000-0000-4000-8000-000000000001',
-            'image_path' => 'seeded/report-01.png',
+            'reference_code' => 'BGO-20260702-0915',
+            'client_uuid' => 'c93939fc-601e-42b3-8d30-c786b2402f78',
+            'image_path' => 'reports/2026-07/bgo-20260702-0915.png',
             'predicted_label' => Report::LABEL_SMUT,
             'confidence' => 0.7312345,
             'model_version' => 'v1.0-mobilenetv2',
@@ -330,9 +330,9 @@ class ReportSchemaAndSeederTest extends TestCase
             'report_id' => $report->id,
             'symptom_key' => Report::LABEL_SMUT,
         ]);
-        $this->assertTrue(Storage::disk('local')->exists('seeded/report-01.png'));
+        $this->assertTrue(Storage::disk('local')->exists('reports/2026-07/bgo-20260702-0915.png'));
         $this->assertSame(
-            12 + count(AdvisorDemoSeeder::demoReportReferences()),
+            12 + count(AdvisorDemoSeeder::reportReferences()),
             Report::query()->count(),
         );
     }
@@ -351,7 +351,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $this->assertDatabaseCount(
             'reports',
-            12 + count(AdvisorDemoSeeder::demoReportReferences()),
+            12 + count(AdvisorDemoSeeder::reportReferences()),
         );
         $this->assertSame(8, Report::query()
             ->whereNotNull('final_latitude')
@@ -365,16 +365,16 @@ class ReportSchemaAndSeederTest extends TestCase
             })
             ->count());
         $locatedDemoReport = Report::query()
-            ->where('reference_code', 'CG-2026-0002')
+            ->where('reference_code', 'BGO-20260703-1015')
             ->firstOrFail();
-        $this->assertSame('14.0667000', $locatedDemoReport->final_latitude);
-        $this->assertSame('120.6319000', $locatedDemoReport->final_longitude);
+        $this->assertSame('10.5234000', $locatedDemoReport->final_latitude);
+        $this->assertSame('122.8281000', $locatedDemoReport->final_longitude);
         $this->assertSame('gps', $locatedDemoReport->location_source);
         $manualDemoReport = Report::query()
-            ->where('reference_code', 'CG-2026-0007')
+            ->where('reference_code', 'BGO-20260708-1515')
             ->firstOrFail();
-        $this->assertSame('14.0710000', $manualDemoReport->final_latitude);
-        $this->assertSame('120.6350000', $manualDemoReport->final_longitude);
+        $this->assertSame('10.5710000', $manualDemoReport->final_latitude);
+        $this->assertSame('122.8500000', $manualDemoReport->final_longitude);
         $this->assertSame('manual_map', $manualDemoReport->location_source);
         $this->assertNull($manualDemoReport->gps_accuracy);
         $this->assertDatabaseCount('report_class_scores', 76);
@@ -420,9 +420,9 @@ class ReportSchemaAndSeederTest extends TestCase
                 ->lifecycleSnapshot(),
         );
 
-        $files = Storage::disk('local')->allFiles('seeded');
+        $files = Storage::disk('local')->allFiles('reports');
         $this->assertCount(
-            12 + count(AdvisorDemoSeeder::demoReportReferences()),
+            12 + count(AdvisorDemoSeeder::reportReferences()),
             $files,
         );
         $seededImage = Storage::disk('local')->get($files[0]);

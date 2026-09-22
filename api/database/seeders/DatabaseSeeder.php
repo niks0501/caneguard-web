@@ -18,21 +18,21 @@ class DatabaseSeeder extends Seeder
     {
         $users = [
             [
-                'name' => 'Field Reporter',
+                'name' => 'Arnel Mercado',
                 'email' => 'field@caneguard.test',
                 'role' => User::ROLE_FIELD_REPORTER,
                 'email_verified_at' => now(),
                 'password' => config('caneguard.demo_users.field_reporter_password'),
             ],
             [
-                'name' => 'MAO Reviewer',
+                'name' => 'Liza Mae Navarro',
                 'email' => 'mao@caneguard.test',
                 'role' => User::ROLE_REVIEWER,
                 'email_verified_at' => now(),
                 'password' => config('caneguard.demo_users.reviewer_password'),
             ],
             [
-                'name' => 'CaneGuard Administrator',
+                'name' => 'Crisanto de Vera',
                 'email' => 'admin@caneguard.test',
                 'role' => User::ROLE_ADMIN,
                 'email_verified_at' => now(),
@@ -43,7 +43,7 @@ class DatabaseSeeder extends Seeder
         $expertPassword = config('caneguard.demo_users.expert_password');
         if (is_string($expertPassword) && $expertPassword !== '') {
             $users[] = [
-                'name' => 'CaneGuard Expert',
+                'name' => 'Josefino Ylagan',
                 'email' => 'expert@caneguard.test',
                 'role' => User::ROLE_EXPERT,
                 'email_verified_at' => now(),

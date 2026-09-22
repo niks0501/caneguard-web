@@ -65,7 +65,7 @@ This Web/API repository does not install or run mobile device tooling.
 Commands below use angle-bracket placeholders that must be replaced before running.
 `<mysql-admin-user>` is a local MySQL account allowed to create databases and users.
 `<local-db-password>` is a password you choose for the local `caneguard_app` account and then put in `api/.env` as `DB_PASSWORD`.
-`<local-field-reporter-password>`, `<local-reviewer-password>`, and `<local-admin-password>` are local passwords you choose for the seeded demo accounts.
+`<local-field-reporter-password>`, `<local-reviewer-password>`, and `<local-admin-password>` are local passwords you choose for the seeded accounts.
 `<apk-path>` is the path to the development APK produced by EAS.
 
 Both repositories are private.
@@ -137,7 +137,7 @@ All `VITE_*` values are public browser configuration and must never contain API 
 ### Configure the API environment
 
 The copied `api/.env` already contains the local Web, Sanctum, and MySQL defaults.
-Set the local database password and all three local demo passwords.
+Set the local database password and all three local seeded-account passwords.
 Keep these values only in `api/.env`.
 
 ```dotenv
@@ -210,10 +210,10 @@ php api/artisan migrate
 php api/artisan db:seed
 ```
 
-The seed creates the local demo accounts and synthetic report data.
-The report seed is safe to rerun against an existing local database: it creates missing demo rows, files, and nested evidence without overwriting existing report rows or immutable submitted evidence.
-The expanded feature demo uses `DEMO-CG-01` through `DEMO-CG-07` and `ADV-DEMO-01` for monitoring assignments, validation evidence, expert consults, advisory delivery, follow-up outcomes, and unavailable-location V2 reports. Set `CANEGUARD_EXPERT_PASSWORD` to seed the attributed expert consult rows.
-Use a disposable reset/reseed when a fresh demo dataset is required.
+The seed creates the local accounts and synthetic field records.
+The report seed is safe to rerun against an existing local database: it creates missing rows, files, and nested evidence without overwriting existing report rows or immutable submitted evidence.
+The expanded field dataset uses Bago, Negros Occidental records such as `BGO-20260920-0810` through `BGO-20260918-0615` and advisory `ADV-BGO-RUST-01` for monitoring assignments, validation evidence, expert consults, advisory delivery, follow-up outcomes, and unavailable-location V2 reports. Set `CANEGUARD_EXPERT_PASSWORD` to seed the attributed expert consult rows.
+Use a disposable reset/reseed when a fresh field dataset is required.
 The accounts are `field@caneguard.test`, `mao@caneguard.test`, `admin@caneguard.test`, and (when `CANEGUARD_EXPERT_PASSWORD` is set) `expert@caneguard.test`.
 Use the local passwords you set in `CANEGUARD_FIELD_PASSWORD`, `CANEGUARD_REVIEWER_PASSWORD`, `CANEGUARD_ADMIN_PASSWORD`, and `CANEGUARD_EXPERT_PASSWORD`.
 The Web accepts the reviewer, admin, and expert roles; expert accounts receive only assigned referral access, while Mobile synchronization requires the field-reporter role.
@@ -344,7 +344,7 @@ Use the installed development build, not Expo Go.
 
 ## 5. Fast end-to-end smoke checklist
 
-Use only the local demo passwords from `api/.env`.
+Use only the local seeded-account passwords from `api/.env`.
 Do not use real farmer or production data.
 
 1. Confirm `curl http://127.0.0.1:8000/api/health` reports `ok`, `database: ready`, and `storage: ready`.
@@ -381,7 +381,7 @@ If the device remains controllable by wireless ADB but the API is unavailable, f
 ### Seeding fails with a missing password error
 
 Set all three `CANEGUARD_*_PASSWORD` values in `api/.env` and run `php api/artisan db:seed` again.
-The seeder intentionally refuses to create demo users with empty passwords.
+The seeder intentionally refuses to create seeded users with empty passwords.
 
 ### MySQL validation tests fail because tables are missing
 

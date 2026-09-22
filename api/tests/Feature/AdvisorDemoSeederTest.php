@@ -37,30 +37,30 @@ class AdvisorDemoSeederTest extends TestCase
 
         $this->assertDatabaseCount(
             'reports',
-            12 + count(AdvisorDemoSeeder::demoReportReferences()),
+            12 + count(AdvisorDemoSeeder::reportReferences()),
         );
         $this->assertDatabaseCount('advisories', 1);
         $this->assertDatabaseCount('report_referrals', 2);
-        $this->assertDatabaseCount('field_validation_assignments', 3);
+        $this->assertDatabaseCount('field_validation_assignments', 4);
         $this->assertDatabaseCount('field_validation_completions', 2);
         $this->assertDatabaseCount('report_review_events', 1);
 
-        $scheduled = Report::query()->where('reference_code', 'DEMO-CG-01')->firstOrFail();
-        $this->assertSame('Demo Farm Alpha', $scheduled->farmer_or_farm_owner_name);
+        $scheduled = Report::query()->where('reference_code', 'BGO-20260920-0810')->firstOrFail();
+        $this->assertSame('Rogelio Manalo', $scheduled->farmer_or_farm_owner_name);
         $this->assertSame(Report::REPORTER_CONCERN_RSSI, $scheduled->reporter_suspected_condition);
         $this->assertSame(
-            '2026-09-24',
+            '2026-09-19',
             $scheduled->fieldValidationAssignment->target_visit_date?->format('Y-m-d'),
         );
 
-        $photoReport = Report::query()->where('reference_code', 'DEMO-CG-02')->firstOrFail();
+        $photoReport = Report::query()->where('reference_code', 'BGO-20260916-0745')->firstOrFail();
         $completion = $photoReport->fieldValidationAssignment?->completion;
         $this->assertNotNull($completion);
         $this->assertSame('improved', $completion->follow_up_outcome);
-        Storage::disk('local')->assertExists('field-validation/demo-cg-02.png');
+        Storage::disk('local')->assertExists('field-validation/2026-09-18-abuanan.png');
 
         $consult = ReportReferral::query()
-            ->where('reference', 'CONSULT-DEMO-03')
+            ->where('reference', 'BGO-CONSULT-20260910')
             ->firstOrFail();
         $this->assertSame(
             User::query()->where('email', 'expert@caneguard.test')->value('id'),
@@ -70,18 +70,18 @@ class AdvisorDemoSeederTest extends TestCase
         $this->assertSame('2026-09-14', $consult->response_date?->format('Y-m-d'));
         $this->assertNotNull($consult->response_finding);
 
-        $advisory = Advisory::query()->where('code', AdvisorDemoSeeder::DEMO_ADVISORY_CODE)->firstOrFail();
+        $advisory = Advisory::query()->where('code', AdvisorDemoSeeder::ADVISORY_CODE)->firstOrFail();
         $this->assertSame(Advisory::STATUS_VALIDATED, $advisory->status);
         $this->assertSame(
             $advisory->getKey(),
-            Report::query()->where('reference_code', 'DEMO-CG-05')->value('advisory_id'),
+            Report::query()->where('reference_code', 'BGO-20260912-0900')->value('advisory_id'),
         );
         $this->assertSame(
             Report::ADVISORY_DELIVERY_DELIVERED,
-            Report::query()->where('reference_code', 'DEMO-CG-05')->value('advisory_delivery_state'),
+            Report::query()->where('reference_code', 'BGO-20260912-0900')->value('advisory_delivery_state'),
         );
 
-        $unavailable = Report::query()->where('reference_code', 'DEMO-CG-07')->firstOrFail();
+        $unavailable = Report::query()->where('reference_code', 'BGO-20260918-0615')->firstOrFail();
         $this->assertSame(Report::LOCATION_SOURCE_UNAVAILABLE, $unavailable->location_source);
         $this->assertSame(
             Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
@@ -111,7 +111,7 @@ class AdvisorDemoSeederTest extends TestCase
         $this->getJson('/api/v1/reports/expert-queue')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.reference_code', 'DEMO-CG-04')
+            ->assertJsonPath('data.0.reference_code', 'BGO-20260919-0820')
             ->assertJsonPath('data.0.expert_consult.status', ReportReferral::STATUS_PENDING)
             ->assertJsonPath('data.0.expert_consult.due_date', '2026-09-26');
     }
@@ -128,10 +128,10 @@ class AdvisorDemoSeederTest extends TestCase
         $this->assertDatabaseCount('field_validation_assignments', 0);
         $this->assertDatabaseCount('field_validation_completions', 0);
         $this->assertDatabaseCount('report_review_events', 0);
-        $this->assertDatabaseHas('reports', ['reference_code' => 'CG-2026-0001']);
-        $this->assertDatabaseMissing('reports', ['reference_code' => 'DEMO-CG-01']);
-        Storage::disk('local')->assertExists('seeded/report-01.png');
-        Storage::disk('local')->assertMissing('seeded/demo-report-01.png');
-        Storage::disk('local')->assertMissing('field-validation/demo-cg-02.png');
+        $this->assertDatabaseHas('reports', ['reference_code' => 'BGO-20260702-0915']);
+        $this->assertDatabaseMissing('reports', ['reference_code' => 'BGO-20260920-0810']);
+        Storage::disk('local')->assertExists('reports/2026-07/bgo-20260702-0915.png');
+        Storage::disk('local')->assertMissing('reports/2026-09/bgo-20260920-0810.png');
+        Storage::disk('local')->assertMissing('field-validation/2026-09-18-abuanan.png');
     }
 }

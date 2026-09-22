@@ -18,19 +18,19 @@ use RuntimeException;
 
 class AdvisorDemoSeeder extends Seeder
 {
-    public const DEMO_ADVISORY_CODE = 'ADV-DEMO-01';
+    public const ADVISORY_CODE = 'ADV-BGO-RUST-01';
 
     /**
      * @var array<int, string>
      */
-    public const DEMO_REPORT_REFERENCES = [
-        'DEMO-CG-01',
-        'DEMO-CG-02',
-        'DEMO-CG-03',
-        'DEMO-CG-04',
-        'DEMO-CG-05',
-        'DEMO-CG-06',
-        'DEMO-CG-07',
+    public const REPORT_REFERENCES = [
+        'BGO-20260920-0810',
+        'BGO-20260916-0745',
+        'BGO-20260910-0640',
+        'BGO-20260919-0820',
+        'BGO-20260912-0900',
+        'BGO-20260915-0730',
+        'BGO-20260918-0615',
     ];
 
     public function run(): void
@@ -52,7 +52,7 @@ class AdvisorDemoSeeder extends Seeder
         );
 
         if (! is_string($image)) {
-            throw new RuntimeException('The demo image asset is invalid.');
+            throw new RuntimeException('The report image asset is invalid.');
         }
 
         $advisory = $this->seedAdvisory($reviewer);
@@ -77,37 +77,42 @@ class AdvisorDemoSeeder extends Seeder
         }
 
         $this->seedScheduledAssignment(
-            $reports['DEMO-CG-01'],
+            $reports['BGO-20260920-0810'],
             $reporter,
             $reviewer,
         );
         $this->seedAssignmentAndPhoto(
-            $reports['DEMO-CG-02'],
+            $reports['BGO-20260916-0745'],
             $reporter,
             $reviewer,
             $image,
             $hasFollowUpOutcome,
         );
         $this->seedAssignmentAndFollowUp(
-            $reports['DEMO-CG-06'],
+            $reports['BGO-20260915-0730'],
             $reporter,
             $reviewer,
             $hasFollowUpOutcome,
         );
+        $this->seedTodayAssignment(
+            $reports['BGO-20260918-0615'],
+            $reporter,
+            $reviewer,
+        );
 
         if ($expert !== null) {
             $this->seedCompletedConsult(
-                $reports['DEMO-CG-03'],
+                $reports['BGO-20260910-0640'],
                 $reviewer,
                 $expert,
             );
             $this->seedPendingConsult(
-                $reports['DEMO-CG-04'],
+                $reports['BGO-20260919-0820'],
                 $reviewer,
                 $expert,
             );
             $this->seedVerificationEvent(
-                $reports['DEMO-CG-03'],
+                $reports['BGO-20260910-0640'],
                 $expert,
             );
         }
@@ -121,7 +126,7 @@ class AdvisorDemoSeeder extends Seeder
     public static function cleanup(): void
     {
         $reportIds = Report::query()
-            ->whereIn('reference_code', self::DEMO_REPORT_REFERENCES)
+            ->whereIn('reference_code', self::REPORT_REFERENCES)
             ->pluck('id');
         $assignmentIds = FieldValidationAssignment::query()
             ->whereIn('report_id', $reportIds)
@@ -154,7 +159,7 @@ class AdvisorDemoSeeder extends Seeder
                 ->whereIn('id', $reportIds)
                 ->delete();
             Advisory::query()
-                ->where('code', self::DEMO_ADVISORY_CODE)
+                ->where('code', self::ADVISORY_CODE)
                 ->delete();
         });
 
@@ -167,17 +172,17 @@ class AdvisorDemoSeeder extends Seeder
     /**
      * @return array<int, string>
      */
-    public static function demoReportReferences(): array
+    public static function reportReferences(): array
     {
-        return self::DEMO_REPORT_REFERENCES;
+        return self::REPORT_REFERENCES;
     }
 
     private function seedAdvisory(User $reviewer): Advisory
     {
         return Advisory::query()->firstOrCreate(
-            ['code' => self::DEMO_ADVISORY_CODE],
+            ['code' => self::ADVISORY_CODE],
             [
-                'uuid' => '80000000-0000-4000-8000-000000000001',
+                'uuid' => '389cb205-7897-42d0-80ec-3468eeab8b3d',
                 'title' => 'Rust sanitation and monitored follow-up',
                 'content' => 'Remove heavily affected leaves, disinfect tools between rows, and schedule a follow-up visit when symptoms continue.',
                 'status' => Advisory::STATUS_VALIDATED,
@@ -203,15 +208,15 @@ class AdvisorDemoSeeder extends Seeder
         $expertCase = $expert !== null;
 
         return [
-            'DEMO-CG-01' => [
-                'uuid' => '81000000-0000-4000-8000-000000000001',
-                'client_uuid' => '82000000-0000-4000-8000-000000000001',
-                'barangay' => 'Mabini',
-                'farmer_or_farm_owner_name' => 'Demo Farm Alpha',
-                'province' => 'Batangas',
-                'municipality' => 'Lipa',
-                'final_latitude' => 14.0667000,
-                'final_longitude' => 120.6319000,
+            'BGO-20260920-0810' => [
+                'uuid' => 'a5651b25-a895-4929-8d36-a9e41681cec9',
+                'client_uuid' => '4227ad87-0f1a-4b77-a7b0-a43d7e6492f0',
+                'barangay' => 'Abuanan',
+                'farmer_or_farm_owner_name' => 'Rogelio Manalo',
+                'province' => 'Negros Occidental',
+                'municipality' => 'Bago',
+                'final_latitude' => 10.5204000,
+                'final_longitude' => 122.8238000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 4.20,
                 'predicted_label' => Report::LABEL_RUST,
@@ -219,8 +224,8 @@ class AdvisorDemoSeeder extends Seeder
                 'checklist_consistency' => 'consistent',
                 'reported_severity' => 'moderate',
                 'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
-                'reporter_observation_text' => 'The grower reports a recurring rust-like stress signal in the eastern rows.',
-                'field_notes' => 'Keep this case visible in the register and schedule the next inspection.',
+                'reporter_observation_text' => 'The grower says the eastern rows have developed fine orange flecks that do not clear after rain.',
+                'field_notes' => 'Keep the visit open for a field check of the affected eastern rows.',
                 'observed_at' => '2026-09-20 08:10:00.000',
                 'submitted_at' => '2026-09-20 08:30:00.000',
                 'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -229,20 +234,20 @@ class AdvisorDemoSeeder extends Seeder
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
                 'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
-                'authority_classified_condition' => Report::AUTHORITY_CONDITION_RSSI,
+                'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
                 'reviewer_id' => $reviewer->getKey(),
                 'reviewed_at' => '2026-09-20 09:00:00.000',
                 'first_reviewed_at' => '2026-09-20 09:00:00.000',
             ],
-            'DEMO-CG-02' => [
-                'uuid' => '81000000-0000-4000-8000-000000000002',
-                'client_uuid' => '82000000-0000-4000-8000-000000000002',
-                'barangay' => 'Mabini',
-                'farmer_or_farm_owner_name' => 'Demo Farm Alpha',
-                'province' => 'Batangas',
-                'municipality' => 'Lipa',
-                'final_latitude' => 14.0669000,
-                'final_longitude' => 120.6321000,
+            'BGO-20260916-0745' => [
+                'uuid' => 'd61de03b-a8a9-4050-be72-d1a0e7220e7a',
+                'client_uuid' => 'd3a04825-985b-4e95-874a-435e63919f34',
+                'barangay' => 'Abuanan',
+                'farmer_or_farm_owner_name' => 'Rogelio Manalo',
+                'province' => 'Negros Occidental',
+                'municipality' => 'Bago',
+                'final_latitude' => 10.5208000,
+                'final_longitude' => 122.8241000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 6.10,
                 'predicted_label' => Report::LABEL_RUST,
@@ -250,8 +255,8 @@ class AdvisorDemoSeeder extends Seeder
                 'checklist_consistency' => 'consistent',
                 'reported_severity' => 'moderate',
                 'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
-                'reporter_observation_text' => 'The follow-up visit checks the same farm after office guidance.',
-                'field_notes' => 'Fresh validation evidence is available for authorized office review.',
+                'reporter_observation_text' => 'The follow-up visit checks the same block after the office sanitation guidance.',
+                'field_notes' => 'Fewer orange flecks were noted along the eastern edge during the return visit.',
                 'observed_at' => '2026-09-16 07:45:00.000',
                 'submitted_at' => '2026-09-16 08:00:00.000',
                 'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -260,16 +265,16 @@ class AdvisorDemoSeeder extends Seeder
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
                 'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
-                'authority_classified_condition' => Report::AUTHORITY_CONDITION_RSSI,
+                'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
                 'reviewer_id' => $reviewer->getKey(),
                 'reviewed_at' => '2026-09-16 09:00:00.000',
                 'first_reviewed_at' => '2026-09-16 09:00:00.000',
             ],
-            'DEMO-CG-03' => [
-                'uuid' => '81000000-0000-4000-8000-000000000003',
-                'client_uuid' => '82000000-0000-4000-8000-000000000003',
-                'barangay' => 'Maligaya',
-                'farmer_or_farm_owner_name' => 'Demo Farm Beta',
+            'BGO-20260910-0640' => [
+                'uuid' => 'fb81c717-d314-4569-a28f-3158e6cfdb94',
+                'client_uuid' => '2778c1eb-7419-4580-9f11-da891dddafe0',
+                'barangay' => 'Dulao',
+                'farmer_or_farm_owner_name' => 'Lorna Villanueva',
                 'province' => 'Negros Occidental',
                 'municipality' => 'Bago',
                 'final_latitude' => 10.5334000,
@@ -281,8 +286,8 @@ class AdvisorDemoSeeder extends Seeder
                 'checklist_consistency' => 'inconsistent',
                 'reported_severity' => 'high',
                 'reporter_suspected_condition' => Report::LABEL_SMUT,
-                'reporter_observation_text' => 'Whip-like growths were reported in a small cluster.',
-                'field_notes' => 'Completed consult feedback demonstrates expert-verification reporting.',
+                'reporter_observation_text' => 'Several stalks carry dark whip-like growths near the top leaves.',
+                'field_notes' => 'The office requested an attributed review after comparing the image with the field checklist.',
                 'observed_at' => '2026-09-10 06:40:00.000',
                 'submitted_at' => '2026-09-10 07:00:00.000',
                 'review_status' => $expertCase
@@ -313,24 +318,24 @@ class AdvisorDemoSeeder extends Seeder
                     : Report::ADVISORY_DELIVERY_NOT_SELECTED,
                 'advisory_delivered_at' => $expertCase ? '2026-09-14 10:01:00.000' : null,
             ],
-            'DEMO-CG-04' => [
-                'uuid' => '81000000-0000-4000-8000-000000000004',
-                'client_uuid' => '82000000-0000-4000-8000-000000000004',
-                'barangay' => 'Poblacion',
-                'farmer_or_farm_owner_name' => 'Demo Farm Gamma',
-                'province' => 'Tarlac',
-                'municipality' => 'Concepcion',
-                'final_latitude' => 15.3257000,
-                'final_longitude' => 120.6570000,
+            'BGO-20260919-0820' => [
+                'uuid' => '8f0e9123-4df7-4574-9074-962b1929b878',
+                'client_uuid' => 'd559d384-5677-49f0-a710-fa82a2cc34ea',
+                'barangay' => 'Mailum',
+                'farmer_or_farm_owner_name' => 'Danilo Panganiban',
+                'province' => 'Negros Occidental',
+                'municipality' => 'Bago',
+                'final_latitude' => 10.5857000,
+                'final_longitude' => 122.8432000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 9.50,
-                'predicted_label' => Report::LABEL_MOSAIC,
+                'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.7300000,
                 'checklist_consistency' => 'inconclusive',
                 'reported_severity' => 'moderate',
-                'reporter_suspected_condition' => Report::LABEL_MOSAIC,
-                'reporter_observation_text' => 'The office requests a scoped expert review of the mixed symptoms.',
-                'field_notes' => 'Assigned expert consult remains visible only in the expert workspace.',
+                'reporter_suspected_condition' => 'Red stripe',
+                'reporter_observation_text' => 'Narrow red bands run along the midrib on several leaves, with no clear orange pustules.',
+                'field_notes' => 'The submitted pattern may be red stripe rather than leaf rust; keep the expert review open.',
                 'observed_at' => '2026-09-19 08:20:00.000',
                 'submitted_at' => '2026-09-19 08:45:00.000',
                 'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
@@ -344,23 +349,23 @@ class AdvisorDemoSeeder extends Seeder
                     ? Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION
                     : null,
             ],
-            'DEMO-CG-05' => [
-                'uuid' => '81000000-0000-4000-8000-000000000005',
-                'client_uuid' => '82000000-0000-4000-8000-000000000005',
-                'barangay' => 'San Isidro',
-                'farmer_or_farm_owner_name' => 'Demo Farm Delta',
-                'province' => 'Batangas',
-                'municipality' => 'Nasugbu',
-                'final_latitude' => 14.0660000,
-                'final_longitude' => 120.6325000,
+            'BGO-20260912-0900' => [
+                'uuid' => 'ff502f07-b595-42ac-81f5-68c289b7b931',
+                'client_uuid' => '59842f7b-cfed-4604-963f-4de02dd31e44',
+                'barangay' => 'Ma-ao',
+                'farmer_or_farm_owner_name' => 'Corazon Alonzo',
+                'province' => 'Negros Occidental',
+                'municipality' => 'Bago',
+                'final_latitude' => 10.6152000,
+                'final_longitude' => 122.8854000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 5.00,
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.8100000,
                 'checklist_consistency' => 'consistent',
                 'reported_severity' => 'low',
-                'reporter_observation_text' => 'Office-approved guidance has been delivered to the case.',
-                'field_notes' => 'Use this row to demonstrate validated advisory provenance and delivery state.',
+                'reporter_observation_text' => 'Orange pustules are scattered across older leaves along the southern row.',
+                'field_notes' => 'The office sent sanitation guidance and will compare the next visit with this record.',
                 'observed_at' => '2026-09-12 09:00:00.000',
                 'submitted_at' => '2026-09-12 09:20:00.000',
                 'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
@@ -379,15 +384,15 @@ class AdvisorDemoSeeder extends Seeder
                 'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
                 'advisory_delivered_at' => '2026-09-12 11:01:00.000',
             ],
-            'DEMO-CG-06' => [
-                'uuid' => '81000000-0000-4000-8000-000000000006',
-                'client_uuid' => '82000000-0000-4000-8000-000000000006',
-                'barangay' => 'San Roque',
-                'farmer_or_farm_owner_name' => 'Demo Farm Epsilon',
+            'BGO-20260915-0730' => [
+                'uuid' => 'cdeb885f-1f01-4a38-b79f-9113723c4363',
+                'client_uuid' => '9a8263ee-c325-4227-8f84-1fe269252c16',
+                'barangay' => 'Poblacion',
+                'farmer_or_farm_owner_name' => 'Teodoro Gamboa',
                 'province' => 'Negros Occidental',
-                'municipality' => 'Silay',
-                'final_latitude' => 10.8027000,
-                'final_longitude' => 122.9709000,
+                'municipality' => 'Bago',
+                'final_latitude' => 10.5418000,
+                'final_longitude' => 122.8392000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 7.20,
                 'predicted_label' => Report::LABEL_SMUT,
@@ -395,8 +400,8 @@ class AdvisorDemoSeeder extends Seeder
                 'checklist_consistency' => 'consistent',
                 'reported_severity' => 'high',
                 'reporter_suspected_condition' => Report::LABEL_SMUT,
-                'reporter_observation_text' => 'Follow-up confirms the condition worsened after the first visit.',
-                'field_notes' => 'Completed follow-up outcome is available to Needs assessment.',
+                'reporter_observation_text' => 'The marked patch has more thin stalks and dark whips than at the first visit.',
+                'field_notes' => 'The affected rows were flagged for another office check after the condition worsened.',
                 'observed_at' => '2026-09-15 07:30:00.000',
                 'submitted_at' => '2026-09-15 08:00:00.000',
                 'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -410,32 +415,31 @@ class AdvisorDemoSeeder extends Seeder
                 'reviewed_at' => '2026-09-17 09:00:00.000',
                 'first_reviewed_at' => '2026-09-15 09:00:00.000',
             ],
-            'DEMO-CG-07' => [
-                'uuid' => '81000000-0000-4000-8000-000000000007',
-                'client_uuid' => '82000000-0000-4000-8000-000000000007',
-                'scan_record_client_uuid' => '83000000-0000-4000-8000-000000000007',
-                'barangay' => 'San Roque',
-                'farmer_or_farm_owner_name' => 'Demo Farm Zeta',
-                'province' => 'Tarlac',
-                'municipality' => 'Bamban',
+            'BGO-20260918-0615' => [
+                'uuid' => '1a123908-927b-43e7-9e5a-a6970c488ffd',
+                'client_uuid' => '54ef47b9-e620-482c-bfc4-cd63721d7abf',
+                'scan_record_client_uuid' => 'efcb6026-044d-4c4c-b330-cbdc111d7aef',
+                'barangay' => 'Lag-asan',
+                'farmer_or_farm_owner_name' => 'Nena Salcedo',
+                'province' => 'Negros Occidental',
+                'municipality' => 'Bago',
                 'final_latitude' => null,
                 'final_longitude' => null,
                 'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
                 'location_unavailable_reason' => Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
                 'gps_accuracy' => null,
-                'predicted_label' => Report::LABEL_SMUT,
-                'confidence' => 0.6800000,
-                'checklist_consistency' => 'inconclusive',
-                'reported_severity' => 'moderate',
-                'reporter_suspected_condition' => Report::LABEL_SMUT,
-                'reporter_observation_text' => 'The field report was submitted offline without a map fix.',
-                'field_notes' => 'Model V1 report with explicit unavailable-location provenance.',
+                'predicted_label' => Report::LABEL_HEALTHY,
+                'confidence' => 0.9400000,
+                'checklist_consistency' => 'consistent',
+                'reported_severity' => 'low',
+                'reporter_observation_text' => 'Leaves were evenly green at the edge of the block; no obvious lesion was recorded before the phone lost its map fix.',
+                'field_notes' => 'Submitted offline with a clear crop view but without a recoverable location.',
                 'observed_at' => '2026-09-18 06:15:00.000',
                 'submitted_at' => '2026-09-18 06:20:00.000',
                 'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
-                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
                 'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => null,
             ],
@@ -451,13 +455,13 @@ class AdvisorDemoSeeder extends Seeder
         User $reporter,
         string $image,
     ): Report {
-        $number = (int) substr($referenceCode, -2);
+        $number = array_search($referenceCode, self::REPORT_REFERENCES, true) + 1;
         $report = Report::query()->firstOrCreate(
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
                 'reporter_id' => $reporter->getKey(),
-                'image_path' => sprintf('seeded/demo-report-%02d.png', $number),
+                'image_path' => sprintf('reports/2026-09/%s.png', strtolower($referenceCode)),
                 'image_mime_type' => 'image/png',
                 'image_size_bytes' => strlen($image),
                 'image_source_type' => $number % 2 === 0 ? 'gallery' : 'camera',
@@ -468,7 +472,7 @@ class AdvisorDemoSeeder extends Seeder
                 'inference_ms' => 96 + ($number * 2),
                 'total_ms' => 124 + ($number * 3),
                 'captured_at' => CarbonImmutable::parse($attributes['submitted_at'], 'UTC')->subMinutes(20),
-                'review_notes' => $attributes['review_notes'] ?? 'Seeded feature demonstration.',
+                'review_notes' => $attributes['review_notes'] ?? 'Reviewed against the submitted field evidence.',
                 'lock_version' => 0,
             ],
         );
@@ -476,7 +480,7 @@ class AdvisorDemoSeeder extends Seeder
         $disk = Storage::disk('local');
         if (($report->wasRecentlyCreated || ! $disk->exists($report->image_path))
             && ! $disk->put($report->image_path, $image)) {
-            throw new RuntimeException("Unable to seed demo report image [{$referenceCode}].");
+            throw new RuntimeException("Unable to store report image [{$referenceCode}].");
         }
 
         $labels = Report::v2Labels();
@@ -511,16 +515,6 @@ class AdvisorDemoSeeder extends Seeder
             ]);
         }
 
-        if (! DB::table('report_quality_warnings')
-            ->where('report_id', $report->getKey())
-            ->where('warning_key', 'demo-seeded-evidence')
-            ->exists()) {
-            DB::table('report_quality_warnings')->insert([
-                'report_id' => $report->getKey(),
-                'warning_key' => 'demo-seeded-evidence',
-            ]);
-        }
-
         return $report;
     }
 
@@ -532,11 +526,28 @@ class AdvisorDemoSeeder extends Seeder
         FieldValidationAssignment::query()->firstOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '84000000-0000-4000-8000-000000000001',
+                'uuid' => '885b0373-0c86-41d8-a838-0921c71f3a35',
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
-                'target_visit_date' => '2026-09-24',
-                'activated_at' => CarbonImmutable::parse('2026-09-20 09:00:00', 'UTC'),
+                'target_visit_date' => '2026-09-19',
+                'activated_at' => CarbonImmutable::parse('2026-09-21 09:00:00', 'UTC'),
+            ],
+        );
+    }
+
+    private function seedTodayAssignment(
+        Report $report,
+        User $reporter,
+        User $reviewer,
+    ): void {
+        FieldValidationAssignment::query()->firstOrCreate(
+            ['report_id' => $report->getKey()],
+            [
+                'uuid' => 'efcb6026-044d-4c4c-b330-cbdc111d7aef',
+                'assignee_id' => $reporter->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => '2026-09-22',
+                'activated_at' => CarbonImmutable::parse('2026-09-21 09:15:00', 'UTC'),
             ],
         );
     }
@@ -551,26 +562,26 @@ class AdvisorDemoSeeder extends Seeder
         $assignment = FieldValidationAssignment::query()->firstOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '84000000-0000-4000-8000-000000000002',
+                'uuid' => '6feab924-3ecd-49f2-96c2-5fb878ef48f6',
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
-                'target_visit_date' => '2026-09-18',
+                'target_visit_date' => '2026-09-24',
                 'activated_at' => CarbonImmutable::parse('2026-09-16 08:00:00', 'UTC'),
             ],
         );
         $completionAttributes = [
-            'uuid' => '85000000-0000-4000-8000-000000000002',
-            'client_uuid' => '86000000-0000-4000-8000-000000000002',
-            'field_observation' => 'The monitored rows show fewer rust symptoms after sanitation guidance.',
-            'field_finding' => 'The farm is suitable for continued office follow-up.',
-            'action_taken' => 'Disinfected tools and marked the row for another inspection.',
+            'uuid' => '0d81b69b-4db2-4352-81e1-d943d34d9ee8',
+            'client_uuid' => '2936e0f6-299d-47f3-8da6-53cb50283263',
+            'field_observation' => 'The monitored rows show fewer orange flecks after sanitation guidance.',
+            'field_finding' => 'The block is recovering and remains suitable for routine office follow-up.',
+            'action_taken' => 'Disinfected tools and marked the eastern row for another inspection.',
             'visited_at' => CarbonImmutable::parse('2026-09-18 07:30:00', 'UTC'),
             'gps_outcome' => 'resolved',
             'gps_attempted_at' => CarbonImmutable::parse('2026-09-18 07:20:00', 'UTC'),
-            'gps_latitude' => 14.0669000,
-            'gps_longitude' => 120.6321000,
+            'gps_latitude' => 10.5208000,
+            'gps_longitude' => 122.8241000,
             'gps_accuracy' => 6.10,
-            'fresh_photo_path' => 'field-validation/demo-cg-02.png',
+            'fresh_photo_path' => 'field-validation/2026-09-18-abuanan.png',
             'fresh_photo_mime_type' => 'image/png',
             'fresh_photo_size_bytes' => strlen($image),
         ];
@@ -594,24 +605,24 @@ class AdvisorDemoSeeder extends Seeder
         $assignment = FieldValidationAssignment::query()->firstOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '84000000-0000-4000-8000-000000000006',
+                'uuid' => '7649e5e2-cdec-45aa-9f1a-8500272527b8',
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
-                'target_visit_date' => '2026-09-16',
-                'activated_at' => CarbonImmutable::parse('2026-09-15 08:00:00', 'UTC'),
+                'target_visit_date' => '2026-09-22',
+                'activated_at' => CarbonImmutable::parse('2026-09-21 08:00:00', 'UTC'),
             ],
         );
         $completionAttributes = [
-            'uuid' => '85000000-0000-4000-8000-000000000006',
-            'client_uuid' => '86000000-0000-4000-8000-000000000006',
-            'field_observation' => 'The affected patch expanded along the southern edge of the farm.',
-            'field_finding' => 'The condition worsened and needs a renewed office response.',
+            'uuid' => '88797c37-3af2-4adb-81ca-fa1dc78d2dcd',
+            'client_uuid' => '9a99f389-b8d0-49d6-968e-ad9c183c3f8c',
+            'field_observation' => 'The marked patch has more thin stalks and dark whips than at the first visit.',
+            'field_finding' => 'The smut symptoms worsened and need a renewed office response.',
             'action_taken' => 'Flagged the affected rows and requested an additional inspection.',
             'visited_at' => CarbonImmutable::parse('2026-09-16 07:15:00', 'UTC'),
             'gps_outcome' => 'low_accuracy',
             'gps_attempted_at' => CarbonImmutable::parse('2026-09-16 07:05:00', 'UTC'),
-            'gps_latitude' => 10.8027000,
-            'gps_longitude' => 122.9709000,
+            'gps_latitude' => 10.5418000,
+            'gps_longitude' => 122.8392000,
             'gps_accuracy' => 38.00,
         ];
         if ($hasFollowUpOutcome) {
@@ -630,7 +641,7 @@ class AdvisorDemoSeeder extends Seeder
     ): void {
         $path = $completion->fresh_photo_path;
         if ($path === null) {
-            $path = 'field-validation/demo-cg-02.png';
+            $path = 'field-validation/2026-09-18-abuanan.png';
             $completion->forceFill([
                 'fresh_photo_path' => $path,
                 'fresh_photo_mime_type' => 'image/png',
@@ -652,7 +663,7 @@ class AdvisorDemoSeeder extends Seeder
         ReportReferral::query()->firstOrCreate(
             [
                 'report_id' => $report->getKey(),
-                'reference' => 'CONSULT-DEMO-03',
+                'reference' => 'BGO-CONSULT-20260910',
             ],
             [
                 'referred_by_id' => $reviewer->getKey(),
@@ -696,7 +707,7 @@ class AdvisorDemoSeeder extends Seeder
         ReportReferral::query()->firstOrCreate(
             [
                 'report_id' => $report->getKey(),
-                'reference' => 'CONSULT-DEMO-04',
+                'reference' => 'BGO-CONSULT-20260919',
             ],
             [
                 'referred_by_id' => $reviewer->getKey(),

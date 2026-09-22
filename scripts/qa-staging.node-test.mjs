@@ -199,5 +199,5 @@ test("reports actionable dependency setup instructions before PHP starts", () =>
 
 test("readiness uses the existing deterministic seeded report contract", () => {
   assert.equal(EXPECTED_SEEDED_REPORT_COUNT, 12);
-  assert.equal(EXPECTED_SEEDED_REFERENCE_CODE, "CG-2026-0001");
+  assert.equal(EXPECTED_SEEDED_REFERENCE_CODE, "BGO-20260702-0915");
 });

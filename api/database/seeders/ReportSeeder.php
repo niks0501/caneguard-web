@@ -27,31 +27,79 @@ class ReportSeeder extends Seeder
         );
 
         if (! is_string($image)) {
-            throw new RuntimeException('The seeded report image is invalid.');
+            throw new RuntimeException('The report image asset is invalid.');
         }
 
         $statuses = Report::reviewStatuses();
-        // Seed the current Model V1 evidence shape so demo monitoring exercises
-        // every prediction class, including Smut, without changing the legacy
-        // v1 upload contract.
+        // Seed the current Model V1 evidence shape so monitoring exercises every
+        // prediction class, including Smut, without changing the legacy upload
+        // contract.
         $labels = Report::v2Labels();
         $barangays = [
-            'Mabini',
-            'Maligaya',
+            'Abuanan',
+            'Balingasag',
+            'Dulao',
+            'Lag-asan',
+            'Mailum',
+            'Ma-ao',
+            'Malingin',
+            'Napoles',
             'Poblacion',
-            'San Isidro',
-            'San Roque',
+            'Sagasa',
+            'Taloc',
+            'Tinongan',
         ];
-        // These explicit values come from the shared mobile field-report fixtures.
+        $farmOwners = [
+            'Nicanor Paredes',
+            'Sonia Villareal',
+            'Ruben Magbanua',
+            'Celia Magsino',
+            'Orlando Yulo',
+            'Leticia Araneta',
+            'Benito Salazar',
+            'Rosario Madamba',
+            'Edgardo Sarmiento',
+            'Milagros Natividad',
+            'Hernando Ledesma',
+            'Alma Quijano',
+        ];
+        $reportUuids = [
+            '9d1e35c6-574e-4110-9dc2-400dab8579c0',
+            'c856b8a8-2311-4262-8827-ebe142ff27be',
+            '64512728-8ff4-4665-9bb7-8ae342fea361',
+            '057f1bef-96cd-4f41-8393-3d24915c4f74',
+            'c6ffa35a-340b-4cb7-85a8-74655c48d537',
+            'c281612c-8b18-49c2-87ce-c8e74b2ca8b5',
+            'ac3b33e5-f7ff-459d-b618-b0a8d1d892d1',
+            '059a740b-7edc-4bfb-a426-71da69fdc6d5',
+            '0549b608-b853-4b03-a4e9-08b0a8db8cea',
+            '1af08c1e-4d44-4fa3-8902-099342ef6c3e',
+            '076c799a-a378-4a2d-95aa-b3d6774242f0',
+            '65be392b-0177-4354-85ea-839018229520',
+        ];
+        $clientUuids = [
+            'c93939fc-601e-42b3-8d30-c786b2402f78',
+            '4d160c38-ccdb-41ce-ae2c-9a48b3aed12b',
+            'ac463d95-9cac-4fa9-b149-6b280c45ede8',
+            'c4b55daf-af8f-455e-a3e2-79afa4ff328b',
+            '10369f55-2a9f-4b89-b793-e9f11540e85d',
+            'c476c8b6-857f-4d8b-aeed-f4f4b7cdaf0d',
+            '115b2671-5589-4e22-8448-688eef1ec002',
+            '41add557-c6f7-4fe2-befb-db814e5619b4',
+            'd6b32724-4d34-45bb-a20d-778e946c7965',
+            'd9b78333-235a-4364-ab65-5ca6aa8636cf',
+            '59b73792-4dff-4293-866d-0f6ca8442cc0',
+            '250d7001-6d71-44f5-af64-057e4529515b',
+        ];
         // Null entries preserve reports without a valid location.
         $locations = [
             1 => null,
-            2 => ['latitude' => 14.0667, 'longitude' => 120.6319, 'source' => 'gps', 'accuracy' => 4.2],
+            2 => ['latitude' => 10.5234, 'longitude' => 122.8281, 'source' => 'gps', 'accuracy' => 4.2],
             3 => null,
             4 => null,
             5 => null,
             6 => null,
-            7 => ['latitude' => 14.0710, 'longitude' => 120.6350, 'source' => 'manual_map', 'accuracy' => null],
+            7 => ['latitude' => 10.5710, 'longitude' => 122.8500, 'source' => 'manual_map', 'accuracy' => null],
             8 => null,
             9 => null,
             10 => null,
@@ -72,21 +120,22 @@ class ReportSeeder extends Seeder
                 0,
                 'UTC',
             );
-            $path = sprintf('seeded/report-%02d.png', $number);
-            $referenceCode = sprintf('CG-2026-%04d', $number);
-            $clientUuid = sprintf(
-                '30000000-0000-4000-8000-%012d',
-                $number,
-            );
+            $referenceCode = sprintf('BGO-%s', $submittedAt->format('Ymd-Hi'));
+            $path = sprintf('reports/2026-07/%s.png', strtolower($referenceCode));
+            $clientUuid = $clientUuids[$number - 1];
+            $reportUuid = $reportUuids[$number - 1];
+            $farmerOrFarmOwnerName = $farmOwners[$number - 1];
             $confidence = round(0.62 + ($number * 0.025), 7);
 
             DB::transaction(function () use (
                 $referenceCode,
                 $clientUuid,
+                $reportUuid,
                 $reporter,
                 $reviewer,
                 $location,
                 $barangays,
+                $farmerOrFarmOwnerName,
                 $number,
                 $status,
                 $path,
@@ -98,13 +147,13 @@ class ReportSeeder extends Seeder
                 $report = Report::query()->firstOrCreate(
                     ['reference_code' => $referenceCode],
                     [
-                        'uuid' => sprintf(
-                            '20000000-0000-4000-8000-%012d',
-                            $number,
-                        ),
+                        'uuid' => $reportUuid,
                         'reporter_id' => $reporter->getKey(),
                         'client_uuid' => $clientUuid,
                         'barangay' => $barangays[($number - 1) % count($barangays)],
+                        'farmer_or_farm_owner_name' => $farmerOrFarmOwnerName,
+                        'province' => 'Negros Occidental',
+                        'municipality' => 'Bago',
                         'final_latitude' => $location['latitude'] ?? null,
                         'final_longitude' => $location['longitude'] ?? null,
                         'location_source' => $location['source'] ?? null,
@@ -131,7 +180,7 @@ class ReportSeeder extends Seeder
                         ...Report::lifecycleForReviewStatus($status),
                         'review_notes' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
                             ? null
-                            : 'Seeded office review for demonstration.',
+                            : 'Reviewed by the municipal agriculture office.',
                         'reviewer_id' => $status === Report::STATUS_SUBMITTED_UNVERIFIED
                             ? null
                             : $reviewer->getKey(),
@@ -148,7 +197,7 @@ class ReportSeeder extends Seeder
                 $disk = Storage::disk('local');
                 if (($report->wasRecentlyCreated || ! $disk->exists($report->image_path))
                     && ! $disk->put($report->image_path, $image)) {
-                    throw new RuntimeException("Unable to seed report image [{$path}].");
+                    throw new RuntimeException("Unable to store report image [{$path}].");
                 }
 
                 $reportLabels = $report->model_version === 'v1.0-mobilenetv2'
