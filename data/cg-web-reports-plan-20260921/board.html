@@ -592,6 +592,18 @@ pre.code .c { color: #8fb59b; }
   .batch .row2, .batch .item-head { display: none; }
 }
 
+.plain-h { margin: var(--space-5) 0 var(--space-2); font-family: var(--font-heading); font-size: 16px; font-weight: 600; color: var(--color-primary-dark); }
+.runs { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, minmax(0,1fr)); }
+@media (max-width: 700px) { .runs { grid-template-columns: minmax(0,1fr); } }
+.runs .run {
+  border: 1px solid var(--color-border); border-top: 4px solid var(--color-primary);
+  border-radius: var(--radius-md); background: var(--color-surface-muted); padding: var(--space-4);
+}
+.runs .run + .run { border-top-color: var(--brand-gold); }
+.runs .run-who { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--color-primary-light); }
+.runs .run-what { margin-top: 4px; font-size: 16px; color: var(--color-text); }
+.runs .run-role { margin-top: 6px; font-size: 13.5px; color: var(--color-secondary-text); }
+
 .rollout-receipt { list-style: none; margin: 0; padding: 0; }
 .rollout-receipt > li {
   display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: var(--space-3);
@@ -1821,6 +1833,71 @@ npm install puppeteer
           </div>
         </div>
       </div>
+
+      <h4 class="plain-h">Where each thing actually runs</h4>
+      <p class="qwhy" style="margin-bottom:12px">
+        This is the part that was not landing, so here it is concretely. Two separate computers-in-one are involved,
+        and only one of them renders PDFs.
+      </p>
+      <div class="runs">
+        <div class="run">
+          <div class="run-who">Your Windows side</div>
+          <div class="run-what"><b>Brave browser</b></div>
+          <div class="run-role">You look at the app here: <code>localhost</code> in Brave. This half only ever
+            <i>displays</i> pages.</div>
+        </div>
+        <div class="run">
+          <div class="run-who">Your Linux side &mdash; the PHP API</div>
+          <div class="run-what"><b>Laravel + the PDF renderer</b></div>
+          <div class="run-role">When you click <b>Download PDF</b>, <i>this</i> half has to open a headless browser
+            by itself and print the document. This is the only place a Chromium is needed.</div>
+        </div>
+      </div>
+      <p class="qwhy" style="margin-top:12px">
+        They cannot share a browser. The Linux API cannot borrow Brave running on Windows, the same way a printer
+        cannot be driven by a laptop that is not plugged into it.
+      </p>
+
+      <h4 class="plain-h">So does it work on my localhost, in Brave?</h4>
+      <div class="tbl-scroll" style="margin-top:10px">
+        <table class="cmp" style="min-width:640px">
+          <colgroup><col style="width:56%"><col style="width:22%"><col style="width:22%"></colgroup>
+          <thead>
+            <tr><th scope="col">What you do</th><th scope="col">Nothing installed</th><th scope="col">Brave installed in Linux</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Open the app at localhost in Windows Brave</td>
+              <td><span class="badge win">Works</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+            <tr>
+              <td>See the report preview inside the page</td>
+              <td><span class="badge win">Works</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+            <tr>
+              <td>Press <b>Print</b> &rarr; Save as PDF, printed by your own Brave</td>
+              <td><span class="badge win">Works</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+            <tr>
+              <td>Press <b>Download PDF</b> and get a server-produced file back</td>
+              <td><span class="badge no">Fails</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tagline-note">
+        The only thing the dependency buys is the last row: a file the server makes on its own, in one click, with no
+        print dialog. Everything else &mdash; the preview and a perfect A4 print &mdash; already works with nothing installed.
+      </p>
+      <p class="notice" style="margin-top:14px">
+        <b>Installing it does not touch your Windows machine.</b> It is a headless, server-only binary that lives
+        inside the Linux environment next to PHP. It never opens a window, is never visible, is not the Brave you
+        browse with, and changes nothing about your desktop.
+      </p>
 
       <div class="opts" style="margin-top:18px">
         <label class="opt">
