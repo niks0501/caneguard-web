@@ -56,6 +56,12 @@ test('keeps optional previous-visit context in the current producer gate', () =>
   const definition = artifact();
   assert.equal(producerArtifact(definition), definition);
   assert.ok('previous_visit' in producerArtifact(definition).fields);
+  assert.equal(definition.fields.previous_visit.required, false);
+  assert.equal(definition.fields.previous_visit.nullable, true);
+  assert.deepEqual(
+    definition.fields.previous_visit.required_keys,
+    ['reference_code', 'visited_at', 'reporter_suspected_condition', 'authority_classified_condition', 'action_taken', 'field_observation', 'field_finding', 'follow_up_outcome', 'fresh_photo_available'],
+  );
 });
 
 test('rejects a changed owner-scoped endpoint', () => {

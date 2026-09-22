@@ -104594,7 +104594,7 @@
       "file_type": "code",
       "norm_label": ".ensurecompletionphoto()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L639"
+      "source_location": "L638"
     },
     {
       "id": "api_database_seeders_advisordemoseeder_advisordemoseeder_reportdefinitions",
@@ -104654,7 +104654,7 @@
       "file_type": "code",
       "norm_label": ".seedassignmentandfollowup()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L600"
+      "source_location": "L599"
     },
     {
       "id": "api_database_seeders_advisordemoseeder_advisordemoseeder_seedassignmentandphoto",
@@ -104666,7 +104666,7 @@
       "file_type": "code",
       "norm_label": ".seedassignmentandphoto()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L556"
+      "source_location": "L555"
     },
     {
       "id": "api_database_seeders_advisordemoseeder_advisordemoseeder_seedcompletedconsult",
@@ -104678,7 +104678,7 @@
       "file_type": "code",
       "norm_label": ".seedcompletedconsult()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L659"
+      "source_location": "L658"
     },
     {
       "id": "api_database_seeders_advisordemoseeder_advisordemoseeder_seedpendingconsult",
@@ -104690,7 +104690,7 @@
       "file_type": "code",
       "norm_label": ".seedpendingconsult()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L703"
+      "source_location": "L702"
     },
     {
       "id": "api_database_seeders_advisordemoseeder_advisordemoseeder_seedreport",
@@ -104714,7 +104714,7 @@
       "file_type": "code",
       "norm_label": ".seedscheduledassignment()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L522"
+      "source_location": "L521"
     },
     {
       "id": "api_database_seeders_advisordemoseeder_advisordemoseeder_seedtodayassignment",
@@ -104726,7 +104726,7 @@
       "file_type": "code",
       "norm_label": ".seedtodayassignment()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L539"
+      "source_location": "L538"
     },
     {
       "id": "api_database_seeders_advisordemoseeder_advisordemoseeder_seedverificationevent",
@@ -104738,7 +104738,7 @@
       "file_type": "code",
       "norm_label": ".seedverificationevent()",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L747"
+      "source_location": "L746"
     },
     {
       "id": "api_tests_feature_fieldvalidationassignmenttest_fieldvalidationassignmenttest_test_assignment_cannot_be_combined_with_closing_the_case",
@@ -255108,7 +255108,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L606",
+      "source_location": "L605",
       "weight": 1.0
     },
     {
@@ -255120,7 +255120,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L633",
+      "source_location": "L632",
       "weight": 1.0
     },
     {
@@ -255132,7 +255132,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L563",
+      "source_location": "L562",
       "weight": 1.0
     },
     {
@@ -255144,7 +255144,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L593",
+      "source_location": "L592",
       "weight": 1.0
     },
     {
@@ -255156,7 +255156,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L597",
+      "source_location": "L596",
       "weight": 1.0
     },
     {
@@ -255168,7 +255168,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L664",
+      "source_location": "L663",
       "weight": 1.0
     },
     {
@@ -255180,7 +255180,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L708",
+      "source_location": "L707",
       "weight": 1.0
     },
     {
@@ -255192,7 +255192,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L527",
+      "source_location": "L526",
       "weight": 1.0
     },
     {
@@ -255204,7 +255204,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L544",
+      "source_location": "L543",
       "weight": 1.0
     },
     {
@@ -255216,7 +255216,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L754",
+      "source_location": "L753",
       "weight": 1.0
     },
     {
@@ -437646,7 +437646,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L639",
+      "source_location": "L638",
       "weight": 1.0
     },
     {
@@ -437694,7 +437694,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L600",
+      "source_location": "L599",
       "weight": 1.0
     },
     {
@@ -437706,7 +437706,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L600",
+      "source_location": "L599",
       "weight": 1.0
     },
     {
@@ -437718,7 +437718,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L556",
+      "source_location": "L555",
       "weight": 1.0
     },
     {
@@ -437730,7 +437730,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L556",
+      "source_location": "L555",
       "weight": 1.0
     },
     {
@@ -437742,7 +437742,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L659",
+      "source_location": "L658",
       "weight": 1.0
     },
     {
@@ -437754,7 +437754,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L703",
+      "source_location": "L702",
       "weight": 1.0
     },
     {
@@ -437778,7 +437778,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L522",
+      "source_location": "L521",
       "weight": 1.0
     },
     {
@@ -437790,7 +437790,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L522",
+      "source_location": "L521",
       "weight": 1.0
     },
     {
@@ -437802,7 +437802,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L539",
+      "source_location": "L538",
       "weight": 1.0
     },
     {
@@ -437814,7 +437814,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L539",
+      "source_location": "L538",
       "weight": 1.0
     },
     {
@@ -437826,7 +437826,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L747",
+      "source_location": "L746",
       "weight": 1.0
     },
     {
@@ -438546,7 +438546,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L691",
+      "source_location": "L690",
       "weight": 1.0
     },
     {
@@ -438558,7 +438558,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L735",
+      "source_location": "L734",
       "weight": 1.0
     },
     {
@@ -438570,7 +438570,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L752",
+      "source_location": "L751",
       "weight": 1.0
     },
     {
@@ -608004,7 +608004,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L522",
+      "source_location": "L521",
       "weight": 1.0
     },
     {
@@ -608015,7 +608015,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L539",
+      "source_location": "L538",
       "weight": 1.0
     },
     {
@@ -608026,7 +608026,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L556",
+      "source_location": "L555",
       "weight": 1.0
     },
     {
@@ -608037,7 +608037,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L600",
+      "source_location": "L599",
       "weight": 1.0
     },
     {
@@ -608048,7 +608048,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L639",
+      "source_location": "L638",
       "weight": 1.0
     },
     {
@@ -608059,7 +608059,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L659",
+      "source_location": "L658",
       "weight": 1.0
     },
     {
@@ -608070,7 +608070,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L703",
+      "source_location": "L702",
       "weight": 1.0
     },
     {
@@ -608081,7 +608081,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "api/database/seeders/AdvisorDemoSeeder.php",
-      "source_location": "L747",
+      "source_location": "L746",
       "weight": 1.0
     },
     {

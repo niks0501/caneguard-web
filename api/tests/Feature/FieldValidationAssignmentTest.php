@@ -785,6 +785,94 @@ class FieldValidationAssignmentTest extends TestCase
             ->assertJsonPath('data.0.previous_visit', null);
     }
 
+    public function test_mobile_assignment_feed_returns_a_null_previous_visit_outcome_when_the_prior_visit_has_no_choice(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $previousReport = Report::factory()->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $previousAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $previousReport->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        FieldValidationCompletion::factory()->create([
+            'assignment_id' => $previousAssignment->getKey(),
+            'field_finding' => 'Previous finding',
+            'action_taken' => 'Previous action',
+            'follow_up_outcome' => null,
+            'visited_at' => '2026-09-10T08:30:00.000Z',
+        ]);
+        $currentReport = Report::factory()->create([
+            'barangay' => 'mabini',
+            'farmer_or_farm_owner_name' => 'farm alpha',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $currentReport->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($assignee, ['assignment:read']);
+        $current = collect($this->getJson('/api/v1/mobile/assignments')->assertOk()->json('data'))
+            ->firstWhere('report_uuid', $currentReport->uuid);
+
+        $this->assertNotNull($current);
+        $this->assertArrayHasKey('previous_visit', $current);
+        $this->assertNull($current['previous_visit']['follow_up_outcome']);
+    }
+
+    public function test_mobile_assignment_feed_keeps_previous_visit_outcome_owner_scoped_with_the_assignment(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $owner = User::factory()->fieldReporter()->create();
+        $other = User::factory()->fieldReporter()->create();
+        $previousReport = Report::factory()->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $previousAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $previousReport->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        FieldValidationCompletion::factory()->create([
+            'assignment_id' => $previousAssignment->getKey(),
+            'follow_up_outcome' => 'worsened',
+            'visited_at' => '2026-09-10T08:30:00.000Z',
+        ]);
+        $currentReport = Report::factory()->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $currentAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $currentReport->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($owner, ['assignment:read']);
+        $current = collect($this->getJson('/api/v1/mobile/assignments')->assertOk()->json('data'))
+            ->firstWhere('uuid', $currentAssignment->uuid);
+        $this->assertNotNull($current);
+        $this->assertSame('worsened', $current['previous_visit']['follow_up_outcome']);
+
+        Sanctum::actingAs($other, ['assignment:read']);
+        $this->getJson('/api/v1/mobile/assignments')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_previous_evidence_photo_is_owner_scoped_and_private(): void
     {
         Storage::fake('local');
