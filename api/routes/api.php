@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\V1\MobileReportStatusController;
 use App\Http\Controllers\Api\V1\MonthlyReportSummaryController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ReferralSummaryController;
+use App\Http\Controllers\Api\V1\ReportAnalyticsController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportDocumentController;
 use App\Http\Controllers\Api\V1\ReportExportController;
@@ -100,6 +101,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.reports.documents');
     Route::get('/reports/summary', MonthlyReportSummaryController::class)
         ->name('api.v1.reports.summary');
+    Route::get('/reports/analytics', ReportAnalyticsController::class)
+        ->name('api.v1.reports.analytics');
     Route::get('/reports/map', MapReportController::class)
         ->name('api.v1.reports.map');
     Route::get('/reports/field-validation-queue', FieldValidationQueueController::class)

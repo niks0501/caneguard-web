@@ -1,6 +1,101 @@
-import type { DashboardSummary } from "../../../domain/dashboard.types";
+import type {
+  DashboardSummary,
+  ReportAnalytics,
+} from "../../../domain/dashboard.types";
+import type { AnalyticsResponseDto } from "../schemas/analytics.schema";
 import type { DashboardResponseDto } from "../schemas/dashboard.schema";
 import { mapReportListItem } from "./report.mapper";
+
+export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
+  const { data } = dto;
+
+  return {
+    period: {
+      from: data.period.from,
+      to: data.period.to,
+      granularity: data.period.granularity,
+      label: data.period.label,
+      timezone: data.period.timezone,
+      timezoneLabel: data.period.timezone_label,
+      days: data.period.days,
+      partial: data.period.partial,
+    },
+    totalSubmitted: data.total_submitted,
+    series: data.series.map((point) => ({
+      label: point.label,
+      count: point.count,
+    })),
+    casesByBarangay: data.cases_by_barangay.map((item) => ({
+      barangay: item.barangay,
+      reportedCases: item.reported_cases,
+    })),
+    casesByPossibleCondition: data.cases_by_possible_condition.map((item) => ({
+      possibleCondition: item.possible_condition,
+      reportedCases: item.reported_cases,
+    })),
+    caseState: {
+      open: data.case_state.open,
+      closed: data.case_state.closed,
+    },
+    comparison: {
+      previousFrom: data.comparison.previous_from,
+      previousTo: data.comparison.previous_to,
+      previousTotal: data.comparison.previous_total,
+      currentTotal: data.comparison.current_total,
+      delta: data.comparison.delta,
+    },
+    lifecycle: {
+      verificationOutcome: { ...data.lifecycle.verification_outcome },
+      fieldValidationState: { ...data.lifecycle.field_validation_state },
+      referralState: { ...data.lifecycle.referral_state },
+    },
+    area: {
+      estimatedHectares: data.area.estimated_hectares,
+      contributingReports: data.area.contributing_reports,
+      measuredReports: data.area.measured_reports,
+      measuredHectares: data.area.measured_hectares,
+      notMeasuredReports: data.area.not_measured_reports,
+      notMeasuredHectares: data.area.not_measured_hectares,
+      linkedDuplicatesExcluded: data.area.linked_duplicates_excluded,
+      overlapNote: data.area.overlap_note,
+    },
+    validationWorkload: {
+      assignees: data.validation_workload.assignees.map((item) => ({
+        assigneeId: item.assignee_id,
+        name: item.name,
+        openReports: item.open_reports,
+      })),
+      unassigned: data.validation_workload.unassigned,
+    },
+    validationSchedule: {
+      unscheduled: data.validation_schedule.unscheduled,
+      scheduled: data.validation_schedule.scheduled,
+      dueToday: data.validation_schedule.due_today,
+      pastTargetDate: data.validation_schedule.past_target_date,
+      today: data.validation_schedule.today,
+    },
+    reviewBacklog: {
+      totalWaiting: data.review_backlog.total_waiting,
+      buckets: data.review_backlog.buckets.map((point) => ({
+        label: point.label,
+        count: point.count,
+      })),
+      oldestWaitingDays: data.review_backlog.oldest_waiting_days,
+    },
+    validationTurnaround: {
+      source: data.validation_turnaround.source,
+      completed: data.validation_turnaround.completed,
+      averageHours: data.validation_turnaround.average_hours,
+      medianHours: data.validation_turnaround.median_hours,
+      minHours: data.validation_turnaround.min_hours,
+      maxHours: data.validation_turnaround.max_hours,
+      buckets: data.validation_turnaround.buckets.map((point) => ({
+        label: point.label,
+        count: point.count,
+      })),
+    },
+  };
+}
 
 export function mapDashboard(dto: DashboardResponseDto): DashboardSummary {
   const { counts } = dto.data;

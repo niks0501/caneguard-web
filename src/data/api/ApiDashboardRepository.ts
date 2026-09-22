@@ -1,8 +1,16 @@
 import type { AxiosInstance } from "axios";
 import { axiosClient } from "../../api/axiosClient";
 import type { DashboardRepository } from "../contracts/DashboardRepository";
-import type { DashboardSummary } from "../../domain/dashboard.types";
-import { mapDashboard } from "./mappers/dashboard.mapper";
+import type {
+  DashboardSummary,
+  ReportAnalytics,
+  ReportAnalyticsParams,
+} from "../../domain/dashboard.types";
+import { mapDashboard, mapReportAnalytics } from "./mappers/dashboard.mapper";
+import {
+  analyticsResponseSchema,
+  type AnalyticsParams,
+} from "./schemas/analytics.schema";
 import { dashboardResponseSchema } from "./schemas/dashboard.schema";
 
 export class ApiDashboardRepository implements DashboardRepository {
@@ -17,5 +25,17 @@ export class ApiDashboardRepository implements DashboardRepository {
       params: month ? { month } : undefined,
     });
     return mapDashboard(dashboardResponseSchema.parse(response.data));
+  }
+
+  async getAnalytics(params: ReportAnalyticsParams): Promise<ReportAnalytics> {
+    const query: AnalyticsParams = {
+      from: params.from,
+      to: params.to,
+      ...(params.granularity ? { granularity: params.granularity } : {}),
+    };
+    const response = await this.client.get("/api/v1/reports/analytics", {
+      params: query,
+    });
+    return mapReportAnalytics(analyticsResponseSchema.parse(response.data));
   }
 }

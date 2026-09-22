@@ -4,6 +4,8 @@ import type {
 import type {
   DashboardSummary,
   MonthlyCaseSummary,
+  ReportAnalytics,
+  ReportAnalyticsParams,
 } from "../../domain/dashboard.types";
 import type { DiseaseReport, ReviewStatus } from "../../domain/report.types";
 import {
@@ -160,6 +162,66 @@ export class MockDashboardRepository implements DashboardRepository {
       queues,
       recentReports: mockReports.slice(0, 5),
       monthlySummary: buildMonthlySummary(mockReports, selectedMonth),
+    };
+  }
+
+  async getAnalytics(params: ReportAnalyticsParams): Promise<ReportAnalytics> {
+    return {
+      period: {
+        from: params.from,
+        to: params.to,
+        granularity: params.granularity ?? "week",
+        label: `${params.from} – ${params.to}`,
+        timezone: "Asia/Manila",
+        timezoneLabel: "PHT (UTC+8)",
+        days: 0,
+        partial: false,
+      },
+      totalSubmitted: 0,
+      series: [],
+      casesByBarangay: [],
+      casesByPossibleCondition: [],
+      caseState: { open: 0, closed: 0 },
+      comparison: {
+        previousFrom: params.from,
+        previousTo: params.from,
+        previousTotal: 0,
+        currentTotal: 0,
+        delta: 0,
+      },
+      lifecycle: {
+        verificationOutcome: {},
+        fieldValidationState: {},
+        referralState: {},
+      },
+      area: {
+        estimatedHectares: 0,
+        contributingReports: 0,
+        measuredReports: 0,
+        measuredHectares: 0,
+        notMeasuredReports: 0,
+        notMeasuredHectares: 0,
+        linkedDuplicatesExcluded: 0,
+        overlapNote: "Estimates may overlap where submitted reports describe the same ground.",
+      },
+      validationWorkload: { assignees: [], unassigned: 0 },
+      validationSchedule: {
+        unscheduled: 0,
+        scheduled: 0,
+        dueToday: 0,
+        pastTargetDate: 0,
+        today: params.to,
+      },
+      reviewBacklog: { totalWaiting: 0, buckets: [], oldestWaitingDays: null },
+      validationTurnaround: {
+        source: "activated_at_to_visited_at",
+        completed: 0,
+        averageHours: null,
+        medianHours: null,
+        minHours: null,
+        maxHours: null,
+        buckets: [],
+      },
     };
   }
 }

@@ -16,6 +16,7 @@ import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
+import { AnalyticsSection } from "../components/dashboard/AnalyticsSection";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
 import { ExpertVerificationPanel } from "../components/dashboard/ExpertVerificationPanel";
 import { MonthlyCaseSummary } from "../components/dashboard/MonthlyCaseSummary";
@@ -202,6 +203,8 @@ export function DashboardPage() {
           <DashboardRecentReports reports={summary.recentReports} />
         )}
       </section>
+
+      <AnalyticsSection />
 
       {summary.monthlySummary ? (
         <MonthlyCaseSummary
