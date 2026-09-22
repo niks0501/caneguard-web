@@ -40,37 +40,31 @@ function formatRefreshTime(timestamp: number) {
 
 const queueCopy: Record<OperationalQueue, {
   label: string;
-  description: string;
   icon: ReactNode;
   href: string;
 }> = {
   needs_review: {
     label: "Needs Review",
-    description: "Open submitted reports waiting for an office review decision.",
     icon: <ShieldCheck aria-hidden="true" />,
     href: routes.reportQueue("needs_review"),
   },
   needs_visit: {
     label: "Needs Visit",
-    description: "Open submitted reports with field validation still incomplete.",
     icon: <ClipboardCheck aria-hidden="true" />,
     href: routes.fieldValidationQueue("needs_visit"),
   },
   follow_up_due: {
     label: "Follow-up Due",
-    description: "Target visit date passed; validation remains incomplete.",
     icon: <CalendarClock aria-hidden="true" />,
     href: routes.fieldValidationQueue("follow_up_due"),
   },
   upcoming: {
     label: "Upcoming Visits",
-    description: "Target visit date is today or later; validation remains incomplete.",
     icon: <CalendarDays aria-hidden="true" />,
     href: routes.fieldValidationQueue("upcoming"),
   },
   unverified_no_active_work: {
     label: "Unverified, no active work",
-    description: "Open unverified cases with no active field or expert work.",
     icon: <Rows3 aria-hidden="true" />,
     href: routes.reportQueue("unverified_no_active_work"),
   },
@@ -186,7 +180,6 @@ export function DashboardPage() {
                 queue={queue}
                 label={copy.label}
                 count={summary.queues?.[queue] ?? 0}
-                description={copy.description}
                 href={copy.href}
                 icon={copy.icon}
               />
@@ -194,19 +187,6 @@ export function DashboardPage() {
           })}
         </div>
       </section>
-
-      {summary.riskTriage?.enabled ? (
-        <section className="risk-triage-summary" aria-labelledby="risk-triage-heading">
-          <div className="dashboard-section-heading">
-            <h2 id="risk-triage-heading">Needs Review attention bands</h2>
-          </div>
-          <div className="risk-triage-summary__bands">
-            <span className="risk-triage-band risk-triage-band--green">Green · {summary.riskTriage.bands.green}</span>
-            <span className="risk-triage-band risk-triage-band--amber">Amber · {summary.riskTriage.bands.amber}</span>
-            <span className="risk-triage-band risk-triage-band--red">Red · {summary.riskTriage.bands.red}</span>
-          </div>
-        </section>
-      ) : null}
 
       <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
         <div className="workspace-heading">
