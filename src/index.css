@@ -6024,6 +6024,56 @@ body {
   overflow: hidden;
 }
 
+.dashboard-analytics {
+  margin-bottom: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-surface);
+  overflow: hidden;
+  padding: var(--space-4) var(--space-5);
+}
+
+.analytics-period-control {
+  display: flex;
+  align-items: end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.analytics-presets {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.analytics-total {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+}
+
+.analytics-card__description {
+  margin: 0 0 var(--space-2);
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+  line-height: 1.5;
+}
+
+.analytics-card__period {
+  margin: 0 0 var(--space-3);
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+}
+
+.analytics-chart {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .dashboard-monthly-summary__heading {
   display: flex;
   align-items: center;

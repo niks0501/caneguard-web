@@ -4,6 +4,8 @@ import type {
 import type {
   DashboardSummary,
   MonthlyCaseSummary,
+  ReportAnalytics,
+  ReportAnalyticsParams,
 } from "../../domain/dashboard.types";
 import type { DiseaseReport, ReviewStatus } from "../../domain/report.types";
 import {
@@ -160,6 +162,33 @@ export class MockDashboardRepository implements DashboardRepository {
       queues,
       recentReports: mockReports.slice(0, 5),
       monthlySummary: buildMonthlySummary(mockReports, selectedMonth),
+    };
+  }
+
+  async getAnalytics(params: ReportAnalyticsParams): Promise<ReportAnalytics> {
+    return {
+      period: {
+        from: params.from,
+        to: params.to,
+        granularity: params.granularity ?? "week",
+        label: `${params.from} – ${params.to}`,
+        timezone: "Asia/Manila",
+        timezoneLabel: "PHT (UTC+8)",
+        days: 0,
+        partial: false,
+      },
+      totalSubmitted: 0,
+      series: [],
+      casesByBarangay: [],
+      casesByPossibleCondition: [],
+      caseState: { open: 0, closed: 0 },
+      comparison: {
+        previousFrom: params.from,
+        previousTo: params.from,
+        previousTotal: 0,
+        currentTotal: 0,
+        delta: 0,
+      },
     };
   }
 }

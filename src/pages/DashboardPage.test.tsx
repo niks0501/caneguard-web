@@ -5,6 +5,7 @@ import { ZodError } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { mockReports } from "../data/mock/mockReports";
+import { useAnalytics } from "../hooks/useAnalytics";
 import { useDashboard } from "../hooks/useDashboard";
 import { useMonthlyReportSummary } from "../hooks/useReports";
 import { DashboardPage } from "./DashboardPage";
@@ -15,6 +16,10 @@ vi.mock("../hooks/useDashboard", () => ({
 
 vi.mock("../hooks/useReports", () => ({
   useMonthlyReportSummary: vi.fn(),
+}));
+
+vi.mock("../hooks/useAnalytics", () => ({
+  useAnalytics: vi.fn(),
 }));
 
 
@@ -61,6 +66,12 @@ function renderDashboard() {
 
 beforeEach(() => {
   vi.mocked(useDashboard).mockReturnValue(dashboardResult());
+  vi.mocked(useAnalytics).mockReturnValue({
+    data: undefined,
+    isPending: true,
+    isError: false,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useAnalytics>);
   vi.mocked(useMonthlyReportSummary).mockReturnValue({
     data: {
       month: "2026-07",
@@ -186,20 +197,12 @@ describe("DashboardPage", () => {
     const monthly = within(
       screen.getByRole("region", { name: "Monthly submitted report summary" }),
     );
+    // Barangay and Possible Condition lists now render as PHT charts in the
+    // Report analytics section; the panel keeps tiles, validation and review time.
+    expect(monthly.queryByText("3 submitted reports")).not.toBeInTheDocument();
     expect(monthly.queryByText("Possible Condition: rust")).not.toBeInTheDocument();
-    expect(monthly.queryByText("Possible Condition: smut")).not.toBeInTheDocument();
-
-    const user = userEvent.setup();
-    await user.click(
-      monthly.getByRole("button", { name: /Submitted reports by barangay/ }),
-    );
-    expect(monthly.getByText("Mabini")).toBeInTheDocument();
-    expect(monthly.getByText("3 submitted reports")).toBeInTheDocument();
-    await user.click(
-      monthly.getByRole("button", { name: /Submitted reports by Possible Condition/ }),
-    );
-    expect(monthly.getByText("Possible Condition: rust")).toBeInTheDocument();
-    expect(monthly.getByText("Possible Condition: smut")).toBeInTheDocument();
+    expect(monthly.getByText(/Barangay and Possible Condition breakdowns now render as charts/)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Report analytics" })).toBeInTheDocument();
   });
 
   it("refreshes on demand and links to the full queue", async () => {

@@ -88,6 +88,53 @@ export interface MonthlyCaseSummary {
   expertVerification?: ExpertVerificationSummary;
 }
 
+export interface ReportAnalyticsPeriod {
+  from: string;
+  to: string;
+  granularity: "day" | "week";
+  label: string;
+  timezone: string;
+  timezoneLabel: string;
+  days: number;
+  partial: boolean;
+}
+
+export interface ReportAnalyticsSeriesPoint {
+  label: string;
+  count: number;
+}
+
+export interface ReportAnalytics {
+  period: ReportAnalyticsPeriod;
+  totalSubmitted: number;
+  series: ReportAnalyticsSeriesPoint[];
+  casesByBarangay: Array<{
+    barangay: string;
+    reportedCases: number;
+  }>;
+  casesByPossibleCondition: Array<{
+    possibleCondition: DiseaseKey;
+    reportedCases: number;
+  }>;
+  caseState: {
+    open: number;
+    closed: number;
+  };
+  comparison: {
+    previousFrom: string;
+    previousTo: string;
+    previousTotal: number;
+    currentTotal: number;
+    delta: number;
+  };
+}
+
+export interface ReportAnalyticsParams {
+  from: string;
+  to: string;
+  granularity?: "day" | "week";
+}
+
 export interface MonthlyReportSummary {
   month: string;
   period: {

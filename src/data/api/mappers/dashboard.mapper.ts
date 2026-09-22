@@ -1,6 +1,51 @@
-import type { DashboardSummary } from "../../../domain/dashboard.types";
+import type {
+  DashboardSummary,
+  ReportAnalytics,
+} from "../../../domain/dashboard.types";
+import type { AnalyticsResponseDto } from "../schemas/analytics.schema";
 import type { DashboardResponseDto } from "../schemas/dashboard.schema";
 import { mapReportListItem } from "./report.mapper";
+
+export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
+  const { data } = dto;
+
+  return {
+    period: {
+      from: data.period.from,
+      to: data.period.to,
+      granularity: data.period.granularity,
+      label: data.period.label,
+      timezone: data.period.timezone,
+      timezoneLabel: data.period.timezone_label,
+      days: data.period.days,
+      partial: data.period.partial,
+    },
+    totalSubmitted: data.total_submitted,
+    series: data.series.map((point) => ({
+      label: point.label,
+      count: point.count,
+    })),
+    casesByBarangay: data.cases_by_barangay.map((item) => ({
+      barangay: item.barangay,
+      reportedCases: item.reported_cases,
+    })),
+    casesByPossibleCondition: data.cases_by_possible_condition.map((item) => ({
+      possibleCondition: item.possible_condition,
+      reportedCases: item.reported_cases,
+    })),
+    caseState: {
+      open: data.case_state.open,
+      closed: data.case_state.closed,
+    },
+    comparison: {
+      previousFrom: data.comparison.previous_from,
+      previousTo: data.comparison.previous_to,
+      previousTotal: data.comparison.previous_total,
+      currentTotal: data.comparison.current_total,
+      delta: data.comparison.delta,
+    },
+  };
+}
 
 export function mapDashboard(dto: DashboardResponseDto): DashboardSummary {
   const { counts } = dto.data;
