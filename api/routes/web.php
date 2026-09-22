@@ -9,9 +9,14 @@ use App\Http\Controllers\Auth\ResendVerificationController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
+$serveSpa = static function () {
+    $index = public_path('index.html');
+    if (is_file($index)) {
+        return response()->file($index);
+    }
     return view('welcome');
-});
+};
+Route::get('/', $serveSpa);
 
 Route::post('/register', RegisterController::class)
     ->middleware('throttle:register');
@@ -31,3 +36,6 @@ Route::post('/forgot-password', ForgotPasswordController::class)
 Route::post('/reset-password', ResetPasswordController::class)
     ->middleware('throttle:password-reset')
     ->name('password.update');
+
+Route::get('/{path}', $serveSpa)
+    ->where('path', '^(?!api(?:/|$)|sanctum(?:/|$)).*');
