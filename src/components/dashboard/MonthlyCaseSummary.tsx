@@ -43,11 +43,6 @@ export function MonthlyCaseSummary({
         </label>
       </div>
 
-      <p className="dashboard-monthly-summary__notice">
-        Submitted reports and estimated affected area from submitted reports for {summary.month}.
-        These are operational report counts, not population-level disease statistics.
-      </p>
-
       <div className="dashboard-monthly-summary__metrics">
         <div className="monthly-summary-metric">
           <span>Submitted reports</span>
