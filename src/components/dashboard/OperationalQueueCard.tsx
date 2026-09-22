@@ -7,14 +7,12 @@ export function OperationalQueueCard({
   queue,
   label,
   count,
-  description,
   href,
   icon,
 }: {
   queue: OperationalQueue;
   label: string;
   count: number;
-  description: string;
   href: string;
   icon: ReactNode;
 }) {
@@ -30,7 +28,6 @@ export function OperationalQueueCard({
       </div>
       <div className="operational-queue-card__body">
         <strong className="operational-queue-card__count">{count}</strong>
-        <span className="operational-queue-card__description">{description}</span>
       </div>
       <span className="operational-queue-card__action">
         <span>Open queue</span>
