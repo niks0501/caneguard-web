@@ -195,19 +195,6 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {summary.riskTriage?.enabled ? (
-        <section className="risk-triage-summary" aria-labelledby="risk-triage-heading">
-          <div className="dashboard-section-heading">
-            <h2 id="risk-triage-heading">Needs Review attention bands</h2>
-          </div>
-          <div className="risk-triage-summary__bands">
-            <span className="risk-triage-band risk-triage-band--green">Green · {summary.riskTriage.bands.green}</span>
-            <span className="risk-triage-band risk-triage-band--amber">Amber · {summary.riskTriage.bands.amber}</span>
-            <span className="risk-triage-band risk-triage-band--red">Red · {summary.riskTriage.bands.red}</span>
-          </div>
-        </section>
-      ) : null}
-
       <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
         <div className="workspace-heading">
           <div>
