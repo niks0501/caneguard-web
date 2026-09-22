@@ -44,5 +44,6 @@ sed -ri \
     /etc/apache2/sites-available/000-default.conf
 
 echo "Starting Apache on port ${PORT}..."
+echo "Enabled Apache MPM modules: $(ls /etc/apache2/mods-enabled/ | grep '^mpm_' | tr '\n' ' ')"
 
 exec apache2-foreground
