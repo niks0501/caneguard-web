@@ -18,6 +18,9 @@ final class MobilePreviousVisit
         /** @var Collection<int, FieldValidationAssignment> $candidates */
         $candidates = FieldValidationAssignment::query()
             ->whereKeyNot($assignment->getKey())
+            // Previous-visit context is part of the owner-scoped assignment
+            // feed; never match a completion assigned to another reporter.
+            ->where('assignee_id', $assignment->assignee_id)
             ->whereHas('completion')
             ->with(['report', 'completion'])
             ->get()
