@@ -1,0 +1,76 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Report;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+class ReportDocumentTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_document_uses_pht_week_boundaries_and_hides_appendix_by_default(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->create([
+            'reference_code' => 'CG-PHT-IN',
+            'farmer_or_farm_owner_name' => 'PHT farmer reference',
+            'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
+        ]);
+        Report::factory()->create([
+            'reference_code' => 'CG-PHT-OUT',
+            'submitted_at' => CarbonImmutable::parse('2026-09-20T16:30:00Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $response = $this->get('/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]));
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $response->assertSee('Week 38')
+            ->assertSee('PHT (UTC+8)')
+            ->assertSee('Submitted reports')
+            ->assertDontSee('PHT farmer reference')
+            ->assertDontSee('CG-PHT-IN')
+            ->assertDontSee('CG-PHT-OUT');
+    }
+
+    public function test_appendix_is_explicit_and_warns_about_farmer_references(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->create([
+            'reference_code' => 'CG-APPENDIX',
+            'farmer_or_farm_owner_name' => 'Farmer reference',
+            'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $response = $this->get('/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+            'appendix' => 1,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Farmer and farm references are included')
+            ->assertSee('Farmer reference')
+            ->assertSee('Case register appendix');
+    }
+
+    public function test_other_html_routes_still_deny_framing(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk()
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'none'");
+    }
+}

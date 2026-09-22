@@ -42,6 +42,13 @@ return [
         1,
         (int) env('CANEGUARD_EXPERT_CONSULT_INVITE_DAYS', 7),
     ),
+    'reports' => [
+        // Report documents are embedded only by the authenticated web app.
+        'embed_origins' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('CANEGUARD_REPORT_EMBED_ORIGINS', 'self')),
+        ))),
+    ],
     'rate_limits' => [
         'login' => [
             'per_email_ip_per_minute' => max(

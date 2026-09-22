@@ -29,17 +29,32 @@ final class BuildMonthlyReportSummary
             ->where('submitted_at', '>=', $periodStart)
             ->where('submitted_at', '<', $periodEnd);
 
+        return $this->buildFromQuery($baseQuery, $periodStart->format('Y-m'), [
+            'from' => $periodStart->toDateString(),
+            'to' => $periodEnd->subDay()->toDateString(),
+        ]);
+    }
+
+    /**
+     * Build the same metrics for a caller-owned, already scoped report query.
+     * The document report uses this seam so the existing UTC monthly summary
+     * remains behaviourally identical while other periods share its metrics.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildFromQuery(
+        Builder $baseQuery,
+        ?string $month = null,
+        ?array $period = null,
+    ): array {
         $reportedCases = (clone $baseQuery)->count('reports.id');
         $fieldValidationCounts = $this->fieldValidationCounts($baseQuery);
         $reviewTimes = $this->reviewTimes($baseQuery);
         $expertVerification = $this->expertVerificationMetrics($baseQuery);
 
         return [
-            'month' => $periodStart->format('Y-m'),
-            'period' => [
-                'from' => $periodStart->toDateString(),
-                'to' => $periodEnd->subDay()->toDateString(),
-            ],
+            'month' => $month,
+            'period' => $period ?? ['from' => null, 'to' => null],
             'reported_cases' => $reportedCases,
             'cases_by_barangay' => $this->groupedCounts(
                 $baseQuery,

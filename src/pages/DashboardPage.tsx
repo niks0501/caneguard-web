@@ -20,6 +20,7 @@ import { DashboardRecentReports } from "../components/dashboard/DashboardRecentR
 import { ExpertVerificationPanel } from "../components/dashboard/ExpertVerificationPanel";
 import { MonthlyCaseSummary } from "../components/dashboard/MonthlyCaseSummary";
 import { OperationalQueueCard } from "../components/dashboard/OperationalQueueCard";
+import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
 import { SecondaryMetric } from "../components/dashboard/SecondaryMetric";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
@@ -86,6 +87,7 @@ const queueOrder: OperationalQueue[] = [
 
 export function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
   const dashboard = useDashboard(selectedMonth ?? undefined);
   const summary = dashboard.data;
 
@@ -139,6 +141,14 @@ export function DashboardPage() {
         title="CaneGuard dashboard"
         actions={
           <>
+            <Button
+              type="button"
+              variant="secondary"
+              icon={<FileStack aria-hidden="true" />}
+              onClick={() => setReportBuilderOpen(true)}
+            >
+              Generate report
+            </Button>
             <Link className="button button--secondary" to={routes.reports}>
               <Rows3 aria-hidden="true" />
               <span>View all reports</span>
@@ -261,6 +271,10 @@ export function DashboardPage() {
           />
         </section>
       </section>
+      <ReportDocumentBuilder
+        open={reportBuilderOpen}
+        onClose={() => setReportBuilderOpen(false)}
+      />
     </PageContent>
   );
 }
