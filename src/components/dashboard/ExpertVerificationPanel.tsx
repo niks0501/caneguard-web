@@ -11,17 +11,12 @@ export interface ExpertVerificationPanelViewProps {
 }
 
 export function ExpertVerificationPanelView({
-  month,
   data,
   isPending,
   isError,
   onRetry,
 }: ExpertVerificationPanelViewProps) {
   const metrics = data?.expertVerification;
-  const displayMonth = data?.month ?? month;
-  const medianFindingDays = metrics?.timeToFinding?.medianHours == null
-    ? null
-    : metrics.timeToFinding.medianHours / 24;
 
   return (
     <section
@@ -46,22 +41,13 @@ export function ExpertVerificationPanelView({
           />
         </div>
       ) : !metrics || metrics.consultVolume.total === 0 ? (
-        <>
-          <p className="dashboard-monthly-summary__notice">
-            Monthly expert consult outcomes for {displayMonth}. Read-only operational summary from recorded expert evaluations.
-          </p>
           <div className="monthly-summary-card">
             <p className="monthly-summary-empty" role="status">
               No expert verification consults recorded for this month.
             </p>
           </div>
-        </>
       ) : (
         <>
-          <p className="dashboard-monthly-summary__notice">
-            Monthly expert consult outcomes for {displayMonth}. Read-only operational summary from recorded expert evaluations.
-          </p>
-
           <div className="dashboard-monthly-summary__metrics">
             <div className="monthly-summary-metric">
               <span>Total consults</span>
@@ -78,10 +64,6 @@ export function ExpertVerificationPanelView({
             <div className="monthly-summary-metric">
               <span>Unable to classify</span>
               <strong>{metrics.unableToClassifyRate.count}</strong>
-            </div>
-            <div className="monthly-summary-metric">
-              <span>Median days to finding</span>
-              <strong>{medianFindingDays == null ? "Not available" : medianFindingDays.toFixed(1)}</strong>
             </div>
           </div>
 

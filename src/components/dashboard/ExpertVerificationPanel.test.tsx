@@ -129,9 +129,6 @@ describe("ExpertVerificationPanelView", () => {
     expect(
       screen.getByText("No expert verification consults recorded for this month."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Monthly expert consult outcomes for 2026-08. Read-only operational summary from recorded expert evaluations."),
-    ).toBeInTheDocument();
   });
 
   it("renders counts by outcome with plain short labels in populated state", () => {
@@ -146,10 +143,6 @@ describe("ExpertVerificationPanelView", () => {
 
     const section = screen.getByRole("region", { name: "Expert verification" });
     expect(section).toBeInTheDocument();
-
-    expect(
-      within(section).getByText("Monthly expert consult outcomes for 2026-07. Read-only operational summary from recorded expert evaluations."),
-    ).toBeInTheDocument();
 
     // Top metrics
     expect(within(section).getByText("Total consults")).toBeInTheDocument();
