@@ -1044,11 +1044,11 @@ class ReportApiTest extends TestCase
     public function test_non_api_errors_remain_safe_when_debug_is_enabled(): void
     {
         config(['app.debug' => true]);
-        Route::get('/forced-failure', function (): never {
+        Route::post('/forced-failure', function (): never {
             throw new RuntimeException('Sensitive internal failure detail.');
         });
 
-        $this->get('/forced-failure')
+        $this->post('/forced-failure')
             ->assertInternalServerError()
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
             ->assertHeader('X-Frame-Options', 'DENY')
