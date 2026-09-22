@@ -61,7 +61,8 @@ describe("NeedsAssessmentPage", () => {
   it("separates attention outcomes and overdue visits while handing unassigned work to the planner", () => {
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
 
-    expect(screen.getByText("To check")).toBeInTheDocument();
+    expect(screen.queryByText("To check")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Needs assessment" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { name: "Needs assessment" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Needs attention" })).toBeInTheDocument();

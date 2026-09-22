@@ -84,9 +84,7 @@ export function NeedsAssessmentPage() {
   return (
     <PageContent>
       <PageHeader
-        eyebrow="To check"
         title="Needs assessment"
-        description="Review the outcome of completed field visits, focus attention on Worsened and Unable to determine, and hand open visits to the Field Operations planner."
         actions={(
           <Button
             variant="secondary"

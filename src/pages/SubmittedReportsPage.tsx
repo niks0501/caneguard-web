@@ -204,11 +204,7 @@ export function SubmittedReportsPage({
   return (
     <PageContent className={embedded ? "page-content--embedded" : undefined}>
       {!embedded ? <PageHeader
-        eyebrow={isMonitoring ? "Office monitoring" : undefined}
         title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
-        description={isMonitoring
-          ? "Track reported concerns, validation evidence, and scheduled visits from one case register."
-          : "Review field observations and decide the appropriate SRA Don Pedro follow-up."}
         actions={(
           <>
           <Button

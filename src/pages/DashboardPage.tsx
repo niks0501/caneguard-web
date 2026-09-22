@@ -137,7 +137,6 @@ export function DashboardPage() {
     <PageContent>
       <PageHeader
         title="CaneGuard dashboard"
-        description="Incoming field reports and review queues for the SRA Don Pedro Mill District."
         actions={
           <>
             <Link className="button button--secondary" to={routes.reports}>
