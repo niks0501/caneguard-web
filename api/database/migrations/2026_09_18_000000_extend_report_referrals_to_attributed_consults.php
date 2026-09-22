@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -11,15 +12,36 @@ return new class extends Migration
     {
         // The report_id unique index also backs the existing foreign key on
         // MySQL, so remove the constraint before replacing that index.
-        Schema::table('report_referrals', function (Blueprint $table): void {
-            $table->dropForeign(['report_id']);
-        });
+        // Production drift tolerance: the key may already be gone (MySQL
+        // 1091), in which case there is nothing to drop.
+        try {
+            Schema::table('report_referrals', function (Blueprint $table): void {
+                $table->dropForeign(['report_id']);
+            });
+        } catch (QueryException $e) {
+            if ((int) ($e->errorInfo[1] ?? 0) !== 1091) {
+                throw $e;
+            }
+        }
+
+        // Same production drift tolerance as the foreign key above, in its
+        // own statement so the guard catches execution errors, not just
+        // command registration: the unique index may already be gone
+        // (MySQL 1091).
+        try {
+            Schema::table('report_referrals', function (Blueprint $table): void {
+                $table->dropUnique(['report_id']);
+            });
+        } catch (QueryException $e) {
+            if ((int) ($e->errorInfo[1] ?? 0) !== 1091) {
+                throw $e;
+            }
+        }
 
         Schema::table('report_referrals', function (Blueprint $table): void {
             // A case may have more than one completed consult over time. The
             // application enforces one pending/in-progress consult at a time
             // while the report row is locked.
-            $table->dropUnique(['report_id']);
             $table->string('consult_status', 24)->default('pending')->after('report_id');
             $table->date('due_date')->nullable()->after('referral_date');
             $table->string('expert_name', 160)->nullable()->after('due_date');
