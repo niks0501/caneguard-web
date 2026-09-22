@@ -14,6 +14,7 @@ $serveSpa = static function () {
     if (is_file($index)) {
         return response()->file($index);
     }
+
     return view('welcome');
 };
 Route::get('/', $serveSpa);
@@ -38,4 +39,4 @@ Route::post('/reset-password', ResetPasswordController::class)
     ->name('password.update');
 
 Route::get('/{path}', $serveSpa)
-    ->where('path', '^(?!api(?:/|$)|sanctum(?:/|$)).*');
+    ->where('path', '^(?!api(?:/|$)|sanctum(?:/|$)|storage(?:/|$)).*');
