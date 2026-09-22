@@ -146,7 +146,7 @@ describe("DashboardPage", () => {
     expect(screen.getByRole("region", { name: "Recent reports" })).toBeInTheDocument();
   });
 
-  it("renders monthly case summaries", () => {
+  it("renders monthly case summaries", async () => {
     vi.mocked(useDashboard).mockReturnValue(
       dashboardResult({
         data: {
@@ -186,7 +186,18 @@ describe("DashboardPage", () => {
     const monthly = within(
       screen.getByRole("region", { name: "Monthly submitted report summary" }),
     );
+    expect(monthly.queryByText("Possible Condition: rust")).not.toBeInTheDocument();
+    expect(monthly.queryByText("Possible Condition: smut")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(
+      monthly.getByRole("button", { name: /Submitted reports by barangay/ }),
+    );
+    expect(monthly.getByText("Mabini")).toBeInTheDocument();
     expect(monthly.getByText("3 submitted reports")).toBeInTheDocument();
+    await user.click(
+      monthly.getByRole("button", { name: /Submitted reports by Possible Condition/ }),
+    );
     expect(monthly.getByText("Possible Condition: rust")).toBeInTheDocument();
     expect(monthly.getByText("Possible Condition: smut")).toBeInTheDocument();
   });
