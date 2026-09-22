@@ -45,5 +45,11 @@ sed -ri \
 
 echo "Starting Apache on port ${PORT}..."
 echo "Enabled Apache MPM modules: $(ls /etc/apache2/mods-enabled/ | grep '^mpm_' | tr '\n' ' ')"
+# mod_php requires prefork, and the runtime has been observed loading a
+# second MPM despite the build-time enforcement above: re-assert exactly
+# one MPM here, where the failure manifests.
+a2dismod mpm_event mpm_worker 2>/dev/null || true
+a2enmod mpm_prefork
+echo "MPM modules after enforcement: $(ls /etc/apache2/mods-enabled/ | grep '^mpm_' | tr '\n' ' ')"
 
 exec apache2-foreground
