@@ -52,6 +52,11 @@ RUN apt-get update \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
+# mod_php requires the prefork MPM. Debian enables the event MPM by
+# default, which coexists with prefork here and makes Apache exit with
+# "More than one MPM loaded"; enforce exactly one MPM at build time.
+RUN a2dismod mpm_event mpm_worker 2>/dev/null; a2enmod mpm_prefork
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
