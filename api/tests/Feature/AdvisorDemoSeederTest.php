@@ -7,6 +7,7 @@ use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Database\Seeders\AdvisorDemoSeeder;
+use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -37,10 +38,12 @@ class AdvisorDemoSeederTest extends TestCase
 
         $this->assertDatabaseCount(
             'reports',
-            12 + count(AdvisorDemoSeeder::reportReferences()),
+            12
+                + count(AdvisorDemoSeeder::reportReferences())
+                + count(DashboardReportSeeder::reportReferences()),
         );
         $this->assertDatabaseCount('advisories', 1);
-        $this->assertDatabaseCount('report_referrals', 2);
+        $this->assertDatabaseCount('report_referrals', 4);
         $this->assertDatabaseCount('field_validation_assignments', 4);
         $this->assertDatabaseCount('field_validation_completions', 2);
         $this->assertDatabaseCount('report_review_events', 1);
@@ -122,9 +125,12 @@ class AdvisorDemoSeederTest extends TestCase
 
         AdvisorDemoSeeder::cleanup();
 
-        $this->assertDatabaseCount('reports', 12);
+        $this->assertDatabaseCount(
+            'reports',
+            12 + count(DashboardReportSeeder::reportReferences()),
+        );
         $this->assertDatabaseCount('advisories', 0);
-        $this->assertDatabaseCount('report_referrals', 0);
+        $this->assertDatabaseCount('report_referrals', 2);
         $this->assertDatabaseCount('field_validation_assignments', 0);
         $this->assertDatabaseCount('field_validation_completions', 0);
         $this->assertDatabaseCount('report_review_events', 0);

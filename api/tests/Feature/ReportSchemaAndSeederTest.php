@@ -8,11 +8,13 @@ use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AdvisorDemoSeeder;
+use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ReportSchemaAndSeederTest extends TestCase
@@ -332,7 +334,9 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
         $this->assertTrue(Storage::disk('local')->exists('reports/2026-07/bgo-20260702-0915.png'));
         $this->assertSame(
-            12 + count(AdvisorDemoSeeder::reportReferences()),
+            12
+                + count(AdvisorDemoSeeder::reportReferences())
+                + count(DashboardReportSeeder::reportReferences()),
             Report::query()->count(),
         );
     }
@@ -351,9 +355,11 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $this->assertDatabaseCount(
             'reports',
-            12 + count(AdvisorDemoSeeder::reportReferences()),
+            12
+                + count(AdvisorDemoSeeder::reportReferences())
+                + count(DashboardReportSeeder::reportReferences()),
         );
-        $this->assertSame(8, Report::query()
+        $this->assertSame(19, Report::query()
             ->whereNotNull('final_latitude')
             ->whereNotNull('final_longitude')
             ->count());
@@ -377,7 +383,10 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('122.8500000', $manualDemoReport->final_longitude);
         $this->assertSame('manual_map', $manualDemoReport->location_source);
         $this->assertNull($manualDemoReport->gps_accuracy);
-        $this->assertDatabaseCount('report_class_scores', 76);
+        $this->assertDatabaseCount(
+            'report_class_scores',
+            4 * (12 + count(AdvisorDemoSeeder::reportReferences()) + count(DashboardReportSeeder::reportReferences())),
+        );
         $this->assertSame(Report::v2Labels(), Report::query()
             ->distinct()
             ->orderBy('predicted_label')
@@ -422,7 +431,9 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $files = Storage::disk('local')->allFiles('reports');
         $this->assertCount(
-            12 + count(AdvisorDemoSeeder::reportReferences()),
+            12
+                + count(AdvisorDemoSeeder::reportReferences())
+                + count(DashboardReportSeeder::reportReferences()),
             $files,
         );
         $seededImage = Storage::disk('local')->get($files[0]);
@@ -437,5 +448,53 @@ class ReportSchemaAndSeederTest extends TestCase
                 ->where('report_id', Report::query()->firstOrFail()->id)
                 ->count(),
         );
+    }
+
+    public function test_merged_seed_path_populates_the_default_month_and_dashboard_panels(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $this->seed(DatabaseSeeder::class);
+
+        $monthCounts = Report::query()
+            ->whereBetween('submitted_at', [
+                CarbonImmutable::parse('2026-09-01', 'UTC'),
+                CarbonImmutable::parse('2026-11-30 23:59:59', 'UTC'),
+            ])
+            ->get(['submitted_at'])
+            ->groupBy(fn (Report $report): string => $report->submitted_at->format('Y-m'))
+            ->map(fn ($reports): int => $reports->count())
+            ->all();
+
+        $this->assertSame([
+            '2026-09' => 10,
+            '2026-10' => 5,
+            '2026-11' => 3,
+        ], $monthCounts);
+
+        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+
+        $response = $this->getJson('/api/v1/dashboard/summary?month=2026-10')
+            ->assertOk()
+            ->assertJsonPath('data.monthly_summary.month', '2026-10')
+            ->assertJsonPath('data.monthly_summary.reported_cases', 5)
+            ->assertJsonPath('data.monthly_summary.estimated_affected_hectares', 7.22)
+            ->assertJsonPath('data.monthly_summary.review_time.reviewed_cases', 4)
+            ->assertJsonCount(5, 'data.monthly_summary.cases_by_barangay')
+            ->assertJsonCount(4, 'data.monthly_summary.cases_by_possible_condition')
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.assigned', 1)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.in_progress', 1)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.completed', 2)
+            ->assertJsonPath('data.monthly_summary.expert_verification.consult_volume.total', 2)
+            ->assertJsonPath('data.monthly_summary.expert_verification.consult_volume.completed', 1);
+
+        foreach (Report::operationalQueues() as $queue) {
+            $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));
+        }
     }
 }
