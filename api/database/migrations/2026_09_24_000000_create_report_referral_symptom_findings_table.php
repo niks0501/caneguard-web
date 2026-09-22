@@ -8,6 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Production drift tolerance: the table may already exist from a
+        // previous partial application (MySQL 1050); creating it again
+        // would abort deployment boot.
+        if (Schema::hasTable('report_referral_symptom_findings')) {
+            return;
+        }
+
         Schema::create('report_referral_symptom_findings', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('report_referral_id')
