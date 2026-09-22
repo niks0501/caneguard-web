@@ -100,14 +100,6 @@ export function LoginPage() {
   return (
     <main className="login-page login-page--portal">
       <aside className="login-visual" aria-label="CaneGuard decision support">
-        <div className="login-visual__header">
-          <span className="login-visual__badge">
-            <span className="login-visual__badge-dot" aria-hidden="true" />
-            SRA Don Pedro Mill District
-          </span>
-          <span className="login-visual__meta">District 04 • Western Batangas</span>
-        </div>
-
         <div className="login-visual__hero">
           <div className="login-visual__hero-frame">
             <img
@@ -119,24 +111,9 @@ export function LoginPage() {
           <p className="login-visual__tagline">
             Sugarcane monitoring &amp; field verification
           </p>
-          <p className="login-visual__mission">
-            Official operational portal for field inspection review, disease triage, and grower case validation.
+          <p className="login-visual__access">
+            SRA Don Pedro staff only — sign in with your office-issued credentials. New inspectors request access through the district office.
           </p>
-        </div>
-
-        <div className="login-visual__pillars" aria-label="Operational jurisdiction and status">
-          <div className="login-visual__pillar">
-            <span className="login-visual__pillar-label">Jurisdiction</span>
-            <span className="login-visual__pillar-value">Don Pedro Mill District</span>
-          </div>
-          <div className="login-visual__pillar">
-            <span className="login-visual__pillar-label">Surveillance</span>
-            <span className="login-visual__pillar-value">Active Season 2026</span>
-          </div>
-          <div className="login-visual__pillar">
-            <span className="login-visual__pillar-label">Security</span>
-            <span className="login-visual__pillar-value">Role-Governed Access</span>
-          </div>
         </div>
       </aside>
 

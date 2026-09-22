@@ -2501,7 +2501,7 @@ blockquote {
   width: 100vw;
   max-width: 100vw;
   overflow: hidden;
-  grid-template-columns: minmax(480px, 1.08fr) minmax(420px, 0.92fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   background: var(--brand-dark-field);
   color: var(--color-text);
 }
@@ -2511,7 +2511,7 @@ blockquote {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   align-items: stretch;
   height: 100%;
   max-height: 100vh;
@@ -2528,43 +2528,13 @@ blockquote {
   border-right: 1px solid rgba(226, 161, 95, 0.38);
 }
 
-.login-visual__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.login-visual__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  background: rgba(145, 183, 154, 0.08);
-  border: 1px solid rgba(145, 183, 154, 0.2);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-heading);
-  font-size: var(--text-machine);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--brand-structural-green-on-dark);
-}
-
-.login-visual__badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--brand-lime);
-  box-shadow: 0 0 8px var(--brand-lime);
-  display: inline-block;
-}
-
-.login-visual__meta {
-  font-size: var(--text-machine);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: rgba(240, 228, 184, 0.65);
+.login-page--portal p.login-visual__access {
+  margin: var(--space-4) auto 0;
+  max-width: 440px;
+  font-size: var(--text-body-sm);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
 }
 
 .login-page--portal .login-visual__hero {
@@ -2574,7 +2544,7 @@ blockquote {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 480px;
+  max-width: 520px;
   width: 100%;
   margin: 0 auto;
   padding: 0;
@@ -2619,44 +2589,7 @@ blockquote {
   border-radius: var(--radius-pill);
 }
 
-.login-visual__mission {
-  margin: var(--space-3) 0 0;
-  max-width: 420px;
-  font-size: var(--text-body-sm);
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.72);
-  text-align: center;
-}
 
-.login-visual__pillars {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: clamp(8px, 1.2vw, 16px);
-  padding-top: clamp(10px, 1.5vh, 16px);
-  border-top: 1px solid rgba(226, 161, 95, 0.28);
-}
-
-.login-visual__pillar {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: center;
-}
-
-.login-visual__pillar-label {
-  font-size: var(--text-machine);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--brand-gold-on-dark);
-}
-
-.login-visual__pillar-value {
-  font-size: var(--text-machine);
-  font-weight: 500;
-  color: var(--color-inverse-text);
-  white-space: nowrap;
-}
 
 /* Sign-in Column: flush full-height light surface, tailored against the dark field */
 @keyframes login-panel-enter {
@@ -2683,12 +2616,12 @@ blockquote {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: min(100%, 460px);
+  width: min(100%, 560px);
   height: 100%;
   max-height: 100vh;
   max-height: 100dvh;
   margin: 0 auto;
-  padding: clamp(20px, 3vh, 36px) clamp(24px, 3vw, 48px);
+  padding: clamp(20px, 3vh, 36px) clamp(32px, 4vw, 64px);
   overflow-y: auto;
   box-sizing: border-box;
   background: var(--color-surface);
@@ -2726,8 +2659,8 @@ blockquote {
 }
 
 .login-page--portal .login-copy h1 {
-  margin: 0 0 4px;
-  font-size: var(--text-h3);
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-h2);
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.025em;
@@ -2758,9 +2691,9 @@ blockquote {
 }
 
 .login-page--portal .login-form {
-  margin-top: clamp(8px, 1.2vh, 14px);
+  margin-top: clamp(12px, 2vh, 20px);
   display: grid;
-  gap: clamp(10px, 1.3vh, 13px);
+  gap: clamp(14px, 2vh, 20px);
 }
 
 .login-page--portal .login-form > label {
@@ -2775,9 +2708,9 @@ blockquote {
 }
 
 .login-page--portal .login-form input {
-  height: var(--control-height-large);
-  padding: 0 12px;
-  font-size: var(--text-body-sm);
+  height: 54px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-body);
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
@@ -2806,8 +2739,8 @@ blockquote {
 .login-page--portal .login-form__actions {
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.1vh, 12px);
-  margin-top: clamp(4px, 0.6vh, 8px);
+  gap: clamp(12px, 1.8vh, 18px);
+  margin-top: clamp(6px, 1vh, 12px);
 }
 
 .login-page--portal .auth-inline-link {
@@ -2818,7 +2751,7 @@ blockquote {
 }
 
 .login-page--portal .login-form .button {
-  min-height: var(--control-height-large);
+  min-height: 54px;
   width: 100%;
   font-size: var(--text-body-sm);
   font-weight: 600;
