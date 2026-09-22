@@ -189,6 +189,39 @@ export class MockDashboardRepository implements DashboardRepository {
         currentTotal: 0,
         delta: 0,
       },
+      lifecycle: {
+        verificationOutcome: {},
+        fieldValidationState: {},
+        referralState: {},
+      },
+      area: {
+        estimatedHectares: 0,
+        contributingReports: 0,
+        measuredReports: 0,
+        measuredHectares: 0,
+        notMeasuredReports: 0,
+        notMeasuredHectares: 0,
+        linkedDuplicatesExcluded: 0,
+        overlapNote: "Estimates may overlap where submitted reports describe the same ground.",
+      },
+      validationWorkload: { assignees: [], unassigned: 0 },
+      validationSchedule: {
+        unscheduled: 0,
+        scheduled: 0,
+        dueToday: 0,
+        pastTargetDate: 0,
+        today: params.to,
+      },
+      reviewBacklog: { totalWaiting: 0, buckets: [], oldestWaitingDays: null },
+      validationTurnaround: {
+        source: "activated_at_to_visited_at",
+        completed: 0,
+        averageHours: null,
+        medianHours: null,
+        minHours: null,
+        maxHours: null,
+        buckets: [],
+      },
     };
   }
 }

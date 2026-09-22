@@ -6074,6 +6074,18 @@ body {
   overflow-x: auto;
 }
 
+.analytics-lifecycle-group {
+  padding-bottom: var(--space-3);
+}
+
+.analytics-lifecycle-group__title {
+  margin: 0 0 var(--space-2);
+  color: var(--color-primary-dark);
+  font-family: var(--font-heading);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+}
+
 .dashboard-monthly-summary__heading {
   display: flex;
   align-items: center;

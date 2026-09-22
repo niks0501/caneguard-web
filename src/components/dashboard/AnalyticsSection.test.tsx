@@ -37,6 +37,60 @@ const analytics: ReportAnalytics = {
     currentTotal: 5,
     delta: 3,
   },
+  lifecycle: {
+    verificationOutcome: { not_determined: 4, verified: 1, unable_to_verify: 0 },
+    fieldValidationState: { unassigned: 1, assigned: 2, in_progress: 1, completed: 1 },
+    referralState: { not_referred: 4, referred: 1, expert_response_received: 0 },
+  },
+  area: {
+    estimatedHectares: 14.5,
+    contributingReports: 3,
+    measuredReports: 2,
+    measuredHectares: 10,
+    notMeasuredReports: 1,
+    notMeasuredHectares: 4.5,
+    linkedDuplicatesExcluded: 1,
+    overlapNote: "Estimates may overlap where submitted reports describe the same ground.",
+  },
+  validationWorkload: {
+    assignees: [
+      { assigneeId: 2, name: "Anna Validator", openReports: 1 },
+      { assigneeId: 1, name: "Ben Validator", openReports: 2 },
+    ],
+    unassigned: 1,
+  },
+  validationSchedule: {
+    unscheduled: 1,
+    scheduled: 1,
+    dueToday: 1,
+    pastTargetDate: 1,
+    today: "2026-09-07",
+  },
+  reviewBacklog: {
+    totalWaiting: 3,
+    buckets: [
+      { label: "0–2 days waiting", count: 1 },
+      { label: "3–6 days waiting", count: 1 },
+      { label: "7–13 days waiting", count: 1 },
+      { label: "14–29 days waiting", count: 0 },
+      { label: "30+ days waiting", count: 0 },
+    ],
+    oldestWaitingDays: 9,
+  },
+  validationTurnaround: {
+    source: "activated_at_to_visited_at",
+    completed: 2,
+    averageHours: 36,
+    medianHours: 36,
+    minHours: 24,
+    maxHours: 48,
+    buckets: [
+      { label: "Under 24 hours", count: 0 },
+      { label: "1–3 days", count: 2 },
+      { label: "3–7 days", count: 0 },
+      { label: "Over 7 days", count: 0 },
+    ],
+  },
 };
 
 const emptyAnalytics: ReportAnalytics = {
@@ -52,6 +106,39 @@ const emptyAnalytics: ReportAnalytics = {
     previousTotal: 0,
     currentTotal: 0,
     delta: 0,
+  },
+  lifecycle: {
+    verificationOutcome: {},
+    fieldValidationState: {},
+    referralState: {},
+  },
+  area: {
+    estimatedHectares: 0,
+    contributingReports: 0,
+    measuredReports: 0,
+    measuredHectares: 0,
+    notMeasuredReports: 0,
+    notMeasuredHectares: 0,
+    linkedDuplicatesExcluded: 0,
+    overlapNote: "Estimates may overlap where submitted reports describe the same ground.",
+  },
+  validationWorkload: { assignees: [], unassigned: 0 },
+  validationSchedule: {
+    unscheduled: 0,
+    scheduled: 0,
+    dueToday: 0,
+    pastTargetDate: 0,
+    today: "2026-09-07",
+  },
+  reviewBacklog: { totalWaiting: 0, buckets: [], oldestWaitingDays: null },
+  validationTurnaround: {
+    source: "activated_at_to_visited_at",
+    completed: 0,
+    averageHours: null,
+    medianHours: null,
+    minHours: null,
+    maxHours: null,
+    buckets: [],
   },
 };
 
@@ -69,7 +156,7 @@ function renderView(data: ReportAnalytics = analytics) {
 }
 
 describe("AnalyticsSectionView", () => {
-  it("renders all five Phase 1 charts with PHT boundaries printed on each", () => {
+  it("renders all Phase 1 charts with PHT boundaries printed on each", () => {
     renderView();
 
     for (const name of [
@@ -78,19 +165,25 @@ describe("AnalyticsSectionView", () => {
       "Submitted reports by Possible Condition",
       "Open vs closed submitted reports",
       "Previous-period comparison",
+      "Where work sits in the lifecycle",
+      "Estimated affected area",
+      "Field-validation workload",
+      "Validation schedule against target dates",
+      "Review backlog by waiting age",
+      "Field-validation turnaround",
     ]) {
       expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     }
 
     const periodLines = screen.getAllByText(/Period boundaries use PHT \(UTC\+8\)\./);
-    expect(periodLines).toHaveLength(5);
+    expect(periodLines).toHaveLength(11);
   });
 
   it("ships an accessible data table per chart with the plotted values", () => {
     renderView();
 
     const tables = screen.getAllByRole("table", { hidden: true });
-    expect(tables).toHaveLength(5);
+    expect(tables).toHaveLength(13);
 
     const seriesTable = tables[0];
     expect(within(seriesTable).getByText("2026-09-02")).toBeInTheDocument();
@@ -105,7 +198,7 @@ describe("AnalyticsSectionView", () => {
     renderView();
 
     const images = screen.getAllByRole("img");
-    expect(images).toHaveLength(5);
+    expect(images).toHaveLength(13);
     expect(images[0]).toHaveAttribute("aria-label", expect.stringContaining("2026-09-02: 3"));
     expect(screen.getByText("Up 3 submitted reports on the previous comparable period.")).toBeInTheDocument();
     expect(screen.queryByText(/projection|forecast/i)).not.toBeInTheDocument();
@@ -122,7 +215,7 @@ describe("AnalyticsSectionView", () => {
   it("renders the honest empty state on every chart when the period is quiet", () => {
     renderView(emptyAnalytics);
 
-    expect(screen.getAllByText("No submitted reports in this period.")).toHaveLength(5);
+    expect(screen.getAllByText("No submitted reports in this period.")).toHaveLength(11);
     expect(screen.getByText("0 submitted reports in this period.")).toBeInTheDocument();
   });
 

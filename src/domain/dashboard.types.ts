@@ -127,12 +127,68 @@ export interface ReportAnalytics {
     currentTotal: number;
     delta: number;
   };
+  lifecycle: LifecycleDistributions;
+  area: AreaEstimate;
+  validationWorkload: ValidationWorkload;
+  validationSchedule: ValidationSchedule;
+  reviewBacklog: ReviewBacklog;
+  validationTurnaround: ValidationTurnaround;
 }
 
 export interface ReportAnalyticsParams {
   from: string;
   to: string;
   granularity?: "day" | "week";
+}
+
+export interface LifecycleDistributions {
+  verificationOutcome: Record<string, number>;
+  fieldValidationState: Record<string, number>;
+  referralState: Record<string, number>;
+}
+
+export interface AreaEstimate {
+  estimatedHectares: number;
+  contributingReports: number;
+  measuredReports: number;
+  measuredHectares: number;
+  notMeasuredReports: number;
+  notMeasuredHectares: number;
+  linkedDuplicatesExcluded: number;
+  overlapNote: string;
+}
+
+export interface ValidationWorkload {
+  assignees: Array<{
+    assigneeId: number;
+    name: string;
+    openReports: number;
+  }>;
+  unassigned: number;
+}
+
+export interface ValidationSchedule {
+  unscheduled: number;
+  scheduled: number;
+  dueToday: number;
+  pastTargetDate: number;
+  today: string;
+}
+
+export interface ReviewBacklog {
+  totalWaiting: number;
+  buckets: ReportAnalyticsSeriesPoint[];
+  oldestWaitingDays: number | null;
+}
+
+export interface ValidationTurnaround {
+  source: string;
+  completed: number;
+  averageHours: number | null;
+  medianHours: number | null;
+  minHours: number | null;
+  maxHours: number | null;
+  buckets: ReportAnalyticsSeriesPoint[];
 }
 
 export interface MonthlyReportSummary {

@@ -15,6 +15,7 @@ import {
   ANALYTICS_EMPTY_STATE,
   analyticsCopy,
   analyticsPeriodLine,
+  areaDisclosureLine,
 } from "./analyticsCopy";
 import { barangayColor, chartTheme, conditionColor } from "./chartTheme";
 
@@ -396,7 +397,294 @@ export function AnalyticsSectionView({
           </BarChart>
           <p className="analytics-card__description">{deltaCopy}</p>
         </ChartFrame>
+
+        <LifecycleCard analytics={analytics} empty={empty} />
+
+        <ChartFrame
+          titleId="analytics-area-heading"
+          title={analyticsCopy.area.title}
+          description={analyticsCopy.area.description}
+          periodLabel={period.label}
+          chartLabel={
+            `Estimated affected area, ${period.label}: ` +
+            `${analytics.area.measuredHectares} measured ha from ${analytics.area.measuredReports} submitted reports, ` +
+            `${analytics.area.notMeasuredHectares} not-measured ha from ${analytics.area.notMeasuredReports} submitted reports.`
+          }
+          empty={empty}
+          tableCaption={`Estimated affected area, ${period.label}`}
+          tableHead={["Recorded as", "Estimated ha", "Submitted reports"]}
+          tableRows={[
+            ["Measured", String(analytics.area.measuredHectares), String(analytics.area.measuredReports)],
+            ["Not measured", String(analytics.area.notMeasuredHectares), String(analytics.area.notMeasuredReports)],
+          ]}
+        >
+          <BarChart
+            width={560}
+            height={300}
+            data={[
+              { name: "Measured", count: analytics.area.measuredHectares },
+              { name: "Not measured", count: analytics.area.notMeasuredHectares },
+            ]}
+          >
+            <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
+            <XAxis dataKey="name" {...axisProps()} />
+            <YAxis {...axisProps()} />
+            <Tooltip />
+            <Bar dataKey="count" name="Estimated ha" fill={chartTheme.brand} />
+          </BarChart>
+          <p className="analytics-card__description">{areaDisclosureLine(analytics.area)}</p>
+        </ChartFrame>
+
+        <ChartFrame
+          titleId="analytics-workload-heading"
+          title={analyticsCopy.workload.title}
+          description={analyticsCopy.workload.description}
+          periodLabel={period.label}
+          chartLabel={
+            `Field-validation workload, ${period.label}: ` +
+            [...analytics.validationWorkload.assignees.map(
+              (item) => `${item.name}: ${item.openReports}`,
+            ), `Unassigned: ${analytics.validationWorkload.unassigned}`].join(", ")
+          }
+          empty={empty}
+          tableCaption={`Field-validation workload, ${period.label}`}
+          tableHead={["Assignee", "Open validation reports"]}
+          tableRows={[
+            ...analytics.validationWorkload.assignees.map((item) => [
+              item.name,
+              String(item.openReports),
+            ]),
+            ["Unassigned", String(analytics.validationWorkload.unassigned)],
+          ]}
+        >
+          <BarChart
+            width={560}
+            height={Math.max(
+              240,
+              (analytics.validationWorkload.assignees.length + 1) * 48 + 80,
+            )}
+            data={[
+              ...analytics.validationWorkload.assignees.map((item) => ({
+                name: item.name,
+                count: item.openReports,
+              })),
+              { name: "Unassigned", count: analytics.validationWorkload.unassigned },
+            ]}
+            layout="vertical"
+          >
+            <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
+            <XAxis type="number" allowDecimals={false} {...axisProps()} />
+            <YAxis type="category" dataKey="name" width={140} {...axisProps()} />
+            <Tooltip />
+            <Bar dataKey="count" name="Open validation reports">
+              {[
+                ...analytics.validationWorkload.assignees.map((item) => ({
+                  key: String(item.assigneeId),
+                  name: item.name,
+                })),
+                { key: "unassigned", name: "Unassigned" },
+              ].map((row, index) => (
+                <Cell key={row.key} fill={barangayColor(index)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartFrame>
+
+        <ChartFrame
+          titleId="analytics-schedule-heading"
+          title={analyticsCopy.schedule.title}
+          description={analyticsCopy.schedule.description}
+          periodLabel={period.label}
+          chartLabel={
+            `Validation schedule against target dates, ${period.label}: ` +
+            `unscheduled ${analytics.validationSchedule.unscheduled}, scheduled ${analytics.validationSchedule.scheduled}, ` +
+            `due today ${analytics.validationSchedule.dueToday}, past target date ${analytics.validationSchedule.pastTargetDate}.`
+          }
+          empty={empty}
+          tableCaption={`Validation schedule against target dates, ${period.label}`}
+          tableHead={["Schedule bucket", "Open validation reports"]}
+          tableRows={[
+            ["Unscheduled", String(analytics.validationSchedule.unscheduled)],
+            ["Scheduled", String(analytics.validationSchedule.scheduled)],
+            ["Due today", String(analytics.validationSchedule.dueToday)],
+            ["Past target date", String(analytics.validationSchedule.pastTargetDate)],
+          ]}
+        >
+          <BarChart
+            width={560}
+            height={300}
+            data={[
+              { name: "Unscheduled", count: analytics.validationSchedule.unscheduled },
+              { name: "Scheduled", count: analytics.validationSchedule.scheduled },
+              { name: "Due today", count: analytics.validationSchedule.dueToday },
+              { name: "Past target date", count: analytics.validationSchedule.pastTargetDate },
+            ]}
+          >
+            <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
+            <XAxis dataKey="name" {...axisProps()} />
+            <YAxis allowDecimals={false} {...axisProps()} />
+            <Tooltip />
+            <Bar dataKey="count" name="Open validation reports" fill={chartTheme.brand} />
+          </BarChart>
+        </ChartFrame>
+
+        <ChartFrame
+          titleId="analytics-backlog-heading"
+          title={analyticsCopy.backlog.title}
+          description={analyticsCopy.backlog.description}
+          periodLabel={period.label}
+          chartLabel={
+            `Review backlog by waiting age, ${period.label}: ` +
+            analytics.reviewBacklog.buckets.map((point) => `${point.label}: ${point.count}`).join(", ")
+          }
+          empty={empty}
+          tableCaption={`Review backlog by waiting age, ${period.label}`}
+          tableHead={["Waiting age", "Submitted reports"]}
+          tableRows={analytics.reviewBacklog.buckets.map((point) => [
+            point.label,
+            String(point.count),
+          ])}
+        >
+          <BarChart width={560} height={300} data={analytics.reviewBacklog.buckets}>
+            <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
+            <XAxis dataKey="label" tickFormatter={formatTick} {...axisProps()} />
+            <YAxis allowDecimals={false} {...axisProps()} />
+            <Tooltip />
+            <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
+          </BarChart>
+          <p className="analytics-card__description">
+            {analytics.reviewBacklog.totalWaiting === 0
+              ? "No submitted reports waiting for a first review."
+              : `${analytics.reviewBacklog.totalWaiting} submitted reports waiting for a first review` +
+                (analytics.reviewBacklog.oldestWaitingDays === null
+                  ? "."
+                  : `; oldest wait ${analytics.reviewBacklog.oldestWaitingDays} days.`)}
+          </p>
+        </ChartFrame>
+
+        <ChartFrame
+          titleId="analytics-turnaround-heading"
+          title={analyticsCopy.turnaround.title}
+          description={analyticsCopy.turnaround.description}
+          periodLabel={period.label}
+          chartLabel={
+            `Field-validation turnaround, ${period.label}: ` +
+            `${analytics.validationTurnaround.completed} completed validations` +
+            (analytics.validationTurnaround.averageHours === null
+              ? "."
+              : `, average ${analytics.validationTurnaround.averageHours} hours, median ${analytics.validationTurnaround.medianHours} hours.`)
+          }
+          empty={empty}
+          tableCaption={`Field-validation turnaround, ${period.label}`}
+          tableHead={["Duration", "Completed validations"]}
+          tableRows={analytics.validationTurnaround.buckets.map((point) => [
+            point.label,
+            String(point.count),
+          ])}
+        >
+          <BarChart width={560} height={300} data={analytics.validationTurnaround.buckets}>
+            <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
+            <XAxis dataKey="label" {...axisProps()} />
+            <YAxis allowDecimals={false} {...axisProps()} />
+            <Tooltip />
+            <Bar dataKey="count" name="Completed validations" fill={chartTheme.brand} />
+          </BarChart>
+          <p className="analytics-card__description">
+            {analytics.validationTurnaround.completed === 0
+              ? "No completed validations in this period."
+              : `${analytics.validationTurnaround.completed} completed validations · ` +
+                `average ${metricHours(analytics.validationTurnaround.averageHours)} · ` +
+                `median ${metricHours(analytics.validationTurnaround.medianHours)} · ` +
+                `range ${metricHours(analytics.validationTurnaround.minHours)}–${metricHours(analytics.validationTurnaround.maxHours)}.`}
+          </p>
+        </ChartFrame>
       </div>
+    </section>
+  );
+}
+
+function metricHours(value: number | null): string {
+  return value === null ? "not available" : `${value} hours`;
+}
+
+function LifecycleCard({
+  analytics,
+  empty,
+}: {
+  analytics: ReportAnalytics;
+  empty: boolean;
+}) {
+  const groups = [
+    {
+      key: "verification_outcome",
+      title: analyticsCopy.lifecycle.verificationOutcome,
+      entries: Object.entries(analytics.lifecycle.verificationOutcome),
+    },
+    {
+      key: "field_validation_state",
+      title: analyticsCopy.lifecycle.fieldValidationState,
+      entries: Object.entries(analytics.lifecycle.fieldValidationState),
+    },
+    {
+      key: "referral_state",
+      title: analyticsCopy.lifecycle.referralState,
+      entries: Object.entries(analytics.lifecycle.referralState),
+    },
+  ];
+
+  return (
+    <section aria-labelledby="analytics-lifecycle-heading" className="analytics-card">
+      <div className="monthly-summary-subheading">
+        <h3 id="analytics-lifecycle-heading">{analyticsCopy.lifecycle.title}</h3>
+      </div>
+      <p className="analytics-card__description">{analyticsCopy.lifecycle.description}</p>
+      <p className="analytics-card__period">{analyticsPeriodLine(analytics.period.label)}</p>
+      {empty ? (
+        <p className="monthly-summary-empty">{ANALYTICS_EMPTY_STATE}</p>
+      ) : (
+        groups.map((group) => {
+          const data = group.entries.map(([name, count]) => ({
+            name: name.replaceAll("_", " "),
+            count,
+          }));
+          const label =
+            `${group.title}, ${analytics.period.label}: ` +
+            group.entries.map(([name, count]) => `${name}: ${count}`).join(", ");
+          return (
+            <div key={group.key} className="analytics-lifecycle-group">
+              <h4 className="analytics-lifecycle-group__title">{group.title}</h4>
+              <div role="img" aria-label={label} className="analytics-chart">
+                <BarChart width={560} height={220} data={data}>
+                  <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
+                  <XAxis dataKey="name" {...axisProps()} />
+                  <YAxis allowDecimals={false} {...axisProps()} />
+                  <Tooltip />
+                  <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
+                </BarChart>
+              </div>
+              <table className="sr-only">
+                <caption>
+                  {group.title}, {analytics.period.label}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">State</th>
+                    <th scope="col">Submitted reports</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.entries.map(([name, count]) => (
+                    <tr key={name}>
+                      <td>{name}</td>
+                      <td>{count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })
+      )}
     </section>
   );
 }

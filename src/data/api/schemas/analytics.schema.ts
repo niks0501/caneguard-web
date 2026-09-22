@@ -14,6 +14,13 @@ const analyticsSeriesPointSchema = z.object({
   count: z.number().int().nonnegative(),
 });
 
+const analyticsBucketSchema = z.object({
+  label: z.string(),
+  count: z.number().int().nonnegative(),
+});
+
+const lifecycleDistributionSchema = z.record(z.string(), z.number().int().nonnegative());
+
 export const analyticsResponseSchema = z.object({
   data: z.object({
     period: z.object({
@@ -51,6 +58,52 @@ export const analyticsResponseSchema = z.object({
       previous_total: z.number().int().nonnegative(),
       current_total: z.number().int().nonnegative(),
       delta: z.number().int(),
+    }),
+    lifecycle: z.object({
+      verification_outcome: lifecycleDistributionSchema,
+      field_validation_state: lifecycleDistributionSchema,
+      referral_state: lifecycleDistributionSchema,
+    }),
+    area: z.object({
+      estimated_hectares: z.number().nonnegative(),
+      contributing_reports: z.number().int().nonnegative(),
+      measured_reports: z.number().int().nonnegative(),
+      measured_hectares: z.number().nonnegative(),
+      not_measured_reports: z.number().int().nonnegative(),
+      not_measured_hectares: z.number().nonnegative(),
+      linked_duplicates_excluded: z.number().int().nonnegative(),
+      overlap_note: z.string(),
+    }),
+    validation_workload: z.object({
+      assignees: z.array(
+        z.object({
+          assignee_id: z.number().int(),
+          name: z.string(),
+          open_reports: z.number().int().nonnegative(),
+        }),
+      ),
+      unassigned: z.number().int().nonnegative(),
+    }),
+    validation_schedule: z.object({
+      unscheduled: z.number().int().nonnegative(),
+      scheduled: z.number().int().nonnegative(),
+      due_today: z.number().int().nonnegative(),
+      past_target_date: z.number().int().nonnegative(),
+      today: z.iso.date(),
+    }),
+    review_backlog: z.object({
+      total_waiting: z.number().int().nonnegative(),
+      buckets: z.array(analyticsBucketSchema),
+      oldest_waiting_days: z.number().int().nonnegative().nullable(),
+    }),
+    validation_turnaround: z.object({
+      source: z.string(),
+      completed: z.number().int().nonnegative(),
+      average_hours: z.number().nonnegative().nullable(),
+      median_hours: z.number().nonnegative().nullable(),
+      min_hours: z.number().nonnegative().nullable(),
+      max_hours: z.number().nonnegative().nullable(),
+      buckets: z.array(analyticsBucketSchema),
     }),
   }),
 });
