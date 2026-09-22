@@ -456,6 +456,12 @@ pre.code .c { color: #8fb59b; }
 .phase .pgate b { display: block; font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-primary-light); margin-bottom: 3px; }
 .phase.is-milestone { background: var(--color-primary-tint); border-radius: var(--radius-md); padding-left: var(--space-3); padding-right: var(--space-3); }
 .phase.is-milestone .pid { background: var(--color-primary); color: #fff; }
+.phase .appr, .phase .defer {
+  display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 9999px;
+  font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+}
+.phase .appr { background: var(--color-primary); color: #fff; }
+.phase .defer { background: var(--color-surface-soft); color: var(--color-secondary-text); }
 .phase .flag {
   display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 9999px;
   background: var(--brand-cream); color: #5e5426; font-size: 10px; font-weight: 700;
@@ -481,6 +487,37 @@ pre.code .c { color: #8fb59b; }
   box-shadow: var(--shadow-surface);
 }
 .q.is-queued { border-left-color: var(--brand-gold); background: #fffdf6; }
+.q.is-decided { border-left-color: var(--color-primary); background: var(--color-surface-muted); }
+.q.is-open { border-left-color: var(--brand-gold); background: #fffdf6; }
+.q .qdec {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: #fff; background: var(--color-primary); padding: 3px 9px; border-radius: 9999px;
+}
+.q .answer {
+  margin: var(--space-3) 0 0; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--color-primary-tint); border-left: 4px solid var(--color-primary);
+  font-size: 14px; color: var(--color-primary-dark); font-weight: 600;
+}
+.q .answer small { display: block; margin-top: 4px; font-size: 13px; font-weight: 400; color: var(--color-secondary-text); }
+.q .askback {
+  margin: var(--space-3) 0 0; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--color-surface-soft); border-left: 4px solid var(--color-border-strong);
+  font-size: 14px; color: var(--color-text); font-style: italic;
+}
+.dec-banner {
+  display: grid; gap: var(--space-3); grid-template-columns: repeat(3, minmax(0,1fr));
+  margin-top: var(--space-4);
+}
+@media (max-width: 860px) { .dec-banner { grid-template-columns: minmax(0,1fr); } }
+.dec-banner .d {
+  border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-md); background: var(--color-surface); padding: var(--space-4);
+}
+.dec-banner .d.is-open { border-left-color: var(--brand-gold); background: #fffdf6; }
+.dec-banner .d .dk { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--color-primary-light); }
+.dec-banner .d.is-open .dk { color: #8a7327; }
+.dec-banner .d .dv { margin-top: 5px; font-size: 15px; font-weight: 600; color: var(--color-primary-dark); }
+.dec-banner .d .dd { margin-top: 4px; font-size: 13.5px; color: var(--color-secondary-text); }
 .q .qhead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: 6px; }
 .q .qid {
   font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
@@ -555,6 +592,39 @@ pre.code .c { color: #8fb59b; }
   .batch .row2, .batch .item-head { display: none; }
 }
 
+.plain-h { margin: var(--space-5) 0 var(--space-2); font-family: var(--font-heading); font-size: 16px; font-weight: 600; color: var(--color-primary-dark); }
+.runs { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, minmax(0,1fr)); }
+@media (max-width: 700px) { .runs { grid-template-columns: minmax(0,1fr); } }
+.runs .run {
+  border: 1px solid var(--color-border); border-top: 4px solid var(--color-primary);
+  border-radius: var(--radius-md); background: var(--color-surface-muted); padding: var(--space-4);
+}
+.runs .run + .run { border-top-color: var(--brand-gold); }
+.runs .run-who { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--color-primary-light); }
+.runs .run-what { margin-top: 4px; font-size: 16px; color: var(--color-text); }
+.runs .run-role { margin-top: 6px; font-size: 13.5px; color: var(--color-secondary-text); }
+
+.rollout-receipt { list-style: none; margin: 0; padding: 0; }
+.rollout-receipt > li {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: var(--space-3);
+  padding: 12px 0; border-bottom: 1px solid var(--color-border); align-items: start;
+}
+.rollout-receipt > li:last-child { border-bottom: 0; }
+.rollout-receipt .rr-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 700;
+  color: var(--color-primary-dark); background: var(--color-primary-tint);
+  border-radius: var(--radius-sm); padding: 3px 0; text-align: center;
+}
+.rollout-receipt .rr-t { font-size: 14.5px; font-weight: 600; color: var(--color-text); }
+.rollout-receipt .rr-d { display: block; margin-top: 3px; font-size: 13.5px; color: var(--color-secondary-text); }
+.pill {
+  display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 9999px;
+  font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+}
+.pill.ok { background: var(--color-primary); color: #fff; }
+.pill.no { background: var(--color-surface-soft); color: var(--color-secondary-text); }
+.pill.hold { background: var(--brand-cream); color: #5e5426; }
+
 .note-band {
   margin-top: var(--space-5); padding: var(--space-4);
   background: var(--color-surface-soft); border: 1px solid var(--color-border);
@@ -586,15 +656,64 @@ ul.plain li strong { color: var(--color-text); }
       previewed on screen for whatever period was chosen, before anyone downloads anything.
     </p>
     <div class="head-chips">
-      <span class="chip is-plan">Plan only — no code changed, no dependency installed</span>
+      <span class="chip is-ok">All five decisions locked — Q1–Q5 · P0–P2 approved</span>
       <span class="chip">21 Sep 2026</span>
       <span class="chip is-ok">Recommendation verified compatible with PHP 8.3 + Laravel 13</span>
-      <span class="chip">5 decisions needed</span>
+      <span class="chip">Nothing blocked</span>
     </div>
   </div>
 </header>
 
 <div class="wrap">
+
+  <!-- ================= DECISIONS RECORDED ================= -->
+  <section class="block" style="margin-top:var(--space-6)">
+    <div class="block-head">
+      <span class="kicker">Recorded 22 September 2026</span>
+      <h2>What the captain decided</h2>
+      <p>
+        All five questions are closed and folded into the plan below, and the tracked batch was approved for
+        phases P0, P1 and P2. Nothing is blocked; the build round can start.
+      </p>
+    </div>
+    <div class="dec-banner">
+      <div class="d">
+        <div class="dk">Q1 · Timezone — Closed</div>
+        <div class="dv">Philippine Standard Time (UTC+8)</div>
+        <div class="dd">Document period boundaries only. The dashboard's existing UTC monthly panel is left unchanged.</div>
+      </div>
+      <div class="d">
+        <div class="dk">Q2 · Preview — Closed</div>
+        <div class="dv">Live HTML document in a same-origin iframe</div>
+        <div class="dd">One template, zero drift. Needs the narrow route-scoped <code>frame-ancestors</code> allowance.</div>
+      </div>
+      <div class="d">
+        <div class="dk">Q3 · Appendix — Closed</div>
+        <div class="dv">Off by default, explicit opt-in</div>
+        <div class="dd">The farmer-reference line is visibly marked whenever the case register is included.</div>
+      </div>
+      <div class="d">
+        <div class="dk">Q4 · Entry points — Closed</div>
+        <div class="dv">Both the Dashboard and Submitted Reports</div>
+        <div class="dd">One builder component, two entry points.</div>
+      </div>
+      <div class="d">
+        <div class="dk">Rollout — Approved</div>
+        <div class="dv">P0 → P1 → P2</div>
+        <div class="dd">P3 not selected. P4 deferred, to be re-planned before starting.</div>
+      </div>
+      <div class="d">
+        <div class="dk">Q5 · Dependency — Closed</div>
+        <div class="dv">A host Chromium is accepted</div>
+        <div class="dd">Brave for Linux is the default — no new browser vendor. Plain Chromium is an equivalent one-line change.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:var(--space-4);border-left:4px solid var(--color-primary)">
+      <h3>Document design approved</h3>
+      <p>On the weekly report preview: <em>“I love the format and the future contents of the generated document.”</em>
+         The template structure in the section below is therefore confirmed as the target design, not a draft.</p>
+    </div>
+  </section>
 
   <!-- ================= THE ASK ================= -->
   <section class="block">
@@ -1272,6 +1391,10 @@ ul.plain li strong { color: var(--color-text); }
             still-open week or month — so a mid-week report is never mistaken for a complete one.</li>
         <li><strong>Maximum span 366 days</strong>, rejected at validation, bounding both the aggregate query
             cost and a single Chromium render.</li>
+        <li><strong>Boundaries are PHT (UTC+8) — decided (Q1).</strong> All three period definitions use
+            <code>Asia/Manila</code>, and the timezone is printed in every document. The dashboard's existing
+            monthly panel keeps its UTC semantics, so the document states its own boundary rule explicitly
+            rather than leaving the two to be confused.</li>
         <li>The period and the active filters are always printed into the document, so a filed or emailed
             document is self-describing.</li>
       </ul>
@@ -1323,9 +1446,10 @@ ul.plain li strong { color: var(--color-text); }
         <div class="row">
           <div class="k">Privacy</div>
           <div class="v">
-            The appendix carries <code>farmer_or_farm_owner_name</code>. It is <strong>off by default</strong>
-            and never emitted unless explicitly enabled, because a period report circulates far more widely
-            than the case register does.
+            <strong>Decided (Q3).</strong> The appendix carries <code>farmer_or_farm_owner_name</code>. It is
+            <strong>off by default</strong> and never emitted unless explicitly enabled per document, because a
+            period report circulates far more widely than the case register does. When enabled, the builder
+            warns that farmer and farm references are included and the appendix marks the reference line.
           </div>
         </div>
       </div>
@@ -1369,12 +1493,23 @@ composer require spatie/laravel-pdf spatie/browsershot
 <span class="c"># Chromium driver runtime (Node is already a documented host prerequisite)</span>
 npm install puppeteer
 
-<span class="c"># Host provisioning</span>
-<span class="c">#   A pinned Chrome/Chromium binary, with its path set explicitly in config</span>
-<span class="c">#   rather than relying on Browsershot autodiscovery.</span></pre>
+<span class="c"># Host provisioning — pick ONE, best first:</span>
+<span class="c">#   1. Brave for Linux — the captain's own browser, no new vendor</span>
+<span class="c">#        sudo apt install brave-browser        # Brave's official apt repo</span>
+<span class="c">#        LARAVEL_PDF_CHROME_PATH=/usr/bin/brave-browser</span>
+<span class="c">#   2. Plain Chromium on the host</span>
+<span class="c">#        sudo apt install chromium-browser</span>
+<span class="c">#        LARAVEL_PDF_CHROME_PATH=/usr/bin/chromium-browser</span>
+<span class="c">#   3. Nothing at all — "browser print only" (Q5 option 3)</span></pre>
       <ul class="plain">
-        <li>Publish <code>config/laravel-pdf.php</code> with an <strong>explicit Chromium path</strong> and A4
-            defaults, so a host upgrade cannot silently change rendering.</li>
+        <li><strong>The host binary can be Brave.</strong> <code>Browsershot::setChromePath()</code> sets
+            Puppeteer's <code>executablePath</code>, and <code>spatie/laravel-pdf</code> exposes it as
+            first-class config — the published <code>config/laravel-pdf.php</code> has a
+            <code>browsershot.chrome_path</code> key backed by <code>LARAVEL_PDF_CHROME_PATH</code>. Brave is
+            Chromium, so no second browser vendor is needed. The captain's Windows Brave cannot be reused by
+            the Linux-side API, so the host needs its own Linux binary — or none, with option 3.</li>
+        <li>Publish <code>config/laravel-pdf.php</code> with an <strong>explicit <code>chrome_path</code></strong>
+            and A4 defaults, so a host upgrade cannot silently change rendering.</li>
         <li>The render runs <strong>queued</strong>, never inside the request that also serves the preview — a
             Chromium render costs seconds and ~250 MB peak.</li>
         <li><strong>No dependency is needed for the preview, the builder, the template, or the Print path.</strong>
@@ -1454,7 +1589,7 @@ npm install puppeteer
           <div class="pdesc">Extract the shared metric helpers; add <code>BuildReportDocument</code> with weekly,
             monthly and custom ranges, leaving <code>BuildMonthlyReportSummary</code> behaviourally identical.</div>
         </div>
-        <div class="pgate"><b>Gate</b><code>npm run check:api</code> plus the equality test</div>
+        <div class="pgate"><b>Gate</b><code>npm run check:api</code> plus the equality and PHT-boundary tests<br><span class="appr">Approved — build first</span></div>
       </div>
       <div class="phase is-milestone">
         <div class="pid">P1</div>
@@ -1464,7 +1599,7 @@ npm install puppeteer
             fonts and logo on the API origin, and the builder UI with a live iframe preview and a working Print.
             <strong>No new dependency.</strong></div>
         </div>
-        <div class="pgate"><b>Gate</b>Document-contract test, CSP regression, web tests</div>
+        <div class="pgate"><b>Gate</b>Document-contract test, CSP regression, web tests<br><span class="appr">Approved — delivers the ask</span></div>
       </div>
       <div class="phase">
         <div class="pid">P2</div>
@@ -1473,7 +1608,7 @@ npm install puppeteer
           <div class="pdesc"><code>spatie/laravel-pdf</code> + Browsershot + Chromium, published config, queued
             render, and the Download PDF button producing exactly the previewed document.</div>
         </div>
-        <div class="pgate"><b>Gate</b>One-time manual PDF verification</div>
+        <div class="pgate"><b>Gate</b>One-time manual PDF verification<br><span class="appr">Approved — host binary accepted (Q5)</span></div>
       </div>
       <div class="phase">
         <div class="pid">P3</div>
@@ -1482,7 +1617,7 @@ npm install puppeteer
           <div class="pdesc">Case-register appendix (opt-in), saving builder defaults, and the trend and
             operational-queue refinements.</div>
         </div>
-        <div class="pgate"><b>Gate</b>Extended privacy assertions</div>
+        <div class="pgate"><b>Gate</b>Extended privacy assertions<br><span class="defer">Not selected this round</span></div>
       </div>
       <div class="phase">
         <div class="pid">P4</div>
@@ -1491,56 +1626,41 @@ npm install puppeteer
           <div class="pdesc">Entry points from the Monitoring workspace, and optionally a scheduled or emailed
             weekly/monthly document. Driver swap to Gotenberg or WeasyPrint if warranted.</div>
         </div>
-        <div class="pgate"><b>Gate</b>Re-plan before starting</div>
+        <div class="pgate"><b>Gate</b>Re-plan before starting<br><span class="defer">Deferred by the captain</span></div>
       </div>
     </div>
 
-    <form class="q batch" data-lavish-question="rollout-phases" id="q-rollout" style="margin-top:20px"
-          onsubmit="event.preventDefault(); const selected = [...event.currentTarget.querySelectorAll('input[name=phases]:checked')].map((input) => ({ id: input.value, label: input.dataset.label, disposition: input.dataset.disposition })); if (!selected.length) return; const lines = selected.map((item) => item.id + ' — ' + item.label).join('; '); if (window.lavish && typeof window.lavish.queuePrompt === 'function') { window.lavish.queuePrompt('The captain approved this rollout set: ' + lines + '. Build every approved phase in that order, follow the stated gate for each, and return an item-by-item receipt accounting for every submitted ID before reporting completion. ', { tag: 'tracked-batch', text: 'Rollout approved: ' + selected.length + ' phase(s) — ' + lines, element: event.currentTarget, data: { items: selected } }); } document.getElementById('q-rollout').classList.add('is-queued'); document.getElementById('q-rollout').querySelector('.receipt-text').textContent = lines;">
+    <div class="q batch is-decided" id="rollout-record" style="margin-top:20px">
       <div class="qhead">
         <span class="qid" style="background:#b8ad73;color:#3f3a1c">Tracked batch</span>
-        <span class="qrec">Batch</span>
-        <span class="qstate">Not queued</span>
+        <span class="qdec">Decided 22 Sep 2026</span>
+        <span class="qstate">Closed</span>
       </div>
-      <h3>Which rollout phases do you approve?</h3>
+      <h3>Rollout: P0, P1 and P2 approved &mdash; P3 not selected, P4 deferred</h3>
       <p class="qwhy">
-        Select every phase you want built in this round, then queue them once. Phase 1 alone is a complete
-        feature; Phase 2 adds the PDF file itself.
+        Recorded from the board. The build round is Phases 0&ndash;2, in that order, each following its stated
+        gate before the next begins.
       </p>
-      <div class="items">
-        <div class="item-head row2"><span></span><span>Phase</span><span>Disposition</span></div>
-        <label class="item">
-          <input type="checkbox" name="phases" value="P0" data-label="Period groundwork — generalise BuildMonthlyReportSummary into BuildReportDocument with weekly, monthly and custom ranges" data-disposition="approved">
-          <span><span class="it-id">P0</span> <span class="it-t">Period groundwork</span><br><span class="it-d">Weekly, monthly and custom ranges in the API. No user-visible change on its own.</span></span>
-          <span class="it-disp">Must ship first</span>
-        </label>
-        <label class="item">
-          <input type="checkbox" name="phases" value="P1" data-label="Document template and preview — the Blade document, the document route, the route-scoped CSP allowance, self-hosted fonts and logo, and the builder UI with live iframe preview and Print" data-disposition="approved">
-          <span><span class="it-id">P1</span> <span class="it-t">Document template and preview</span> <em style="font-style:normal;font-size:12px;color:#2d6b40;font-weight:700">· delivers the ask, needs no new dependency</em><br><span class="it-d">Beautiful branded period documents, previewed and printable.</span></span>
-          <span class="it-disp">Recommended</span>
-        </label>
-        <label class="item">
-          <input type="checkbox" name="phases" value="P2" data-label="PDF artefact — spatie/laravel-pdf with the Browsershot Chromium driver, published config, queued render and the Download PDF button" data-disposition="approved">
-          <span><span class="it-id">P2</span> <span class="it-t">The PDF artefact</span><br><span class="it-d">One-click PDF. Adds the Chromium/Puppeteer dependency.</span></span>
-          <span class="it-disp">Recommended</span>
-        </label>
-        <label class="item">
-          <input type="checkbox" name="phases" value="P3" data-label="Depth — opt-in case-register appendix, saved builder defaults, trend and operational-queue refinements" data-disposition="approved">
-          <span><span class="it-id">P3</span> <span class="it-t">Depth</span><br><span class="it-d">Appendix, saved defaults, refinements.</span></span>
-          <span class="it-disp">Optional</span>
-        </label>
-        <label class="item">
-          <input type="checkbox" name="phases" value="P4" data-label="Reach — Monitoring workspace entry points and optional scheduled or emailed weekly and monthly documents, re-planned before starting" data-disposition="deferred">
-          <span><span class="it-id">P4</span> <span class="it-t">Reach</span><br><span class="it-d">Scheduled/emailed documents. Needs its own plan first.</span></span>
-          <span class="it-disp">Re-plan first</span>
-        </label>
-      </div>
-      <div class="qactions">
-        <button type="submit" class="queue">Queue selected phases</button>
-        <span class="qhint">Sends one prompt listing every selected phase.</span>
-      </div>
-      <div class="receipt">Queued: <b class="receipt-text"></b></div>
-    </form>
+      <ul class="rollout-receipt">
+        <li><span class="rr-id">P0</span>
+          <span class="rr-body"><span class="rr-t">Period groundwork</span> <span class="pill ok">Approved</span>
+            <span class="rr-d">First, because every later phase depends on the period-parameterised payload.</span></span></li>
+        <li><span class="rr-id">P1</span>
+          <span class="rr-body"><span class="rr-t">Document template and preview</span> <span class="pill ok">Approved</span>
+            <span class="rr-d">Delivers the ask and needs no new dependency. The approved document design ships here.</span></span></li>
+        <li><span class="rr-id">P2</span>
+          <span class="rr-body"><span class="rr-t">The PDF artefact</span> <span class="pill ok">Approved</span>
+            <span class="rr-d">Host binary accepted under Q5, so this is unblocked too.</span></span></li>
+        <li><span class="rr-id">P3</span>
+          <span class="rr-body"><span class="rr-t">Depth</span> <span class="pill no">Not selected</span>
+            <span class="rr-d">What this removes is <b>saved builder defaults and refinement work</b>. Boundary note,
+            made explicit rather than assumed: the case-register appendix and the trend and operational-queue
+            sections are part of the document template the captain approved, so they ship in <b>P1</b>, not P3.</span></span></li>
+        <li><span class="rr-id">P4</span>
+          <span class="rr-body"><span class="rr-t">Reach</span> <span class="pill hold">Deferred</span>
+            <span class="rr-d">Scheduled and emailed documents need their own plan first, exactly as the phase gate said.</span></span></li>
+      </ul>
+    </div>
   </section>
 
   <!-- ================= RISKS ================= -->
@@ -1551,10 +1671,13 @@ npm install puppeteer
     </div>
     <div class="card">
       <div class="risk">
-        <div><div class="rt">Chromium or Puppeteer cannot be provisioned on the deployment host</div>
-          <div class="rd">Phases 0–1 need no binary at all; the browser Print path stays as the escape hatch; the
-            documented fallback is Dompdf, verified Laravel-13 compatible.</div></div>
-        <div><span class="sev high">High</span></div>
+        <div><div class="rt">The host Chromium binary cannot be provisioned <em style="font-style:normal;color:#2d6b40;font-weight:600">— resolved by the Q5 decision</em></div>
+          <div class="rd">The rating was about impact if it fails, not likelihood. <b>Brave is already the
+            captain's browser and installs on Linux from Brave's own apt repo</b>, so no new browser vendor is
+            needed and <code>LARAVEL_PDF_CHROME_PATH</code> points Browsershot at it. Phases 0–1 need no binary
+            at all, browser Print covers the need, and the Dompdf fallback is verified Laravel-13 compatible.
+            <b>The captain accepted a host binary under Q5</b>, so the uncertainty is closed rather than carried.</div></div>
+        <div><span class="sev low">Low</span></div>
       </div>
       <div class="risk">
         <div><div class="rt">Chromium render cost — seconds and ~250 MB peak</div>
@@ -1563,7 +1686,7 @@ npm install puppeteer
         <div><span class="sev med">Medium</span></div>
       </div>
       <div class="risk">
-        <div><div class="rt">The CSP relaxation widens the framing boundary</div>
+        <div><div class="rt">The CSP relaxation widens the framing boundary <em style="font-style:normal;color:#5d6d60">— accepted with Q2</em></div>
           <div class="rd">Route-scoped only, config-driven allowlist defaulting to <code>'self'</code>, with an
             explicit regression test proving every other HTML route still denies framing.</div></div>
         <div><span class="sev med">Medium</span></div>
@@ -1581,7 +1704,8 @@ npm install puppeteer
       </div>
       <div class="risk">
         <div><div class="rt">Farmer names leak into widely circulated documents</div>
-          <div class="rd">The appendix is default-off, tied to an explicit decision, and asserted in tests.</div></div>
+          <div class="rd"><b>Decided (Q3):</b> appendix off by default, explicit opt-in, visible warning when
+            enabled, and an assertion in the document tests.</div></div>
         <div><span class="sev med">Medium</span></div>
       </div>
       <div class="risk">
@@ -1601,229 +1725,293 @@ npm install puppeteer
   <!-- ================= OPEN QUESTIONS ================= -->
   <section class="block" id="questions">
     <div class="block-head">
-      <span class="kicker">Decisions needed</span>
-      <h2>Five questions — answer any subset</h2>
+      <span class="kicker">Decisions</span>
+      <h2>All five decisions, recorded and closed</h2>
       <p>
-        Each question queues independently, so nothing blocks. Selecting an option only changes this page;
-        the answer is sent when you press that question's <b>Queue this answer</b> button, and the card turns
-        gold to show what is on its way. Every question carries my recommendation.
+        Recorded from the review board on 22 September 2026. Every decision is folded into the plan above and none
+        of them is an open question any more. Q5's card keeps the full reasoning behind it, because the two
+        questions asked while deciding it are the most useful part of the record.
       </p>
     </div>
 
-    <!-- Q1 -->
-    <form class="q" data-lavish-question="q1-timezone"
-          onsubmit="event.preventDefault(); const c = new FormData(event.currentTarget).get('q1'); if (!c) return; const t = event.currentTarget.querySelector('input[name=q1]:checked').dataset.label; if (window.lavish && typeof window.lavish.queuePrompt === 'function') { window.lavish.queuePrompt('Decision on Q1 (report period timezone): use ' + t + '. Apply it to the period boundaries of weekly, monthly and custom report documents. ', { tag: 'choice', text: 'Q1 timezone: ' + t, element: event.currentTarget, data: { question: 'q1-timezone', answer: c, label: t } }); } event.currentTarget.classList.add('is-queued'); event.currentTarget.querySelector('.receipt-text').textContent = t;">
-      <div class="qhead">
-        <span class="qid">Q1</span>
-        <span class="qrec">Recommendation: PHT</span>
-        <span class="qstate">Not queued</span>
+    <div class="grid g2">
+      <div class="q is-decided">
+        <div class="qhead"><span class="qid">Q1</span><span class="qdec">Decided</span><span class="qstate">Closed</span></div>
+        <h3>Period boundaries are Philippine Standard Time</h3>
+        <p class="qwhy">
+          The existing monthly summary is UTC-scoped, while field work is planned on Philippine local days &mdash;
+          a Sunday submission lands in different weeks under the two rules.
+        </p>
+        <p class="answer">PHT (UTC+8) defines document period boundaries, printed on every document.
+          <small>The dashboard's existing UTC monthly panel is left unchanged. The document therefore states its own
+          boundary rule explicitly, and the PHT boundary case is a required Phase 0 test.</small></p>
       </div>
-      <h3>Which timezone defines a week and a month?</h3>
-      <p class="qwhy">
-        The existing monthly summary is explicitly UTC-scoped (<code>BuildMonthlyReportSummary</code>: "cases
-        submitted during one UTC calendar month"). Field work, however, is planned on Philippine local days —
-        a Sunday submission sits in different weeks under the two rules. This shifts report counts, so it should
-        be a deliberate choice rather than a side effect.
-      </p>
-      <div class="opts">
-        <label class="opt">
-          <input type="radio" name="q1" value="pht" data-label="Philippine Standard Time (UTC+8) for document period boundaries, printed on every document">
-          <span><span class="ot">Philippine Standard Time (UTC+8) <span class="opick">Recommended</span></span>
-            <span class="od">Mon–Sun means the field week. The timezone is printed in the document footer. The
-            dashboard's existing UTC monthly panel is left unchanged unless you also want it unified.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q1" value="utc" data-label="UTC for document period boundaries, matching the existing monthly summary exactly">
-          <span><span class="ot">UTC — match the existing summary exactly</span>
-            <span class="od">Documents reconcile byte-for-byte with the dashboard's monthly panel and need no
-            conversion logic. Late-Sunday submissions may fall into the following week.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q1" value="unify" data-label="Philippine Standard Time for documents and also migrate the existing dashboard monthly summary to PHT in a follow-up">
-          <span><span class="ot">PHT for documents, and unify the dashboard too</span>
-            <span class="od">One consistent rule everywhere, at the cost of changing an existing, already-tested
-            screen and its numbers.</span></span>
-        </label>
-      </div>
-      <div class="qactions">
-        <button type="submit" class="queue">Queue this answer</button>
-        <span class="qhint">Sends your current selection for Q1 only.</span>
-      </div>
-      <div class="receipt">Queued: <b class="receipt-text"></b></div>
-    </form>
 
-    <!-- Q2 -->
-    <form class="q" data-lavish-question="q2-preview"
-          onsubmit="event.preventDefault(); const c = new FormData(event.currentTarget).get('q2'); if (!c) return; const t = event.currentTarget.querySelector('input[name=q2]:checked').dataset.label; if (window.lavish && typeof window.lavish.queuePrompt === 'function') { window.lavish.queuePrompt('Decision on Q2 (report preview mechanism): ' + t + '. Implement the preview accordingly. ', { tag: 'choice', text: 'Q2 preview: ' + t, element: event.currentTarget, data: { question: 'q2-preview', answer: c, label: t } }); } event.currentTarget.classList.add('is-queued'); event.currentTarget.querySelector('.receipt-text').textContent = t;">
-      <div class="qhead">
-        <span class="qid">Q2</span>
-        <span class="qrec">Recommendation: HTML iframe</span>
-        <span class="qstate">Not queued</span>
+      <div class="q is-decided">
+        <div class="qhead"><span class="qid">Q2</span><span class="qdec">Decided</span><span class="qstate">Closed</span></div>
+        <h3>The preview is the document itself, in a same-origin iframe</h3>
+        <p class="qwhy">
+          The API currently sends <code>frame-ancestors 'none'</code> with <code>X-Frame-Options: DENY</code>, so a
+          document cannot be framed today.
+        </p>
+        <p class="answer">Live HTML document in a same-origin iframe, with a route-scoped
+          <code>frame-ancestors</code> allowance.
+          <small>One template and zero drift, and it keeps working when Chromium is absent. The CSP change is
+          config-driven, defaults to <code>'self'</code>, and a regression test must prove every other HTML route
+          still denies framing.</small></p>
       </div>
-      <h3>How should the preview be shown?</h3>
-      <p class="qwhy">
-        This one has a real security consequence. The API currently sends <code>frame-ancestors 'none'</code> and
-        <code>X-Frame-Options: DENY</code> on every HTML response, so a document cannot be embedded today. The
-        first option needs one narrow, route-scoped allowance; the second needs no CSP change at all because a
-        <code>blob:</code> URL is same-origin.
-      </p>
-      <div class="opts">
-        <label class="opt">
-          <input type="radio" name="q2" value="html-iframe" data-label="Live HTML document in a same-origin iframe, with a route-scoped frame-ancestors allowance">
-          <span><span class="ot">Live HTML document in a same-origin iframe <span class="opick">Recommended</span></span>
-            <span class="od">The preview <em>is</em> the route the PDF renderer consumes — zero drift. Renders
-            instantly on a period change, needs no Chromium, and works even when the PDF path is unavailable.
-            Cost: one narrow CSP allowance on that route, which is framed only by our own origin.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q2" value="pdf-iframe" data-label="Preview the finished PDF via an object URL in an iframe, with no CSP change">
-          <span><span class="ot">Preview the finished PDF instead</span>
-            <span class="od">Literally the file you download, so drift is impossible even in principle, and
-            <b>no CSP change is needed</b>. Cost: a Chromium render every time the period changes, and no preview
-            at all if Chromium is unavailable.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q2" value="newtab" data-label="No embedded preview; open the document in a new tab, as referral summaries do today">
-          <span><span class="ot">No embedded preview — open in a new tab</span>
-            <span class="od">Zero new security surface and exactly the pattern already shipped for referral
-            summaries. Cost: it does not satisfy "preview inside the page" as directly.</span></span>
-        </label>
-      </div>
-      <div class="qactions">
-        <button type="submit" class="queue">Queue this answer</button>
-        <span class="qhint">Sends your current selection for Q2 only.</span>
-      </div>
-      <div class="receipt">Queued: <b class="receipt-text"></b></div>
-    </form>
 
-    <!-- Q3 -->
-    <form class="q" data-lavish-question="q3-appendix"
-          onsubmit="event.preventDefault(); const c = new FormData(event.currentTarget).get('q3'); if (!c) return; const t = event.currentTarget.querySelector('input[name=q3]:checked').dataset.label; if (window.lavish && typeof window.lavish.queuePrompt === 'function') { window.lavish.queuePrompt('Decision on Q3 (case register appendix in report documents): ' + t + '. Apply it as the default for every report type. ', { tag: 'choice', text: 'Q3 appendix: ' + t, element: event.currentTarget, data: { question: 'q3-appendix', answer: c, label: t } }); } event.currentTarget.classList.add('is-queued'); event.currentTarget.querySelector('.receipt-text').textContent = t;">
-      <div class="qhead">
-        <span class="qid">Q3</span>
-        <span class="qrec">Recommendation: off by default</span>
-        <span class="qstate">Not queued</span>
+      <div class="q is-decided">
+        <div class="qhead"><span class="qid">Q3</span><span class="qdec">Decided</span><span class="qstate">Closed</span></div>
+        <h3>The case register appendix is opt-in</h3>
+        <p class="qwhy">
+          The appendix lists one row per case &mdash; the CSV columns, including
+          <code>farmer_or_farm_owner_name</code> &mdash; and a period report circulates far more widely than the
+          case register does.
+        </p>
+        <p class="answer">Off by default, enabled explicitly per document, with the farmer-reference line visibly marked.
+          <small>The builder warns when it is enabled, and a document test asserts the name is absent unless the
+          appendix was requested.</small></p>
       </div>
-      <h3>Should the document include a per-case register appendix?</h3>
-      <p class="qwhy">
-        The appendix lists one row per case — the same columns as the CSV export — which includes
-        <code>farmer_or_farm_owner_name</code>. A period report circulates far more widely than the case register
-        does, so this is a privacy decision, not a layout one.
-      </p>
-      <div class="opts">
-        <label class="opt">
-          <input type="radio" name="q3" value="off-by-default" data-label="Off by default, enabled explicitly per document with the farmer reference line visibly marked">
-          <span><span class="ot">Off by default, explicitly opt-in <span class="opick">Recommended</span></span>
-            <span class="od">Most documents stay summary-only and safe to circulate. When the appendix is enabled
-            the builder warns that farmer and farm references are included.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q3" value="on-by-default" data-label="Included by default so the document always matches the CSV export exactly">
-          <span><span class="ot">Included by default — full export parity</span>
-            <span class="od">Every document carries the full case list, matching what a CSV export would have
-            contained. Simplest to reason about; the widest exposure.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q3" value="never" data-label="Never include case-level rows in a period document; the appendix is dropped from the plan entirely">
-          <span><span class="ot">Never — drop the appendix from the plan</span>
-            <span class="od">Period documents stay aggregate-only, and anyone needing case rows keeps using the
-            existing CSV export.</span></span>
-        </label>
-      </div>
-      <div class="qactions">
-        <button type="submit" class="queue">Queue this answer</button>
-        <span class="qhint">Sends your current selection for Q3 only.</span>
-      </div>
-      <div class="receipt">Queued: <b class="receipt-text"></b></div>
-    </form>
 
-    <!-- Q4 -->
-    <form class="q" data-lavish-question="q4-entrypoints"
-          onsubmit="event.preventDefault(); const c = new FormData(event.currentTarget).get('q4'); if (!c) return; const t = event.currentTarget.querySelector('input[name=q4]:checked').dataset.label; if (window.lavish && typeof window.lavish.queuePrompt === 'function') { window.lavish.queuePrompt('Decision on Q4 (where the Generate report entry points live): ' + t + '. Place the entry points accordingly. ', { tag: 'choice', text: 'Q4 entry points: ' + t, element: event.currentTarget, data: { question: 'q4-entrypoints', answer: c, label: t } }); } event.currentTarget.classList.add('is-queued'); event.currentTarget.querySelector('.receipt-text').textContent = t;">
-      <div class="qhead">
-        <span class="qid">Q4</span>
-        <span class="qrec">Recommendation: both</span>
-        <span class="qstate">Not queued</span>
+      <div class="q is-decided">
+        <div class="qhead"><span class="qid">Q4</span><span class="qdec">Decided</span><span class="qstate">Closed</span></div>
+        <h3>Both entry points, one builder</h3>
+        <p class="qwhy">
+          Both candidate places already show period-scoped numbers: the Dashboard has the monthly summary and
+          expert-verification panels, and Submitted Reports already hosts the CSV export this feature supersedes.
+        </p>
+        <p class="answer">Both the Dashboard and Submitted Reports, opening the same single builder.
+          <small>Reaching for a report is two clicks from wherever the numbers were just being read.</small></p>
       </div>
-      <h3>Where does the captain start a report from?</h3>
-      <p class="qwhy">
-        Both candidate places already show period-scoped numbers: the Dashboard has the monthly summary panel and
-        the expert-verification panel; Submitted Reports already hosts the CSV export button that this feature is
-        meant to supersede.
-      </p>
-      <div class="opts">
-        <label class="opt">
-          <input type="radio" name="q4" value="both" data-label="Both the Dashboard and Submitted Reports, opening the same single builder">
-          <span><span class="ot">Both, opening the same builder <span class="opick">Recommended</span></span>
-            <span class="od">One builder component, two entry points. Reaching for the report is always two
-            clicks from wherever the numbers were just being read.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q4" value="dashboard" data-label="Dashboard only, because that is where period-scoped metrics are already read">
-          <span><span class="ot">Dashboard only</span>
-            <span class="od">The report is conceptually a read-only view of the dashboard, so it lives beside it.
-            The CSV export stays as the case-level tool on Submitted Reports.</span></span>
-        </label>
-        <label class="opt">
-          <input type="radio" name="q4" value="submitted" data-label="Submitted Reports only, extending the existing export button into a full report action">
-          <span><span class="ot">Submitted Reports only</span>
-            <span class="od">Grows the existing export button into the full feature, keeping the filter surface and
-            the export in one place — closest to how filtering works today.</span></span>
-        </label>
-      </div>
-      <div class="qactions">
-        <button type="submit" class="queue">Queue this answer</button>
-        <span class="qhint">Sends your current selection for Q4 only.</span>
-      </div>
-      <div class="receipt">Queued: <b class="receipt-text"></b></div>
-    </form>
+    </div>
 
-    <!-- Q5 -->
-    <form class="q" data-lavish-question="q5-dependency"
+    <div class="q is-decided" style="margin-top:20px"
           onsubmit="event.preventDefault(); const c = new FormData(event.currentTarget).get('q5'); if (!c) return; const t = event.currentTarget.querySelector('input[name=q5]:checked').dataset.label; if (window.lavish && typeof window.lavish.queuePrompt === 'function') { window.lavish.queuePrompt('Decision on Q5 (PDF renderer dependency): ' + t + '. Proceed with that renderer choice for the PDF artefact. ', { tag: 'choice', text: 'Q5 dependency: ' + t, element: event.currentTarget, data: { question: 'q5-dependency', answer: c, label: t } }); } event.currentTarget.classList.add('is-queued'); event.currentTarget.querySelector('.receipt-text').textContent = t;">
       <div class="qhead">
         <span class="qid">Q5</span>
-        <span class="qrec">Recommendation: accept Chromium</span>
-        <span class="qstate">Not queued</span>
+        <span class="qdec">Decided</span>
+        <span class="qstate">Closed</span>
       </div>
-      <h3>Is the Chromium dependency weight acceptable on the host?</h3>
-      <p class="qwhy">
-        This is the only decision that adds infrastructure. It is worth being explicit that Phase 1 — the branded
-        document and its preview — needs none of it, so this decision gates the PDF file, not the feature.
+      <h3>Which PDF renderer does the host get?</h3>
+
+      <p class="askback">&ldquo;i'm not quite sure about this yet because it requires Chromium, right, in my environment.
+        But I only use the Brave browser. And can you also tell me why this is high risk?&rdquo;</p>
+
+      <div class="spec" style="margin-top:16px">
+        <div class="row">
+          <div class="k">Does it need Chromium?</div>
+          <div class="v">
+            <b>Yes &mdash; but not your browser, and not on your machine.</b> The render happens server-side, on the
+            host running the API, so whatever you read the app with is never involved. Your Windows Brave cannot be
+            reused by the Linux-side API &mdash; launching a Windows <code>.exe</code> from WSL for headless
+            rendering is not a supported Browsershot pattern. The host needs its own Linux binary, or none at all.
+          </div>
+        </div>
+        <div class="row">
+          <div class="k">Brave counts as Chromium</div>
+          <div class="v">
+            <b>So you do not need to install Chrome.</b> Brave publishes an official apt repository
+            (<code>sudo apt install brave-browser</code>), and <code>Browsershot::setChromePath()</code> sets
+            Puppeteer's <code>executablePath</code> &mdash; exposed as first-class config in
+            <code>laravel-pdf</code> through <code>LARAVEL_PDF_CHROME_PATH</code> and the published
+            <code>browsershot.chrome_path</code> key. Point it at <code>/usr/bin/brave-browser</code> and no new
+            browser vendor enters the project.
+          </div>
+        </div>
+        <div class="row">
+          <div class="k">Why the risk was downgraded</div>
+          <div class="v">
+            <b>Fair challenge &mdash; and corrected.</b> The rating was about <i>impact if it fails</i>, not
+            likelihood: it was the one item touching infrastructure rather than application code, the only step not
+            yet proven on the target host, and a server-side browser is a large, constantly-patched,
+            network-capable binary that many environments deliberately forbid. Two things found while answering you
+            lower it: Brave installs on the host from Brave's own repo, and <code>chrome_path</code> is supported
+            configuration rather than a workaround, and option 3 removed the dependency entirely. <b>Your Q5 answer
+            accepts the host binary, so the uncertainty is closed and the plan now rates this Low.</b> The reasoning is
+            kept because it is why the dependency is a single <code>apt</code> package rather than a service.
+          </div>
+        </div>
+      </div>
+
+      <h4 class="plain-h">Where each thing actually runs</h4>
+      <p class="qwhy" style="margin-bottom:12px">
+        This is the part that was not landing, so here it is concretely. Two separate computers-in-one are involved,
+        and only one of them renders PDFs.
       </p>
-      <div class="opts">
+      <div class="runs">
+        <div class="run">
+          <div class="run-who">Your Windows side</div>
+          <div class="run-what"><b>Brave browser</b></div>
+          <div class="run-role">You look at the app here: <code>localhost</code> in Brave. This half only ever
+            <i>displays</i> pages.</div>
+        </div>
+        <div class="run">
+          <div class="run-who">Your Linux side &mdash; the PHP API</div>
+          <div class="run-what"><b>Laravel + the PDF renderer</b></div>
+          <div class="run-role">When you click <b>Download PDF</b>, <i>this</i> half has to open a headless browser
+            by itself and print the document. This is the only place a Chromium is needed.</div>
+        </div>
+      </div>
+      <p class="qwhy" style="margin-top:12px">
+        They cannot share a browser. The Linux API cannot borrow Brave running on Windows, the same way a printer
+        cannot be driven by a laptop that is not plugged into it.
+      </p>
+
+      <h4 class="plain-h">Will this complicate deployment later?</h4>
+      <p class="qwhy" style="margin-bottom:12px">
+        No &mdash; and it is worth being precise, because "adds a browser to the server" sounds heavier than it is.
+        <b>One package on one host that already runs PHP, Node and MySQL.</b> No new service, no container, no
+        change to the build or release pipeline.
+      </p>
+      <div class="tbl-scroll" style="margin-top:10px">
+        <table class="cmp" style="min-width:720px">
+          <colgroup><col style="width:28%"><col style="width:17%"><col style="width:20%"><col style="width:35%"></colgroup>
+          <thead>
+            <tr><th scope="col">Option</th><th scope="col">Host prerequisite</th><th scope="col">New service?</th><th scope="col">Long-term care</th></tr>
+          </thead>
+          <tbody>
+            <tr class="is-winner">
+              <td class="opt-name">Chromium + laravel-pdf <span class="badge win" style="margin-top:5px">Recommended</span></td>
+              <td>One <code>apt</code> package</td>
+              <td><b>No</b> &mdash; nothing long-running</td>
+              <td>Watch print-version drift, with a pinned <code>chrome_path</code> and a structural test</td>
+            </tr>
+            <tr>
+              <td class="opt-name">Dompdf (pure PHP)</td>
+              <td>None</td>
+              <td>No</td>
+              <td>Template locked to table-and-float CSS forever; visibly lower fidelity</td>
+            </tr>
+            <tr>
+              <td class="opt-name">Install nothing (browser print)</td>
+              <td>None</td>
+              <td>No</td>
+              <td>Manual Save-as-PDF each time; no server-produced file</td>
+            </tr>
+            <tr>
+              <td class="opt-name"><span style="color:var(--color-secondary-text)">Gotenberg — not chosen</span></td>
+              <td>Container host</td>
+              <td><b>Yes</b> &mdash; always-on service</td>
+              <td>Concurrency, memory limits and health checks to tune</td>
+            </tr>
+            <tr>
+              <td class="opt-name"><span style="color:var(--color-secondary-text)">WeasyPrint — not chosen</span></td>
+              <td>Python + Pango/Cairo</td>
+              <td><b>Yes</b> &mdash; a new language runtime</td>
+              <td>A second CSS engine to track</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="plain">
+        <li><strong>Nothing to supervise.</strong> No daemon, no port, no service to restart, no health check.
+          The browser starts on demand and exits. This is the same class as <code>npm</code>, which the host
+          already needs.</li>
+        <li><strong>CI is unaffected, on purpose.</strong> The PDF renderer is <b>faked in tests</b>, which assert the
+          endpoint contract &mdash; status, headers, authorization, the options handed to the renderer &mdash; not PDF
+          pixels. Otherwise every CI run and every developer machine would need the browser; this way only the host
+          that serves real PDFs does.</li>
+        <li><strong>Failure stays contained.</strong> If a browser upgrade ever breaks the render, the preview and
+          Print keep working and only <code>Download PDF</code> fails &mdash; visibly, in the builder, rather than
+          silently producing a wrong document.</li>
+        <li><strong>One line in an existing checklist.</strong> <code>docs/staging.md</code> already lists PHP, Node,
+          MySQL and Tailscale; this adds one entry to a list that already exists.</li>
+      </ul>
+
+      <h4 class="plain-h">So does it work on my localhost, in Brave?</h4>
+      <div class="tbl-scroll" style="margin-top:10px">
+        <table class="cmp" style="min-width:640px">
+          <colgroup><col style="width:56%"><col style="width:22%"><col style="width:22%"></colgroup>
+          <thead>
+            <tr><th scope="col">What you do</th><th scope="col">Nothing installed</th><th scope="col">Brave installed in Linux</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Open the app at localhost in Windows Brave</td>
+              <td><span class="badge win">Works</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+            <tr>
+              <td>See the report preview inside the page</td>
+              <td><span class="badge win">Works</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+            <tr>
+              <td>Press <b>Print</b> &rarr; Save as PDF, printed by your own Brave</td>
+              <td><span class="badge win">Works</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+            <tr>
+              <td>Press <b>Download PDF</b> and get a server-produced file back</td>
+              <td><span class="badge no">Fails</span></td>
+              <td><span class="badge win">Works</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tagline-note">
+        The only thing the dependency buys is the last row: a file the server makes on its own, in one click, with no
+        print dialog. Everything else &mdash; the preview and a perfect A4 print &mdash; already works with nothing installed.
+      </p>
+      <p class="notice" style="margin-top:14px">
+        <b>Installing it does not touch your Windows machine.</b> It is a headless, server-only binary that lives
+        inside the Linux environment next to PHP. It never opens a window, is never visible, is not the Brave you
+        browse with, and changes nothing about your desktop.
+      </p>
+
+      <div class="opts" style="margin-top:18px">
         <label class="opt">
-          <input type="radio" name="q5" value="chromium" data-label="Accept Node/Puppeteer plus a pinned ~300 MB Chromium binary on the host for a true one-click PDF">
-          <span><span class="ot">Accept Chromium — true one-click PDF <span class="opick">Recommended</span></span>
-            <span class="od">Highest brand fidelity and a real PDF artefact, with page numbers and repeating
-            table headers. Render is queued and cached to contain the cost.</span></span>
+          <input type="radio" name="q5" value="brave" data-label="Install Brave for Linux on the API host and point LARAVEL_PDF_CHROME_PATH at /usr/bin/brave-browser">
+          <span><span class="ot">Install Brave for Linux on the host <span class="opick">Recommended &mdash; unchanged</span></span>
+            <span class="od">Keeps the one-click <code>Download PDF</code> file and adds <b>no browser vendor you do
+            not already use</b>, because Brave already is Chromium. Roughly 300&nbsp;MB on the host, and the render is
+            queued and on-demand &mdash; never on a period change.</span></span>
         </label>
         <label class="opt">
-          <input type="radio" name="q5" value="dompdf" data-label="Stay pure PHP with barryvdh/laravel-dompdf, accepting lower print fidelity">
-          <span><span class="ot">Stay pure PHP — Dompdf fallback</span>
-            <span class="od">Zero infrastructure and sub-second renders, but no flexbox, no grid, no page-margin
-            footers, and the template must stay table-and-float based.</span></span>
+          <input type="radio" name="q5" value="chromium" data-label="Install plain Chromium on the API host and point LARAVEL_PDF_CHROME_PATH at /usr/bin/chromium-browser">
+          <span><span class="ot">Install plain Chromium on the host</span>
+            <span class="od">Functionally equivalent, but introduces a second browser vendor for a job that only runs
+            on the server.</span></span>
         </label>
         <label class="opt">
-          <input type="radio" name="q5" value="browser-print" data-label="Add no PDF renderer at all; rely on the document preview and the browser print dialog">
-          <span><span class="ot">No renderer — browser print only</span>
-            <span class="od">Phases 0–1 only, exactly the pattern already used for referral summaries. The user
-            chooses "Save as PDF" in the print dialog; there is no server-produced file.</span></span>
+          <input type="radio" name="q5" value="none" data-label="Install no renderer at all; ship Phases 0 and 1 only and rely on the browser print dialog">
+          <span><span class="ot">Install nothing &mdash; browser print only <span class="opick">Zero risk</span></span>
+            <span class="od">Your own Brave prints the preview to an A4 PDF, because the template is authored with
+            <code>@page</code> print CSS: real page numbers, repeating table headers, correct margins. The only loss
+            is a server-<i>produced</i> file &mdash; <code>Download PDF</code> becomes your browser's
+            &ldquo;Save as PDF&rdquo;. Phases 0&ndash;1 only.</span></span>
         </label>
       </div>
       <div class="qactions">
         <button type="submit" class="queue">Queue this answer</button>
         <span class="qhint">Sends your current selection for Q5 only.</span>
       </div>
-      <div class="receipt">Queued: <b class="receipt-text"></b></div>
-    </form>
+      <p class="answer">A Chromium-family binary is accepted on the host, so <code>Download PDF</code> returns a
+        real server-produced file. Phase 2 proceeds.
+        <small><b>Brave for Linux is the plan's default</b> — it adds no browser vendor you do not already use,
+        because Brave is Chromium. Plain Chromium is an equivalent choice: the same mechanism with a different
+        path, decided by one line of config (<code>LARAVEL_PDF_CHROME_PATH</code>) with no impact on the template
+        or the application code.</small></p>
+
+      <p class="tagline-note" style="margin-top:14px">
+        Note from the record: your selection arrived against the earlier revision of this board, whose option read
+        &ldquo;Accept Node/Puppeteer plus a pinned ~300 MB Chromium binary on the host for a true one-click
+        PDF&rdquo;. That is the same decision recorded here. If you meant plain Chromium specifically rather than
+        Brave for Linux, say so in the conversation and it changes one config line.
+      </p>
+
+      <p class="tagline-note">
+        Every decision on this board can be revisited — just describe the change in the conversation and the plan
+        and this board are updated together.
+      </p>
+    </div>
 
     <div class="note-band">
-      <b>Everything here is reversible and nothing is built yet.</b> No code was changed and no dependency was
-      installed to produce this plan. The written plan lives at
-      <code>data/cg-web-reports-plan-20260921/report.md</code>; this board is its presentation. Once the
-      questions above are answered, Phase 0 and Phase 1 are the natural first delivery — they need no new
-      dependency and already give a beautiful, branded, period-accurate document.
+      <b>Nothing is blocked — P0, P1 and P2 can start.</b> P0 and P1 need no dependency at all; P2 adds the host
+      binary accepted under Q5. The written plan lives at
+      <code>data/cg-web-reports-plan-20260921/report.md</code> and has been updated in place with all four
+      decisions, the approved rollout set, the corrected risk severity and the Brave host path.
     </div>
   </section>
 

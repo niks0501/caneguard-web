@@ -1,8 +1,26 @@
 # CaneGuard Web — Documented Reports Implementation Plan
 
 Date: 2026-09-21
-Status: plan for decision (no code changed, no dependency installed)
+Decisions recorded: 2026-09-22
+Status: **all decisions locked** — Q1–Q5 decided and the rollout approved (P0–P2). Nothing is blocked.
 Scope: weekly, monthly, and custom-range reported-case documents with an in-app preview, generated in one click or a few clicks.
+
+---
+
+## 0. Decisions recorded (2026-09-22)
+
+The captain reviewed the plan on the board and locked the following. These supersede the corresponding
+"open question" text below; the sections have been updated in place.
+
+| # | Decision | Effect on the plan |
+| --- | --- | --- |
+| **Q1** | **PHT (UTC+8)** defines document period boundaries, printed on every document. The dashboard's existing UTC monthly panel is **left unchanged**. | Weekly/monthly/custom boundaries are computed in `Asia/Manila`. The document always states its period and timezone. `BuildMonthlyReportSummary` keeps its UTC semantics. |
+| **Q2** | **Live HTML document in a same-origin iframe**, with a route-scoped `frame-ancestors` allowance. | The preview is the document route itself — one template, zero drift. Requires the narrow, config-driven, route-scoped CSP change in `SecurityHeaders`, with a regression test proving every other HTML route still denies framing. |
+| **Q3** | **Appendix off by default**, explicitly opt-in per document, with the farmer-reference line visibly marked. | The case register appendix is never emitted unless requested. The builder warns that farmer/farm references are included when it is enabled. |
+| **Q4** | **Both** the Dashboard and Submitted Reports, opening the same single builder. | One builder component, two entry points. |
+| **Rollout** | **P0, P1, P2 approved** in that order, each following its stated gate. **P3 not selected.** **P4 deferred**, to be re-planned before starting. | The build round is Phases 0–2. P3 (depth: appendix defaults, saved filters, refinements) and P4 (reach: scheduled/emailed documents) are not in this round. |
+| **Preview mock** | Approved: "I love the format and the future contents of the generated document." | The document template structure in §6 is confirmed as the target design. |
+| **Q5** | **Decided — a Chromium-family binary is accepted on the host** so the one-click `Download PDF` produces a real server-side file. | Phase 2 proceeds. §7 keeps **Brave for Linux as the default** because it adds no browser vendor the captain does not already use; plain Chromium is an equivalent one-line change to `LARAVEL_PDF_CHROME_PATH`. The plan's own Q&A (§11) is retained as the record. |
 
 ---
 
@@ -82,7 +100,7 @@ Rules that apply to all three:
 - A **partial-period warning** appears in the document header when the range includes the current, still-in-progress week/month — so a mid-week report is never mistaken for a complete one.
 - **Maximum span 366 days** on custom ranges, rejected at validation. This bounds both the SQL aggregate cost and a single Chromium render.
 - The range is always rendered back into the document footer together with the active filters, so a saved or printed document is self-describing.
-- **Timezone is the one genuinely open question** — see Q1 on the review board. The existing monthly summary is explicitly UTC-scoped (`BuildMonthlyReportSummary`: "cases submitted during one UTC calendar month"), while field work is planned on Philippine local days. The recommendation is PHT boundaries for documents; the decision matters because it shifts which week a Sunday submission lands in.
+- **Timezone: PHT (UTC+8) — decided (Q1).** All three period boundaries are computed in `Asia/Manila`, and the timezone is printed in every document. The existing monthly summary stays UTC-scoped (`BuildMonthlyReportSummary`: "cases submitted during one UTC calendar month"), because the captain chose not to unify the dashboard panel in this round; the document states its own boundary rule explicitly so the two are never confused. Recommended follow-up, not in this round: revisit unification once the documents are in daily use.
 
 ---
 
@@ -122,18 +140,18 @@ Behavioural requirements that keep this honest:
 
 ## 5. Preview design
 
-The captain asked for "the document showing a preview of the generated report for whatever period the user chose". Two candidate mechanisms; the recommendation is the first.
+The captain asked for "the document showing a preview of the generated report for whatever period the user chose".
 
-**Recommended — render the real document HTML in a same-origin iframe.**
-The preview *is* `GET /api/v1/reports/documents/report?...`, the same route the PDF renderer consumes. One template, zero drift, no Chromium render on every period change, and it degrades to fully usable when Chromium is absent.
+**Decided (Q2) — render the real document HTML in a same-origin iframe.**
+The preview *is* `GET /api/v1/reports/documents/report?...`, the same route the PDF renderer consumes. One template, zero drift, no Chromium render on every period change, and it degrades to fully usable when Chromium is absent. Confirmed in staging because `docs/staging.md` keeps the web and API on one origin behind the web proxy, and the web proxy already forwards `/api`.
 
 This requires one narrow, explicit security change (the only trust-boundary change in this plan):
-`SecurityHeaders` currently sends `frame-ancestors 'none'` + `X-Frame-Options: DENY` for every HTML response. The document route needs a **route-scoped** allowance — `frame-ancestors` limited to the configured embed origin, `X-Frame-Options: SAMEORIGIN` — expressed as a new `caneguard.reports.embed_origins` config value defaulting to `['self']` and set to the web origin for cross-origin local development. Every other HTML response keeps `frame-ancestors 'none'`; a test asserts that.
+`SecurityHeaders` currently sends `frame-ancestors 'none'` + `X-Frame-Options: DENY` for every HTML response. The document route needs a **route-scoped** allowance — `frame-ancestors` limited to the configured embed origin, `X-Frame-Options: SAMEORIGIN` — expressed as a new `caneguard.reports.embed_origins` config value defaulting to `['self']` and set to the web origin for cross-origin local development (`http://localhost:5173` against `http://localhost:8000`). Every other HTML response keeps `frame-ancestors 'none'`; a test asserts that.
 
-**Alternative — preview the produced PDF in an `<iframe>` fed by an object URL.**
-Literally the downloaded artefact, so drift is impossible even in principle, and it needs no CSP change at all (a `blob:` URL is same-origin). The cost is a Chromium render per period change and a preview that cannot work when Chromium is unavailable.
+**Rejected (for the record) — preview the produced PDF in an `<iframe>` fed by an object URL.**
+Literally the downloaded artefact, so drift is impossible even in principle, and it needs no CSP change at all (a `blob:` URL is same-origin). Rejected because it forces a Chromium render per period change and cannot preview at all when Chromium is unavailable — which would make the preview depend on the very dependency Q5 is still deciding.
 
-**Fallback for bare local development** (no same-origin proxy, `SESSION_SAME_SITE=lax`): open the document in a new tab, exactly as `src/pages/ExpertCasePage.tsx` does for referral summaries. This is also the correct behaviour when the session cookie cannot be sent to a subframe.
+**Local-development fallback** (no same-origin proxy, `SESSION_SAME_SITE=lax`): set `QA_API_PROXY_TARGET` so the browser still sees one origin; if that is unavailable, open the document in a new tab, exactly as `src/pages/ExpertCasePage.tsx` does for referral summaries. This is also the correct behaviour when the session cookie cannot be sent to a subframe.
 
 ---
 
@@ -186,7 +204,7 @@ One new payload builder, `BuildReportDocument`, generalising the period handling
 - **Metrics**: reuse `BuildMonthlyReportSummary`'s computation verbatim — reported cases, estimated affected hectares, cases by barangay, cases by possible condition, field-validation counts, closed cases, review-time distribution, expert-verification block (consult volume, agreement, unable-to-classify, time to finding, advisory coverage).
 - **New queries**: submissions-per-day/per-week bucketing for the trend section, and open/overdue operational queue counts. Both are grouped-count queries, bounded by the 366-day cap.
 - **Filters exposed in the builder**: period (required), barangay, possible condition, case state, verification outcome, field-validation state, operational queue, and the case-register appendix toggle.
-- **Privacy**: the appendix carries `farmer_or_farm_owner_name`. It is **default off** and never included unless explicitly enabled, because a period report circulates more widely than the case register does. See Q3.
+- **Privacy (Q3 decided)**: the appendix carries `farmer_or_farm_owner_name`. It is **off by default** and never emitted unless explicitly enabled per document, because a period report circulates more widely than the case register does. When it is enabled, the builder shows a visible warning that farmer and farm references are included, and the appendix itself marks the reference line.
 
 ---
 
@@ -199,15 +217,67 @@ composer require spatie/laravel-pdf spatie/browsershot   # in api/
 # Chromium driver runtime
 npm install puppeteer                                     # in api/ (Node is already a host prerequisite)
 
-# Host provisioning
-#   A Chrome/Chromium binary for Browsershot (pinned, path set explicitly).
+# Host provisioning — pick ONE, in this order of preference
+#   1. Brave for Linux (already the captain's browser; no second browser vendor)
+#        sudo apt install brave-browser        # from Brave's official apt repo
+#        LARAVEL_PDF_CHROME_PATH=/usr/bin/brave-browser
+#   2. Plain Chromium on the host
+#        sudo apt install chromium-browser
+#        LARAVEL_PDF_CHROME_PATH=/usr/bin/chromium-browser
+#   3. Nothing at all — choose "browser print only" (Q5 option 3)
 ```
+
+**Decided (Q5): the host gets a Chromium-family binary.** The default is **Brave for Linux**, because
+`Browsershot::setChromePath()` sets Puppeteer's `executablePath`, so any Chromium-family binary works, and
+`spatie/laravel-pdf` exposes this as first-class configuration — the published `config/laravel-pdf.php` has a
+`browsershot.chrome_path` key backed by `LARAVEL_PDF_CHROME_PATH`. Brave is Chromium, so pointing it at
+`brave-browser` needs no second browser vendor on the host. **Plain Chromium is an equivalent choice**: it is
+the same mechanism with a different path, with zero impact on the template or the application code.
+
+Note for this specific machine: the captain's Brave is installed on **Windows**
+(`/mnt/c/Program Files/BraveSoftware/...`) while the Laravel API runs on the **Linux** side. Launching a
+Windows `.exe` from WSL for headless rendering is not a supported Browsershot pattern, so the host needs
+its own Linux-side binary (option 1 or 2 above) — or option 3, which needs none.
 
 Adding it requires, and should be gated on:
 
-- `config/laravel-pdf.php` published with an explicit Chromium path and A4 defaults, rather than relying on autodiscovery.
+- `config/laravel-pdf.php` published with an explicit `chrome_path` and A4 defaults, rather than relying on autodiscovery — an unpinned autodiscovery path is what makes a host upgrade silently change rendering.
 - The render path running **on demand, queued**, never inside a request that also serves the preview — a Chromium render takes seconds and ~250 MB peak.
-- **No new dependency is needed for the preview, the Print path, the builder UI, or the document template.** If Chromium is unavailable, the feature degrades to preview + browser print, which is strictly more than exists today. That asymmetry is deliberate: the dependency buys the PDF artefact, not the feature.
+- **No dependency is needed for the preview, the builder UI, the document template, or the Print path.** If Chromium is unavailable, the feature degrades to preview + browser print, which is strictly more than exists today. That asymmetry is deliberate: the dependency buys the PDF *file*, not the feature.
+
+### Deployment complexity — asked on the board, answered here
+
+The captain asked whether this causes complex deployment in the future. Short answer: **it adds one
+documented package to one host that already runs PHP, Node and MySQL. It is not a new service, not a
+container, and not a change to the build or release pipeline.**
+
+- **One prerequisite line on the staging host.** `sudo apt install brave-browser` (or `chromium`) joins the
+  existing prerequisite checklist in `docs/staging.md`, which already requires PHP, Node, MySQL and Tailscale.
+- **Nothing long-running to supervise.** There is no daemon, no port, no service to restart and no health check.
+  Browsershot launches the browser on demand and it exits. This is a materially different complexity class from
+  the **Gotenberg** option, which needs a second always-on container, memory limits, a concurrency ceiling and a
+  health check — that difference is the main reason Gotenberg was not recommended.
+- **CI is unaffected, and this is a deliberate design choice.** Chromium must **not** be needed by the fast test
+  suite. The PDF renderer is faked in the API tests, which assert the request/response contract — status,
+  `Content-Disposition`, `Content-Type`, authorization, and the parameters handed to the renderer — rather than
+  PDF bytes. Verifying pixels stays a one-time manual check per template change (§8). Without this, every CI run
+  and every developer machine would inherit the browser prerequisite; with it, only the host that serves real
+  PDFs needs one.
+- **The real long-term cost is renderer version drift, and it is bounded.** A Chrome upgrade can shift print
+  layout subtly. Mitigations are already in the plan: an explicit pinned `chrome_path`, the document-contract
+  test asserting the structural markers (footer page-number rule, repeating `thead`, mandatory sections), and
+  re-running the one-time manual PDF check when the template or the browser changes.
+- **Failure stays contained.** If the browser breaks after an OS upgrade, the preview and Print keep working and
+  only `Download PDF` fails — visibly, with the error surfaced in the builder, rather than silently producing a
+  wrong document.
+
+| Option | Host prerequisite | New service or runtime | CI impact | Long-term care |
+| --- | --- | --- | --- | --- |
+| **Chromium + `laravel-pdf`** (recommended) | One apt package | None | None — renderer faked in tests | Watch print-version drift; pinned path |
+| **Dompdf (pure PHP)** | None | None | None | Template locked to table/float CSS; lower fidelity |
+| **Install nothing (browser print)** | None | None | None | Manual Save-as-PDF each time; no server-produced file |
+| ~~Gotenberg~~ (rejected) | Container host | **New always-on service** | Service must run in CI or be faked | Concurrency, memory and health-check tuning |
+| ~~WeasyPrint~~ (rejected) | Python + Pango/Cairo | **New language runtime** | Runtime install in CI | Second CSS engine to track |
 
 ---
 
@@ -219,6 +289,7 @@ Non-interactive, following `PROJECT_CHECKS.md` and the repo's existing split.
 
 1. Period resolution: weekly ISO boundaries, monthly boundaries, custom ranges, defaults, and the partial-period flag.
 2. The 366-day cap and inverted-range (`to` < `from`) rejection, with the documented error shape from `ApiFormRequest`.
+3. **PHT period boundaries (Q1)**: a submission dated Sunday 20 September 23:30 PHT sits in week 38, and the same instant in UTC does not — the explicit test that the decided timezone is actually applied at the boundary.
 3. `BuildReportDocument` equals `BuildMonthlyReportSummary` for a UTC calendar month — the regression test that proves the extraction changed nothing.
 4. Authorization: only users who can `viewAny` reports receive the document; a role that cannot gets 403. Mirror `ExpertAuthorizationTest.php`'s treatment of the referral-summary route.
 5. **HTML document route**: returns `text/html`, correct `Content-Disposition` for inline vs `download`, carries the CSP nonce, renders the period label and the "decision support only" notice, and never emits `farmer_or_farm_owner_name` unless the appendix is requested.
@@ -229,6 +300,7 @@ Non-interactive, following `PROJECT_CHECKS.md` and the repo's existing split.
 
 8. The builder defaults to the last completed week and issues exactly one document request per period change (debounce verified with fake timers).
 9. Period control → correct request parameters for weekly, monthly, and custom.
+9a. **The PDF renderer is faked in the default suite.** No test in `npm run check:api` may require a Chromium binary; the download endpoint is asserted against a faked renderer for status, headers, authorization, and the options passed to it. This is what keeps CI and every developer machine free of the host prerequisite.
 10. Preview loading, error, and empty states; a failed PDF render leaves the preview mounted with an actionable message.
 11. The existing CSV export and dashboard monthly panel still pass unchanged.
 
@@ -245,15 +317,15 @@ Non-interactive, following `PROJECT_CHECKS.md` and the repo's existing split.
 
 Each phase is independently shippable and independently valuable; nothing later is required for anything earlier to work.
 
-| Phase | Deliverable | Value on its own | Verification gate |
-| --- | --- | --- | --- |
-| **0. Period groundwork** | Extract the shared metric helpers; add `BuildReportDocument` with weekly/monthly/custom ranges; keep `BuildMonthlyReportSummary` behaviourally identical | API can produce any period's aggregates | `npm run check:api`; the equality test (§8.3) |
-| **1. Document template + preview** | `reports/document.blade.php`, the document route, the route-scoped CSP allowance, self-hosted fonts + logo on the API origin, the builder UI with live iframe preview and **Print** | **The captain gets beautiful, branded, period-accurate documents immediately — printable, no new dependency** | §8.1–8.7, §8.11, document-contract test |
-| **2. PDF artefact** | `spatie/laravel-pdf` + Browsershot + Chromium, config, queued render, Download PDF | One-click PDF of exactly the previewed document | §8.10 manual PDF verification; API tests for the download response |
-| **3. Depth** | Case-register appendix (opt-in), trend section, operational queue section, saved filter defaults | Richer documents; export-grade detail inside the document | §8.5 privacy assertions extended |
-| **4. Reach** | Entry points from Monitoring workspace; optional emailed/scheduled weekly + monthly document; driver swap to Gotenberg/WeasyPrint if warranted | Reports arrive without anyone opening the app | Deferred; re-plan before starting |
+| Phase | Deliverable | Value on its own | Verification gate | Status |
+| --- | --- | --- | --- | --- |
+| **0. Period groundwork** | Extract the shared metric helpers; add `BuildReportDocument` with weekly/monthly/custom ranges (PHT boundaries); keep `BuildMonthlyReportSummary` behaviourally identical | API can produce any period's aggregates | `npm run check:api`; the equality test (§8.3) and the PHT boundary test (§8.2) | **Approved — build first** |
+| **1. Document template + preview** | `reports/document.blade.php`, the document route, the route-scoped CSP allowance, self-hosted fonts + logo on the API origin, the single builder UI with live iframe preview and **Print**, entry points on the Dashboard and Submitted Reports | **Beautiful, branded, period-accurate documents immediately — printable, no new dependency** | §8.1–8.7, §8.11, document-contract test | **Approved — delivers the ask** |
+| **2. PDF artefact** | `spatie/laravel-pdf` + Browsershot + a host Chromium (Brave preferred), published config with an explicit `chrome_path`, queued render, Download PDF | One-click PDF of exactly the previewed document | §8.10 manual PDF verification; API tests for the download response | **Approved — pending the Q5 host choice** |
+| **3. Depth** | Case-register appendix defaults, saved filter defaults, trend and operational-queue refinements | Richer documents | §8.5 privacy assertions extended | **Not selected this round** |
+| **4. Reach** | Entry points from the Monitoring workspace; optional emailed/scheduled weekly + monthly document; driver swap to Gotenberg/WeasyPrint | Reports arrive without anyone opening the app | Re-plan before starting | **Deferred by the captain** |
 
-Phase 1 is deliberately the milestone that delivers the captain's actual ask. Phase 2 adds the PDF file itself. If Phase 2 stalls on host provisioning, Phases 0–1 are already a complete, shippable feature.
+Phase 1 is deliberately the milestone that delivers the captain's actual ask. Phase 2 adds the PDF file itself. If Phase 2 stalls on host provisioning, Phases 0–1 are already a complete, shippable feature — which is exactly why the captain could approve 0–2 while still deciding Q5.
 
 ---
 
@@ -261,21 +333,52 @@ Phase 1 is deliberately the milestone that delivers the captain's actual ask. Ph
 
 | Risk | Severity | Handling |
 | --- | --- | --- |
-| Chromium/Puppeteer cannot be provisioned on the deployment host | High — blocks Phase 2 only | Phases 0–1 need no binary; browser Print remains the escape hatch; documented fallback is Dompdf, verified Laravel-13 compatible |
+| The host Chromium binary cannot be provisioned | ~~High~~ **Low** — accepted and resolved by Q5; see §11 | The rating was about impact-if-it-fails, not likelihood, and it is now **resolved by decision**: the captain accepted a host binary for the one-click PDF. Brave installs from its own apt repo so no new browser vendor is needed, plain Chromium is an equivalent one-line alternative, Phases 0–1 never needed a binary, and browser Print plus the verified Dompdf fallback remain available if the host ever refuses one |
 | Chromium render cost (seconds, ~250 MB peak) | Medium | Queue the render; never render on period change; cache by period + filters + data version |
 | Template drifts toward grid/flex and becomes Dompdf-hostile | Medium | Renderer-portability rules in §6 enforced by the document-contract test's structural assertions |
-| CSP relaxation widens the framing boundary | Medium — security | Route-scoped only, config-driven allowlist defaulting to `'self'`, explicit regression test for every other HTML route (§8.6) |
+| CSP relaxation widens the framing boundary (Q2 decided this path) | Medium — security | Route-scoped only, config-driven allowlist defaulting to `'self'`, explicit regression test for every other HTML route (§8.6) |
 | Poppins missing → silent fallback to Arial and a subtly off-brand PDF | Low but easy to miss | Self-hosted woff2 with a test asserting the `@font-face` source resolves on the API origin; manual PDF check confirms embedding |
 | Report and CSV disagree about scope | Medium | Both consume `ApplyReportFilters` / `ApplyOperationalQueueFilter`; one shared scope test |
-| Farmer names leak into widely circulated documents | Medium — privacy | Appendix default off, Q3 explicit decision, §8.5 assertion |
-| Period-boundary timezone mismatch with the dashboard | Low, but confusing if unresolved | Q1 decision; document label always states the period and timezone explicitly |
+| Farmer names leak into widely circulated documents | Medium — privacy | Decided (Q3): appendix off by default, explicit opt-in, visible warning, §8.5 assertion |
+| PHT document boundaries diverge from the dashboard's UTC monthly panel (Q1 decided to keep them separate) | Low, but a real inconsistency | The document always prints its period, timezone and filter scope; the divergence is deliberate and documented. Revisit unification after the documents are in daily use |
 
 ---
 
-## 11. Open questions for the captain
+## 11. Decisions — all recorded and closed (2026-09-22)
 
-1. **Q1 — Period boundary timezone.** UTC (consistent with the existing monthly summary and the dashboard) or Philippine Standard Time (matches the field week)? Recommendation: **PHT for documents**, with the timezone printed on every document.
-2. **Q2 — Preview mechanism.** Same-origin HTML document iframe (recommended: instant, no Chromium per change, works without the binary, needs one narrow CSP allowance) or PDF-in-iframe (zero CSP change, literal artefact, but a Chromium render per period change)?
-3. **Q3 — Case register appendix.** Off by default with an explicit opt-in (recommended, because the appendix carries farmer/farm references), or on by default for export parity?
-4. **Q4 — Entry points.** Dashboard only, Submitted Reports only, or both (recommended: both, one builder)?
-5. **Q5 — Dependency weight acceptance.** Accept Node/Puppeteer + a pinned Chromium binary (~300 MB) on the host for a true one-click PDF (recommended), or stay pure-PHP and accept lower print fidelity plus a browser print dialog?
+1. **Q1 — Period boundary timezone: PHT (UTC+8).** Printed on every document. The dashboard's existing UTC monthly panel is left unchanged.
+2. **Q2 — Preview mechanism: live HTML document in a same-origin iframe**, with the narrow route-scoped `frame-ancestors` allowance.
+3. **Q3 — Case register appendix: off by default**, explicitly opt-in per document, with the farmer-reference line visibly marked.
+4. **Q4 — Entry points: both** the Dashboard and Submitted Reports, opening the same single builder.
+5. **Rollout: P0, P1, P2 approved** in that order, each following its stated gate. **P3 not selected. P4 deferred**, to be re-planned before starting.
+6. **Document design approved** — "I love the format and the future contents of the generated document."
+
+### Q5 — Dependency weight: decided
+
+**Decided: a Chromium-family binary is accepted on the host** so `Download PDF` returns a real server-side file.
+Phase 2 proceeds. The questions the captain asked while deciding are kept below as the record, because they are
+the reasoning behind the decision.
+
+The captain's selection arrived against the earlier revision of the board, whose option 1 label read
+"Accept Node/Puppeteer plus a pinned ~300 MB Chromium binary on the host for a true one-click PDF" — the same
+decision this section records. The only remaining sub-choice is **which** binary: the plan defaults to Brave
+for Linux (no new vendor) and treats plain Chromium as an equivalent, reversible, one-line change to
+`LARAVEL_PDF_CHROME_PATH`.
+
+> *"i'm not quite sure about this yet because it requires Chromium, right, in my environment. But I only use the Brave browser."*
+
+**Your browser is not involved.** The render happens server-side, on the host that runs the Laravel API — the same machine that already runs Node. Whatever you use to read the app — Brave, Chrome, Firefox, or nothing — is never touched by PDF generation. So "I only use Brave" does not conflict with this plan at all.
+
+**But yes, it needs a Chromium-family binary on that host** — and your Windows Brave does **not** satisfy it: this machine has Brave at `/mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe`, on the Windows side, while the API runs on the Linux side. Launching a Windows `.exe` from WSL for headless rendering is not a supported Browsershot pattern. The host needs its own Linux-side binary. Three ways forward, best first:
+
+1. **Install Brave for Linux on the host and point the config at it.** Brave publishes an official apt repo (`sudo apt install brave-browser`), and `spatie/laravel-pdf` exposes `LARAVEL_PDF_CHROME_PATH` — verified in the package's own published `config/laravel-pdf.php` — which `Browsershot::setChromePath()` turns into Puppeteer's `executablePath`. Brave is Chromium, so this works, and it adds **no browser vendor you do not already use**.
+2. **Install plain Chromium on the host.** Equivalent, but a second browser vendor for a server-only job.
+3. **Install nothing — "browser print only".** Your own Brave prints the document to an A4 PDF straight from the preview, because the template is authored with `@page` print CSS: real page numbers, repeating table headers, correct margins. The only thing you lose is a server-*produced file* — `Download PDF` becomes your browser's "Save as PDF".
+
+> *"And can you also tell me why this is high risk?"*
+
+**Fair challenge — the rating was about impact if it fails, not about likelihood, and I have downgraded it to Medium.** The reasoning was: it is the single item in the plan that touches infrastructure rather than application code, it was the only step not yet proven on the target host, and a server-side browser is a large, constantly-patched, network-capable binary that many environments deliberately forbid. If provisioning were refused, Phase 2 would stall and the `Download PDF` button would have no implementation.
+
+**That risk is materially lower than I originally rated it, for two reasons discovered while answering you:** Brave is installable on the Linux host from Brave's own apt repository, and `chrome_path` is first-class configuration rather than a workaround. And option 3 removes the dependency entirely — which turns the risk to zero at the cost of a print dialog. **So the honest framing is: Medium if you want a server-produced PDF file, zero if you do not.**
+
+**Recommendation unchanged:** option 1. It keeps the one-click `Download PDF` file and adds no new browser vendor, because Brave already is Chromium.
