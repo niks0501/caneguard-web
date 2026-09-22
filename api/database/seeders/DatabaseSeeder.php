@@ -75,6 +75,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ReportSeeder::class,
             AdvisorDemoSeeder::class,
+            DashboardReportSeeder::class,
         ]);
     }
 }
