@@ -198,11 +198,7 @@ export function DashboardPage() {
       {summary.riskTriage?.enabled ? (
         <section className="risk-triage-summary" aria-labelledby="risk-triage-heading">
           <div className="dashboard-section-heading">
-            <div>
-              <h2 id="risk-triage-heading">Needs Review attention bands</h2>
-              <p>{summary.riskTriage.note}</p>
-            </div>
-            <span>Measured {new Date(summary.riskTriage.measuredAt).toLocaleDateString("en-PH")}</span>
+            <h2 id="risk-triage-heading">Needs Review attention bands</h2>
           </div>
           <div className="risk-triage-summary__bands">
             <span className="risk-triage-band risk-triage-band--green">Green · {summary.riskTriage.bands.green}</span>
