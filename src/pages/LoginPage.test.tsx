@@ -53,34 +53,36 @@ describe("LoginPage", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the hero CaneGuard branding and deliberate operational telemetry", () => {
+  it("renders the hero CaneGuard branding and the access line", () => {
     renderLoginPage();
 
     // Check brand hero elements in the visual aside
     const visualAside = screen.getByLabelText("CaneGuard decision support");
     expect(visualAside).toBeInTheDocument();
 
-    // Check institutional badge and jurisdiction
-    expect(screen.getByText("SRA Don Pedro Mill District")).toBeInTheDocument();
-    expect(screen.getByText("District 04 • Western Batangas")).toBeInTheDocument();
-
     // Check CaneGuard hero logos (both dark-field hero and brand-mark lockup)
     const logos = screen.getAllByAltText("CaneGuard");
     expect(logos.length).toBeGreaterThanOrEqual(2);
 
-    // Check hero tagline and mission
+    // Check hero tagline and the single access/how-to line
     expect(screen.getByText("Sugarcane monitoring & field verification")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Official operational portal for field inspection review, disease triage, and grower case validation.",
+        "SRA Don Pedro staff only — sign in with your office-issued credentials. New inspectors request access through the district office.",
       ),
     ).toBeInTheDocument();
 
-    // Check deliberate telemetry pillars
-    expect(screen.getByLabelText("Operational jurisdiction and status")).toBeInTheDocument();
-    expect(screen.getByText("Don Pedro Mill District")).toBeInTheDocument();
-    expect(screen.getByText("Active Season 2026")).toBeInTheDocument();
-    expect(screen.getByText("Role-Governed Access")).toBeInTheDocument();
+    // Removed branding filler stays gone
+    expect(screen.queryByText("SRA Don Pedro Mill District")).not.toBeInTheDocument();
+    expect(screen.queryByText("District 04 • Western Batangas")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Official operational portal for field inspection review, disease triage, and grower case validation.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Operational jurisdiction and status"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the login form elements, badge, and links", () => {
