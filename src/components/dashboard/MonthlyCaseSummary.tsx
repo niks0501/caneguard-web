@@ -1,3 +1,6 @@
+import { useId, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import type { ReactNode } from "react";
 import type { MonthlyCaseSummary as MonthlyCaseSummaryData } from "../../domain/dashboard.types";
 
 function countLabel(count: number, singular: string, plural = `${singular}s`) {
@@ -10,6 +13,51 @@ function possibleConditionLabel(condition: string) {
 
 function metricValue(value: number | null, suffix = "") {
   return value === null ? "Not available" : `${value}${suffix}`;
+}
+
+function BreakdownDisclosure({
+  headingId,
+  title,
+  countHint,
+  tag,
+  isEmpty,
+  children,
+}: {
+  headingId: string;
+  title: string;
+  countHint: string;
+  tag?: string;
+  isEmpty: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+
+  return (
+    <section aria-labelledby={headingId} className="monthly-summary-card">
+      <div className="monthly-summary-subheading">
+        <h3 id={headingId} className="monthly-summary-toggle-heading">
+          {isEmpty ? (
+            title
+          ) : (
+            <button
+              type="button"
+              className="monthly-summary-toggle"
+              aria-expanded={open}
+              aria-controls={listId}
+              onClick={() => setOpen((value) => !value)}
+            >
+              <span className="monthly-summary-toggle__title">{title}</span>
+              <span className="monthly-summary-toggle__hint">{countHint}</span>
+              <ChevronDown aria-hidden="true" className="monthly-summary-toggle__chevron" />
+            </button>
+          )}
+        </h3>
+        {tag ? <span className="summary-tag">{tag}</span> : null}
+      </div>
+      {isEmpty || open ? <div id={isEmpty ? undefined : listId}>{children}</div> : null}
+    </section>
+  );
 }
 
 export function MonthlyCaseSummary({
@@ -63,10 +111,12 @@ export function MonthlyCaseSummary({
       </div>
 
       <div className="dashboard-monthly-summary__grid">
-        <section aria-labelledby="monthly-barangay-heading" className="monthly-summary-card">
-          <div className="monthly-summary-subheading">
-            <h3 id="monthly-barangay-heading">Submitted reports by barangay</h3>
-          </div>
+        <BreakdownDisclosure
+          headingId="monthly-barangay-heading"
+          title="Submitted reports by barangay"
+          countHint={`${countLabel(summary.casesByBarangay.reduce((total, item) => total + item.reportedCases, 0), "submitted report")} \u00b7 ${countLabel(summary.casesByBarangay.length, "barangay", "barangays")}`}
+          isEmpty={summary.casesByBarangay.length === 0}
+        >
           {summary.casesByBarangay.length === 0 ? (
             <p className="monthly-summary-empty">No submitted reports in this month.</p>
           ) : (
@@ -79,13 +129,15 @@ export function MonthlyCaseSummary({
               ))}
             </ul>
           )}
-        </section>
+        </BreakdownDisclosure>
 
-        <section aria-labelledby="monthly-condition-heading" className="monthly-summary-card">
-          <div className="monthly-summary-subheading">
-            <h3 id="monthly-condition-heading">Submitted reports by Possible Condition</h3>
-            <span className="summary-tag">Possible Condition, decision support only</span>
-          </div>
+        <BreakdownDisclosure
+          headingId="monthly-condition-heading"
+          title="Submitted reports by Possible Condition"
+          tag="Possible Condition, decision support only"
+          countHint={`${countLabel(summary.casesByPossibleCondition.reduce((total, item) => total + item.reportedCases, 0), "submitted report")} \u00b7 ${countLabel(summary.casesByPossibleCondition.length, "condition")}`}
+          isEmpty={summary.casesByPossibleCondition.length === 0}
+        >
           {summary.casesByPossibleCondition.length === 0 ? (
             <p className="monthly-summary-empty">No submitted reports in this month.</p>
           ) : (
@@ -98,7 +150,7 @@ export function MonthlyCaseSummary({
               ))}
             </ul>
           )}
-        </section>
+        </BreakdownDisclosure>
 
         <section aria-labelledby="monthly-validation-heading" className="monthly-summary-card">
           <div className="monthly-summary-subheading">
