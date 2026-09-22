@@ -523,12 +523,13 @@ footer.board-foot {
         This board sorts every one of them by what the shipped Web app can actually draw today,
         then gives a three-phase build order. <strong>No advanced analytics, no forecasts, no rankings</strong> —
         and an explicit list of what stays out, with the frozen rule that keeps it out.
+        <strong>All seven questions are now decided</strong>; the decisions and their effect on the plan are below.
       </p>
       <dl class="meta">
-        <div class="meta__item"><dt>Status</dt><dd>Plan for decision · no code changed</dd></div>
+        <div class="meta__item"><dt>Status</dt><dd>Decisions recorded · one dependency sub-choice left (Q8)</dd></div>
         <div class="meta__item"><dt>Requirement of record</dt><dd>Frozen spec §9–§13, §25, §29, §30</dd></div>
         <div class="meta__item"><dt>Plan</dt><dd><code>data/cg-analytics-charts-plan-20260921/report.md</code></dd></div>
-        <div class="meta__item"><dt>New dependencies</dt><dd>None · no schema change</dd></div>
+        <div class="meta__item"><dt>New dependencies</dt><dd>One chart library (Q3) · no schema change</dd></div>
       </dl>
     </div>
   </div>
@@ -587,7 +588,7 @@ footer.board-foot {
         <h3 style="margin-top:0">The five gaps that shape the plan</h3>
         <ul class="tight">
           <li><strong>One aggregate endpoint, UTC month only.</strong> No week, no custom range, no series, no previous-period comparison.</li>
-          <li><strong>No chart component and no chart dependency.</strong> Today's "charts" are <code>&lt;ul&gt;</code> lists and <code>&lt;dl&gt;</code> definitions; the only inline SVG in the SPA is on the login page.</li>
+          <li><strong>No chart component and no chart dependency.</strong> Today's “charts” are <code>&lt;ul&gt;</code> lists and <code>&lt;dl&gt;</code> definitions; the only inline SVG in the SPA is on the login page. The captain’s Q3 decision adds one library for this work — nothing exists to reuse.</li>
           <li><strong>The register is the wrong source.</strong> <code>per_page</code> caps at 100 and pages, so a browser-side chart would silently truncate.</li>
           <li><strong>Several stored dimensions are never aggregated</strong> — <code>case_state</code>, <code>authority_classified_condition</code>, workload per assignee, waiting-age buckets, turnaround durations.</li>
           <li><strong>The area total has no provenance and no overlap disclosure</strong> — a bare <code>SUM(affected_area_hectares)</code>, no measured/not-measured split, no linked-duplicate count.</li>
@@ -835,7 +836,7 @@ footer.board-foot {
   <section>
     <div class="section-head">
       <h2>Build order — three phases, charts first</h2>
-      <p>Stance for all three: <strong>no new runtime dependency and no schema change.</strong> Charts are hand-authored inline SVG components styled from <code>src/styles/tokens.css</code> — the repo has zero chart packages today, and the approved documents plan already chose print-safe inline SVG bars, so one series implementation serves both surfaces.</p>
+      <p>Stance for all three, from the recorded decisions: <strong>one new runtime dependency — a chart library (Q3) — and no schema change.</strong> That dependency sits in a chart-theme layer that reads colours and text sizes from <code>src/styles/tokens.css</code>, because <code>npm run test:design-spine</code> fails on literal hex, literal <code>font-size</code> and literal <code>border-radius</code> outside the token sheet. The <strong>period substrate belongs to the already-approved documents work (Q5)</strong>: charts extend it rather than re-deriving PHT boundaries. Cost accepted with Q3: the printed document keeps its server-rendered SVG bars, so the SPA and the document are two renderers sharing one aggregate.</p>
     </div>
 
     <div class="phases">
@@ -844,7 +845,7 @@ footer.board-foot {
         <div class="phase__head">
           <span class="phase__order">1</span>
           <h3>Period trend and composition</h3>
-          <span class="badge badge--phase">the captain’s ask, satisfied first</span>
+          <span class="badge badge--phase">the captain’s ask, satisfied first (after documents P0)</span>
         </div>
         <div class="phase__body">
           <div class="phase__row">
@@ -856,8 +857,16 @@ footer.board-foot {
             <div class="phase__val">New <code>BuildReportAnalytics</code> behind <code>GET /api/v1/reports/analytics</code> with <code>from</code>, <code>to</code>, <code>granularity</code> plus the existing <code>ReportFilterRules</code> filters. Reuses helpers extracted from <code>BuildMonthlyReportSummary</code>; the monthly builder stays behaviourally identical and its existing tests are the regression signal. Adds per-day/per-week buckets, the <code>case_state</code> series, and a previous-window block.</div>
           </div>
           <div class="phase__row">
+            <div class="phase__key">Depends on</div>
+            <div class="phase__val">The documents plan’s Phase 0 period groundwork (<strong>Q5 decided: documents first</strong>) — PHT boundaries, weekly/monthly/custom resolution, the 366-day cap. Charts extend it instead of re-deriving boundary logic; if documents P0 slips, this phase waits.</div>
+          </div>
+          <div class="phase__row">
             <div class="phase__key">Web</div>
-            <div class="phase__val">Chart primitives (bar, stacked bar, histogram shell), a week / month / custom period control driven by the same URL state the register already parses (<code>date_from</code>/<code>date_to</code>), and a dashboard section beside — not replacing — the monthly panel (Q6).</div>
+            <div class="phase__val">The chosen chart library (Q3, package per Q8) plus a chart-theme module reading colours and text sizes from <code>tokens.css</code>; a week / month / custom period control driven by the same URL state the register already parses (<code>date_from</code>/<code>date_to</code>); and a <strong>dashboard-only</strong> chart section beside — not replacing — the monthly panel (<strong>Q2 decided: Dashboard only</strong>, so the Monitoring workspace register stays a table).</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Panel cleanup</div>
+            <div class="phase__val"><strong>Q6:</strong> once C2 and C3 render, remove the duplicate barangay and Possible Condition lists from <code>MonthlyCaseSummary.tsx</code> and update its test. The metric tiles and review-time block stay.</div>
           </div>
           <div class="phase__row">
             <div class="phase__key">Scope parity</div>
@@ -865,7 +874,7 @@ footer.board-foot {
           </div>
           <div class="phase__row">
             <div class="phase__key">Gate</div>
-            <div class="phase__val"><code>npm run check:api</code> (bucket boundaries, filter parity, empty period, monthly-summary equality) then <code>npm run verify:fast</code>.</div>
+            <div class="phase__val">Lockfile reviewed and <code>npm run security:dependency-check</code> green, <code>npm run check:api</code> (bucket boundaries, filter parity, empty period, monthly-summary equality), then <code>npm run verify:fast</code> — which includes the design-spine validator that catches hardcoded chart colours.</div>
           </div>
         </div>
       </article>
@@ -891,7 +900,7 @@ footer.board-foot {
           </div>
           <div class="phase__row">
             <div class="phase__key">Web</div>
-            <div class="phase__val">Six chart cards, each carrying its “what this is” line and the label discipline from the Charts-now table.</div>
+            <div class="phase__val">Six chart cards, each carrying its “what this is” line and the label discipline from the Charts-now table. C6 is the per-period bar with the measured/not-measured split and the duplicate-and-overlap disclosure line (<strong>Q7 decided</strong>).</div>
           </div>
           <div class="phase__row">
             <div class="phase__key">Gate</div>
@@ -917,11 +926,11 @@ footer.board-foot {
           </div>
           <div class="phase__row">
             <div class="phase__key">Web</div>
-            <div class="phase__val">Denominator-first card — “12 of 15 eligible reviewed reports agreed · 3 unable to classify (excluded)”. No standalone percentage, no accuracy wording anywhere in the component (X11).</div>
+            <div class="phase__val">Denominator-first card — “12 of 15 eligible reviewed reports agreed · 3 unable to classify (excluded)”. <strong>Q4 decided:</strong> counts only until the eligible denominator reaches 10, then the rate appears with the denominator. No standalone percentage, no accuracy wording anywhere in the component (X11).</div>
           </div>
           <div class="phase__row">
             <div class="phase__key">Gate</div>
-            <div class="phase__val"><code>npm run check:api</code> with an assertion mirroring the existing agreement assertions in <code>ReportReportingTest.php</code>, then <code>npm run verify:fast</code>.</div>
+            <div class="phase__val"><code>npm run check:api</code> with assertions mirroring the existing agreement assertions in <code>ReportReportingTest.php</code> — including the counts-only state below 10 and the rate state at 10 or more — then <code>npm run verify:fast</code>.</div>
           </div>
           <div class="phase__row">
             <div class="phase__key">Why last</div>
@@ -937,12 +946,20 @@ footer.board-foot {
   <section>
     <div class="section-head">
       <h2>Chart engineering decisions</h2>
-      <p>Small, concrete, and all chosen to avoid a dependency decision.</p>
+      <p>Small, concrete, and now including the one dependency the captain chose (Q3).</p>
     </div>
     <div class="grid-3">
       <div class="card">
-        <h3 style="margin-top:0">Rendering</h3>
-        <p style="margin:0">Inline SVG React components, palette from <code>src/styles/tokens.css</code>: <code>--disease-*</code> for conditions, the <code>--color-brand</code> family for counts, <code>--color-warning</code>/<code>--color-danger</code> only for genuinely past-target buckets. No canvas — it neither prints nor scales with CSS.</p>
+        <h3 style="margin-top:0">Library — Q3 decided, package per Q8</h3>
+        <p style="margin:0">A chart library replaces hand-authored SVG. <strong>Recharts 3.10.1</strong> is the recommended default: MIT, a declared React 19 peer range, SVG output, and a declarative API covering all thirteen shapes. Verified cost: 12 direct dependencies including <code>@reduxjs/toolkit</code>, <code>react-redux</code> and <code>immer</code>, ~7.5&nbsp;MB unpacked. <strong>@nivo/bar + @nivo/core 0.99.0</strong> is the named lighter equivalent (MIT, React 19, SVG-first, 343&nbsp;KB + 254&nbsp;KB).</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Rejected, with the facts</h3>
+        <p style="margin:0"><code>chart.js</code> 4.5.1 and <code>echarts</code> 6.1.0 render to <strong>canvas</strong> — print fidelity, token theming and accessible output all suffer. <code>react-apexcharts</code> 2.1.1 declares <code>SEE LICENSE IN LICENSE</code> rather than MIT, and this project already runs licence reviews. <code>victory</code> 37.3.6 only declares <code>react &gt;=16.6.0</code>, so it does not certify React 19.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Theming under the design spine</h3>
+        <p style="margin:0"><code>npm run test:design-spine</code> fails on a literal hex colour, literal <code>font-size</code> and literal <code>border-radius</code> outside <code>tokens.css</code> — and a library does not exempt the components using it. Colours and text sizes are read from the tokens at runtime and passed as props: <code>--disease-*</code> for conditions, the <code>--color-brand</code> family for counts, warning/danger only for genuinely past-target buckets.</p>
       </div>
       <div class="card">
         <h3 style="margin-top:0">Accessibility</h3>
@@ -950,11 +967,11 @@ footer.board-foot {
       </div>
       <div class="card">
         <h3 style="margin-top:0">Honest empty states</h3>
-        <p style="margin:0">Zero reports renders “No submitted reports in this period”, matching existing copy. A sparse denominator renders the insufficient-data state instead of a rate (Q4).</p>
+        <p style="margin:0">Zero reports renders “No submitted reports in this period”, matching existing copy. A sparse denominator renders the insufficient-data state instead of a rate, and below an eligible denominator of 10 the agreement card shows counts only (Q4).</p>
       </div>
       <div class="card">
-        <h3 style="margin-top:0">One printed period rule</h3>
-        <p style="margin:0">The chart header prints the period, the boundary rule and the timezone, exactly as the approved documents plan decided for documents. The shipped monthly panel is UTC, so this must be an explicit choice (Q1), not a silent divergence.</p>
+        <h3 style="margin-top:0">One printed period rule — Q1 decided</h3>
+        <p style="margin:0">Charts use <strong>PHT (UTC+8)</strong> and print the period, the boundary rule and the timezone on every chart. The monthly panel stays UTC (Q6), so the divergence is now permanent and deliberate — the printed rule is what keeps the two readable side by side.</p>
       </div>
       <div class="card">
         <h3 style="margin-top:0">No client-side aggregation</h3>
@@ -962,132 +979,94 @@ footer.board-foot {
       </div>
       <div class="card">
         <h3 style="margin-top:0">Copy contract</h3>
-        <p style="margin:0">A single copy module beside the chart primitives holds the required disclaimers and the forbidden vocabulary from X1–X14, with tests asserting both. This is the mitigation for the spec’s central risk: charts that quietly become claims.</p>
+        <p style="margin:0">A single copy module beside the chart components holds the required disclaimers and the forbidden vocabulary from X1–X14, with tests asserting both. This is the mitigation for the spec’s central risk: charts that quietly become claims.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Two renderers, one aggregate</h3>
+        <p style="margin:0">The library serves the SPA only. The printed document keeps its server-rendered SVG bars, so the shared <em>aggregate</em> — not shared rendering — is what keeps their numbers equal. This is the accepted cost of Q3, not an oversight.</p>
       </div>
     </div>
   </section>
 
-  <!-- ===================== QUESTIONS ===================== -->
+  <!-- ===================== DECISIONS ===================== -->
   <section>
     <div class="section-head">
-      <h2>Open questions — pick an option, then queue it</h2>
-      <p>Each question keeps its selection local until you submit. Submitting queues exactly one prompt for that question, so you can answer all seven and send them together. Recommendations are marked; a rationale box is optional on every question.</p>
+      <h2>Decisions recorded</h2>
+      <p>All seven questions were answered by the captain on this board. Each row states what was decided and what it changed in the plan. Two of them went against my recommendation, and both are marked.</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <caption>Recorded 2026-09-22. The report carries the same decisions in its own words.</caption>
+        <thead>
+          <tr><th>#</th><th class="wide">Decision</th><th class="wide">Effect on the plan</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="id">Q1</td>
+            <td><strong>PHT (UTC+8)</strong> boundaries, printed on every chart</td>
+            <td>Charts use the same period rule as the approved documents work. The monthly panel stays UTC (Q6), so the divergence is permanent and printed on each chart rather than transitional. No chart or gate changed.</td>
+          </tr>
+          <tr>
+            <td class="id">Q2</td>
+            <td><strong>Dashboard only</strong> <span class="badge badge--no">against my recommendation</span></td>
+            <td>The Monitoring-workspace entry point is withdrawn; the register stays a table. Phase 1 delivers one dashboard section. No chart or gate changed.</td>
+          </tr>
+          <tr>
+            <td class="id">Q3</td>
+            <td><strong>Add a chart library</strong> <span class="badge badge--no">against my recommendation</span></td>
+            <td>The dependency-free stance is withdrawn. Phase 1 gains a lockfile review plus <code>npm run security:dependency-check</code> in its gate, and gains a chart-theme module that reads tokens at runtime so <code>npm run test:design-spine</code> still passes. The document keeps its server-rendered SVG bars, so the SPA and the document are now two renderers sharing one aggregate.</td>
+          </tr>
+          <tr>
+            <td class="id">Q4</td>
+            <td><strong>Counts only until the eligible denominator reaches 10</strong>, then the rate with the denominator</td>
+            <td>Phase 3 ships a counts-only state below 10 and a rate above it, each with a test. No invented threshold is applied to any other chart.</td>
+          </tr>
+          <tr>
+            <td class="id">Q5</td>
+            <td><strong>Documents first</strong>; charts ride on its period groundwork</td>
+            <td>Phase 1 now has an explicit <em>Depends on</em> row naming the documents Phase 0 output. Charts extend that substrate rather than re-deriving PHT boundaries; if documents P0 slips, charts Phase 1 waits.</td>
+          </tr>
+          <tr>
+            <td class="id">Q6</td>
+            <td><strong>Keep the monthly panel</strong>; remove only the barangay and Possible Condition lists the charts now cover</td>
+            <td>Phase 1 gains a panel-cleanup row naming <code>MonthlyCaseSummary.tsx</code> and its test. The metric tiles and review-time block stay. Two renderings of one distribution disappear from the Dashboard.</td>
+          </tr>
+          <tr>
+            <td class="id">Q7</td>
+            <td><strong>Per-period bar</strong> with the measured/not-measured split and the duplicate-and-overlap disclosure line</td>
+            <td>C6 in Phase 2. Every option carried the spec-mandated labels, so only the presentation was ever in question.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== ONE REMAINING CHOICE ===================== -->
+  <section>
+    <div class="section-head">
+      <h2>One choice left — which library?</h2>
+      <p>Q3 approved <em>a</em> library, not a package, and this project asks before dependency changes. Versions, licences, React peer ranges and dependency counts below were read from the npm registry on 2026-09-22. Pick one and queue it.</p>
     </div>
 
-    <div class="phases">
+    <div class="question">
+      <div class="question__head"><span class="question__id">Q8</span><h3>Which chart library does the Web app add?</h3></div>
+      <p class="question__why">All four options keep the Q3 decision and the spec constraints. They differ in dependency weight and how much chart code we write ourselves.</p>
+      <form data-lavish-question="q8-library" onsubmit="queueAnswer(event, 'q8-library', 'Chart library package')">
+        <div class="options">
+          <label><input type="radio" name="q8" value="Recharts 3.10.1"><span class="opt-text">Recharts 3.10.1<span class="opt-reco">recommended</span><span class="opt-note">MIT · declared React 19 peer · SVG output · declarative API for all thirteen shapes. Cost: 12 direct dependencies including Redux Toolkit, react-redux and immer; ~7.5&nbsp;MB unpacked.</span></span></label>
+          <label><input type="radio" name="q8" value="@nivo/bar + @nivo/core 0.99.0"><span class="opt-text">@nivo/bar + @nivo/core 0.99.0<span class="opt-note">MIT · declared React 19 peer · SVG-first · far smaller (343&nbsp;KB + 254&nbsp;KB unpacked). Cost: a separate package per chart type and a different composition model.</span></span></label>
+          <label><input type="radio" name="q8" value="@visx 4.0.0"><span class="opt-text">@visx 4.0.0<span class="opt-note">MIT · React 19 peer · ~227&nbsp;KB per package · maximum control. Cost: axes, tooltips and legends become our code — close to the no-library effort.</span></span></label>
+          <label><input type="radio" name="q8" value="Recharts 2.15.4 (lighter previous major line)"><span class="opt-text">Recharts 2.15.4 — the lighter previous major line<span class="opt-note">MIT · React 19 peer · SVG · 8 direct dependencies instead of 12 (adds lodash, drops the Redux stack). Cost: not the current major line.</span></span></label>
+          <label><input type="radio" name="q8" value="Reverse Q3 — no library, back to hand-authored inline SVG"><span class="opt-text">Reverse Q3 — no library, back to hand-authored inline SVG<span class="opt-note">Removes the dependency and the lockfile step entirely; the SPA then shares one series implementation with the document. Cost: tooltips, legends and axes are all ours to build, as originally planned.</span></span></label>
+        </div>
+        <textarea class="notes" name="notes" placeholder="Optional rationale (dependency weight, licences, anything you want weighed differently)"></textarea>
+        <button class="queue" type="submit">Queue answer for Q8</button>
+        <p class="queued-state" hidden></p>
+      </form>
+    </div>
 
-      <!-- Q1 -->
-      <div class="question">
-        <div class="question__head"><span class="question__id">Q1</span><h3>Which period boundary rule do the new charts use?</h3></div>
-        <p class="question__why">The shipped monthly panel is UTC (<code>BuildMonthlyReportSummary</code> says so explicitly). The approved documents plan decided <strong>PHT (UTC+8)</strong> for documents and deliberately left the panel alone. A new period chart must pick one and print it.</p>
-        <form data-lavish-question="q1-boundary" onsubmit="queueAnswer(event, 'q1-boundary', 'Period boundary rule for the new analytics charts')">
-          <div class="options">
-            <label><input type="radio" name="q1" value="PHT (UTC+8), printed on every chart"><span class="opt-text">PHT (UTC+8), printed on every chart<span class="opt-reco">recommended</span><span class="opt-note">Matches the approved documents decision, so a chart and a printed document agree on “this week”.</span></span></label>
-            <label><input type="radio" name="q1" value="UTC, matching the shipped monthly panel"><span class="opt-text">UTC, matching the shipped monthly panel<span class="opt-note">Zero divergence today, but the dashboard and a printed document will disagree about week and month edges.</span></span></label>
-            <label><input type="radio" name="q1" value="Both, with each surface's rule printed"><span class="opt-text">Both, with each surface’s rule printed<span class="opt-note">Honest but duplicated; the panel and the chart can still show different numbers for the same month.</span></span></label>
-          </div>
-          <textarea class="notes" name="notes" placeholder="Optional rationale (why this rule matters for your reporting)"></textarea>
-          <button class="queue" type="submit">Queue answer for Q1</button>
-          <p class="queued-state" hidden></p>
-        </form>
-      </div>
-
-      <!-- Q2 -->
-      <div class="question">
-        <div class="question__head"><span class="question__id">Q2</span><h3>Where do the charts live?</h3></div>
-        <p class="question__why">The Dashboard is the office overview; the Monitoring workspace already holds the register, calendar, map and field operations.</p>
-        <form data-lavish-question="q2-surface" onsubmit="queueAnswer(event, 'q2-surface', 'Surface for the new analytics charts')">
-          <div class="options">
-            <label><input type="radio" name="q2" value="Dashboard + Monitoring workspace register, one shared chart section component"><span class="opt-text">Dashboard + Monitoring workspace register, one shared component<span class="opt-reco">recommended</span><span class="opt-note">One implementation, two entry points — the same pattern the documents builder was approved with.</span></span></label>
-            <label><input type="radio" name="q2" value="Dashboard only"><span class="opt-text">Dashboard only<span class="opt-note">Smallest change; the monitoring register stays a table.</span></span></label>
-            <label><input type="radio" name="q2" value="Monitoring workspace register only"><span class="opt-text">Monitoring workspace register only<span class="opt-note">Keeps the Dashboard’s current density; less visible to a casual office read.</span></span></label>
-          </div>
-          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
-          <button class="queue" type="submit">Queue answer for Q2</button>
-          <p class="queued-state" hidden></p>
-        </form>
-      </div>
-
-      <!-- Q3 -->
-      <div class="question">
-        <div class="question__head"><span class="question__id">Q3</span><h3>How are the charts rendered?</h3></div>
-        <p class="question__why">The repo has <strong>no chart dependency at all</strong> today, and adding one is a dependency decision, not just a code change.</p>
-        <form data-lavish-question="q3-render" onsubmit="queueAnswer(event, 'q3-render', 'Chart rendering approach')">
-          <div class="options">
-            <label><input type="radio" name="q3" value="Hand-authored inline SVG components, no new dependency"><span class="opt-text">Hand-authored inline SVG components, no new dependency<span class="opt-reco">recommended</span><span class="opt-note">Print-safe, token-styled, testable, and one series implementation serves both the dashboard and the approved document. Cost: tooltips and legends are ours to build.</span></span></label>
-            <label><input type="radio" name="q3" value="Add a chart library"><span class="opt-text">Add a chart library<span class="opt-note">Faster interactivity, but a new runtime dependency, a second visual language, and a print path that cannot reuse the library output.</span></span></label>
-          </div>
-          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
-          <button class="queue" type="submit">Queue answer for Q3</button>
-          <p class="queued-state" hidden></p>
-        </form>
-      </div>
-
-      <!-- Q4 -->
-      <div class="question">
-        <div class="question__head"><span class="question__id">Q4</span><h3>Agreement display floor while staff classifications are sparse</h3></div>
-        <p class="question__why">Agreement is a ratio over eligible reviewed reports, and today almost none exist (N3). The spec bans invented thresholds; a presentation floor for showing a percentage is a separate decision, so it is yours to make rather than mine to assume.</p>
-        <form data-lavish-question="q4-agreement-floor" onsubmit="queueAnswer(event, 'q4-agreement-floor', 'Agreement percentage display floor')">
-          <div class="options">
-            <label><input type="radio" name="q4" value="Counts only until the eligible denominator is at least 10, then show the rate with the denominator"><span class="opt-text">Counts only until denominator ≥ 10, then rate + denominator<span class="opt-reco">recommended</span><span class="opt-note">A rate on fewer than ten reviewed reports invites over-reading.</span></span></label>
-            <label><input type="radio" name="q4" value="Counts only until the eligible denominator is at least 20"><span class="opt-text">Counts only until denominator ≥ 20<span class="opt-note">More conservative; the rate may stay hidden for a long time.</span></span></label>
-            <label><input type="radio" name="q4" value="Always show the rate, always with the denominator printed"><span class="opt-text">Always show the rate, with the denominator printed<span class="opt-note">Maximally transparent; relies on the reader reading the denominator.</span></span></label>
-            <label><input type="radio" name="q4" value="Defer the floor decision to Phase 3"><span class="opt-text">Defer the floor decision to Phase 3<span class="opt-note">Phase 3 then ships counts-only by default until you decide.</span></span></label>
-          </div>
-          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
-          <button class="queue" type="submit">Queue answer for Q4</button>
-          <p class="queued-state" hidden></p>
-        </form>
-      </div>
-
-      <!-- Q5 -->
-      <div class="question">
-        <div class="question__head"><span class="question__id">Q5</span><h3>Sequence against the already-approved documents work (P0–P2)</h3></div>
-        <p class="question__why">The approved plan’s Phase 0 already builds weekly/monthly/custom period handling with PHT boundaries. C1 needs the same bucketing, so one of these two tracks owns it.</p>
-        <form data-lavish-question="q5-sequence" onsubmit="queueAnswer(event, 'q5-sequence', 'Sequencing against the approved documents plan')">
-          <div class="options">
-            <label><input type="radio" name="q5" value="Documents first; charts ride on its period groundwork"><span class="opt-text">Documents first; charts ride on its period groundwork<span class="opt-reco">recommended</span><span class="opt-note">One period substrate, one bucket implementation, no duplicated boundary logic.</span></span></label>
-            <label><input type="radio" name="q5" value="Charts first; the documents track adapts to the chart aggregate"><span class="opt-text">Charts first; the documents track adapts<span class="opt-note">Puts charts on screen sooner, but the approved P0 groundwork is re-scoped before it is used.</span></span></label>
-            <label><input type="radio" name="q5" value="Interleave chart Phase 1 with the documents Phase 0"><span class="opt-text">Interleave chart Phase 1 with documents Phase 0<span class="opt-note">Shared bucket work lands once, but two approved scopes move at the same time.</span></span></label>
-          </div>
-          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
-          <button class="queue" type="submit">Queue answer for Q5</button>
-          <p class="queued-state" hidden></p>
-        </form>
-      </div>
-
-      <!-- Q6 -->
-      <div class="question">
-        <div class="question__head"><span class="question__id">Q6</span><h3>What happens to the existing monthly summary panel?</h3></div>
-        <p class="question__why">The panel currently renders the barangay and Possible Condition data as lists. The new C2 and C3 charts show the same data for any period, so keeping both risks two answers to one question on one screen.</p>
-        <form data-lavish-question="q6-monthly-panel" onsubmit="queueAnswer(event, 'q6-monthly-panel', 'Fate of the existing monthly summary panel')">
-          <div class="options">
-            <label><input type="radio" name="q6" value="Keep the panel; remove only the barangay and condition lists the charts now cover"><span class="opt-text">Keep the panel; remove only the lists the charts now cover<span class="opt-reco">recommended</span><span class="opt-note">Keeps the metric tiles and review-time stats, and leaves one rendering of each distribution.</span></span></label>
-            <label><input type="radio" name="q6" value="Keep the panel entirely as it is"><span class="opt-text">Keep the panel entirely as it is<span class="opt-note">Safest for existing tests; the same distribution then appears twice on the Dashboard.</span></span></label>
-            <label><input type="radio" name="q6" value="Replace the panel with the period chart, defaulting to the current month"><span class="opt-text">Replace the panel with the period chart, defaulting to the current month<span class="opt-note">Cleanest screen; the panel's UTC month semantics change, which touches existing behaviour.</span></span></label>
-          </div>
-          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
-          <button class="queue" type="submit">Queue answer for Q6</button>
-          <p class="queued-state" hidden></p>
-        </form>
-      </div>
-
-      <!-- Q7 -->
-      <div class="question">
-        <div class="question__head"><span class="question__id">Q7</span><h3>Does the estimated affected area become a chart, or stay a labelled figure?</h3></div>
-        <p class="question__why">The spec already fixes the wording — <em>labelled estimate, overlaps acknowledged, duplicate count disclosed</em> (§13, §15) — so every option below carries the same provenance and disclosure lines. The genuine choice is only whether the estimate is plotted over the period or kept as a labelled figure in the summary band, which is where it lives today.</p>
-        <form data-lavish-question="q7-area-chart" onsubmit="queueAnswer(event, 'q7-area-chart', 'Presentation of the estimated affected area')">
-          <div class="options">
-            <label><input type="radio" name="q7" value="Per-period bar, with the measured/not-measured split and the duplicate-and-overlap disclosure line"><span class="opt-text">Per-period bar, with the same provenance and disclosure lines<span class="opt-reco">recommended</span><span class="opt-note">Area becomes comparable across periods like the other charts. Barrier: it needs the provenance split built first — that is the C6 work.</span></span></label>
-            <label><input type="radio" name="q7" value="Keep a labelled figure in the summary band, no bar, with provenance and disclosure lines added"><span class="opt-text">Keep it a labelled figure in the summary band, no bar<span class="opt-note">Smallest honest change: the existing number gains its missing labels and stops being an unqualified total. Nothing is plotted, so no overlap between periods can be read as accumulation.</span></span></label>
-            <label><input type="radio" name="q7" value="Both: labelled figure in the summary band plus a per-period bar in the charts section"><span class="opt-text">Both — figure in the summary band, bar in the charts section<span class="opt-note">Most complete, and the figure stays visible without scrolling to the charts. Costs one duplicated figure on the same screen.</span></span></label>
-          </div>
-          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
-          <button class="queue" type="submit">Queue answer for Q7</button>
-          <p class="queued-state" hidden></p>
-        </form>
-      </div>
-
+    <div class="note" style="margin-top:var(--space-3)">
+      <strong>Rejected candidates, for the record:</strong> <code>chart.js</code> 4.5.1 and <code>echarts</code> 6.1.0 render to canvas (print fidelity, token theming and accessible output all suffer); <code>react-apexcharts</code> 2.1.1 declares <code>SEE LICENSE IN LICENSE</code> rather than MIT, and this project already runs licence reviews; <code>victory</code> 37.3.6 only declares <code>react &gt;=16.6.0</code>, so it does not certify React 19.
     </div>
   </section>
 

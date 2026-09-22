@@ -1,10 +1,10 @@
 # CaneGuard Web — Charts-First Analytics Implementation Plan
 
-Date: 2026-09-22
-Status: **plan for decision** — no code changed by this task
+Date: 2026-09-22 · decisions recorded 2026-09-22
+Status: **decisions recorded** — 7 of 7 answered on the board; one dependency sub-choice remains (Q8). No code changed by this task
 Authority: the frozen Analytics Opportunity Mapping spec (`data/cg-analytics-charts-plan-20260921/spec.md`), treated as the requirement of record. Where the spec and the shipped Web app disagree, the spec wins and the disagreement is named.
-Subject: the Web dashboard / monitoring analytics surface of `caneguard-web`.
-Related, already approved: `data/cg-web-reports-plan-20260921/report.md` (documented reports, P0–P2 approved). This plan reuses its period groundwork tone and does not supersede any of its decisions.
+Subject: the Web dashboard analytics surface of `caneguard-web`.
+Related, already approved: `data/cg-web-reports-plan-20260921/report.md` (documented reports, P0–P2 approved). Charts share its period groundwork.
 
 ---
 
@@ -19,7 +19,7 @@ So this document does three things:
 2. Sorts **every** analytics item the frozen spec asks for into **CHARTS NOW**, **NEEDS DATA FIRST**, and **NOT NOW**, each with the exact blocking input or frozen rule (§3–§5).
 3. Gives a three-phase charts-first build order with the per-chart data source and a verification gate (§6–§8).
 
-The plan proposes **no new runtime dependency** and **no schema change**. Every chart below is drawn from columns the system already writes today.
+The plan adds **one runtime dependency** — a chart library, decided by the captain (Q3) with the specific package still open (Q8) — and makes **no schema change**. Every chart below is drawn from columns the system already writes today.
 
 ---
 
@@ -76,7 +76,7 @@ Two cross-cutting rules decide most of the bucket sort below:
 ### 2.3 The honest gaps
 
 1. **There is exactly one aggregate endpoint, and it is a UTC month.** `GET /api/v1/reports/summary?month=YYYY-MM` and the dashboard's embedded `monthly_summary` are the only server-side aggregations. There is no week, no custom range, no per-day/per-week series, no previous-period comparison.
-2. **There is no charting library and no chart component.** `package.json` has no chart dependency; the design tokens (`src/styles/tokens.css`) have no chart scale; the only inline SVG in the SPA is on the login page. Today's "charts" are lists and definition lists.
+2. **There is no charting library and no chart component.** `package.json` has no chart dependency; the only inline SVG in the SPA is on the login page, and today's "charts" are lists and definition lists. The captain's decision (Q3) adds one library for this work; nothing exists to reuse.
 3. **The register is the wrong chart source.** `per_page` is capped at 100 and results are paginated, so a browser-side chart would silently truncate.
 4. **Several spec dimensions have a stored column but no aggregation at all**: `case_state` series, `authority_classified_condition` distribution, workload per assignee, waiting-age buckets, turnaround durations.
 5. **The area total has no provenance and no overlap disclosure.** `estimated_affected_hectares` is a bare `SUM(affected_area_hectares)` over rows with `canonical_report_id IS NULL`. It does not split `measured` from `not_measured`, and it never prints how many linked duplicates were excluded — both of which the spec's area rule (§13) and duplicate rule (§15) require a chart to state.
@@ -164,18 +164,30 @@ Each line names the rule that forbids it, so this list is not revisable by prefe
 
 ## 6. The phased charts-first plan
 
-Design stance, stated once: **no new runtime dependency; no schema change.** Charts are hand-authored inline SVG React components styled from `src/styles/tokens.css`. Reasons: the repo carries zero chart packages today; `npm run security:dependency-check` and `check:web` stay untouched; the approved documented-reports plan already chose "print-safe inline SVG bars — no canvas, no JS" for the document, so one series implementation serves both surfaces. The honest trade-off: no library-provided tooltips or legends, so every chart ships a visually-hidden data table and a text summary (§7).
+Design stance, stated once from the recorded decisions:
+
+- **One new runtime dependency — a chart library (Q3)** — and **no schema change**. The specific package is the only remaining choice (Q8).
+- **The period substrate is owned by the approved documents work (Q5).** Since documents ship first, their Phase 0 already provides PHT weekly/monthly/custom boundaries and the 366-day range cap. Phase 1 below **extends** that substrate instead of rebuilding it; if documents P0 slips, Phase 1 waits rather than duplicating boundary logic.
+- **The Dashboard is the only chart surface (Q2).** The Monitoring workspace register stays a table.
+
+Three honest costs of that stance, stated rather than buried:
+
+1. **Two renderers for one series.** The library does not serve the printed document, which keeps its server-rendered, print-safe inline SVG bars (the documents plan's own decision). The SPA chart and the document bar now come from different code, so the shared *aggregate* — not shared rendering — is what keeps their numbers equal.
+2. **The dependency must survive this repo's gates.** `npm run security:dependency-check` runs a dependency contract, `npm run test:design-spine` forbids literal hex colours, literal `font-size` and literal `border-radius` outside `tokens.css`, and `npm run lint` runs with the repo's rules. The library is therefore themed by reading token values at runtime, never by hardcoding palette hexes in components.
+3. **Tooltips and legends come from the library, but accessibility does not.** Every chart still ships a visually-hidden data table (§7.3).
 
 ### Phase 1 — Period trend and composition
 **Charts delivered: C1, C2, C3, C4, C11.**
 
 | Item | Work |
 | --- | --- |
+| Depends on | The documents plan's Phase 0 period groundwork (Q5): PHT boundaries, weekly/monthly/custom resolution, the 366-day cap |
 | API | New `BuildReportAnalytics` action behind `GET /api/v1/reports/analytics` with `from`, `to`, `granularity`, plus the existing `ReportFilterRules` filters. It reuses the metric/grouping helpers extracted from `BuildMonthlyReportSummary`; the monthly builder's behaviour stays byte-identical and its existing tests in `api/tests/Feature/ReportReportingTest.php` are the regression signal. Adds: per-day/per-week buckets, `case_state` series, and a previous-window comparison block |
-| Web | Chart primitives (bar, stacked bar, histogram shell), a period control (week / month / custom) driven by the same URL state the register already parses (`src/pages/reportListUrlState.ts` uses `date_from`/`date_to`), and a new dashboard section beside — not replacing — the monthly panel |
+| Web | The chart library (Q3, package per Q8) plus a chart-theme module that reads colours and text sizes from `tokens.css`; a period control (week / month / custom) driven by the same URL state the register already parses (`src/pages/reportListUrlState.ts` uses `date_from`/`date_to`); a dashboard section beside — not replacing — the monthly panel |
+| Panel cleanup (Q6) | Once C2 and C3 render, remove the duplicate barangay and Possible Condition lists from `MonthlyCaseSummary.tsx` and update `MonthlyCaseSummary.test.tsx`. The metric tiles and review-time block stay |
 | Scope parity | Chart scope uses `ApplyReportFilters` and `canonical_report_id IS NULL`, the same actions the CSV export uses, so a chart and an export can never disagree |
 | Value on its own | Any week, month or custom range becomes visible as a chart instead of a list |
-| Gate | `npm run check:api` (bucket boundaries, filter parity, empty period, monthly-summary equality) and `npm run verify:fast` |
+| Gate | Lockfile reviewed and `npm run security:dependency-check` green; `npm run check:api` (bucket boundaries, filter parity, empty period, monthly-summary equality); `npm run verify:fast` (which includes lint, typecheck, Vitest, the design-spine validator and the build) |
 
 ### Phase 2 — Area, workload and backlog
 **Charts delivered: C5, C6, C7, C8, C9, C12.**
@@ -184,7 +196,7 @@ Design stance, stated once: **no new runtime dependency; no schema change.** Cha
 | --- | --- |
 | API | Extend the same aggregate: `area` (sum + `measured`/`not_measured` provenance + linked-duplicate counts), lifecycle distributions, `validation_workload` by assignee, `validation_schedule` four-bucket counts, `validation_turnaround` durations, `review_backlog` waiting-age buckets |
 | Indexes | Groupings are already index-backed: `['barangay','submitted_at']`, `['predicted_label','submitted_at']`, `['case_state','submitted_at']`, `['field_validation_state','submitted_at']` (lifecycle migration), and `field_validation_assignments` `['assignee_id','updated_at','id']`. No migration is needed |
-| Web | Six chart cards, each with its "what this is" line and the label discipline from §3 |
+| Web | Six chart cards, each with its "what this is" line and the label discipline from §3. C6 is the per-period bar with the measured/not-measured split and the duplicate-and-overlap disclosure line (Q7) |
 | Value on its own | The operational picture — where work sits, who is loaded, what has waited longest, what the area estimate actually contains |
 | Gate | `npm run check:api` plus `npm run api:test:mysql` (grouped joins against real MySQL), then `npm run verify:fast` |
 
@@ -194,22 +206,53 @@ Design stance, stated once: **no new runtime dependency; no schema change.** Cha
 | Item | Work |
 | --- | --- |
 | API | `agreement` block: `eligible` = reviewed reports with a usable Staff-Classified Condition; `unable_to_classify` counted separately and excluded; `agreed` count; denominator always returned; `eligible: 0` returns a first-class insufficient-data shape, not `0 %` |
-| Web | Denominator-first agreement card — "12 of 15 eligible reviewed reports agreed · 3 unable to classify (excluded)". No standalone percentage. No accuracy wording anywhere in the component |
+| Web | Denominator-first agreement card — "12 of 15 eligible reviewed reports agreed · 3 unable to classify (excluded)". **Counts only until `eligible` reaches 10, then the rate appears with the denominator (Q4).** No standalone percentage. No accuracy wording anywhere in the component |
 | Value on its own | Answers the researcher's agreement requirement the moment enough reviews exist, and refuses to mislead before then |
-| Gate | `npm run check:api` with an assertion mirroring the existing agreement assertions in `ReportReportingTest.php`, then `npm run verify:fast` |
+| Gate | `npm run check:api` with an assertion mirroring the existing agreement assertions in `ReportReportingTest.php` (including the sub-10 counts-only state), then `npm run verify:fast` |
 
-**Ordering rationale.** Phase 1 is the smallest change that turns the dashboard from lists into charts and is where the captain's "charts first" ask is actually satisfied. Phase 2 is the operational depth the spec's Maps 3 and 4 require. Phase 3 is last because its data is thinnest, and shipping it earlier would put an empty rate on the dashboard — the single most misleading outcome available here.
+**Ordering rationale.** Documents first (Q5) so the period rule is decided once. Phase 1 is then the smallest change that turns the dashboard from lists into charts, which is where the captain's "charts first" ask is actually satisfied. Phase 2 is the operational depth the spec's Maps 3 and 4 require. Phase 3 is last because its data is thinnest, and shipping it earlier would put an empty rate on the dashboard — the single most misleading outcome available here.
 
 ---
 
 ## 7. Chart engineering decisions
 
-1. **Rendering:** inline SVG in React, palette from `src/styles/tokens.css` (`--disease-healthy/mosaic/rust/smut` for conditions, `--color-brand` family for counts, `--color-warning`/`--color-danger` only for genuinely past-target buckets). No canvas — it does not print or scale with CSS.
-2. **Text floor:** every axis label, tick and legend uses the project's 16 px floor (`--text-body-sm`); the 12 px machine scale is not used for chart text.
-3. **Accessibility:** each chart is `role="img"` with an `aria-label` summarising the series, plus a visually-hidden `<table>` of the plotted values — the accessible equivalent, and also what makes the chart testable without a browser.
-4. **Explicit empty and insufficient states:** zero reports in the range renders "No submitted reports in this period" (matching the existing `MonthlyCaseSummary` copy); a sparse denominator renders the insufficient-data state rather than a rate.
-5. **One period rule, printed:** the chart header states the period, the boundary rule and the timezone, exactly as the approved documents plan decided for documents (Q1 there). See board question **Q1** — the shipped monthly panel is UTC, so this must be an explicit choice rather than a silent divergence.
-6. **No client-side aggregation of the register.** The list endpoint is capped at 100 rows per page; charts read the aggregate endpoint only.
+### 7.1 The library (Q3 decided: add one; Q8 picks the package)
+
+Facts below were read from the npm registry on 2026-09-22, not recalled.
+
+| Candidate | Version | Licence | React 19 peer | Output | Dependency surface | Verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Recharts** | 3.10.1 | MIT | declared (`react ^16.8 \|\| ^17 \|\| ^18 \|\| ^19`) | SVG | 12 direct deps incl. `@reduxjs/toolkit`, `react-redux`, `immer`, `reselect`, `victory-vendor`; ~7.5 MB unpacked; also wants `react-is` as a peer | **Recommended default.** Declarative React API, SVG output, explicit React 19 support, MIT. The redux/immer internals and unpacked size are the real cost |
+| Recharts (2.x line) | 2.15.4 | MIT | declared | SVG | 8 direct deps incl. `lodash` and `react-is ^18.3.1` | Lighter than 3.x, still React 19, but the previous major line — take it only if 3.x's redux surface is refused |
+| **@nivo/bar + @nivo/core** | 0.99.0 | MIT | declared (`react ^16.14 \|\| ^17 \|\| ^18 \|\| ^19`) | SVG (canvas optional) | Per-chart packages; `@nivo/bar` 343 KB and `@nivo/core` 254 KB unpacked | **Equivalent alternative** if dependency weight dominates: much smaller, same licence class and React support, different composition model and more packages to add |
+| @visx | 4.0.0 | MIT | declared (`react ^18 \|\| ^19`) | SVG primitives | ~227 KB per package | Only if tooltips, axes and legends are acceptable as build-it-yourself work — that is close to the no-library effort |
+| chart.js / echarts | 4.5.1 / 6.1.0 | MIT / Apache-2.0 | via wrappers | **Canvas** (echarts has an SVG renderer) | Large; a React wrapper is an extra package | **Rejected:** canvas loses print fidelity and the SVG/token/contrast discipline, and canvas output is inaccessible by default |
+| react-apexcharts | 2.1.1 | metadata declares `SEE LICENSE IN LICENSE`, **not** MIT | loose (`react >=16.8.0`) | SVG | Wraps `apexcharts >=5.10.1` | **Rejected:** the wrapper does not declare a clean licence, and this project already runs licence reviews (the documents plan flagged mPDF's GPL) |
+| victory | 37.3.6 | MIT | loose (`react >=16.6.0`) — does not assert React 19 | SVG | ~2.3 MB unpacked | **Rejected for now:** the peer range does not certify the React version this repo runs |
+
+**Why Recharts is the default:** it is the only candidate that combines a declared React 19 peer range, SVG output, MIT licensing and a declarative React API for all thirteen chart shapes in this plan. The honest cost is its internal Redux/immer state and 7.5 MB unpacked — which is why the lockfile review and `npm run security:dependency-check` are part of the Phase 1 gate rather than an afterthought.
+
+### 7.2 Theming under the design spine
+
+`npm run test:design-spine` fails on a literal hex colour, a literal `font-size` and a literal `border-radius` outside `src/styles/tokens.css`. A library does not exempt the components that use it, so:
+
+- Palette and text sizes are read from the tokens at runtime (a small chart-theme module reading CSS custom properties) and passed as props — never hardcoded in components.
+- Condition colours stay the token set (`--disease-healthy/mosaic/rust/smut`); counts use the `--color-brand` family; `--color-warning`/`--color-danger` appear only for genuinely past-target buckets.
+- Axis, tick and legend text uses the 16 px floor (`--text-body-sm`); the 12 px machine scale is not used for chart text.
+
+### 7.3 Accessibility and honest states
+
+- Each chart is `role="img"` with an `aria-label` summarising the series, plus a visually-hidden `<table>` of the plotted values. The library supplies the visual; the table supplies both the accessible equivalent and a browser-free test target.
+- Zero reports renders "No submitted reports in this period", matching the existing `MonthlyCaseSummary` copy.
+- A sparse denominator renders the insufficient-data state rather than a rate (Q4).
+
+### 7.4 One period rule, printed (Q1 decided)
+
+Charts use **PHT (UTC+8)** boundaries and print the period, the boundary rule and the timezone on every chart. The shipped monthly panel stays UTC by Q6, so the divergence between the panel and the charts is now **permanent and deliberate** rather than a transitional risk; the printed rule on each chart is what keeps the two readable side by side.
+
+### 7.5 No client-side aggregation of the register
+
+The list endpoint is capped at 100 rows per page; charts read the aggregate endpoint only, one payload per period change, debounced.
 
 ---
 
@@ -217,14 +260,15 @@ Design stance, stated once: **no new runtime dependency; no schema change.** Cha
 
 | Phase | Commands |
 | --- | --- |
-| 1 | `npm run check:api`, `npm run verify:fast` |
+| 1 | `npm run security:dependency-check` (lockfile reviewed and committed), `npm run check:api`, `npm run verify:fast` |
 | 2 | `npm run check:api`, `npm run api:test:mysql`, `npm run verify:fast` |
 | 3 | `npm run check:api`, `npm run verify:fast` |
 
 Tests to add, following existing patterns:
 
-- **API (Pest/PHPUnit, SQLite):** period bucketing (day/week boundaries), previous-window selection, filter parity with the export action, empty period, provenance split and duplicate disclosure counts, `unable_to_classify` exclusion and denominator math, and the equality test that proves the monthly summary is unchanged after helper extraction.
-- **Web (Vitest + RTL + MSW):** chart renders from a fixture payload; insufficient-data state; accessible table present with the same values; "no submitted reports" empty state; label-discipline assertions (the disclaimer strings are present, and the forbidden words in §5 are absent from chart copy).
+- **Dependency gate (Phase 1):** with the library added, `npm run security:dependency-check` stays green, `package-lock.json` is committed, and `npm run test:design-spine` stays green — the latter proves no literal hex colour, `font-size` or `border-radius` leaked into a component through chart styling.
+- **API (Pest/PHPUnit, SQLite):** period bucketing (day/week boundaries, PHT), previous-window selection, filter parity with the export action, empty period, provenance split and duplicate disclosure counts, `unable_to_classify` exclusion and denominator math, and the equality test that proves the monthly summary is unchanged after helper extraction.
+- **Web (Vitest + RTL + MSW):** chart renders from a fixture payload; the counts-only state below an eligible denominator of 10 and the rate-above-10 state; accessible table present with the same values; "no submitted reports" empty state; label-discipline assertions (the disclaimer strings are present, and the forbidden words in §5 are absent from chart copy).
 
 Never in this plan: E2E, browser, device or interactive acceptance runs.
 
@@ -234,11 +278,14 @@ Never in this plan: E2E, browser, device or interactive acceptance runs.
 
 | Risk | Severity | Handling |
 | --- | --- | --- |
-| Two period semantics on one page (shipped UTC monthly panel + new charts) | Medium — correctness perception | Make it a decision (**Q1**), print the rule on every chart, and offer to unify the panel in a later round |
-| Aggregate cost as the register grows | Medium | Bounded ranges (reuse the approved 366-day cap idea), index-backed groupings, one payload per period change (debounced), no per-chart request fan-out |
-| Chart copy drifts into forbidden claims (hotspot, incidence, accuracy, leaderboard) | **High — it is the spec's central risk** | A single copy contract next to the chart primitives plus tests asserting the required disclaimers and the absence of the §5 vocabulary |
-| Sparse fields produce a misleading rate (agreement, turnaround, area provenance) | High | Denominator-first layout, explicit insufficient-data state, counts-only default; the display floor itself is board question **Q4** rather than a silent invention |
-| Demo/seed data misleads reviewers (seeded Smut labels, seeded staff classifications) | Medium | Charts declare the declared condition list `healthy, mosaic, rust`; any future Smut/RSSI series is gated on the model, not on the presence of rows |
+| Two period semantics on one page — shipped UTC monthly panel versus PHT charts | Medium — correctness perception | Already decided (Q1 PHT, panel UTC by Q6). Every chart prints its period and timezone; the documents plan already prints its own. Unifying the panel is available later if the two readings cause confusion |
+| **Chart library dependency surface** — Recharts 3.x brings 12 direct dependencies including Redux Toolkit/immer and ~7.5 MB unpacked | Medium — supply chain, build size | Lockfile reviewed and committed; `npm run security:dependency-check` and `npm audit` in the Phase 1 gate; `@nivo` is the named lighter equivalent (MIT, React 19, SVG) if the surface is refused. Only the chosen library is added — no second chart stack |
+| Library cannot be themed through the design spine | Medium — a real gate failure, not a style preference | Theme from runtime token reads, never hardcoded hexes or literal font sizes; `npm run test:design-spine` is part of the Phase 1 gate, so a violation fails the build rather than shipping |
+| Aggregate cost as the register grows | Medium | Bounded ranges (reuse the approved 366-day cap), index-backed groupings, one payload per period change (debounced), no per-chart request fan-out |
+| Chart copy drifts into forbidden claims (hotspot, incidence, accuracy, leaderboard) | **High — it is the spec's central risk** | A single copy contract beside the chart components plus tests asserting the required disclaimers and the absence of the §5 vocabulary |
+| Sparse fields produce a misleading rate (agreement, turnaround, area provenance) | High | Denominator-first layout, explicit insufficient-data state, and a decided counts-only floor below an eligible denominator of 10 (Q4) |
+| Demo/seed data misleads reviewers (seeded Smut labels, seeded staff classifications) | Medium | Charts declare the condition list `healthy, mosaic, rust`; any future Smut/RSSI series is gated on the model, not on the presence of rows |
+| Two renderers for one series (library in the SPA, server-rendered SVG bars in the document) | Low–Medium | The shared *aggregate* is what keeps the numbers equal, plus the document-contract test already planned by the documents track. Accepted cost of Q3 |
 | Scope creep into Mobile | Low | Map 2 stays on the Mobile readiness surface (§4 N5); the Web dashboard never claims readiness or sync state |
 | Read-only plan interpreted as approval to build | Low | This task changed no code; Phase 1 needs its own go-ahead |
 
@@ -248,23 +295,36 @@ Never in this plan: E2E, browser, device or interactive acceptance runs.
 
 ## 10. Relationship to the approved documented-reports plan
 
-The approved plan (`data/cg-web-reports-plan-20260921/report.md`, P0–P2) already specifies per-day/per-week SVG bars inside the printed document — that is **C1 rendered print-first**. Two consequences:
+The approved plan (`data/cg-web-reports-plan-20260921/report.md`, P0–P2) already specifies per-day/per-week SVG bars inside the printed document — that is **C1 rendered print-first**. Two consequences, one of them now decided:
 
-1. **Share one series implementation and one aggregate** so the document and the dashboard cannot disagree about a period's counts. Building C1's bucketing in the API aggregate is therefore useful to both tracks.
-2. **Sequencing is a real question** (board **Q5**): the documents track already owns the period groundwork (PHT boundaries, weekly/monthly/custom, the 366-day cap). Charts either ride on that work or duplicate it.
+1. **Share one aggregate** so the document and the dashboard cannot disagree about a period's counts. Building C1's bucketing in the API aggregate is therefore useful to both tracks. Note this is the *aggregate* that is shared, not the rendering: Q3's library serves the SPA only, and the document keeps its server-rendered SVG bars.
+2. **Sequencing is decided (Q5): documents first, charts ride on its period groundwork.** Charts Phase 1 consumes the documents Phase 0 output (PHT weekly/monthly/custom boundaries and the 366-day cap) rather than re-deriving it. If documents P0 slips, charts Phase 1 waits.
 
 ---
 
-## 11. Open questions for the captain
+## 11. Decisions recorded (2026-09-22), and the one remaining choice
 
-Answered on the board with one queue control per question.
+All seven board questions were answered by the captain. Nothing in this section is still open except Q8.
 
-| # | Question | Options | Recommendation |
-| --- | --- | --- | --- |
-| **Q1** | Which period boundary rule do the new charts use? | PHT (matches the approved documents decision) · UTC (matches the shipped monthly panel) · both, each labelled | PHT, with the rule printed on every chart |
-| **Q2** | Where do the charts live? | Dashboard only · Dashboard + Monitoring workspace register · Monitoring workspace only | Dashboard + Monitoring register, one shared chart section component |
-| **Q3** | Chart rendering | Hand-authored inline SVG (no dependency) · add a chart library | Inline SVG — no new dependency, print-safe, testable |
-| **Q4** | Agreement display floor while staff classifications are sparse | Counts only until denominator ≥ 10 · ≥ 20 · show the rate at any denominator with it printed · defer the floor to Phase 3 | ≥ 10, with the denominator always visible |
-| **Q5** | Sequence against the approved documents work (P0–P2) | Documents first, charts ride on its period groundwork · charts first, documents adapt · interleave Phase 1 with documents Phase 0 | Documents first, charts share its period substrate |
-| **Q6** | Fate of the existing monthly summary panel | Keep beside the new charts · replace it with the period chart + month default · keep, and remove only the duplicated barangay/condition lists | Keep the panel; remove only the duplicated lists once the charts cover them |
-| **Q7** | Does the estimated affected area become a chart, or stay a labelled figure? | Per-period bar · labelled figure in the summary band only · both | Per-period bar. Every option carries the same spec-mandated provenance and overlap labels, so this is a presentation choice, not a compliance one |
+| # | Decision | Effect on this plan |
+| --- | --- | --- |
+| **Q1** | **PHT (UTC+8)** boundaries, printed on every chart | §7.4. Charts use the same rule as documents. The monthly panel stays UTC (Q6), so the divergence is permanent and printed rather than transitional. No chart or gate changed |
+| **Q2** | **Dashboard only** — *not* my recommendation | Phase 1 delivers one dashboard section and nothing in the Monitoring workspace. The shared-component/two-entry-point framing is withdrawn; the register stays a table. No chart or gate changed |
+| **Q3** | **Add a chart library** — *not* my recommendation | §6, §7.1. The dependency-free stance is withdrawn. One runtime dependency and a committed lockfile are added to the Phase 1 gate. The approved documents work keeps its server-rendered SVG bars, so the SPA and the document now have separate renderers sharing one aggregate |
+| **Q4** | **Counts only until the eligible denominator reaches 10**, then show the rate with the denominator | §6 Phase 3, §8. Phase 3 ships a counts-only state below 10 and a rate above it, with a test for each |
+| **Q5** | **Documents first**; charts ride on its period groundwork | §6 (Phase 1 now has an explicit `Depends on` row), §10. Charts Phase 1 consumes documents Phase 0 output instead of re-deriving boundaries |
+| **Q6** | **Keep the monthly panel**; remove only the barangay and Possible Condition lists once the charts cover them | §6 Phase 1 gains a panel-cleanup row naming `MonthlyCaseSummary.tsx` and its test. The metric tiles and review-time block stay |
+| **Q7** | **Per-period bar** with the measured/not-measured split and the duplicate-and-overlap disclosure line | §6 Phase 2 (C6). Every option carried the mandated labels, so only the presentation was in question |
+
+### Q8 — which library? (the remaining choice)
+
+The captain approved *a* library, not a package, and this project asks before dependency changes. The verified comparison is in §7.1.
+
+| Option | Cost | Benefit |
+| --- | --- | --- |
+| **Recharts 3.10.1** (recommended) | 12 direct deps incl. `@reduxjs/toolkit`, `react-redux`, `immer`; ~7.5 MB unpacked; MIT; declared React 19 peer | Declarative React API covering all thirteen chart shapes; SVG output; best-documented option |
+| **@nivo/bar + @nivo/core 0.99.0** | A separate package per chart type; different composition model | MIT, declared React 19 peer, SVG-first, far smaller per package (`@nivo/bar` 343 KB) |
+| **@visx 4.0.0** | Axes, tooltips and legends become our code — close to the no-library effort | MIT, React 19 peer, ~227 KB per package, maximum control |
+| **@nivo (or Recharts 2.15.4) if 3.x's redux surface is refused** | Trade-off documented rather than hidden | Keeps the Q3 decision while cutting dependency weight |
+
+If the answer is none of these — i.e. the library decision is reversed — the plan reverts to the hand-authored inline SVG described in the superseded rendering option, and Phase 1's gate loses the lockfile step.
