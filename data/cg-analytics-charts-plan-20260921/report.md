@@ -1,7 +1,7 @@
 # CaneGuard Web — Charts-First Analytics Implementation Plan
 
 Date: 2026-09-22 · decisions recorded 2026-09-22
-Status: **decisions recorded** — 7 of 7 answered on the board; one dependency sub-choice remains (Q8). No code changed by this task
+Status: **decisions recorded** — 8 of 8 answered on the board; nothing open. No code changed by this task
 Authority: the frozen Analytics Opportunity Mapping spec (`data/cg-analytics-charts-plan-20260921/spec.md`), treated as the requirement of record. Where the spec and the shipped Web app disagree, the spec wins and the disagreement is named.
 Subject: the Web dashboard analytics surface of `caneguard-web`.
 Related, already approved: `data/cg-web-reports-plan-20260921/report.md` (documented reports, P0–P2 approved). Charts share its period groundwork.
@@ -19,7 +19,7 @@ So this document does three things:
 2. Sorts **every** analytics item the frozen spec asks for into **CHARTS NOW**, **NEEDS DATA FIRST**, and **NOT NOW**, each with the exact blocking input or frozen rule (§3–§5).
 3. Gives a three-phase charts-first build order with the per-chart data source and a verification gate (§6–§8).
 
-The plan adds **one runtime dependency** — a chart library, decided by the captain (Q3) with the specific package still open (Q8) — and makes **no schema change**. Every chart below is drawn from columns the system already writes today.
+The plan adds **one runtime dependency** — a chart library, decided by the captain (Q3) and fixed at **Recharts 3.10.1** (Q8) — and makes **no schema change**. Every chart below is drawn from columns the system already writes today.
 
 ---
 
@@ -166,7 +166,7 @@ Each line names the rule that forbids it, so this list is not revisable by prefe
 
 Design stance, stated once from the recorded decisions:
 
-- **One new runtime dependency — a chart library (Q3)** — and **no schema change**. The specific package is the only remaining choice (Q8).
+- **One new runtime dependency — Recharts 3.10.1 (Q3, Q8)** — and **no schema change**.
 - **The period substrate is owned by the approved documents work (Q5).** Since documents ship first, their Phase 0 already provides PHT weekly/monthly/custom boundaries and the 366-day range cap. Phase 1 below **extends** that substrate instead of rebuilding it; if documents P0 slips, Phase 1 waits rather than duplicating boundary logic.
 - **The Dashboard is the only chart surface (Q2).** The Monitoring workspace register stays a table.
 
@@ -183,7 +183,7 @@ Three honest costs of that stance, stated rather than buried:
 | --- | --- |
 | Depends on | The documents plan's Phase 0 period groundwork (Q5): PHT boundaries, weekly/monthly/custom resolution, the 366-day cap |
 | API | New `BuildReportAnalytics` action behind `GET /api/v1/reports/analytics` with `from`, `to`, `granularity`, plus the existing `ReportFilterRules` filters. It reuses the metric/grouping helpers extracted from `BuildMonthlyReportSummary`; the monthly builder's behaviour stays byte-identical and its existing tests in `api/tests/Feature/ReportReportingTest.php` are the regression signal. Adds: per-day/per-week buckets, `case_state` series, and a previous-window comparison block |
-| Web | The chart library (Q3, package per Q8) plus a chart-theme module that reads colours and text sizes from `tokens.css`; a period control (week / month / custom) driven by the same URL state the register already parses (`src/pages/reportListUrlState.ts` uses `date_from`/`date_to`); a dashboard section beside — not replacing — the monthly panel |
+| Web | Recharts 3.10.1 (Q3, Q8) plus a chart-theme module that reads colours and text sizes from `tokens.css`; a period control (week / month / custom) driven by the same URL state the register already parses (`src/pages/reportListUrlState.ts` uses `date_from`/`date_to`); a dashboard section beside — not replacing — the monthly panel |
 | Panel cleanup (Q6) | Once C2 and C3 render, remove the duplicate barangay and Possible Condition lists from `MonthlyCaseSummary.tsx` and update `MonthlyCaseSummary.test.tsx`. The metric tiles and review-time block stay |
 | Scope parity | Chart scope uses `ApplyReportFilters` and `canonical_report_id IS NULL`, the same actions the CSV export uses, so a chart and an export can never disagree |
 | Value on its own | Any week, month or custom range becomes visible as a chart instead of a list |
@@ -216,13 +216,13 @@ Three honest costs of that stance, stated rather than buried:
 
 ## 7. Chart engineering decisions
 
-### 7.1 The library (Q3 decided: add one; Q8 picks the package)
+### 7.1 The library (Q3 decided: add one; Q8 decided: Recharts 3.10.1)
 
 Facts below were read from the npm registry on 2026-09-22, not recalled.
 
 | Candidate | Version | Licence | React 19 peer | Output | Dependency surface | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Recharts** | 3.10.1 | MIT | declared (`react ^16.8 \|\| ^17 \|\| ^18 \|\| ^19`) | SVG | 12 direct deps incl. `@reduxjs/toolkit`, `react-redux`, `immer`, `reselect`, `victory-vendor`; ~7.5 MB unpacked; also wants `react-is` as a peer | **Recommended default.** Declarative React API, SVG output, explicit React 19 support, MIT. The redux/immer internals and unpacked size are the real cost |
+| **Recharts** | 3.10.1 | MIT | declared (`react ^16.8 \|\| ^17 \|\| ^18 \|\| ^19`) | SVG | 12 direct deps incl. `@reduxjs/toolkit`, `react-redux`, `immer`, `reselect`, `victory-vendor`; ~7.5 MB unpacked; also wants `react-is` as a peer | **Chosen (Q8).** Declarative React API, SVG output, explicit React 19 support, MIT. The redux/immer internals and unpacked size are the accepted cost; `@nivo` below is the named lighter substitute |
 | Recharts (2.x line) | 2.15.4 | MIT | declared | SVG | 8 direct deps incl. `lodash` and `react-is ^18.3.1` | Lighter than 3.x, still React 19, but the previous major line — take it only if 3.x's redux surface is refused |
 | **@nivo/bar + @nivo/core** | 0.99.0 | MIT | declared (`react ^16.14 \|\| ^17 \|\| ^18 \|\| ^19`) | SVG (canvas optional) | Per-chart packages; `@nivo/bar` 343 KB and `@nivo/core` 254 KB unpacked | **Equivalent alternative** if dependency weight dominates: much smaller, same licence class and React support, different composition model and more packages to add |
 | @visx | 4.0.0 | MIT | declared (`react ^18 \|\| ^19`) | SVG primitives | ~227 KB per package | Only if tooltips, axes and legends are acceptable as build-it-yourself work — that is close to the no-library effort |
@@ -230,7 +230,7 @@ Facts below were read from the npm registry on 2026-09-22, not recalled.
 | react-apexcharts | 2.1.1 | metadata declares `SEE LICENSE IN LICENSE`, **not** MIT | loose (`react >=16.8.0`) | SVG | Wraps `apexcharts >=5.10.1` | **Rejected:** the wrapper does not declare a clean licence, and this project already runs licence reviews (the documents plan flagged mPDF's GPL) |
 | victory | 37.3.6 | MIT | loose (`react >=16.6.0`) — does not assert React 19 | SVG | ~2.3 MB unpacked | **Rejected for now:** the peer range does not certify the React version this repo runs |
 
-**Why Recharts is the default:** it is the only candidate that combines a declared React 19 peer range, SVG output, MIT licensing and a declarative React API for all thirteen chart shapes in this plan. The honest cost is its internal Redux/immer state and 7.5 MB unpacked — which is why the lockfile review and `npm run security:dependency-check` are part of the Phase 1 gate rather than an afterthought.
+**Why Recharts was chosen:** it is the only candidate that combines a declared React 19 peer range, SVG output, MIT licensing and a declarative React API for all thirteen chart shapes in this plan. The honest cost is its internal Redux/immer state and 7.5 MB unpacked — which is why the lockfile review and `npm run security:dependency-check` are part of the Phase 1 gate rather than an afterthought.
 
 ### 7.2 Theming under the design spine
 
@@ -279,7 +279,7 @@ Never in this plan: E2E, browser, device or interactive acceptance runs.
 | Risk | Severity | Handling |
 | --- | --- | --- |
 | Two period semantics on one page — shipped UTC monthly panel versus PHT charts | Medium — correctness perception | Already decided (Q1 PHT, panel UTC by Q6). Every chart prints its period and timezone; the documents plan already prints its own. Unifying the panel is available later if the two readings cause confusion |
-| **Chart library dependency surface** — Recharts 3.x brings 12 direct dependencies including Redux Toolkit/immer and ~7.5 MB unpacked | Medium — supply chain, build size | Lockfile reviewed and committed; `npm run security:dependency-check` and `npm audit` in the Phase 1 gate; `@nivo` is the named lighter equivalent (MIT, React 19, SVG) if the surface is refused. Only the chosen library is added — no second chart stack |
+| **Chart library dependency surface** — Recharts 3.10.1 brings 12 direct dependencies including Redux Toolkit/immer and ~7.5 MB unpacked | Medium — supply chain, build size | Decided with the cost visible (Q8). Lockfile reviewed and committed; `npm run security:dependency-check` and `npm audit` in the Phase 1 gate; `@nivo` is the named lighter substitute if the surface is refused. Only one chart library is added — no second chart stack |
 | Library cannot be themed through the design spine | Medium — a real gate failure, not a style preference | Theme from runtime token reads, never hardcoded hexes or literal font sizes; `npm run test:design-spine` is part of the Phase 1 gate, so a violation fails the build rather than shipping |
 | Aggregate cost as the register grows | Medium | Bounded ranges (reuse the approved 366-day cap), index-backed groupings, one payload per period change (debounced), no per-chart request fan-out |
 | Chart copy drifts into forbidden claims (hotspot, incidence, accuracy, leaderboard) | **High — it is the spec's central risk** | A single copy contract beside the chart components plus tests asserting the required disclaimers and the absence of the §5 vocabulary |
@@ -302,9 +302,9 @@ The approved plan (`data/cg-web-reports-plan-20260921/report.md`, P0–P2) alrea
 
 ---
 
-## 11. Decisions recorded (2026-09-22), and the one remaining choice
+## 11. Decisions recorded (2026-09-22)
 
-All seven board questions were answered by the captain. Nothing in this section is still open except Q8.
+All eight board questions were answered by the captain. **Nothing remains open.**
 
 | # | Decision | Effect on this plan |
 | --- | --- | --- |
@@ -316,15 +316,16 @@ All seven board questions were answered by the captain. Nothing in this section 
 | **Q6** | **Keep the monthly panel**; remove only the barangay and Possible Condition lists once the charts cover them | §6 Phase 1 gains a panel-cleanup row naming `MonthlyCaseSummary.tsx` and its test. The metric tiles and review-time block stay |
 | **Q7** | **Per-period bar** with the measured/not-measured split and the duplicate-and-overlap disclosure line | §6 Phase 2 (C6). Every option carried the mandated labels, so only the presentation was in question |
 
-### Q8 — which library? (the remaining choice)
+| **Q8** | **Recharts 3.10.1** as the chart library | §7.1. The package is fixed: MIT, declared React 19 peer, SVG output. Phase 1 adds `recharts` to `package.json`, commits the lockfile, and its gate covers the 12 transitive dependencies (including Redux Toolkit and `immer`, ~7.5 MB unpacked). `@nivo` remains the named lighter substitute if that surface is refused later, but it is not part of the plan |
 
-The captain approved *a* library, not a package, and this project asks before dependency changes. The verified comparison is in §7.1.
+### Q8 — the library decision, recorded
 
-| Option | Cost | Benefit |
-| --- | --- | --- |
-| **Recharts 3.10.1** (recommended) | 12 direct deps incl. `@reduxjs/toolkit`, `react-redux`, `immer`; ~7.5 MB unpacked; MIT; declared React 19 peer | Declarative React API covering all thirteen chart shapes; SVG output; best-documented option |
-| **@nivo/bar + @nivo/core 0.99.0** | A separate package per chart type; different composition model | MIT, declared React 19 peer, SVG-first, far smaller per package (`@nivo/bar` 343 KB) |
-| **@visx 4.0.0** | Axes, tooltips and legends become our code — close to the no-library effort | MIT, React 19 peer, ~227 KB per package, maximum control |
-| **@nivo (or Recharts 2.15.4) if 3.x's redux surface is refused** | Trade-off documented rather than hidden | Keeps the Q3 decision while cutting dependency weight |
+The captain approved *a* library (Q3) and then chose the package: **Recharts 3.10.1**. The verified comparison that informed it is in §7.1; versions, licences, React peer ranges and dependency counts there were read from the npm registry on 2026-09-22, not recalled.
 
-If the answer is none of these — i.e. the library decision is reversed — the plan reverts to the hand-authored inline SVG described in the superseded rendering option, and Phase 1's gate loses the lockfile step.
+Accepted with the choice:
+
+- **12 direct transitive dependencies**, including `@reduxjs/toolkit`, `react-redux` and `immer`, at roughly 7.5 MB unpacked. The lockfile review and `npm run security:dependency-check` in the Phase 1 gate are what make that cost visible rather than silent.
+- **`@nivo/bar` + `@nivo/core` is the named lighter substitute** (MIT, React 19, SVG-first) should the dependency surface be refused after review. Nothing else in the plan changes if it is swapped.
+- **The document renderer is unaffected.** The printed document keeps its server-rendered SVG bars; only the SPA gains the library.
+
+Rejected, for the record: `chart.js` 4.5.1 and `echarts` 6.1.0 (canvas output), `react-apexcharts` 2.1.1 (does not declare MIT), and `victory` 37.3.6 (peer range does not certify React 19).

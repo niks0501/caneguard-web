@@ -523,13 +523,13 @@ footer.board-foot {
         This board sorts every one of them by what the shipped Web app can actually draw today,
         then gives a three-phase build order. <strong>No advanced analytics, no forecasts, no rankings</strong> —
         and an explicit list of what stays out, with the frozen rule that keeps it out.
-        <strong>All seven questions are now decided</strong>; the decisions and their effect on the plan are below.
+        <strong>All eight questions are decided</strong> — including the chart library, Recharts 3.10.1. The decisions and their effect on the plan are below.
       </p>
       <dl class="meta">
-        <div class="meta__item"><dt>Status</dt><dd>Decisions recorded · one dependency sub-choice left (Q8)</dd></div>
+        <div class="meta__item"><dt>Status</dt><dd>All 8 decisions recorded · nothing open</dd></div>
         <div class="meta__item"><dt>Requirement of record</dt><dd>Frozen spec §9–§13, §25, §29, §30</dd></div>
         <div class="meta__item"><dt>Plan</dt><dd><code>data/cg-analytics-charts-plan-20260921/report.md</code></dd></div>
-        <div class="meta__item"><dt>New dependencies</dt><dd>One chart library (Q3) · no schema change</dd></div>
+        <div class="meta__item"><dt>New dependencies</dt><dd>Recharts 3.10.1 (Q3, Q8) · no schema change</dd></div>
       </dl>
     </div>
   </div>
@@ -836,7 +836,7 @@ footer.board-foot {
   <section>
     <div class="section-head">
       <h2>Build order — three phases, charts first</h2>
-      <p>Stance for all three, from the recorded decisions: <strong>one new runtime dependency — a chart library (Q3) — and no schema change.</strong> That dependency sits in a chart-theme layer that reads colours and text sizes from <code>src/styles/tokens.css</code>, because <code>npm run test:design-spine</code> fails on literal hex, literal <code>font-size</code> and literal <code>border-radius</code> outside the token sheet. The <strong>period substrate belongs to the already-approved documents work (Q5)</strong>: charts extend it rather than re-deriving PHT boundaries. Cost accepted with Q3: the printed document keeps its server-rendered SVG bars, so the SPA and the document are two renderers sharing one aggregate.</p>
+      <p>Stance for all three, from the recorded decisions: <strong>one new runtime dependency — Recharts 3.10.1 (Q3, Q8) — and no schema change.</strong> That dependency sits in a chart-theme layer that reads colours and text sizes from <code>src/styles/tokens.css</code>, because <code>npm run test:design-spine</code> fails on literal hex, literal <code>font-size</code> and literal <code>border-radius</code> outside the token sheet. The <strong>period substrate belongs to the already-approved documents work (Q5)</strong>: charts extend it rather than re-deriving PHT boundaries. Cost accepted with Q3: the printed document keeps its server-rendered SVG bars, so the SPA and the document are two renderers sharing one aggregate.</p>
     </div>
 
     <div class="phases">
@@ -862,7 +862,7 @@ footer.board-foot {
           </div>
           <div class="phase__row">
             <div class="phase__key">Web</div>
-            <div class="phase__val">The chosen chart library (Q3, package per Q8) plus a chart-theme module reading colours and text sizes from <code>tokens.css</code>; a week / month / custom period control driven by the same URL state the register already parses (<code>date_from</code>/<code>date_to</code>); and a <strong>dashboard-only</strong> chart section beside — not replacing — the monthly panel (<strong>Q2 decided: Dashboard only</strong>, so the Monitoring workspace register stays a table).</div>
+            <div class="phase__val">Recharts 3.10.1 (Q3, Q8) plus a chart-theme module reading colours and text sizes from <code>tokens.css</code>; a week / month / custom period control driven by the same URL state the register already parses (<code>date_from</code>/<code>date_to</code>); and a <strong>dashboard-only</strong> chart section beside — not replacing — the monthly panel (<strong>Q2 decided: Dashboard only</strong>, so the Monitoring workspace register stays a table).</div>
           </div>
           <div class="phase__row">
             <div class="phase__key">Panel cleanup</div>
@@ -950,8 +950,8 @@ footer.board-foot {
     </div>
     <div class="grid-3">
       <div class="card">
-        <h3 style="margin-top:0">Library — Q3 decided, package per Q8</h3>
-        <p style="margin:0">A chart library replaces hand-authored SVG. <strong>Recharts 3.10.1</strong> is the recommended default: MIT, a declared React 19 peer range, SVG output, and a declarative API covering all thirteen shapes. Verified cost: 12 direct dependencies including <code>@reduxjs/toolkit</code>, <code>react-redux</code> and <code>immer</code>, ~7.5&nbsp;MB unpacked. <strong>@nivo/bar + @nivo/core 0.99.0</strong> is the named lighter equivalent (MIT, React 19, SVG-first, 343&nbsp;KB + 254&nbsp;KB).</p>
+        <h3 style="margin-top:0">Library — Recharts 3.10.1 (Q8 decided)</h3>
+        <p style="margin:0">MIT · declared React 19 peer · SVG output · a declarative API covering all thirteen shapes. Verified cost: 12 direct dependencies including <code>@reduxjs/toolkit</code>, <code>react-redux</code> and <code>immer</code>, ~7.5&nbsp;MB unpacked — which is why the lockfile review and <code>npm run security:dependency-check</code> sit in the Phase 1 gate. <strong>@nivo/bar + @nivo/core 0.99.0</strong> (MIT, React 19, SVG-first, 343&nbsp;KB + 254&nbsp;KB) is the named lighter substitute if that surface is refused later.</p>
       </div>
       <div class="card">
         <h3 style="margin-top:0">Rejected, with the facts</h3>
@@ -992,7 +992,7 @@ footer.board-foot {
   <section>
     <div class="section-head">
       <h2>Decisions recorded</h2>
-      <p>All seven questions were answered by the captain on this board. Each row states what was decided and what it changed in the plan. Two of them went against my recommendation, and both are marked.</p>
+      <p>All eight questions were answered by the captain on this board. Each row states what was decided and what it changed in the plan. Two of them went against my recommendation, and both are marked.</p>
     </div>
     <div class="table-scroll">
       <table>
@@ -1036,37 +1036,41 @@ footer.board-foot {
             <td><strong>Per-period bar</strong> with the measured/not-measured split and the duplicate-and-overlap disclosure line</td>
             <td>C6 in Phase 2. Every option carried the spec-mandated labels, so only the presentation was ever in question.</td>
           </tr>
+          <tr>
+            <td class="id">Q8</td>
+            <td><strong>Recharts 3.10.1</strong> as the chart library</td>
+            <td>Phase 1 adds <code>recharts</code> and commits the lockfile; its gate covers the 12 transitive dependencies including Redux Toolkit and <code>immer</code> (~7.5&nbsp;MB unpacked). <code>@nivo</code> stays the named lighter substitute if that surface is refused later. Nothing else in the plan changes.</td>
+          </tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <!-- ===================== ONE REMAINING CHOICE ===================== -->
+  <!-- ===================== LIBRARY DECIDED ===================== -->
   <section>
     <div class="section-head">
-      <h2>One choice left — which library?</h2>
-      <p>Q3 approved <em>a</em> library, not a package, and this project asks before dependency changes. Versions, licences, React peer ranges and dependency counts below were read from the npm registry on 2026-09-22. Pick one and queue it.</p>
+      <h2>Library decided — nothing open</h2>
+      <p>Q3 approved <em>a</em> library and Q8 chose the package: <strong>Recharts 3.10.1</strong>. Versions, licences, React peer ranges and dependency counts below were read from the npm registry on 2026-09-22, not recalled. This section is a record, not a question.</p>
     </div>
-
-    <div class="question">
-      <div class="question__head"><span class="question__id">Q8</span><h3>Which chart library does the Web app add?</h3></div>
-      <p class="question__why">All four options keep the Q3 decision and the spec constraints. They differ in dependency weight and how much chart code we write ourselves.</p>
-      <form data-lavish-question="q8-library" onsubmit="queueAnswer(event, 'q8-library', 'Chart library package')">
-        <div class="options">
-          <label><input type="radio" name="q8" value="Recharts 3.10.1"><span class="opt-text">Recharts 3.10.1<span class="opt-reco">recommended</span><span class="opt-note">MIT · declared React 19 peer · SVG output · declarative API for all thirteen shapes. Cost: 12 direct dependencies including Redux Toolkit, react-redux and immer; ~7.5&nbsp;MB unpacked.</span></span></label>
-          <label><input type="radio" name="q8" value="@nivo/bar + @nivo/core 0.99.0"><span class="opt-text">@nivo/bar + @nivo/core 0.99.0<span class="opt-note">MIT · declared React 19 peer · SVG-first · far smaller (343&nbsp;KB + 254&nbsp;KB unpacked). Cost: a separate package per chart type and a different composition model.</span></span></label>
-          <label><input type="radio" name="q8" value="@visx 4.0.0"><span class="opt-text">@visx 4.0.0<span class="opt-note">MIT · React 19 peer · ~227&nbsp;KB per package · maximum control. Cost: axes, tooltips and legends become our code — close to the no-library effort.</span></span></label>
-          <label><input type="radio" name="q8" value="Recharts 2.15.4 (lighter previous major line)"><span class="opt-text">Recharts 2.15.4 — the lighter previous major line<span class="opt-note">MIT · React 19 peer · SVG · 8 direct dependencies instead of 12 (adds lodash, drops the Redux stack). Cost: not the current major line.</span></span></label>
-          <label><input type="radio" name="q8" value="Reverse Q3 — no library, back to hand-authored inline SVG"><span class="opt-text">Reverse Q3 — no library, back to hand-authored inline SVG<span class="opt-note">Removes the dependency and the lockfile step entirely; the SPA then shares one series implementation with the document. Cost: tooltips, legends and axes are all ours to build, as originally planned.</span></span></label>
-        </div>
-        <textarea class="notes" name="notes" placeholder="Optional rationale (dependency weight, licences, anything you want weighed differently)"></textarea>
-        <button class="queue" type="submit">Queue answer for Q8</button>
-        <p class="queued-state" hidden></p>
-      </form>
-    </div>
-
-    <div class="note" style="margin-top:var(--space-3)">
-      <strong>Rejected candidates, for the record:</strong> <code>chart.js</code> 4.5.1 and <code>echarts</code> 6.1.0 render to canvas (print fidelity, token theming and accessible output all suffer); <code>react-apexcharts</code> 2.1.1 declares <code>SEE LICENSE IN LICENSE</code> rather than MIT, and this project already runs licence reviews; <code>victory</code> 37.3.6 only declares <code>react &gt;=16.6.0</code>, so it does not certify React 19.
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-top:0">Chosen — Recharts 3.10.1</h3>
+        <ul class="tight">
+          <li><strong>MIT</strong>, declared React 19 peer range, <strong>SVG</strong> output, declarative React API covering all thirteen chart shapes.</li>
+          <li><strong>Accepted cost:</strong> 12 direct dependencies including Redux Toolkit, react-redux and immer; ~7.5&nbsp;MB unpacked. The lockfile review and <code>npm run security:dependency-check</code> in the Phase 1 gate are what keep that visible.</li>
+          <li><strong>Named substitute:</strong> <code>@nivo/bar</code> + <code>@nivo/core</code> 0.99.0 — MIT, React 19 peer, SVG-first, 343&nbsp;KB + 254&nbsp;KB. Swapping it changes nothing else in the plan.</li>
+          <li><strong>Scope:</strong> the SPA only. The printed document keeps its server-rendered SVG bars, so the two surfaces share the aggregate, not the renderer.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Rejected, with the facts</h3>
+        <ul class="tight">
+          <li><code>chart.js</code> 4.5.1 and <code>echarts</code> 6.1.0 — render to <strong>canvas</strong>: print fidelity, token theming and accessible output all suffer.</li>
+          <li><code>react-apexcharts</code> 2.1.1 — declares <code>SEE LICENSE IN LICENSE</code> rather than MIT, and this project already runs licence reviews (the documents plan flagged mPDF's GPL).</li>
+          <li><code>victory</code> 37.3.6 — its peer range stops at <code>react &gt;=16.6.0</code>, so it does not certify the React 19 this repo runs.</li>
+          <li><code>Recharts 2.15.4</code> and <code>@visx</code> 4.0.0 — viable, but the previous major line and a build-it-yourself primitive set respectively; neither beat the chosen option on the criteria that mattered.</li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -1077,34 +1081,5 @@ footer.board-foot {
 
 </main>
 
-<script>
-function queueAnswer(event, key, questionLabel) {
-  event.preventDefault();
-  var form = event.currentTarget;
-  var checked = form.querySelector('input[type="radio"]:checked');
-  var state = form.querySelector('.queued-state');
-  if (!checked) {
-    state.hidden = false;
-    state.textContent = 'Select an option first, then queue it.';
-    return;
-  }
-  var notes = (form.querySelector('textarea[name="notes"]') || {}).value || '';
-  var answer = checked.value;
-  var text = questionLabel + ' — chosen: ' + answer;
-  if (notes.trim()) text += ' — rationale: ' + notes.trim();
-  window.lavish.queuePrompt(
-    text + '. Treat this as the decision for ' + key + '; update the plan and the affected phase accordingly, and tell me if the choice changes a gate or a chart in the plan.',
-    {
-      tag: 'decision',
-      text: text,
-      element: checked,
-      queueKey: key,
-      data: { question: key, answer: answer, rationale: notes.trim() || null }
-    }
-  );
-  state.hidden = false;
-  state.textContent = 'Queued: ' + answer + (notes.trim() ? ' (with rationale)' : '');
-}
-</script>
 </body>
 </html>
