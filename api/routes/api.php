@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\MonthlyReportSummaryController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ReferralSummaryController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ReportDocumentController;
 use App\Http\Controllers\Api\V1\ReportExportController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
@@ -93,6 +94,10 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/export', ReportExportController::class)
         ->name('api.v1.reports.export');
+    Route::get('/reports/documents/report/pdf', ReportDocumentController::class)
+        ->name('api.v1.reports.documents.pdf');
+    Route::get('/reports/documents/report', ReportDocumentController::class)
+        ->name('api.v1.reports.documents');
     Route::get('/reports/summary', MonthlyReportSummaryController::class)
         ->name('api.v1.reports.summary');
     Route::get('/reports/map', MapReportController::class)

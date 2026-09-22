@@ -1,6 +1,7 @@
 import {
   useDeferredValue,
   useEffect,
+  useState,
   useMemo,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ import { routes } from "../app/routes";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { MonitoringCalendar } from "../components/reports/MonitoringCalendar";
 import { ReportTable } from "../components/reports/ReportTable";
+import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
 import { Button } from "../components/ui/Button";
 import { SearchInput, SelectFilter } from "../components/ui/FormControls";
 import { Pagination } from "../components/ui/Pagination";
@@ -88,6 +90,7 @@ export function SubmittedReportsPage({
   embedded?: boolean;
 }) {
   const isMonitoring = workspace === "monitoring";
+  const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -207,6 +210,13 @@ export function SubmittedReportsPage({
         title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
         actions={(
           <>
+          <Button
+            variant="primary"
+            icon={<ClipboardCheck aria-hidden="true" />}
+            onClick={() => setReportBuilderOpen(true)}
+          >
+            Generate report
+          </Button>
           <Button
             variant="secondary"
             icon={<Download aria-hidden="true" />}
@@ -529,6 +539,10 @@ export function SubmittedReportsPage({
         ) : null}
         {isMonitoring && !urlState.invalid ? <MonitoringCalendar /> : null}
       </section>
+      <ReportDocumentBuilder
+        open={reportBuilderOpen}
+        onClose={() => setReportBuilderOpen(false)}
+      />
     </PageContent>
   );
 }

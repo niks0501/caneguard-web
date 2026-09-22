@@ -26,13 +26,21 @@ class SecurityHeaders
             $request->attributes->set('csp_nonce', $nonce);
         }
 
+        $isReportDocument = $request->routeIs('api.v1.reports.documents*');
+        $frameAncestors = $isReportDocument
+            ? implode(' ', array_map(
+                static fn (string $origin): string => $origin === 'self' ? "'self'" : $origin,
+                config('caneguard.reports.embed_origins', ['self']),
+            ))
+            : "'none'";
+
         $response->headers->set(
             'Content-Security-Policy',
             $isHtml
-                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data:; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'"
+                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'; img-src 'self' data:; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'"
                 : "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
         );
-        $response->headers->set('X-Frame-Options', 'DENY');
+        $response->headers->set('X-Frame-Options', $isReportDocument ? 'SAMEORIGIN' : 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set(
