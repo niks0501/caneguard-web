@@ -18,7 +18,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const EXPECTED_SEEDED_REPORT_COUNT = 12;
-export const EXPECTED_SEEDED_REFERENCE_CODE = "CG-2026-0001";
+export const EXPECTED_SEEDED_REFERENCE_CODE = "BGO-20260702-0915";
 export const SEEDED_USERS = {
   fieldReporter: {
     email: "field@caneguard.test",
@@ -51,7 +51,7 @@ const PRIVATE_BIND_HOST = "127.0.0.1";
 const FUNNEL_PORTS = new Set(["443", "8443", "10000"]);
 const NPM_COMMAND = process.platform === "win32" ? "npm.cmd" : "npm";
 const TEST_API_BASE_URL = "http://localhost:8000";
-const SEEDED_REPORT_CLIENT_UUID = "30000000-0000-4000-8000-000000000001";
+const SEEDED_REPORT_CLIENT_UUID = "c93939fc-601e-42b3-8d30-c786b2402f78";
 const REQUIRED_KEYS = [
   "QA_BRANCH",
   "QA_WORKTREE_PATH",
