@@ -1858,6 +1858,67 @@ npm install puppeteer
         cannot be driven by a laptop that is not plugged into it.
       </p>
 
+      <h4 class="plain-h">Will this complicate deployment later?</h4>
+      <p class="qwhy" style="margin-bottom:12px">
+        No &mdash; and it is worth being precise, because "adds a browser to the server" sounds heavier than it is.
+        <b>One package on one host that already runs PHP, Node and MySQL.</b> No new service, no container, no
+        change to the build or release pipeline.
+      </p>
+      <div class="tbl-scroll" style="margin-top:10px">
+        <table class="cmp" style="min-width:720px">
+          <colgroup><col style="width:28%"><col style="width:17%"><col style="width:20%"><col style="width:35%"></colgroup>
+          <thead>
+            <tr><th scope="col">Option</th><th scope="col">Host prerequisite</th><th scope="col">New service?</th><th scope="col">Long-term care</th></tr>
+          </thead>
+          <tbody>
+            <tr class="is-winner">
+              <td class="opt-name">Chromium + laravel-pdf <span class="badge win" style="margin-top:5px">Recommended</span></td>
+              <td>One <code>apt</code> package</td>
+              <td><b>No</b> &mdash; nothing long-running</td>
+              <td>Watch print-version drift, with a pinned <code>chrome_path</code> and a structural test</td>
+            </tr>
+            <tr>
+              <td class="opt-name">Dompdf (pure PHP)</td>
+              <td>None</td>
+              <td>No</td>
+              <td>Template locked to table-and-float CSS forever; visibly lower fidelity</td>
+            </tr>
+            <tr>
+              <td class="opt-name">Install nothing (browser print)</td>
+              <td>None</td>
+              <td>No</td>
+              <td>Manual Save-as-PDF each time; no server-produced file</td>
+            </tr>
+            <tr>
+              <td class="opt-name"><span style="color:var(--color-secondary-text)">Gotenberg — not chosen</span></td>
+              <td>Container host</td>
+              <td><b>Yes</b> &mdash; always-on service</td>
+              <td>Concurrency, memory limits and health checks to tune</td>
+            </tr>
+            <tr>
+              <td class="opt-name"><span style="color:var(--color-secondary-text)">WeasyPrint — not chosen</span></td>
+              <td>Python + Pango/Cairo</td>
+              <td><b>Yes</b> &mdash; a new language runtime</td>
+              <td>A second CSS engine to track</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="plain">
+        <li><strong>Nothing to supervise.</strong> No daemon, no port, no service to restart, no health check.
+          The browser starts on demand and exits. This is the same class as <code>npm</code>, which the host
+          already needs.</li>
+        <li><strong>CI is unaffected, on purpose.</strong> The PDF renderer is <b>faked in tests</b>, which assert the
+          endpoint contract &mdash; status, headers, authorization, the options handed to the renderer &mdash; not PDF
+          pixels. Otherwise every CI run and every developer machine would need the browser; this way only the host
+          that serves real PDFs does.</li>
+        <li><strong>Failure stays contained.</strong> If a browser upgrade ever breaks the render, the preview and
+          Print keep working and only <code>Download PDF</code> fails &mdash; visibly, in the builder, rather than
+          silently producing a wrong document.</li>
+        <li><strong>One line in an existing checklist.</strong> <code>docs/staging.md</code> already lists PHP, Node,
+          MySQL and Tailscale; this adds one entry to a list that already exists.</li>
+      </ul>
+
       <h4 class="plain-h">So does it work on my localhost, in Brave?</h4>
       <div class="tbl-scroll" style="margin-top:10px">
         <table class="cmp" style="min-width:640px">

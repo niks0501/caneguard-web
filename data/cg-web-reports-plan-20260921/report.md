@@ -245,6 +245,40 @@ Adding it requires, and should be gated on:
 - The render path running **on demand, queued**, never inside a request that also serves the preview — a Chromium render takes seconds and ~250 MB peak.
 - **No dependency is needed for the preview, the builder UI, the document template, or the Print path.** If Chromium is unavailable, the feature degrades to preview + browser print, which is strictly more than exists today. That asymmetry is deliberate: the dependency buys the PDF *file*, not the feature.
 
+### Deployment complexity — asked on the board, answered here
+
+The captain asked whether this causes complex deployment in the future. Short answer: **it adds one
+documented package to one host that already runs PHP, Node and MySQL. It is not a new service, not a
+container, and not a change to the build or release pipeline.**
+
+- **One prerequisite line on the staging host.** `sudo apt install brave-browser` (or `chromium`) joins the
+  existing prerequisite checklist in `docs/staging.md`, which already requires PHP, Node, MySQL and Tailscale.
+- **Nothing long-running to supervise.** There is no daemon, no port, no service to restart and no health check.
+  Browsershot launches the browser on demand and it exits. This is a materially different complexity class from
+  the **Gotenberg** option, which needs a second always-on container, memory limits, a concurrency ceiling and a
+  health check — that difference is the main reason Gotenberg was not recommended.
+- **CI is unaffected, and this is a deliberate design choice.** Chromium must **not** be needed by the fast test
+  suite. The PDF renderer is faked in the API tests, which assert the request/response contract — status,
+  `Content-Disposition`, `Content-Type`, authorization, and the parameters handed to the renderer — rather than
+  PDF bytes. Verifying pixels stays a one-time manual check per template change (§8). Without this, every CI run
+  and every developer machine would inherit the browser prerequisite; with it, only the host that serves real
+  PDFs needs one.
+- **The real long-term cost is renderer version drift, and it is bounded.** A Chrome upgrade can shift print
+  layout subtly. Mitigations are already in the plan: an explicit pinned `chrome_path`, the document-contract
+  test asserting the structural markers (footer page-number rule, repeating `thead`, mandatory sections), and
+  re-running the one-time manual PDF check when the template or the browser changes.
+- **Failure stays contained.** If the browser breaks after an OS upgrade, the preview and Print keep working and
+  only `Download PDF` fails — visibly, with the error surfaced in the builder, rather than silently producing a
+  wrong document.
+
+| Option | Host prerequisite | New service or runtime | CI impact | Long-term care |
+| --- | --- | --- | --- | --- |
+| **Chromium + `laravel-pdf`** (recommended) | One apt package | None | None — renderer faked in tests | Watch print-version drift; pinned path |
+| **Dompdf (pure PHP)** | None | None | None | Template locked to table/float CSS; lower fidelity |
+| **Install nothing (browser print)** | None | None | None | Manual Save-as-PDF each time; no server-produced file |
+| ~~Gotenberg~~ (rejected) | Container host | **New always-on service** | Service must run in CI or be faked | Concurrency, memory and health-check tuning |
+| ~~WeasyPrint~~ (rejected) | Python + Pango/Cairo | **New language runtime** | Runtime install in CI | Second CSS engine to track |
+
 ---
 
 ## 8. Validation and testing scope
@@ -266,6 +300,7 @@ Non-interactive, following `PROJECT_CHECKS.md` and the repo's existing split.
 
 8. The builder defaults to the last completed week and issues exactly one document request per period change (debounce verified with fake timers).
 9. Period control → correct request parameters for weekly, monthly, and custom.
+9a. **The PDF renderer is faked in the default suite.** No test in `npm run check:api` may require a Chromium binary; the download endpoint is asserted against a faked renderer for status, headers, authorization, and the options passed to it. This is what keeps CI and every developer machine free of the host prerequisite.
 10. Preview loading, error, and empty states; a failed PDF render leaves the preview mounted with an actionable message.
 11. The existing CSV export and dashboard monthly panel still pass unchanged.
 
