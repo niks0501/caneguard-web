@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CaneGuard · Analytics charts — charts-first plan for decision</title>
+<!-- CaneGuard's own typeface, with the same token-stack fallback used by the app. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+/* ============================================================
+   CaneGuard design system, taken from src/styles/tokens.css.
+   This artifact is about CaneGuard, so it renders in CaneGuard's
+   own tokens rather than a generic board theme.
+   ============================================================ */
+:root {
+  --brand-structural-green: #074424;
+  --brand-green: #3E7C30;
+  --brand-lime: #81A92A;
+  --brand-gold: #BB941D;
+  --brand-cream: #F0E4B8;
+
+  --color-brand: #2d6b40;
+  --color-brand-hover: #225331;
+  --color-primary: #2d6b40;
+  --color-primary-dark: #1e452a;
+  --color-primary-light: #447a54;
+  --color-primary-tint: #e8f2ea;
+  --color-accent: #d6cc99;
+
+  --color-page: #f4f7f3;
+  --color-surface: #ffffff;
+  --color-surface-soft: #edf3ed;
+  --color-surface-muted: #f8faf8;
+  --color-surface-tint: #e2ece3;
+
+  --color-text: #1d2720;
+  --color-secondary-text: #4d5c52;
+  --color-muted: #4d5c52;
+  --color-inverse-text: #ffffff;
+
+  --color-border: #cbd8ce;
+  --color-border-strong: #98aba0;
+
+  --color-danger: #a64637;
+  --color-danger-soft: #fbeee8;
+  --color-warning: #6e5213;
+  --color-warning-soft: #fef5d6;
+  --color-success: #2d6b40;
+  --color-success-soft: #e5f2e8;
+
+  --disease-healthy: #2d6b40;
+  --disease-mosaic: #8c5d07;
+  --disease-rust: #b54b17;
+  --disease-smut: #6b4783;
+
+  --font-heading: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-body-sm: 16px;
+  --text-body: 17px;
+  --text-h3: 21px;
+  --text-h2: 26px;
+  --text-h1: 34px;
+
+  --space-1: 5px;
+  --space-2: 10px;
+  --space-3: 15px;
+  --space-4: 20px;
+  --space-5: 25px;
+  --space-6: 30px;
+  --space-7: 40px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-pill: 9999px;
+
+  --shadow-surface: 0 4px 16px rgba(29, 39, 32, 0.05);
+  --shadow-raised: 0 8px 24px rgba(29, 39, 32, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { padding: 0 0 var(--space-7); }
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+/* ---------- Masthead ---------- */
+.masthead {
+  background: var(--color-surface);
+  border-bottom: 4px solid var(--color-brand);
+  padding: var(--space-5) 0 var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.masthead__inner {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.masthead__mark {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  padding: 6px;
+}
+.masthead__text { min-width: 0; flex: 1 1 380px; }
+.eyebrow {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-1);
+}
+h1 {
+  font-family: var(--font-heading);
+  font-size: var(--text-h1);
+  line-height: 1.2;
+  margin: 0 0 var(--space-2);
+  color: var(--brand-structural-green);
+  letter-spacing: -0.01em;
+}
+.lede { margin: 0; color: var(--color-secondary-text); max-width: 78ch; }
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 1fr), 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.meta__item {
+  min-width: 0;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-brand);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+.meta__item dt {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-secondary-text);
+}
+.meta__item dd { margin: 2px 0 0; font-size: var(--text-body-sm); }
+
+/* ---------- Sections ---------- */
+section { margin: 0 0 var(--space-6); min-width: 0; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-border);
+}
+.section-head h2 {
+  font-family: var(--font-heading);
+  font-size: var(--text-h2);
+  margin: 0;
+  color: var(--brand-structural-green);
+}
+.section-head p { margin: 0; color: var(--color-secondary-text); font-size: var(--text-body-sm); max-width: 74ch; }
+h3 {
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--color-primary-dark);
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-surface);
+  padding: var(--space-4);
+  min-width: 0;
+}
+.card + .card { margin-top: var(--space-3); }
+
+.grid-2, .grid-3 {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(min(320px, 1fr), 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(min(260px, 1fr), 1fr)); }
+.grid-2 > *, .grid-3 > * { min-width: 0; }
+
+/* ---------- Verdict strip ---------- */
+.verdict {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 1fr), 1fr));
+  gap: var(--space-3);
+  min-width: 0;
+}
+.verdict__card {
+  min-width: 0;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-top: 5px solid var(--color-border-strong);
+}
+.verdict__card--now { border-top-color: var(--color-success); background: var(--color-success-soft); }
+.verdict__card--data { border-top-color: var(--color-warning); background: var(--color-warning-soft); }
+.verdict__card--no { border-top-color: var(--color-danger); background: var(--color-danger-soft); }
+.verdict__num {
+  font-family: var(--font-heading);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  display: block;
+}
+.verdict__label { font-weight: 600; display: block; margin-top: var(--space-1); }
+.verdict__note { font-size: var(--text-body-sm); color: var(--color-secondary-text); display: block; margin-top: 2px; }
+
+/* ---------- Tables ---------- */
+.table-scroll { overflow-x: auto; min-width: 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 720px;
+  background: var(--color-surface);
+  font-size: var(--text-body-sm);
+}
+caption {
+  caption-side: top;
+  text-align: left;
+  padding: 0 0 var(--space-2);
+  font-size: var(--text-body-sm);
+  color: var(--color-secondary-text);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+thead th {
+  background: var(--color-surface-tint);
+  color: var(--brand-structural-green);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  white-space: nowrap;
+}
+tbody tr:nth-child(even) { background: var(--color-surface-muted); }
+td.id { font-family: var(--font-mono); font-weight: 600; white-space: nowrap; color: var(--color-primary-dark); }
+td.wide { min-width: 230px; }
+code, .src {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  background: var(--color-surface-tint);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ---------- Badges & pills ---------- */
+.badge {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge--now { background: var(--color-success-soft); color: #1b4227; border-color: var(--color-success); }
+.badge--data { background: var(--color-warning-soft); color: var(--color-warning); border-color: var(--color-warning); }
+.badge--no { background: var(--color-danger-soft); color: var(--color-danger); border-color: var(--color-danger); }
+.badge--phase { background: var(--color-primary-tint); color: var(--color-primary-dark); border-color: var(--color-primary-light); }
+.badge--plain { background: var(--color-surface-tint); color: var(--color-secondary-text); border-color: var(--color-border-strong); }
+
+/* ---------- Item cards (needs data / not now detail) ---------- */
+.dossier {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 5px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  min-width: 0;
+}
+.dossier--blocked { border-left-color: var(--color-danger); }
+.dossier h4 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  margin: 0 0 var(--space-2);
+  color: var(--color-text);
+}
+.dossier dl { margin: 0; }
+.dossier dt {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-secondary-text);
+  margin-top: var(--space-2);
+}
+.dossier dd { margin: 2px 0 0; font-size: var(--text-body-sm); }
+.rule {
+  font-weight: 600;
+  color: var(--color-danger);
+}
+.dossier--blocked .rule { color: var(--color-danger); }
+
+/* ---------- Phases ---------- */
+.phases { display: grid; gap: var(--space-3); min-width: 0; }
+.phase {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-surface);
+  overflow: hidden;
+  min-width: 0;
+}
+.phase__head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-soft);
+  border-bottom: 1px solid var(--color-border);
+}
+.phase__order {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-inverse-text);
+  background: var(--color-brand);
+  border-radius: var(--radius-sm);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.phase__head h3 { margin: 0; font-size: var(--text-h3); }
+.phase__head p { margin: 0; font-size: var(--text-body-sm); color: var(--color-secondary-text); }
+.phase__body { padding: var(--space-3) var(--space-4) var(--space-4); min-width: 0; }
+.phase__row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px dashed var(--color-border); }
+.phase__row:last-child { border-bottom: 0; }
+.phase__key { font-weight: 600; font-size: var(--text-body-sm); color: var(--color-primary-dark); }
+.phase__val { min-width: 0; font-size: var(--text-body-sm); }
+.chipset { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--color-primary-tint);
+  border: 1px solid var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+/* ---------- Questions ---------- */
+.question {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-surface);
+  min-width: 0;
+}
+.question__head { display: flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap; margin-bottom: var(--space-1); }
+.question__id {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  font-size: 14px;
+}
+.question h3 { margin: 0; font-size: 19px; }
+.question__why { margin: 0 0 var(--space-3); color: var(--color-secondary-text); font-size: var(--text-body-sm); }
+.options { display: grid; gap: 6px; margin-bottom: var(--space-3); }
+.options label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  cursor: pointer;
+  font-size: var(--text-body-sm);
+  min-width: 0;
+}
+.options label:hover { border-color: var(--color-primary-light); background: var(--color-primary-tint); }
+.options input { margin-top: 4px; flex: 0 0 auto; accent-color: var(--color-brand); width: 17px; height: 17px; }
+.options .opt-text { min-width: 0; }
+.options .opt-reco {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-tint);
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-pill);
+  padding: 0 7px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.options .opt-note { display: block; color: var(--color-secondary-text); font-size: 14.5px; }
+textarea.notes {
+  width: 100%;
+  min-height: 54px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  margin-bottom: var(--space-2);
+  resize: vertical;
+}
+input[type="radio"]:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline: 3px solid #ffdd00;
+  outline-offset: 2px;
+}
+button.queue {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  background: var(--color-brand);
+  color: var(--color-inverse-text);
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-sm);
+  padding: 9px var(--space-4);
+  cursor: pointer;
+}
+button.queue:hover { background: var(--color-brand-hover); }
+button.queue:disabled { background: var(--color-border-strong); border-color: var(--color-border-strong); cursor: not-allowed; }
+.queued-state {
+  margin-top: var(--space-2);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+.queued-state[hidden] { display: none; }
+
+/* ---------- Misc ---------- */
+.note {
+  background: var(--color-surface-soft);
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-body-sm);
+  color: var(--color-secondary-text);
+}
+.note--warn { background: var(--color-warning-soft); border-left-color: var(--color-warning); }
+.note strong { color: var(--color-text); }
+ul.tight { margin: var(--space-2) 0 0; padding-left: var(--space-4); }
+ul.tight li { margin-bottom: 4px; }
+.footnote { font-size: 14.5px; color: var(--color-secondary-text); }
+footer.board-foot {
+  border-top: 2px solid var(--color-border);
+  margin-top: var(--space-6);
+  padding-top: var(--space-3);
+  font-size: var(--text-body-sm);
+  color: var(--color-secondary-text);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+@media (max-width: 640px) {
+  .masthead__mark { width: 54px; height: 54px; }
+  h1 { font-size: 27px; }
+  .phase__row { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap masthead__inner">
+    <img class="masthead__mark" src="caneguard-logo.svg" alt="CaneGuard">
+    <div class="masthead__text">
+      <span class="eyebrow">Implementation take · charts first</span>
+      <h1>Analytics charts for the SRA Don Pedro dashboard</h1>
+      <p class="lede">
+        The frozen Analytics Opportunity Mapping spec asks for five analytics opportunities.
+        This board sorts every one of them by what the shipped Web app can actually draw today,
+        then gives a three-phase build order. <strong>No advanced analytics, no forecasts, no rankings</strong> —
+        and an explicit list of what stays out, with the frozen rule that keeps it out.
+      </p>
+      <dl class="meta">
+        <div class="meta__item"><dt>Status</dt><dd>Plan for decision · no code changed</dd></div>
+        <div class="meta__item"><dt>Requirement of record</dt><dd>Frozen spec §9–§13, §25, §29, §30</dd></div>
+        <div class="meta__item"><dt>Plan</dt><dd><code>data/cg-analytics-charts-plan-20260921/report.md</code></dd></div>
+        <div class="meta__item"><dt>New dependencies</dt><dd>None · no schema change</dd></div>
+      </dl>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ===================== VERDICT ===================== -->
+  <section>
+    <div class="section-head">
+      <h2>The sort, at a glance</h2>
+      <p>Thirteen charts are drawable from columns the system already writes. Four spec items need missing inputs before they mean anything. Fourteen are forbidden by the spec itself.</p>
+    </div>
+    <div class="verdict">
+      <div class="verdict__card verdict__card--now">
+        <span class="verdict__num">13</span>
+        <span class="verdict__label">Charts now</span>
+        <span class="verdict__note">Period counts, barangay, Possible Condition, open/closed, lifecycle, area + provenance, workload, target dates, waiting age, agreement, comparison, turnaround</span>
+      </div>
+      <div class="verdict__card verdict__card--data">
+        <span class="verdict__num">5</span>
+        <span class="verdict__label">Needs data first</span>
+        <span class="verdict__note">Smut series, RSSI series, agreement volume, policy/SLA targets, and Map 2 readiness — which belongs on Mobile by rule</span>
+      </div>
+      <div class="verdict__card verdict__card--no">
+        <span class="verdict__num">14</span>
+        <span class="verdict__label">Not now — frozen out</span>
+        <span class="verdict__note">Uncertainty indicator, forecasting, prevalence/incidence, hotspots, ranking, opaque scores, readiness %, canonical-case totals, and more</span>
+      </div>
+      <div class="verdict__card">
+        <span class="verdict__num">3</span>
+        <span class="verdict__label">Build phases</span>
+        <span class="verdict__note">Each phase ships on its own; nothing later is required for anything earlier</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== AUDIT ===================== -->
+  <section>
+    <div class="section-head">
+      <h2>What the Web app has today, and what is missing</h2>
+      <p>Read from the code, not from the plan documents. The gap that decides the whole plan: there is one aggregate endpoint, and it is a UTC calendar month.</p>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-top:0">Already collected and already shown — keep, never repackage</h3>
+        <ul class="tight">
+          <li><strong>Five operational queues</strong> — needs review, needs visit, follow-up due, upcoming, unverified-no-active-work (<code>ApplyOperationalQueueFilter</code>)</li>
+          <li><strong>Calibrated attention bands</strong> — green/amber/red derived from reviewer verdicts with printed reasons, not an opaque score (<code>CalibrateReportTriage</code>)</li>
+          <li><strong>Monthly summary</strong> — reported cases, estimated hectares, validation counts, closed cases, review-time stats, barangay and Possible Condition lists (<code>BuildMonthlyReportSummary</code>, <code>MonthlyCaseSummary.tsx</code>)</li>
+          <li><strong>Expert verification</strong> — consult volume, agreement, unable-to-classify, time to finding, advisory coverage</li>
+          <li><strong>Case register</strong> with custom <code>date_from</code>/<code>date_to</code> filters, CSV export, map with located/unlocated counts, visit calendar</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">The five gaps that shape the plan</h3>
+        <ul class="tight">
+          <li><strong>One aggregate endpoint, UTC month only.</strong> No week, no custom range, no series, no previous-period comparison.</li>
+          <li><strong>No chart component and no chart dependency.</strong> Today's "charts" are <code>&lt;ul&gt;</code> lists and <code>&lt;dl&gt;</code> definitions; the only inline SVG in the SPA is on the login page.</li>
+          <li><strong>The register is the wrong source.</strong> <code>per_page</code> caps at 100 and pages, so a browser-side chart would silently truncate.</li>
+          <li><strong>Several stored dimensions are never aggregated</strong> — <code>case_state</code>, <code>authority_classified_condition</code>, workload per assignee, waiting-age buckets, turnaround durations.</li>
+          <li><strong>The area total has no provenance and no overlap disclosure</strong> — a bare <code>SUM(affected_area_hectares)</code>, no measured/not-measured split, no linked-duplicate count.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note note--warn" style="margin-top:var(--space-3)">
+      <strong>Demo data can lie.</strong> <code>ReportSeeder</code> seeds <code>predicted_label</code> from <code>Report::v2Labels()</code>, which <em>includes smut</em>, "so monitoring exercises every prediction class". Any chart built on the seeded database will show a Smut series that no shipped model produces. That is the exact trap the spec's current-vs-target rule (§3.2, §4.3) exists to prevent.
+    </div>
+  </section>
+
+  <!-- ===================== CHARTS NOW ===================== -->
+  <section>
+    <div class="section-head">
+      <h2><span class="badge badge--now">Charts now</span> &nbsp;Thirteen charts from data already collected</h2>
+      <p>Each row names the exact column source and the copy discipline the spec imposes. "New" means a new aggregation over existing columns — never a new column.</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <caption>Data source is shown as columns; <em>new</em> marks a new aggregate over columns that already exist.</caption>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th class="wide">Chart</th>
+            <th class="wide">Question it answers</th>
+            <th class="wide">Data source</th>
+            <th>Spec basis</th>
+            <th class="wide">Mandatory label discipline</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="id">C1</td>
+            <td><strong>Submitted reports over time</strong><br><span class="footnote">bars per day ≤ 60 days, else per ISO week</span></td>
+            <td>How many reports came in across the selected period?</td>
+            <td><code>reports.submitted_at</code><br><span class="footnote">canonical rows only · <strong>new</strong> period aggregate</span></td>
+            <td>§13 flexible periods (Q42)</td>
+            <td>“Submitted reports”. Never “cases” alone, never “occurrences”</td>
+          </tr>
+          <tr>
+            <td class="id">C2</td>
+            <td><strong>Barangay distribution</strong><br><span class="footnote">horizontal bars</span></td>
+            <td>Where are submitted reports concentrated?</td>
+            <td><code>reports.barangay</code><br><span class="footnote">exists monthly as <code>cases_by_barangay</code>; needs period</span></td>
+            <td>§13 geographic rule (Q43)</td>
+            <td>“Higher concentration of submitted reports”. Never hotspot or outbreak. Barangay first, GPS second</td>
+          </tr>
+          <tr>
+            <td class="id">C3</td>
+            <td><strong>Possible Condition split</strong></td>
+            <td>Which conditions does the AI evidence suggest?</td>
+            <td><code>reports.predicted_label</code><br><span class="footnote">exists monthly; needs period. Declared list today: <code>healthy, mosaic, rust</code></span></td>
+            <td>§13 condition rule, §14</td>
+            <td>“Possible Condition — decision support only”. Healthy stays visible (§14), never folded into Unknown</td>
+          </tr>
+          <tr>
+            <td class="id">C4</td>
+            <td><strong>Open vs closed</strong></td>
+            <td>How much of the register is still open?</td>
+            <td><code>reports.case_state</code><br><span class="footnote">single <code>closed_cases</code> count exists; series is <strong>new</strong></span></td>
+            <td>§13 open/closed counts (Q36)</td>
+            <td>Counts of submitted reports, not of confirmed occurrences</td>
+          </tr>
+          <tr>
+            <td class="id">C5</td>
+            <td><strong>Lifecycle composition</strong><br><span class="footnote">verification outcome · validation state · referral state</span></td>
+            <td>Where is work sitting in the lifecycle?</td>
+            <td><code>verification_outcome</code>, <code>field_validation_state</code>, <code>referral_state</code><br><span class="footnote">validation counts exist monthly; other two <strong>new</strong></span></td>
+            <td>§13 by lifecycle (Q36)</td>
+            <td>Referral is a state split, not a sixth process (§16)</td>
+          </tr>
+          <tr>
+            <td class="id">C6</td>
+            <td><strong>Estimated affected area</strong><br><span class="footnote">with provenance and overlap labels</span></td>
+            <td>How much <em>estimated</em> area do submitted reports describe?</td>
+            <td><code>affected_area_hectares</code> + <code>affected_area_measurement</code> + <code>affected_portion_percent</code> + <code>canonical_report_id</code><br><span class="footnote">sum exists; provenance and duplicate counts <strong>new</strong></span></td>
+            <td>§13 area rule, §15 (Q13/Q21/Q45)</td>
+            <td>Must print: contributing report count, <code>measured</code> vs <code>not_measured</code> split, and “N linked duplicates excluded; estimates may overlap”. Never “total affected area”</td>
+          </tr>
+          <tr>
+            <td class="id">C7</td>
+            <td><strong>Field-validation workload</strong></td>
+            <td>How much open validation work sits on each assignee?</td>
+            <td><code>field_validation_assignments.assignee_id</code>, <code>field_validation_state</code>, <code>case_state</code><br><span class="footnote"><strong>new</strong>; the queue endpoint returns assignees but caps at 100</span></td>
+            <td>§12 workload rule (Q41)</td>
+            <td>For balancing only. No ordering by fastest or most; unassigned is its own bucket</td>
+          </tr>
+          <tr>
+            <td class="id">C8</td>
+            <td><strong>Validation vs target date</strong><br><span class="footnote">unscheduled · scheduled · due today · past target</span></td>
+            <td>What is scheduled, due, or past its recorded target date?</td>
+            <td><code>field_validation_assignments.target_visit_date</code> (nullable)<br><span class="footnote">rule already encoded in <code>followUpDue()</code>/<code>upcoming()</code>; chart aggregate <strong>new</strong></span></td>
+            <td>§11 “overdue only with a real deadline” (Q40)</td>
+            <td>“Unscheduled” must always be visible so past-target is never read as the whole backlog</td>
+          </tr>
+          <tr>
+            <td class="id">C9</td>
+            <td><strong>Review backlog by waiting age</strong></td>
+            <td>Who has waited longest for a first review?</td>
+            <td><code>submitted_at</code> over the needs-review predicate, plus <code>first_reviewed_at</code><br><span class="footnote"><strong>new</strong></span></td>
+            <td>§11 waiting age (Q31/Q40)</td>
+            <td>Buckets are <strong>waiting age</strong>, never “overdue”. Oldest-unreviewed count beside the histogram</td>
+          </tr>
+          <tr>
+            <td class="id">C10</td>
+            <td><strong>AI-to-staff agreement</strong><br><span class="footnote">eligible denominator</span></td>
+            <td>How often did the Staff-Classified Condition match the Possible Condition?</td>
+            <td><code>predicted_label</code> vs <code>authority_classified_condition</code><br><span class="footnote">computed today only for completed consults; reviewed-report aggregate <strong>new</strong> — data is thin (see N3)</span></td>
+            <td>§13 agreement rule (Q44)</td>
+            <td>Denominator first; <code>unable_to_classify</code> separate and excluded; never “accuracy”; counts-only when the denominator is small (Q4)</td>
+          </tr>
+          <tr>
+            <td class="id">C11</td>
+            <td><strong>Previous-period comparison</strong></td>
+            <td>Is this period up or down on the last comparable one?</td>
+            <td>The same C1–C6 payload over two windows<br><span class="footnote"><strong>new</strong></span></td>
+            <td>§13 previous-period comparison (Q33)</td>
+            <td>Two counts and a delta. No projection, no trend line into the future</td>
+          </tr>
+          <tr>
+            <td class="id">C12</td>
+            <td><strong>Validation turnaround</strong><br><span class="footnote">measured durations</span></td>
+            <td>How long did completed validations actually take?</td>
+            <td>assignment <code>activated_at</code> → completion <code>visited_at</code><br><span class="footnote"><strong>new</strong>; non-negative intervals only</span></td>
+            <td>§12 turnaround (Q32)</td>
+            <td>Descriptive only. No SLA comparison, no ranking of validators</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note" style="margin-top:var(--space-3)">
+      <strong>Already shipped stays as it is</strong> and must never be repackaged as a new opportunity (§18): queue counts, attention bands, the monthly summary blocks, expert verification, historical status totals, map located/unlocated, and the visit calendar.
+    </div>
+  </section>
+
+  <!-- ===================== NEEDS DATA FIRST ===================== -->
+  <section>
+    <div class="section-head">
+      <h2><span class="badge badge--data">Needs data first</span> &nbsp;The Available Data rule (§3.3) fails today</h2>
+      <p>Four items are blocked by a missing input; the fifth is blocked by where the data is allowed to live. Each card names the frozen rule and the exact input still missing.</p>
+    </div>
+    <div class="grid-2">
+      <div class="dossier">
+        <h4>N1 · Smut as an AI Possible Condition series</h4>
+        <dl>
+          <dt>Missing input</dt>
+          <dd>A retrained, integrated and tested classifier that emits <code>smut</code>, with evaluation evidence (§27 lists dataset, balance, retraining and evaluation as outstanding).</dd>
+          <dt>Frozen rule</dt>
+          <dd class="rule">§4.3 / §3.2 — Model v0 integrates Healthy, Mosaic, Rust only; Smut “must not be presented as current Model v0 outputs until the model is retrained, integrated, and tested”.</dd>
+          <dt>Why it looks buildable</dt>
+          <dd>The upload contract <em>can</em> carry <code>smut</code> (<code>mobile-report-upload-v2.json</code> enum <code>healthy|mosaic|rust|smut</code>) and <code>ReportSeeder</code> deliberately seeds it. A Smut bar would chart <strong>seeded rows, not model output</strong>.</dd>
+          <dt>Verdict</dt>
+          <dd>Declare the condition list as <code>healthy, mosaic, rust</code>; add <code>smut</code> with the model integration, not with the data.</dd>
+        </dl>
+      </div>
+
+      <div class="dossier">
+        <h4>N2 · RSSI as an AI Possible Condition series</h4>
+        <dl>
+          <dt>Missing input</dt>
+          <dd>Any <code>rssi</code> value in the prediction contract. It does not exist: <code>predicted_label</code> accepts <code>healthy|mosaic|rust|smut</code>, and <code>Report::LABEL_*</code> defines the same four. RSSI exists only as <code>reporter_suspected_condition = 'RSSI'</code> and as a Staff-Classified Condition.</dd>
+          <dt>Frozen rule</dt>
+          <dd class="rule">§4.2 / §3.2 — RSSI is in the five-category <em>target</em>; the current/target distinction must always be visible.</dd>
+          <dt>Why it is worse than N1</dt>
+          <dd>A “Possible Condition: RSSI” bar cannot be drawn without inventing a value. This is a stronger block than Smut, where at least the wire format exists.</dd>
+          <dt>Verdict</dt>
+          <dd>Two honest options: a clearly separate <strong>reporter-suspected RSSI</strong> count labelled as a Level-2 reporter observation, or wait for the five-category model. Never inside the Possible Condition chart.</dd>
+        </dl>
+      </div>
+
+      <div class="dossier">
+        <h4>N3 · AI-to-staff agreement at a useful volume</h4>
+        <dl>
+          <dt>Missing input</dt>
+          <dd>Reviewed reports carrying <code>authority_classified_condition</code>. <code>ReportSeeder</code> writes <strong>none</strong> (status and lifecycle only); <code>AdvisorDemoSeeder</code> writes about eight. The real denominator is near zero.</dd>
+          <dt>Frozen rule</dt>
+          <dd class="rule">§13 agreement rule read with §3.3 — agreement uses <em>usable</em> staff classifications only, and <code>Unable to Classify</code> is excluded from the denominator (Q44).</dd>
+          <dt>Verdict</dt>
+          <dd>C10 ships in Phase 3 with a first-class insufficient-data state and the denominator always printed. It is not a Phase 1 chart and must never be headlined as a percentage alone.</dd>
+        </dl>
+      </div>
+
+      <div class="dossier">
+        <h4>N4 · Policy-target and SLA comparisons</h4>
+        <dl>
+          <dt>Missing input</dt>
+          <dd>A policy date. <strong>Validation:</strong> <code>target_visit_date</code> is a real human-entered deadline and is usable where set — but it is nullable and only exists once an assignment is created, so coverage is unknown. <strong>Review:</strong> there is no stored review deadline anywhere, so “reviewed within N days” has no date to measure against.</dd>
+          <dt>Frozen rule</dt>
+          <dd class="rule">§11 “overdue only with a real deadline”; §25 “arbitrary thresholds/SLAs” out of scope.</dd>
+          <dt>Verdict</dt>
+          <dd>Measured turnaround (C12) and past-target validation (C8) are fine, with an explicit <em>unscheduled</em> bucket. A review-SLA chart waits for a policy decision, not for data — choosing N would be the invented threshold the spec forbids.</dd>
+        </dl>
+      </div>
+
+      <div class="dossier dossier--blocked">
+        <h4>N5 · Readiness and synchronisation charts (Map 2) — wrong surface, by rule</h4>
+        <dl>
+          <dt>Missing input</dt>
+          <dd>Nothing collectable. <code>Incomplete</code>, <code>Ready for Submission</code>, <code>Finalized-Pending Synchronization</code> and <code>Synchronization Failed</code> are device-local states; the office only ever receives <code>Submitted</code>.</dd>
+          <dt>Frozen rule</dt>
+          <dd class="rule">§17 “Office analytics only use synchronized data”; Q39 “unsynced stays mobile-local”.</dd>
+          <dt>Verdict</dt>
+          <dd>Not a data-collection gap — structurally impossible without breaking the frozen rule. This requirement belongs to the Mobile readiness surface. The Web dashboard may state only the <code>Submitted</code> count it already has.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== NOT NOW ===================== -->
+  <section>
+    <div class="section-head">
+      <h2><span class="badge badge--no">Not now</span> &nbsp;Fourteen items the spec itself forbids</h2>
+      <p>These are not hard, they are disallowed. Each line names the frozen rule, so this list is not revisable by preference — changing one requires the spec’s own change-control path (§31).</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <caption>Blocked by the frozen spec, not by budget or skill.</caption>
+        <thead>
+          <tr><th>#</th><th class="wide">Item</th><th class="wide">Frozen rule that blocks it</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="id">X1</td><td><strong>Uncertainty indicator</strong> (consistent / uncertain / conflicting) as a Web chart</td><td>§9 — the indicator is a field decision (“accept, retake, or report”) in Process 1, rule-based and “never a second opaque model”, with no arbitrary confidence threshold (Q29, Q37). The shipped attention band is calibrated and explainable — but relabelling it as uncertainty analytics would misstate what it is.</td></tr>
+          <tr><td class="id">X2</td><td><strong>Forecasting</strong>, projections, trend extrapolation</td><td>§13 period rule “no forecasting”; §25 “outbreak prediction”, “yield prediction”, “weather forecasting”.</td></tr>
+          <tr><td class="id">X3</td><td><strong>Prevalence / incidence</strong> / infection-rate or survey estimates</td><td>§13 geographic rule; §25 “prevalence/incidence estimation”, “municipality-wide infection rates”; §30 “totals ≠ incidence”.</td></tr>
+          <tr><td class="id">X4</td><td><strong>Hotspot / outbreak maps</strong> and tiers</td><td>§13 “never hotspot/outbreak/prevalence/incidence”; §30 “concentrations ≠ hotspots”. C2 charts concentration; X4 is the forbidden claim on top of it.</td></tr>
+          <tr><td class="id">X5</td><td><strong>Ranking</strong> — validators, barangays, reporters, experts</td><td>§12 “never best/worst/fastest/slowest ranking”; §25 “employee ranking”; Q41.</td></tr>
+          <tr><td class="id">X6</td><td>Any <strong>opaque composite risk or “attention score”</strong> chart</td><td>§9 “never a second opaque model”; §25 “opaque risk scoring”.</td></tr>
+          <tr><td class="id">X7</td><td><strong>Readiness percentage</strong></td><td>§10 “no invented readiness percentage”; Q38 categorical readiness.</td></tr>
+          <tr><td class="id">X8</td><td><strong>Deduplicated “canonical case” totals</strong> used as the analytics unit</td><td>§15 the unit stays the submitted report; §25 “canonical-case unit”; Q45. Duplicates are disclosed beside the count (“23 submitted, 3 linked duplicates”), never silently netted.</td></tr>
+          <tr><td class="id">X9</td><td><strong>Farmer-level totals</strong> or league tables</td><td>§25 “farmer totals” out of scope; §6 the farmer is a stakeholder, not the formal verifier.</td></tr>
+          <tr><td class="id">X10</td><td><strong>Treatment / intervention / outcome-effectiveness</strong> analytics</td><td>§25 “treatment analytics”.</td></tr>
+          <tr><td class="id">X11</td><td><strong>Model accuracy, reliability or performance claims</strong></td><td>§13 agreement is over eligible reviewed reports and is “never called model accuracy”; §30 “agreement ≠ accuracy”, “possible ≠ diagnosis”; §25 “automatic/laboratory diagnosis”.</td></tr>
+          <tr><td class="id">X12</td><td><strong>Severity, crop-age and variety trend</strong> analytics</td><td>Not required anywhere in the spec, and <code>reported_severity</code> is a Level-2 reporter observation (§7), not a validated measurement. A severity trend would manufacture a claim the spec does not authorise.</td></tr>
+          <tr><td class="id">X13</td><td><strong>Expert referral as its own chart stream</strong></td><td>§16 referral is a supporting function under Process 3, “not a sixth process”; §25 “extra maps for sync/duplicates/referral/admin”.</td></tr>
+          <tr><td class="id">X14</td><td><strong>Lab-confirmation or diagnostic-certainty</strong> analytics</td><td>§25 “automatic or laboratory diagnosis”; §30 “review ≠ lab confirmation”.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note note--warn" style="margin-top:var(--space-3)">
+      <strong>Plain critique.</strong> X1–X6 are the most attractive dashboard ideas here, and every one is blocked by a rule the owner froze after seven decision rounds. X7–X11 are the same temptation: percentages, rankings and leaderboards that read as insight while converting operational counts into claims this study cannot support — the manuscript’s central risk. X12–X14 are simply out of requirement; building them would be scope expansion dressed up as analytics.
+    </div>
+  </section>
+
+  <!-- ===================== PHASES ===================== -->
+  <section>
+    <div class="section-head">
+      <h2>Build order — three phases, charts first</h2>
+      <p>Stance for all three: <strong>no new runtime dependency and no schema change.</strong> Charts are hand-authored inline SVG components styled from <code>src/styles/tokens.css</code> — the repo has zero chart packages today, and the approved documents plan already chose print-safe inline SVG bars, so one series implementation serves both surfaces.</p>
+    </div>
+
+    <div class="phases">
+
+      <article class="phase">
+        <div class="phase__head">
+          <span class="phase__order">1</span>
+          <h3>Period trend and composition</h3>
+          <span class="badge badge--phase">the captain’s ask, satisfied first</span>
+        </div>
+        <div class="phase__body">
+          <div class="phase__row">
+            <div class="phase__key">Charts</div>
+            <div class="phase__val"><div class="chipset"><span class="chip">C1</span><span class="chip">C2</span><span class="chip">C3</span><span class="chip">C4</span><span class="chip">C11</span></div></div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">API</div>
+            <div class="phase__val">New <code>BuildReportAnalytics</code> behind <code>GET /api/v1/reports/analytics</code> with <code>from</code>, <code>to</code>, <code>granularity</code> plus the existing <code>ReportFilterRules</code> filters. Reuses helpers extracted from <code>BuildMonthlyReportSummary</code>; the monthly builder stays behaviourally identical and its existing tests are the regression signal. Adds per-day/per-week buckets, the <code>case_state</code> series, and a previous-window block.</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Web</div>
+            <div class="phase__val">Chart primitives (bar, stacked bar, histogram shell), a week / month / custom period control driven by the same URL state the register already parses (<code>date_from</code>/<code>date_to</code>), and a dashboard section beside — not replacing — the monthly panel (Q6).</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Scope parity</div>
+            <div class="phase__val">Chart scope uses <code>ApplyReportFilters</code> and <code>canonical_report_id IS NULL</code> — the same actions the CSV export uses, so a chart and an export can never disagree.</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Gate</div>
+            <div class="phase__val"><code>npm run check:api</code> (bucket boundaries, filter parity, empty period, monthly-summary equality) then <code>npm run verify:fast</code>.</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phase">
+        <div class="phase__head">
+          <span class="phase__order">2</span>
+          <h3>Area, workload and backlog</h3>
+          <span class="badge badge--phase">Maps 3 and 4 operational depth</span>
+        </div>
+        <div class="phase__body">
+          <div class="phase__row">
+            <div class="phase__key">Charts</div>
+            <div class="phase__val"><div class="chipset"><span class="chip">C5</span><span class="chip">C6</span><span class="chip">C7</span><span class="chip">C8</span><span class="chip">C9</span><span class="chip">C12</span></div></div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">API</div>
+            <div class="phase__val">Extend the same aggregate: area sum + <code>measured</code>/<code>not_measured</code> provenance + linked-duplicate counts; lifecycle distributions; workload by assignee; the four validation schedule buckets; measured turnaround; waiting-age buckets.</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Indexes</div>
+            <div class="phase__val">Already in place — <code>['barangay','submitted_at']</code>, <code>['predicted_label','submitted_at']</code>, <code>['case_state','submitted_at']</code>, <code>['field_validation_state','submitted_at']</code>, and <code>['assignee_id','updated_at','id']</code> on assignments. <strong>No migration.</strong></div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Web</div>
+            <div class="phase__val">Six chart cards, each carrying its “what this is” line and the label discipline from the Charts-now table.</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Gate</div>
+            <div class="phase__val"><code>npm run check:api</code>, <code>npm run api:test:mysql</code> (grouped joins against real MySQL), then <code>npm run verify:fast</code>.</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="phase">
+        <div class="phase__head">
+          <span class="phase__order">3</span>
+          <h3>Agreement, with an honest empty state</h3>
+          <span class="badge badge--data">data-dependent · last on purpose</span>
+        </div>
+        <div class="phase__body">
+          <div class="phase__row">
+            <div class="phase__key">Charts</div>
+            <div class="phase__val"><div class="chipset"><span class="chip">C10</span></div></div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">API</div>
+            <div class="phase__val"><code>eligible</code> = reviewed reports with a usable Staff-Classified Condition; <code>unable_to_classify</code> counted separately and excluded; <code>agreed</code> count; denominator always returned; <code>eligible: 0</code> returns a first-class insufficient-data shape, never <code>0 %</code>.</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Web</div>
+            <div class="phase__val">Denominator-first card — “12 of 15 eligible reviewed reports agreed · 3 unable to classify (excluded)”. No standalone percentage, no accuracy wording anywhere in the component (X11).</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Gate</div>
+            <div class="phase__val"><code>npm run check:api</code> with an assertion mirroring the existing agreement assertions in <code>ReportReportingTest.php</code>, then <code>npm run verify:fast</code>.</div>
+          </div>
+          <div class="phase__row">
+            <div class="phase__key">Why last</div>
+            <div class="phase__val">Its data is thinnest. Shipping it earlier would put an empty rate on the dashboard — the single most misleading outcome available in this plan.</div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ===================== ENGINEERING ===================== -->
+  <section>
+    <div class="section-head">
+      <h2>Chart engineering decisions</h2>
+      <p>Small, concrete, and all chosen to avoid a dependency decision.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <h3 style="margin-top:0">Rendering</h3>
+        <p style="margin:0">Inline SVG React components, palette from <code>src/styles/tokens.css</code>: <code>--disease-*</code> for conditions, the <code>--color-brand</code> family for counts, <code>--color-warning</code>/<code>--color-danger</code> only for genuinely past-target buckets. No canvas — it neither prints nor scales with CSS.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Accessibility</h3>
+        <p style="margin:0">Each chart is <code>role="img"</code> with a summarising <code>aria-label</code> plus a visually hidden <code>&lt;table&gt;</code> of the plotted values. That hidden table is also what makes a chart testable without a browser. Chart text uses the project’s 16&nbsp;px floor; the 12&nbsp;px machine scale is never used for labels.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Honest empty states</h3>
+        <p style="margin:0">Zero reports renders “No submitted reports in this period”, matching existing copy. A sparse denominator renders the insufficient-data state instead of a rate (Q4).</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">One printed period rule</h3>
+        <p style="margin:0">The chart header prints the period, the boundary rule and the timezone, exactly as the approved documents plan decided for documents. The shipped monthly panel is UTC, so this must be an explicit choice (Q1), not a silent divergence.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">No client-side aggregation</h3>
+        <p style="margin:0">The register endpoint caps at <code>per_page=100</code> and paginates; charts read the aggregate endpoint only. One payload per period change, debounced — no per-chart request fan-out.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Copy contract</h3>
+        <p style="margin:0">A single copy module beside the chart primitives holds the required disclaimers and the forbidden vocabulary from X1–X14, with tests asserting both. This is the mitigation for the spec’s central risk: charts that quietly become claims.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== QUESTIONS ===================== -->
+  <section>
+    <div class="section-head">
+      <h2>Open questions — pick an option, then queue it</h2>
+      <p>Each question keeps its selection local until you submit. Submitting queues exactly one prompt for that question, so you can answer all seven and send them together. Recommendations are marked; a rationale box is optional on every question.</p>
+    </div>
+
+    <div class="phases">
+
+      <!-- Q1 -->
+      <div class="question">
+        <div class="question__head"><span class="question__id">Q1</span><h3>Which period boundary rule do the new charts use?</h3></div>
+        <p class="question__why">The shipped monthly panel is UTC (<code>BuildMonthlyReportSummary</code> says so explicitly). The approved documents plan decided <strong>PHT (UTC+8)</strong> for documents and deliberately left the panel alone. A new period chart must pick one and print it.</p>
+        <form data-lavish-question="q1-boundary" onsubmit="queueAnswer(event, 'q1-boundary', 'Period boundary rule for the new analytics charts')">
+          <div class="options">
+            <label><input type="radio" name="q1" value="PHT (UTC+8), printed on every chart"><span class="opt-text">PHT (UTC+8), printed on every chart<span class="opt-reco">recommended</span><span class="opt-note">Matches the approved documents decision, so a chart and a printed document agree on “this week”.</span></span></label>
+            <label><input type="radio" name="q1" value="UTC, matching the shipped monthly panel"><span class="opt-text">UTC, matching the shipped monthly panel<span class="opt-note">Zero divergence today, but the dashboard and a printed document will disagree about week and month edges.</span></span></label>
+            <label><input type="radio" name="q1" value="Both, with each surface's rule printed"><span class="opt-text">Both, with each surface’s rule printed<span class="opt-note">Honest but duplicated; the panel and the chart can still show different numbers for the same month.</span></span></label>
+          </div>
+          <textarea class="notes" name="notes" placeholder="Optional rationale (why this rule matters for your reporting)"></textarea>
+          <button class="queue" type="submit">Queue answer for Q1</button>
+          <p class="queued-state" hidden></p>
+        </form>
+      </div>
+
+      <!-- Q2 -->
+      <div class="question">
+        <div class="question__head"><span class="question__id">Q2</span><h3>Where do the charts live?</h3></div>
+        <p class="question__why">The Dashboard is the office overview; the Monitoring workspace already holds the register, calendar, map and field operations.</p>
+        <form data-lavish-question="q2-surface" onsubmit="queueAnswer(event, 'q2-surface', 'Surface for the new analytics charts')">
+          <div class="options">
+            <label><input type="radio" name="q2" value="Dashboard + Monitoring workspace register, one shared chart section component"><span class="opt-text">Dashboard + Monitoring workspace register, one shared component<span class="opt-reco">recommended</span><span class="opt-note">One implementation, two entry points — the same pattern the documents builder was approved with.</span></span></label>
+            <label><input type="radio" name="q2" value="Dashboard only"><span class="opt-text">Dashboard only<span class="opt-note">Smallest change; the monitoring register stays a table.</span></span></label>
+            <label><input type="radio" name="q2" value="Monitoring workspace register only"><span class="opt-text">Monitoring workspace register only<span class="opt-note">Keeps the Dashboard’s current density; less visible to a casual office read.</span></span></label>
+          </div>
+          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
+          <button class="queue" type="submit">Queue answer for Q2</button>
+          <p class="queued-state" hidden></p>
+        </form>
+      </div>
+
+      <!-- Q3 -->
+      <div class="question">
+        <div class="question__head"><span class="question__id">Q3</span><h3>How are the charts rendered?</h3></div>
+        <p class="question__why">The repo has <strong>no chart dependency at all</strong> today, and adding one is a dependency decision, not just a code change.</p>
+        <form data-lavish-question="q3-render" onsubmit="queueAnswer(event, 'q3-render', 'Chart rendering approach')">
+          <div class="options">
+            <label><input type="radio" name="q3" value="Hand-authored inline SVG components, no new dependency"><span class="opt-text">Hand-authored inline SVG components, no new dependency<span class="opt-reco">recommended</span><span class="opt-note">Print-safe, token-styled, testable, and one series implementation serves both the dashboard and the approved document. Cost: tooltips and legends are ours to build.</span></span></label>
+            <label><input type="radio" name="q3" value="Add a chart library"><span class="opt-text">Add a chart library<span class="opt-note">Faster interactivity, but a new runtime dependency, a second visual language, and a print path that cannot reuse the library output.</span></span></label>
+          </div>
+          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
+          <button class="queue" type="submit">Queue answer for Q3</button>
+          <p class="queued-state" hidden></p>
+        </form>
+      </div>
+
+      <!-- Q4 -->
+      <div class="question">
+        <div class="question__head"><span class="question__id">Q4</span><h3>Agreement display floor while staff classifications are sparse</h3></div>
+        <p class="question__why">Agreement is a ratio over eligible reviewed reports, and today almost none exist (N3). The spec bans invented thresholds; a presentation floor for showing a percentage is a separate decision, so it is yours to make rather than mine to assume.</p>
+        <form data-lavish-question="q4-agreement-floor" onsubmit="queueAnswer(event, 'q4-agreement-floor', 'Agreement percentage display floor')">
+          <div class="options">
+            <label><input type="radio" name="q4" value="Counts only until the eligible denominator is at least 10, then show the rate with the denominator"><span class="opt-text">Counts only until denominator ≥ 10, then rate + denominator<span class="opt-reco">recommended</span><span class="opt-note">A rate on fewer than ten reviewed reports invites over-reading.</span></span></label>
+            <label><input type="radio" name="q4" value="Counts only until the eligible denominator is at least 20"><span class="opt-text">Counts only until denominator ≥ 20<span class="opt-note">More conservative; the rate may stay hidden for a long time.</span></span></label>
+            <label><input type="radio" name="q4" value="Always show the rate, always with the denominator printed"><span class="opt-text">Always show the rate, with the denominator printed<span class="opt-note">Maximally transparent; relies on the reader reading the denominator.</span></span></label>
+            <label><input type="radio" name="q4" value="Defer the floor decision to Phase 3"><span class="opt-text">Defer the floor decision to Phase 3<span class="opt-note">Phase 3 then ships counts-only by default until you decide.</span></span></label>
+          </div>
+          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
+          <button class="queue" type="submit">Queue answer for Q4</button>
+          <p class="queued-state" hidden></p>
+        </form>
+      </div>
+
+      <!-- Q5 -->
+      <div class="question">
+        <div class="question__head"><span class="question__id">Q5</span><h3>Sequence against the already-approved documents work (P0–P2)</h3></div>
+        <p class="question__why">The approved plan’s Phase 0 already builds weekly/monthly/custom period handling with PHT boundaries. C1 needs the same bucketing, so one of these two tracks owns it.</p>
+        <form data-lavish-question="q5-sequence" onsubmit="queueAnswer(event, 'q5-sequence', 'Sequencing against the approved documents plan')">
+          <div class="options">
+            <label><input type="radio" name="q5" value="Documents first; charts ride on its period groundwork"><span class="opt-text">Documents first; charts ride on its period groundwork<span class="opt-reco">recommended</span><span class="opt-note">One period substrate, one bucket implementation, no duplicated boundary logic.</span></span></label>
+            <label><input type="radio" name="q5" value="Charts first; the documents track adapts to the chart aggregate"><span class="opt-text">Charts first; the documents track adapts<span class="opt-note">Puts charts on screen sooner, but the approved P0 groundwork is re-scoped before it is used.</span></span></label>
+            <label><input type="radio" name="q5" value="Interleave chart Phase 1 with the documents Phase 0"><span class="opt-text">Interleave chart Phase 1 with documents Phase 0<span class="opt-note">Shared bucket work lands once, but two approved scopes move at the same time.</span></span></label>
+          </div>
+          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
+          <button class="queue" type="submit">Queue answer for Q5</button>
+          <p class="queued-state" hidden></p>
+        </form>
+      </div>
+
+      <!-- Q6 -->
+      <div class="question">
+        <div class="question__head"><span class="question__id">Q6</span><h3>What happens to the existing monthly summary panel?</h3></div>
+        <p class="question__why">The panel currently renders the barangay and Possible Condition data as lists. The new C2 and C3 charts show the same data for any period, so keeping both risks two answers to one question on one screen.</p>
+        <form data-lavish-question="q6-monthly-panel" onsubmit="queueAnswer(event, 'q6-monthly-panel', 'Fate of the existing monthly summary panel')">
+          <div class="options">
+            <label><input type="radio" name="q6" value="Keep the panel; remove only the barangay and condition lists the charts now cover"><span class="opt-text">Keep the panel; remove only the lists the charts now cover<span class="opt-reco">recommended</span><span class="opt-note">Keeps the metric tiles and review-time stats, and leaves one rendering of each distribution.</span></span></label>
+            <label><input type="radio" name="q6" value="Keep the panel entirely as it is"><span class="opt-text">Keep the panel entirely as it is<span class="opt-note">Safest for existing tests; the same distribution then appears twice on the Dashboard.</span></span></label>
+            <label><input type="radio" name="q6" value="Replace the panel with the period chart, defaulting to the current month"><span class="opt-text">Replace the panel with the period chart, defaulting to the current month<span class="opt-note">Cleanest screen; the panel's UTC month semantics change, which touches existing behaviour.</span></span></label>
+          </div>
+          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
+          <button class="queue" type="submit">Queue answer for Q6</button>
+          <p class="queued-state" hidden></p>
+        </form>
+      </div>
+
+      <!-- Q7 -->
+      <div class="question">
+        <div class="question__head"><span class="question__id">Q7</span><h3>Shape of the estimated-area chart</h3></div>
+        <p class="question__why">The spec requires labelled estimates and acknowledged overlaps. The current total is a bare sum with neither.</p>
+        <form data-lavish-question="q7-area-chart" onsubmit="queueAnswer(event, 'q7-area-chart', 'Estimated affected-area chart shape')">
+          <div class="options">
+            <label><input type="radio" name="q7" value="Estimate with measured/not-measured provenance and linked-duplicate disclosure"><span class="opt-text">Estimate + <code>measured</code>/<code>not_measured</code> provenance + duplicate disclosure<span class="opt-reco">recommended</span><span class="opt-note">The only shape that satisfies §13’s area rule and §15’s duplicate rule at the same time.</span></span></label>
+            <label><input type="radio" name="q7" value="Keep the single headline number until provenance is trusted"><span class="opt-text">Keep the single headline number until provenance is trusted<span class="opt-note">Smaller step, but the printed figure stays an unlabelled estimate and duplicates stay invisible.</span></span></label>
+          </div>
+          <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
+          <button class="queue" type="submit">Queue answer for Q7</button>
+          <p class="queued-state" hidden></p>
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <footer class="board-foot">
+    <span>CaneGuard · analytics charts plan · basis: frozen spec §9–§13, §25, §29, §30 · full plan: <code>data/cg-analytics-charts-plan-20260921/report.md</code></span>
+    <span>Rendered in CaneGuard’s own design tokens from <code>src/styles/tokens.css</code></span>
+  </footer>
+
+</main>
+
+<script>
+function queueAnswer(event, key, questionLabel) {
+  event.preventDefault();
+  var form = event.currentTarget;
+  var checked = form.querySelector('input[type="radio"]:checked');
+  var state = form.querySelector('.queued-state');
+  if (!checked) {
+    state.hidden = false;
+    state.textContent = 'Select an option first, then queue it.';
+    return;
+  }
+  var notes = (form.querySelector('textarea[name="notes"]') || {}).value || '';
+  var answer = checked.value;
+  var text = questionLabel + ' — chosen: ' + answer;
+  if (notes.trim()) text += ' — rationale: ' + notes.trim();
+  window.lavish.queuePrompt(
+    text + '. Treat this as the decision for ' + key + '; update the plan and the affected phase accordingly, and tell me if the choice changes a gate or a chart in the plan.',
+    {
+      tag: 'decision',
+      text: text,
+      element: checked,
+      queueKey: key,
+      data: { question: key, answer: answer, rationale: notes.trim() || null }
+    }
+  );
+  state.hidden = false;
+  state.textContent = 'Queued: ' + answer + (notes.trim() ? ' (with rationale)' : '');
+}
+</script>
+</body>
+</html>
