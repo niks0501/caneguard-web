@@ -1074,12 +1074,13 @@ footer.board-foot {
 
       <!-- Q7 -->
       <div class="question">
-        <div class="question__head"><span class="question__id">Q7</span><h3>Shape of the estimated-area chart</h3></div>
-        <p class="question__why">The spec requires labelled estimates and acknowledged overlaps. The current total is a bare sum with neither.</p>
-        <form data-lavish-question="q7-area-chart" onsubmit="queueAnswer(event, 'q7-area-chart', 'Estimated affected-area chart shape')">
+        <div class="question__head"><span class="question__id">Q7</span><h3>Does the estimated affected area become a chart, or stay a labelled figure?</h3></div>
+        <p class="question__why">The spec already fixes the wording — <em>labelled estimate, overlaps acknowledged, duplicate count disclosed</em> (§13, §15) — so every option below carries the same provenance and disclosure lines. The genuine choice is only whether the estimate is plotted over the period or kept as a labelled figure in the summary band, which is where it lives today.</p>
+        <form data-lavish-question="q7-area-chart" onsubmit="queueAnswer(event, 'q7-area-chart', 'Presentation of the estimated affected area')">
           <div class="options">
-            <label><input type="radio" name="q7" value="Estimate with measured/not-measured provenance and linked-duplicate disclosure"><span class="opt-text">Estimate + <code>measured</code>/<code>not_measured</code> provenance + duplicate disclosure<span class="opt-reco">recommended</span><span class="opt-note">The only shape that satisfies §13’s area rule and §15’s duplicate rule at the same time.</span></span></label>
-            <label><input type="radio" name="q7" value="Keep the single headline number until provenance is trusted"><span class="opt-text">Keep the single headline number until provenance is trusted<span class="opt-note">Smaller step, but the printed figure stays an unlabelled estimate and duplicates stay invisible.</span></span></label>
+            <label><input type="radio" name="q7" value="Per-period bar, with the measured/not-measured split and the duplicate-and-overlap disclosure line"><span class="opt-text">Per-period bar, with the same provenance and disclosure lines<span class="opt-reco">recommended</span><span class="opt-note">Area becomes comparable across periods like the other charts. Barrier: it needs the provenance split built first — that is the C6 work.</span></span></label>
+            <label><input type="radio" name="q7" value="Keep a labelled figure in the summary band, no bar, with provenance and disclosure lines added"><span class="opt-text">Keep it a labelled figure in the summary band, no bar<span class="opt-note">Smallest honest change: the existing number gains its missing labels and stops being an unqualified total. Nothing is plotted, so no overlap between periods can be read as accumulation.</span></span></label>
+            <label><input type="radio" name="q7" value="Both: labelled figure in the summary band plus a per-period bar in the charts section"><span class="opt-text">Both — figure in the summary band, bar in the charts section<span class="opt-note">Most complete, and the figure stays visible without scrolling to the charts. Costs one duplicated figure on the same screen.</span></span></label>
           </div>
           <textarea class="notes" name="notes" placeholder="Optional rationale"></textarea>
           <button class="queue" type="submit">Queue answer for Q7</button>
