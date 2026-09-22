@@ -23,6 +23,7 @@ import { ConfidenceDisplay } from "../components/reports/ConfidenceDisplay";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
 import { MachineFactsChips } from "../components/reports/MachineFactsChips";
 import { ReferralWorkflow } from "../components/reports/ReferralWorkflow";
+import { ReportPicker } from "../components/reports/ReportPicker";
 import { DiseaseBadge, ReviewStatusBadge } from "../components/reports/ReportBadges";
 import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
 import { Button } from "../components/ui/Button";
@@ -72,7 +73,7 @@ import {
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
-import { formatDateTime } from "../lib/formatters";
+import { formatDate, formatDateTime } from "../lib/formatters";
 
 /**
  * One guided office decision. Every value except `needs_field_validation` maps
@@ -549,6 +550,7 @@ export function CaseReviewPage() {
   );
   const [correctionReason, setCorrectionReason] = useState("");
   const [canonicalReportUuid, setCanonicalReportUuid] = useState("");
+  const [canonicalReportLabel, setCanonicalReportLabel] = useState<string | null>(null);
   const [duplicateLinkReason, setDuplicateLinkReason] = useState("");
   const [duplicateLinkSubmitted, setDuplicateLinkSubmitted] = useState(false);
   const [duplicateLinkNotice, setDuplicateLinkNotice] = useState<string | null>(null);
@@ -814,6 +816,7 @@ export function CaseReviewPage() {
       : null;
   const duplicateLinkValidationError =
     duplicateLinkApiError?.errors?.canonical_report_uuid?.[0];
+  const duplicateLinkReportError = duplicateLinkApiError?.errors?.report?.[0];
   const duplicateLinkConflict = duplicateLinkApiError?.status === 409;
   const duplicateLinkForbidden = duplicateLinkApiError?.status === 403;
   const duplicateLinkMalformed = duplicateLinkMutation.error instanceof ZodError;
@@ -864,6 +867,7 @@ export function CaseReviewPage() {
         "Link recorded as a possible duplicate. The submitted record remains preserved.",
       );
       setCanonicalReportUuid("");
+      setCanonicalReportLabel(null);
       setDuplicateLinkReason("");
       setDuplicateLinkSubmitted(false);
       setDuplicateLinkModalOpen(false);
@@ -2319,7 +2323,7 @@ export function CaseReviewPage() {
           ) : null}
           {possibleMatchesQuery.isError ? (
             <p className="duplicate-link-status" role="alert">
-              Possible matches could not be loaded. You can still enter a canonical case UUID below.
+              Possible matches could not be loaded. You can still search cases or paste a canonical case UUID below.
             </p>
           ) : null}
           {!possibleMatchesQuery.isPending && !possibleMatchesQuery.isError && possibleMatches.length === 0 ? (
@@ -2340,6 +2344,9 @@ export function CaseReviewPage() {
                     variant="secondary"
                     onClick={() => {
                       setCanonicalReportUuid(match.uuid);
+                      setCanonicalReportLabel(
+                        `${match.referenceCode} · ${formatDate(match.submittedAt)}`,
+                      );
                       setDuplicateLinkSubmitted(false);
                       setDuplicateLinkNotice(null);
                       duplicateLinkMutation.reset();
@@ -2351,20 +2358,40 @@ export function CaseReviewPage() {
               ))}
             </ul>
           ) : null}
-          <label className="select-filter" htmlFor="canonical-report-uuid">
-            <span>Canonical case UUID</span>
-            <input
-              id="canonical-report-uuid"
-              value={canonicalReportUuid}
-              onChange={(event) => {
-                setCanonicalReportUuid(event.target.value);
-                setDuplicateLinkSubmitted(false);
-                setDuplicateLinkNotice(null);
-                duplicateLinkMutation.reset();
-              }}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            />
-          </label>
+          <ReportPicker
+            excludeUuid={report?.uuid}
+            value={
+              canonicalReportUuid.trim() && canonicalReportLabel
+                ? { uuid: canonicalReportUuid.trim(), label: canonicalReportLabel }
+                : null
+            }
+            onSelect={(selection) => {
+              setCanonicalReportUuid(selection?.uuid ?? "");
+              setCanonicalReportLabel(selection?.label ?? null);
+              setDuplicateLinkSubmitted(false);
+              setDuplicateLinkNotice(null);
+              duplicateLinkMutation.reset();
+            }}
+            disabled={duplicateLinkMutation.isPending}
+          />
+          <details className="uuid-fallback">
+            <summary>Paste a case UUID instead</summary>
+            <label className="select-filter" htmlFor="canonical-report-uuid">
+              <span>Canonical case UUID</span>
+              <input
+                id="canonical-report-uuid"
+                value={canonicalReportUuid}
+                onChange={(event) => {
+                  setCanonicalReportUuid(event.target.value);
+                  setCanonicalReportLabel(null);
+                  setDuplicateLinkSubmitted(false);
+                  setDuplicateLinkNotice(null);
+                  duplicateLinkMutation.reset();
+                }}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              />
+            </label>
+          </details>
           <label className="select-filter" htmlFor="duplicate-link-reason">
             <span>Link reason (optional)</span>
             <input
@@ -2381,10 +2408,13 @@ export function CaseReviewPage() {
             />
           </label>
           {duplicateLinkSubmitted && !canonicalReportUuid.trim() ? (
-            <p className="form-error" role="alert">Choose a possible match or enter a canonical case UUID before linking.</p>
+            <p className="form-error" role="alert">Select a case from the search results or enter a canonical case UUID before linking.</p>
           ) : null}
           {duplicateLinkValidationError ? (
             <p className="form-error" role="alert">{duplicateLinkValidationError}</p>
+          ) : null}
+          {duplicateLinkReportError ? (
+            <p className="form-error" role="alert">{duplicateLinkReportError}</p>
           ) : null}
           {duplicateLinkConflict ? (
             <p className="form-error" role="alert">This case is already linked to another canonical case. Refresh before trying again.</p>
@@ -2398,6 +2428,7 @@ export function CaseReviewPage() {
           {duplicateLinkMutation.isError &&
           !duplicateLinkConflict &&
           !duplicateLinkValidationError &&
+          !duplicateLinkReportError &&
           !duplicateLinkForbidden &&
           !duplicateLinkMalformed ? (
             <p className="form-error" role="alert">The duplicate linking service is unavailable. No link was recorded.</p>

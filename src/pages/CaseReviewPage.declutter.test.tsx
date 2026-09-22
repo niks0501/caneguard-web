@@ -12,6 +12,7 @@ import {
   useExpertDirectory,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
+  useReports,
   useUnlinkDuplicateReport,
   useRecordExpertReferralResponse,
   useRecordReportReferral,
@@ -26,6 +27,7 @@ vi.mock("../hooks/useReports", () => ({
   useExpertDirectory: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
+  useReports: vi.fn(),
   useUnlinkDuplicateReport: vi.fn(),
   useRecordExpertReferralResponse: vi.fn(),
   useRecordReportReferral: vi.fn(),
@@ -77,6 +79,7 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
     vi.mocked(useRecordReportReferral).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useRecordReportReferral>);
     vi.mocked(useConfirmExpertReferral).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useConfirmExpertReferral>);
     vi.mocked(useExpertDirectory).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useExpertDirectory>);
+    vi.mocked(useReports).mockReturnValue({ data: { reports: [], meta: { currentPage: 1, from: null, lastPage: 1, perPage: 8, to: null, total: 0 } }, error: null, isError: false, isPending: false, isFetching: false } as unknown as ReturnType<typeof useReports>);
     vi.mocked(useLinkDuplicateReport).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useLinkDuplicateReport>);
     vi.mocked(useUnlinkDuplicateReport).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUnlinkDuplicateReport>);
     vi.mocked(useUpdateReportReview).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUpdateReportReview>);
