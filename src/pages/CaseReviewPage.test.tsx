@@ -20,6 +20,7 @@ import {
   useIssueConsultInvite,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
+  useReports,
   useUnlinkDuplicateReport,
   useRecordExpertReferralResponse,
   useRecordReportReferral,
@@ -36,6 +37,7 @@ vi.mock("../hooks/useReports", () => ({
   useIssueConsultInvite: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
+  useReports: vi.fn(),
   useUnlinkDuplicateReport: vi.fn(),
   useRecordExpertReferralResponse: vi.fn(),
   useRecordReportReferral: vi.fn(),
@@ -131,6 +133,44 @@ function duplicateUnlinkMutationResult(overrides: Record<string, unknown> = {}) 
   return mutationResult(overrides) as unknown as ReturnType<typeof useUnlinkDuplicateReport>;
 }
 
+function pickerReport(overrides: Record<string, unknown> = {}) {
+  return {
+    uuid: "target-report-uuid",
+    referenceCode: "CG-2026-0007",
+    barangay: "Mabini",
+    submittedByName: "Ana Reporter",
+    submittedAt: "2026-08-12T10:00:00.000Z",
+    predictedDisease: "rust",
+    ...overrides,
+  };
+}
+
+function reportsListResult(
+  reportsList: Array<ReturnType<typeof pickerReport>> = [],
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    data: {
+      reports: reportsList,
+      meta: {
+        currentPage: 1,
+        from: reportsList.length ? 1 : null,
+        lastPage: 1,
+        perPage: 8,
+        to: reportsList.length || null,
+        total: reportsList.length,
+      },
+    },
+    error: null,
+    isError: false,
+    isPending: false,
+    isFetching: false,
+    isSuccess: true,
+    refetch: vi.fn(),
+    ...overrides,
+  } as unknown as ReturnType<typeof useReports>;
+}
+
 function possibleMatchesResult(overrides: Record<string, unknown> = {}) {
   return {
     data: {
@@ -171,6 +211,7 @@ beforeEach(() => {
   vi.mocked(useRevokeConsultInvite).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useRevokeConsultInvite>);
   vi.mocked(useRecordReportReferral).mockReturnValue(referralMutationResult());
   vi.mocked(useReport).mockReturnValue(queryResult());
+  vi.mocked(useReports).mockReturnValue(reportsListResult());
   vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult());
   vi.mocked(useUnlinkDuplicateReport).mockReturnValue(duplicateUnlinkMutationResult());
   vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult());
@@ -578,7 +619,7 @@ describe("CaseReviewPage", () => {
     const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
     expect(within(modal).getByText(/nothing is merged, deleted, or blocked automatically/i)).toBeInTheDocument();
     await user.click(within(modal).getByRole("button", { name: "Use as canonical" }));
-    expect(within(modal).getByLabelText("Canonical case UUID")).toHaveValue("canonical-report");
+    expect(within(modal).getByTestId("report-picker-selection")).toHaveTextContent("CG-2026-0002");
     await user.type(
       within(modal).getByLabelText(/^Link reason \(optional\)/),
       " The cases may describe the same field observation. ",
@@ -604,10 +645,128 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
     const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
 
+    expect(within(modal).getByRole("combobox", { name: "Search cases" })).toBeInTheDocument();
     await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
 
     expect(within(modal).getByText(/enter a canonical case UUID/i)).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("selects a duplicate link target from case search and renders the reference-code chip", async () => {
+    const user = userEvent.setup();
+    const target = pickerReport();
+    vi.mocked(useReports).mockReturnValue(reportsListResult([target]));
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(
+      duplicateMutationResult({ mutateAsync }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(within(modal).getByRole("combobox", { name: "Search cases" }));
+    await user.click(await within(modal).findByRole("option", { name: /CG-2026-0007/ }));
+
+    expect(within(modal).getByTestId("report-picker-selection")).toHaveTextContent("CG-2026-0007");
+    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      canonicalReportUuid: "target-report-uuid",
+      reason: undefined,
+      expectedVersion: report.reviewVersion,
+    });
+    expect(await screen.findByText(/submitted record remains preserved/i)).toBeInTheDocument();
+  });
+
+  it("excludes the case under review from case search results", async () => {
+    const user = userEvent.setup();
+    const current = pickerReport({ uuid: report.uuid, referenceCode: report.referenceCode });
+    const other = pickerReport();
+    vi.mocked(useReports).mockReturnValue(reportsListResult([current, other]));
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(within(modal).getByRole("combobox", { name: "Search cases" }));
+
+    expect(await within(modal).findByRole("option", { name: /CG-2026-0007/ })).toBeInTheDocument();
+    expect(
+      within(modal).queryByRole("option", { name: new RegExp(report.referenceCode) }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("links with a pasted UUID from the collapsed fallback", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(
+      duplicateMutationResult({ mutateAsync }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(within(modal).getByText("Paste a case UUID instead"));
+    await user.type(
+      within(modal).getByLabelText("Canonical case UUID"),
+      "123e4567-e89b-12d3-a456-426614174000",
+    );
+    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      canonicalReportUuid: "123e4567-e89b-12d3-a456-426614174000",
+      reason: undefined,
+      expectedVersion: report.reviewVersion,
+    });
+  });
+
+  it("surfaces the server report error for duplicate linking", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(
+      duplicateMutationResult({
+        error: new ApiError("The duplicate could not be recorded.", {
+          status: 422,
+          errors: { report: ["This case already has linked duplicates of its own."] },
+        }),
+        isError: true,
+      }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    expect(
+      within(modal).getByText("This case already has linked duplicates of its own."),
+    ).toBeInTheDocument();
+    expect(within(modal).queryByText(/service is unavailable/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the reason field usable when case search is empty or unavailable", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useReports).mockReturnValue(reportsListResult([]));
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(screen.getByRole("combobox", { name: "Search cases" }));
+    expect(await screen.findByText(/No cases match this search/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Link reason \(optional\)/)).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: "Link as possible duplicate" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    vi.mocked(useReports).mockReturnValue(
+      reportsListResult([], {
+        data: undefined,
+        error: new Error("offline"),
+        isError: true,
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
+    screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(screen.getByRole("combobox", { name: "Search cases" }));
+    screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    expect(await screen.findByText(/Case search is unavailable/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Link reason \(optional\)/)).toBeInTheDocument();
   });
 
   it("shows the preserved relationship after a case is linked", () => {
@@ -1279,15 +1438,16 @@ describe("CaseReviewPage", () => {
       within(moreActions).getByRole("button", { name: "Correct operational metadata" }),
     ).toBeInTheDocument();
 
-    expect(screen.queryByLabelText("Canonical case UUID")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Search cases/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Farmer or farm owner")).not.toBeInTheDocument();
 
     await user.click(within(moreActions).getByRole("button", { name: "Link as possible duplicate" }));
     const dupModal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    expect(within(dupModal).getByLabelText("Canonical case UUID")).toBeInTheDocument();
+    expect(within(dupModal).getByLabelText(/Search cases/i)).toBeInTheDocument();
+    expect(within(dupModal).getByText("Paste a case UUID instead")).toBeInTheDocument();
     await user.click(within(dupModal).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog", { name: "Link as possible duplicate" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Canonical case UUID")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Search cases/i)).not.toBeInTheDocument();
 
     await user.click(within(moreActions).getByRole("button", { name: "Correct operational metadata" }));
     const metaModal = screen.getByRole("dialog", { name: "Correct operational metadata" });

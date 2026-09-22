@@ -5310,6 +5310,90 @@ textarea:focus-visible {
   margin-top: 14px;
 }
 
+.report-picker {
+  position: relative;
+  margin-top: 12px;
+}
+
+.report-picker-listbox {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 8px;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  max-height: 264px;
+  overflow-y: auto;
+}
+
+.report-picker-option {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.report-picker-option small,
+.report-picker-status {
+  color: var(--color-muted);
+  font-size: var(--text-body-sm);
+  line-height: 1.5;
+}
+
+.report-picker-option[data-active="true"] {
+  background: var(--color-primary-tint);
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.report-picker-status {
+  margin: 8px 0 0;
+}
+
+.report-picker-chip {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+  font-size: var(--text-body-sm);
+}
+
+.report-picker-chip strong {
+  color: var(--color-primary-dark);
+}
+
+.report-picker-chip .button {
+  justify-self: start;
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: var(--text-body-sm);
+}
+
+.uuid-fallback {
+  margin-top: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: var(--color-surface);
+}
+
+.uuid-fallback summary {
+  cursor: pointer;
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.uuid-fallback .select-filter {
+  margin-top: 8px;
+}
+
 .reporter-observation-card::before,
 .model-card::before,
 .office-review::before {
@@ -5858,6 +5942,10 @@ body {
   .possible-match-list li {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .report-picker-chip .button {
+    width: 100%;
   }
 
   .possible-match-list .button {
