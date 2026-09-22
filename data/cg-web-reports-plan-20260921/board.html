@@ -656,10 +656,10 @@ ul.plain li strong { color: var(--color-text); }
       previewed on screen for whatever period was chosen, before anyone downloads anything.
     </p>
     <div class="head-chips">
-      <span class="chip is-ok">Decided 22 Sep 2026 — Q1–Q4 locked, P0–P2 approved</span>
+      <span class="chip is-ok">All five decisions locked — Q1–Q5 · P0–P2 approved</span>
       <span class="chip">21 Sep 2026</span>
       <span class="chip is-ok">Recommendation verified compatible with PHP 8.3 + Laravel 13</span>
-      <span class="chip">1 question still open (Q5)</span>
+      <span class="chip">Nothing blocked</span>
     </div>
   </div>
 </header>
@@ -672,8 +672,8 @@ ul.plain li strong { color: var(--color-text); }
       <span class="kicker">Recorded 22 September 2026</span>
       <h2>What the captain decided</h2>
       <p>
-        Four of the five questions are closed and folded into the plan below. The tracked batch was approved for
-        phases P0, P1 and P2. Q5 stays open because it changes what has to be installed on the host.
+        All five questions are closed and folded into the plan below, and the tracked batch was approved for
+        phases P0, P1 and P2. Nothing is blocked; the build round can start.
       </p>
     </div>
     <div class="dec-banner">
@@ -702,10 +702,10 @@ ul.plain li strong { color: var(--color-text); }
         <div class="dv">P0 → P1 → P2</div>
         <div class="dd">P3 not selected. P4 deferred, to be re-planned before starting.</div>
       </div>
-      <div class="d is-open">
-        <div class="dk">Q5 · Dependency — Still open</div>
-        <div class="dv">Chromium on the host, or none?</div>
-        <div class="dd">Both questions asked are answered below. Recommendation unchanged, severity corrected to Medium.</div>
+      <div class="d">
+        <div class="dk">Q5 · Dependency — Closed</div>
+        <div class="dv">A host Chromium is accepted</div>
+        <div class="dd">Brave for Linux is the default — no new browser vendor. Plain Chromium is an equivalent one-line change.</div>
       </div>
     </div>
     <div class="card" style="margin-top:var(--space-4);border-left:4px solid var(--color-primary)">
@@ -1608,7 +1608,7 @@ npm install puppeteer
           <div class="pdesc"><code>spatie/laravel-pdf</code> + Browsershot + Chromium, published config, queued
             render, and the Download PDF button producing exactly the previewed document.</div>
         </div>
-        <div class="pgate"><b>Gate</b>One-time manual PDF verification<br><span class="appr">Approved — pending Q5 host choice</span></div>
+        <div class="pgate"><b>Gate</b>One-time manual PDF verification<br><span class="appr">Approved — host binary accepted (Q5)</span></div>
       </div>
       <div class="phase">
         <div class="pid">P3</div>
@@ -1650,7 +1650,7 @@ npm install puppeteer
             <span class="rr-d">Delivers the ask and needs no new dependency. The approved document design ships here.</span></span></li>
         <li><span class="rr-id">P2</span>
           <span class="rr-body"><span class="rr-t">The PDF artefact</span> <span class="pill ok">Approved</span>
-            <span class="rr-d">Pending the Q5 host choice below &mdash; the only approved phase blocked on a decision.</span></span></li>
+            <span class="rr-d">Host binary accepted under Q5, so this is unblocked too.</span></span></li>
         <li><span class="rr-id">P3</span>
           <span class="rr-body"><span class="rr-t">Depth</span> <span class="pill no">Not selected</span>
             <span class="rr-d">What this removes is <b>saved builder defaults and refinement work</b>. Boundary note,
@@ -1671,13 +1671,13 @@ npm install puppeteer
     </div>
     <div class="card">
       <div class="risk">
-        <div><div class="rt">The host Chromium binary cannot be provisioned <em style="font-style:normal;color:#8a7327;font-weight:600">— severity corrected to Medium after the Q5 answer</em></div>
+        <div><div class="rt">The host Chromium binary cannot be provisioned <em style="font-style:normal;color:#2d6b40;font-weight:600">— resolved by the Q5 decision</em></div>
           <div class="rd">The rating was about impact if it fails, not likelihood. <b>Brave is already the
             captain's browser and installs on Linux from Brave's own apt repo</b>, so no new browser vendor is
             needed and <code>LARAVEL_PDF_CHROME_PATH</code> points Browsershot at it. Phases 0–1 need no binary
             at all, browser Print covers the need, and the Dompdf fallback is verified Laravel-13 compatible.
-            Option 3 removes the dependency entirely, which takes this risk to zero.</div></div>
-        <div><span class="sev med">Medium</span></div>
+            <b>The captain accepted a host binary under Q5</b>, so the uncertainty is closed rather than carried.</div></div>
+        <div><span class="sev low">Low</span></div>
       </div>
       <div class="risk">
         <div><div class="rt">Chromium render cost — seconds and ~250 MB peak</div>
@@ -1726,12 +1726,11 @@ npm install puppeteer
   <section class="block" id="questions">
     <div class="block-head">
       <span class="kicker">Decisions</span>
-      <h2>Four closed, one still open</h2>
+      <h2>All five decisions, recorded and closed</h2>
       <p>
-        Recorded from the review board on 22 September 2026. The four closed decisions are now part of the plan
-        above and are no longer open questions. Q5 stays open because it changes what has to be installed on the
-        host; both questions asked about it are answered in full, and the three narrowed options are at the bottom
-        of its card.
+        Recorded from the review board on 22 September 2026. Every decision is folded into the plan above and none
+        of them is an open question any more. Q5's card keeps the full reasoning behind it, because the two
+        questions asked while deciding it are the most useful part of the record.
       </p>
     </div>
 
@@ -1787,12 +1786,12 @@ npm install puppeteer
       </div>
     </div>
 
-    <form class="q is-open" data-lavish-question="q5-dependency" style="margin-top:20px"
+    <div class="q is-decided" style="margin-top:20px"
           onsubmit="event.preventDefault(); const c = new FormData(event.currentTarget).get('q5'); if (!c) return; const t = event.currentTarget.querySelector('input[name=q5]:checked').dataset.label; if (window.lavish && typeof window.lavish.queuePrompt === 'function') { window.lavish.queuePrompt('Decision on Q5 (PDF renderer dependency): ' + t + '. Proceed with that renderer choice for the PDF artefact. ', { tag: 'choice', text: 'Q5 dependency: ' + t, element: event.currentTarget, data: { question: 'q5-dependency', answer: c, label: t } }); } event.currentTarget.classList.add('is-queued'); event.currentTarget.querySelector('.receipt-text').textContent = t;">
       <div class="qhead">
-        <span class="qid" style="background:#b8ad73;color:#3f3a1c">Q5</span>
-        <span class="qrec">Only open question</span>
-        <span class="qstate">Not queued</span>
+        <span class="qid">Q5</span>
+        <span class="qdec">Decided</span>
+        <span class="qstate">Closed</span>
       </div>
       <h3>Which PDF renderer does the host get?</h3>
 
@@ -1821,15 +1820,16 @@ npm install puppeteer
           </div>
         </div>
         <div class="row">
-          <div class="k">Why Medium, not High</div>
+          <div class="k">Why the risk was downgraded</div>
           <div class="v">
             <b>Fair challenge &mdash; and corrected.</b> The rating was about <i>impact if it fails</i>, not
             likelihood: it was the one item touching infrastructure rather than application code, the only step not
             yet proven on the target host, and a server-side browser is a large, constantly-patched,
             network-capable binary that many environments deliberately forbid. Two things found while answering you
             lower it: Brave installs on the host from Brave's own repo, and <code>chrome_path</code> is supported
-            configuration rather than a workaround. Option 3 removes the dependency entirely and takes the risk to
-            <b>zero</b>. So: <b>Medium if you want a server-produced file, zero if you do not.</b>
+            configuration rather than a workaround, and option 3 removed the dependency entirely. <b>Your Q5 answer
+            accepts the host binary, so the uncertainty is closed and the plan now rates this Low.</b> The reasoning is
+            kept because it is why the dependency is a single <code>apt</code> package rather than a service.
           </div>
         </div>
       </div>
@@ -1987,12 +1987,29 @@ npm install puppeteer
         <button type="submit" class="queue">Queue this answer</button>
         <span class="qhint">Sends your current selection for Q5 only.</span>
       </div>
-      <div class="receipt">Queued: <b class="receipt-text"></b></div>
-    </form>
+      <p class="answer">A Chromium-family binary is accepted on the host, so <code>Download PDF</code> returns a
+        real server-produced file. Phase 2 proceeds.
+        <small><b>Brave for Linux is the plan's default</b> — it adds no browser vendor you do not already use,
+        because Brave is Chromium. Plain Chromium is an equivalent choice: the same mechanism with a different
+        path, decided by one line of config (<code>LARAVEL_PDF_CHROME_PATH</code>) with no impact on the template
+        or the application code.</small></p>
+
+      <p class="tagline-note" style="margin-top:14px">
+        Note from the record: your selection arrived against the earlier revision of this board, whose option read
+        &ldquo;Accept Node/Puppeteer plus a pinned ~300 MB Chromium binary on the host for a true one-click
+        PDF&rdquo;. That is the same decision recorded here. If you meant plain Chromium specifically rather than
+        Brave for Linux, say so in the conversation and it changes one config line.
+      </p>
+
+      <p class="tagline-note">
+        Every decision on this board can be revisited — just describe the change in the conversation and the plan
+        and this board are updated together.
+      </p>
+    </div>
 
     <div class="note-band">
-      <b>Phases 0 and 1 are unblocked and need no dependency at all.</b> P2 &mdash; the one-click PDF file &mdash;
-      is the only approved phase waiting on Q5. The written plan lives at
+      <b>Nothing is blocked — P0, P1 and P2 can start.</b> P0 and P1 need no dependency at all; P2 adds the host
+      binary accepted under Q5. The written plan lives at
       <code>data/cg-web-reports-plan-20260921/report.md</code> and has been updated in place with all four
       decisions, the approved rollout set, the corrected risk severity and the Brave host path.
     </div>

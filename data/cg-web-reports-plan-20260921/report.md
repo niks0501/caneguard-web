@@ -2,7 +2,7 @@
 
 Date: 2026-09-21
 Decisions recorded: 2026-09-22
-Status: **decided** — Q1–Q4 locked by the captain; Q5 open pending a dependency choice (see §11)
+Status: **all decisions locked** — Q1–Q5 decided and the rollout approved (P0–P2). Nothing is blocked.
 Scope: weekly, monthly, and custom-range reported-case documents with an in-app preview, generated in one click or a few clicks.
 
 ---
@@ -20,7 +20,7 @@ The captain reviewed the plan on the board and locked the following. These super
 | **Q4** | **Both** the Dashboard and Submitted Reports, opening the same single builder. | One builder component, two entry points. |
 | **Rollout** | **P0, P1, P2 approved** in that order, each following its stated gate. **P3 not selected.** **P4 deferred**, to be re-planned before starting. | The build round is Phases 0–2. P3 (depth: appendix defaults, saved filters, refinements) and P4 (reach: scheduled/emailed documents) are not in this round. |
 | **Preview mock** | Approved: "I love the format and the future contents of the generated document." | The document template structure in §6 is confirmed as the target design. |
-| **Q5** | **Open.** The captain asked whether the dependency requires Chromium given he uses only Brave, and why the risk was rated high. Both answered in §11; the risk severity has been corrected to **Medium** in §10. | §7 now records the Brave-on-host path, which avoids installing a second browser. |
+| **Q5** | **Decided — a Chromium-family binary is accepted on the host** so the one-click `Download PDF` produces a real server-side file. | Phase 2 proceeds. §7 keeps **Brave for Linux as the default** because it adds no browser vendor the captain does not already use; plain Chromium is an equivalent one-line change to `LARAVEL_PDF_CHROME_PATH`. The plan's own Q&A (§11) is retained as the record. |
 
 ---
 
@@ -227,12 +227,12 @@ npm install puppeteer                                     # in api/ (Node is alr
 #   3. Nothing at all — choose "browser print only" (Q5 option 3)
 ```
 
-**The host binary can be Brave.** `Browsershot::setChromePath()` sets Puppeteer's `executablePath`, so any
-Chromium-family binary works, and `spatie/laravel-pdf` exposes this as first-class configuration — the
-published `config/laravel-pdf.php` has a `browsershot.chrome_path` key backed by
-`LARAVEL_PDF_CHROME_PATH`. Brave is Chromium, so pointing it at `brave-browser` needs no second browser
-on the host. This is the path recommended to the captain, because it adds no browser vendor he does not
-already use.
+**Decided (Q5): the host gets a Chromium-family binary.** The default is **Brave for Linux**, because
+`Browsershot::setChromePath()` sets Puppeteer's `executablePath`, so any Chromium-family binary works, and
+`spatie/laravel-pdf` exposes this as first-class configuration — the published `config/laravel-pdf.php` has a
+`browsershot.chrome_path` key backed by `LARAVEL_PDF_CHROME_PATH`. Brave is Chromium, so pointing it at
+`brave-browser` needs no second browser vendor on the host. **Plain Chromium is an equivalent choice**: it is
+the same mechanism with a different path, with zero impact on the template or the application code.
 
 Note for this specific machine: the captain's Brave is installed on **Windows**
 (`/mnt/c/Program Files/BraveSoftware/...`) while the Laravel API runs on the **Linux** side. Launching a
@@ -333,7 +333,7 @@ Phase 1 is deliberately the milestone that delivers the captain's actual ask. Ph
 
 | Risk | Severity | Handling |
 | --- | --- | --- |
-| The host Chromium binary cannot be provisioned | ~~High~~ **Medium** — corrected after the Q5 answer, see §11 | The rating was about impact-if-it-fails, not likelihood. Brave is already the captain's browser and installs on Linux from Brave's own apt repo, so no new browser vendor is needed; `LARAVEL_PDF_CHROME_PATH` points Browsershot at it. Phases 0–1 need no binary at all, browser Print covers the need, and the Dompdf fallback is verified Laravel-13 compatible |
+| The host Chromium binary cannot be provisioned | ~~High~~ **Low** — accepted and resolved by Q5; see §11 | The rating was about impact-if-it-fails, not likelihood, and it is now **resolved by decision**: the captain accepted a host binary for the one-click PDF. Brave installs from its own apt repo so no new browser vendor is needed, plain Chromium is an equivalent one-line alternative, Phases 0–1 never needed a binary, and browser Print plus the verified Dompdf fallback remain available if the host ever refuses one |
 | Chromium render cost (seconds, ~250 MB peak) | Medium | Queue the render; never render on period change; cache by period + filters + data version |
 | Template drifts toward grid/flex and becomes Dompdf-hostile | Medium | Renderer-portability rules in §6 enforced by the document-contract test's structural assertions |
 | CSP relaxation widens the framing boundary (Q2 decided this path) | Medium — security | Route-scoped only, config-driven allowlist defaulting to `'self'`, explicit regression test for every other HTML route (§8.6) |
@@ -344,9 +344,7 @@ Phase 1 is deliberately the milestone that delivers the captain's actual ask. Ph
 
 ---
 
-## 11. Decisions and the one remaining question
-
-### Recorded — closed (2026-09-22)
+## 11. Decisions — all recorded and closed (2026-09-22)
 
 1. **Q1 — Period boundary timezone: PHT (UTC+8).** Printed on every document. The dashboard's existing UTC monthly panel is left unchanged.
 2. **Q2 — Preview mechanism: live HTML document in a same-origin iframe**, with the narrow route-scoped `frame-ancestors` allowance.
@@ -355,9 +353,17 @@ Phase 1 is deliberately the milestone that delivers the captain's actual ask. Ph
 5. **Rollout: P0, P1, P2 approved** in that order, each following its stated gate. **P3 not selected. P4 deferred**, to be re-planned before starting.
 6. **Document design approved** — "I love the format and the future contents of the generated document."
 
-### Open — Q5 only
+### Q5 — Dependency weight: decided
 
-**Q5 — Dependency weight acceptance.** The captain asked two questions before deciding; both are answered here.
+**Decided: a Chromium-family binary is accepted on the host** so `Download PDF` returns a real server-side file.
+Phase 2 proceeds. The questions the captain asked while deciding are kept below as the record, because they are
+the reasoning behind the decision.
+
+The captain's selection arrived against the earlier revision of the board, whose option 1 label read
+"Accept Node/Puppeteer plus a pinned ~300 MB Chromium binary on the host for a true one-click PDF" — the same
+decision this section records. The only remaining sub-choice is **which** binary: the plan defaults to Brave
+for Linux (no new vendor) and treats plain Chromium as an equivalent, reversible, one-line change to
+`LARAVEL_PDF_CHROME_PATH`.
 
 > *"i'm not quite sure about this yet because it requires Chromium, right, in my environment. But I only use the Brave browser."*
 
