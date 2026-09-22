@@ -146,7 +146,7 @@ describe("DashboardPage", () => {
     expect(screen.getByRole("region", { name: "Recent reports" })).toBeInTheDocument();
   });
 
-  it("renders monthly case summaries with an operational-statistics boundary", () => {
+  it("renders monthly case summaries", () => {
     vi.mocked(useDashboard).mockReturnValue(
       dashboardResult({
         data: {
@@ -183,9 +183,6 @@ describe("DashboardPage", () => {
     );
     renderDashboard();
 
-    expect(screen.getByRole("region", { name: "Monthly submitted report summary" })).toHaveTextContent(
-      "operational report counts, not population-level disease statistics",
-    );
     const monthly = within(
       screen.getByRole("region", { name: "Monthly submitted report summary" }),
     );

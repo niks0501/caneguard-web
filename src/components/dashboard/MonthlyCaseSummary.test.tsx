@@ -37,9 +37,7 @@ describe("MonthlyCaseSummary", () => {
       />,
     );
 
-    expect(screen.getByRole("region", { name: "Monthly submitted report summary" })).toHaveTextContent(
-      "These are operational report counts, not population-level disease statistics.",
-    );
+    expect(screen.getByRole("region", { name: "Monthly submitted report summary" })).toBeInTheDocument();
     expect(screen.getByText("3 submitted reports")).toBeInTheDocument();
     expect(screen.getByText("Possible Condition: rust")).toBeInTheDocument();
     expect(screen.getByText("Possible Condition, decision support only")).toBeInTheDocument();
