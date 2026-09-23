@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MobileFieldValidationAssignmentContract;
+use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportReferral;
@@ -97,6 +99,32 @@ class AdvisorDemoSeederTest extends TestCase
         $this->assertSame('v1.0-mobilenetv2', $unavailable->model_version);
         $this->assertNull($unavailable->final_latitude);
         $this->assertNull($unavailable->final_longitude);
+
+        $fieldReporter = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
+        Sanctum::actingAs($fieldReporter, ['assignment:read']);
+        $assignmentContract = MobileFieldValidationAssignmentContract::definition();
+        $assignmentResponse = $this->getJson('/api/v1/mobile/assignments')->assertOk();
+        $assignmentPayload = $assignmentResponse->json();
+        foreach ($assignmentContract['envelope']['required_keys'] as $key) {
+            $this->assertArrayHasKey($key, $assignmentPayload);
+        }
+        $mobileAssignments = $assignmentPayload['data'];
+        $this->assertNotEmpty($mobileAssignments);
+        $this->assertSame(array_keys($assignmentContract['fields']), array_keys($mobileAssignments[0]));
+
+        $allowedFollowUpOutcomes = MobileFieldValidationCompletionContract::field(
+            'follow_up_outcome',
+        )['enum'];
+        $this->assertSame(
+            $assignmentContract['fields']['previous_visit']['properties']['follow_up_outcome']['enum'],
+            $allowedFollowUpOutcomes,
+        );
+        $previousVisits = array_filter(array_column($mobileAssignments, 'previous_visit'));
+        foreach ($previousVisits as $previousVisit) {
+            if ($previousVisit['follow_up_outcome'] !== null) {
+                $this->assertContains($previousVisit['follow_up_outcome'], $allowedFollowUpOutcomes);
+            }
+        }
 
         $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
         Sanctum::actingAs($reviewer);

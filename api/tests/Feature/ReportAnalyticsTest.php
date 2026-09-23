@@ -202,11 +202,13 @@ class ReportAnalyticsTest extends TestCase
 
         Sanctum::actingAs($reviewer);
 
-        $this->getJson('/api/v1/reports/analytics?'.http_build_query([
+        $response = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
             'from' => '2026-09-01',
             'to' => '2026-09-02',
             'granularity' => 'day',
-        ]))
+        ]));
+
+        $response
             ->assertOk()
             ->assertJsonPath('data.total_submitted', 0)
             ->assertJsonPath('data.series', [
@@ -217,6 +219,10 @@ class ReportAnalyticsTest extends TestCase
             ->assertJsonPath('data.cases_by_possible_condition', [])
             ->assertJsonPath('data.case_state', ['open' => 0, 'closed' => 0])
             ->assertJsonPath('data.comparison.delta', 0);
+
+        $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsObject($payload->data->filters);
+        $this->assertSame([], (array) $payload->data->filters);
     }
 
     public function test_analytics_shares_the_monthly_aggregate_for_mid_month_rows(): void

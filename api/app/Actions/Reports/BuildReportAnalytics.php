@@ -90,7 +90,7 @@ final class BuildReportAnalytics
                 'days' => $days,
                 'partial' => $this->isPartial($end),
             ],
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'total_submitted' => $total,
             'series' => $this->buckets(clone $base, $start, $end, $granularity),
             'cases_by_barangay' => $metrics['cases_by_barangay'],
