@@ -172,6 +172,7 @@ describe("DashboardPage", () => {
               { possibleCondition: "smut", reportedCases: 1 },
             ],
             estimatedAffectedHectares: 3.75,
+            reportsContainingFarmerFarmInformation: 2,
             fieldValidationCounts: {
               unassigned: 1,
               assigned: 1,

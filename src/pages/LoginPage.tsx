@@ -5,6 +5,7 @@ import caneGuardLogoFlat from "../assets/brand/CaneGuard_logo_flat.svg";
 import caneGuardLogoFlatOnDark from "../assets/brand/CaneGuard_logo_flat_onDark.svg";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
+import { isPublicRegistrationEnabled } from "../app/publicRegistration";
 import { WebRoleError } from "../auth/auth.api";
 import { useAuth } from "../auth/useAuth";
 import { Button } from "../components/ui/Button";
@@ -199,9 +200,11 @@ export function LoginPage() {
           </div>
         </form>
 
-        <p className="login-support">
-          Field inspector? <Link to={routes.register}>Create an account</Link>
-        </p>
+        {isPublicRegistrationEnabled() ? (
+          <p className="login-support">
+            Field inspector? <Link to={routes.register}>Create an account</Link>
+          </p>
+        ) : null}
       </section>
     </main>
   );

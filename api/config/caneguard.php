@@ -2,6 +2,7 @@
 
 return [
     'legacy_public_storage_link' => public_path('storage'),
+    'self_registration_enabled' => env('CANEGUARD_SELF_REGISTRATION_ENABLED', false),
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',

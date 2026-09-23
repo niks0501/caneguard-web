@@ -10,24 +10,27 @@ use Illuminate\Support\Collection;
 
 final class BuildMonthlyReportSummary
 {
+    public const TIMEZONE = 'Asia/Manila';
+
     /**
-     * Build descriptive metrics for cases submitted during one UTC calendar
-     * month. Every metric is scoped to submitted case records, rather than
-     * attempting to infer a population-level disease statistic.
+     * Build descriptive metrics for cases submitted during one Asia/Manila
+     * calendar month. UTC instants are used only for database comparisons.
+     * Every metric is scoped to submitted case records, rather than attempting
+     * to infer a population-level disease statistic.
      *
      * @return array<string, mixed>
      */
     public function handle(?string $month = null): array
     {
         $periodStart = $month === null
-            ? now()->utc()->startOfMonth()
-            : CarbonImmutable::createFromFormat('!Y-m', $month, 'UTC');
+            ? CarbonImmutable::now(self::TIMEZONE)->startOfMonth()
+            : CarbonImmutable::createFromFormat('!Y-m', $month, self::TIMEZONE);
         $periodEnd = $periodStart->addMonth();
 
         $baseQuery = Report::query()
             ->whereNull('canonical_report_id')
-            ->where('submitted_at', '>=', $periodStart)
-            ->where('submitted_at', '<', $periodEnd);
+            ->where('submitted_at', '>=', $periodStart->utc())
+            ->where('submitted_at', '<', $periodEnd->utc());
 
         return $this->buildFromQuery($baseQuery, $periodStart->format('Y-m'), [
             'from' => $periodStart->toDateString(),
@@ -37,8 +40,7 @@ final class BuildMonthlyReportSummary
 
     /**
      * Build the same metrics for a caller-owned, already scoped report query.
-     * The document report uses this seam so the existing UTC monthly summary
-     * remains behaviourally identical while other periods share its metrics.
+     * Document and analytics periods use this seam to share monthly metrics.
      *
      * @return array<string, mixed>
      */
@@ -70,6 +72,10 @@ final class BuildMonthlyReportSummary
                 (float) ((clone $baseQuery)->sum('affected_area_hectares')),
                 2,
             ),
+            'reports_containing_farmer_farm_information' => (clone $baseQuery)
+                ->whereNotNull('farmer_or_farm_owner_name')
+                ->whereRaw("TRIM(farmer_or_farm_owner_name) <> ''")
+                ->count('reports.id'),
             'field_validation_counts' => $fieldValidationCounts,
             'closed_cases' => (clone $baseQuery)
                 ->where('case_state', Report::CASE_STATE_CLOSED)

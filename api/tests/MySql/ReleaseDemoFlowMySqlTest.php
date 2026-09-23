@@ -25,18 +25,14 @@ class ReleaseDemoFlowMySqlTest extends TestCase
         $this->assertSame('mysql', DB::connection()->getDriverName());
         $this->assertSame('caneguard_test', DB::connection()->getDatabaseName());
 
-        $reviewer = User::query()
-            ->where('email', 'mao@caneguard.test')
-            ->firstOrFail();
-        $fieldReporter = User::query()
-            ->where('email', 'field@caneguard.test')
-            ->firstOrFail();
-        $reviewerPassword = config(
-            'caneguard.demo_users.reviewer_password',
-        );
-
-        $this->assertIsString($reviewerPassword);
-        $this->assertNotSame('', $reviewerPassword);
+        $reviewerPassword = Str::random(40);
+        $reviewer = User::factory()->reviewer()->create([
+            'name' => 'Release Test Reviewer',
+            'password' => $reviewerPassword,
+        ]);
+        $fieldReporter = User::factory()->fieldReporter()->create([
+            'name' => 'Release Test Field Reporter',
+        ]);
 
         $this->get('/sanctum/csrf-cookie')
             ->assertNoContent()

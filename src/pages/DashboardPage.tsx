@@ -28,6 +28,7 @@ import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
 import { useDashboard } from "../hooks/useDashboard";
 import type { OperationalQueue } from "../domain/operationalQueue";
+import { manilaMonthAt } from "../domain/reportingTime";
 
 function formatRefreshTime(timestamp: number) {
   if (!timestamp) return "Not refreshed yet";
@@ -90,7 +91,7 @@ export function DashboardPage() {
     selectedMonth ??
     (summary?.monthlySummary?.month ??
       summary?.recentReports?.[0]?.submittedAt?.slice(0, 7) ??
-      new Date().toISOString().slice(0, 7));
+      manilaMonthAt());
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
   const isRateLimited =

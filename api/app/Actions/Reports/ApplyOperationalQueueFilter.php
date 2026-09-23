@@ -106,9 +106,10 @@ final class ApplyOperationalQueueFilter
             });
     }
 
+    /** Scheduled and overdue queues are calendar subsets of Needs Visit. */
     private function followUpDue(Builder $query): Builder
     {
-        $today = CarbonImmutable::now()->startOfDay()->toDateString();
+        $today = CarbonImmutable::now('Asia/Manila')->toDateString();
 
         return $this->scheduledOpenIncomplete($query)
             ->whereHas('fieldValidationAssignment', function (Builder $query) use ($today): void {
@@ -120,7 +121,7 @@ final class ApplyOperationalQueueFilter
 
     private function upcoming(Builder $query): Builder
     {
-        $today = CarbonImmutable::now()->startOfDay()->toDateString();
+        $today = CarbonImmutable::now('Asia/Manila')->toDateString();
 
         return $this->scheduledOpenIncomplete($query)
             ->whereHas('fieldValidationAssignment', function (Builder $query) use ($today): void {

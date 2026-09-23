@@ -34,7 +34,7 @@ The Web client requests `/sanctum/csrf-cookie` before each unauthenticated state
 
 | Method | Path | Request fields | Success |
 | --- | --- | --- | --- |
-| POST | `/register` | `name`, `email`, `password`, optional `password_confirmation` | `201 REGISTRATION_CREATED` |
+| POST | `/register` | `name`, `email`, `password`, optional `password_confirmation` | Default: `403 REGISTRATION_DISABLED`; opt-in: `201 REGISTRATION_CREATED` |
 | POST | `/login` | `email`, `password` | `204` |
 | POST | `/logout` | none | `204` |
 | GET | `/email/verify/{id}/{hash}` | Laravel temporary signature query | `200 EMAIL_VERIFIED` |
@@ -42,11 +42,22 @@ The Web client requests `/sanctum/csrf-cookie` before each unauthenticated state
 | POST | `/forgot-password` | `email` | `202 PASSWORD_RESET_LINK_SENT` |
 | POST | `/reset-password` | `email`, `token`, `password`, optional `password_confirmation` | `200 PASSWORD_RESET` |
 
-Registration returns this non-sensitive shape and never starts a session:
+Public self-registration is disabled by default. The API returns this response before validation or account creation when `CANEGUARD_SELF_REGISTRATION_ENABLED=false`:
 
 ```json
 {
-  "message": "Account created.",
+  "message": "Public self-registration is disabled. Contact your CaneGuard administrator to request an authorized account.",
+  "code": "REGISTRATION_DISABLED"
+}
+```
+
+To opt in, set `CANEGUARD_SELF_REGISTRATION_ENABLED=true` on the API and `VITE_CANEGUARD_SELF_REGISTRATION_ENABLED=true` for the Web build. The API setting remains authoritative and rejects direct HTTP requests while disabled. The Web build setting controls whether the `/register` form and login link are exposed.
+
+When enabled, registration returns this non-sensitive shape and never starts a session:
+
+```json
+{
+  "message": "Account created. Verify your email address before signing in.",
   "code": "REGISTRATION_CREATED",
   "user": {
     "uuid": "<user-uuid>",

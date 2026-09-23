@@ -246,8 +246,8 @@ class ReportAnalyticsTest extends TestCase
         $monthly = $this->getJson('/api/v1/reports/summary?month=2026-09')
             ->assertOk()->json('data');
 
-        // Mid-month rows sit inside both the PHT September window and the UTC
-        // September summary, so the shared aggregate must agree exactly.
+        // Mid-month rows sit inside both PHT September periods, so the shared
+        // aggregate must agree exactly.
         $this->assertSame($monthly['reported_cases'], $analytics['total_submitted']);
         $this->assertSame($monthly['cases_by_barangay'], $analytics['cases_by_barangay']);
         $this->assertSame(

@@ -38,7 +38,8 @@ afterEach(() => {
 });
 
 describe("public authentication pages", () => {
-  it("registers a field reporter without accepting a client role", async () => {
+  it("registers a field reporter without accepting a client role when explicitly enabled", async () => {
+    vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
     let requestBody: Record<string, unknown> | undefined;
     server.use(
       http.get(`${baseUrl}/sanctum/csrf-cookie`, () =>
@@ -81,6 +82,18 @@ describe("public authentication pages", () => {
       password_confirmation: "A field reporter passphrase",
     });
     expect(requestBody).not.toHaveProperty("role");
+  });
+
+  it("does not expose registration when public self-registration is disabled", async () => {
+    vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "false");
+    await renderAuthPage("/register");
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in to review field reports" }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/login");
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
   });
 
   it("keeps forgot-password feedback generic", async () => {
