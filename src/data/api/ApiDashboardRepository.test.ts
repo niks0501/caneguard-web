@@ -38,6 +38,7 @@ describe("ApiDashboardRepository", () => {
                 { possible_condition: "rust", reported_cases: 2 },
               ],
               estimated_affected_hectares: 3.75,
+              reports_containing_farmer_farm_information: 2,
               field_validation_counts: {
                 unassigned: 1,
                 assigned: 1,
@@ -74,6 +75,7 @@ describe("ApiDashboardRepository", () => {
         casesByBarangay: [{ barangay: "Mabini", reportedCases: 3 }],
         casesByPossibleCondition: [{ possibleCondition: "rust", reportedCases: 2 }],
         estimatedAffectedHectares: 3.75,
+        reportsContainingFarmerFarmInformation: 2,
         fieldValidationCounts: { requiringValidation: 1 },
       },
     });

@@ -146,6 +146,8 @@ export function mapDashboard(dto: DashboardResponseDto): DashboardSummary {
             })),
           estimatedAffectedHectares:
             dto.data.monthly_summary.estimated_affected_hectares,
+          reportsContainingFarmerFarmInformation:
+            dto.data.monthly_summary.reports_containing_farmer_farm_information,
           fieldValidationCounts: {
             unassigned: dto.data.monthly_summary.field_validation_counts.unassigned,
             assigned: dto.data.monthly_summary.field_validation_counts.assigned,

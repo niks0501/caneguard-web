@@ -2,6 +2,7 @@
 
 return [
     'legacy_public_storage_link' => public_path('storage'),
+    'self_registration_enabled' => env('CANEGUARD_SELF_REGISTRATION_ENABLED', false),
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',
@@ -108,6 +109,13 @@ return [
             max(1, (int) env('CANEGUARD_MAP_DEFAULT_LIMIT', 1000)),
         ),
         'max_limit' => 1000,
+        // Nasugbu municipality bounding box (WGS84), OSM relation 7340421.
+        'bounds' => [
+            'south' => 14.043883,
+            'west' => 120.567055,
+            'north' => 14.221364,
+            'east' => 120.848180,
+        ],
     ],
     'duplicate_assistance' => [
         'recent_window_hours' => 72,

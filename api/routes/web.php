@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResendVerificationController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Middleware\EnsurePublicRegistrationEnabled;
 use Illuminate\Support\Facades\Route;
 
 $serveSpa = static function () {
@@ -20,7 +21,7 @@ $serveSpa = static function () {
 Route::get('/', $serveSpa);
 
 Route::post('/register', RegisterController::class)
-    ->middleware('throttle:register');
+    ->middleware(['throttle:register', EnsurePublicRegistrationEnabled::class]);
 Route::post('/login', LoginController::class)
     ->middleware('throttle:login');
 Route::post('/logout', LogoutController::class)

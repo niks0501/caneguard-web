@@ -1,11 +1,18 @@
 import { reviewStatusLabels, diseaseLabels } from "../../domain/report.metadata";
 import type { DiseaseKey, IdentificationGapState, ReviewStatus } from "../../domain/report.types";
 
-export function DiseaseBadge({ disease }: { disease: DiseaseKey }) {
+export function DiseaseBadge({
+  disease,
+  includePossibleConditionPrefix = true,
+}: {
+  disease: DiseaseKey;
+  includePossibleConditionPrefix?: boolean;
+}) {
+  const label = diseaseLabels[disease];
   return (
     <span className={`badge disease-badge disease-badge--${disease}`}>
       <span aria-hidden="true" />
-      {diseaseLabels[disease]}
+      {includePossibleConditionPrefix ? label : label.replace(/^Possible Condition:\s*/, "")}
     </span>
   );
 }

@@ -9,6 +9,7 @@ const summary = {
   casesByBarangay: [{ barangay: "Mabini", reportedCases: 3 }],
   casesByPossibleCondition: [{ possibleCondition: "rust" as const, reportedCases: 2 }],
   estimatedAffectedHectares: 3.75,
+  reportsContainingFarmerFarmInformation: 2,
   fieldValidationCounts: {
     unassigned: 1,
     assigned: 1,
@@ -28,7 +29,7 @@ const summary = {
 };
 
 describe("MonthlyCaseSummary", () => {
-  it("keeps the UTC monthly panel without the chart-covered breakdown lists", () => {
+  it("keeps the PHT monthly panel without the chart-covered breakdown lists", () => {
     render(
       <MonthlyCaseSummary
         summary={summary}
@@ -45,6 +46,7 @@ describe("MonthlyCaseSummary", () => {
     expect(screen.queryByRole("heading", { name: "Submitted reports by barangay" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Submitted reports by Possible Condition" })).not.toBeInTheDocument();
     expect(screen.getByText(/Barangay and Possible Condition breakdowns now render as charts/)).toBeInTheDocument();
+    expect(screen.getByText(/Reports containing farmer\/farm information: 2\. This describes submitted case records, not an estimate of total affected farmers in Nasugbu\./)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Field-validation counts" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Review time" })).toBeInTheDocument();
     expect(screen.queryByText(/prevalence|infection rate|outbreak probability|disease risk score/i)).not.toBeInTheDocument();

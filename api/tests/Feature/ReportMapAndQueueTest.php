@@ -20,9 +20,9 @@ class ReportMapAndQueueTest extends TestCase
             'reference_code' => 'CG-MAP-LOCATED',
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'predicted_label' => Report::LABEL_RUST,
-            'barangay' => 'Mabini',
-            'final_latitude' => 10.1234567,
-            'final_longitude' => 122.9876543,
+            'barangay' => 'Balaytigui',
+            'final_latitude' => 14.1260,
+            'final_longitude' => 120.6039,
             'observed_at' => CarbonImmutable::parse('2026-08-13T10:20:30Z'),
             'submitted_at' => CarbonImmutable::parse('2026-08-13T11:00:00Z'),
         ]);
@@ -30,7 +30,7 @@ class ReportMapAndQueueTest extends TestCase
             'reference_code' => 'CG-MAP-UNLOCATED',
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'predicted_label' => Report::LABEL_RUST,
-            'barangay' => 'Mabini',
+            'barangay' => 'Balaytigui',
             'final_latitude' => null,
             'final_longitude' => null,
             'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
@@ -40,13 +40,13 @@ class ReportMapAndQueueTest extends TestCase
         Report::factory()->create([
             'reference_code' => 'CG-MAP-RESOLVED',
             'review_status' => Report::STATUS_RESOLVED,
-            'barangay' => 'Mabini',
+            'barangay' => 'Balaytigui',
             'observed_at' => CarbonImmutable::parse('2026-08-13T10:00:00Z'),
         ]);
         Report::factory()->create([
             'reference_code' => 'CG-MAP-NULL-DATE',
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
-            'barangay' => 'Mabini',
+            'barangay' => 'Balaytigui',
             'observed_at' => null,
         ]);
 
@@ -56,7 +56,7 @@ class ReportMapAndQueueTest extends TestCase
             'date_from' => '2026-08-13',
             'date_to' => '2026-08-13',
             'predicted_label' => Report::LABEL_RUST,
-            'barangay' => 'Mabini',
+            'barangay' => 'Balaytigui',
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
         ]))
             ->assertOk()
@@ -65,8 +65,8 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonCount(1, 'features')
             ->assertJsonPath('features.0.id', $located->uuid)
             ->assertJsonPath('features.0.geometry.type', 'Point')
-            ->assertJsonPath('features.0.geometry.coordinates.0', 122.9876543)
-            ->assertJsonPath('features.0.geometry.coordinates.1', 10.1234567)
+            ->assertJsonPath('features.0.geometry.coordinates.0', 120.6039)
+            ->assertJsonPath('features.0.geometry.coordinates.1', 14.126)
             ->assertJsonPath('features.0.properties.predicted_label', Report::LABEL_RUST)
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_FOR_FIELD_VALIDATION)
             ->assertJsonPath('metadata.total_count', 2)
@@ -80,13 +80,13 @@ class ReportMapAndQueueTest extends TestCase
             'date_from' => '2026-08-13',
             'date_to' => '2026-08-13',
             'predicted_label' => Report::LABEL_RUST,
-            'barangay' => 'Mabini',
+            'barangay' => 'Balaytigui',
         ]))
             ->assertOk()
             ->assertJsonPath('data.count', 2)
             ->assertJsonPath('data.items.0.uuid', $located->uuid)
-            ->assertJsonPath('data.items.0.final_latitude', 10.1234567)
-            ->assertJsonPath('data.items.0.final_longitude', 122.9876543)
+            ->assertJsonPath('data.items.0.final_latitude', 14.126)
+            ->assertJsonPath('data.items.0.final_longitude', 120.6039)
             ->assertJsonPath('data.items.1.final_latitude', null)
             ->assertJsonPath('data.items.1.final_longitude', null)
             ->assertJsonPath('data.items.1.location_source', Report::LOCATION_SOURCE_UNAVAILABLE)
@@ -102,6 +102,24 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_RESOLVED);
     }
 
+    public function test_map_excludes_coordinate_points_outside_nasugbu(): void
+    {
+        Report::factory()->create([
+            'reference_code' => 'CG-MAP-OUTSIDE-NASUGBU',
+            'final_latitude' => 10.1234567,
+            'final_longitude' => 122.9876543,
+        ]);
+
+        Sanctum::actingAs(User::factory()->reviewer()->create());
+
+        $this->getJson('/api/v1/reports/map')
+            ->assertOk()
+            ->assertJsonCount(0, 'features')
+            ->assertJsonPath('metadata.total_count', 1)
+            ->assertJsonPath('metadata.located_count', 0)
+            ->assertJsonPath('metadata.unlocated_count', 1);
+    }
+
     public function test_smut_model_reports_are_available_in_map_and_field_validation_queue(): void
     {
         $reviewer = User::factory()->reviewer()->create();
@@ -109,9 +127,9 @@ class ReportMapAndQueueTest extends TestCase
             'reference_code' => 'CG-SMUT-MAP-QUEUE',
             'predicted_label' => Report::LABEL_SMUT,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
-            'barangay' => 'Mabini',
-            'final_latitude' => 10.1234567,
-            'final_longitude' => 122.9876543,
+            'barangay' => 'Balaytigui',
+            'final_latitude' => 14.1260,
+            'final_longitude' => 120.6039,
             'observed_at' => CarbonImmutable::parse('2026-08-13T10:20:30Z'),
         ]);
 
@@ -119,7 +137,7 @@ class ReportMapAndQueueTest extends TestCase
 
         $this->getJson('/api/v1/reports/map?'.http_build_query([
             'predicted_label' => Report::LABEL_SMUT,
-            'barangay' => 'Mabini',
+            'barangay' => 'Balaytigui',
         ]))
             ->assertOk()
             ->assertJsonCount(1, 'features')
@@ -128,7 +146,7 @@ class ReportMapAndQueueTest extends TestCase
 
         $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
             'predicted_label' => Report::LABEL_SMUT,
-            'barangay' => 'Mabini',
+            'barangay' => 'Balaytigui',
         ]))
             ->assertOk()
             ->assertJsonPath('data.count', 1)
@@ -145,8 +163,8 @@ class ReportMapAndQueueTest extends TestCase
         $reviewer = User::factory()->reviewer()->create();
         $reports = collect(range(1, 3))->map(fn (int $index) => Report::factory()->create([
             'reference_code' => 'CG-MAP-LIMIT-'.$index,
-            'final_latitude' => 10 + ($index / 100),
-            'final_longitude' => 122 + ($index / 100),
+            'final_latitude' => 14.10 + ($index / 1000),
+            'final_longitude' => 120.70 + ($index / 1000),
         ]));
 
         Sanctum::actingAs($reviewer);

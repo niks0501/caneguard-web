@@ -1,8 +1,15 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { AxiosError } from "axios";
+import { ApiError } from "../../api/ApiError";
+import { useAnalytics } from "../../hooks/useAnalytics";
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { ANALYTICS_FORBIDDEN_WORDS } from "./analyticsCopy";
-import { AnalyticsSectionView } from "./AnalyticsSection";
+import { AnalyticsSection, AnalyticsSectionView } from "./AnalyticsSection";
+
+vi.mock("../../hooks/useAnalytics", () => ({
+  useAnalytics: vi.fn(),
+}));
 
 const analytics: ReportAnalytics = {
   period: {
@@ -154,6 +161,37 @@ function renderView(data: ReportAnalytics = analytics) {
     />,
   );
 }
+
+describe("AnalyticsSection", () => {
+  it("explains API connection failures and keeps cached results visible", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useAnalytics).mockReturnValue({
+      data: undefined,
+      error,
+      isPending: false,
+      isError: true,
+      isRefetchError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useAnalytics>);
+    const { rerender } = render(<AnalyticsSection />);
+
+    expect(screen.getByText(/Cannot connect to the CaneGuard API/)).toBeInTheDocument();
+    expect(screen.getByText(/VITE_API_BASE_URL/)).toBeInTheDocument();
+
+    vi.mocked(useAnalytics).mockReturnValue({
+      data: analytics,
+      error,
+      isPending: false,
+      isError: true,
+      isRefetchError: true,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useAnalytics>);
+    rerender(<AnalyticsSection />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/previous analytics remain visible/i);
+    expect(screen.getByRole("heading", { name: "Submitted reports over time" })).toBeInTheDocument();
+  });
+});
 
 describe("AnalyticsSectionView", () => {
   it("renders all Phase 1 charts with PHT boundaries printed on each", () => {

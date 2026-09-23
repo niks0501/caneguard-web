@@ -19,13 +19,24 @@ const commonSymptoms = {
   ],
 } as const;
 
+const nasugbuLocations = [
+  { barangay: "Balaytigui", latitude: 14.1260, longitude: 120.6039 },
+  { barangay: "Bucana", latitude: 14.0678, longitude: 120.6267 },
+  { barangay: "Banilad", latitude: 14.0730, longitude: 120.7408 },
+  { barangay: "Bilaran", latitude: 14.0487, longitude: 120.6846 },
+  { barangay: "Bulihan", latitude: 14.1552, longitude: 120.6540 },
+  { barangay: "Bunducan", latitude: 14.1069, longitude: 120.6521 },
+  { barangay: "Butucan", latitude: 14.1394, longitude: 120.6805 },
+  { barangay: "Calayo", latitude: 14.1461, longitude: 120.6141 },
+] as const;
+
 const sourceReports: DiseaseReport[] = [
   {
     uuid: "00000000-0000-4000-8000-000000000001",
     referenceCode: "CG-2026-0718",
-    barangay: "Mabini",
-    province: "Negros Occidental",
-    municipality: "Bago",
+    barangay: "Balaytigui",
+    province: "Batangas",
+    municipality: "Nasugbu",
     observedAt: "2026-07-18T08:12:00+08:00",
     farmReference: "Block MBN-14",
     submittedByName: "Ramon Dela Cruz",
@@ -239,8 +250,20 @@ const sourceReports: DiseaseReport[] = [
 
 // The seeded synthetic evidence is already part of the repository and keeps
 // mock-mode screenshots representative of the real report-image experience.
-export const mockReports: DiseaseReport[] = sourceReports.map((report) =>
-  report.imageStatus === "available"
-    ? { ...report, imageUrl: syntheticSugarcaneRustImage }
-    : report,
-);
+export const mockReports: DiseaseReport[] = sourceReports.map((report, index) => {
+  const location = nasugbuLocations[index % nasugbuLocations.length];
+  const localReport: DiseaseReport = {
+    ...report,
+    barangay: location.barangay,
+    province: "Batangas",
+    municipality: "Nasugbu",
+    finalLatitude: location.latitude,
+    finalLongitude: location.longitude,
+    locationSource: "gps",
+    gpsAccuracy: 8.5,
+  };
+
+  return localReport.imageStatus === "available"
+    ? { ...localReport, imageUrl: syntheticSugarcaneRustImage }
+    : localReport;
+});

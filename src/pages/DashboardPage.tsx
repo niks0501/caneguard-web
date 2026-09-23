@@ -14,7 +14,7 @@ import {
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
-import { ApiError } from "../api/ApiError";
+import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { AnalyticsSection } from "../components/dashboard/AnalyticsSection";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
@@ -28,6 +28,7 @@ import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
 import { useDashboard } from "../hooks/useDashboard";
 import type { OperationalQueue } from "../domain/operationalQueue";
+import { manilaMonthAt } from "../domain/reportingTime";
 
 function formatRefreshTime(timestamp: number) {
   if (!timestamp) return "Not refreshed yet";
@@ -81,33 +82,34 @@ const queueOrder: OperationalQueue[] = [
 ];
 
 export function DashboardPage() {
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(manilaMonthAt);
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
-  const dashboard = useDashboard(selectedMonth ?? undefined);
+  const dashboard = useDashboard(selectedMonth);
   const summary = dashboard.data;
 
-  const activeMonth =
-    selectedMonth ??
-    (summary?.monthlySummary?.month ??
-      summary?.recentReports?.[0]?.submittedAt?.slice(0, 7) ??
-      new Date().toISOString().slice(0, 7));
+  const activeMonth = selectedMonth;
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
   const isRateLimited =
     dashboard.error instanceof ApiError && dashboard.error.status === 429;
   const isMalformed = dashboard.error instanceof ZodError;
+  const isConnectionError = isApiConnectionError(dashboard.error);
   const initialErrorMessage = isForbidden
     ? "Your account does not have access to the SRA Don Pedro dashboard."
     : isRateLimited
       ? "The dashboard is receiving too many requests. Wait a moment, then try again."
       : isMalformed
         ? "CaneGuard returned dashboard data in an unexpected format. Try again after the service is corrected."
-        : "The dashboard could not be loaded from CaneGuard.";
+        : isConnectionError
+          ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+          : "The dashboard could not be loaded from CaneGuard.";
   const refreshErrorMessage = isRateLimited
     ? "The latest refresh was rate limited. Wait a moment before trying again; the previous dashboard remains visible."
     : isMalformed
       ? "The latest response had an unexpected format. The previous dashboard remains visible."
-      : "The latest refresh failed. Showing the most recently loaded dashboard.";
+      : isConnectionError
+        ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous dashboard remains visible."
+        : "The latest refresh failed. Showing the most recently loaded dashboard.";
 
   if (dashboard.isPending) {
     return (

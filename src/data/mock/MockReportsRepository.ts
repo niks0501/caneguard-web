@@ -21,10 +21,12 @@ import type {
   ReportReviewInput,
 } from "../../domain/review.types";
 import { diseaseLabels } from "../../domain/report.metadata";
+import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
 import {
   legacyLifecycleForReviewStatus,
   legacyReviewStatusForLifecycle,
 } from "../api/mappers/lifecycle.mapper";
+import { isCanonicalWorkReport, isInOperationalQueue } from "./mockOperationalQueues";
 import { mockReports } from "./mockReports";
 
 const cloneReport = (report: DiseaseReport): DiseaseReport => ({
@@ -95,8 +97,10 @@ export class MockReportsRepository implements ReportsRepository {
 
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {
     const search = filters?.search?.trim().toLowerCase();
+    const today = manilaDateAt();
 
     const filtered = this.reports
+      .filter(isCanonicalWorkReport)
       .filter((report) => {
         const matchesSearch =
           !search ||
@@ -110,12 +114,8 @@ export class MockReportsRepository implements ReportsRepository {
           !filters?.status ||
           filters.status === "all" ||
           report.reviewStatus === filters.status;
-        const matchesQueue =
-          !filters?.queue ||
-          (filters.queue === "needs_review" &&
-            report.reviewStatus === "submitted_unverified") ||
-          (filters.queue === "needs_visit" &&
-            report.reviewStatus === "for_field_validation");
+        const matchesQueue = !filters?.queue
+          || isInOperationalQueue(report, filters.queue, today);
         const matchesDisease =
           !filters?.disease ||
           filters.disease === "all" ||
@@ -124,7 +124,7 @@ export class MockReportsRepository implements ReportsRepository {
           !filters?.barangay ||
           filters.barangay === "all" ||
           report.barangay === filters.barangay;
-        const submittedDate = report.submittedAt.slice(0, 10);
+        const submittedDate = manilaDateAt(new Date(report.submittedAt));
         const matchesDateFrom =
           !filters?.dateFrom || submittedDate >= filters.dateFrom;
         const matchesDateTo =
@@ -142,8 +142,12 @@ export class MockReportsRepository implements ReportsRepository {
       })
       .sort((first, second) => {
         if (filters?.sort === "due_soonest") {
-          const firstDue = first.followUp?.dueOn ?? null;
-          const secondDue = second.followUp?.dueOn ?? null;
+          const firstDue = first.fieldValidationAssignment?.targetVisitDate
+            ?? first.followUp?.dueOn
+            ?? null;
+          const secondDue = second.fieldValidationAssignment?.targetVisitDate
+            ?? second.followUp?.dueOn
+            ?? null;
           if (firstDue === secondDue) {
             return new Date(first.submittedAt).getTime() - new Date(second.submittedAt).getTime();
           }
@@ -190,7 +194,7 @@ export class MockReportsRepository implements ReportsRepository {
       const lifecycle = report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus);
       return [
         report.referenceCode,
-        report.submittedAt.slice(0, 10),
+        manilaDateAt(new Date(report.submittedAt)),
         report.barangay,
         report.farmerOrFarmOwnerName ?? report.farmReference,
         `Possible ${report.predictedDisease}`,
@@ -217,18 +221,21 @@ export class MockReportsRepository implements ReportsRepository {
   }
 
   async getMonthlySummary(month?: string): Promise<MonthlyReportSummary> {
-    const selectedMonth = month ?? new Date().toISOString().slice(0, 7);
+    const selectedMonth = month ?? manilaMonthAt();
     const monthlyReports = this.reports.filter((report) =>
-      report.submittedAt.startsWith(selectedMonth),
+      isCanonicalWorkReport(report)
+      && manilaMonthAt(new Date(report.submittedAt)) === selectedMonth,
     );
 
+    const [year, monthNumber] = selectedMonth.split("-").map(Number);
+    const lastDay = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
     const hasReports = monthlyReports.length > 0;
 
     return {
       month: selectedMonth,
       period: {
         from: `${selectedMonth}-01`,
-        to: `${selectedMonth}-28`,
+        to: lastDay,
       },
       reportedCases: monthlyReports.length,
       expertVerification: hasReports

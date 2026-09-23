@@ -69,6 +69,7 @@ export interface MonthlyCaseSummary {
     reportedCases: number;
   }>;
   estimatedAffectedHectares: number;
+  reportsContainingFarmerFarmInformation: number;
   fieldValidationCounts: {
     unassigned: number;
     assigned: number;

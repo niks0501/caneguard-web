@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { Download, Printer, X } from "lucide-react";
 import { env } from "../../config/env";
 import { axiosClient } from "../../api/axiosClient";
+import { ApiError, isApiConnectionError, toApiError } from "../../api/ApiError";
+import { checkApiHealth } from "../../api/apiHealth";
 import { Button } from "../ui/Button";
+import { previousManilaIsoWeekAt } from "../../domain/reportingTime";
 import {
   authorityClassifiedConditionLabels,
   caseStateLabels,
@@ -55,12 +59,7 @@ function readStoredState(): Partial<BuilderState> {
 }
 
 function defaultWeek() {
-  const date = new Date();
-  const day = date.getDay() || 7;
-  date.setDate(date.getDate() - day - 6);
-  const yearStart = new Date(date.getFullYear(), 0, 1);
-  const week = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + yearStart.getDay() + 1) / 7);
-  return `${date.getFullYear()}-W${String(week).padStart(2, "0")}`;
+  return previousManilaIsoWeekAt();
 }
 
 function initialState(): BuilderState {
@@ -74,6 +73,27 @@ function initialState(): BuilderState {
     appendix: false,
     filters: { ...emptyFilters, ...(stored.filters ?? {}) },
   };
+}
+
+async function readPdfErrorCode(error: unknown) {
+  const axiosError = axios.isAxiosError(error)
+    ? error
+    : error instanceof ApiError && axios.isAxiosError(error.cause)
+      ? error.cause
+      : undefined;
+  if (!axiosError || typeof Blob === "undefined") return undefined;
+  const responseData = axiosError.response?.data;
+  if (!(responseData instanceof Blob)) return undefined;
+
+  try {
+    const payload: unknown = JSON.parse(await responseData.text());
+    return payload && typeof payload === "object" && "code" in payload &&
+      typeof payload.code === "string"
+      ? payload.code
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function queryFor(state: BuilderState, format?: "pdf") {
@@ -102,7 +122,8 @@ export function ReportDocumentBuilder({
 }) {
   const [state, setState] = useState<BuilderState>(initialState);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [pdfError, setPdfError] = useState(false);
+  const [apiAvailability, setApiAvailability] = useState<"checking" | "available" | "unavailable">("checking");
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfPending, setPdfPending] = useState(false);
 
   useEffect(() => {
@@ -114,15 +135,37 @@ export function ReportDocumentBuilder({
     }
   }, [open, state]);
 
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    const checkingTimer = window.setTimeout(() => {
+      if (active) setApiAvailability("checking");
+    }, 0);
+    void checkApiHealth().then((result) => {
+      window.clearTimeout(checkingTimer);
+      if (active) {
+        setApiAvailability(result.reachability === "reachable" ? "available" : "unavailable");
+      }
+    });
+    return () => {
+      active = false;
+      window.clearTimeout(checkingTimer);
+    };
+  }, [open]);
+
   const params = useMemo(() => queryFor(state), [state]);
   useEffect(() => {
     if (!open) return;
     const timer = window.setTimeout(() => {
-      setPreviewUrl(`${env.apiBaseUrl}${documentPath}?${params.toString()}`);
-      setPdfError(false);
-    }, 250);
+      if (apiAvailability === "available") {
+        setPreviewUrl(`${env.apiBaseUrl}${documentPath}?${params.toString()}`);
+        setPdfError(null);
+      } else {
+        setPreviewUrl(null);
+      }
+    }, apiAvailability === "available" ? 250 : 0);
     return () => window.clearTimeout(timer);
-  }, [open, params]);
+  }, [apiAvailability, open, params]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -141,7 +184,7 @@ export function ReportDocumentBuilder({
 
   async function downloadPdf() {
     setPdfPending(true);
-    setPdfError(false);
+    setPdfError(null);
     try {
       const response = await axiosClient.get(
         `${env.apiBaseUrl}${documentPath}/pdf?${queryFor(state, "pdf").toString()}`,
@@ -155,11 +198,26 @@ export function ReportDocumentBuilder({
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
-    } catch {
-      setPdfError(true);
+    } catch (error) {
+      if (isApiConnectionError(error)) {
+        setPdfError("Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL, then retry.");
+      } else {
+        const apiError = toApiError(error);
+        const errorCode = apiError.code ?? await readPdfErrorCode(error);
+        setPdfError(errorCode === "PDF_RENDER_FAILED"
+          ? "The API is reachable, but its server-side PDF renderer is unavailable. Ask an administrator to check the configured Chromium or Brave binary and its runtime permissions. The HTML preview remains available."
+          : "The PDF could not be generated. Your live preview is still available; use Print or try Download PDF again.");
+      }
     } finally {
       setPdfPending(false);
     }
+  }
+
+  function retryApiConnection() {
+    setApiAvailability("checking");
+    void checkApiHealth().then((result) => {
+      setApiAvailability(result.reachability === "reachable" ? "available" : "unavailable");
+    });
   }
 
   function printPreview() {
@@ -190,10 +248,16 @@ export function ReportDocumentBuilder({
           <label className="report-builder__check"><input type="checkbox" checked={state.appendix} onChange={(event) => update("appendix", event.target.checked)} /><span>Include case register appendix</span></label>
         </div>
         {state.appendix ? <p className="report-builder__warning" role="note">Farmer and farm references are included when the appendix is enabled.</p> : null}
-        <div className="report-builder__actions"><Button type="button" variant="secondary" icon={<Printer aria-hidden="true" />} onClick={printPreview}>Print</Button><Button type="button" icon={<Download aria-hidden="true" />} disabled={pdfPending} onClick={() => void downloadPdf()}>{pdfPending ? "Preparing PDF..." : "Download PDF"}</Button></div>
-        {pdfError ? <div className="report-builder__error" role="alert">The PDF could not be generated. Your live preview is still available; use Print or try Download PDF again.</div> : null}
+        {apiAvailability === "unavailable" ? (
+          <div className="report-builder__error" role="alert">
+            <p>Cannot connect to the CaneGuard API for report preview or PDF generation. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview.</p>
+            <Button type="button" variant="secondary" onClick={retryApiConnection}>Retry API connection</Button>
+          </div>
+        ) : null}
+        <div className="report-builder__actions"><Button type="button" variant="secondary" icon={<Printer aria-hidden="true" />} disabled={!previewUrl} onClick={printPreview}>Print</Button><Button type="button" icon={<Download aria-hidden="true" />} disabled={pdfPending || apiAvailability !== "available"} onClick={() => void downloadPdf()}>{pdfPending ? "Preparing PDF..." : "Download PDF"}</Button></div>
+        {pdfError ? <div className="report-builder__error" role="alert">{pdfError}</div> : null}
         <div className="report-builder__preview" aria-label="Live report preview">
-          {previewUrl ? <iframe title="Live report preview" src={previewUrl} /> : <p>Preparing the report preview...</p>}
+          {apiAvailability === "checking" ? <p>Checking the CaneGuard API connection...</p> : previewUrl ? <iframe title="Live report preview" src={previewUrl} /> : apiAvailability === "available" ? <p>Preparing the report preview...</p> : null}
         </div>
       </div>
     </div>

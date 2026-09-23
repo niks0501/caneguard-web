@@ -1001,6 +1001,181 @@ class ReportApiTest extends TestCase
         }
     }
 
+    public function test_operational_queue_dashboard_map_and_workspace_lists_share_predicates(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-18T09:00:00+08:00');
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            $assignee = User::factory()->fieldReporter()->create();
+            $submitted = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-REVIEW',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
+                'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+                'action_taken' => null,
+            ]);
+            $expertResponse = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-EXPERT-RESPONSE',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+                'referral_state' => Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+                'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+            ]);
+            $legacyUnassignedVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-LEGACY-VISIT',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            $overdueVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-OVERDUE',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            $upcomingVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-UPCOMING',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            foreach ([[$overdueVisit, '2026-09-17'], [$upcomingVisit, '2026-09-18']] as [$report, $targetDate]) {
+                FieldValidationAssignment::factory()->create([
+                    'report_id' => $report->getKey(),
+                    'assignee_id' => $assignee->getKey(),
+                    'assigned_by_id' => $reviewer->getKey(),
+                    'target_visit_date' => $targetDate,
+                ]);
+            }
+            $noActiveWork = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-NO-WORK',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
+                'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            ]);
+            $closed = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-CLOSED',
+                'case_state' => Report::CASE_STATE_CLOSED,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+                'review_status' => Report::STATUS_RESOLVED,
+            ]);
+            $duplicate = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-CHECK-DUPLICATE',
+                'canonical_report_id' => $submitted->getKey(),
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+            ]);
+
+            Sanctum::actingAs($reviewer);
+            $expected = [
+                Report::QUEUE_NEEDS_REVIEW => [$submitted->uuid, $expertResponse->uuid],
+                Report::QUEUE_NEEDS_VISIT => [$legacyUnassignedVisit->uuid, $overdueVisit->uuid, $upcomingVisit->uuid],
+                Report::QUEUE_FOLLOW_UP_DUE => [$overdueVisit->uuid],
+                Report::QUEUE_UPCOMING => [$upcomingVisit->uuid],
+                Report::QUEUE_UNVERIFIED_NO_ACTIVE_WORK => [$noActiveWork->uuid],
+            ];
+            $queuedUuids = array_merge(...array_values($expected));
+            $this->assertNotContains($closed->uuid, $queuedUuids);
+            $this->assertNotContains($duplicate->uuid, $queuedUuids);
+            $dashboard = $this->getJson('/api/v1/dashboard/summary')->assertOk();
+            foreach ($expected as $queue => $expectedUuids) {
+                $count = count($expectedUuids);
+                $dashboard->assertJsonPath('data.queues.'.$queue, $count);
+                $reports = $this->getJson('/api/v1/reports?queue='.$queue)
+                    ->assertOk()
+                    ->assertJsonPath('meta.total', $count);
+                $this->assertEqualsCanonicalizing($expectedUuids, array_column($reports->json('data'), 'uuid'));
+                $this->getJson('/api/v1/reports/map?queue='.$queue)
+                    ->assertOk()
+                    ->assertJsonPath('metadata.total_count', $count);
+            }
+            foreach ([Report::QUEUE_NEEDS_VISIT, Report::QUEUE_FOLLOW_UP_DUE, Report::QUEUE_UPCOMING] as $queue) {
+                $workspace = $this->getJson('/api/v1/reports/field-validation-queue?queue='.$queue)
+                    ->assertOk()
+                    ->assertJsonPath('data.count', count($expected[$queue]));
+                $this->assertEqualsCanonicalizing($expected[$queue], array_column($workspace->json('data.items'), 'uuid'));
+            }
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_operational_queue_target_dates_use_manila_day_boundaries(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-30T15:59:59Z');
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            $assignee = User::factory()->fieldReporter()->create();
+            $septemberVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-PHT-SEP',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            $octoberVisit = Report::factory()->create([
+                'reference_code' => 'CG-QUEUE-PHT-OCT',
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            ]);
+            foreach ([[$septemberVisit, '2026-09-30'], [$octoberVisit, '2026-10-01']] as [$report, $targetDate]) {
+                FieldValidationAssignment::factory()->create([
+                    'report_id' => $report->getKey(),
+                    'assignee_id' => $assignee->getKey(),
+                    'assigned_by_id' => $reviewer->getKey(),
+                    'target_visit_date' => $targetDate,
+                ]);
+            }
+            Sanctum::actingAs($reviewer);
+
+            $this->getJson('/api/v1/reports?queue=follow_up_due')
+                ->assertOk()->assertJsonPath('meta.total', 0);
+            $this->getJson('/api/v1/reports/field-validation-queue?queue=upcoming')
+                ->assertOk()->assertJsonPath('data.count', 2);
+            $this->getJson('/api/v1/dashboard/summary')
+                ->assertOk()
+                ->assertJsonPath('data.queues.needs_visit', 2)
+                ->assertJsonPath('data.queues.follow_up_due', 0)
+                ->assertJsonPath('data.queues.upcoming', 2);
+
+            CarbonImmutable::setTestNow('2026-09-30T16:00:00Z');
+
+            $this->getJson('/api/v1/reports?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 1)
+                ->assertJsonFragment(['uuid' => $septemberVisit->uuid]);
+            $this->getJson('/api/v1/reports/field-validation-queue?queue=follow_up_due')
+                ->assertOk()
+                ->assertJsonPath('data.count', 1)
+                ->assertJsonPath('data.items.0.uuid', $septemberVisit->uuid);
+            $this->getJson('/api/v1/reports?queue=upcoming')
+                ->assertOk()
+                ->assertJsonPath('meta.total', 1)
+                ->assertJsonFragment(['uuid' => $octoberVisit->uuid]);
+            $this->getJson('/api/v1/dashboard/summary')
+                ->assertOk()
+                ->assertJsonPath('data.queues.needs_visit', 2)
+                ->assertJsonPath('data.queues.follow_up_due', 1)
+                ->assertJsonPath('data.queues.upcoming', 1);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_report_queue_rejects_unauthenticated_and_wrong_role_users(): void
     {
         $this->getJson('/api/v1/reports?concern=rssi')

@@ -81,7 +81,7 @@ final class ExportReports
                 fputcsv($output, $this->row($report));
             }
             fclose($output);
-        }, 'caneguard-case-export-'.now()->utc()->format('Y-m-d').'.csv', [
+        }, 'caneguard-case-export-'.now('Asia/Manila')->format('Y-m-d').'.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Cache-Control' => 'no-store, private',
         ]);
@@ -135,7 +135,7 @@ final class ExportReports
             $this->neutralizeSpreadsheetFormula(...),
             [
                 $report->reference_code,
-                $report->submitted_at?->utc()->toDateString() ?? '',
+                $report->submitted_at?->timezone('Asia/Manila')->toDateString() ?? '',
                 $report->barangay,
                 $report->farmer_or_farm_owner_name ?? '',
                 'Possible '.$report->predicted_label,

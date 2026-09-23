@@ -6,10 +6,40 @@ import type {
 } from "../../domain/fieldValidation.types";
 import type { DiseaseReport } from "../../domain/report.types";
 import type { FieldValidationRepository } from "../contracts/FieldValidationRepository";
+import { manilaDateAt } from "../../domain/reportingTime";
+import { legacyLifecycleForReviewStatus } from "../api/mappers/lifecycle.mapper";
+import {
+  filterMockOperationalQueue,
+  isCanonicalWorkReport,
+  isInOperationalQueue,
+} from "./mockOperationalQueues";
 import { mockReports } from "./mockReports";
 
+const NASUGBU_BOUNDS = {
+  south: 14.043883,
+  west: 120.567055,
+  north: 14.221364,
+  east: 120.84818,
+};
+
+function isNasugbuReport(report: DiseaseReport) {
+  return report.province === "Batangas" && report.municipality === "Nasugbu";
+}
+
+function hasNasugbuLocation(report: DiseaseReport) {
+  return isNasugbuReport(report) &&
+    report.finalLatitude !== undefined &&
+    report.finalLongitude !== undefined &&
+    report.finalLatitude >= NASUGBU_BOUNDS.south &&
+    report.finalLatitude <= NASUGBU_BOUNDS.north &&
+    report.finalLongitude >= NASUGBU_BOUNDS.west &&
+    report.finalLongitude <= NASUGBU_BOUNDS.east;
+}
+
 function matchesFilters(report: DiseaseReport, filters: FieldValidationFilters) {
-  const observedDate = report.observedAt?.slice(0, 10);
+  const observedDate = report.observedAt
+    ? manilaDateAt(new Date(report.observedAt))
+    : undefined;
   return (
     (!filters.disease || report.predictedDisease === filters.disease) &&
     (!filters.barangay || report.barangay === filters.barangay) &&
@@ -30,6 +60,7 @@ function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
     predictedDisease: report.predictedDisease,
     confidence: report.confidence ?? 0,
     reviewStatus: report.reviewStatus,
+    lifecycle: report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus),
     targetVisitDate: report.fieldValidationAssignment?.targetVisitDate ?? null,
     assignee: report.fieldValidationAssignment?.assignee ?? null,
     finalLatitude: report.finalLatitude ?? null,
@@ -43,20 +74,19 @@ function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
 
 export class MockFieldValidationRepository implements FieldValidationRepository {
   async getMap(filters: FieldValidationFilters = {}): Promise<FieldValidationMapData> {
-    const reports = mockReports.filter(
-      (report) =>
-        (filters.status
-          ? report.reviewStatus === filters.status
-          : report.reviewStatus !== "resolved") &&
-        (filters.queue === "needs_visit"
-          ? report.reviewStatus === "for_field_validation"
-          : filters.queue !== "follow_up_due") &&
-        matchesFilters(report, filters),
-    );
-    const located = reports.filter(
-      (report) =>
-        report.finalLatitude !== undefined && report.finalLongitude !== undefined,
-    );
+    const today = manilaDateAt();
+    const reports = mockReports
+      .filter(isCanonicalWorkReport)
+      .filter(isNasugbuReport)
+      .filter(
+        (report) =>
+          (filters.status
+            ? report.reviewStatus === filters.status
+            : filters.queue !== undefined || report.reviewStatus !== "resolved") &&
+          (!filters.queue || isInOperationalQueue(report, filters.queue, today)) &&
+          matchesFilters(report, filters),
+      );
+    const located = reports.filter(hasNasugbuLocation);
 
     return {
       type: "FeatureCollection",
@@ -78,6 +108,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           predictedDisease: report.predictedDisease,
           confidence: report.confidence ?? 0,
           reviewStatus: report.reviewStatus,
+          lifecycle: report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus),
           locationSource: report.locationSource ?? null,
           gpsAccuracy: report.gpsAccuracy ?? null,
           affectedAreaHectares: report.affectedAreaHectares ?? null,
@@ -96,25 +127,31 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
   }
 
   async getQueue(filters: FieldValidationFilters = {}): Promise<FieldValidationQueueData> {
-    const rawItems = mockReports
-      .filter(
-        (report) =>
-          report.reviewStatus === "for_field_validation" &&
-          filters.queue !== "follow_up_due" &&
-          matchesFilters(report, filters),
-      )
+    const queue = filters.queue ?? "needs_visit";
+    const today = manilaDateAt();
+    const rawItems = filterMockOperationalQueue(mockReports, queue, today)
+      .filter((report) => !filters.status || report.reviewStatus === filters.status)
+      .filter((report) => matchesFilters(report, filters))
+      .filter((report) => {
+        const targetVisitDate = report.fieldValidationAssignment?.targetVisitDate;
+        return (!filters.dueFrom || Boolean(targetVisitDate && targetVisitDate >= filters.dueFrom))
+          && (!filters.dueTo || Boolean(targetVisitDate && targetVisitDate <= filters.dueTo));
+      })
       .sort((first, second) => {
+        if (queue === "follow_up_due" || queue === "upcoming") {
+          const dueDifference = (first.fieldValidationAssignment?.targetVisitDate ?? "")
+            .localeCompare(second.fieldValidationAssignment?.targetVisitDate ?? "");
+          if (dueDifference !== 0) return dueDifference;
+        }
         const firstObserved = first.observedAt
           ? Date.parse(first.observedAt)
           : Number.POSITIVE_INFINITY;
         const secondObserved = second.observedAt
           ? Date.parse(second.observedAt)
           : Number.POSITIVE_INFINITY;
-        return (
-          firstObserved - secondObserved ||
-          Date.parse(first.submittedAt) - Date.parse(second.submittedAt) ||
-          first.uuid.localeCompare(second.uuid)
-        );
+        return firstObserved - secondObserved
+          || Date.parse(first.submittedAt) - Date.parse(second.submittedAt)
+          || first.uuid.localeCompare(second.uuid);
       })
       .map(toQueueItem)
       .filter((item) => {
@@ -132,7 +169,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
     const paginatedItems = rawItems.slice(startIndex, startIndex + limit);
 
     return {
-      queue: filters.queue ?? "needs_visit",
+      queue,
       count: rawItems.length,
       total: rawItems.length,
       page,

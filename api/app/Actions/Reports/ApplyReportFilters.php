@@ -4,11 +4,14 @@ namespace App\Actions\Reports;
 
 use App\Models\Report;
 use App\Models\ReportReferral;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
 class ApplyReportFilters
 {
+    private const TIMEZONE = 'Asia/Manila';
+
     private const DATE_COLUMNS = [
         'submitted_at',
         'observed_at',
@@ -117,14 +120,27 @@ class ApplyReportFilters
             )
             ->when(
                 $filters['date_from'] ?? null,
-                fn (Builder $query, string $date) => $query
-                    ->whereDate($dateColumn, '>=', $date),
+                fn (Builder $query, string $date) => $query->where(
+                    $dateColumn,
+                    '>=',
+                    $this->dateBoundary($date),
+                ),
             )
             ->when(
                 $filters['date_to'] ?? null,
-                fn (Builder $query, string $date) => $query
-                    ->whereDate($dateColumn, '<=', $date),
+                fn (Builder $query, string $date) => $query->where(
+                    $dateColumn,
+                    '<',
+                    $this->dateBoundary($date)->addDay(),
+                ),
             );
+    }
+
+    private function dateBoundary(string $date): CarbonImmutable
+    {
+        return CarbonImmutable::createFromFormat('!Y-m-d', $date, self::TIMEZONE)
+            ->startOfDay()
+            ->utc();
     }
 
     private function escapeLike(string $value): string

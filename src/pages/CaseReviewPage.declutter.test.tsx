@@ -122,58 +122,47 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
     expect(screen.queryByRole("button", { name: /Show full text/ })).not.toBeInTheDocument();
   });
 
-  it("asserts that the E7 block contains the phrase 'Decision-support only' exactly once", () => {
+  it("shows the Possible Condition with a decision-support disclaimer and no prominent confidence", () => {
     renderPage();
 
-    const modelEvidenceDisclosure = screen
-      .getByText("Model evidence — decision support")
-      .closest("details");
-    expect(modelEvidenceDisclosure).toBeInTheDocument();
-
-    const matches = within(modelEvidenceDisclosure!).getAllByText(/Decision-support only/i);
-    expect(matches).toHaveLength(1);
+    const possibleCondition = screen.getByRole("region", { name: "Possible Condition" });
+    expect(possibleCondition).toBeVisible();
+    expect(within(possibleCondition).getByText(/AI-assisted result\./)).toBeInTheDocument();
+    expect(screen.queryByText("Technical Evidence")).not.toBeInTheDocument();
+    expect(screen.queryByText("93%")).not.toBeInTheDocument();
   });
 
-  it("asserts that a closed E7 summary carries the possible condition and confidence", () => {
+  it("keeps the Possible Condition visible with its badge", () => {
     renderPage();
 
-    const modelEvidenceDisclosure = screen
-      .getByText("Model evidence — decision support")
-      .closest("details");
-    expect(modelEvidenceDisclosure).not.toHaveAttribute("open");
-
-    const summary = modelEvidenceDisclosure!.querySelector("summary");
-    expect(summary).toBeInTheDocument();
-    // Summary carries predicted condition and confidence
-    expect(summary).toHaveTextContent("Possible Condition: Rust · 93% (decision support)");
+    const possibleCondition = screen.getByRole("region", { name: "Possible Condition" });
+    expect(possibleCondition).toBeVisible();
+    expect(possibleCondition).toHaveTextContent("Possible Condition: Rust");
   });
 
-  it("asserts that an E9 list with more than 4 rows renders a Show remaining control and row count before expand + 1 == row count after expand", async () => {
+  it("asserts that a farm list with more than 4 rows renders a Show remaining control and row count before expand + 1 == row count after expand", async () => {
     const user = userEvent.setup();
-    // baseReport has report context: Submitter role, Observed at, Submitted at, Last reviewed by, Reviewed at (5 rows, no reviewNotes)
-    const reportContext5Rows = {
+    // baseReport farm section: Farmer or farm owner, Farm reference, Location,
+    // Reporter, Submitter role (5 rows).
+    const reportWithFarmContext = {
       ...baseReport,
       submitterRole: "field_reporter" as const,
-      observedAt: "2026-09-01T08:00:00Z",
-      submittedAt: "2026-09-01T08:30:00Z",
-      reviewedBy: "Inspector Ana",
-      reviewedAt: "2026-09-02T10:00:00Z",
-      reviewNotes: undefined,
+      farmerOrFarmOwnerName: "Juan Dela Cruz",
     };
 
-    renderPage(reportContext5Rows);
+    renderPage(reportWithFarmContext);
 
-    const reportContextSection = screen.getByRole("heading", { name: "Report context" }).closest("section");
-    expect(reportContextSection).toBeInTheDocument();
+    const farmSection = screen.getByRole("heading", { name: "Farm and location" }).closest("section");
+    expect(farmSection).toBeInTheDocument();
 
-    const list = reportContextSection!.querySelector("dl");
+    const list = farmSection!.querySelector("dl");
     expect(list).toBeInTheDocument();
 
     // Query non-hidden detail fields before expand
     const fieldsBefore = list!.querySelectorAll(".detail-field:not([hidden])");
     expect(fieldsBefore.length).toBe(4);
 
-    const toggle = within(reportContextSection!).getByRole("button", { name: /Show remaining 1 row/i });
+    const toggle = within(farmSection!).getByRole("button", { name: /Show remaining 1 row/i });
     expect(toggle).toBeInTheDocument();
 
     await user.click(toggle);
@@ -202,7 +191,7 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUpdateReportReview>);
   });
 
-  it("retires the two-column split: no review-layout or review-sidebar remains and the flow reads hero, chips, summary, evidence", () => {
+  it("retires the two-column split: no review-layout or review-sidebar remains and the flow reads hero, status, photo, condition, field report, office decision, history", () => {
     renderPage();
 
     expect(document.querySelector(".review-layout")).toBeNull();
@@ -214,14 +203,21 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
 
     const hero = screen.getByRole("heading", { name: "What this case needs from me" });
     const chips = screen.getByRole("region", { name: "Case status" });
-    const summary = screen.getByRole("region", { name: "Office decision summary" });
-    const evidence = screen.getByRole("heading", { name: "Evidence behind this decision" });
+    const photo = screen.getByRole("heading", { name: "Submitted photo" });
+    const condition = screen.getByRole("heading", { name: "Possible Condition" });
+    const fieldReport = screen.getByRole("heading", { name: "Field report" });
+    const decision = screen.getByRole("heading", { name: "Office decision" });
 
-    expect(flow!.contains(evidence)).toBe(true);
-    // Reading order in the DOM matches visual order: hero, chips, summary, evidence.
+    for (const heading of [photo, condition, fieldReport, decision]) {
+      expect(flow!.contains(heading)).toBe(true);
+    }
+    // Reading order in the DOM matches visual order: hero, status, photo,
+    // condition, field report, office decision.
     expect(hero.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(chips.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(summary.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(chips.compareDocumentPosition(photo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(photo.compareDocumentPosition(condition) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(condition.compareDocumentPosition(fieldReport) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(fieldReport.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
 });

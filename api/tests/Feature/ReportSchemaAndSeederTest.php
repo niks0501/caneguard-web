@@ -237,7 +237,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $reviewer = User::factory()->reviewer()->create();
         $report = Report::factory()->create([
-            'reference_code' => 'BGO-20260702-0915',
+            'reference_code' => 'CUSTOM-REPORT-001',
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.7312345,
             'model_version' => 'caneguard-mobile-v1.0.0',
@@ -315,22 +315,23 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
         DB::table('report_class_scores')->where('report_id', $report->id)->delete();
         DB::table('report_symptoms')->where('report_id', $report->id)->delete();
-        $originalReport = (array) DB::table('reports')
-            ->where('id', $report->id)
-            ->first();
-
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame(
-            $originalReport,
-            (array) DB::table('reports')->where('id', $report->id)->first(),
-        );
+        $seededReport = Report::query()->findOrFail($report->id);
+        $this->assertSame('Aga', $seededReport->barangay);
+        $this->assertSame('Batangas', $seededReport->province);
+        $this->assertSame('Nasugbu', $seededReport->municipality);
+        $this->assertNull($seededReport->final_latitude);
+        $this->assertNull($seededReport->final_longitude);
         $this->assertSame(4, DB::table('report_class_scores')
             ->where('report_id', $report->id)
             ->count());
+        $seededSymptom = $seededReport->predicted_label === Report::LABEL_HEALTHY
+            ? 'none'
+            : $seededReport->predicted_label;
         $this->assertDatabaseHas('report_symptoms', [
             'report_id' => $report->id,
-            'symptom_key' => Report::LABEL_SMUT,
+            'symptom_key' => $seededSymptom,
         ]);
         $this->assertTrue(Storage::disk('local')->exists('reports/2026-07/bgo-20260702-0915.png'));
         $this->assertSame(
@@ -351,8 +352,33 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
 
         $this->seed(DatabaseSeeder::class);
+        $locatedReport = Report::query()
+            ->where('reference_code', 'BGO-20260703-1015')
+            ->firstOrFail();
+        DB::table('reports')->where('id', $locatedReport->getKey())->update([
+            'final_latitude' => 0,
+            'final_longitude' => 0,
+            'municipality' => 'Bago',
+        ]);
+        $followUpReport = Report::query()
+            ->where('reference_code', 'BGO-20260916-0745')
+            ->firstOrFail();
+        $completion = $followUpReport->fieldValidationAssignment?->completion;
+        $this->assertNotNull($completion);
+        DB::table('field_validation_completions')->where('id', $completion->getKey())->update([
+            'gps_latitude' => 0,
+            'gps_longitude' => 0,
+        ]);
         $this->seed(DatabaseSeeder::class);
 
+        $this->assertSame(
+            $locatedReport->getKey(),
+            Report::query()->where('reference_code', 'BGO-20260703-1015')->value('id'),
+        );
+        $this->assertSame('14.1260000', Report::query()
+            ->where('reference_code', 'BGO-20260703-1015')
+            ->value('final_latitude'));
+        $this->assertSame('14.1260000', $completion->fresh()->gps_latitude);
         $this->assertDatabaseCount(
             'reports',
             12
@@ -370,17 +396,71 @@ class ReportSchemaAndSeederTest extends TestCase
                     ->orWhereNull('final_longitude');
             })
             ->count());
+        foreach (Report::query()->get() as $seededReport) {
+            $this->assertSame('Batangas', $seededReport->province, $seededReport->reference_code);
+            $this->assertSame('Nasugbu', $seededReport->municipality, $seededReport->reference_code);
+            if ($seededReport->final_latitude === null && $seededReport->final_longitude === null) {
+                continue;
+            }
+
+            $this->assertNotNull($seededReport->final_latitude, $seededReport->reference_code);
+            $this->assertNotNull($seededReport->final_longitude, $seededReport->reference_code);
+            $center = DashboardReportSeeder::BARANGAY_COORDINATES[$seededReport->barangay];
+            $this->assertEqualsWithDelta(
+                $center['latitude'],
+                (float) $seededReport->final_latitude,
+                0.000751,
+                $seededReport->reference_code.' latitude',
+            );
+            $this->assertEqualsWithDelta(
+                $center['longitude'],
+                (float) $seededReport->final_longitude,
+                0.001001,
+                $seededReport->reference_code.' longitude',
+            );
+        }
+        $validationGps = DB::table('field_validation_completions')
+            ->join('field_validation_assignments', 'field_validation_assignments.id', '=', 'field_validation_completions.assignment_id')
+            ->join('reports', 'reports.id', '=', 'field_validation_assignments.report_id')
+            ->get([
+                'reports.barangay',
+                'field_validation_completions.gps_latitude',
+                'field_validation_completions.gps_longitude',
+            ]);
+        foreach ($validationGps as $point) {
+            if ($point->gps_latitude === null && $point->gps_longitude === null) {
+                continue;
+            }
+
+            $this->assertNotNull($point->gps_latitude, $point->barangay.' validation latitude');
+            $this->assertNotNull($point->gps_longitude, $point->barangay.' validation longitude');
+            $center = DashboardReportSeeder::BARANGAY_COORDINATES[$point->barangay];
+            $this->assertEqualsWithDelta(
+                $center['latitude'],
+                (float) $point->gps_latitude,
+                0.000751,
+                $point->barangay.' validation latitude',
+            );
+            $this->assertEqualsWithDelta(
+                $center['longitude'],
+                (float) $point->gps_longitude,
+                0.001001,
+                $point->barangay.' validation longitude',
+            );
+        }
         $locatedDemoReport = Report::query()
             ->where('reference_code', 'BGO-20260703-1015')
             ->firstOrFail();
-        $this->assertSame('10.5234000', $locatedDemoReport->final_latitude);
-        $this->assertSame('122.8281000', $locatedDemoReport->final_longitude);
+        $this->assertSame('14.1260000', $locatedDemoReport->final_latitude);
+        $this->assertSame('120.6039000', $locatedDemoReport->final_longitude);
+        $this->assertSame('Batangas', $locatedDemoReport->province);
+        $this->assertSame('Nasugbu', $locatedDemoReport->municipality);
         $this->assertSame('gps', $locatedDemoReport->location_source);
         $manualDemoReport = Report::query()
             ->where('reference_code', 'BGO-20260708-1515')
             ->firstOrFail();
-        $this->assertSame('10.5710000', $manualDemoReport->final_latitude);
-        $this->assertSame('122.8500000', $manualDemoReport->final_longitude);
+        $this->assertSame('14.1069000', $manualDemoReport->final_latitude);
+        $this->assertSame('120.6521000', $manualDemoReport->final_longitude);
         $this->assertSame('manual_map', $manualDemoReport->location_source);
         $this->assertNull($manualDemoReport->gps_accuracy);
         $this->assertDatabaseCount(

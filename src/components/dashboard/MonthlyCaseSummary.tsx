@@ -60,8 +60,12 @@ export function MonthlyCaseSummary({
       </div>
 
       <p className="dashboard-monthly-summary__notice">
+        Reports containing farmer/farm information: {summary.reportsContainingFarmerFarmInformation}. This describes submitted case records, not an estimate of total affected farmers in Nasugbu.
+      </p>
+
+      <p className="dashboard-monthly-summary__notice">
         Barangay and Possible Condition breakdowns now render as charts in the Report analytics section above,
-        using PHT (UTC+8) period boundaries. This panel keeps its UTC calendar month.
+        using PHT (UTC+8) period boundaries. This panel uses the same Philippine calendar month.
       </p>
 
       <div className="dashboard-monthly-summary__grid">
