@@ -14,6 +14,21 @@ class ReportPeriodBoundaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_dashboard_monthly_summary_returns_zero_counts_when_database_has_no_reports(): void
+    {
+        Sanctum::actingAs(User::factory()->reviewer()->create());
+
+        $this->getJson('/api/v1/dashboard/summary?month=2026-09')
+            ->assertOk()
+            ->assertJsonPath('data.monthly_summary.month', '2026-09')
+            ->assertJsonPath('data.monthly_summary.reported_cases', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.unassigned', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.assigned', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.in_progress', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.completed', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.requiring_validation', 0);
+    }
+
     public function test_monthly_summaries_analytics_and_documents_share_manila_month_boundaries(): void
     {
         $reviewer = User::factory()->reviewer()->create();
