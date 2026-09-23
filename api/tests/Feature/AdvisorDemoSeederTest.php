@@ -11,6 +11,7 @@ use App\Models\User;
 use Database\Seeders\AdvisorDemoSeeder;
 use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -36,8 +37,8 @@ class AdvisorDemoSeederTest extends TestCase
 
     public function test_demo_dataset_covers_the_new_api_surfaces_and_is_idempotent(): void
     {
-        $this->seed(DatabaseSeeder::class);
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
+        $this->seedReportDemoDataset();
 
         $this->assertDatabaseCount(
             'reports',
@@ -168,7 +169,7 @@ class AdvisorDemoSeederTest extends TestCase
 
     public function test_cleanup_removes_only_demo_rows_and_files(): void
     {
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
 
         AdvisorDemoSeeder::cleanup();
 
@@ -186,5 +187,13 @@ class AdvisorDemoSeederTest extends TestCase
         Storage::disk('local')->assertExists('reports/2026-07/bgo-20260702-0915.png');
         Storage::disk('local')->assertMissing('reports/2026-09/bgo-20260920-0810.png');
         Storage::disk('local')->assertMissing('field-validation/2026-09-18-balaytigui.png');
+    }
+
+    private function seedReportDemoDataset(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(ReportSeeder::class);
+        $this->seed(AdvisorDemoSeeder::class);
+        $this->seed(DashboardReportSeeder::class);
     }
 }

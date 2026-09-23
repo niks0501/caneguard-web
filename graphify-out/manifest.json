@@ -408,9 +408,9 @@
     "semantic_hash": ""
   },
   "api/database/seeders/DatabaseSeeder.php": {
-    "mtime": 1790057371.1112378,
-    "seen": 1790179027.1217113,
-    "ast_hash": "7aba1971f66e5cc7313d1a126e1b5209",
+    "mtime": 1790183137.4999168,
+    "seen": 1790183843.0645757,
+    "ast_hash": "cdea0463c9d7e8e69f26e2904e04f6f6",
     "semantic_hash": ""
   },
   "api/package.json": {
@@ -648,9 +648,9 @@
     "semantic_hash": ""
   },
   "api/database/seeders/ReportSeeder.php": {
-    "mtime": 1790162923.8968163,
-    "seen": 1790179027.1217134,
-    "ast_hash": "8c7a6c51295d65d6a6c2c2992ebf8061",
+    "mtime": 1790182890.735954,
+    "seen": 1790183843.0645766,
+    "ast_hash": "89e98480233e5b305ced4dd088d9da99",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/PersistReport.php": {
@@ -660,9 +660,9 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/DemoUserSeederTest.php": {
-    "mtime": 1789876426.89367,
-    "seen": 1790179027.121744,
-    "ast_hash": "f1da15dd346ca5960401d78c9f403a36",
+    "mtime": 1790183165.407907,
+    "seen": 1790183843.064591,
+    "ast_hash": "3f2da5abc9a9180aaef4ed0d65c60d93",
     "semantic_hash": ""
   },
   "api/tests/Feature/ExampleTest.php": {
@@ -696,9 +696,9 @@
     "semantic_hash": ""
   },
   "api/tests/Feature/ReportSchemaAndSeederTest.php": {
-    "mtime": 1790178961.8649163,
-    "seen": 1790179027.1217754,
-    "ast_hash": "8c97ede80a8f82ce14fc31c87f09414e",
+    "mtime": 1790183338.2318747,
+    "seen": 1790183843.064615,
+    "ast_hash": "d5c8d5b34775e0cff96c944bd972d7e8",
     "semantic_hash": ""
   },
   "api/tests/Feature/ReviewReportTest.php": {
@@ -6852,15 +6852,15 @@
     "semantic_hash": ""
   },
   "api/database/seeders/AdvisorDemoSeeder.php": {
-    "mtime": 1790162923.8968163,
-    "seen": 1790179027.1217077,
-    "ast_hash": "2f6ef5b16d196adaef0a2bbf6b60490a",
+    "mtime": 1790182890.7319539,
+    "seen": 1790183843.0645726,
+    "ast_hash": "6e80073af10c7aac9866803fc3f93abd",
     "semantic_hash": ""
   },
   "api/tests/Feature/AdvisorDemoSeederTest.php": {
-    "mtime": 1790178961.8623154,
-    "seen": 1790179027.1217384,
-    "ast_hash": "677b0076a281012133708d35557d04b4",
+    "mtime": 1790183159.8519127,
+    "seen": 1790183843.0645878,
+    "ast_hash": "624c6b4209a242fa1bfddbc5363f10dc",
     "semantic_hash": ""
   },
   "src/components/dashboard/ExpertVerificationPanel.test.tsx": {
@@ -7212,9 +7212,9 @@
     "semantic_hash": ""
   },
   "api/database/seeders/DashboardReportSeeder.php": {
-    "mtime": 1790178961.8623154,
-    "seen": 1790179027.12171,
-    "ast_hash": "a29c392c637268401b9a5bcdddd4762f",
+    "mtime": 1790182890.7319539,
+    "seen": 1790183843.0645747,
+    "ast_hash": "7a370328a368806de4aa8ba454ebdd5a",
     "semantic_hash": ""
   },
   "api/app/Actions/Reports/BuildReportAnalytics.php": {
@@ -7368,15 +7368,21 @@
     "semantic_hash": ""
   },
   "src/data/api/seeded-data-contract.test.ts": {
-    "mtime": 1790178961.9409163,
-    "seen": 1790179027.1220074,
-    "ast_hash": "7b452bd2f2f565b789d8dc0bcfee52f4",
+    "mtime": 1790183263.2198937,
+    "seen": 1790183843.0648,
+    "ast_hash": "d28bf411a7607414f634d4d7b75efc1e",
     "semantic_hash": ""
   },
   "api/docs/contracts/report-lifecycle-v1.json": {
     "mtime": 1790178963.3769166,
     "seen": 1790179027.1217165,
     "ast_hash": "e327d00a5c43f0da9284519ba68d59c9",
+    "semantic_hash": ""
+  },
+  "api/tests/Feature/EmptyDatabaseSeederTest.php": {
+    "mtime": 1790183468.995838,
+    "seen": 1790183843.064593,
+    "ast_hash": "ef855b663fd6c911c23f4b6752eda3c6",
     "semantic_hash": ""
   }
 }

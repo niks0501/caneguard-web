@@ -49,6 +49,7 @@ class DemoUserSeederTest extends TestCase
 
         $this->assertSame($expectedRoles, User::query()->pluck('role')->sort()->values()->all());
         $this->assertSame(4, User::query()->whereNotNull('uuid')->count());
+        $this->assertDatabaseCount('reports', 0);
     }
 
     public function test_demo_users_require_local_password_configuration(): void

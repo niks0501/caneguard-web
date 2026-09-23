@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\AdvisorDemoSeeder;
 use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -318,6 +319,7 @@ class ReportSchemaAndSeederTest extends TestCase
         DB::table('report_class_scores')->where('report_id', $report->id)->delete();
         DB::table('report_symptoms')->where('report_id', $report->id)->delete();
         $this->seed(DatabaseSeeder::class);
+        $this->seed(ReportSeeder::class);
 
         $seededReport = Report::query()->findOrFail($report->id);
         $this->assertSame('Aga', $seededReport->barangay);
@@ -336,12 +338,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'symptom_key' => $seededSymptom,
         ]);
         $this->assertTrue(Storage::disk('local')->exists('reports/2026-07/bgo-20260702-0915.png'));
-        $this->assertSame(
-            12
-                + count(AdvisorDemoSeeder::reportReferences())
-                + count(DashboardReportSeeder::reportReferences()),
-            Report::query()->count(),
-        );
+        $this->assertSame(12, Report::query()->count());
     }
 
     public function test_seeder_creates_baseline_and_feature_demo_reports_with_valid_images(): void
@@ -353,7 +350,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
         $mobileReportedSeverities = ['Mild', 'Moderate', 'Severe'];
         foreach (Report::query()->get() as $seededReport) {
             $this->assertContains(
@@ -481,7 +478,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'gps_latitude' => 0,
             'gps_longitude' => 0,
         ]);
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
 
         $this->assertSame(
             $locatedReport->getKey(),
@@ -654,7 +651,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
 
         $monthCounts = Report::query()
             ->get(['submitted_at'])
@@ -701,5 +698,13 @@ class ReportSchemaAndSeederTest extends TestCase
         foreach (Report::operationalQueues() as $queue) {
             $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));
         }
+    }
+
+    private function seedReportDemoDataset(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(ReportSeeder::class);
+        $this->seed(AdvisorDemoSeeder::class);
+        $this->seed(DashboardReportSeeder::class);
     }
 }

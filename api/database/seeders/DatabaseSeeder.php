@@ -72,10 +72,5 @@ class DatabaseSeeder extends Seeder
             ])->save();
         }
 
-        $this->call([
-            ReportSeeder::class,
-            AdvisorDemoSeeder::class,
-            DashboardReportSeeder::class,
-        ]);
     }
 }
