@@ -113,7 +113,6 @@ The staging host needs the following tools and services.
 
 - Git with access to the private `caneguard-web` repository.
 - Node.js and npm compatible with the checked-in lockfile.
-- A Chromium-family browser for server-side reports (Brave for Linux is the default; set `LARAVEL_PDF_CHROME_PATH` to its binary).
 - PHP 8.3 or newer, Composer, and the PHP PDO MySQL driver.
 - A local MySQL server listening on `127.0.0.1:3306`.
 - The Tailscale CLI with MagicDNS, HTTPS certificates, and Funnel enabled.
@@ -122,7 +121,7 @@ The staging host needs the following tools and services.
 Run the following checks after installing missing tools.
 
 ```bash
-command -v git node npm php composer mysqladmin tailscale eas brave-browser
+command -v git node npm php composer mysqladmin tailscale eas
 git --version
 node -v
 npm -v
