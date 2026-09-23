@@ -28,6 +28,12 @@ const NASUGBU_VIEW = {
   latitude: 14.07,
   zoom: 10,
 } as const;
+const NASUGBU_BOUNDS: [number, number, number, number] = [
+  120.567055,
+  14.043883,
+  120.84818,
+  14.221364,
+];
 
 type MapProviderState = "loading" | "ready" | "error";
 
@@ -157,7 +163,7 @@ function MapProviderStatus({
       <strong>{hasMatchingReports ? "No located reports to plot." : "No reports match these filters."}</strong>
       <p>
         {hasMatchingReports
-          ? "Reports exist, but none have a valid coordinate pair. They remain available in the report table and validation queue."
+          ? "Reports exist, but none have a valid Nasugbu coordinate pair. They remain available in the report table and validation queue."
           : "Try changing or clearing the applied filters."}
       </p>
     </div>
@@ -278,7 +284,7 @@ export function ValidationMap({
         <div>
           <h2 id="validation-map-heading">Report locations</h2>
         </div>
-        <span>{data.metadata.locatedCount} located</span>
+        <span>{data.metadata.returnedCount} shown</span>
       </div>
       <div className="validation-map" aria-label="Map of submitted report locations">
         {mapTilerStyle ? (
@@ -286,6 +292,7 @@ export function ValidationMap({
             <Map
             ref={mapRef}
             initialViewState={NASUGBU_VIEW}
+            maxBounds={NASUGBU_BOUNDS}
             mapStyle={mapTilerStyle}
             interactiveLayerIds={["validation-clusters", "validation-points"]}
             onClick={handleClick}

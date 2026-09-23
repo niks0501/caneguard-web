@@ -11,25 +11,36 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ReportFactory extends Factory
 {
+    /** @var array<int, array{barangay: string, latitude: float, longitude: float}> */
+    private const NASUGBU_LOCATIONS = [
+        ['barangay' => 'Aga', 'latitude' => 14.0900, 'longitude' => 120.7792],
+        ['barangay' => 'Balaytigui', 'latitude' => 14.1260, 'longitude' => 120.6039],
+        ['barangay' => 'Banilad', 'latitude' => 14.0730, 'longitude' => 120.7408],
+        ['barangay' => 'Bilaran', 'latitude' => 14.0487, 'longitude' => 120.6846],
+        ['barangay' => 'Bucana', 'latitude' => 14.0678, 'longitude' => 120.6267],
+        ['barangay' => 'Bulihan', 'latitude' => 14.1552, 'longitude' => 120.6540],
+        ['barangay' => 'Bunducan', 'latitude' => 14.1069, 'longitude' => 120.6521],
+        ['barangay' => 'Butucan', 'latitude' => 14.1394, 'longitude' => 120.6805],
+        ['barangay' => 'Calayo', 'latitude' => 14.1461, 'longitude' => 120.6141],
+        ['barangay' => 'Catandaan', 'latitude' => 14.0804, 'longitude' => 120.6815],
+        ['barangay' => 'Cogunan', 'latitude' => 14.0625, 'longitude' => 120.6555],
+        ['barangay' => 'Dayap', 'latitude' => 14.1013, 'longitude' => 120.6627],
+    ];
+
     protected $model = Report::class;
 
     public function definition(): array
     {
         $capturedAt = fake()->dateTimeBetween('-30 days', '-1 hour');
         $observedAt = fake()->dateTimeBetween($capturedAt, 'now');
+        $location = fake()->randomElement(self::NASUGBU_LOCATIONS);
 
         return [
             'reference_code' => 'CG-'.fake()->unique()->numerify('########'),
             'reporter_id' => User::factory()->fieldReporter(),
             'client_uuid' => fake()->uuid(),
             'scan_record_client_uuid' => fake()->uuid(),
-            'barangay' => fake()->randomElement([
-                'Mabini',
-                'Maligaya',
-                'Poblacion',
-                'San Isidro',
-                'San Roque',
-            ]),
+            'barangay' => $location['barangay'],
             'sugarcane_variety' => fake()->optional()->randomElement([
                 'PSR 86',
                 'Lakatan',
@@ -52,10 +63,10 @@ class ReportFactory extends Factory
             'reporter_suspected_condition' => null,
             'reporter_observation_text' => null,
             'farmer_or_farm_owner_name' => fake()->name(),
-            'province' => fake()->randomElement(['Negros Occidental', 'Batangas', 'Tarlac']),
-            'municipality' => fake()->city(),
-            'final_latitude' => fake()->randomFloat(7, -90, 90),
-            'final_longitude' => fake()->randomFloat(7, -180, 180),
+            'province' => 'Batangas',
+            'municipality' => 'Nasugbu',
+            'final_latitude' => fake()->randomFloat(7, $location['latitude'] - 0.001, $location['latitude'] + 0.001),
+            'final_longitude' => fake()->randomFloat(7, $location['longitude'] - 0.001, $location['longitude'] + 0.001),
             'location_source' => 'gps',
             'gps_accuracy' => fake()->randomFloat(2, 0, 50),
             'observed_at' => $observedAt,

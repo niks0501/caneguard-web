@@ -18,9 +18,9 @@ function report(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
   return {
     uuid: "00000000-0000-4000-8000-000000000001",
     referenceCode: "CG-2026-0001",
-    barangay: "Mabini",
-    province: "Negros Occidental",
-    municipality: "Bago",
+    barangay: "Balaytigui",
+    province: "Batangas",
+    municipality: "Nasugbu",
     submittedByName: "Ramon Dela Cruz",
     submitterRole: "field_reporter",
     capturedAt: "2026-07-18T07:42:00+08:00",

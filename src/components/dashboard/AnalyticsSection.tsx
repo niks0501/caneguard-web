@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { isApiConnectionError } from "../../api/ApiError";
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { useAnalytics } from "../../hooks/useAnalytics";
 import { manilaDateAt } from "../../domain/reportingTime";
@@ -717,7 +718,10 @@ export function AnalyticsSection() {
     );
   }
 
-  if (query.isError || !query.data) {
+  if (!query.data) {
+    const message = isApiConnectionError(query.error)
+      ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+      : "Report analytics could not be loaded.";
     return (
       <section
         className="dashboard-analytics"
@@ -728,22 +732,28 @@ export function AnalyticsSection() {
             <h2 id="report-analytics-heading">Report analytics</h2>
           </div>
         </div>
-        <ErrorState
-          message="Report analytics could not be loaded."
-          onRetry={() => query.refetch()}
-        />
+        <ErrorState message={message} onRetry={() => query.refetch()} />
       </section>
     );
   }
 
   return (
-    <AnalyticsSectionView
+    <>
+      {query.isRefetchError ? (
+        <p className="dashboard-refresh-warning" role="alert">
+          {isApiConnectionError(query.error)
+            ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous analytics remain visible."
+            : "The latest analytics refresh failed. Showing the most recently loaded results."}
+        </p>
+      ) : null}
+      <AnalyticsSectionView
       analytics={query.data}
       from={range.from}
       to={range.to}
       onFromChange={(from) => setRange((current) => ({ ...current, from }))}
       onToChange={(to) => setRange((current) => ({ ...current, to }))}
       onPreset={applyPreset}
-    />
+      />
+    </>
   );
 }

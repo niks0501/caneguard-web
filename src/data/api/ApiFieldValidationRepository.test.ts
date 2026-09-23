@@ -11,13 +11,13 @@ const mapDto = {
     {
       type: "Feature",
       id: "report-1",
-      geometry: { type: "Point", coordinates: [122.9876543, 10.1234567] },
+      geometry: { type: "Point", coordinates: [120.6039, 14.126] },
       properties: {
         uuid: "report-1",
         reference_code: "CG-2026-0001",
-        barangay: "Mabini",
-        province: "Negros Occidental",
-        municipality: "Bago",
+        barangay: "Balaytigui",
+        province: "Batangas",
+        municipality: "Nasugbu",
         observed_at: "2026-08-13T10:20:30.000Z",
         submitted_at: "2026-08-13T11:00:00.000Z",
         predicted_label: "rust",
@@ -47,9 +47,9 @@ const queueDto = {
     oldest: {
       uuid: "report-1",
       reference_code: "CG-2026-0001",
-      barangay: "Mabini",
-      province: "Negros Occidental",
-      municipality: "Bago",
+      barangay: "Balaytigui",
+      province: "Batangas",
+      municipality: "Nasugbu",
       observed_at: "2026-08-13T10:20:30.000Z",
       submitted_at: "2026-08-13T11:00:00.000Z",
       predicted_label: "rust",
@@ -76,7 +76,7 @@ describe("ApiFieldValidationRepository", () => {
         const query = new URL(request.url).searchParams;
         expect(query.get("status")).toBe("resolved");
         expect(query.get("predicted_label")).toBe("rust");
-        expect(query.get("barangay")).toBe("Mabini");
+        expect(query.get("barangay")).toBe("Balaytigui");
         expect(query.get("date_from")).toBe("2026-08-01");
         return HttpResponse.json(mapDto);
       }),
@@ -88,13 +88,13 @@ describe("ApiFieldValidationRepository", () => {
     const result = await repository.getMap({
       status: "resolved",
       disease: "rust",
-      barangay: " Mabini ",
+      barangay: " Balaytigui ",
       dateFrom: "2026-08-01",
     });
 
     expect(result.features[0].geometry.coordinates).toEqual([
-      122.9876543,
-      10.1234567,
+      120.6039,
+      14.126,
     ]);
     expect(result.features[0].properties.predictedDisease).toBe("rust");
     expect(result.metadata.unlocatedCount).toBe(1);

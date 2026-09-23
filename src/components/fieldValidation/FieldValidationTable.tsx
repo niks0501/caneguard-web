@@ -15,7 +15,7 @@ export function FieldValidationTable({
         <div>
           <h2 id="location-table-heading">Located observations</h2>
         </div>
-        <span>{features.length} rows</span>
+        <span>{features.length} {features.length === 1 ? "row" : "rows"}</span>
       </div>
       {features.length === 0 ? (
         <p className="field-validation-table-card__empty">No located observations match the applied filters.</p>

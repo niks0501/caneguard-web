@@ -15,6 +15,27 @@ import {
 } from "./mockOperationalQueues";
 import { mockReports } from "./mockReports";
 
+const NASUGBU_BOUNDS = {
+  south: 14.043883,
+  west: 120.567055,
+  north: 14.221364,
+  east: 120.84818,
+};
+
+function isNasugbuReport(report: DiseaseReport) {
+  return report.province === "Batangas" && report.municipality === "Nasugbu";
+}
+
+function hasNasugbuLocation(report: DiseaseReport) {
+  return isNasugbuReport(report) &&
+    report.finalLatitude !== undefined &&
+    report.finalLongitude !== undefined &&
+    report.finalLatitude >= NASUGBU_BOUNDS.south &&
+    report.finalLatitude <= NASUGBU_BOUNDS.north &&
+    report.finalLongitude >= NASUGBU_BOUNDS.west &&
+    report.finalLongitude <= NASUGBU_BOUNDS.east;
+}
+
 function matchesFilters(report: DiseaseReport, filters: FieldValidationFilters) {
   const observedDate = report.observedAt
     ? manilaDateAt(new Date(report.observedAt))
@@ -56,17 +77,16 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
     const today = manilaDateAt();
     const reports = mockReports
       .filter(isCanonicalWorkReport)
-      .filter((report) =>
-        (filters.status
-          ? report.reviewStatus === filters.status
-          : filters.queue !== undefined || report.reviewStatus !== "resolved") &&
-        (!filters.queue || isInOperationalQueue(report, filters.queue, today)) &&
-        matchesFilters(report, filters),
+      .filter(isNasugbuReport)
+      .filter(
+        (report) =>
+          (filters.status
+            ? report.reviewStatus === filters.status
+            : filters.queue !== undefined || report.reviewStatus !== "resolved") &&
+          (!filters.queue || isInOperationalQueue(report, filters.queue, today)) &&
+          matchesFilters(report, filters),
       );
-    const located = reports.filter(
-      (report) =>
-        report.finalLatitude !== undefined && report.finalLongitude !== undefined,
-    );
+    const located = reports.filter(hasNasugbuLocation);
 
     return {
       type: "FeatureCollection",

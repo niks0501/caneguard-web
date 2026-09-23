@@ -12,7 +12,7 @@ import {
   useSearchParams,
 } from "react-router";
 import { ZodError } from "zod";
-import { ApiError } from "../api/ApiError";
+import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { MonitoringCalendar } from "../components/reports/MonitoringCalendar";
@@ -198,6 +198,7 @@ export function SubmittedReportsPage({
   const accessDenied = isAccessDeniedError(reportsQuery.error);
   const rateLimited = isRateLimitedError(reportsQuery.error);
   const malformedData = isMalformedDataError(reportsQuery.error);
+  const connectionError = isApiConnectionError(reportsQuery.error);
   const hasCachedData = Boolean(reportsQuery.data);
   const hasDisplayableData =
     hasCachedData && !accessDenied && !urlState.invalid;
@@ -470,7 +471,9 @@ export function SubmittedReportsPage({
               ? "The latest refresh was rate limited. Wait a moment before trying again; the previous queue remains visible."
               : malformedData
                 ? "The latest response had an unexpected format. The previous queue remains visible."
-                : "The latest refresh failed. Showing the most recently loaded queue."}
+                : connectionError
+                  ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous queue remains visible."
+                  : "The latest refresh failed. Showing the most recently loaded queue."}
           </p>
         ) : null}
 
@@ -496,6 +499,12 @@ export function SubmittedReportsPage({
             onRetry={() => reportsQuery.refetch()}
           />
         ) : null}
+        {!urlState.invalid && showInitialError && connectionError ? (
+          <ErrorState
+            message="Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+            onRetry={() => reportsQuery.refetch()}
+          />
+        ) : null}
         {!urlState.invalid && showInitialError && rateLimited ? (
           <ErrorState
             message="The report queue is receiving too many requests. Wait a moment, then try again."
@@ -506,6 +515,7 @@ export function SubmittedReportsPage({
         showInitialError &&
         !invalidQuery &&
         !accessDenied &&
+        !connectionError &&
         !rateLimited &&
         !malformedData ? (
           <ErrorState

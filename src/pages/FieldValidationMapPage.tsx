@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
 import { RefreshCw } from "lucide-react";
 import { ZodError } from "zod";
-import { ApiError } from "../api/ApiError";
+import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { FieldValidationFilterBar } from "../components/fieldValidation/FieldValidationFilterBar";
 import { FieldValidationQueuePanel } from "../components/fieldValidation/FieldValidationQueuePanel";
 import { FieldValidationTable } from "../components/fieldValidation/FieldValidationTable";
@@ -38,6 +38,9 @@ function errorMessage(error: unknown, area: string) {
   if (isMalformedDataError(error)) {
     return `CaneGuard returned an unexpected ${area} format. Refresh after the service is corrected.`;
   }
+  if (isApiConnectionError(error)) {
+    return `Cannot connect to the CaneGuard API for the field-validation ${area}. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview.`;
+  }
   return `The field-validation ${area} is unavailable. Please try again.`;
 }
 
@@ -66,10 +69,10 @@ function coverageMessage({
   const counts = `${locatedCount} located, ${unlocatedCount} unlocated.${truncation}`;
   if (unlocatedCount > 0) {
     const reportLabel = unlocatedCount === 1 ? "report has" : "reports have";
-    return `${counts} ${unlocatedCount} filtered ${reportLabel} no valid coordinate pair. Continue in the queue or open the submitted report table to review every report.`;
+    return `${counts} ${unlocatedCount} filtered ${reportLabel} no valid Nasugbu coordinate pair. Continue in the queue or open the submitted report table to review every report.`;
   }
 
-  return `${counts} All filtered reports with location data have a valid coordinate pair.`;
+  return `${counts} All filtered reports with location data have a valid Nasugbu coordinate pair.`;
 }
 
 function WorkspaceAreaError({
@@ -230,7 +233,9 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
         <>
           {mapQuery.isRefetchError || queueQuery.isRefetchError ? (
             <p className="queue-refresh-warning" role="alert">
-              The latest workspace refresh failed. Showing the most recently loaded map and queue where available.
+              {isApiConnectionError(mapQuery.error) || isApiConnectionError(queueQuery.error)
+                ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the most recently loaded map and queue remain visible."
+                : "The latest workspace refresh failed. Showing the most recently loaded map and queue where available."}
             </p>
           ) : null}
           {mapQuery.isFetching || queueQuery.isFetching ? (
@@ -244,14 +249,18 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
           <div className="validation-workspace">
             <div className="validation-workspace__map-column">
               {visibleMapData ? (
-                <>
+                <details className="field-validation-locations">
+                  <summary className="field-validation-locations__summary">
+                    <span>Map and located observations</span>
+                    <span>{visibleMapData.features.length} {visibleMapData.features.length === 1 ? "row" : "rows"}</span>
+                  </summary>
                   <ValidationMap
                     data={visibleMapData}
                     frameKey={mapFrameKey}
                     isPlaceholderData={mapQuery.isPlaceholderData}
                   />
                   <FieldValidationTable features={visibleMapData.features} />
-                </>
+                </details>
               ) : mapInitialError ? (
                 <WorkspaceAreaError area="map" error={mapQuery.error} onRetry={() => mapQuery.refetch()} />
               ) : (

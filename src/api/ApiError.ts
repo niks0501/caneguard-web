@@ -29,6 +29,15 @@ export class ApiError extends Error {
   }
 }
 
+export function isApiConnectionError(error: unknown): boolean {
+  if (axios.isAxiosError(error)) return error.response === undefined;
+
+  return error instanceof ApiError &&
+    error.status === undefined &&
+    axios.isAxiosError(error.cause) &&
+    error.cause.response === undefined;
+}
+
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
 
