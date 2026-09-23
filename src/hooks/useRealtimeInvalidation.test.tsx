@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
+import { env } from "../config/env";
 import { dashboardKeys } from "./useDashboard";
 import { notificationsKeys } from "./notificationQueries";
 import { reportKeys } from "./reportQueries";
@@ -49,10 +50,17 @@ describe("useRealtimeInvalidation", () => {
     error: ReturnType<typeof vi.fn>;
   };
   let connectionChange: ((status: string) => void) | undefined;
+  let connectionError: (() => void) | undefined;
   let echo: {
     private: ReturnType<typeof vi.fn>;
     connector: {
       onConnectionChange: ReturnType<typeof vi.fn>;
+      pusher: {
+        connection: {
+          bind: ReturnType<typeof vi.fn>;
+          unbind: ReturnType<typeof vi.fn>;
+        };
+      };
     };
     leave: ReturnType<typeof vi.fn>;
     disconnect: ReturnType<typeof vi.fn>;
@@ -60,6 +68,9 @@ describe("useRealtimeInvalidation", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    env.realtimeEnabled = true;
+    env.reverbAppKey = "test-key";
+    connectionError = undefined;
     vi.mocked(useAuth).mockReturnValue({
       status: "authenticated",
       user: {
@@ -84,11 +95,41 @@ describe("useRealtimeInvalidation", () => {
           connectionChange = callback;
           return vi.fn();
         }),
+        pusher: {
+          connection: {
+            bind: vi.fn((_event: string, callback: () => void) => {
+              connectionError = callback;
+            }),
+            unbind: vi.fn(),
+          },
+        },
       },
       leave: vi.fn(),
       disconnect: vi.fn(),
     };
     vi.mocked(createEchoClient).mockReturnValue(echo as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("does not create Echo when the app key is empty", () => {
+    env.reverbAppKey = "";
+
+    renderProbe(new QueryClient());
+
+    expect(screen.getByTestId("realtime-status")).toHaveTextContent("disabled");
+    expect(createEchoClient).not.toHaveBeenCalled();
+  });
+
+  it("does not create Echo when realtime is explicitly disabled", () => {
+    env.realtimeEnabled = false;
+
+    renderProbe(new QueryClient());
+
+    expect(screen.getByTestId("realtime-status")).toHaveTextContent("disabled");
+    expect(createEchoClient).not.toHaveBeenCalled();
   });
 
   it("authorizes the user's private channel and invalidates canonical queries", async () => {
@@ -130,7 +171,24 @@ describe("useRealtimeInvalidation", () => {
     expect(echo.disconnect).toHaveBeenCalled();
   });
 
-  it("keeps the workspace in refresh mode when Echo cannot connect", async () => {
+  it("disconnects after one connection error and logs one debug note", async () => {
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+
+    renderProbe(new QueryClient());
+
+    expect(connectionError).toBeDefined();
+    act(() => connectionError?.());
+    await waitFor(() => {
+      expect(echo.disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => connectionError?.());
+    expect(screen.getByTestId("realtime-status")).toHaveTextContent("degraded");
+    expect(echo.disconnect).toHaveBeenCalledTimes(1);
+    expect(debug).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the workspace in refresh mode when Echo cannot be created", async () => {
     vi.mocked(createEchoClient).mockImplementation(() => {
       throw new Error("Reverb is unavailable");
     });

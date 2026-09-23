@@ -36,9 +36,24 @@ export function useRealtimeInvalidation() {
 
     let echo: ReturnType<typeof createEchoClient> | undefined;
     let disposed = false;
+    let failureReported = false;
+    let disconnectTimer: number | undefined;
+    const reportUnavailable = () => {
+      if (failureReported) return;
+      failureReported = true;
+      setConnectionStatus("degraded");
+      if (import.meta.env.DEV) {
+        console.debug("Realtime updates are unavailable; using periodic refresh.");
+      }
+      disconnectTimer = window.setTimeout(() => {
+        if (!disposed) echo?.disconnect();
+      }, 0);
+    };
 
     try {
       echo = createEchoClient();
+      const pusherConnection = echo.connector.pusher.connection;
+      pusherConnection.bind("error", reportUnavailable);
       const channelName = `users.${userUuid}`;
       const channel = echo.private(channelName);
       const invalidateFromRealtime = (payload: unknown) => {
@@ -49,21 +64,33 @@ export function useRealtimeInvalidation() {
       };
       channel.listen(realtimeEventName, invalidateFromRealtime);
       channel.listen(realtimeAttentionEventName, invalidateFromRealtime);
-      channel.error(() => setConnectionStatus("degraded"));
+      channel.error(reportUnavailable);
 
       const unsubscribeConnection = echo.connector.onConnectionChange(
         (status) => {
-          setConnectionStatus(status === "connected" ? "connected" : "degraded");
+          if (status === "connected") {
+            setConnectionStatus("connected");
+            return;
+          }
+          setConnectionStatus("degraded");
+          if (status === "failed") reportUnavailable();
         },
       );
 
       return () => {
         disposed = true;
+        if (disconnectTimer !== undefined) {
+          window.clearTimeout(disconnectTimer);
+        }
+        pusherConnection.unbind("error", reportUnavailable);
         unsubscribeConnection();
         echo?.leave(channelName);
         echo?.disconnect();
       };
     } catch {
+      if (import.meta.env.DEV) {
+        console.debug("Realtime updates could not start; using periodic refresh.");
+      }
       echo?.disconnect();
       const timer = window.setTimeout(() => {
         if (!disposed) setConnectionStatus("degraded");
@@ -76,11 +103,9 @@ export function useRealtimeInvalidation() {
     }
   }, [queryClient, realtimeConfigured, userUuid]);
 
-  const status: RealtimeStatus = !hasAuthenticatedSession
-    ? "disabled"
-    : !realtimeConfigured
-      ? "degraded"
-      : connectionStatus;
+  const status: RealtimeStatus = realtimeConfigured
+    ? connectionStatus
+    : "disabled";
 
   return { status };
 }

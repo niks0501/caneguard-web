@@ -21,7 +21,8 @@ export function createEchoClient(): Echo<"reverb"> {
     wsPort: env.reverbPort,
     wssPort: env.reverbPort,
     forceTLS: env.reverbScheme === "https",
-    enabledTransports: ["ws", "wss"],
+    enabledTransports: [env.reverbScheme === "https" ? "wss" : "ws"],
+    unavailableTimeout: 5_000,
     disableStats: true,
     authEndpoint: `${env.apiBaseUrl}/broadcasting/auth`,
     auth: {
