@@ -102,22 +102,54 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('features.0.properties.review_status', Report::STATUS_RESOLVED);
     }
 
-    public function test_map_excludes_coordinate_points_outside_nasugbu(): void
+    public function test_map_plots_valid_coordinates_worldwide_and_keeps_missing_or_invalid_pairs_unlocated(): void
     {
+        $wawa = Report::factory()->create([
+            'reference_code' => 'CG-MAP-WAWA-REAL-READING',
+            'barangay' => 'Wawa',
+            'province' => 'Batangas',
+            'municipality' => 'Nasugbu',
+            'final_latitude' => 13.933159,
+            'final_longitude' => 120.7273218,
+        ]);
+        $outsideNasugbu = Report::factory()->create([
+            'reference_code' => 'CG-MAP-POTOTAN-COORDINATES',
+            'barangay' => 'Pototan',
+            'province' => 'Iloilo',
+            'municipality' => 'Pototan',
+            'final_latitude' => 10.5,
+            'final_longitude' => 122.8,
+        ]);
         Report::factory()->create([
-            'reference_code' => 'CG-MAP-OUTSIDE-NASUGBU',
-            'final_latitude' => 10.1234567,
-            'final_longitude' => 122.9876543,
+            'reference_code' => 'CG-MAP-MISSING-COORDINATES',
+            'final_latitude' => null,
+            'final_longitude' => null,
+        ]);
+        Report::factory()->create([
+            'reference_code' => 'CG-MAP-INVALID-LATITUDE',
+            'final_latitude' => 91,
+            'final_longitude' => 122.8,
+        ]);
+        Report::factory()->create([
+            'reference_code' => 'CG-MAP-INVALID-LONGITUDE',
+            'final_latitude' => 10.5,
+            'final_longitude' => 181,
         ]);
 
         Sanctum::actingAs(User::factory()->reviewer()->create());
 
         $this->getJson('/api/v1/reports/map')
             ->assertOk()
-            ->assertJsonCount(0, 'features')
-            ->assertJsonPath('metadata.total_count', 1)
-            ->assertJsonPath('metadata.located_count', 0)
-            ->assertJsonPath('metadata.unlocated_count', 1);
+            ->assertJsonCount(2, 'features')
+            ->assertJsonPath('features.0.id', $wawa->uuid)
+            ->assertJsonPath('features.0.geometry.coordinates.0', 120.7273218)
+            ->assertJsonPath('features.0.geometry.coordinates.1', 13.933159)
+            ->assertJsonPath('features.1.id', $outsideNasugbu->uuid)
+            ->assertJsonPath('features.1.geometry.coordinates.0', 122.8)
+            ->assertJsonPath('features.1.geometry.coordinates.1', 10.5)
+            ->assertJsonPath('metadata.total_count', 5)
+            ->assertJsonPath('metadata.located_count', 2)
+            ->assertJsonPath('metadata.unlocated_count', 3);
     }
 
     public function test_smut_model_reports_are_available_in_map_and_field_validation_queue(): void

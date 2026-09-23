@@ -7,6 +7,7 @@ import { ValidationMap } from "./ValidationMap";
 
 type CapturedMapProps = {
   children?: ReactNode;
+  initialViewState?: { longitude: number; latitude: number; zoom: number };
   maxBounds?: [[number, number], [number, number]];
   onClick?: (event: never) => void;
   onError?: () => void;
@@ -119,31 +120,32 @@ describe("ValidationMap", () => {
     expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
   });
 
-  it("fits multiple located reports with padding and a maximum zoom", () => {
-    renderMap(mapData([[120.60, 14.10], [120.80, 14.20]]));
+  it("fits worldwide located reports with padding and a maximum zoom", () => {
+    renderMap(mapData([[120.7273218, 13.933159], [122.8, 10.5]]));
     loadMap();
 
     expect(mapTestState.controls.fitBounds).toHaveBeenCalledWith(
-      [[120.60, 14.10], [120.80, 14.20]],
+      [[120.7273218, 10.5], [122.8, 13.933159]],
       { padding: 60, maxZoom: 14 },
     );
   });
 
-  it("uses a Nasugbu view when there are no located reports", () => {
+  it("starts wide and returns to a worldwide view when there are no located reports", () => {
     renderMap(mapData([], 2));
+    expect(mapTestState.latestProps?.initialViewState).toEqual({
+      longitude: 0,
+      latitude: 20,
+      zoom: 1,
+    });
+    expect(mapTestState.latestProps?.maxBounds).toBeUndefined();
+
     loadMap();
 
     expect(mapTestState.controls.easeTo).toHaveBeenCalledWith({
-      center: [120.63, 14.07],
-      zoom: 10,
+      center: [0, 20],
+      zoom: 1,
     });
     expect(screen.getByText("No located reports to plot.")).toBeInTheDocument();
-    expect(mapTestState.latestProps?.maxBounds).toEqual([
-      120.567055,
-      14.043883,
-      120.84818,
-      14.221364,
-    ]);
   });
 
   it("does not reframe background data refreshes but reframes a new filter context", () => {

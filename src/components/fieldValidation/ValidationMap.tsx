@@ -23,17 +23,11 @@ const mapTilerStyle = env.mapTilerKey
   ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(env.mapTilerKey)}`
   : undefined;
 
-const NASUGBU_VIEW = {
-  longitude: 120.63,
-  latitude: 14.07,
-  zoom: 10,
+const WORLD_VIEW = {
+  longitude: 0,
+  latitude: 20,
+  zoom: 1,
 } as const;
-const NASUGBU_BOUNDS: [number, number, number, number] = [
-  120.567055,
-  14.043883,
-  120.84818,
-  14.221364,
-];
 
 type MapProviderState = "loading" | "ready" | "error";
 
@@ -163,7 +157,7 @@ function MapProviderStatus({
       <strong>{hasMatchingReports ? "No located reports to plot." : "No reports match these filters."}</strong>
       <p>
         {hasMatchingReports
-          ? "Reports exist, but none have a valid Nasugbu coordinate pair. They remain available in the report table and validation queue."
+          ? "Reports exist, but none have a valid coordinate pair. They remain available in the report table and validation queue."
           : "Try changing or clearing the applied filters."}
       </p>
     </div>
@@ -210,8 +204,8 @@ export function ValidationMap({
 
     if (data.features.length === 0) {
       map.easeTo({
-        center: [NASUGBU_VIEW.longitude, NASUGBU_VIEW.latitude],
-        zoom: NASUGBU_VIEW.zoom,
+        center: [WORLD_VIEW.longitude, WORLD_VIEW.latitude],
+        zoom: WORLD_VIEW.zoom,
       });
     } else if (data.features.length === 1) {
       const [longitude, latitude] = data.features[0].geometry.coordinates;
@@ -291,8 +285,7 @@ export function ValidationMap({
           <>
             <Map
             ref={mapRef}
-            initialViewState={NASUGBU_VIEW}
-            maxBounds={NASUGBU_BOUNDS}
+            initialViewState={WORLD_VIEW}
             mapStyle={mapTilerStyle}
             interactiveLayerIds={["validation-clusters", "validation-points"]}
             onClick={handleClick}

@@ -20,9 +20,7 @@ class QueryMapReports
     {
         $query = $this->applyReportFilters->handle(
             Report::query()
-                ->whereNull('canonical_report_id')
-                ->where('province', 'Batangas')
-                ->where('municipality', 'Nasugbu'),
+                ->whereNull('canonical_report_id'),
             $filters,
             'observed_at',
         );
@@ -39,12 +37,9 @@ class QueryMapReports
             $maxLimit,
             max(1, (int) ($filters['limit'] ?? config('caneguard.map.default_limit', $maxLimit))),
         );
-        $bounds = config('caneguard.map.bounds');
         $locatedQuery = (clone $query)
-            ->whereNotNull('final_latitude')
-            ->whereNotNull('final_longitude')
-            ->whereBetween('final_latitude', [$bounds['south'], $bounds['north']])
-            ->whereBetween('final_longitude', [$bounds['west'], $bounds['east']]);
+            ->whereBetween('final_latitude', [-90, 90])
+            ->whereBetween('final_longitude', [-180, 180]);
         $locatedCount = (clone $locatedQuery)->count('reports.id');
         $reports = $locatedQuery
             ->select([

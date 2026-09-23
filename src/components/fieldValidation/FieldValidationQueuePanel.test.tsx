@@ -93,6 +93,31 @@ describe("FieldValidationQueuePanel", () => {
     expect(screen.getByText("CG-2026-0002")).toBeInTheDocument();
   });
 
+  it("explains why missing and invalid coordinates are not plotted", () => {
+    const unavailable = createItem(1, {
+      finalLatitude: null,
+      finalLongitude: null,
+      locationSource: "unavailable",
+      locationUnavailable: true,
+      locationUnavailableReason: "offline_no_map",
+    });
+    const invalid = createItem(2, {
+      finalLatitude: 91,
+      finalLongitude: 122.8,
+    });
+    const data: FieldValidationQueueData = {
+      queue: "needs_visit",
+      count: 2,
+      oldest: unavailable,
+      items: [unavailable, invalid],
+    };
+
+    renderPanel(data);
+
+    expect(screen.getByText(/Location unavailable: offline with no map/)).toBeInTheDocument();
+    expect(screen.getByText(/outside the valid latitude\/longitude ranges and were not plotted/)).toBeInTheDocument();
+  });
+
   it("shows paging disclosure and paginates items when exceeding page size", async () => {
     const user = userEvent.setup();
     const items = Array.from({ length: 15 }, (_, i) => createItem(i + 1));
