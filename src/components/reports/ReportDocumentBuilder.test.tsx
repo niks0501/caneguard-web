@@ -74,7 +74,7 @@ describe("ReportDocumentBuilder", () => {
     await user.click(download);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/server-side PDF renderer is unavailable/i);
-    expect(screen.getByText(/Chromium or Brave binary/)).toBeInTheDocument();
+    expect(screen.getByText(/Dompdf installation/)).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith(
       expect.stringContaining("/api/v1/reports/documents/report/pdf?"),
       { responseType: "blob" },

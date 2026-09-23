@@ -112,6 +112,61 @@ class ReportDocumentTest extends TestCase
         );
     }
 
+    public function test_pdf_route_generates_a_valid_dompdf_document_without_a_browser_driver(): void
+    {
+        $this->assertSame('dompdf', config('laravel-pdf.driver'));
+        $this->assertSame(public_path(), config('laravel-pdf.dompdf.chroot'));
+
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->create([
+            'reference_code' => 'CG-PDF-DOMPDF',
+            'submitted_at' => CarbonImmutable::parse('2026-09-17T08:00:00Z'),
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $response = $this->get('/api/v1/reports/documents/report/pdf?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]));
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeaderContains('Content-Disposition', 'attachment; filename="caneguard-report-');
+
+        $pdf = $response->getContent();
+        $this->assertStringStartsWith('%PDF-', $pdf);
+        $this->assertStringEndsWith('%%EOF', trim($pdf));
+
+        preg_match_all('/\\/Type\\s*\\/Page\\b/', $pdf, $pageObjects);
+        $pageCount = count($pageObjects[0]);
+        $this->assertGreaterThan(1, $pageCount);
+        $pageTreePattern = '/\\/Type\\s*\\/Pages\\b.*?\\/Count\\s+'.$pageCount.'\\b/s';
+        $this->assertSame(1, preg_match($pageTreePattern, $pdf));
+
+        $pdfText = $this->decodePdfTextStreams($pdf);
+        $this->assertStringContainsString('OPERATIONAL SUMMARY', $pdfText);
+        $this->assertStringContainsString('FIELD-VALIDATION WORKLOAD', $pdfText);
+
+        $formatResponse = $this->get('/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+            'format' => 'pdf',
+        ]));
+
+        $formatResponse->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $formatResponse->getContent());
+    }
+
+    private function decodePdfTextStreams(string $pdf): string
+    {
+        preg_match_all('/stream\\r?\\n(.*?)\\r?\\nendstream/s', $pdf, $matches);
+
+        return implode("\n", array_map(
+            static fn (string $stream): string => @gzuncompress($stream) ?: $stream,
+            $matches[1],
+        ));
+    }
+
     public function test_other_html_routes_still_deny_framing(): void
     {
         $response = $this->get('/');

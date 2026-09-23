@@ -205,7 +205,7 @@ export function ReportDocumentBuilder({
         const apiError = toApiError(error);
         const errorCode = apiError.code ?? await readPdfErrorCode(error);
         setPdfError(errorCode === "PDF_RENDER_FAILED"
-          ? "The API is reachable, but its server-side PDF renderer is unavailable. Ask an administrator to check the configured Chromium or Brave binary and its runtime permissions. The HTML preview remains available."
+          ? "The API is reachable, but its server-side PDF renderer is unavailable. Ask an administrator to check the Dompdf installation and server logs. The HTML preview remains available."
           : "The PDF could not be generated. Your live preview is still available; use Print or try Download PDF again.");
       }
     } finally {
