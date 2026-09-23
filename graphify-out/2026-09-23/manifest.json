@@ -216,9 +216,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1790160368.6810482,
-    "seen": 1790160588.293908,
-    "ast_hash": "ff902dc7c253fce34563f8e19df38181",
+    "mtime": 1790160745.9253626,
+    "seen": 1790160916.652194,
+    "ast_hash": "57b89caa3aa21fc68b7b6f156de1c68f",
     "semantic_hash": ""
   },
   "index.html": {
@@ -966,9 +966,9 @@
     "semantic_hash": ""
   },
   "src/auth/AuthProvider.tsx": {
-    "mtime": 1790160194.9695165,
-    "seen": 1790160588.2682278,
-    "ast_hash": "ce160c29713155e982ba7aade4646d02",
+    "mtime": 1790160739.4893575,
+    "seen": 1790160916.6518567,
+    "ast_hash": "fa4846760c39ffc8e872b99e118187ac",
     "semantic_hash": ""
   },
   "src/auth/AuthRouting.test.tsx": {
@@ -7299,6 +7299,18 @@
     "mtime": 1790080913.6555676,
     "seen": 1790160588.2934713,
     "ast_hash": "63c72383ce160fcaa435874a35a67544",
+    "semantic_hash": ""
+  },
+  "src/auth/AuthProvider.test.tsx": {
+    "mtime": 1790160806.177337,
+    "seen": 1790160916.6518538,
+    "ast_hash": "abdadfccee61a5ea90a2d4c3b62e4095",
+    "semantic_hash": ""
+  },
+  "src/auth/authSession.test.ts": {
+    "mtime": 1790160614.0773883,
+    "seen": 1790160916.6518624,
+    "ast_hash": "f62ea0e2f76d80d11e4f7454e757487e",
     "semantic_hash": ""
   }
 }

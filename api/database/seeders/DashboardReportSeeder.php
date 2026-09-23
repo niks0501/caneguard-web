@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Advisory;
+use App\Models\FieldValidationAssignment;
+use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
@@ -19,8 +21,8 @@ use RuntimeException;
  *
  * The records are deliberately ordinary office reports: they share
  * one geography, use stable fictional names, and exercise the operational
- * states that the overview summarizes. This seeder is add-only and is called
- * by DatabaseSeeder so a normal local reset gets the complete dashboard.
+ * states that the overview summarizes. Its stable report references are
+ * updated on each run; DatabaseSeeder calls it for the complete local dashboard.
  */
 class DashboardReportSeeder extends Seeder
 {
@@ -43,34 +45,43 @@ class DashboardReportSeeder extends Seeder
 
     /** @var array<int, string> */
     private const BARANGAYS = [
-        'Abuanan',
-        'Balingasag',
-        'Dulao',
-        'Lag-asan',
-        'Mailum',
-        'Ma-ao',
-        'Malingin',
-        'Napoles',
-        'Poblacion',
-        'Sagasa',
-        'Taloc',
-        'Tinongan',
+        'Aga',
+        'Balaytigui',
+        'Banilad',
+        'Bilaran',
+        'Bucana',
+        'Bulihan',
+        'Bunducan',
+        'Butucan',
+        'Calayo',
+        'Catandaan',
+        'Cogunan',
+        'Dayap',
     ];
 
-    /** @var array<string, array{latitude: float, longitude: float}> */
-    private const BARANGAY_COORDINATES = [
-        'Abuanan' => ['latitude' => 10.5204, 'longitude' => 122.8238],
-        'Balingasag' => ['latitude' => 10.6402, 'longitude' => 122.8712],
-        'Dulao' => ['latitude' => 10.5334, 'longitude' => 122.8387],
-        'Lag-asan' => ['latitude' => 10.5418, 'longitude' => 122.8392],
-        'Mailum' => ['latitude' => 10.5857, 'longitude' => 122.8432],
-        'Ma-ao' => ['latitude' => 10.6152, 'longitude' => 122.8854],
-        'Malingin' => ['latitude' => 10.5581, 'longitude' => 122.8669],
-        'Napoles' => ['latitude' => 10.5754, 'longitude' => 122.8581],
-        'Poblacion' => ['latitude' => 10.5384, 'longitude' => 122.8380],
-        'Sagasa' => ['latitude' => 10.5654, 'longitude' => 122.8401],
-        'Taloc' => ['latitude' => 10.5552, 'longitude' => 122.8201],
-        'Tinongan' => ['latitude' => 10.6010, 'longitude' => 122.8600],
+    /**
+     * Approximate barangay reference points from the PhilAtlas Nasugbu profiles.
+     * The names match the PSA PSGC list; centers and the full generated jitter
+     * envelope were checked against OSM Nasugbu municipal relation 7340421.
+     * Sources: https://psa.gov.ph/classification/psgc/barangays/0401019000
+     * https://www.philatlas.com/luzon/r04a/batangas/nasugbu/{barangay}.html
+     * https://www.openstreetmap.org/relation/7340421
+     *
+     * @var array<string, array{latitude: float, longitude: float}>
+     */
+    public const BARANGAY_COORDINATES = [
+        'Aga' => ['latitude' => 14.0900, 'longitude' => 120.7792],
+        'Balaytigui' => ['latitude' => 14.1260, 'longitude' => 120.6039],
+        'Banilad' => ['latitude' => 14.0730, 'longitude' => 120.7408],
+        'Bilaran' => ['latitude' => 14.0487, 'longitude' => 120.6846],
+        'Bucana' => ['latitude' => 14.0678, 'longitude' => 120.6267],
+        'Bulihan' => ['latitude' => 14.1552, 'longitude' => 120.6540],
+        'Bunducan' => ['latitude' => 14.1069, 'longitude' => 120.6521],
+        'Butucan' => ['latitude' => 14.1394, 'longitude' => 120.6805],
+        'Calayo' => ['latitude' => 14.1461, 'longitude' => 120.6141],
+        'Catandaan' => ['latitude' => 14.0804, 'longitude' => 120.6815],
+        'Cogunan' => ['latitude' => 14.0625, 'longitude' => 120.6555],
+        'Dayap' => ['latitude' => 14.1013, 'longitude' => 120.6627],
     ];
 
     /** @var array<int, string> */
@@ -154,7 +165,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20260905-0715' => $this->attributes(
                 '5e1af3d1-6f7d-4bc2-9e48-2f86a3da0a11',
                 '0d09f4e1-0de7-4ed5-a4cc-8f09e13b1a01',
-                'Abuanan',
+                'Aga',
                 'Maribel Cordero',
                 Report::LABEL_RUST,
                 0.78,
@@ -170,7 +181,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20260914-0830' => $this->attributes(
                 '2a5f2d0c-45b0-4d1c-9c2e-819ad98ef012',
                 'b8ddf31f-6348-4a2f-8d77-8a73e6f1b102',
-                'Dulao',
+                'Banilad',
                 'Esteban Lacuesta',
                 Report::LABEL_SMUT,
                 0.86,
@@ -188,7 +199,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20260925-0645' => $this->attributes(
                 '7e0d4f37-6a08-42ed-9814-2cb6f5a4c013',
                 '7abf2148-d89a-44d7-ae0f-18fa23d0c103',
-                'Mailum',
+                'Dayap',
                 'Rosalinda Ybañez',
                 Report::LABEL_MOSAIC,
                 0.81,
@@ -206,7 +217,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261003-0740' => $this->attributes(
                 '49cb6d1e-2a45-48b7-9f60-3e0a7c5d1014',
                 'e8a1d6f2-2405-49a5-b7f7-23b1d9ce4104',
-                'Lag-asan',
+                'Balaytigui',
                 'Carmela Natividad',
                 Report::LABEL_RUST,
                 0.83,
@@ -222,7 +233,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261011-0910' => $this->attributes(
                 '0cb2f8e3-7c2a-4f5f-a941-5a0e6d2b2015',
                 '3ffb3b70-1d8d-4d2c-b3a0-11a4bcf0d205',
-                'Poblacion',
+                'Bucana',
                 'Mateo Villareal',
                 Report::LABEL_SMUT,
                 0.74,
@@ -240,7 +251,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261018-0630' => $this->attributes(
                 'f2b3d6e4-8a1f-4e9a-bd62-6c4e7a3f3016',
                 '9f6c0b4e-7e41-4f0f-9aa8-0a5b21d6e306',
-                'Taloc',
+                'Bilaran',
                 'Lourdes Manansala',
                 Report::LABEL_MOSAIC,
                 0.9,
@@ -258,7 +269,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261024-0815' => $this->attributes(
                 'a4e7c0f2-3b9d-4d8a-8f16-7c2e5b9a4017',
                 '4c0d8e2a-70c9-4876-9ef4-3c2b1a7d4107',
-                'Malingin',
+                'Bulihan',
                 'Benilda Soriano',
                 Report::LABEL_HEALTHY,
                 0.95,
@@ -276,7 +287,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261030-0705' => $this->attributes(
                 '6f9a1d3c-5e7b-4a2f-8d90-1c3b6e8f5018',
                 'd2b4f8e0-6a32-4d9c-9f73-5b1e0c7a5108',
-                'Napoles',
+                'Catandaan',
                 'Omar de la Cruz',
                 Report::LABEL_RUST,
                 0.88,
@@ -294,7 +305,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261106-0840' => $this->attributes(
                 '1e5a8c3d-7f2b-4d90-a6e1-9c4b7f2d6019',
                 '8a3f1c6e-2d9b-4e7a-b5f0-6c1e8d4a6109',
-                'Sagasa',
+                'Bunducan',
                 'Felisa Monteclaro',
                 Report::LABEL_SMUT,
                 0.7,
@@ -310,7 +321,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261115-0720' => $this->attributes(
                 'b7c4e1f9-3a6d-4f80-9e2b-5c7a1d8f7020',
                 'f1d6b8a2-4e9c-4073-a5f0-2b7d9c6e7120',
-                'Tinongan',
+                'Cogunan',
                 'Nicanora Salcedo',
                 Report::LABEL_MOSAIC,
                 0.77,
@@ -328,7 +339,7 @@ class DashboardReportSeeder extends Seeder
             'BGO-20261124-0900' => $this->attributes(
                 'c2f5a8d1-6e3b-4f90-b7a2-1d9c5e8f8021',
                 '5e0a3c7f-1d8b-4f6e-a2c9-7b4d0e5f8121',
-                'Balingasag',
+                'Calayo',
                 'Ramon Gaviola',
                 Report::LABEL_HEALTHY,
                 0.93,
@@ -347,9 +358,9 @@ class DashboardReportSeeder extends Seeder
     }
 
     /**
-     * Seed the high-volume dashboard fixture in bulk. The fixed records above
-     * retain the named workflow examples; this path supplies broad monthly
-     * coverage without issuing one insert/query cycle per report.
+     * Seed the high-volume dashboard fixture. The fixed records above retain
+     * named workflow examples; stable report references update monthly coverage
+     * in place on subsequent runs.
      */
     private function seedVolume(User $reporter, User $reviewer, string $image): void
     {
@@ -362,42 +373,45 @@ class DashboardReportSeeder extends Seeder
             $advisoryId === null ? null : (int) $advisoryId,
         );
         $references = array_keys($plan);
-        $reportIds = $this->reportIdsByReference($references);
-        $reportRows = [];
+        $existingReports = Report::query()
+            ->whereIn('reference_code', $references)
+            ->get(['reference_code', 'uuid', 'client_uuid', 'scan_record_client_uuid'])
+            ->keyBy('reference_code');
+        $reportIds = [];
 
         foreach ($plan as $referenceCode => $definition) {
-            if (isset($reportIds[$referenceCode])) {
-                continue;
-            }
-
             $submittedAt = $definition['report']['submitted_at'];
             $path = self::volumeImagePath($submittedAt);
-            $reportRows[] = [
-                ...$definition['report'],
-                'reference_code' => $referenceCode,
-                'reporter_id' => $reporter->getKey(),
-                'image_path' => $path,
-                'image_mime_type' => 'image/png',
-                'image_size_bytes' => strlen($image),
-                'image_source_type' => $definition['ordinal'] % 2 === 0 ? 'camera' : 'gallery',
-                'source_width' => 1254,
-                'source_height' => 1254,
-                'model_version' => 'v1.0-mobilenetv2',
-                'preprocess_ms' => 10 + ($definition['ordinal'] % 13),
-                'inference_ms' => 92 + ($definition['ordinal'] % 41),
-                'total_ms' => 126 + ($definition['ordinal'] % 47),
-                'captured_at' => $definition['report']['submitted_at']->subMinutes(20),
-                'review_notes' => $definition['report']['reviewed_at'] === null
-                    ? null
-                    : 'Reviewed against the submitted field evidence.',
-                'lock_version' => 0,
-                'created_at' => $submittedAt,
-                'updated_at' => $submittedAt,
-            ];
+            $existing = $existingReports->get($referenceCode);
+            $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
+                ['reference_code' => $referenceCode],
+                [
+                    ...$definition['report'],
+                    'uuid' => $existing?->uuid ?? $definition['report']['uuid'],
+                    'client_uuid' => $existing?->client_uuid ?? $definition['report']['client_uuid'],
+                    'scan_record_client_uuid' => $existing?->scan_record_client_uuid
+                        ?? $definition['report']['scan_record_client_uuid'],
+                    'reporter_id' => $reporter->getKey(),
+                    'image_path' => $path,
+                    'image_mime_type' => 'image/png',
+                    'image_size_bytes' => strlen($image),
+                    'image_source_type' => $definition['ordinal'] % 2 === 0 ? 'camera' : 'gallery',
+                    'source_width' => 1254,
+                    'source_height' => 1254,
+                    'model_version' => 'v1.0-mobilenetv2',
+                    'preprocess_ms' => 10 + ($definition['ordinal'] % 13),
+                    'inference_ms' => 92 + ($definition['ordinal'] % 41),
+                    'total_ms' => 126 + ($definition['ordinal'] % 47),
+                    'captured_at' => $submittedAt->subMinutes(20),
+                    'review_notes' => $definition['report']['reviewed_at'] === null
+                        ? null
+                        : 'Reviewed against the submitted field evidence.',
+                    'lock_version' => 0,
+                ],
+            ));
+            $reportIds[$referenceCode] = (int) $report->getKey();
         }
 
-        self::insertInChunks('reports', $reportRows);
-        $reportIds = $this->reportIdsByReference($references);
         $disk = Storage::disk('local');
 
         $reportImagePaths = [];
@@ -470,44 +484,32 @@ class DashboardReportSeeder extends Seeder
         }
         $assignmentIds = [];
         if ($assignmentDefinitions !== []) {
-            $assignmentIds = DB::table('field_validation_assignments')
-                ->whereIn('report_id', array_values(array_intersect_key(
-                    $reportIds,
-                    $assignmentDefinitions,
-                )))
-                ->pluck('id', 'report_id')
-                ->map(fn ($id): int => (int) $id)
-                ->all();
-            $assignmentRows = [];
+            $assignmentReportIds = array_values(array_intersect_key(
+                $reportIds,
+                $assignmentDefinitions,
+            ));
+            $existingAssignments = DB::table('field_validation_assignments')
+                ->whereIn('report_id', $assignmentReportIds)
+                ->get(['report_id', 'uuid'])
+                ->keyBy('report_id');
+
             foreach ($assignmentDefinitions as $referenceCode => $assignment) {
                 $reportId = $reportIds[$referenceCode];
-                if (isset($assignmentIds[$reportId])) {
-                    continue;
-                }
-
-                $assignmentRows[] = [
-                    'uuid' => (string) Str::uuid(),
-                    'report_id' => $reportId,
-                    'assignee_id' => $reporter->getKey(),
-                    'assigned_by_id' => $reviewer->getKey(),
-                    'target_visit_date' => $assignment['target_visit_date'],
-                    'activated_at' => $assignment['activated_at'],
-                    'created_at' => $assignment['activated_at'],
-                    'updated_at' => $assignment['activated_at'],
-                ];
+                $existing = $existingAssignments->get($reportId);
+                $record = FieldValidationAssignment::query()->updateOrCreate(
+                    ['report_id' => $reportId],
+                    [
+                        'uuid' => $existing?->uuid ?? (string) Str::uuid(),
+                        'assignee_id' => $reporter->getKey(),
+                        'assigned_by_id' => $reviewer->getKey(),
+                        'target_visit_date' => $assignment['target_visit_date'],
+                        'activated_at' => $assignment['activated_at'],
+                    ],
+                );
+                $assignmentIds[$reportId] = (int) $record->getKey();
             }
-            self::insertInChunks('field_validation_assignments', $assignmentRows);
-            $assignmentIds = DB::table('field_validation_assignments')
-                ->whereIn('report_id', array_values(array_intersect_key(
-                    $reportIds,
-                    $assignmentDefinitions,
-                )))
-                ->pluck('id', 'report_id')
-                ->map(fn ($id): int => (int) $id)
-                ->all();
         }
 
-        $completionRows = [];
         $completionDefinitions = [];
         foreach ($plan as $referenceCode => $definition) {
             if ($definition['completion'] !== null && isset($reportIds[$referenceCode])) {
@@ -517,10 +519,8 @@ class DashboardReportSeeder extends Seeder
         if ($completionDefinitions !== []) {
             $existingCompletions = DB::table('field_validation_completions')
                 ->whereIn('assignment_id', array_values($assignmentIds))
-                ->pluck('assignment_id')
-                ->map(fn ($id): int => (int) $id)
-                ->all();
-            $existingCompletions = array_fill_keys($existingCompletions, true);
+                ->get(['assignment_id', 'uuid', 'client_uuid'])
+                ->keyBy('assignment_id');
             $hasFollowUpOutcome = Schema::hasColumn(
                 'field_validation_completions',
                 'follow_up_outcome',
@@ -528,14 +528,14 @@ class DashboardReportSeeder extends Seeder
 
             foreach ($completionDefinitions as $referenceCode => $completion) {
                 $assignmentId = $assignmentIds[$reportIds[$referenceCode]] ?? null;
-                if ($assignmentId === null || isset($existingCompletions[$assignmentId])) {
+                if ($assignmentId === null) {
                     continue;
                 }
 
+                $existing = $existingCompletions->get($assignmentId);
                 $row = [
-                    'uuid' => (string) Str::uuid(),
-                    'assignment_id' => $assignmentId,
-                    'client_uuid' => (string) Str::uuid(),
+                    'uuid' => $existing?->uuid ?? (string) Str::uuid(),
+                    'client_uuid' => $existing?->client_uuid ?? (string) Str::uuid(),
                     'field_observation' => $completion['field_observation'],
                     'field_finding' => $completion['field_finding'],
                     'action_taken' => $completion['action_taken'],
@@ -552,16 +552,16 @@ class DashboardReportSeeder extends Seeder
                     'fresh_photo_size_bytes' => $completion['fresh_photo_path'] === null
                         ? null
                         : strlen($image),
-                    'created_at' => $completion['visited_at'],
-                    'updated_at' => $completion['visited_at'],
                 ];
                 if ($hasFollowUpOutcome) {
                     $row['follow_up_outcome'] = $completion['follow_up_outcome'];
                 }
-                $completionRows[] = $row;
+                FieldValidationCompletion::query()->updateOrCreate(
+                    ['assignment_id' => $assignmentId],
+                    $row,
+                );
             }
         }
-        self::insertInChunks('field_validation_completions', $completionRows);
 
         $completionPhotoPaths = [];
         foreach ($completionDefinitions as $completion) {
@@ -638,24 +638,6 @@ class DashboardReportSeeder extends Seeder
     }
 
     /**
-     * @param  array<int, string>  $references
-     * @return array<string, int>
-     */
-    private function reportIdsByReference(array $references): array
-    {
-        $ids = [];
-        foreach (array_chunk($references, 400) as $referenceChunk) {
-            $ids += Report::query()
-                ->whereIn('reference_code', $referenceChunk)
-                ->pluck('id', 'reference_code')
-                ->map(fn ($id): int => (int) $id)
-                ->all();
-        }
-
-        return $ids;
-    }
-
-    /**
      * @param  array<int, array<string, mixed>>  $rows
      */
     private static function insertInChunks(string $table, array $rows): void
@@ -668,7 +650,7 @@ class DashboardReportSeeder extends Seeder
     /**
      * Build deterministic records for each modeled month, barangay, condition,
      * and configured sample count. The generated values intentionally use the
-     * same Bago geography as the named fixtures and contain no demo labels.
+     * same Nasugbu geography as the named fixtures and contain no demo labels.
      *
      * @return array<string, array<string, mixed>>
      */
@@ -820,8 +802,8 @@ class DashboardReportSeeder extends Seeder
                             'scan_record_client_uuid' => (string) Str::uuid(),
                             'barangay' => $barangay,
                             'farmer_or_farm_owner_name' => self::farmerName($ordinal),
-                            'province' => 'Negros Occidental',
-                            'municipality' => 'Bago',
+                            'province' => 'Batangas',
+                            'municipality' => 'Nasugbu',
                             'final_latitude' => $ordinal % 17 === 0 ? null : $latitude,
                             'final_longitude' => $ordinal % 17 === 0 ? null : $longitude,
                             'location_source' => $ordinal % 17 === 0
@@ -1071,15 +1053,17 @@ class DashboardReportSeeder extends Seeder
         ?User $reviewer = null,
         ?string $reviewedAt = null,
     ): array {
+        $coordinates = self::BARANGAY_COORDINATES[$barangay];
+
         return [
             'uuid' => $uuid,
             'client_uuid' => $clientUuid,
             'barangay' => $barangay,
             'farmer_or_farm_owner_name' => $farmOwner,
-            'province' => 'Negros Occidental',
-            'municipality' => 'Bago',
-            'final_latitude' => 10.52 + ((int) substr($submittedAt, 8, 2) * 0.001),
-            'final_longitude' => 122.82 + ((int) substr($submittedAt, 8, 2) * 0.001),
+            'province' => 'Batangas',
+            'municipality' => 'Nasugbu',
+            'final_latitude' => $coordinates['latitude'],
+            'final_longitude' => $coordinates['longitude'],
             'location_source' => Report::LOCATION_SOURCE_GPS,
             'gps_accuracy' => 4.5,
             'affected_area_hectares' => $affectedArea,
@@ -1122,7 +1106,7 @@ class DashboardReportSeeder extends Seeder
      */
     private function seedExpertConsults(array $reports, User $reviewer): void
     {
-        ReportReferral::query()->firstOrCreate(
+        ReportReferral::query()->updateOrCreate(
             [
                 'report_id' => $reports['BGO-20261018-0630']->getKey(),
                 'reference' => 'BGO-CONSULT-20261019',
@@ -1159,7 +1143,7 @@ class DashboardReportSeeder extends Seeder
             ],
         );
 
-        ReportReferral::query()->firstOrCreate(
+        ReportReferral::query()->updateOrCreate(
             [
                 'report_id' => $reports['BGO-20261011-0910']->getKey(),
                 'reference' => 'BGO-CONSULT-20261012',
@@ -1195,7 +1179,7 @@ class DashboardReportSeeder extends Seeder
         User $reporter,
         string $image,
     ): Report {
-        $report = Report::query()->firstOrCreate(
+        $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
@@ -1220,7 +1204,7 @@ class DashboardReportSeeder extends Seeder
                     : 'Reviewed against the submitted field evidence.',
                 'lock_version' => 0,
             ],
-        );
+        ));
 
         $disk = Storage::disk('local');
         if (($report->wasRecentlyCreated || ! $disk->exists($report->image_path))

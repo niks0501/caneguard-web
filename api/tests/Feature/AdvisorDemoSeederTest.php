@@ -61,7 +61,7 @@ class AdvisorDemoSeederTest extends TestCase
         $completion = $photoReport->fieldValidationAssignment?->completion;
         $this->assertNotNull($completion);
         $this->assertSame('improved', $completion->follow_up_outcome);
-        Storage::disk('local')->assertExists('field-validation/2026-09-18-abuanan.png');
+        Storage::disk('local')->assertExists('field-validation/2026-09-18-balaytigui.png');
 
         $consult = ReportReferral::query()
             ->where('reference', 'BGO-CONSULT-20260910')
@@ -86,6 +86,9 @@ class AdvisorDemoSeederTest extends TestCase
         );
 
         $unavailable = Report::query()->where('reference_code', 'BGO-20260918-0615')->firstOrFail();
+        $this->assertSame('Dayap', $unavailable->barangay);
+        $this->assertSame('Batangas', $unavailable->province);
+        $this->assertSame('Nasugbu', $unavailable->municipality);
         $this->assertSame(Report::LOCATION_SOURCE_UNAVAILABLE, $unavailable->location_source);
         $this->assertSame(
             Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
@@ -154,6 +157,6 @@ class AdvisorDemoSeederTest extends TestCase
         $this->assertDatabaseMissing('reports', ['reference_code' => 'BGO-20260920-0810']);
         Storage::disk('local')->assertExists('reports/2026-07/bgo-20260702-0915.png');
         Storage::disk('local')->assertMissing('reports/2026-09/bgo-20260920-0810.png');
-        Storage::disk('local')->assertMissing('field-validation/2026-09-18-abuanan.png');
+        Storage::disk('local')->assertMissing('field-validation/2026-09-18-balaytigui.png');
     }
 }
