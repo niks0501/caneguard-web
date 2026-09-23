@@ -10,7 +10,11 @@ import {
   WebRoleError,
 } from "./auth.api";
 import { AuthContext } from "./auth.context";
-import { subscribeToSessionExpiration } from "./authSession";
+import {
+  hasAuthSessionHint,
+  setAuthSessionHint,
+  subscribeToSessionExpiration,
+} from "./authSession";
 import type {
   AppUser,
   AuthSnapshot,
@@ -39,11 +43,18 @@ async function resolveSessionSnapshot(): Promise<AuthSnapshot> {
     };
   }
 
+  if (!hasAuthSessionHint()) {
+    // Avoid a logged-out /me probe; Laravel correctly answers it with 401.
+    return { status: "unauthenticated", user: null, reason: null };
+  }
+
   try {
     const user = await getCurrentUser();
+    setAuthSessionHint(true);
     return { status: "authenticated", user, reason: null };
   } catch (error) {
     if (error instanceof WebRoleError) {
+      setAuthSessionHint(true);
       return {
         status: "unauthenticated",
         user: null,
@@ -54,6 +65,7 @@ async function resolveSessionSnapshot(): Promise<AuthSnapshot> {
       error instanceof ApiError &&
       (error.status === 401 || error.status === 403)
     ) {
+      setAuthSessionHint(error.status === 403);
       return {
         status: "unauthenticated",
         user: null,
@@ -74,6 +86,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const unsubscribe = subscribeToSessionExpiration(() => {
+      setAuthSessionHint(false);
       queryClient.clear();
       setSnapshot((current) => {
         if (current.status !== "authenticated") return current;
@@ -99,7 +112,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return mockUser;
     }
 
+    setAuthSessionHint(false);
     await loginRequest(credentials);
+    setAuthSessionHint(true);
     const user = await getCurrentUser();
     setSnapshot({ status: "authenticated", user, reason: null });
     return user;
@@ -118,6 +133,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     try {
       await logoutRequest();
+      setAuthSessionHint(false);
       queryClient.clear();
       setSnapshot({
         status: "unauthenticated",
@@ -130,6 +146,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         error instanceof ApiError &&
         (error.status === 401 || error.status === 419)
       ) {
+        setAuthSessionHint(false);
         setSnapshot({
           status: "unauthenticated",
           user: null,

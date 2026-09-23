@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { paginatedReportsDto } from "../test/fixtures";
 import { server } from "../test/server";
+import { setAuthSessionHint } from "./authSession";
 
 const baseUrl = "http://localhost:8000";
 const healthyApiResponse = {
@@ -33,7 +34,15 @@ function installApiHealthHandler() {
   );
 }
 
-async function renderApp(path: string) {
+async function renderApp(
+  path: string,
+  options: { sessionHint?: boolean | null } = {},
+) {
+  if (options.sessionHint === null) {
+    window.localStorage.clear();
+  } else {
+    setAuthSessionHint(options.sessionHint ?? true);
+  }
   vi.stubEnv("VITE_DATA_SOURCE", "api");
   installApiHealthHandler();
   window.history.pushState({}, "", path);
@@ -66,9 +75,33 @@ function useSuccessfulLoginHandlers() {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
+  window.localStorage.clear();
+  document.cookie = "XSRF-TOKEN=; Max-Age=0; path=/";
 });
 
 describe("authenticated routing", () => {
+  it("does not request /me on boot without a session hint or CSRF cookie", async () => {
+    let meRequestCount = 0;
+    server.use(
+      http.get(`${baseUrl}/api/v1/me`, () => {
+        meRequestCount += 1;
+        return HttpResponse.json(
+          { message: "Unauthenticated.", code: "UNAUTHENTICATED" },
+          { status: 401 },
+        );
+      }),
+    );
+
+    await renderApp("/reports", { sessionHint: null });
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Sign in to review field reports",
+      }),
+    ).toBeInTheDocument();
+    expect(meRequestCount).toBe(0);
+  });
+
   it("redirects a protected route and restores the full destination after login", async () => {
     let meRequestCount = 0;
     server.use(
@@ -113,8 +146,9 @@ describe("authenticated routing", () => {
         HttpResponse.json(paginatedReportsDto),
       ),
     );
+    document.cookie = "XSRF-TOKEN=existing-session; path=/";
 
-    await renderApp("/reports");
+    await renderApp("/reports", { sessionHint: null });
 
     expect(
       await screen.findByRole("link", { name: "Open CG-2026-0001" }),

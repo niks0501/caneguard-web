@@ -37,6 +37,16 @@ describe("parseEnv", () => {
     });
   });
 
+  it("trims an empty Reverb key and supports explicitly disabling realtime", () => {
+    const parsed = parseEnv({
+      VITE_REALTIME_ENABLED: "false",
+      VITE_REVERB_APP_KEY: "  ",
+    });
+
+    expect(parsed.realtimeEnabled).toBe(false);
+    expect(parsed.reverbAppKey).toBe("");
+  });
+
   it("rejects unsupported data sources", () => {
     expect(() => parseEnv({ VITE_DATA_SOURCE: "memory" })).toThrow();
   });
