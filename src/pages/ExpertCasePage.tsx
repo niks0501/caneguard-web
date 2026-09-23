@@ -55,6 +55,8 @@ export function ExpertCasePage() {
   }
   if (!packet) return <PageContent><EmptyState /></PageContent>;
 
+  const findingReadOnly = packet.consult.status === "completed";
+
   const saveFinding = async () => {
     setSubmitted(true);
     if (!responseDate || packet.version === undefined) return;
@@ -92,7 +94,9 @@ export function ExpertCasePage() {
       <PageHeader
         eyebrow="Expert workspace"
         title={packet.referenceCode}
-        description="Review the evidence and return a structured expert proposal. The office keeps the final case decision."
+        description={findingReadOnly
+          ? "Review the completed expert proposal. The office keeps the final case decision."
+          : "Review the evidence and return a structured expert proposal. The office keeps the final case decision."}
       />
 
       <main className="expert-case-workspace">
@@ -154,37 +158,58 @@ export function ExpertCasePage() {
 
         <section className="review-card expert-case-finding" aria-labelledby="expert-finding-heading">
           <div className="section-heading"><div><h2 id="expert-finding-heading">Expert identification</h2></div></div>
-          <p className="expert-case-muted">Record your opinion and reasoning. These fields are advisory and do not change the office classification.</p>
-          <SelectFilter label="Condition opinion" value={conditionOpinion} onChange={(event) => setConditionOpinion(event.target.value as AuthorityClassifiedCondition | "")}>
-            <option value="">Choose an opinion</option>
-            {activeAuthorityClassifiedConditions.map((condition) => <option value={condition} key={condition}>{authorityClassifiedConditionLabels[condition]}</option>)}
-          </SelectFilter>
-          <TextArea id="expert-basis" label="Basis" rows={4} maxLength={2000} value={basis} onChange={(event) => setBasis(event.target.value)} placeholder="Explain why this opinion fits the evidence" />
-          <SelectFilter label="Confidence" value={confidence} onChange={(event) => setConfidence(event.target.value as "low" | "medium" | "high" | "")}>
-            <option value="">Choose confidence</option>
-            <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
-          </SelectFilter>
-          <TextArea id="expert-recommendation" label="Recommendation" rows={4} maxLength={2000} value={recommendation} onChange={(event) => setRecommendation(event.target.value)} placeholder="Suggest the next useful action for the office" />
-          <label className="select-filter" htmlFor="expert-office-reference">
-            <span>Office memo or letter number (optional)</span>
-            <input
-              id="expert-office-reference"
-              value={officeReference}
-              maxLength={160}
-              onChange={(event) => setOfficeReference(event.target.value)}
-              placeholder="External reference supplied with your response"
-            />
-          </label>
-          <label className="select-filter" htmlFor="expert-response-date"><span>Response date</span><input id="expert-response-date" type="date" value={responseDate} onChange={(event) => setResponseDate(event.target.value)} /></label>
-          <SelectFilter label="Consult status" value={consultStatus} onChange={(event) => setConsultStatus(event.target.value as "in_progress" | "completed")}>
-            <option value="in_progress">Save and keep consult open</option>
-            <option value="completed">Complete consult and send proposal</option>
-          </SelectFilter>
-          {submitted && !responseDate ? <p className="form-error" role="alert">Add the response date.</p> : null}
-          {mutationMessage ? <p className="form-error" role="alert">{mutationMessage}</p> : null}
-          <Button type="button" icon={<Save aria-hidden="true" />} disabled={findingMutation.isPending} onClick={() => void saveFinding()}>
-            {findingMutation.isPending ? "Saving finding..." : "Save expert finding"}
-          </Button>
+          <p className="expert-case-muted">{findingReadOnly
+            ? "This consult is complete. The recorded finding is read-only; the office keeps the final case decision."
+            : "Record your opinion and reasoning. These fields are advisory and do not change the office classification."}</p>
+          {findingReadOnly ? (
+            <dl className="detail-list">
+              <DetailField label="Condition opinion">{packet.consult.conditionOpinion
+                ? authorityClassifiedConditionLabels[packet.consult.conditionOpinion]
+                : "Not recorded"}</DetailField>
+              <DetailField label="Basis">{packet.consult.basis || "Not recorded"}</DetailField>
+              <DetailField label="Confidence">{packet.consult.confidence || "Not recorded"}</DetailField>
+              <DetailField label="Recommendation">{packet.consult.recommendation || "Not recorded"}</DetailField>
+              <DetailField label="Response date">{packet.consult.responseDate || "Not recorded"}</DetailField>
+              {Object.entries(packet.consult.symptomVerdicts).map(([key, finding]) => (
+                <DetailField label={`Verification for ${key.replaceAll("_", " ")}`} key={key}>
+                  {verdictLabels[finding.verdict]}{finding.note ? ` — ${finding.note}` : ""}
+                </DetailField>
+              ))}
+            </dl>
+          ) : (
+            <>
+              <SelectFilter label="Condition opinion" value={conditionOpinion} onChange={(event) => setConditionOpinion(event.target.value as AuthorityClassifiedCondition | "")}>
+                <option value="">Choose an opinion</option>
+                {activeAuthorityClassifiedConditions.map((condition) => <option value={condition} key={condition}>{authorityClassifiedConditionLabels[condition]}</option>)}
+              </SelectFilter>
+              <TextArea id="expert-basis" label="Basis" rows={4} maxLength={2000} value={basis} onChange={(event) => setBasis(event.target.value)} placeholder="Explain why this opinion fits the evidence" />
+              <SelectFilter label="Confidence" value={confidence} onChange={(event) => setConfidence(event.target.value as "low" | "medium" | "high" | "")}>
+                <option value="">Choose confidence</option>
+                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
+              </SelectFilter>
+              <TextArea id="expert-recommendation" label="Recommendation" rows={4} maxLength={2000} value={recommendation} onChange={(event) => setRecommendation(event.target.value)} placeholder="Suggest the next useful action for the office" />
+              <label className="select-filter" htmlFor="expert-office-reference">
+                <span>Office memo or letter number (optional)</span>
+                <input
+                  id="expert-office-reference"
+                  value={officeReference}
+                  maxLength={160}
+                  onChange={(event) => setOfficeReference(event.target.value)}
+                  placeholder="External reference supplied with your response"
+                />
+              </label>
+              <label className="select-filter" htmlFor="expert-response-date"><span>Response date</span><input id="expert-response-date" type="date" value={responseDate} onChange={(event) => setResponseDate(event.target.value)} /></label>
+              <SelectFilter label="Consult status" value={consultStatus} onChange={(event) => setConsultStatus(event.target.value as "in_progress" | "completed")}>
+                <option value="in_progress">Save and keep consult open</option>
+                <option value="completed">Complete consult and send proposal</option>
+              </SelectFilter>
+              {submitted && !responseDate ? <p className="form-error" role="alert">Add the response date.</p> : null}
+              {mutationMessage ? <p className="form-error" role="alert">{mutationMessage}</p> : null}
+              <Button type="button" icon={<Save aria-hidden="true" />} disabled={findingMutation.isPending} onClick={() => void saveFinding()}>
+                {findingMutation.isPending ? "Saving finding..." : "Save expert finding"}
+              </Button>
+            </>
+          )}
         </section>
 
         <section className="review-card expert-case-due" aria-labelledby="expert-due-heading">

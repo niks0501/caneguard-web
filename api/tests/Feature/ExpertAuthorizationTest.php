@@ -92,6 +92,108 @@ class ExpertAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_expert_can_reload_a_recently_completed_assigned_consult_packet(): void
+    {
+        $expert = User::factory()->expert()->create();
+        $completed = ReportReferral::factory()->assignedToExpert($expert)->create([
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'finding_details' => 'The completed finding remains available for review.',
+            'finding_recorded_by_id' => $expert->getKey(),
+            'finding_recorded_at' => now()->subDay()->utc(),
+            'response_date' => now()->subDay()->toDateString(),
+        ]);
+        Sanctum::actingAs($expert);
+
+        $this->getJson("/api/v1/reports/{$completed->report->uuid}/consult")
+            ->assertOk()
+            ->assertJsonPath('data.consult.status', ReportReferral::STATUS_COMPLETED)
+            ->assertJsonPath('data.consult.condition_opinion', Report::AUTHORITY_CONDITION_SMUT)
+            ->assertJsonPath(
+                'data.consult.basis',
+                'The completed finding remains available for review.',
+            );
+
+        $this->postJson("/api/v1/reports/{$completed->report->uuid}/referral/finding", [
+            'response_date' => now()->toDateString(),
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'expected_version' => $completed->report->lock_version,
+        ])->assertForbidden();
+    }
+
+    public function test_completed_consult_packet_remains_limited_to_the_configured_access_window(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-20 09:00:00');
+
+        try {
+            $expert = User::factory()->expert()->create();
+            $completed = ReportReferral::factory()->assignedToExpert($expert)->create([
+                'consult_status' => ReportReferral::STATUS_COMPLETED,
+                'finding_recorded_by_id' => $expert->getKey(),
+                'finding_recorded_at' => now()->utc(),
+                'response_date' => now()->toDateString(),
+            ]);
+            Sanctum::actingAs($expert);
+            $this->getJson("/api/v1/reports/{$completed->report->uuid}/consult")
+                ->assertOk();
+
+            CarbonImmutable::setTestNow('2026-10-05 09:00:00');
+            Sanctum::actingAs($expert);
+            $this->getJson("/api/v1/reports/{$completed->report->uuid}/consult")
+                ->assertForbidden();
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_expert_consult_lookup_does_not_select_another_experts_active_consult(): void
+    {
+        $expert = User::factory()->expert()->create();
+        $otherExpert = User::factory()->expert()->create();
+        $completed = ReportReferral::factory()->assignedToExpert($expert)->create([
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'finding_recorded_by_id' => $expert->getKey(),
+            'finding_recorded_at' => now()->subDay()->utc(),
+        ]);
+        ReportReferral::factory()->assignedToExpert($otherExpert)->create([
+            'report_id' => $completed->report_id,
+        ]);
+        Sanctum::actingAs($expert);
+
+        $this->getJson("/api/v1/reports/{$completed->report->uuid}/consult")
+            ->assertOk()
+            ->assertJsonPath('data.consult.id', $completed->getKey())
+            ->assertJsonPath('data.consult.expert.uuid', $expert->uuid);
+    }
+
+    public function test_authenticated_expert_consult_lookup_ignores_external_invite_state(): void
+    {
+        $expert = User::factory()->expert()->create();
+        $inviteStates = [
+            [],
+            [
+                'invite_token_hash' => hash('sha256', 'expired-invite'),
+                'invite_issued_at' => now()->subDays(8),
+                'invite_expires_at' => now()->subDay(),
+            ],
+            [
+                'invite_token_hash' => hash('sha256', 'revoked-invite'),
+                'invite_issued_at' => now()->subDay(),
+                'invite_expires_at' => now()->addDays(6),
+                'invite_revoked_at' => now()->subHour(),
+            ],
+        ];
+        Sanctum::actingAs($expert);
+
+        foreach ($inviteStates as $state) {
+            $active = ReportReferral::factory()->assignedToExpert($expert)->create($state);
+
+            $this->getJson("/api/v1/reports/{$active->report->uuid}/consult")
+                ->assertOk()
+                ->assertJsonPath('data.consult.status', ReportReferral::STATUS_PENDING);
+        }
+    }
+
     public function test_expert_access_ends_after_the_configured_consult_window(): void
     {
         Storage::fake('local');

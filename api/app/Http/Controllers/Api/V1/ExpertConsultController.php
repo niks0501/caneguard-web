@@ -14,16 +14,32 @@ class ExpertConsultController extends Controller
     {
         $this->authorize('view', $report);
 
-        $activeConsult = $report->referrals()
-            ->whereIn('consult_status', ReportReferral::activeStatuses())
-            ->latest('id')
-            ->first();
-
-        if ($request->user()?->isExpert() && $activeConsult === null) {
-            abort(403);
+        $user = $request->user();
+        if ($user?->isExpert()) {
+            $accessCutoff = now()->subDays(
+                (int) config('caneguard.expert_consult_access_days', 14),
+            );
+            $consult = $report->referrals()
+                ->where('expert_id', $user->getKey())
+                ->whereIn('consult_status', ReportReferral::activeStatuses())
+                ->latest('id')
+                ->first()
+                ?? $report->referrals()
+                    ->where('expert_id', $user->getKey())
+                    ->where('consult_status', ReportReferral::STATUS_COMPLETED)
+                    ->whereNotNull('finding_recorded_at')
+                    ->where('finding_recorded_at', '>=', $accessCutoff)
+                    ->latest('id')
+                    ->first();
+            abort_unless($consult !== null, 403);
+        } else {
+            $consult = $report->referrals()
+                ->whereIn('consult_status', ReportReferral::activeStatuses())
+                ->latest('id')
+                ->first()
+                ?? $report->referrals()->latest('id')->first();
         }
 
-        $consult = $activeConsult ?? $report->referrals()->latest('id')->first();
         abort_unless($consult !== null, 404, 'No expert consult is recorded for this case.');
 
         $report->load([
