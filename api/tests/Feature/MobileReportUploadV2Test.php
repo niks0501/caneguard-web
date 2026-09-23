@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class MobileReportUploadV2Test extends TestCase
@@ -30,6 +31,7 @@ class MobileReportUploadV2Test extends TestCase
 
         $response
             ->assertCreated()
+            ->assertJsonPath('data.review.status', Report::STATUS_SUBMITTED_UNVERIFIED)
             ->assertJsonPath('data.model.predicted_label', Report::LABEL_SMUT)
             ->assertJsonPath('data.model.model_version', 'v1.0-mobilenetv2')
             ->assertJsonCount(4, 'data.model.class_scores')
@@ -59,7 +61,18 @@ class MobileReportUploadV2Test extends TestCase
             'Dark whip-like growths are visible.',
             $report->reporter_observation_text,
         );
+        $this->assertNull($report->canonical_report_id);
+        $this->assertSame(Report::STATUS_SUBMITTED_UNVERIFIED, $report->review_status);
         Storage::disk('local')->assertExists($report->image_path);
+
+        Sanctum::actingAs(User::factory()->reviewer()->create());
+        $this->getJson('/api/v1/reports?'.http_build_query([
+            'search' => $report->reference_code,
+        ]))
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.uuid', $report->uuid)
+            ->assertJsonPath('data.0.review_status', Report::STATUS_SUBMITTED_UNVERIFIED);
     }
 
     public function test_v2_preserves_rssi_reporter_observation_without_changing_model_v1_evidence(): void
