@@ -226,16 +226,23 @@ describe("CaseReviewPage", () => {
       name: `Submitted sugarcane evidence for ${report.referenceCode}`,
     });
     expect(image).toHaveAttribute("src", report.imageUrl);
-    const technicalEvidence = screen.getByText("Technical Evidence").closest("details");
-    expect(technicalEvidence).not.toHaveAttribute("open");
-    expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
-    expect(screen.getByText("Checklist consistency")).toBeInTheDocument();
+    // Technical detail stays internal: no Technical Evidence section, no model
+    // version, coordinates, GPS accuracy, class scores, or machine-fact chips
+    // in the normal workflow.
+    expect(screen.queryByText("Technical Evidence")).not.toBeInTheDocument();
+    expect(screen.queryByText(report.modelVersion!)).not.toBeInTheDocument();
+    expect(screen.queryByText("Machine facts")).not.toBeInTheDocument();
+    expect(screen.queryByText("Checklist consistency")).not.toBeInTheDocument();
     expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
-    expect(screen.getByText("Negros Occidental")).toBeInTheDocument();
-    expect(screen.getByText("Bago")).toBeInTheDocument();
-    expect(screen.getByText("10.1234567, 122.9876543")).toBeInTheDocument();
-    expect(screen.getByText("GPS")).toBeInTheDocument();
-    expect(screen.getByText("4.25 m")).toBeInTheDocument();
+    const locationField = screen.getByText("Location").closest(".detail-field");
+    expect(locationField).toHaveTextContent("Brgy. Mabini, Bago, Negros Occidental");
+    expect(screen.getByRole("link", { name: "View on map" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("google.com/maps"),
+    );
+    expect(screen.queryByText("10.1234567, 122.9876543")).not.toBeInTheDocument();
+    expect(screen.queryByText("GPS")).not.toBeInTheDocument();
+    expect(screen.queryByText("4.25 m")).not.toBeInTheDocument();
     expect(screen.getByText("PSR 86")).toBeInTheDocument();
     expect(screen.getByText("6 months")).toBeInTheDocument();
     expect(screen.getByText("12.5 ha")).toBeInTheDocument();
@@ -244,14 +251,17 @@ describe("CaseReviewPage", () => {
       screen.getByText("Rust symptoms concentrated on the eastern edge."),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("No image quality warnings were reported."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Symptom agreement")).toBeInTheDocument();
-    expect(screen.getByText("Checklist responses: Consistent with the Possible Condition")).toBeInTheDocument();
+      screen.queryByText("No image quality warnings were reported."),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Symptom agreement")).not.toBeInTheDocument();
+    expect(screen.queryByText("Checklist responses: Consistent with the Possible Condition")).not.toBeInTheDocument();
     expect(
-      screen.getByText("Reporter observation: Possible Condition reported as not matching"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Reporter flagged AI mismatch")).toBeInTheDocument();
+      screen.queryByText("Reporter observation: Possible Condition reported as not matching"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Reporter flagged AI mismatch")).not.toBeInTheDocument();
+    // Human-readable decision states replace the machine chips.
+    expect(screen.getByText("The submitted observations do not fully match the Possible Condition")).toBeInTheDocument();
+    expect(screen.getByText("The reporter said the Possible Condition does not match what they observed")).toBeInTheDocument();
     const caseStatus = screen.getByRole("region", {
       name: "Case status",
     });
@@ -279,15 +289,23 @@ describe("CaseReviewPage", () => {
       screen.queryByRole("heading", { name: "Completed field validation" }),
     ).not.toBeInTheDocument();
 
-    // D-01: the submitted Possible Condition label and confidence stay behind a
-    // closed disclosure so they never lead the initial review.
-    const submittedAiEvidence = screen
-      .getByText("Model evidence — decision support")
-      .closest("details");
-    expect(submittedAiEvidence).not.toHaveAttribute("open");
-    expect(
-      within(submittedAiEvidence!).getByRole("region", { name: "Possible Condition" }),
-    ).not.toBeVisible();
+    // The Possible Condition leads the review with a decision-support
+    // disclaimer; confidence stays out of the normal workflow.
+    const possibleCondition = screen.getByRole("region", { name: "Possible Condition" });
+    expect(possibleCondition).toBeVisible();
+    expect(possibleCondition).toHaveTextContent("Possible Condition: Rust");
+    expect(screen.getByText(/AI-assisted result\./)).toBeInTheDocument();
+    expect(screen.queryByText("93%")).not.toBeInTheDocument();
+    expect(screen.queryByText("Decision-support only.")).not.toBeInTheDocument();
+
+    // Reading order: photo, Possible Condition, field report, office decision.
+    const photoHeading = screen.getByRole("heading", { name: "Submitted photo" });
+    const conditionHeading = screen.getByRole("heading", { name: "Possible Condition" });
+    const fieldReportHeading = screen.getByRole("heading", { name: "Field report" });
+    const officeDecisionHeading = screen.getByRole("heading", { name: "Office decision" });
+    expect(photoHeading.compareDocumentPosition(conditionHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(conditionHeading.compareDocumentPosition(fieldReportHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(fieldReportHeading.compareDocumentPosition(officeDecisionHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     fireEvent.error(image);
     expect(
@@ -304,18 +322,6 @@ describe("CaseReviewPage", () => {
         name: `Submitted sugarcane evidence for ${report.referenceCode}`,
       }),
     ).toBeInTheDocument();
-
-    await user.click(screen.getByText("Model evidence — decision support"));
-    expect(submittedAiEvidence).toHaveAttribute("open");
-    expect(screen.getByRole("region", { name: "Possible Condition" })).toHaveTextContent(
-      "Possible Condition",
-    );
-    expect(screen.getByText("Decision-support only.")).toBeInTheDocument();
-    expect(screen.getAllByText("93%").length).toBeGreaterThan(0);
-
-    await user.click(screen.getByText("Technical Evidence"));
-    expect(technicalEvidence).toHaveAttribute("open");
-    expect(within(technicalEvidence!).getByText(report.modelVersion!)).toBeInTheDocument();
   });
 
   it("renders unavailable location provenance and human measurement state", () => {
@@ -341,8 +347,9 @@ describe("CaseReviewPage", () => {
 
     renderPage();
 
-    expect(screen.getAllByText("Unavailable")).toHaveLength(2);
-    expect(screen.getByText("Unavailable — offline no map")).toBeInTheDocument();
+    expect(screen.getByText("Location needs confirmation")).toBeInTheDocument();
+    expect(screen.getByText("Location not available — offline no map")).toBeInTheDocument();
+    expect(screen.queryByText("GPS")).not.toBeInTheDocument();
     expect(screen.getAllByText("Not measured")).toHaveLength(2);
   });
 
@@ -361,11 +368,9 @@ describe("CaseReviewPage", () => {
     expect(screen.getByRole("heading", { name: "Possible Condition" })).toBeInTheDocument();
     expect(screen.getByText("RSSI reported as a field concern")).toBeInTheDocument();
     expect(
-      screen.getByText(/Reporter-observed evidence only\. The current Model V1 does not detect RSSI/),
+      screen.getByText(/Reporter-observed evidence only\. The AI result does not cover RSSI/),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Reporter observation: RSSI field concern reported (not AI-detected)"),
-    ).toBeInTheDocument();
+    expect(screen.queryByText("Reporter observation: RSSI field concern reported (not AI-detected)")).not.toBeInTheDocument();
     expect(screen.getByText("A field concern consistent with RSSI was observed.")).toBeInTheDocument();
   });
 
@@ -409,7 +414,7 @@ describe("CaseReviewPage", () => {
       within(evidence).getByText(/read-only here and does not verify or close the case/i),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Prior record — case history"));
+    fireEvent.click(screen.getAllByText("Case history")[0]);
     const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Follow-up outcome")).toBeInTheDocument();
     expect(within(timeline).getByText("Improved")).toBeInTheDocument();
@@ -475,8 +480,6 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    expect(screen.getByText("Possible Condition: Smut")).not.toBeVisible();
-    await user.click(screen.getByText("Model evidence — decision support"));
     expect(screen.getByText("Possible Condition: Smut")).toBeVisible();
     await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
     await user.click(screen.getByRole("button", { name: "Record office decision" }));
@@ -648,7 +651,7 @@ describe("CaseReviewPage", () => {
     expect(within(modal).getByRole("combobox", { name: "Search cases" })).toBeInTheDocument();
     await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
 
-    expect(within(modal).getByText(/enter a canonical case UUID/i)).toBeInTheDocument();
+    expect(within(modal).getByText(/enter a canonical case ID/i)).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
@@ -695,7 +698,7 @@ describe("CaseReviewPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("links with a pasted UUID from the collapsed fallback", async () => {
+  it("links with a pasted case ID from the collapsed fallback", async () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockResolvedValue(report);
     vi.mocked(useLinkDuplicateReport).mockReturnValue(
@@ -705,9 +708,9 @@ describe("CaseReviewPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
     const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    await user.click(within(modal).getByText("Paste a case UUID instead"));
+    await user.click(within(modal).getByText("Paste a case ID instead"));
     await user.type(
-      within(modal).getByLabelText("Canonical case UUID"),
+      within(modal).getByLabelText("Canonical case ID"),
       "123e4567-e89b-12d3-a456-426614174000",
     );
     await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
@@ -1260,7 +1263,7 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const summary = screen.getByRole("region", { name: "Office decision summary" });
+    const summary = screen.getByRole("region", { name: "Office decision" });
     expect(within(summary).getByText("Pending decision")).toBeInTheDocument();
     expect(within(summary).getByText("Not classified")).toBeInTheDocument();
     expect(within(summary).getByText("Not determined")).toBeInTheDocument();
@@ -1426,7 +1429,7 @@ describe("CaseReviewPage", () => {
     await user.click(within(modal).getByRole("button", { name: "Cancel" }));
   });
 
-  it("keeps duplicate linking and metadata correction under More actions", async () => {
+  it("keeps duplicate linking and case information correction under More actions", async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -1435,7 +1438,7 @@ describe("CaseReviewPage", () => {
       within(moreActions).getByRole("button", { name: "Link as possible duplicate" }),
     ).toBeInTheDocument();
     expect(
-      within(moreActions).getByRole("button", { name: "Correct operational metadata" }),
+      within(moreActions).getByRole("button", { name: "Correct case information" }),
     ).toBeInTheDocument();
 
     expect(screen.queryByLabelText(/Search cases/i)).not.toBeInTheDocument();
@@ -1444,16 +1447,16 @@ describe("CaseReviewPage", () => {
     await user.click(within(moreActions).getByRole("button", { name: "Link as possible duplicate" }));
     const dupModal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
     expect(within(dupModal).getByLabelText(/Search cases/i)).toBeInTheDocument();
-    expect(within(dupModal).getByText("Paste a case UUID instead")).toBeInTheDocument();
+    expect(within(dupModal).getByText("Paste a case ID instead")).toBeInTheDocument();
     await user.click(within(dupModal).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog", { name: "Link as possible duplicate" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Search cases/i)).not.toBeInTheDocument();
 
-    await user.click(within(moreActions).getByRole("button", { name: "Correct operational metadata" }));
-    const metaModal = screen.getByRole("dialog", { name: "Correct operational metadata" });
+    await user.click(within(moreActions).getByRole("button", { name: "Correct case information" }));
+    const metaModal = screen.getByRole("dialog", { name: "Correct case information" });
     expect(within(metaModal).getByLabelText("Farmer or farm owner")).toBeInTheDocument();
     await user.click(within(metaModal).getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("dialog", { name: "Correct operational metadata" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Correct case information" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Farmer or farm owner")).not.toBeInTheDocument();
   });
 

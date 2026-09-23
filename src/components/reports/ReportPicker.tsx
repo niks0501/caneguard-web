@@ -171,12 +171,12 @@ export function ReportPicker({ excludeUuid, value, onSelect, disabled = false }:
       ) : null}
       {listOpen && results.length === 0 && !searching && pickerQuery.isError ? (
         <p className="report-picker-status" role="alert">
-          Case search is unavailable. Try again or paste a case UUID instead.
+          Case search is unavailable. Try again or paste a case ID instead.
         </p>
       ) : null}
       {listOpen && results.length === 0 && !searching && !pickerQuery.isError ? (
         <p className="report-picker-status" role="status">
-          No cases match this search. Refine the search or paste a case UUID instead.
+          No cases match this search. Refine the search or paste a case ID instead.
         </p>
       ) : null}
     </div>
