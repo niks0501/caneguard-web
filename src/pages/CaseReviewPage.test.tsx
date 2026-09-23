@@ -218,6 +218,47 @@ beforeEach(() => {
 });
 
 describe("CaseReviewPage", () => {
+  it("offers validated office advisories and excludes drafts and retired items", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useAdvisories).mockReturnValue({
+      data: [
+        {
+          uuid: "office-advisory-001",
+          code: "ADV-OFFICE-OPS-001",
+          title: "Document and monitor affected rows",
+          content: "Mark the affected rows and record the date and visible changes.",
+          status: "validated",
+        },
+        {
+          uuid: "office-advisory-draft",
+          code: "ADV-DRAFT-001",
+          title: "Draft office guidance",
+          content: "Not yet approved.",
+          status: "draft",
+        },
+        {
+          uuid: "office-advisory-retired",
+          code: "ADV-RETIRED-001",
+          title: "Retired office guidance",
+          content: "No longer selectable.",
+          status: "retired",
+        },
+      ],
+      isError: false,
+    } as unknown as ReturnType<typeof useAdvisories>);
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+
+    const modal = screen.getByRole("dialog", { name: "Record office decision" });
+    const advisorySelect = within(modal).getByLabelText("Office advisory (optional)");
+    expect(within(advisorySelect).getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "No advisory selected",
+      "ADV-OFFICE-OPS-001 - Document and monitor affected rows",
+    ]);
+  });
+
   it("does not display the backend attention band", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({
       data: { ...report, attentionBand: "red", attentionBandReasons: ["test-only backend detail"] },

@@ -30,12 +30,35 @@ class EmptyDatabaseSeederTest extends TestCase
     public function test_default_seed_keeps_demo_accounts_and_all_report_surfaces_work_empty(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('users', 4);
         $this->assertDatabaseCount('reports', 0);
+        $this->assertDatabaseCount('advisories', 3);
+        $this->assertDatabaseCount('report_class_scores', 0);
+        $this->assertDatabaseCount('report_symptoms', 0);
+        $this->assertDatabaseCount('report_quality_warnings', 0);
+        $this->assertDatabaseCount('report_audits', 0);
+        $this->assertDatabaseCount('report_referrals', 0);
+        $this->assertDatabaseCount('field_validation_assignments', 0);
+        $this->assertDatabaseCount('field_validation_completions', 0);
+        $this->assertDatabaseCount('report_review_events', 0);
 
         $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
         Sanctum::actingAs($reviewer);
+        $advisories = $this->getJson('/api/v1/advisories')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->json('data');
+        $this->assertSame([
+            'ADV-OFFICE-OPS-001',
+            'ADV-OFFICE-OPS-002',
+            'ADV-OFFICE-OPS-003',
+        ], array_column($advisories, 'code'));
+        foreach ($advisories as $advisory) {
+            $this->assertSame('validated', $advisory['status']);
+            $this->assertNotEmpty($advisory['content']);
+        }
 
         $dashboard = $this->getJson('/api/v1/dashboard/summary?month=2026-09')
             ->assertOk()

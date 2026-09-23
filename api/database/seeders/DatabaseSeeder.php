@@ -72,5 +72,6 @@ class DatabaseSeeder extends Seeder
             ])->save();
         }
 
+        $this->call(OfficeAdvisorySeeder::class);
     }
 }

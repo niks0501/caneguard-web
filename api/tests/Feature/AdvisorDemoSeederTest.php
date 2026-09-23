@@ -46,7 +46,7 @@ class AdvisorDemoSeederTest extends TestCase
                 + count(AdvisorDemoSeeder::reportReferences())
                 + count(DashboardReportSeeder::reportReferences()),
         );
-        $this->assertDatabaseCount('advisories', 1);
+        $this->assertDatabaseCount('advisories', 4);
         $this->assertGreaterThan(4, ReportReferral::query()->count());
         $this->assertGreaterThan(4, DB::table('field_validation_assignments')->count());
         $this->assertGreaterThan(2, DB::table('field_validation_completions')->count());
@@ -177,7 +177,7 @@ class AdvisorDemoSeederTest extends TestCase
             'reports',
             12 + count(DashboardReportSeeder::reportReferences()),
         );
-        $this->assertDatabaseCount('advisories', 0);
+        $this->assertDatabaseCount('advisories', 3);
         $this->assertGreaterThan(2, ReportReferral::query()->count());
         $this->assertGreaterThan(0, DB::table('field_validation_assignments')->count());
         $this->assertGreaterThan(0, DB::table('field_validation_completions')->count());
