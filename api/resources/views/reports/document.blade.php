@@ -107,15 +107,7 @@
 
     <section aria-labelledby="lifecycle"><div class="section-band" id="lifecycle">Field-validation workload</div><table><thead><tr><th>Validation state</th><th>Submitted reports</th></tr></thead><tbody>@foreach ($metrics['field_validation_counts'] as $state => $count)<tr><td>{{ str_replace('_', ' ', ucfirst($state)) }}</td><td>{{ $count }}</td></tr>@endforeach</tbody></table></section>
 
-    @php
-        $queueLabels = [
-            'needs_review' => 'Needs Review',
-            'needs_visit' => 'Needs Visit',
-            'follow_up_due' => 'Follow-up Due',
-            'upcoming' => 'Upcoming Visits',
-            'unverified_no_active_work' => 'Unverified, no active work',
-        ];
-    @endphp
+    @php($queueLabels = ['needs_review' => 'Needs Review', 'needs_visit' => 'Needs Visit', 'follow_up_due' => 'Follow-up Due', 'upcoming' => 'Upcoming Visits', 'unverified_no_active_work' => 'Unverified, no active work'])
     <section aria-labelledby="queues"><div class="section-band" id="queues">Operational queue status</div><p class="muted">These counts show submitted cases by current work queue. Follow-up Due reflects open validation work past its target date; Upcoming Visits includes target dates today or later.</p><table><thead><tr><th>Queue</th><th>Cases</th></tr></thead><tbody>@foreach ($operational_queues as $queue => $count)<tr><td>{{ $queueLabels[$queue] ?? str_replace('_', ' ', ucfirst($queue)) }}</td><td class="{{ in_array($queue, ['follow_up_due', 'needs_visit'], true) && $count ? 'danger' : '' }}">{{ $count }}</td></tr>@endforeach</tbody></table></section>
 
     <details class="supplementary-metrics">
