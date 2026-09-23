@@ -37,6 +37,15 @@ class ReportLifecycleContractTest extends TestCase
         );
     }
 
+    public function test_lifecycle_artifact_is_bundled_with_the_api_and_matches_the_canonical_contract(): void
+    {
+        $bundledPath = base_path('docs/contracts/report-lifecycle-v1.json');
+        $canonicalPath = base_path('../docs/contracts/report-lifecycle-v1.json');
+
+        $this->assertFileExists($bundledPath);
+        $this->assertSame(file_get_contents($canonicalPath), file_get_contents($bundledPath));
+    }
+
     public function test_legacy_projection_and_authority_rules_preserve_phase_one_safety(): void
     {
         $definition = ReportLifecycleContract::definition();
