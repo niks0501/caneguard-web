@@ -90,11 +90,11 @@ export function ImagePendingState({ status }: { status: "pending_sync" | "unavai
   return (
     <div className="image-state">
       <ImageOff aria-hidden="true" />
-      <strong>{pending ? "Image pending sync" : "Image unavailable"}</strong>
+      <strong>{pending ? "Photo not yet available" : "Photo unavailable"}</strong>
       <span>
         {pending
-          ? "The field device has not finished uploading this evidence."
-          : "No submitted image is available for this report."}
+          ? "The field device has not finished sending this photo."
+          : "No submitted photo is available for this report."}
       </span>
     </div>
   );

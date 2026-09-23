@@ -4,24 +4,17 @@ import {
   ArrowLeft,
   CheckCircle2,
   ClipboardList,
-  Cloud,
   GitBranch,
   History,
-  Info,
   Link2,
-  MapPin,
   MoreHorizontal,
-  ScanLine,
-  Smartphone,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ZodError } from "zod";
 import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
-import { ConfidenceDisplay } from "../components/reports/ConfidenceDisplay";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
-import { MachineFactsChips } from "../components/reports/MachineFactsChips";
 import { ReferralWorkflow } from "../components/reports/ReferralWorkflow";
 import { ReportPicker } from "../components/reports/ReportPicker";
 import { DiseaseBadge, ReviewStatusBadge } from "../components/reports/ReportBadges";
@@ -38,10 +31,8 @@ import {
   activeAuthorityClassifiedConditions,
   authorityClassifiedConditionLabels,
   caseStateLabels,
-  diseaseLabels,
   fieldValidationStateLabels,
   followUpOutcomeLabels,
-  imageStatusLabels,
   isLegacyAuthorityClassifiedCondition,
   submitterRoleLabels,
   verificationOutcomeLabels,
@@ -470,50 +461,45 @@ function metadataCorrectionsFor(
   return Object.keys(corrections).length ? corrections : undefined;
 }
 
-const checklistConsistencyLabels: Record<string, string> = {
-  consistent: "Consistent with the Possible Condition",
-  inconsistent: "Differs from the Possible Condition",
-  inconclusive: "Inconclusive against the Possible Condition",
-};
-
-function checklistConsistencyLabel(value?: string) {
-  return value
-    ? checklistConsistencyLabels[value] ?? value.replaceAll("_", " ")
-    : "Not provided";
+function humanLocationFor(report: DiseaseReport): string {
+  const parts = [
+    report.barangay ? `Brgy. ${report.barangay}` : null,
+    report.municipality ?? null,
+    report.province ?? null,
+  ].filter((part): part is string => Boolean(part));
+  return parts.length ? parts.join(", ") : "Location not available";
 }
 
-function symptomAgreementFor(report: DiseaseReport) {
-  return report.checklistConsistency
-    ? checklistConsistencyLabel(report.checklistConsistency)
-    : "Not provided";
+function hasUsableCoordinates(report: DiseaseReport): boolean {
+  return report.finalLatitude !== undefined && report.finalLongitude !== undefined;
+}
+
+function mapUrlFor(report: DiseaseReport): string | null {
+  if (!hasUsableCoordinates(report)) return null;
+  return `https://www.google.com/maps?q=${report.finalLatitude},${report.finalLongitude}`;
+}
+
+function locationNeedsConfirmationFor(report: DiseaseReport): boolean {
+  return report.locationSource === "unavailable" || !hasUsableCoordinates(report);
+}
+
+function photoDifficultFor(report: DiseaseReport): boolean {
+  return (report.qualityWarnings?.length ?? 0) > 0;
+}
+
+function observationsMismatchFor(report: DiseaseReport): boolean {
+  return report.mismatchReported === true || report.checklistConsistency === "inconsistent";
+}
+
+function locationUnavailableReasonFor(report: DiseaseReport): string | null {
+  if (report.locationSource !== "unavailable") return null;
+  return report.locationUnavailableReason
+    ? report.locationUnavailableReason.replaceAll("_", " ")
+    : null;
 }
 
 function isRssiReporterConcern(report: DiseaseReport): boolean {
   return report.reporterSuspectedCondition?.trim().toUpperCase() === REPORTER_OBSERVED_CONCERN_RSSI;
-}
-
-function reporterComparisonFor(report: DiseaseReport) {
-  if (isRssiReporterConcern(report)) {
-    return "RSSI field concern reported (not AI-detected)";
-  }
-  if (report.mismatchReported === true) {
-    return "Possible Condition reported as not matching";
-  }
-  if (report.mismatchReported === false) {
-    return "Possible Condition reported as matching";
-  }
-  return "Not collected";
-}
-
-function symptomAgreementToneFor(report: DiseaseReport) {
-  if (report.mismatchReported === true || report.checklistConsistency === "inconsistent") {
-    return "inconsistent";
-  }
-  if (report.checklistConsistency === "inconclusive") return "inconclusive";
-  if (report.mismatchReported === false || report.checklistConsistency === "consistent") {
-    return "consistent";
-  }
-  return "unknown";
 }
 
 export function CaseReviewPage() {
@@ -668,15 +654,12 @@ export function CaseReviewPage() {
     ? getHeroAnswer(report, selectedNextAction, referralPending, fieldValidationActive)
     : { answer: "", consequence: "" };
 
-  const imageSummary = report?.imageStatus === "available" ? "1 photo" : "No photo";
-  const symptomsSummary = `${report?.symptoms?.length ?? 0} symptom answers`;
-  const mismatchSummary = report?.mismatchReported === true ? "mismatch flagged" : "no mismatch flag";
-  const fieldEvidenceSummary = `${imageSummary} · ${symptomsSummary} · ${mismatchSummary}`;
+  const mapUrl = report ? mapUrlFor(report) : null;
 
   const latestHistoryDate = mergedHistory[0]?.timestamp;
   const caseHistoryAvailable = report?.caseHistory?.available ?? true;
   const caseHistorySummary = !caseHistoryAvailable
-    ? "History unavailable on this legacy record"
+    ? "History unavailable for this older record"
     : mergedHistory.length === 0
       ? "No prior entries"
       : `${mergedHistory.length} ${mergedHistory.length === 1 ? "entry" : "entries"}${latestHistoryDate ? ` · last ${formatShortDate(latestHistoryDate)}` : ""}`;
@@ -696,7 +679,7 @@ export function CaseReviewPage() {
         : null;
   const correctionError =
     metadataCorrections && !correctionReason.trim()
-      ? "Add a reason for the operational metadata correction."
+      ? "Add a reason for the case information correction."
       : null;
   const hasReviewInput =
     selectedNextAction !== null ||
@@ -1006,7 +989,7 @@ export function CaseReviewPage() {
       setMetadataCorrectionModalOpen(false);
       navigate(routes.reports, {
         state: {
-          notice: `${report.referenceCode} - Operational metadata corrected.`,
+          notice: `${report.referenceCode} - Case information corrected.`,
         },
       });
     } catch {
@@ -1027,15 +1010,6 @@ export function CaseReviewPage() {
         description={`submitted ${formatDateTime(report.submittedAt)} · Barangay ${report.barangay}${report.farmerOrFarmOwnerName ? ` · ${report.farmerOrFarmOwnerName}` : ""}`}
         actions={<ReviewStatusBadge status={report.reviewStatus} />}
       />
-      {report.mismatchReported === true ? (
-        <div className="mismatch-banner" role="status">
-          <AlertTriangle aria-hidden="true" />
-          <div>
-            <strong>Reporter flagged AI mismatch</strong>
-            <span>The reporter said the model result does not match what they see.</span>
-          </div>
-        </div>
-      ) : null}
       {reportQuery.isRefetchError ? (
         <div className="detail-refresh-warning" role="alert">
           <span>{detailRefreshMessage}</span>
@@ -1167,7 +1141,7 @@ export function CaseReviewPage() {
         )}
       </section>
 
-      {/* 2. Chip row replacing the status grid */}
+      {/* 2. Case status with plain-language attention notices */}
       <section className="review-status-chips" aria-label="Case status">
         <div className="status-chip-row">
           <div className="status-chip">
@@ -1199,27 +1173,170 @@ export function CaseReviewPage() {
             <strong>{report.firstReviewedAt ? formatShortDate(report.firstReviewedAt) : "Not reviewed"}</strong>
           </div>
         </div>
-        <div className="machine-facts-tier" aria-label="Machine facts — decision support">
-          <span className="machine-facts-tier__label">Machine facts · decision support</span>
-          <MachineFactsChips
-            facts={report.machineFacts ?? {
-              confidence: report.confidence ?? null,
-              checklistConsistency: report.checklistConsistency ?? null,
-              qualityWarnings: report.qualityWarnings ?? [],
-              gpsAccuracy: report.gpsAccuracy ?? null,
-              locationSource: report.locationSource ?? null,
-              reporterConcern: report.reporterSuspectedCondition ?? null,
-              reporterMismatch: report.mismatchReported ?? null,
-            }}
-          />
-        </div>
+        {locationNeedsConfirmationFor(report) ? (
+          <p className="review-state-summary" role="status">
+            <strong>Location needs confirmation</strong>
+            <span>The submitted location could not be confirmed. Confirm it with the field contact before relying on it.</span>
+          </p>
+        ) : null}
+        {photoDifficultFor(report) ? (
+          <p className="review-state-summary" role="status">
+            <strong>Photo may be difficult to review</strong>
+            <span>The submitted photo has quality concerns. Weigh the written observations more heavily.</span>
+          </p>
+        ) : null}
+        {observationsMismatchFor(report) ? (
+          <p className="review-state-summary" role="status">
+            <strong>The submitted observations do not fully match the Possible Condition</strong>
+            <span>Compare the photo and field observations carefully before deciding.</span>
+          </p>
+        ) : null}
       </section>
 
-      {/* 3. Decision summary card */}
+      {/* 4. Reading order: photo, Possible Condition, field report, office decision, history */}
+      <div className="review-single-column">
+        <section className="review-card" aria-labelledby="submitted-photo-heading">
+          <div className="section-heading">
+            <div>
+              <h2 id="submitted-photo-heading">Submitted photo</h2>
+            </div>
+          </div>
+                <div className="evidence-stage">
+                  {report.imageStatus === "available" ? (
+                    <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
+                  ) : (
+                    <ImagePendingState status={report.imageStatus} />
+                  )}
+                </div>
+                {imageLoadFailed ? (
+                  <div className="image-load-error" role="alert">
+                    <span>Image could not be loaded.</span>
+                    <Button type="button" variant="secondary" onClick={() => { setImageLoadFailed(false); setImageRetry((current) => current + 1); }}>Retry image</Button>
+                  </div>
+                ) : null}
+                <p className="evidence-meta">
+                  <span>Captured {formatDateTime(report.capturedAt)}</span>
+                  <span>Submitted {formatDateTime(report.submittedAt)}</span>
+                </p>
+
+        </section>
+
+        <section className="review-card" aria-labelledby="possible-condition-heading">
+          <div className="review-essential-result__heading">
+            <div>
+              <h2 id="possible-condition-heading">Possible Condition</h2>
+            </div>
+            <DiseaseBadge disease={report.predictedDisease} />
+          </div>
+          <p><strong>AI-assisted result.</strong> Compare it with the submitted photo and field observations before deciding. It is not a diagnosis.</p>
+        </section>
+
+        <section className="review-card" aria-labelledby="field-report-heading">
+          <div className="section-heading">
+            <div>
+              <h2 id="field-report-heading">Field report</h2>
+            </div>
+          </div>
+
+                <section className="reporter-observation-card" aria-labelledby="reporter-observation-heading">
+                  <div className="section-heading"><div><h3 id="reporter-observation-heading">What the reporter saw</h3></div><AlertTriangle aria-hidden="true" /></div>
+                  {report.mismatchReported === true ? (
+                    <div className="reporter-mismatch-label"><AlertTriangle aria-hidden="true" /><strong>The reporter said the Possible Condition does not match what they observed</strong></div>
+                  ) : report.mismatchReported === false ? (
+                    <p className="observation-empty">The reporter said the Possible Condition matches what they observed.</p>
+                  ) : (
+                    <p className="observation-empty">Possible Condition agreement was not collected for this report.</p>
+                  )}
+                  {isRssiReporterConcern(report) ? (
+                    <div className="rssi-observation-callout" role="status">
+                      <strong>RSSI reported as a field concern</strong>
+                      <span>Reporter-observed evidence only. The AI result does not cover RSSI, and this does not change the Possible Condition.</span>
+                    </div>
+                  ) : null}
+                  <dl className="detail-list reporter-observation-details">
+                    <DetailField label="Observed or suspected concern">{report.reporterSuspectedCondition?.trim() || "None reported"}</DetailField>
+                    <DetailField label="Observation text"><ClampedText text={report.reporterObservationText ?? "Not provided"} /></DetailField>
+                  </dl>
+                </section>
+
+
+                <section aria-labelledby="symptoms-heading">
+                  <div className="section-heading"><div><h3 id="symptoms-heading">Observed symptoms</h3></div><ClipboardList aria-hidden="true" /></div>
+                  {observationsMismatchFor(report) ? (
+                    <p className="observation-mismatch" role="status">The submitted observations do not fully match the Possible Condition.</p>
+                  ) : null}
+                  <ul className="symptom-list">
+                    {report.symptoms.map((response) => <SymptomResponseItem response={response} key={response.id} />)}
+                  </ul>
+                </section>
+
+
+                <section aria-labelledby="crop-heading">
+                  <div className="section-heading"><div><h3 id="crop-heading">Crop information</h3></div></div>
+                  <CappedDetailList className="detail-list" limit={4}>
+                    <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
+                    <DetailField label="Sugarcane variety">{report.sugarcaneVariety ?? "Not provided"}</DetailField>
+                    <DetailField label="Crop age">{report.cropAge ?? "Not provided"}</DetailField>
+                    <DetailField label="Field notes"><ClampedText text={report.fieldNotes ?? "Not provided"} /></DetailField>
+                    <DetailField label="Cane class">{report.caneClass ?? "Not provided"}</DetailField>
+                  </CappedDetailList>
+                </section>
+
+
+          <section aria-labelledby="farm-location-heading">
+            <div className="section-heading"><div><h3 id="farm-location-heading">Farm and location</h3></div></div>
+            <CappedDetailList className="review-essential-context" limit={4}>
+              <DetailField label="Farmer or farm owner">{report.farmerOrFarmOwnerName ?? "Not provided"}</DetailField>
+              <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
+              <DetailField label="Location">
+                {!hasUsableCoordinates(report) ? (
+                  <span>Location not available{locationUnavailableReasonFor(report) ? ` — ${locationUnavailableReasonFor(report)}` : ""}</span>
+                ) : (
+                  <span>{humanLocationFor(report)}{mapUrl ? (<> · <a className="table-action" href={mapUrl} target="_blank" rel="noreferrer">View on map</a></>) : null}</span>
+                )}
+              </DetailField>
+              <DetailField label="Reporter">{report.submittedByName}</DetailField>
+              <DetailField label="Submitter role">{submitterRoleLabels[report.submitterRole]}</DetailField>
+            </CappedDetailList>
+          </section>
+
+          <section aria-labelledby="affected-area-heading">
+            <div className="section-heading"><div><h3 id="affected-area-heading">Affected area</h3></div></div>
+            <dl className="detail-list">
+              <DetailField label="Affected area">
+                {report.affectedAreaMeasurement === "not_measured"
+                  ? "Not measured"
+                  : report.affectedAreaHectares !== undefined
+                    ? `${report.affectedAreaHectares} ha`
+                    : "Not provided"}
+              </DetailField>
+              <DetailField label="Affected portion">
+                {report.affectedPortionMeasurement === "not_measured"
+                  ? "Not measured"
+                  : report.affectedPortionPercent !== undefined
+                    ? `${report.affectedPortionPercent}%`
+                    : "Not provided"}
+              </DetailField>
+            </dl>
+          </section>
+
+          <section aria-labelledby="case-information-heading">
+            <div className="section-heading"><div><h3 id="case-information-heading">Case information</h3></div></div>
+            <CappedDetailList className="detail-list" limit={4}>
+              <DetailField label="Observed at">{report.observedAt ? formatDateTime(report.observedAt) : "Not provided"}</DetailField>
+              <DetailField label="Submitted at">{formatDateTime(report.submittedAt)}</DetailField>
+              {report.reviewedBy ? <DetailField label="Last reviewed by">{report.reviewedBy}</DetailField> : null}
+              {report.reviewedAt ? <DetailField label="Reviewed at">{formatDateTime(report.reviewedAt)}</DetailField> : null}
+              {report.reviewNotes ? <DetailField label="Current review note"><ClampedText text={report.reviewNotes} /></DetailField> : null}
+            </CappedDetailList>
+          </section>
+        </section>
+
+      {/* Office decision (after the case is understood) */}
       <section className="review-card decision-summary" aria-labelledby="office-review-heading">
         <div className="section-heading">
           <div>
-            <h2 id="office-review-heading">Office decision summary</h2>
+            <h2 id="office-review-heading">Office decision</h2>
           </div>
           <CheckCircle2 aria-hidden="true" />
         </div>
@@ -1356,87 +1473,6 @@ export function CaseReviewPage() {
         </div>
       </section>
 
-      {/* 4. Single-column evidence flow */}
-      <div className="review-single-column">
-        <section className="evidence-section" aria-labelledby="evidence-section-heading">
-          <h2 className="evidence-section__heading" id="evidence-section-heading">
-            Evidence behind this decision
-          </h2>
-
-            {/* Disclosure 1: Field evidence — what was submitted (Open by default) */}
-            <details className="review-card evidence-disclosure" open>
-              <summary>
-                <div className="disclosure-left">
-                  <span className="summary-tag">Field evidence</span>
-                  <strong>Field evidence — what was submitted</strong>
-                  <span className="disclosure-metric">{fieldEvidenceSummary}</span>
-                </div>
-              </summary>
-              <div className="disclosure-content">
-                <div className="evidence-stage">
-                  {report.imageStatus === "available" ? (
-                    <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
-                  ) : (
-                    <ImagePendingState status={report.imageStatus} />
-                  )}
-                </div>
-                {imageLoadFailed ? (
-                  <div className="image-load-error" role="alert">
-                    <span>Image could not be loaded.</span>
-                    <Button type="button" variant="secondary" onClick={() => { setImageLoadFailed(false); setImageRetry((current) => current + 1); }}>Retry image</Button>
-                  </div>
-                ) : null}
-                <div className="evidence-meta">
-                  <span><Cloud aria-hidden="true" />{imageLoadFailed ? "Image load failed" : imageStatusLabels[report.imageStatus]}</span>
-                  <span>Captured {formatDateTime(report.capturedAt)}</span>
-                  <span>Submitted {formatDateTime(report.submittedAt)}</span>
-                </div>
-
-                <section className="reporter-observation-card" aria-labelledby="reporter-observation-heading">
-                  <div className="section-heading"><div><h3 id="reporter-observation-heading">What the reporter saw</h3></div><AlertTriangle aria-hidden="true" /></div>
-                  {report.mismatchReported === true ? (
-                    <div className="reporter-mismatch-label"><AlertTriangle aria-hidden="true" /><strong>The reporter said the Possible Condition does not match what they observed</strong></div>
-                  ) : report.mismatchReported === false ? (
-                    <p className="observation-empty">The reporter said the Possible Condition matches what they observed.</p>
-                  ) : (
-                    <p className="observation-empty">Possible Condition agreement was not collected for this report.</p>
-                  )}
-                  {isRssiReporterConcern(report) ? (
-                    <div className="rssi-observation-callout" role="status">
-                      <strong>RSSI reported as a field concern</strong>
-                      <span>Reporter-observed evidence only. The current Model V1 does not detect RSSI, and this does not change the Possible Condition.</span>
-                    </div>
-                  ) : null}
-                  <dl className="detail-list reporter-observation-details">
-                    <DetailField label="Observed or suspected concern">{report.reporterSuspectedCondition?.trim() || "None reported"}</DetailField>
-                    <DetailField label="Observation text"><ClampedText text={report.reporterObservationText ?? "Not provided"} /></DetailField>
-                  </dl>
-                </section>
-
-                <section aria-labelledby="symptoms-heading">
-                  <div className="section-heading"><div><h3 id="symptoms-heading">Submitted symptom responses</h3></div><ClipboardList aria-hidden="true" /></div>
-                  <div className={`symptom-agreement symptom-agreement--${symptomAgreementToneFor(report)}`} role="status">
-                    <span>Symptom agreement</span>
-                    <strong>Checklist responses: {symptomAgreementFor(report)}</strong>
-                    <span className="symptom-agreement__reporter">Reporter observation: {reporterComparisonFor(report)}</span>
-                    <p>Checklist consistency and the reporter's Possible Condition agreement are separate signals for review.</p>
-                  </div>
-                  <ul className="symptom-list">
-                    {report.symptoms.map((response) => <SymptomResponseItem response={response} key={response.id} />)}
-                  </ul>
-                </section>
-
-                <section aria-labelledby="notes-heading">
-                  <div className="section-heading"><div><h3 id="notes-heading">Submitted observations</h3></div></div>
-                  <CappedDetailList className="detail-list" limit={4}>
-                    <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
-                    <DetailField label="Sugarcane variety">{report.sugarcaneVariety ?? "Not provided"}</DetailField>
-                    <DetailField label="Crop age">{report.cropAge ?? "Not provided"}</DetailField>
-                    <DetailField label="Field notes"><ClampedText text={report.fieldNotes ?? "Not provided"} /></DetailField>
-                    <DetailField label="Checklist consistency">{report.checklistConsistency?.replaceAll("_", " ") ?? "Not provided"}</DetailField>
-                    <DetailField label="Cane class">{report.caneClass ?? "Not provided"}</DetailField>
-                  </CappedDetailList>
-                </section>
 
                 {report.fieldValidationAssignment?.completion ? (
                   <section
@@ -1487,73 +1523,18 @@ export function CaseReviewPage() {
                     </dl>
                   </section>
                 ) : null}
-              </div>
-            </details>
 
-            {/* Disclosure 2: Model evidence — decision support (Closed by default - D-01) */}
-            <details className="review-card technical-evidence model-evidence-disclosure">
-              <summary>
-                <div className="disclosure-left">
-                  <span className="summary-tag">Decision support</span>
-                  <strong>Model evidence — decision support</strong>
-                  <span className="disclosure-metric">
-                    {diseaseLabels[report.predictedDisease]} · {Math.round((report.confidence ?? 0) * 100)}% (decision support)
-                  </span>
-                </div>
-                <ScanLine aria-hidden="true" />
-              </summary>
-              <div className="disclosure-content">
-                <div className="review-essential-result" role="region" aria-label="Possible Condition">
-                  <div className="review-essential-result__heading">
-                    <div>
-                      <h3>Possible Condition</h3>
-                    </div>
-                    <DiseaseBadge disease={report.predictedDisease} />
-                  </div>
-                  <ConfidenceDisplay confidence={report.confidence ?? 0} />
-                  <p><strong>Decision-support only.</strong> Compare this Possible Condition with the symptom responses, reporter observation, and field context. It is not a diagnosis.</p>
-                </div>
+        {report.referral ? (
+          <div id="referral-response-form">
+            <ReferralWorkflow report={report} />
+          </div>
+        ) : null}
 
-                <details className="review-card technical-evidence">
-                  <summary>
-                    <span>
-                      <span className="summary-tag">Additional evidence</span>
-                      <strong>Technical Evidence</strong>
-                    </span>
-                    <ScanLine aria-hidden="true" />
-                  </summary>
-                  <div className="technical-evidence__content">
-                    <p className="technical-evidence__description">Model, processing, and image details remain available for audit without leading the operational review.</p>
-                    <div className="model-breakdown">
-                      {(report.classScores ?? []).map((score) => (
-                        <div key={score.label}>
-                          <span>{score.label}</span>
-                          <strong>{Math.round(score.score * 100)}%</strong>
-                        </div>
-                      ))}
-                    </div>
-                    <dl className="detail-list model-metadata">
-                      <DetailField label="Model version">{report.modelVersion ?? "Unavailable"}</DetailField>
-                      <DetailField label="Total processing">{report.processingTimingsMs ? `${report.processingTimingsMs.total} ms` : "Unavailable"}</DetailField>
-                      <DetailField label="Preprocess">{report.processingTimingsMs ? `${report.processingTimingsMs.preprocess} ms` : "Unavailable"}</DetailField>
-                      <DetailField label="Inference">{report.processingTimingsMs ? `${report.processingTimingsMs.inference} ms` : "Unavailable"}</DetailField>
-                      <DetailField label="Image source">{report.imageSourceType ?? "Unavailable"}</DetailField>
-                      <DetailField label="File type">{report.imageMimeType ?? "Unavailable"}</DetailField>
-                      <DetailField label="Image size">{report.imageSizeBytes ? `${Math.round(report.imageSizeBytes / 1024)} KB` : "Unavailable"}</DetailField>
-                      <DetailField label="Dimensions">{report.sourceWidth && report.sourceHeight ? `${report.sourceWidth} × ${report.sourceHeight}` : "Not provided"}</DetailField>
-                    </dl>
-                    <div className="decision-reminder"><Info aria-hidden="true" /><p><strong>Audit reminder</strong><span>Compare this result with the submitted observations and field context.</span></p></div>
-                  </div>
-                </details>
-              </div>
-            </details>
-
-            {/* Disclosure 3: Prior record — case history (Closed by default) */}
+            {/* Case history (secondary, collapsed) */}
             <details className="review-card case-history-disclosure">
               <summary>
                 <div className="disclosure-left">
-                  <span className="summary-tag">Prior record</span>
-                  <strong>Prior record — case history</strong>
+                  <strong>Case history</strong>
                   <span className="disclosure-metric">{caseHistorySummary}</span>
                 </div>
                 <History aria-hidden="true" />
@@ -1607,7 +1588,7 @@ export function CaseReviewPage() {
 
                   {!caseHistoryAvailable ? (
                     <p className="timeline-empty">
-                      Case history is not available for this legacy record; no events are inferred.
+                      Case history is not available for this older record.
                     </p>
                   ) : visibleHistory.length > 0 ? (
                     <ol className="timeline-list">
@@ -1643,96 +1624,6 @@ export function CaseReviewPage() {
                 </section>
               </div>
             </details>
-
-            {/* Disclosure 4: Reference details (Closed by default) */}
-            <details className="review-card reference-details-disclosure">
-              <summary>
-                <div className="disclosure-left">
-                  <span className="summary-tag">Context</span>
-                  <strong>Reference details</strong>
-                  <span className="disclosure-metric">
-                    Farm and location rows ({report.locationSource === "unavailable" ? 12 : 11}) · report context
-                  </span>
-                </div>
-                <MapPin aria-hidden="true" />
-              </summary>
-              <div className="disclosure-content">
-                <section aria-labelledby="reference-context-heading">
-                  <div className="section-heading"><div><h3 id="reference-context-heading">Farm and location context</h3></div><Smartphone aria-hidden="true" /></div>
-                  <CappedDetailList className="review-essential-context" limit={4}>
-                    <DetailField label="Barangay">{report.barangay}</DetailField>
-                    <DetailField label="Municipality">{report.municipality ?? "Not provided"}</DetailField>
-                    <DetailField label="Province">{report.province ?? "Not provided"}</DetailField>
-                    <DetailField label="Coordinates">
-                      {report.locationSource === "unavailable"
-                        ? "Unavailable"
-                        : report.finalLatitude !== undefined && report.finalLongitude !== undefined
-                          ? `${report.finalLatitude}, ${report.finalLongitude}`
-                          : "Not provided"}
-                    </DetailField>
-                    <DetailField label="Farm reference">{report.farmReference ?? "Not provided"}</DetailField>
-                    <DetailField label="Farmer or farm owner">{report.farmerOrFarmOwnerName ?? "Not provided"}</DetailField>
-                    <DetailField label="Location source">
-                      {report.locationSource === "gps"
-                        ? "GPS"
-                        : report.locationSource === "manual_map"
-                          ? "Manual map"
-                          : report.locationSource === "unavailable"
-                            ? "Unavailable"
-                            : "Not provided"}
-                    </DetailField>
-                    {report.locationSource === "unavailable" ? (
-                      <DetailField label="Location unavailable reason">
-                        {report.locationUnavailableReason
-                          ? `Unavailable — ${report.locationUnavailableReason.replaceAll("_", " ")}`
-                          : "Unavailable — reason not recorded"}
-                      </DetailField>
-                    ) : null}
-                    <DetailField label="GPS accuracy">{report.gpsAccuracy !== undefined ? `${report.gpsAccuracy} m` : "Not provided"}</DetailField>
-                    <DetailField label="Affected area">
-                      {report.affectedAreaMeasurement === "not_measured"
-                        ? "Not measured"
-                        : report.affectedAreaHectares !== undefined
-                          ? `${report.affectedAreaHectares} ha`
-                          : "Not provided"}
-                    </DetailField>
-                    <DetailField label="Affected portion">
-                      {report.affectedPortionMeasurement === "not_measured"
-                        ? "Not measured"
-                        : report.affectedPortionPercent !== undefined
-                          ? `${report.affectedPortionPercent}%`
-                          : "Not provided"}
-                    </DetailField>
-                    <DetailField label="Reporter">{report.submittedByName}</DetailField>
-                  </CappedDetailList>
-                  <div className="quality-summary">
-                    <strong>Image quality checks</strong>
-                    {report.qualityWarnings?.length ? (
-                      <ul>{report.qualityWarnings.map((warning) => <li key={warning}>{warning.replaceAll("_", " ")}</li>)}</ul>
-                    ) : <span>No image quality warnings were reported.</span>}
-                  </div>
-                </section>
-
-                <section aria-labelledby="report-context-heading">
-                  <div className="section-heading"><div><h3 id="report-context-heading">Report context</h3></div><MapPin aria-hidden="true" /></div>
-                  <CappedDetailList className="detail-list" limit={4}>
-                    <DetailField label="Submitter role">{submitterRoleLabels[report.submitterRole]}</DetailField>
-                    <DetailField label="Observed at">{report.observedAt ? formatDateTime(report.observedAt) : "Not provided"}</DetailField>
-                    <DetailField label="Submitted at">{formatDateTime(report.submittedAt)}</DetailField>
-                    {report.reviewedBy ? <DetailField label="Last reviewed by">{report.reviewedBy}</DetailField> : null}
-                    {report.reviewedAt ? <DetailField label="Reviewed at">{formatDateTime(report.reviewedAt)}</DetailField> : null}
-                    {report.reviewNotes ? <DetailField label="Current review note"><ClampedText text={report.reviewNotes} /></DetailField> : null}
-                  </CappedDetailList>
-                </section>
-              </div>
-            </details>
-          </section>
-
-        {report.referral ? (
-          <div id="referral-response-form">
-            <ReferralWorkflow report={report} />
-          </div>
-        ) : null}
 
         <section className="more-actions-section" aria-label="More actions">
           <div className="section-heading">
@@ -1792,7 +1683,7 @@ export function CaseReviewPage() {
               icon={<Link2 aria-hidden="true" />}
               onClick={() => setMetadataCorrectionModalOpen(true)}
             >
-              Correct operational metadata
+              Correct case information
             </Button>
           </div>
         </section>
@@ -2323,7 +2214,7 @@ export function CaseReviewPage() {
           ) : null}
           {possibleMatchesQuery.isError ? (
             <p className="duplicate-link-status" role="alert">
-              Possible matches could not be loaded. You can still search cases or paste a canonical case UUID below.
+              Possible matches could not be loaded. You can still search cases or paste a canonical case ID below.
             </p>
           ) : null}
           {!possibleMatchesQuery.isPending && !possibleMatchesQuery.isError && possibleMatches.length === 0 ? (
@@ -2375,9 +2266,9 @@ export function CaseReviewPage() {
             disabled={duplicateLinkMutation.isPending}
           />
           <details className="uuid-fallback">
-            <summary>Paste a case UUID instead</summary>
+            <summary>Paste a case ID instead</summary>
             <label className="select-filter" htmlFor="canonical-report-uuid">
-              <span>Canonical case UUID</span>
+              <span>Canonical case ID</span>
               <input
                 id="canonical-report-uuid"
                 value={canonicalReportUuid}
@@ -2408,7 +2299,7 @@ export function CaseReviewPage() {
             />
           </label>
           {duplicateLinkSubmitted && !canonicalReportUuid.trim() ? (
-            <p className="form-error" role="alert">Select a case from the search results or enter a canonical case UUID before linking.</p>
+            <p className="form-error" role="alert">Select a case from the search results or enter a canonical case ID before linking.</p>
           ) : null}
           {duplicateLinkValidationError ? (
             <p className="form-error" role="alert">{duplicateLinkValidationError}</p>
@@ -2439,7 +2330,7 @@ export function CaseReviewPage() {
       {/* Modal 5: Metadata Correction (F6) */}
       <Modal
         id="metadata-correction-modal"
-        title="Correct operational metadata"
+        title="Correct case information"
         description="Corrections preserve the submitted value, corrected value, actor, timestamp, and reason. Submitted AI and observation evidence cannot be edited here."
         open={metadataCorrectionModalOpen}
         onClose={closeMetadataCorrectionModal}
@@ -2567,7 +2458,7 @@ export function CaseReviewPage() {
               </ol>
             </div>
           ) : (
-            <p className="authority-classification-help">No operational metadata corrections recorded.</p>
+            <p className="authority-classification-help">No case information corrections recorded.</p>
           )}
         </div>
       </Modal>
