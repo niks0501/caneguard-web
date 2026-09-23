@@ -90,7 +90,6 @@ type MetadataDraft = {
 const nextActions: Array<{ value: NextAction; description: string }> = [
   { value: "needs_field_validation", description: "Assign a Field Inspector to visit the site and record fresh field evidence. The case stays open." },
   { value: "advisory_provided", description: "Record guidance provided to the field contact." },
-  { value: "technical_assistance_provided", description: "Record practical technical assistance delivered." },
   { value: "referred_for_expert_validation", description: "Record the expert handoff. The case stays open while input is pending." },
   { value: "no_further_action_required", description: "Record that no further office action is required." },
 ];
