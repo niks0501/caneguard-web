@@ -3,6 +3,7 @@ import { Download, Printer, X } from "lucide-react";
 import { env } from "../../config/env";
 import { axiosClient } from "../../api/axiosClient";
 import { Button } from "../ui/Button";
+import { previousManilaIsoWeekAt } from "../../domain/reportingTime";
 import {
   authorityClassifiedConditionLabels,
   caseStateLabels,
@@ -55,12 +56,7 @@ function readStoredState(): Partial<BuilderState> {
 }
 
 function defaultWeek() {
-  const date = new Date();
-  const day = date.getDay() || 7;
-  date.setDate(date.getDate() - day - 6);
-  const yearStart = new Date(date.getFullYear(), 0, 1);
-  const week = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + yearStart.getDay() + 1) / 7);
-  return `${date.getFullYear()}-W${String(week).padStart(2, "0")}`;
+  return previousManilaIsoWeekAt();
 }
 
 function initialState(): BuilderState {

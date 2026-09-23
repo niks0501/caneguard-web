@@ -14,9 +14,9 @@ use Illuminate\Validation\ValidationException;
  * Extends the documents track's Phase 0 period groundwork instead of
  * rebuilding it: PHT (Asia/Manila) boundaries, weekly/monthly/custom
  * resolution via from/to dates, and the 366-day range cap. The monthly
- * builder is reused untouched through its buildFromQuery seam so the shipped
- * UTC monthly summary stays byte-identical; only the new buckets, the
- * open/closed split and the previous-window comparison live here.
+ * builder is reused through its buildFromQuery seam so dashboard summaries,
+ * analytics and generated documents share scoped aggregates; only the new
+ * buckets, open/closed split and previous-window comparison live here.
  *
  * Scope parity with the CSV export is structural: the base query applies
  * canonical_report_id IS NULL plus ApplyReportFilters (and the operational

@@ -41,6 +41,7 @@ const monthlyCaseSummarySchema = z.object({
     reported_cases: z.number().int().nonnegative(),
   })),
   estimated_affected_hectares: z.number().nonnegative(),
+  reports_containing_farmer_farm_information: z.number().int().nonnegative(),
   field_validation_counts: z.object({
     unassigned: z.number().int().nonnegative(),
     assigned: z.number().int().nonnegative(),

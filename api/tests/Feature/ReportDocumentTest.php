@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Reports\BuildReportDocument;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -35,9 +36,26 @@ class ReportDocumentTest extends TestCase
         $response->assertOk()
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
             ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $document = app(BuildReportDocument::class)->handle([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]);
+        $this->assertSame(1, $document['metrics']['reported_cases']);
+        $this->assertSame(1, $document['metrics']['reports_containing_farmer_farm_information']);
         $response->assertSee('Week 38')
             ->assertSee('PHT (UTC+8)')
+            ->assertSee('Operational summary')
             ->assertSee('Submitted reports')
+            ->assertSee('Estimated affected area')
+            ->assertSee('Reports with farmer/farm information')
+            ->assertSee('Cases requiring field validation')
+            ->assertSee('Operational queue status')
+            ->assertSee('Follow-up Due')
+            ->assertSee('Upcoming Visits')
+            ->assertSee('By Possible Condition')
+            ->assertSee('not an estimate of total affected farmers in Nasugbu')
+            ->assertSee('Supplementary review and expert-consult indicators')
+            ->assertSee('is descriptive and is not model accuracy')
             ->assertDontSee('PHT farmer reference')
             ->assertDontSee('CG-PHT-IN')
             ->assertDontSee('CG-PHT-OUT');

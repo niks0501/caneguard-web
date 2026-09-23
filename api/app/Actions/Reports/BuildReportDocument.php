@@ -9,8 +9,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Builds the period-aware, self-describing report payload used by both the
- * HTML document preview and the PDF renderer. Document periods use PHT by
- * decision; the existing dashboard monthly summary remains UTC-based.
+ * HTML document preview and the PDF renderer. Every reporting period uses
+ * Asia/Manila boundaries, with UTC instants reserved for database queries.
  */
 final class BuildReportDocument
 {

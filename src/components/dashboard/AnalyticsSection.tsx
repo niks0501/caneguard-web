@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { useAnalytics } from "../../hooks/useAnalytics";
+import { manilaDateAt } from "../../domain/reportingTime";
 import { ErrorState, LoadingState } from "../ui/States";
 import {
   ANALYTICS_EMPTY_STATE,
@@ -19,12 +20,6 @@ import {
 } from "./analyticsCopy";
 import { barangayColor, chartTheme, conditionColor } from "./chartTheme";
 
-const PHT_OFFSET_MS = 8 * 60 * 60 * 1000;
-
-function phtToday(): string {
-  return new Date(Date.now() + PHT_OFFSET_MS).toISOString().slice(0, 10);
-}
-
 function shiftDate(isoDate: string, days: number): string {
   const next = new Date(`${isoDate}T00:00:00Z`);
   next.setUTCDate(next.getUTCDate() + days);
@@ -32,7 +27,7 @@ function shiftDate(isoDate: string, days: number): string {
 }
 
 function defaultRange(): { from: string; to: string } {
-  const to = phtToday();
+  const to = manilaDateAt();
   return { from: shiftDate(to, -29), to };
 }
 
@@ -176,7 +171,7 @@ export function AnalyticsSectionView({
           <h2 id="report-analytics-heading">Report analytics</h2>
           <p>
             Charts of submitted reports for any week, month or custom range.
-            The monthly summary panel below stays on its UTC calendar month.
+            The monthly summary panel below uses the same Philippine calendar month.
           </p>
         </div>
       </div>
@@ -217,7 +212,7 @@ export function AnalyticsSectionView({
             aria-label="Analytics period end"
             value={to}
             min={from}
-            max={phtToday()}
+            max={manilaDateAt()}
             onChange={(event) => {
               if (event.target.value) onToChange(event.target.value);
             }}
@@ -699,7 +694,7 @@ export function AnalyticsSection() {
   });
 
   const applyPreset = (preset: "week" | "month") => {
-    const to = phtToday();
+    const to = manilaDateAt();
     setRange({
       from: shiftDate(to, preset === "week" ? -6 : -29),
       to,

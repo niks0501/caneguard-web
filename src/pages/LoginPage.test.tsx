@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { WebRoleError } from "../auth/auth.api";
 import { AuthContext, type AuthContextValue } from "../auth/auth.context";
@@ -51,6 +51,10 @@ function renderLoginPage(
 describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("renders the hero CaneGuard branding and the access line", () => {
@@ -104,6 +108,13 @@ describe("LoginPage", () => {
       "href",
       "/forgot-password",
     );
+    expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
+  });
+
+  it("shows the registration link only when public self-registration is enabled", () => {
+    vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
+    renderLoginPage();
+
     expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
       "href",
       "/register",

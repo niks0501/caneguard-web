@@ -22,8 +22,26 @@ class AuthSecurityTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_public_registration_is_disabled_without_creating_an_account(): void
+    {
+        config(['caneguard.self_registration_enabled' => false]);
+
+        $this->postJson('/register', [
+            'name' => 'Unauthorized Field Inspector',
+            'email' => 'unauthorized@example.test',
+            'password' => 'A safe field reporter passphrase',
+        ])->assertForbidden()->assertExactJson([
+            'message' => 'Public self-registration is disabled. Contact your CaneGuard administrator to request an authorized account.',
+            'code' => 'REGISTRATION_DISABLED',
+        ]);
+
+        $this->assertDatabaseMissing('users', ['email' => 'unauthorized@example.test']);
+        $this->assertDatabaseCount('security_audits', 0);
+    }
+
     public function test_registration_creates_only_a_verified_email_gated_field_reporter(): void
     {
+        config(['caneguard.self_registration_enabled' => true]);
         Notification::fake();
 
         $response = $this->postJson('/register', [
@@ -252,6 +270,8 @@ class AuthSecurityTest extends TestCase
 
     public function test_password_policy_accepts_long_passphrases_and_rejects_short_or_compromised_values(): void
     {
+        config(['caneguard.self_registration_enabled' => true]);
+
         $short = $this->postJson('/register', [
             'name' => 'Short Password',
             'email' => 'short@example.test',

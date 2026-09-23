@@ -113,6 +113,25 @@ class MobileReportUploadV2Test extends TestCase
         );
     }
 
+    public function test_v2_rejects_rssi_and_legacy_downy_mildew_as_ai_predictions(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-class-boundary-test', ['report:submit'])->plainTextToken;
+
+        foreach (['RSSI', 'rssi', 'downy_mildew'] as $unsupportedPrediction) {
+            $this->withToken($token)
+                ->withHeader('Accept', 'application/json')
+                ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                    'predicted_label' => $unsupportedPrediction,
+                ]))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('predicted_label');
+        }
+
+        $this->assertDatabaseCount('reports', 0);
+    }
+
     public function test_v2_retry_omits_reviewer_and_audit_identity(): void
     {
         Storage::fake('local');

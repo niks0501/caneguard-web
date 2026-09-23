@@ -18,6 +18,7 @@ import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { routes } from "./routes";
+import { isPublicRegistrationEnabled } from "./publicRegistration";
 import { useAuth } from "../auth/useAuth";
 
 function HomeRedirect() {
@@ -51,7 +52,10 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
+        <Route
+          path="register"
+          element={isPublicRegistrationEnabled() ? <RegisterPage /> : <Navigate replace to={routes.login} />}
+        />
         <Route path="verify-email" element={<VerifyEmailPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="reset-password" element={<ResetPasswordPage />} />

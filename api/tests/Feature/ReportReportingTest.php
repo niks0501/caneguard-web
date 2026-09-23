@@ -74,7 +74,7 @@ class ReportReportingTest extends TestCase
             ->assertOk()
             ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
             ->assertHeader('Cache-Control', 'no-store, private')
-            ->assertHeader('Content-Disposition', 'attachment; filename=caneguard-case-export-'.now()->utc()->format('Y-m-d').'.csv');
+            ->assertHeader('Content-Disposition', 'attachment; filename=caneguard-case-export-'.now('Asia/Manila')->format('Y-m-d').'.csv');
 
         $rows = array_map(
             'str_getcsv',
@@ -348,6 +348,35 @@ class ReportReportingTest extends TestCase
         $response->assertJsonMissingPath('data.infection_rate');
         $response->assertJsonMissingPath('data.outbreak_probability');
         $response->assertJsonMissingPath('data.disease_risk_score');
+    }
+
+    public function test_monthly_summary_counts_case_records_with_farmer_or_farm_information_without_deduplicating(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        foreach ([
+            'Synthetic farm reference 01',
+            'Synthetic farm reference 01',
+            '   ',
+            null,
+        ] as $index => $reference) {
+            Report::factory()->create([
+                'reference_code' => 'CG-FARM-INFO-'.$index,
+                'farmer_or_farm_owner_name' => $reference,
+                'submitted_at' => CarbonImmutable::parse('2026-07-10T10:00:00Z')->addDays($index),
+            ]);
+        }
+
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/reports/summary?month=2026-07')
+            ->assertOk()
+            ->assertJsonPath('data.reported_cases', 4)
+            ->assertJsonPath('data.reports_containing_farmer_farm_information', 2)
+            ->assertJsonMissingPath('data.affected_farmers');
+        $this->getJson('/api/v1/dashboard/summary?month=2026-07')
+            ->assertOk()
+            ->assertJsonPath('data.monthly_summary.reported_cases', 4)
+            ->assertJsonPath('data.monthly_summary.reports_containing_farmer_farm_information', 2);
     }
 
     public function test_monthly_summary_includes_smut_as_possible_ai_evidence(): void

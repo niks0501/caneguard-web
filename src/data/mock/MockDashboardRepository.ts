@@ -8,9 +8,12 @@ import type {
   ReportAnalyticsParams,
 } from "../../domain/dashboard.types";
 import type { DiseaseReport, ReviewStatus } from "../../domain/report.types";
+import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
+import { operationalQueueValues } from "../../domain/operationalQueue";
 import {
   legacyLifecycleForReviewStatus,
 } from "../api/mappers/lifecycle.mapper";
+import { filterMockOperationalQueue, isCanonicalWorkReport } from "./mockOperationalQueues";
 import { mockReports } from "./mockReports";
 
 function buildMonthlySummary(
@@ -18,7 +21,8 @@ function buildMonthlySummary(
   month: string,
 ): MonthlyCaseSummary {
   const monthlyReports = reports.filter((report) =>
-    report.submittedAt.startsWith(month),
+    isCanonicalWorkReport(report)
+    && manilaMonthAt(new Date(report.submittedAt)) === month,
   );
   const byBarangay = new Map<string, number>();
   const byCondition = new Map<string, number>();
@@ -93,6 +97,9 @@ function buildMonthlySummary(
     estimatedAffectedHectares: Number(monthlyReports
       .reduce((total, report) => total + (report.affectedAreaHectares ?? 0), 0)
       .toFixed(2)),
+    reportsContainingFarmerFarmInformation: monthlyReports.filter((report) =>
+      Boolean(report.farmReference?.trim() || report.farmerOrFarmOwnerName?.trim()),
+    ).length,
     fieldValidationCounts,
     closedCases: monthlyReports.filter((report) =>
       lifecycleFor(report).caseState === "closed",
@@ -119,49 +126,24 @@ export class MockDashboardRepository implements DashboardRepository {
       unable_to_verify: 0,
       resolved: 0,
     };
-    const queues = {
-      needs_review: 0,
-      needs_visit: 0,
-      follow_up_due: 0,
-      upcoming: 0,
-      unverified_no_active_work: 0,
-    };
-
-    mockReports.forEach((report) => {
+    const canonicalReports = mockReports.filter(isCanonicalWorkReport);
+    canonicalReports.forEach((report) => {
       counts[report.reviewStatus] += 1;
-      if (report.reviewStatus === "submitted_unverified") {
-        queues.needs_review += 1;
-      }
-      if (report.reviewStatus === "for_field_validation") {
-        queues.needs_visit += 1;
-      }
-      const lifecycle = report.lifecycle;
-      const caseState = lifecycle?.caseState
-        ?? (report.reviewStatus === "submitted_unverified" ? "open" : "closed");
-      const verificationOutcome = lifecycle?.verificationOutcome
-        ?? (report.reviewStatus === "submitted_unverified" ? "not_determined" : "verified");
-      const fieldValidationState = lifecycle?.fieldValidationState ?? "unassigned";
-      const referralState = lifecycle?.referralState ?? "not_referred";
-      if (
-        caseState === "open"
-        && verificationOutcome === "not_determined"
-        && fieldValidationState === "unassigned"
-        && referralState !== "referred"
-        && referralState !== "expert_response_received"
-        && report.actionTaken != null
-      ) {
-        queues.unverified_no_active_work += 1;
-      }
     });
+    const today = manilaDateAt();
+    const queues = Object.fromEntries(operationalQueueValues.map((queue) => [
+      queue,
+      filterMockOperationalQueue(canonicalReports, queue, today).length,
+    ])) as DashboardSummary["queues"];
 
-    const selectedMonth = month ?? new Date().toISOString().slice(0, 7);
+    const selectedMonth = month ?? manilaMonthAt();
 
     return {
-      totalSubmitted: mockReports.length,
+      totalSubmitted: canonicalReports.length,
       counts,
       queues,
-      recentReports: mockReports.slice(0, 5),
-      monthlySummary: buildMonthlySummary(mockReports, selectedMonth),
+      recentReports: canonicalReports.slice(0, 5),
+      monthlySummary: buildMonthlySummary(canonicalReports, selectedMonth),
     };
   }
 
