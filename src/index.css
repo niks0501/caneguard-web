@@ -3549,6 +3549,53 @@ blockquote {
   font-size: var(--text-body-sm);
 }
 
+.field-validation-locations {
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-surface);
+}
+
+.field-validation-locations__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  color: var(--color-primary-dark);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.field-validation-locations__summary::-webkit-details-marker {
+  display: none;
+}
+
+.field-validation-locations__summary::after {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.field-validation-locations[open] > .field-validation-locations__summary {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.field-validation-locations[open] > .field-validation-locations__summary::after {
+  transform: rotate(225deg);
+}
+
+.field-validation-locations__summary:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
 .field-validation-table-card {
   overflow: hidden;
 }

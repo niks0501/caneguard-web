@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AxiosError } from "axios";
 import { ApiError } from "../api/ApiError";
 import { ZodError } from "zod";
 import type {
@@ -25,13 +26,13 @@ const mapData: FieldValidationMapData = {
     {
       type: "Feature",
       id: "report-1",
-      geometry: { type: "Point", coordinates: [122.9876543, 10.1234567] },
+      geometry: { type: "Point", coordinates: [120.6039, 14.126] },
       properties: {
         uuid: "report-1",
         referenceCode: "CG-2026-0001",
-        barangay: "Mabini",
-        province: "Negros Occidental",
-        municipality: "Bago",
+        barangay: "Balaytigui",
+        province: "Batangas",
+        municipality: "Nasugbu",
         observedAt: "2026-08-13T10:20:30.000Z",
         submittedAt: "2026-08-13T11:00:00.000Z",
         predictedDisease: "rust",
@@ -60,16 +61,16 @@ const queueData: FieldValidationQueueData = {
   oldest: {
     uuid: "report-1",
     referenceCode: "CG-2026-0001",
-    barangay: "Mabini",
-    province: "Negros Occidental",
-    municipality: "Bago",
+    barangay: "Balaytigui",
+    province: "Batangas",
+    municipality: "Nasugbu",
     observedAt: "2026-08-13T10:20:30.000Z",
     submittedAt: "2026-08-13T11:00:00.000Z",
     predictedDisease: "rust",
     confidence: 0.84,
     reviewStatus: "for_field_validation",
-    finalLatitude: 10.1234567,
-    finalLongitude: 122.9876543,
+    finalLatitude: 14.126,
+    finalLongitude: 120.6039,
     locationSource: "gps",
     gpsAccuracy: 8.5,
     affectedAreaHectares: 2.5,
@@ -104,19 +105,30 @@ function renderPage(initialEntry = "/map") {
   );
 }
 
+function expectRowCountInDisclosure(count: string) {
+  const summary = screen.getByText("Map and located observations").closest("summary") as HTMLElement;
+  expect(summary).toHaveTextContent(count);
+}
+
 beforeEach(() => {
   vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(mapData));
   vi.mocked(useFieldValidationQueue).mockReturnValue(queryResult(queueData));
 });
 
 describe("FieldValidationMapPage", () => {
-  it("renders the map fallback, coverage warning, operational queue, and report links", () => {
+  it("renders the collapsible map summary, coverage warning, operational queue, and report links", async () => {
+    const user = userEvent.setup();
     renderPage();
+
+    const locationsSummary = screen.getByText("Map and located observations");
+    expect(locationsSummary.closest("details")).not.toHaveAttribute("open");
+    expectRowCountInDisclosure("1 row");
+    await user.click(locationsSummary);
 
     expect(screen.getByRole("heading", { name: "Field-validation map" })).toBeInTheDocument();
     expect(screen.getByText("Map provider is not configured.")).toBeInTheDocument();
     expect(screen.getByText(/1 located, 1 unlocated/)).toBeInTheDocument();
-    expect(screen.getByText(/1 filtered report has no valid coordinate pair/)).toBeInTheDocument();
+    expect(screen.getByText(/1 filtered report has no valid Nasugbu coordinate pair/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
     expect(screen.getAllByText("Needs field validation").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Open Report" })[0]).toHaveAttribute(
@@ -162,6 +174,35 @@ describe("FieldValidationMapPage", () => {
     );
   });
 
+  it("explains when the monitoring map cannot connect to the API", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, {
+        error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+        isError: true,
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByText(/Cannot connect to the CaneGuard API for the field-validation map/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
+  });
+
+  it("keeps cached map and queue data visible during an API connection failure", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(mapData, {
+        error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+        isError: true,
+        isRefetchError: true,
+      }),
+    );
+    renderPage();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/Cannot connect to the CaneGuard API/);
+    expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue remain visible/i);
+    expectRowCountInDisclosure("1 row");
+    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
+  });
+
   it("keeps map data available when the queue request fails", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(
       queryResult(undefined, {
@@ -171,9 +212,8 @@ describe("FieldValidationMapPage", () => {
     );
     renderPage();
 
-    expect(screen.getByText("Map provider is not configured.")).toBeInTheDocument();
     expect(screen.getByText(/field-validation queue is unavailable/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
+    expectRowCountInDisclosure("1 row");
   });
 
   it("keeps cached map data and the queue usable when the queue refresh fails", () => {
@@ -187,7 +227,7 @@ describe("FieldValidationMapPage", () => {
     renderPage();
 
     expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue/i);
-    expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
+    expectRowCountInDisclosure("1 row");
     expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Open Report" })[0]).toHaveAttribute(
       "href",
@@ -206,7 +246,7 @@ describe("FieldValidationMapPage", () => {
     renderPage();
 
     expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue/i);
-    expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
+    expectRowCountInDisclosure("1 row");
     expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
   });
 
@@ -227,7 +267,7 @@ describe("FieldValidationMapPage", () => {
     renderPage();
 
     expect(screen.getByText("No reports match the applied filters.")).toBeInTheDocument();
-    expect(screen.getByText("No located observations match the applied filters.")).toBeInTheDocument();
+    expectRowCountInDisclosure("0 rows");
   });
 
   it("reports when matching reports have no coordinate pair", () => {
@@ -247,7 +287,7 @@ describe("FieldValidationMapPage", () => {
     renderPage();
 
     expect(screen.getByText(/0 located, 2 unlocated/)).toBeInTheDocument();
-    expect(screen.getByText(/2 filtered reports have no valid coordinate pair/)).toBeInTheDocument();
+    expect(screen.getByText(/2 filtered reports have no valid Nasugbu coordinate pair/)).toBeInTheDocument();
   });
 
   it("reports malformed map data without hiding a healthy queue", () => {
@@ -268,18 +308,19 @@ describe("FieldValidationMapPage", () => {
     renderPage();
 
     await user.selectOptions(screen.getByLabelText("Possible Condition"), "rust");
-    await user.type(screen.getByLabelText("Barangay"), "Mabini");
+    await user.selectOptions(screen.getByLabelText("Map review state"), "for_field_validation");
+    await user.type(screen.getByLabelText("Barangay"), "Balaytigui");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
 
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "?predicted_label=rust&barangay=Mabini",
+      "?status=for_field_validation&predicted_label=rust&barangay=Balaytigui",
     );
     expect(useFieldValidationMap).toHaveBeenLastCalledWith(
-      expect.objectContaining({ disease: "rust", barangay: "Mabini" }),
+      expect.objectContaining({ disease: "rust", barangay: "Balaytigui", status: "for_field_validation" }),
       { enabled: true },
     );
     expect(useFieldValidationQueue).toHaveBeenLastCalledWith(
-      expect.objectContaining({ disease: "rust", barangay: "Mabini", status: undefined }),
+      expect.objectContaining({ disease: "rust", barangay: "Balaytigui", status: "for_field_validation" }),
       { enabled: true },
     );
   });

@@ -8,6 +8,8 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\PdfBuilder;
 use Tests\TestCase;
 
 class ReportDocumentTest extends TestCase
@@ -81,6 +83,28 @@ class ReportDocumentTest extends TestCase
             ->assertSee('Farmer and farm references are included')
             ->assertSee('Farmer reference')
             ->assertSee('Case register appendix');
+    }
+
+    public function test_pdf_route_returns_a_rendered_document_for_seeded_reports(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->create([
+            'reference_code' => 'CG-PDF-SEEDED',
+            'submitted_at' => CarbonImmutable::parse('2026-09-17T08:00:00Z'),
+        ]);
+        Sanctum::actingAs($reviewer);
+        $fakePdf = Pdf::fake();
+
+        $response = $this->get('/api/v1/reports/documents/report/pdf?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]));
+
+        $response->assertOk();
+        $fakePdf->assertRespondedWithPdf(
+            static fn (PdfBuilder $pdf): bool => $pdf->viewName === 'reports.document'
+                && ($pdf->viewData['metrics']['reported_cases'] ?? null) === 1,
+        );
     }
 
     public function test_other_html_routes_still_deny_framing(): void

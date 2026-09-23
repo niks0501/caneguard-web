@@ -5,6 +5,7 @@ import { MemoryRouter, useLocation } from "react-router";
 import { ZodError } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
+import { AxiosError } from "axios";
 import { createQueryClient } from "../app/queryClient";
 import { mockReports } from "../data/mock/mockReports";
 import { useExportReports, useReports } from "../hooks/useReports";
@@ -126,7 +127,7 @@ describe("SubmittedReportsPage", () => {
     expect(
       screen.queryByRole("columnheader", { name: "Observed" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Bago, Negros Occidental")).toBeInTheDocument();
+    expect(screen.getAllByText("Nasugbu, Batangas").length).toBeGreaterThan(0);
     expect(screen.getByText("AI mismatch flagged")).toBeInTheDocument();
     expect(screen.getAllByText("Possible Condition: Smut").length).toBeGreaterThanOrEqual(1);
     const statusCell = screen.getByRole("cell", { name: "Needs field validation" });
@@ -287,6 +288,10 @@ describe("SubmittedReportsPage", () => {
       {
         error: new ApiError("Invalid", { status: 422 }),
         message: "rejected one or more report filters",
+      },
+      {
+        error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+        message: "Cannot connect to the CaneGuard API",
       },
       {
         error: new ApiError("Unavailable", { status: 503 }),

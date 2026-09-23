@@ -235,12 +235,12 @@ describe("CaseReviewPage", () => {
     expect(screen.queryByText("Checklist consistency")).not.toBeInTheDocument();
     expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
     const locationField = screen.getByText("Location").closest(".detail-field");
-    expect(locationField).toHaveTextContent("Brgy. Mabini, Bago, Negros Occidental");
+    expect(locationField).toHaveTextContent("Brgy. Balaytigui, Nasugbu, Batangas");
     expect(screen.getByRole("link", { name: "View on map" })).toHaveAttribute(
       "href",
       expect.stringContaining("google.com/maps"),
     );
-    expect(screen.queryByText("10.1234567, 122.9876543")).not.toBeInTheDocument();
+    expect(screen.queryByText("14.126, 120.6039")).not.toBeInTheDocument();
     expect(screen.queryByText("GPS")).not.toBeInTheDocument();
     expect(screen.queryByText("4.25 m")).not.toBeInTheDocument();
     expect(screen.getByText("PSR 86")).toBeInTheDocument();

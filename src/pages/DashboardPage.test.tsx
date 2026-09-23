@@ -1,14 +1,19 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { ZodError } from "zod";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AxiosError } from "axios";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { mockReports } from "../data/mock/mockReports";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useDashboard } from "../hooks/useDashboard";
 import { useMonthlyReportSummary } from "../hooks/useReports";
 import { DashboardPage } from "./DashboardPage";
+
+vi.mock("../components/dashboard/AnalyticsSection", () => ({
+  AnalyticsSection: () => <section aria-label="Report analytics" />,
+}));
 
 vi.mock("../hooks/useDashboard", () => ({
   useDashboard: vi.fn(),
@@ -64,6 +69,10 @@ function renderDashboard() {
   );
 }
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 beforeEach(() => {
   vi.mocked(useDashboard).mockReturnValue(dashboardResult());
   vi.mocked(useAnalytics).mockReturnValue({
@@ -114,6 +123,46 @@ beforeEach(() => {
 
 
 describe("DashboardPage", () => {
+  it("requests the current PHT month by default and allows changing it", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-31T16:30:00.000Z"));
+    vi.mocked(useDashboard).mockReturnValue(dashboardResult({
+      data: {
+        ...summary,
+        monthlySummary: {
+          month: "2026-09",
+          period: { from: "2026-09-01", to: "2026-09-30" },
+          reportedCases: 0,
+          casesByBarangay: [],
+          casesByPossibleCondition: [],
+          estimatedAffectedHectares: 0,
+          fieldValidationCounts: {
+            unassigned: 0,
+            assigned: 0,
+            inProgress: 0,
+            completed: 0,
+            requiringValidation: 0,
+          },
+          closedCases: 0,
+          reviewTime: {
+            source: "submitted_at_to_reviewed_at",
+            reviewedCases: 0,
+            averageHours: null,
+            medianHours: null,
+            minHours: null,
+            maxHours: null,
+          },
+        },
+      },
+    }));
+
+    renderDashboard();
+    expect(useDashboard).toHaveBeenLastCalledWith("2026-09");
+
+    fireEvent.change(screen.getByLabelText("Summary month"), { target: { value: "2026-08" } });
+    expect(useDashboard).toHaveBeenLastCalledWith("2026-08");
+  });
+
   it("leads with operational queues and keeps historical totals secondary", () => {
     renderDashboard();
 
@@ -154,7 +203,11 @@ describe("DashboardPage", () => {
       }),
     ).toHaveAttribute("src", mockReports[0].imageUrl);
     expect(screen.queryByRole("region", { name: /Start with Needs Review/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Recent reports" })).toBeInTheDocument();
+    const recentReports = within(
+      screen.getByRole("region", { name: "Recent reports" }),
+    );
+    expect(recentReports.getAllByText("Mosaic").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Possible Condition: Mosaic")).not.toBeInTheDocument();
   });
 
   it("renders monthly case summaries", async () => {
@@ -294,6 +347,20 @@ describe("DashboardPage", () => {
     expect(
       screen.getByRole("button", { name: "Try again" }),
     ).toBeInTheDocument();
+  });
+
+  it("explains when the dashboard cannot connect to the API", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: undefined,
+        error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+        isError: true,
+      }),
+    );
+    renderDashboard();
+
+    expect(screen.getByText(/Cannot connect to the CaneGuard API/)).toBeInTheDocument();
+    expect(screen.getByText(/VITE_API_BASE_URL/)).toBeInTheDocument();
   });
 
   it("distinguishes rate limits and malformed dashboard data", () => {

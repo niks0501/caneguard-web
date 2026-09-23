@@ -9,14 +9,14 @@ const mockFeature: FieldValidationMapFeature = {
   id: "report-1",
   geometry: {
     type: "Point",
-    coordinates: [120.6311, 14.0722],
+    coordinates: [120.6039, 14.126],
   },
   properties: {
     uuid: "00000000-0000-4000-8000-000000000001",
     referenceCode: "CG-2026-0718",
-    barangay: "Mabini",
-    province: "Negros Occidental",
-    municipality: "Bago",
+    barangay: "Balaytigui",
+    province: "Batangas",
+    municipality: "Nasugbu",
     observedAt: "2026-07-18T08:12:00+08:00",
     submittedAt: "2026-07-18T09:16:00+08:00",
     predictedDisease: "mosaic",
@@ -50,7 +50,7 @@ describe("FieldValidationTable", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Located observations" })).toBeInTheDocument();
-    expect(screen.getByText("1 rows")).toBeInTheDocument();
+    expect(screen.getByText("1 row")).toBeInTheDocument();
 
     const headers = screen.getAllByRole("columnheader");
     expect(headers).toHaveLength(5);
@@ -61,8 +61,8 @@ describe("FieldValidationTable", () => {
 
     // Check row data
     expect(screen.getByText("CG-2026-0718")).toBeInTheDocument();
-    expect(screen.getByText("Mabini")).toBeInTheDocument();
-    expect(screen.getByText("14.0722, 120.6311")).toBeInTheDocument();
+    expect(screen.getByText("Balaytigui")).toBeInTheDocument();
+    expect(screen.getByText("14.1260, 120.6039")).toBeInTheDocument();
     expect(screen.getByText("Possible Condition: Mosaic")).toBeInTheDocument();
     expect(screen.getByText("Needs field validation")).toBeInTheDocument();
 

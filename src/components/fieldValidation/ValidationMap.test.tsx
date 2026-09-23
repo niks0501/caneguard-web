@@ -7,6 +7,7 @@ import { ValidationMap } from "./ValidationMap";
 
 type CapturedMapProps = {
   children?: ReactNode;
+  maxBounds?: [[number, number], [number, number]];
   onClick?: (event: never) => void;
   onError?: () => void;
   onLoad?: (event: never) => void;
@@ -51,7 +52,7 @@ function mapData(coordinates: Array<[number, number]>, totalCount = coordinates.
       properties: {
         uuid: `report-${index + 1}`,
         referenceCode: `CG-2026-000${index + 1}`,
-        barangay: "Mabini",
+        barangay: "Balaytigui",
         province: "Batangas",
         municipality: "Nasugbu",
         observedAt: "2026-08-13T10:20:30.000Z",
@@ -119,11 +120,11 @@ describe("ValidationMap", () => {
   });
 
   it("fits multiple located reports with padding and a maximum zoom", () => {
-    renderMap(mapData([[120.5, 14.0], [120.8, 14.2]]));
+    renderMap(mapData([[120.60, 14.10], [120.80, 14.20]]));
     loadMap();
 
     expect(mapTestState.controls.fitBounds).toHaveBeenCalledWith(
-      [[120.5, 14.0], [120.8, 14.2]],
+      [[120.60, 14.10], [120.80, 14.20]],
       { padding: 60, maxZoom: 14 },
     );
   });
@@ -137,6 +138,12 @@ describe("ValidationMap", () => {
       zoom: 10,
     });
     expect(screen.getByText("No located reports to plot.")).toBeInTheDocument();
+    expect(mapTestState.latestProps?.maxBounds).toEqual([
+      120.567055,
+      14.043883,
+      120.84818,
+      14.221364,
+    ]);
   });
 
   it("does not reframe background data refreshes but reframes a new filter context", () => {
@@ -147,14 +154,14 @@ describe("ValidationMap", () => {
 
     rerender(
       <MemoryRouter>
-        <ValidationMap data={mapData([[121.1, 14.4]])} frameKey="all" />
+        <ValidationMap data={mapData([[120.64, 14.11]])} frameKey="all" />
       </MemoryRouter>,
     );
     expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
 
     rerender(
       <MemoryRouter>
-        <ValidationMap data={mapData([[121.1, 14.4]])} frameKey="barangay:Mabini" />
+        <ValidationMap data={mapData([[120.65, 14.12]])} frameKey="barangay:Balaytigui" />
       </MemoryRouter>,
     );
     expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(2);

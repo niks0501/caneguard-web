@@ -13,7 +13,7 @@ function pickerReport(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
   return {
     uuid: "target-report-uuid",
     referenceCode: "CG-2026-0007",
-    barangay: "Mabini",
+    barangay: "Balaytigui",
     submittedByName: "Ana Reporter",
     submittedAt: "2026-08-12T10:00:00.000Z",
     predictedDisease: "rust",
@@ -55,7 +55,7 @@ describe("ReportPicker", () => {
     const other = pickerReport({
       uuid: "other-report-uuid",
       referenceCode: "CG-2026-0009",
-      barangay: "Bago",
+      barangay: "Calayo",
     });
     vi.mocked(useReports).mockImplementation((filters) => {
       const search = (filters?.search ?? "").toLowerCase();
@@ -73,7 +73,7 @@ describe("ReportPicker", () => {
     expect(await screen.findByRole("option", { name: /CG-2026-0007/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /CG-2026-0009/ })).toBeInTheDocument();
 
-    await user.type(screen.getByRole("combobox", { name: "Search cases" }), "Mabini");
+    await user.type(screen.getByRole("combobox", { name: "Search cases" }), "Balaytigui");
     await waitFor(() => {
       expect(screen.getByRole("option", { name: /CG-2026-0007/ })).toBeInTheDocument();
       expect(screen.queryByRole("option", { name: /CG-2026-0009/ })).not.toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("ReportPicker", () => {
 
     rerender(
       <ReportPicker
-        value={{ uuid: target.uuid, label: "CG-2026-0007 · Barangay Mabini · Aug 12, 2026" }}
+        value={{ uuid: target.uuid, label: "CG-2026-0007 · Barangay Balaytigui · Aug 12, 2026" }}
         onSelect={onSelect}
       />,
     );
