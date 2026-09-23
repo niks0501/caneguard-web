@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MobileFieldValidationAssignmentContract;
 use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\Report;
 use App\Models\ReportClassScore;
@@ -353,6 +354,101 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
 
         $this->seed(DatabaseSeeder::class);
+        $mobileReportedSeverities = ['Mild', 'Moderate', 'Severe'];
+        foreach (Report::query()->get() as $seededReport) {
+            $this->assertContains(
+                $seededReport->reported_severity,
+                $mobileReportedSeverities,
+                $seededReport->reference_code.' must use a Mobile-supported severity value.',
+            );
+            $this->assertNotNull(
+                $seededReport->observed_at,
+                $seededReport->reference_code.' must preserve its Mobile observation timestamp.',
+            );
+            $this->assertContains(
+                $seededReport->location_source,
+                [
+                    Report::LOCATION_SOURCE_GPS,
+                    Report::LOCATION_SOURCE_MANUAL_MAP,
+                    Report::LOCATION_SOURCE_UNAVAILABLE,
+                ],
+                $seededReport->reference_code.' must preserve Mobile location provenance.',
+            );
+            $this->assertSame(
+                $seededReport->affected_area_hectares === null
+                    ? Report::MEASUREMENT_NOT_MEASURED
+                    : Report::MEASUREMENT_MEASURED,
+                $seededReport->affected_area_measurement,
+                $seededReport->reference_code.' must match affected-area provenance to its value.',
+            );
+            $this->assertSame(
+                $seededReport->affected_portion_percent === null
+                    ? Report::MEASUREMENT_NOT_MEASURED
+                    : Report::MEASUREMENT_MEASURED,
+                $seededReport->affected_portion_measurement,
+                $seededReport->reference_code.' must match affected-portion provenance to its value.',
+            );
+            if ($seededReport->location_source === Report::LOCATION_SOURCE_UNAVAILABLE) {
+                $this->assertContains($seededReport->location_unavailable_reason, [
+                    Report::LOCATION_UNAVAILABLE_REASON_PERMISSION_DENIED,
+                    Report::LOCATION_UNAVAILABLE_REASON_SERVICES_UNAVAILABLE,
+                    Report::LOCATION_UNAVAILABLE_REASON_LOW_ACCURACY,
+                    Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+                    Report::LOCATION_UNAVAILABLE_REASON_OTHER,
+                ]);
+                $this->assertNull($seededReport->final_latitude);
+                $this->assertNull($seededReport->final_longitude);
+                $this->assertNull($seededReport->gps_accuracy);
+            } elseif ($seededReport->location_source === Report::LOCATION_SOURCE_GPS) {
+                $this->assertNotNull($seededReport->final_latitude);
+                $this->assertNotNull($seededReport->final_longitude);
+                $this->assertNotNull($seededReport->gps_accuracy);
+            } else {
+                $this->assertNotNull($seededReport->final_latitude);
+                $this->assertNotNull($seededReport->final_longitude);
+                $this->assertNull($seededReport->gps_accuracy);
+            }
+        }
+
+        $seededAssignee = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
+        Sanctum::actingAs($seededAssignee, ['assignment:read']);
+        $seededAssignmentFeed = $this->getJson('/api/v1/mobile/assignments')->assertOk();
+        $this->assertNotEmpty($seededAssignmentFeed->json('data'));
+        $assignmentContract = MobileFieldValidationAssignmentContract::definition();
+        foreach ($seededAssignmentFeed->json('data') as $seededAssignment) {
+            $this->assertSame(array_keys($assignmentContract['fields']), array_keys($seededAssignment));
+            $this->assertSame(
+                $assignmentContract['fields']['case']['required_keys'],
+                array_keys($seededAssignment['case']),
+            );
+        }
+
+        $unlocatedSeed = Report::query()
+            ->where('reference_code', 'BGO-20260702-0915')
+            ->firstOrFail();
+        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+        $this->getJson('/api/v1/reports?search='.urlencode($unlocatedSeed->farmer_or_farm_owner_name))
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $unlocatedSeed->uuid)
+            ->assertJsonPath('data.0.location_unavailable', true)
+            ->assertJsonPath(
+                'data.0.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_OTHER,
+            )
+            ->assertJsonPath('data.0.affected_area_measurement', Report::MEASUREMENT_NOT_MEASURED)
+            ->assertJsonPath('data.0.affected_portion_measurement', Report::MEASUREMENT_NOT_MEASURED);
+        $this->getJson("/api/v1/reports/{$unlocatedSeed->uuid}")
+            ->assertOk()
+            ->assertJsonPath(
+                'data.observations.location_source',
+                Report::LOCATION_SOURCE_UNAVAILABLE,
+            )
+            ->assertJsonPath('data.observations.reported_severity', 'Mild')
+            ->assertJsonPath(
+                'data.timestamps.observed_at',
+                $unlocatedSeed->observed_at?->utc()->toISOString(),
+            );
+
         $allowedFollowUpOutcomes = MobileFieldValidationCompletionContract::field(
             'follow_up_outcome',
         )['enum'];

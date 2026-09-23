@@ -222,7 +222,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.8400000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'moderate',
+                'reported_severity' => 'Moderate',
                 'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
                 'reporter_observation_text' => 'The grower says the eastern rows have developed fine orange flecks that do not clear after rain.',
                 'field_notes' => 'Keep the visit open for a field check of the affected eastern rows.',
@@ -253,7 +253,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.7900000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'moderate',
+                'reported_severity' => 'Moderate',
                 'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
                 'reporter_observation_text' => 'The follow-up visit checks the same block after the office sanitation guidance.',
                 'field_notes' => 'Fewer orange flecks were noted along the eastern edge during the return visit.',
@@ -284,7 +284,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_SMUT,
                 'confidence' => 0.8800000,
                 'checklist_consistency' => 'inconsistent',
-                'reported_severity' => 'high',
+                'reported_severity' => 'Severe',
                 'reporter_suspected_condition' => Report::LABEL_SMUT,
                 'reporter_observation_text' => 'Several stalks carry dark whip-like growths near the top leaves.',
                 'field_notes' => 'The office requested an attributed review after comparing the image with the field checklist.',
@@ -332,7 +332,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.7300000,
                 'checklist_consistency' => 'inconclusive',
-                'reported_severity' => 'moderate',
+                'reported_severity' => 'Moderate',
                 'reporter_suspected_condition' => 'Red stripe',
                 'reporter_observation_text' => 'Narrow red bands run along the midrib on several leaves, with no clear orange pustules.',
                 'field_notes' => 'The submitted pattern may be red stripe rather than leaf rust; keep the expert review open.',
@@ -363,7 +363,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.8100000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'low',
+                'reported_severity' => 'Mild',
                 'reporter_observation_text' => 'Orange pustules are scattered across older leaves along the southern row.',
                 'field_notes' => 'The office sent sanitation guidance and will compare the next visit with this record.',
                 'observed_at' => '2026-09-12 09:00:00.000',
@@ -398,7 +398,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_SMUT,
                 'confidence' => 0.7600000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'high',
+                'reported_severity' => 'Severe',
                 'reporter_suspected_condition' => Report::LABEL_SMUT,
                 'reporter_observation_text' => 'The marked patch has more thin stalks and dark whips than at the first visit.',
                 'field_notes' => 'The affected rows were flagged for another office check after the condition worsened.',
@@ -431,7 +431,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_HEALTHY,
                 'confidence' => 0.9400000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'low',
+                'reported_severity' => 'Mild',
                 'reporter_observation_text' => 'Leaves were evenly green at the edge of the block; no obvious lesion was recorded before the phone lost its map fix.',
                 'field_notes' => 'Submitted offline with a clear crop view but without a recoverable location.',
                 'observed_at' => '2026-09-18 06:15:00.000',
@@ -461,6 +461,14 @@ class AdvisorDemoSeeder extends Seeder
             [
                 ...$attributes,
                 'reporter_id' => $reporter->getKey(),
+                'affected_area_measurement' => $attributes['affected_area_measurement']
+                    ?? (($attributes['affected_area_hectares'] ?? null) === null
+                        ? Report::MEASUREMENT_NOT_MEASURED
+                        : Report::MEASUREMENT_MEASURED),
+                'affected_portion_measurement' => $attributes['affected_portion_measurement']
+                    ?? (($attributes['affected_portion_percent'] ?? null) === null
+                        ? Report::MEASUREMENT_NOT_MEASURED
+                        : Report::MEASUREMENT_MEASURED),
                 'image_path' => sprintf('reports/2026-09/%s.png', strtolower($referenceCode)),
                 'image_mime_type' => 'image/png',
                 'image_size_bytes' => strlen($image),
