@@ -127,6 +127,7 @@ class ReportSeeder extends Seeder
             $reportUuid = $reportUuids[$number - 1];
             $farmerOrFarmOwnerName = $farmOwners[$number - 1];
             $confidence = round(0.62 + ($number * 0.025), 7);
+            $capturedAt = $submittedAt->subMinutes(20 + $number);
 
             DB::transaction(function () use (
                 $referenceCode,
@@ -143,6 +144,7 @@ class ReportSeeder extends Seeder
                 $label,
                 $confidence,
                 $submittedAt,
+                $capturedAt,
                 $image,
             ): void {
                 $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
@@ -157,7 +159,11 @@ class ReportSeeder extends Seeder
                         'municipality' => 'Nasugbu',
                         'final_latitude' => $location['latitude'] ?? null,
                         'final_longitude' => $location['longitude'] ?? null,
-                        'location_source' => $location['source'] ?? null,
+                        'location_source' => $location['source']
+                            ?? Report::LOCATION_SOURCE_UNAVAILABLE,
+                        'location_unavailable_reason' => $location === null
+                            ? Report::LOCATION_UNAVAILABLE_REASON_OTHER
+                            : null,
                         'gps_accuracy' => $location['accuracy'] ?? null,
                         'image_path' => $path,
                         'image_mime_type' => 'image/png',
@@ -170,12 +176,15 @@ class ReportSeeder extends Seeder
                         'checklist_consistency' => $number % 4 === 0
                             ? 'inconclusive'
                             : 'consistent',
-                        'reported_severity' => ['low', 'moderate', 'high'][($number - 1) % 3],
+                        'reported_severity' => ['Mild', 'Moderate', 'Severe'][($number - 1) % 3],
+                        'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+                        'affected_portion_measurement' => Report::MEASUREMENT_NOT_MEASURED,
                         'model_version' => 'v1.0-mobilenetv2',
                         'preprocess_ms' => 10 + $number,
                         'inference_ms' => 90 + ($number * 3),
                         'total_ms' => 120 + ($number * 4),
-                        'captured_at' => $submittedAt->subMinutes(20 + $number),
+                        'captured_at' => $capturedAt,
+                        'observed_at' => $capturedAt,
                         'submitted_at' => $submittedAt,
                         'review_status' => $status,
                         ...Report::lifecycleForReviewStatus($status),

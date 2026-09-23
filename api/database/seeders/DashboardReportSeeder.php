@@ -814,7 +814,7 @@ class DashboardReportSeeder extends Seeder
                             'location_unavailable_reason' => $ordinal % 17 === 0
                                 ? Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP
                                 : null,
-                            'gps_accuracy' => $ordinal % 17 === 0
+                            'gps_accuracy' => $ordinal % 17 === 0 || $ordinal % 5 === 0
                                 ? null
                                 : round(3.5 + ($ordinal % 28) * 0.4, 2),
                             'observed_at' => $observedAt,
@@ -864,10 +864,10 @@ class DashboardReportSeeder extends Seeder
                                 ? 'inconsistent'
                                 : ($ordinal % 6 === 0 ? 'inconclusive' : 'consistent'),
                             'reported_severity' => $label === Report::LABEL_HEALTHY
-                                ? 'low'
+                                ? 'Mild'
                                 : (($ordinal % 5 === 0 || $closed && $ordinal % 3 === 0)
-                                    ? 'high'
-                                    : 'moderate'),
+                                    ? 'Severe'
+                                    : 'Moderate'),
                             'review_status' => $reviewStatus,
                             'case_state' => $caseState,
                             'verification_outcome' => $verificationOutcome,
@@ -1082,7 +1082,7 @@ class DashboardReportSeeder extends Seeder
             'predicted_label' => $label,
             'confidence' => $confidence,
             'checklist_consistency' => $label === Report::LABEL_HEALTHY ? 'consistent' : 'inconclusive',
-            'reported_severity' => $affectedArea > 2 ? 'high' : 'moderate',
+            'reported_severity' => $affectedArea > 2 ? 'Severe' : 'Moderate',
             'review_status' => $reviewStatus,
             'case_state' => $caseState,
             'verification_outcome' => $verificationOutcome,
