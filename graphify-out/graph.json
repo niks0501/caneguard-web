@@ -617,7 +617,7 @@
       "file_type": "code",
       "norm_label": "casehistoryentry",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L239"
+      "source_location": "L238"
     },
     {
       "id": "src_pages_casereviewpage_casehistoryentrytype",
@@ -630,7 +630,7 @@
       "file_type": "code",
       "norm_label": "casehistoryentrytype",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L237"
+      "source_location": "L236"
     },
     {
       "id": "src_pages_casereviewpage_metadatadraft",
@@ -6612,7 +6612,7 @@
       "file_type": "code",
       "norm_label": "actiontakenfornextaction()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L133"
+      "source_location": "L132"
     },
     {
       "id": "src_pages_casereviewpage_casereviewpage",
@@ -6624,7 +6624,7 @@
       "file_type": "code",
       "norm_label": "casereviewpage()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L507"
+      "source_location": "L506"
     },
     {
       "id": "src_pages_casereviewpage_derivednextaction",
@@ -6636,7 +6636,7 @@
       "file_type": "code",
       "norm_label": "derivednextaction()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L137"
+      "source_location": "L136"
     },
     {
       "id": "src_pages_casereviewpage_derivemergedcasehistory",
@@ -6648,7 +6648,7 @@
       "file_type": "code",
       "norm_label": "derivemergedcasehistory()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L249"
+      "source_location": "L248"
     },
     {
       "id": "src_pages_casereviewpage_formatlastactivity",
@@ -6660,7 +6660,7 @@
       "file_type": "code",
       "norm_label": "formatlastactivity()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L158"
+      "source_location": "L157"
     },
     {
       "id": "src_pages_casereviewpage_formatshortdate",
@@ -6672,7 +6672,7 @@
       "file_type": "code",
       "norm_label": "formatshortdate()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L148"
+      "source_location": "L147"
     },
     {
       "id": "src_pages_casereviewpage_getheroanswer",
@@ -6684,7 +6684,7 @@
       "file_type": "code",
       "norm_label": "getheroanswer()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L172"
+      "source_location": "L171"
     },
     {
       "id": "src_pages_casereviewpage_hasactiveconsult",
@@ -6696,7 +6696,7 @@
       "file_type": "code",
       "norm_label": "hasactiveconsult()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L122"
+      "source_location": "L121"
     },
     {
       "id": "src_pages_casereviewpage_hasusablecoordinates",
@@ -6708,7 +6708,7 @@
       "file_type": "code",
       "norm_label": "hasusablecoordinates()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L475"
+      "source_location": "L474"
     },
     {
       "id": "src_pages_casereviewpage_humanlocationfor",
@@ -6720,7 +6720,7 @@
       "file_type": "code",
       "norm_label": "humanlocationfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L466"
+      "source_location": "L465"
     },
     {
       "id": "src_pages_casereviewpage_isactiveconsultstatus",
@@ -6732,7 +6732,7 @@
       "file_type": "code",
       "norm_label": "isactiveconsultstatus()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L118"
+      "source_location": "L117"
     },
     {
       "id": "src_pages_casereviewpage_isrssireporterconcern",
@@ -6744,7 +6744,7 @@
       "file_type": "code",
       "norm_label": "isrssireporterconcern()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L503"
+      "source_location": "L502"
     },
     {
       "id": "src_pages_casereviewpage_locationneedsconfirmationfor",
@@ -6756,7 +6756,7 @@
       "file_type": "code",
       "norm_label": "locationneedsconfirmationfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L484"
+      "source_location": "L483"
     },
     {
       "id": "src_pages_casereviewpage_locationunavailablereasonfor",
@@ -6768,7 +6768,7 @@
       "file_type": "code",
       "norm_label": "locationunavailablereasonfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L496"
+      "source_location": "L495"
     },
     {
       "id": "src_pages_casereviewpage_mapurlfor",
@@ -6780,7 +6780,7 @@
       "file_type": "code",
       "norm_label": "mapurlfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L479"
+      "source_location": "L478"
     },
     {
       "id": "src_pages_casereviewpage_metadatacorrectionsfor",
@@ -6792,7 +6792,7 @@
       "file_type": "code",
       "norm_label": "metadatacorrectionsfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L434"
+      "source_location": "L433"
     },
     {
       "id": "src_pages_casereviewpage_metadatadraftfor",
@@ -6804,7 +6804,7 @@
       "file_type": "code",
       "norm_label": "metadatadraftfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L419"
+      "source_location": "L418"
     },
     {
       "id": "src_pages_casereviewpage_numberornull",
@@ -6816,7 +6816,7 @@
       "file_type": "code",
       "norm_label": "numberornull()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L430"
+      "source_location": "L429"
     },
     {
       "id": "src_pages_casereviewpage_observationsmismatchfor",
@@ -6828,7 +6828,7 @@
       "file_type": "code",
       "norm_label": "observationsmismatchfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L492"
+      "source_location": "L491"
     },
     {
       "id": "src_pages_casereviewpage_photodifficultfor",
@@ -6840,7 +6840,7 @@
       "file_type": "code",
       "norm_label": "photodifficultfor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L488"
+      "source_location": "L487"
     },
     {
       "id": "src_pages_casereviewpage_referralduedatefor",
@@ -6852,7 +6852,7 @@
       "file_type": "code",
       "norm_label": "referralduedatefor()",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L112"
+      "source_location": "L111"
     },
     {
       "id": "src_pages_needsassessmentpage_test_report",
@@ -121375,7 +121375,7 @@
       "file_type": "code",
       "norm_label": "nextactionlabels",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L98"
+      "source_location": "L97"
     },
     {
       "id": "src_pages_casereviewpage_nextactions",
@@ -121397,7 +121397,7 @@
       "file_type": "code",
       "norm_label": "referralstatelabels",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L106"
+      "source_location": "L105"
     },
     {
       "id": "src_pages_needsassessmentpage_test",
@@ -378932,7 +378932,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1010",
+      "source_location": "L1009",
       "weight": 1.0
     },
     {
@@ -378944,7 +378944,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1162",
+      "source_location": "L1161",
       "weight": 1.0
     },
     {
@@ -378956,7 +378956,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1169",
+      "source_location": "L1168",
       "weight": 1.0
     },
     {
@@ -378968,7 +378968,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1175",
+      "source_location": "L1174",
       "weight": 1.0
     },
     {
@@ -378980,7 +378980,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1181",
+      "source_location": "L1180",
       "weight": 1.0
     },
     {
@@ -378992,7 +378992,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1243",
+      "source_location": "L1242",
       "weight": 1.0
     },
     {
@@ -379004,7 +379004,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1285",
+      "source_location": "L1284",
       "weight": 1.0
     },
     {
@@ -379016,7 +379016,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1286",
+      "source_location": "L1285",
       "weight": 1.0
     },
     {
@@ -379028,7 +379028,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L1288",
+      "source_location": "L1287",
       "weight": 1.0
     },
     {
@@ -379040,7 +379040,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L2062",
+      "source_location": "L2061",
       "weight": 1.0
     },
     {
@@ -379052,7 +379052,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L2234",
+      "source_location": "L2233",
       "weight": 1.0
     },
     {
@@ -379064,7 +379064,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L556",
+      "source_location": "L555",
       "weight": 1.0
     },
     {
@@ -379076,7 +379076,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L557",
+      "source_location": "L556",
       "weight": 1.0
     },
     {
@@ -379088,7 +379088,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L558",
+      "source_location": "L557",
       "weight": 1.0
     },
     {
@@ -379100,7 +379100,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L559",
+      "source_location": "L558",
       "weight": 1.0
     },
     {
@@ -379112,7 +379112,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L560",
+      "source_location": "L559",
       "weight": 1.0
     },
     {
@@ -379124,7 +379124,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L561",
+      "source_location": "L560",
       "weight": 1.0
     },
     {
@@ -379136,7 +379136,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L562",
+      "source_location": "L561",
       "weight": 1.0
     },
     {
@@ -379148,7 +379148,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L563",
+      "source_location": "L562",
       "weight": 1.0
     },
     {
@@ -379160,7 +379160,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L564",
+      "source_location": "L563",
       "weight": 1.0
     },
     {
@@ -379172,7 +379172,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L569",
+      "source_location": "L568",
       "weight": 1.0
     },
     {
@@ -379184,7 +379184,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L578",
+      "source_location": "L577",
       "weight": 1.0
     },
     {
@@ -379196,7 +379196,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L584",
+      "source_location": "L583",
       "weight": 1.0
     },
     {
@@ -379208,7 +379208,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L615",
+      "source_location": "L614",
       "weight": 1.0
     },
     {
@@ -379220,7 +379220,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L640",
+      "source_location": "L639",
       "weight": 1.0
     },
     {
@@ -379232,7 +379232,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L654",
+      "source_location": "L653",
       "weight": 1.0
     },
     {
@@ -379244,7 +379244,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L657",
+      "source_location": "L656",
       "weight": 1.0
     },
     {
@@ -379256,7 +379256,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L665",
+      "source_location": "L664",
       "weight": 1.0
     },
     {
@@ -379268,7 +379268,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L667",
+      "source_location": "L666",
       "weight": 1.0
     },
     {
@@ -379280,7 +379280,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L671",
+      "source_location": "L670",
       "weight": 1.0
     },
     {
@@ -379292,7 +379292,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L728",
+      "source_location": "L727",
       "weight": 1.0
     },
     {
@@ -379304,7 +379304,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L881",
+      "source_location": "L880",
       "weight": 1.0
     },
     {
@@ -379328,7 +379328,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L160",
+      "source_location": "L159",
       "weight": 1.0
     },
     {
@@ -379340,7 +379340,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L124",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -379352,7 +379352,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L485",
+      "source_location": "L484",
       "weight": 1.0
     },
     {
@@ -379364,7 +379364,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L480",
+      "source_location": "L479",
       "weight": 1.0
     },
     {
@@ -379376,7 +379376,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L451",
+      "source_location": "L450",
       "weight": 1.0
     },
     {
@@ -609703,7 +609703,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L106",
+      "source_location": "L105",
       "weight": 1.0
     },
     {
@@ -609714,7 +609714,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L112",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -609725,7 +609725,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L118",
+      "source_location": "L117",
       "weight": 1.0
     },
     {
@@ -609736,7 +609736,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L122",
+      "source_location": "L121",
       "weight": 1.0
     },
     {
@@ -609747,7 +609747,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L133",
+      "source_location": "L132",
       "weight": 1.0
     },
     {
@@ -609758,7 +609758,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L137",
+      "source_location": "L136",
       "weight": 1.0
     },
     {
@@ -609769,7 +609769,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L148",
+      "source_location": "L147",
       "weight": 1.0
     },
     {
@@ -609780,7 +609780,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L158",
+      "source_location": "L157",
       "weight": 1.0
     },
     {
@@ -609791,7 +609791,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L172",
+      "source_location": "L171",
       "weight": 1.0
     },
     {
@@ -609802,7 +609802,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L237",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -609813,7 +609813,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L239",
+      "source_location": "L238",
       "weight": 1.0
     },
     {
@@ -609824,7 +609824,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L249",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -609835,7 +609835,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L419",
+      "source_location": "L418",
       "weight": 1.0
     },
     {
@@ -609846,7 +609846,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L430",
+      "source_location": "L429",
       "weight": 1.0
     },
     {
@@ -609857,7 +609857,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L434",
+      "source_location": "L433",
       "weight": 1.0
     },
     {
@@ -609868,7 +609868,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L466",
+      "source_location": "L465",
       "weight": 1.0
     },
     {
@@ -609879,7 +609879,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L475",
+      "source_location": "L474",
       "weight": 1.0
     },
     {
@@ -609890,7 +609890,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L479",
+      "source_location": "L478",
       "weight": 1.0
     },
     {
@@ -609901,7 +609901,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L484",
+      "source_location": "L483",
       "weight": 1.0
     },
     {
@@ -609912,7 +609912,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L488",
+      "source_location": "L487",
       "weight": 1.0
     },
     {
@@ -609923,7 +609923,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L492",
+      "source_location": "L491",
       "weight": 1.0
     },
     {
@@ -609934,7 +609934,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L496",
+      "source_location": "L495",
       "weight": 1.0
     },
     {
@@ -609945,7 +609945,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L503",
+      "source_location": "L502",
       "weight": 1.0
     },
     {
@@ -609956,7 +609956,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L507",
+      "source_location": "L506",
       "weight": 1.0
     },
     {
@@ -610000,7 +610000,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/CaseReviewPage.tsx",
-      "source_location": "L98",
+      "source_location": "L97",
       "weight": 1.0
     },
     {
@@ -636779,5 +636779,5 @@
       "source_file": "src/assets/vite.svg"
     }
   ],
-  "built_at_commit": "0658ed8f5efe456aff86f04b9fbd67499367c041"
+  "built_at_commit": "f0c077081a852c4427e1b952797c7f1b4897ea7b"
 }

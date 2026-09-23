@@ -1652,4 +1652,39 @@ describe("CaseReviewPage", () => {
     expect(within(timeline).getByText("Verified")).toBeInTheDocument();
     expect(within(timeline).getByText("Initial field observation confirmed leaf rust.")).toBeInTheDocument();
   });
+
+  it("omits technical assistance from next-action selection while displaying it in historical review events", () => {
+    const reportWithHistoricalTechnicalAssistance = {
+      ...report,
+      actionTaken: "technical_assistance_provided" as const,
+      reviewEvents: [
+        {
+          id: 2,
+          actor: {
+            uuid: "00000000-0000-4000-8000-000000000101",
+            name: "Maria Santos",
+          },
+          actionTaken: "technical_assistance_provided" as const,
+          authorityClassifiedCondition: null,
+          verificationOutcome: null,
+          notes: "Provided technical assistance to the field contact.",
+          caseState: "open" as const,
+          createdAt: "2026-07-22T14:30:00.000Z",
+        },
+      ],
+    };
+    vi.mocked(useReport).mockReturnValue(
+      queryResult({ data: reportWithHistoricalTechnicalAssistance }),
+    );
+    renderPage();
+
+    const nextActionGroup = screen.getByRole("group", { name: "Next action - choose one" });
+    expect(
+      within(nextActionGroup).queryByRole("radio", { name: /Provide technical assistance/ }),
+    ).not.toBeInTheDocument();
+
+    const timeline = screen.getByRole("region", { name: "Case history" });
+    expect(within(timeline).getByText("Technical assistance provided")).toBeInTheDocument();
+    expect(within(timeline).getByText("Provided technical assistance to the field contact.")).toBeInTheDocument();
+  });
 });
