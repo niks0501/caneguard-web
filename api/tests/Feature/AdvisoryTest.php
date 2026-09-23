@@ -6,6 +6,7 @@ use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\AdvisoryAvailableNotification;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Sanctum;
@@ -56,6 +57,45 @@ class AdvisoryTest extends TestCase
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('status');
+    }
+
+    public function test_default_seeded_advisory_is_listed_and_can_be_attached_to_a_case(): void
+    {
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+            'caneguard.demo_users.expert_password' => 'expert-test-password',
+        ]);
+        $this->seed(DatabaseSeeder::class);
+
+        $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        Sanctum::actingAs($reviewer);
+
+        $advisory = $this->getJson('/api/v1/advisories')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->json('data.0');
+        $this->assertSame(Advisory::STATUS_VALIDATED, $advisory['status']);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'advisory_uuid' => $advisory['uuid'],
+            'notes' => 'Office reference guidance selected for the case.',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.advisory.uuid', $advisory['uuid'])
+            ->assertJsonPath('data.advisory.code', $advisory['code'])
+            ->assertJsonPath('data.advisory.delivery_state', Report::ADVISORY_DELIVERY_DELIVERED);
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $report->getKey(),
+            'advisory_id' => Advisory::query()->where('uuid', $advisory['uuid'])->value('id'),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+        ]);
     }
 
     public function test_only_validated_advisory_can_be_selected_and_delivery_reaches_both_mobile_channels(): void
