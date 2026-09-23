@@ -354,7 +354,8 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
         actor: "Authorized reviewer",
         fields: [
           { label: "Destination", value: consult.destination },
-          { label: "Reference", value: consult.reference },
+          { label: "Reference", value: consult.reference ?? "Not provided yet" },
+          ...(consult.trackingCode ? [{ label: "Tracking code", value: consult.trackingCode }] : []),
           ...(consult.dueDate ? [{ label: "Due date", value: consult.dueDate }] : []),
           ...(consult.expertName ? [{ label: "Expert", value: consult.expertName }] : []),
         ],
@@ -378,14 +379,15 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
   } else if (report.referral) {
     const ref = report.referral;
     entries.push({
-      id: `referral-${ref.reference}`,
+      id: `referral-${ref.id ?? ref.trackingCode ?? ref.referralDate}`,
       type: "referral",
       typeLabel: "Referral",
       timestamp: ref.referralDate,
       actor: ref.referredBy?.name ?? "Authorized reviewer",
       fields: [
         { label: "Destination", value: ref.destination },
-        { label: "Reference", value: ref.reference },
+        { label: "Reference", value: ref.reference ?? "Not provided yet" },
+        ...(ref.trackingCode ? [{ label: "Tracking code", value: ref.trackingCode }] : []),
         ...(ref.dueDate ? [{ label: "Due date", value: ref.dueDate }] : []),
         ...(ref.expertName ? [{ label: "Expert", value: ref.expertName }] : []),
       ],
@@ -393,7 +395,7 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
     });
     if (ref.responseDate) {
       entries.push({
-        id: `referral-resp-${ref.reference}`,
+        id: `referral-resp-${ref.id ?? ref.trackingCode ?? ref.referralDate}`,
         type: "referral",
         typeLabel: "Referral",
         timestamp: ref.responseDate,
@@ -629,13 +631,11 @@ export function CaseReviewPage() {
       : null;
   const referralInputError = !referralDestination.trim()
     ? "Add the expert destination."
-    : !referralReference.trim()
-      ? "Add the referral reference."
-      : !referralDate
-        ? "Add the referral date."
-        : !referralExpertUuid && !referralExpertName.trim()
-          ? "Select an in-system expert or enter an external expert name."
-          : null;
+    : !referralDate
+      ? "Add the referral date."
+      : !referralExpertUuid && !referralExpertName.trim()
+        ? "Select an in-system expert or enter an external expert name."
+        : null;
   const referralFieldError = referralSubmitted && referralNeeded ? referralInputError : null;
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
   const visibleHistory = historyFilter === "all"
@@ -947,7 +947,7 @@ export function CaseReviewPage() {
     try {
       await recordReferral.mutateAsync({
         destination: referralDestination,
-        reference: referralReference,
+        ...(referralReference.trim() ? { reference: referralReference.trim() } : {}),
         referralDate,
         ...(referralDueDateTouched ? { dueDate: referralDueDate || null } : {}),
         ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
@@ -1373,7 +1373,8 @@ export function CaseReviewPage() {
               <strong>
                 {referralStateLabels[lifecycle?.referralState ?? "not_referred"]}
                 {report.referral.destination ? ` · ${report.referral.destination}` : ""}
-                {report.referral.reference ? ` · ${report.referral.reference}` : ""}
+                {report.referral.trackingCode ? ` · Tracking ${report.referral.trackingCode}` : ""}
+                {report.referral.reference ? ` · ${report.referral.reference}` : " · External reference pending"}
               </strong>
             </div>
           ) : null}
@@ -2035,7 +2036,7 @@ export function CaseReviewPage() {
             />
           </label>
           <label className="select-filter" htmlFor="referral-reference">
-            <span>Referral reference</span>
+            <span>Expert office reference (optional)</span>
             <input
               id="referral-reference"
               value={referralReference}
@@ -2048,6 +2049,7 @@ export function CaseReviewPage() {
               placeholder="Reference supplied by the receiving office"
             />
           </label>
+          <small>Office memo or letter number; add it when the expert responds if it is not available yet.</small>
           <label className="select-filter" htmlFor="referral-date">
             <span>Referral date</span>
             <input

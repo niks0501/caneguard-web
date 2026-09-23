@@ -35,9 +35,10 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
         }
 
         $trimmed = [];
-        foreach (['response_note', 'response_finding', 'finding_recommendation', 'finding_source'] as $field) {
+        foreach (['reference', 'response_note', 'response_finding', 'finding_recommendation', 'finding_source'] as $field) {
             if ($this->has($field) && is_string($this->input($field))) {
-                $trimmed[$field] = trim($this->input($field));
+                $value = trim($this->input($field));
+                $trimmed[$field] = $field === 'reference' && $value === '' ? null : $value;
             }
         }
 
@@ -58,6 +59,7 @@ class RecordExpertReferralResponseRequest extends ApiFormRequest
     {
         return [
             'response_date' => ['sometimes', 'date'],
+            'reference' => ['sometimes', 'nullable', 'string', 'max:160'],
             'consult_status' => [
                 'sometimes',
                 Rule::in([

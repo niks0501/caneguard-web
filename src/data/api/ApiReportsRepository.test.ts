@@ -452,6 +452,80 @@ describe("ApiReportsRepository", () => {
     });
   });
 
+  it("omits a missing external reference at creation and adds one on response", async () => {
+    server.use(
+      http.post(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/referral`,
+        async ({ request }) => {
+          expect(await request.json()).toEqual({
+            destination: "Regional crop protection office",
+            referral_date: "2026-09-04",
+            note: null,
+            expected_version: 0,
+            expert_name: "External specialist",
+          });
+          return HttpResponse.json({
+            data: {
+              ...reportDetailDto,
+              referral: {
+                ...reportReferralDto,
+                reference: null,
+                tracking_code: "CG-20260924-00000001",
+              },
+              version: 1,
+            },
+          }, { status: 201 });
+        },
+      ),
+      http.post(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/referral/response`,
+        async ({ request }) => {
+          expect(await request.json()).toEqual({
+            response_date: "2026-09-24",
+            response_note: null,
+            response_finding: null,
+            expected_version: 1,
+            reference: "SRA-2026-RESPONSE-0042",
+          });
+          return HttpResponse.json({
+            data: {
+              ...reportDetailDto,
+              referral: {
+                ...reportReferralDto,
+                reference: "SRA-2026-RESPONSE-0042",
+                tracking_code: "CG-20260924-00000001",
+              },
+              version: 2,
+            },
+          });
+        },
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    await expect(repository.recordReferral(reportDetailDto.identity.uuid, {
+      destination: " Regional crop protection office ",
+      referralDate: "2026-09-04",
+      expertName: "External specialist",
+      expectedVersion: 0,
+    })).resolves.toMatchObject({
+      referral: {
+        reference: null,
+        trackingCode: "CG-20260924-00000001",
+      },
+    });
+
+    await expect(repository.recordExpertReferralResponse(reportDetailDto.identity.uuid, {
+      responseDate: "2026-09-24",
+      reference: " SRA-2026-RESPONSE-0042 ",
+      expectedVersion: 1,
+    })).resolves.toMatchObject({
+      referral: { reference: "SRA-2026-RESPONSE-0042" },
+    });
+  });
+
   it("loads detail, writes legacy reviews, and treats 404 as missing", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}`, () =>

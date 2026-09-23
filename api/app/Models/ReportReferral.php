@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'due_date',
     'expert_name',
     'expert_contact',
+    'tracking_code',
     'invite_token_hash',
     'invite_issued_at',
     'invite_expires_at',

@@ -30,7 +30,7 @@ export interface ExpertDirectoryEntry {
 
 export interface ReportReferralInput {
   destination: string;
-  reference: string;
+  reference?: string | null;
   referralDate: string;
   dueDate?: string | null;
   expertUuid?: string | null;
@@ -46,6 +46,7 @@ export interface ReportReferralInput {
 
 export interface ExpertReferralResponseInput {
   responseDate: string;
+  reference?: string | null;
   responseNote?: string | null;
   responseFinding?: string | null;
   findingRecommendation?: string | null;
@@ -56,6 +57,7 @@ export interface ExpertReferralResponseInput {
 }
 
 export interface ExpertFindingInput {
+  reference?: string | null;
   conditionOpinion?: AuthorityClassifiedCondition | null;
   symptomVerdicts?: Record<string, { verdict: "present" | "absent" | "unsure"; note?: string | null }>;
   basis?: string | null;

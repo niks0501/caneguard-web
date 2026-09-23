@@ -146,6 +146,9 @@ class ReportResource extends JsonResource
                     'consult_status' => $this->referral->consult_status,
                     'destination' => $this->referral->destination,
                     'reference' => $this->referral->reference,
+                    'tracking_code' => $request->user()?->can('review', $this->resource)
+                        ? $this->referral->tracking_code
+                        : null,
                     'referral_date' => $this->referral->referral_date?->format('Y-m-d'),
                     'due_date' => $this->referral->due_date?->format('Y-m-d'),
                     'expert' => $this->referral->expert ? [
@@ -219,6 +222,9 @@ class ReportResource extends JsonResource
                     'consult_status' => $consult->consult_status,
                     'destination' => $consult->destination,
                     'reference' => $consult->reference,
+                    'tracking_code' => $request->user()?->can('review', $this->resource)
+                        ? $consult->tracking_code
+                        : null,
                     'referral_date' => $consult->referral_date?->format('Y-m-d'),
                     'due_date' => $consult->due_date?->format('Y-m-d'),
                     'expert' => $consult->expert ? [

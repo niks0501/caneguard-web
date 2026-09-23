@@ -269,12 +269,14 @@ export class ApiReportsRepository implements ReportsRepository {
   ): Promise<DiseaseReport> {
     const payload: Record<string, unknown> = {
       destination: input.destination.trim(),
-      reference: input.reference.trim(),
       referral_date: input.referralDate,
       note: input.note?.trim() || null,
       expected_version: input.expectedVersion,
     };
 
+    if (input.reference !== undefined) {
+      payload.reference = input.reference?.trim() || null;
+    }
     if (input.dueDate !== undefined) {
       payload.due_date = input.dueDate || null;
     }
@@ -319,6 +321,9 @@ export class ApiReportsRepository implements ReportsRepository {
       expected_version: input.expectedVersion,
     };
 
+    if (input.reference !== undefined) {
+      payload.reference = input.reference?.trim() || null;
+    }
     if (input.findingRecommendation !== undefined) {
       payload.finding_recommendation = input.findingRecommendation?.trim() || null;
     }
@@ -347,6 +352,9 @@ export class ApiReportsRepository implements ReportsRepository {
     const response = await this.client.post(
       `/api/v1/reports/${encodeURIComponent(reportId)}/referral/finding`,
       {
+        ...(input.reference !== undefined
+          ? { reference: input.reference?.trim() || null }
+          : {}),
         condition_opinion: input.conditionOpinion,
         symptom_verdicts: input.symptomVerdicts,
         basis: input.basis?.trim() || null,

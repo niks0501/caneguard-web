@@ -36,7 +36,7 @@ function report(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
 
 function renderTable(
   reports: DiseaseReport[],
-  variant: "default" | "monitoring" = "default",
+  variant: "default" | "monitoring" | "expert" | "out-with-experts" = "default",
 ) {
   return render(
     <MemoryRouter>
@@ -154,6 +154,46 @@ describe("ReportTable", () => {
 
     expect(screen.getByText("No visit scheduled")).toBeInTheDocument();
     expect(screen.getByText("Waiting on expert: No due date")).toBeInTheDocument();
+  });
+
+  it("shows the referral tracking code and handles a missing external reference in the office queue", () => {
+    renderTable([report({
+      expertConsult: {
+        id: 7,
+        status: "pending",
+        reference: null,
+        trackingCode: "CG-20260924-00000007",
+        referralDate: "2026-09-24",
+        dueDate: "2026-10-01",
+        daysUntilDue: 7,
+        daysOut: 0,
+        overdue: false,
+        ageLabel: "Due in 7 days",
+      },
+    })], "out-with-experts");
+
+    expect(screen.getByText("Tracking: CG-20260924-00000007")).toBeInTheDocument();
+    expect(screen.getByText("External reference: Not provided yet")).toBeInTheDocument();
+  });
+
+  it("does not reveal internal tracking codes in the expert queue", () => {
+    renderTable([report({
+      expertConsult: {
+        id: 7,
+        status: "pending",
+        reference: null,
+        trackingCode: null,
+        referralDate: "2026-09-24",
+        dueDate: "2026-10-01",
+        daysUntilDue: 7,
+        daysOut: 0,
+        overdue: false,
+        ageLabel: "Due in 7 days",
+      },
+    })], "expert");
+
+    expect(screen.getByText("External reference: Not provided yet")).toBeInTheDocument();
+    expect(screen.queryByText(/Tracking:/)).not.toBeInTheDocument();
   });
 
   it("uses actionable identification-gap wording without an automated risk level", () => {

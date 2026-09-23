@@ -132,7 +132,7 @@ class RecordReportReferral
             $referralData = [
                 'referred_by_id' => $actor->getKey(),
                 'destination' => $data['destination'],
-                'reference' => $data['reference'],
+                'reference' => $data['reference'] ?? null,
                 'referral_date' => $data['referral_date'],
                 'due_date' => array_key_exists('due_date', $data)
                     ? $data['due_date']
@@ -156,6 +156,9 @@ class RecordReportReferral
             }
 
             $createdReferral = $locked->referrals()->create($referralData);
+            $createdReferral->update([
+                'tracking_code' => sprintf('CG-%s-%08d', $reviewedAt->format('Ymd'), $createdReferral->getKey()),
+            ]);
             $createdReferralId = $createdReferral->getKey();
 
             $this->reviewEvents->handle($locked, [

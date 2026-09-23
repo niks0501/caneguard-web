@@ -52,8 +52,8 @@ class ReportListResource extends JsonResource
             'attention_band' => $this->attention_band,
             'attention_band_reasons' => $this->attention_band_reasons ?? [],
             'identification_gap' => app(AssessIdentificationGap::class)->handle($this->resource),
-            'expert_consult' => $this->activeConsultSummary(),
-            'referral' => $this->activeConsultSummary(),
+            'expert_consult' => $this->activeConsultSummary($request),
+            'referral' => $this->activeConsultSummary($request),
             'version' => $this->lock_version,
             'image_url' => route(
                 'api.v1.reports.image',
@@ -68,7 +68,7 @@ class ReportListResource extends JsonResource
      *
      * @return array<string, mixed>|null
      */
-    private function activeConsultSummary(): ?array
+    private function activeConsultSummary(Request $request): ?array
     {
         $consult = $this->resource->relationLoaded('referral')
             ? $this->referral
@@ -89,6 +89,10 @@ class ReportListResource extends JsonResource
         return [
             'id' => $consult->getKey(),
             'status' => $consult->consult_status,
+            'reference' => $consult->reference,
+            'tracking_code' => $request->user()?->can('review', $this->resource)
+                ? $consult->tracking_code
+                : null,
             'referral_date' => $consult->referral_date?->format('Y-m-d'),
             'due_date' => $consult->due_date?->format('Y-m-d'),
             'expert' => $consult->expert ? [

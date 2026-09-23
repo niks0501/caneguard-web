@@ -86,6 +86,8 @@ export interface IdentificationGap {
 export interface ExpertConsultSummary {
   id: number;
   status: ConsultStatus;
+  reference?: string | null;
+  trackingCode?: string | null;
   referralDate: string | null;
   dueDate: string | null;
   expert?: { uuid: string; name: string } | null;
@@ -123,7 +125,8 @@ export interface ExpertConsultPacket {
   consult: {
     id: number;
     status: ConsultStatus;
-    reference: string;
+    reference: string | null;
+    trackingCode?: string | null;
     referralDate: string | null;
     dueDate: string | null;
     question?: string | null;
@@ -137,7 +140,8 @@ export interface ExpertConsultPacket {
   priorConsults: Array<{
     id: number;
     status: ConsultStatus;
-    reference: string;
+    reference: string | null;
+    trackingCode?: string | null;
     referralDate: string | null;
     dueDate: string | null;
     question?: string | null;
@@ -187,7 +191,8 @@ export interface ReportReferral {
   id?: number;
   status?: ConsultStatus;
   destination: string;
-  reference: string;
+  reference: string | null;
+  trackingCode?: string | null;
   referralDate: string;
   dueDate?: string | null;
   expertName?: string | null;
@@ -226,7 +231,8 @@ export interface ReportConsult {
   id: number;
   status?: ConsultStatus;
   destination: string;
-  reference: string;
+  reference: string | null;
+  trackingCode?: string | null;
   referralDate: string;
   dueDate?: string | null;
   expertName?: string | null;

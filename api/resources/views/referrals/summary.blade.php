@@ -176,7 +176,7 @@
             <h2>Referral record</h2>
             <dl>
                 <div><dt>Destination</dt><dd>{{ $summary['referral']['destination'] }}</dd></div>
-                <div><dt>External reference</dt><dd>{{ $summary['referral']['reference'] }}</dd></div>
+                <div><dt>External reference</dt><dd>{{ $summary['referral']['reference'] ?? 'Not provided yet' }}</dd></div>
                 <div><dt>Due date</dt><dd>{{ $summary['referral']['due_date'] ?: 'Not set' }}</dd></div>
                 <div><dt>Expert</dt><dd>{{ $summary['referral']['expert_name'] ?: 'Not attributed' }}</dd></div>
                 <div class="full"><dt>Expert contact</dt><dd>{{ $summary['referral']['expert_contact'] ?: 'Not provided' }}</dd></div>

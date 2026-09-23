@@ -45,7 +45,8 @@ class RecordReferralRequest extends ApiFormRequest
         $trimmed = [];
         foreach (['destination', 'reference', 'expert_name', 'expert_contact', 'note', 'office_notes'] as $field) {
             if ($this->has($field) && is_string($this->input($field))) {
-                $trimmed[$field] = trim($this->input($field));
+                $value = trim($this->input($field));
+                $trimmed[$field] = $field === 'reference' && $value === '' ? null : $value;
             }
         }
 
@@ -66,7 +67,7 @@ class RecordReferralRequest extends ApiFormRequest
     {
         return [
             'destination' => ['required', 'string', 'max:160', 'not_regex:/^\\s*$/'],
-            'reference' => ['required', 'string', 'max:160', 'not_regex:/^\\s*$/'],
+            'reference' => ['sometimes', 'nullable', 'string', 'max:160'],
             'referral_date' => ['required', 'date'],
             'due_date' => ['sometimes', 'nullable', 'date'],
             'expert_uuid' => [

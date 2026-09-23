@@ -79,6 +79,78 @@ class ReportReferralTest extends TestCase
         ]);
     }
 
+    public function test_referral_reference_is_optional_and_tracking_code_is_generated(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-24 12:00:00 UTC');
+
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            $report = Report::factory()->create();
+            Sanctum::actingAs($reviewer);
+
+            $response = $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+                'destination' => 'Regional crop protection office',
+                'referral_date' => '2026-09-04',
+                'expert_name' => 'External specialist',
+                'expected_version' => 0,
+            ]);
+            $response
+                ->assertCreated()
+                ->assertJsonPath('data.referral.reference', null)
+                ->assertJsonPath('data.referral.due_date', '2026-09-11');
+
+            $referral = ReportReferral::query()->where('report_id', $report->getKey())->sole();
+            $expectedTrackingCode = sprintf('CG-20260924-%08d', $referral->getKey());
+            $this->assertSame($expectedTrackingCode, $referral->tracking_code);
+            $this->assertSame($expectedTrackingCode, $response->json('data.referral.tracking_code'));
+            $this->assertDatabaseHas('report_referrals', [
+                'id' => $referral->getKey(),
+                'reference' => null,
+                'tracking_code' => $expectedTrackingCode,
+            ]);
+
+            $secondReport = Report::factory()->create();
+            $this->postJson("/api/v1/reports/{$secondReport->uuid}/referral", [
+                'destination' => 'Regional crop protection office',
+                'referral_date' => '2026-09-04',
+                'expert_name' => 'External specialist',
+                'expected_version' => 0,
+            ])->assertCreated();
+            $secondReferral = ReportReferral::query()->where('report_id', $secondReport->getKey())->sole();
+            $this->assertNotSame($referral->tracking_code, $secondReferral->tracking_code);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_external_reference_can_be_added_when_an_expert_response_is_recorded(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+            'destination' => 'Regional crop protection office',
+            'referral_date' => '2026-09-04',
+            'expert_name' => 'External specialist',
+            'expected_version' => 0,
+        ])->assertCreated()->assertJsonPath('data.referral.reference', null);
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/referral/response", [
+            'reference' => 'SRA-2026-RESPONSE-0042',
+            'response_date' => '2026-09-24',
+            'response_note' => 'The expert response includes the office letter number.',
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.referral.reference', 'SRA-2026-RESPONSE-0042');
+
+        $this->assertDatabaseHas('report_referrals', [
+            'report_id' => $report->getKey(),
+            'reference' => 'SRA-2026-RESPONSE-0042',
+        ]);
+    }
+
     public function test_attributed_consult_round_trip_preserves_provenance_and_finding_attribution(): void
     {
         $reviewer = User::factory()->reviewer()->create();
@@ -110,6 +182,7 @@ class ReportReferralTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('data.referral.status', ReportReferral::STATUS_COMPLETED)
+            ->assertJsonPath('data.referral.reference', 'CONSULT-2026-0042')
             ->assertJsonPath('data.referral.finding_source', ReportReferral::FINDING_SOURCE_TRANSCRIBED)
             ->assertJsonPath('data.referral.finding_summary', 'The external consult was transcribed into the case record.')
             ->assertJsonPath('data.referral.finding_details', 'Observed evidence is consistent with smut.')
@@ -278,7 +351,9 @@ class ReportReferralTest extends TestCase
     public function test_expert_finding_is_a_proposal_and_cannot_write_office_disposition(): void
     {
         $expert = User::factory()->expert()->create();
-        $referral = ReportReferral::factory()->assignedToExpert($expert)->create();
+        $referral = ReportReferral::factory()->assignedToExpert($expert)->create([
+            'reference' => null,
+        ]);
         $report = $referral->report;
         $originalVerification = $report->verification_outcome;
         $originalAuthority = $report->authority_classified_condition;
@@ -295,9 +370,11 @@ class ReportReferralTest extends TestCase
             'recommendation' => 'Inspect the adjacent rows.',
             'consult_status' => ReportReferral::STATUS_COMPLETED,
             'response_date' => '2026-09-20',
+            'reference' => 'EXPERT-LETTER-0042',
             'expected_version' => 0,
         ])
             ->assertOk()
+            ->assertJsonPath('data.referral.reference', 'EXPERT-LETTER-0042')
             ->assertJsonPath('data.referral.condition_opinion', Report::AUTHORITY_CONDITION_SMUT)
             ->assertJsonPath('data.referral.finding_confidence', 'high')
             ->assertJsonPath('data.referral.finding_source', ReportReferral::FINDING_SOURCE_IN_SYSTEM)
@@ -515,7 +592,6 @@ class ReportReferralTest extends TestCase
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
             'referral_destination' => 'Crop disease specialist',
-            'referral_reference' => 'CASE-77',
             'referral_date' => '2026-09-05',
             'expert_name' => 'External specialist',
             'referral_note' => 'Review the independent field observations.',
@@ -528,11 +604,12 @@ class ReportReferralTest extends TestCase
                 Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
             )
             ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
-            ->assertJsonPath('data.referral.reference', 'CASE-77');
+            ->assertJsonPath('data.referral.reference', null)
+            ->assertJsonPath('data.referral.tracking_code', fn ($value) => is_string($value));
 
         $this->assertDatabaseHas('report_referrals', [
             'report_id' => $report->getKey(),
-            'reference' => 'CASE-77',
+            'reference' => null,
             'office_review_notes' => 'The office is awaiting expert input.',
         ]);
     }

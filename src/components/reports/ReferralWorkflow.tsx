@@ -66,6 +66,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
     ? report.authorityClassifiedCondition
     : null;
   const [responseDate, setResponseDate] = useState("");
+  const [responseReference, setResponseReference] = useState("");
   const [responseNote, setResponseNote] = useState("");
   const [responseFinding, setResponseFinding] = useState("");
   const [responseFindingSource, setResponseFindingSource] = useState<FindingSource | "">("");
@@ -82,6 +83,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
   const [responseModalOpen, setResponseModalOpen] = useState(false);
   const responseDirty = Boolean(
     responseDate ||
+    responseReference.trim() ||
     responseNote.trim() ||
     responseFinding.trim() ||
     responseFindingSource ||
@@ -162,6 +164,7 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
     try {
       await recordResponse.mutateAsync({
         responseDate,
+        ...(responseReference.trim() ? { reference: responseReference.trim() } : {}),
         responseNote,
         responseFinding,
         ...(responseFindingSource ? { findingSource: responseFindingSource } : {}),
@@ -201,7 +204,8 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
       <>
           <CappedDetailList className="detail-list referral-details" limit={4}>
             <DetailField label="Destination">{referral.destination}</DetailField>
-            <DetailField label="Reference">{referral.reference}</DetailField>
+            <DetailField label="Tracking code">{referral.trackingCode ?? "Not available"}</DetailField>
+            <DetailField label="Expert office reference">{referral.reference ?? "Not provided yet"}</DetailField>
             <DetailField label="Referral date">{referral.referralDate}</DetailField>
             <DetailField label="Response date">{referral.responseDate ?? "Pending"}</DetailField>
             <DetailField label="Status">{referral.status ?? (referral.responseDate ? "completed" : "pending")}</DetailField>
@@ -335,6 +339,21 @@ export function ReferralWorkflow({ report }: { report: DiseaseReport }) {
                 }
               >
                 <div className="referral-form referral-response-form">
+                  <label className="select-filter" htmlFor="response-reference">
+                    <span>Expert office reference (optional)</span>
+                    <input
+                      id="response-reference"
+                      value={responseReference}
+                      maxLength={160}
+                      onChange={(event) => {
+                        setResponseReference(event.target.value);
+                        setResponseSubmitted(false);
+                        recordResponse.reset();
+                      }}
+                      placeholder="Memo or letter number supplied with the response"
+                    />
+                  </label>
+                  <small>Add the external reference here when the expert provides it.</small>
                   <label className="select-filter" htmlFor="response-date">
                     <span>Expert response date</span>
                     <input
