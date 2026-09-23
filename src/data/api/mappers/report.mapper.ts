@@ -53,6 +53,8 @@ function mapIdentificationGap(dto: {
 function mapExpertConsultSummary(dto: {
   id: number;
   status: "pending" | "in_progress" | "completed" | "cancelled";
+  reference?: string | null;
+  tracking_code?: string | null;
   referral_date: string | null;
   due_date: string | null;
   expert?: { uuid: string; name: string } | null;
@@ -67,6 +69,8 @@ function mapExpertConsultSummary(dto: {
   return {
     id: dto.id,
     status: dto.status,
+    reference: dto.reference ?? null,
+    trackingCode: dto.tracking_code ?? null,
     referralDate: dto.referral_date,
     dueDate: dto.due_date,
     expert: dto.expert,
@@ -105,6 +109,7 @@ function mapExpertConsultFinding(dto: ExpertConsultResponseDto["data"]["consult"
     id: dto.id,
     status: dto.status,
     reference: dto.reference,
+    trackingCode: dto.tracking_code ?? null,
     referralDate: dto.referral_date,
     dueDate: dto.due_date,
     question: dto.question ?? null,
@@ -337,6 +342,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
           status: dto.referral.status,
           destination: dto.referral.destination,
           reference: dto.referral.reference,
+          trackingCode: dto.referral.tracking_code ?? null,
           referralDate: dto.referral.referral_date,
           dueDate: dto.referral.due_date,
           expertName: dto.referral.expert_name,
@@ -386,6 +392,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
       status: consult.status,
       destination: consult.destination,
       reference: consult.reference,
+      trackingCode: consult.tracking_code ?? null,
       referralDate: consult.referral_date,
       dueDate: consult.due_date,
       expertName: consult.expert_name,

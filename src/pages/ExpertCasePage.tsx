@@ -31,6 +31,7 @@ export function ExpertCasePage() {
   const [basis, setBasis] = useState("");
   const [confidence, setConfidence] = useState<"low" | "medium" | "high" | "">("");
   const [recommendation, setRecommendation] = useState("");
+  const [officeReference, setOfficeReference] = useState("");
   const [responseDate, setResponseDate] = useState(todayInput);
   const [consultStatus, setConsultStatus] = useState<"in_progress" | "completed">("in_progress");
   const [symptomVerdicts, setSymptomVerdicts] = useState<Record<string, { verdict: SymptomFindingVerdict; note: string }>>({});
@@ -60,6 +61,7 @@ export function ExpertCasePage() {
 
     try {
       await findingMutation.mutateAsync({
+        ...(officeReference.trim() ? { reference: officeReference.trim() } : {}),
         conditionOpinion: conditionOpinion || null,
         symptomVerdicts: Object.fromEntries(
           Object.entries(symptomVerdicts).map(([key, finding]) => [key, {
@@ -163,6 +165,16 @@ export function ExpertCasePage() {
             <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
           </SelectFilter>
           <TextArea id="expert-recommendation" label="Recommendation" rows={4} maxLength={2000} value={recommendation} onChange={(event) => setRecommendation(event.target.value)} placeholder="Suggest the next useful action for the office" />
+          <label className="select-filter" htmlFor="expert-office-reference">
+            <span>Office memo or letter number (optional)</span>
+            <input
+              id="expert-office-reference"
+              value={officeReference}
+              maxLength={160}
+              onChange={(event) => setOfficeReference(event.target.value)}
+              placeholder="External reference supplied with your response"
+            />
+          </label>
           <label className="select-filter" htmlFor="expert-response-date"><span>Response date</span><input id="expert-response-date" type="date" value={responseDate} onChange={(event) => setResponseDate(event.target.value)} /></label>
           <SelectFilter label="Consult status" value={consultStatus} onChange={(event) => setConsultStatus(event.target.value as "in_progress" | "completed")}>
             <option value="in_progress">Save and keep consult open</option>
@@ -177,12 +189,12 @@ export function ExpertCasePage() {
 
         <section className="review-card expert-case-due" aria-labelledby="expert-due-heading">
           <div className="section-heading"><div><h2 id="expert-due-heading">Turnaround</h2></div></div>
-          <dl className="detail-list"><DetailField label="Due date">{packet.consult.dueDate || "No due date"}</DetailField><DetailField label="Referral date">{packet.consult.referralDate ? formatDate(packet.consult.referralDate) : "Not provided"}</DetailField></dl>
+          <dl className="detail-list"><DetailField label="External reference">{packet.consult.reference ?? "Not provided yet"}</DetailField><DetailField label="Due date">{packet.consult.dueDate || "No due date"}</DetailField><DetailField label="Referral date">{packet.consult.referralDate ? formatDate(packet.consult.referralDate) : "Not provided"}</DetailField></dl>
         </section>
 
         <section className="review-card expert-case-history" aria-labelledby="expert-history-heading">
           <div className="section-heading"><div><h2 id="expert-history-heading">Earlier consults</h2></div></div>
-          {packet.priorConsults.length === 0 ? <p className="expert-case-muted">No completed consults are recorded for this case.</p> : packet.priorConsults.map((prior) => <article className="expert-case-prior" key={prior.id}><strong>{prior.reference}</strong><span>{prior.conditionOpinion || "No condition opinion"}</span><span>{prior.basis || "No basis recorded"}</span></article>)}
+          {packet.priorConsults.length === 0 ? <p className="expert-case-muted">No completed consults are recorded for this case.</p> : packet.priorConsults.map((prior) => <article className="expert-case-prior" key={prior.id}><strong>{prior.reference ?? "No external reference recorded"}</strong><span>{prior.conditionOpinion || "No condition opinion"}</span><span>{prior.basis || "No basis recorded"}</span></article>)}
         </section>
 
         <a className="button button--secondary referral-summary-link" href={`${env.apiBaseUrl}/api/v1/reports/${encodeURIComponent(reportId)}/referral/summary`} target="_blank" rel="noreferrer"><FileText aria-hidden="true" /> <span>Print / download referral summary</span></a>

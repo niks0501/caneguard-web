@@ -102,9 +102,9 @@ class ReviewReportRequest extends ApiFormRequest
             ],
             'referral_reference' => [
                 'sometimes',
+                'nullable',
                 'string',
                 'max:160',
-                'not_regex:/^\\s*$/',
             ],
             'referral_date' => [
                 'sometimes',
@@ -397,7 +397,6 @@ class ReviewReportRequest extends ApiFormRequest
                 }
                 foreach ([
                     'referral_destination' => 'A referral destination is required.',
-                    'referral_reference' => 'A referral reference is required.',
                     'referral_date' => 'A referral date is required.',
                 ] as $field => $message) {
                     if (blank($this->input($field))) {

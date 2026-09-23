@@ -94,7 +94,7 @@ class RecordExpertReferralResponse
                 ? $data['finding_source']
                 : ($hasFinding ? ReportReferral::FINDING_SOURCE_TRANSCRIBED : null);
 
-            $referral->update([
+            $referralUpdate = [
                 'consult_status' => $consultStatus,
                 'response_date' => $data['response_date'] ?? null,
                 'response_note' => $consultCancelled ? null : $responseNote,
@@ -107,7 +107,11 @@ class RecordExpertReferralResponse
                 'finding_source' => $consultCancelled ? null : $findingSource,
                 'finding_recorded_by_id' => $consultCancelled || ! $hasFinding ? null : $actor->getKey(),
                 'finding_recorded_at' => $consultCancelled || ! $hasFinding ? null : $reviewedAt,
-            ]);
+            ];
+            if (array_key_exists('reference', $data) && ! $consultCancelled) {
+                $referralUpdate['reference'] = $data['reference'];
+            }
+            $referral->update($referralUpdate);
 
             $this->reviewEvents->handle($locked, [
                 'actor_id' => $actor->getKey(),

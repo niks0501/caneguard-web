@@ -329,6 +329,7 @@ export class MockReportsRepository implements ReportsRepository {
         id: report.referral.id ?? 1,
         status: report.referral.status ?? "pending",
         reference: report.referral.reference,
+        trackingCode: report.referral.trackingCode ?? null,
         referralDate: report.referral.referralDate,
         dueDate: report.referral.dueDate ?? null,
         question: report.referral.note,
@@ -502,7 +503,8 @@ export class MockReportsRepository implements ReportsRepository {
       lifecycle: nextLifecycle,
       referral: {
         destination: input.destination.trim(),
-        reference: input.reference.trim(),
+        reference: input.reference?.trim() || null,
+        trackingCode: `CG-${now.slice(0, 10).replaceAll("-", "")}-${String((current.reviewVersion ?? 0) + 1).padStart(8, "0")}`,
         referralDate: input.referralDate,
         note: input.note?.trim() || null,
         officeContext: {
@@ -584,6 +586,9 @@ export class MockReportsRepository implements ReportsRepository {
       },
       referral: {
         ...current.referral,
+        ...(input.reference !== undefined
+          ? { reference: input.reference?.trim() || null }
+          : {}),
         responseDate: input.responseDate,
         responseNote: input.responseNote?.trim() || null,
         responseFinding: input.responseFinding?.trim() || null,
@@ -602,11 +607,22 @@ export class MockReportsRepository implements ReportsRepository {
     reportId: string,
     input: ExpertFindingInput,
   ): Promise<DiseaseReport> {
-    void input;
-    return this.getReportById(reportId).then((report) => {
-      if (!report) throw new Error(`Report ${reportId} was not found.`);
-      return cloneReport(report);
-    });
+    const index = this.reports.findIndex((report) => report.uuid === reportId);
+    if (index === -1) throw new Error(`Report ${reportId} was not found.`);
+
+    const current = this.reports[index];
+    if (!current.referral) throw new Error("The report has no referral.");
+    const updated: DiseaseReport = {
+      ...current,
+      referral: {
+        ...current.referral,
+        ...(input.reference !== undefined
+          ? { reference: input.reference?.trim() || null }
+          : {}),
+      },
+    };
+    this.reports[index] = updated;
+    return cloneReport(updated);
   }
 
   async confirmExpertReferral(

@@ -34,9 +34,10 @@ class RecordExpertFindingRequest extends ApiFormRequest
         }
 
         $trimmed = [];
-        foreach (['condition_opinion', 'basis', 'recommendation'] as $field) {
+        foreach (['reference', 'condition_opinion', 'basis', 'recommendation'] as $field) {
             if ($this->has($field) && is_string($this->input($field))) {
-                $trimmed[$field] = trim($this->input($field));
+                $value = trim($this->input($field));
+                $trimmed[$field] = $field === 'reference' && $value === '' ? null : $value;
             }
         }
 
@@ -70,6 +71,7 @@ class RecordExpertFindingRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
+            'reference' => ['sometimes', 'nullable', 'string', 'max:160'],
             'condition_opinion' => [
                 'sometimes',
                 'nullable',

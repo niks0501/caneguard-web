@@ -151,7 +151,8 @@ final class BuildReportCaseHistory
                     $consult->referredBy?->name ?? 'Authorized reviewer',
                     [
                         ['label' => 'Destination', 'value' => $consult->destination],
-                        ['label' => 'Reference', 'value' => $consult->reference],
+                        ['label' => 'Tracking code', 'value' => $consult->tracking_code ?? 'Not available'],
+                        ['label' => 'Reference', 'value' => $consult->reference ?? 'Not provided yet'],
                         ...($consult->due_date ? [
                             ['label' => 'Due date', 'value' => $consult->due_date->format('Y-m-d')],
                         ] : []),

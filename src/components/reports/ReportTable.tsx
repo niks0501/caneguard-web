@@ -144,6 +144,18 @@ export function ReportTable({
                       <span>{isMonitoring
                         ? (report.farmReference ?? report.barangay)
                         : (report.farmReference ?? "No farm reference")}</span>
+                      {(isExpert || isOutWithExperts) && report.expertConsult ? (
+                        <>
+                          {isOutWithExperts ? (
+                            <span className="table-secondary">
+                              Tracking: {report.expertConsult.trackingCode ?? "Unavailable"}
+                            </span>
+                          ) : null}
+                          <span className="table-secondary">
+                            External reference: {report.expertConsult.reference ?? "Not provided yet"}
+                          </span>
+                        </>
+                      ) : null}
                       {isMonitoring ? (
                         <span className="table-secondary">Barangay: {report.barangay}</span>
                       ) : null}

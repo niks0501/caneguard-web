@@ -38,7 +38,10 @@ class ReviewReportController extends Controller
         if ($this->isNewReferral($report, $data)) {
             $referralData = [
                 'destination' => trim($data['referral_destination']),
-                'reference' => trim($data['referral_reference']),
+                'reference' => isset($data['referral_reference'])
+                    && trim((string) $data['referral_reference']) !== ''
+                    ? trim((string) $data['referral_reference'])
+                    : null,
                 'referral_date' => $data['referral_date'],
                 'due_date' => $data['referral_due_date'] ?? null,
                 'expert_name' => isset($data['expert_name'])

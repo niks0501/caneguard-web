@@ -108,7 +108,7 @@ class RecordExpertFinding
                 'lock_version' => $locked->lock_version + 1,
             ]);
 
-            $referral->update([
+            $referralUpdate = [
                 'consult_status' => $consultStatus,
                 'response_date' => $consultCancelled ? null : ($data['response_date'] ?? null),
                 'response_note' => $consultCancelled ? null : $basis,
@@ -128,7 +128,11 @@ class RecordExpertFinding
                 'finding_recorded_at' => $consultCancelled || ! $hasFinding
                     ? null
                     : $recordedAt,
-            ]);
+            ];
+            if (array_key_exists('reference', $data) && ! $consultCancelled) {
+                $referralUpdate['reference'] = $data['reference'];
+            }
+            $referral->update($referralUpdate);
             $recordedReferralId = $referral->getKey();
 
             if ($consultCancelled) {

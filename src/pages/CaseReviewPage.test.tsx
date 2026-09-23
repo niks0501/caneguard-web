@@ -1222,7 +1222,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Record expert referral" }));
     const modal = screen.getByRole("dialog", { name: "Record expert referral" });
     await user.type(within(modal).getByLabelText("Expert destination"), " Regional office ");
-    await user.type(within(modal).getByLabelText("Referral reference"), " SRA-2026-0042 ");
+    await user.type(within(modal).getByLabelText("Expert office reference (optional)"), " SRA-2026-0042 ");
     await user.type(within(modal).getByLabelText("Referral date"), "2026-09-04");
     await user.type(within(modal).getByLabelText("External expert name (optional)"), " Dr. External Expert ");
     await user.type(within(modal).getByLabelText(/Referral note \(optional\)/), " Review the mismatch. ");
@@ -1232,7 +1232,7 @@ describe("CaseReviewPage", () => {
     // the visible office classification, verification, and notes snapshot.
     expect(mutateAsync).toHaveBeenCalledWith({
       destination: " Regional office ",
-      reference: " SRA-2026-0042 ",
+      reference: "SRA-2026-0042",
       referralDate: "2026-09-04",
       expertName: " Dr. External Expert ",
       note: " Review the mismatch. ",
@@ -1244,6 +1244,43 @@ describe("CaseReviewPage", () => {
     expect(
       await screen.findByText("Returned to report queue"),
     ).toBeInTheDocument();
+  });
+
+  it("records an expert referral without an external reference", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(referredReport);
+    vi.mocked(useRecordReportReferral).mockReturnValue(
+      referralMutationResult({ mutateAsync }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
+    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
+    const modal = screen.getByRole("dialog", { name: "Record expert referral" });
+    expect(within(modal).getByText(/add it when the expert responds/i)).toBeInTheDocument();
+    await user.type(within(modal).getByLabelText("Expert destination"), "Regional office");
+    await user.type(within(modal).getByLabelText("Referral date"), "2026-09-04");
+    await user.type(within(modal).getByLabelText("External expert name (optional)"), "Dr. External Expert");
+    await user.click(within(modal).getByRole("button", { name: "Save referral" }));
+
+    expect(mutateAsync.mock.calls[0]?.[0]).not.toHaveProperty("reference");
+    expect(await screen.findByText("Returned to report queue")).toBeInTheDocument();
+  });
+
+  it("shows the tracking code and a placeholder when the referral has no external reference", () => {
+    const referral = {
+      ...referredReport.referral!,
+      reference: null,
+      trackingCode: "CG-20260924-00000001",
+    };
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      data: { ...referredReport, referral },
+    }));
+
+    renderPage();
+
+    expect(screen.getAllByText("CG-20260924-00000001").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Not provided yet").length).toBeGreaterThan(0);
   });
 
   it("assigns an in-system expert from the directory", async () => {
@@ -1262,7 +1299,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Record expert referral" }));
     const expertModal = screen.getByRole("dialog", { name: "Record expert referral" });
     await user.type(within(expertModal).getByLabelText("Expert destination"), " Regional office ");
-    await user.type(within(expertModal).getByLabelText("Referral reference"), " SRA-2026-0042 ");
+    await user.type(within(expertModal).getByLabelText("Expert office reference (optional)"), " SRA-2026-0042 ");
     await user.type(within(expertModal).getByLabelText("Referral date"), "2026-09-04");
     await user.selectOptions(within(expertModal).getByLabelText("In-system expert (optional)"), "expert-uuid");
     await user.click(within(expertModal).getByRole("button", { name: "Save referral" }));
@@ -1292,7 +1329,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Record expert referral" }));
     const modal = screen.getByRole("dialog", { name: "Record expert referral" });
     expect(within(modal).getByLabelText("Expert destination")).toBeInTheDocument();
-    expect(within(modal).getByLabelText("Referral reference")).toBeInTheDocument();
+    expect(within(modal).getByLabelText("Expert office reference (optional)")).toBeInTheDocument();
     expect(within(modal).getByLabelText("Referral date")).toBeInTheDocument();
   });
 
@@ -1385,7 +1422,12 @@ describe("CaseReviewPage", () => {
         referralState: "expert_response_received",
       },
     });
-    vi.mocked(useReport).mockReturnValue(queryResult({ data: referredReport }));
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      data: {
+        ...referredReport,
+        referral: { ...referredReport.referral!, reference: null },
+      },
+    }));
     vi.mocked(useRecordExpertReferralResponse).mockReturnValue(
       referralMutationResult({ mutateAsync }) as unknown as ReturnType<typeof useRecordExpertReferralResponse>,
     );
@@ -1395,6 +1437,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Record expert response" }));
     const modal = screen.getByRole("dialog", { name: "Record expert response" });
     await user.type(within(modal).getByLabelText("Expert response date"), "2026-09-08");
+    await user.type(within(modal).getByLabelText("Expert office reference (optional)"), " SRA-2026-RESPONSE-0042 ");
     await user.type(within(modal).getByLabelText("Expert response note"), " Response received. ");
     await user.type(within(modal).getByLabelText("Expert finding (optional)"), " Finding recorded. ");
     await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition after response"), "smut");
@@ -1403,6 +1446,7 @@ describe("CaseReviewPage", () => {
 
     expect(mutateAsync).toHaveBeenCalledWith({
       responseDate: "2026-09-08",
+      reference: "SRA-2026-RESPONSE-0042",
       responseNote: " Response received. ",
       responseFinding: " Finding recorded. ",
       authorityClassifiedCondition: "smut",
