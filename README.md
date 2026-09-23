@@ -209,20 +209,30 @@ If the local MySQL user already exists, keep its existing password or update it 
 
 ### Migrate and seed
 
-Run the application migration and seed from the Web/API repository root.
+Run the application key and migration commands from the Web/API repository root.
 
 ```bash
 # Web/API repository: $HOME/src/caneguard/caneguard-web
 cd "$HOME/src/caneguard/caneguard-web"
 php api/artisan key:generate
 php api/artisan migrate
-php api/artisan db:seed
 ```
 
-The seed creates the local accounts and synthetic field records.
-The report seed is safe to rerun against an existing local database: it creates missing rows, files, and nested evidence without overwriting existing report rows or immutable submitted evidence.
-The expanded field dataset uses Bago, Negros Occidental records such as `BGO-20260920-0810` through `BGO-20260918-0615` and advisory `ADV-BGO-RUST-01` for monitoring assignments, validation evidence, expert consults, advisory delivery, follow-up outcomes, and unavailable-location V2 reports. Set `CANEGUARD_EXPERT_PASSWORD` to seed the attributed expert consult rows.
-Use a disposable reset/reseed when a fresh field dataset is required.
+The seed creates the local accounts and synthetic field records in Nasugbu, Batangas. Rerunning a seeder updates its stable demo records in place; it does not duplicate them. Run the seeding commands below from `api/`.
+
+Run all seeding commands from `api/`, and only against your local development database. Before running them, verify that the configured connection is local SQLite or local MySQL. **Never run these commands against production.**
+
+```bash
+cd api
+php artisan db:seed
+php artisan db:seed --class=ReportSeeder
+php artisan db:seed --class=AdvisorDemoSeeder
+php artisan db:seed --class=DashboardReportSeeder
+```
+
+`php artisan db:seed` runs all seeders. The `--class` commands rerun an individual seeder. Set `CANEGUARD_EXPERT_PASSWORD` to seed the attributed expert consult rows.
+
+**DANGER: `php artisan migrate:fresh --seed` drops every table and deletes all data in the selected database before rebuilding and seeding it. Use it only for a disposable local development database—never production.**
 The accounts are `field@caneguard.test`, `mao@caneguard.test`, `admin@caneguard.test`, and (when `CANEGUARD_EXPERT_PASSWORD` is set) `expert@caneguard.test`.
 Use the local passwords you set in `CANEGUARD_FIELD_PASSWORD`, `CANEGUARD_REVIEWER_PASSWORD`, `CANEGUARD_ADMIN_PASSWORD`, and `CANEGUARD_EXPERT_PASSWORD`.
 The Web accepts the reviewer, admin, and expert roles; expert accounts receive only assigned referral access, while Mobile synchronization requires the field-reporter role.

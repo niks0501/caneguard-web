@@ -121,7 +121,7 @@ class AdvisorDemoSeeder extends Seeder
     /**
      * Delete only the rows and files owned by this seeder.
      *
-     * This is intentionally opt-in; normal seeding is add-only.
+     * This is intentionally opt-in; normal seeding updates stable demo rows.
      */
     public static function cleanup(): void
     {
@@ -179,7 +179,7 @@ class AdvisorDemoSeeder extends Seeder
 
     private function seedAdvisory(User $reviewer): Advisory
     {
-        return Advisory::query()->firstOrCreate(
+        return Advisory::query()->updateOrCreate(
             ['code' => self::ADVISORY_CODE],
             [
                 'uuid' => '389cb205-7897-42d0-80ec-3468eeab8b3d',
@@ -211,12 +211,12 @@ class AdvisorDemoSeeder extends Seeder
             'BGO-20260920-0810' => [
                 'uuid' => 'a5651b25-a895-4929-8d36-a9e41681cec9',
                 'client_uuid' => '4227ad87-0f1a-4b77-a7b0-a43d7e6492f0',
-                'barangay' => 'Abuanan',
+                'barangay' => 'Balaytigui',
                 'farmer_or_farm_owner_name' => 'Rogelio Manalo',
-                'province' => 'Negros Occidental',
-                'municipality' => 'Bago',
-                'final_latitude' => 10.5204000,
-                'final_longitude' => 122.8238000,
+                'province' => 'Batangas',
+                'municipality' => 'Nasugbu',
+                'final_latitude' => 14.1260000,
+                'final_longitude' => 120.6039000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 4.20,
                 'predicted_label' => Report::LABEL_RUST,
@@ -242,12 +242,12 @@ class AdvisorDemoSeeder extends Seeder
             'BGO-20260916-0745' => [
                 'uuid' => 'd61de03b-a8a9-4050-be72-d1a0e7220e7a',
                 'client_uuid' => 'd3a04825-985b-4e95-874a-435e63919f34',
-                'barangay' => 'Abuanan',
+                'barangay' => 'Balaytigui',
                 'farmer_or_farm_owner_name' => 'Rogelio Manalo',
-                'province' => 'Negros Occidental',
-                'municipality' => 'Bago',
-                'final_latitude' => 10.5208000,
-                'final_longitude' => 122.8241000,
+                'province' => 'Batangas',
+                'municipality' => 'Nasugbu',
+                'final_latitude' => 14.1260000,
+                'final_longitude' => 120.6039000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 6.10,
                 'predicted_label' => Report::LABEL_RUST,
@@ -273,12 +273,12 @@ class AdvisorDemoSeeder extends Seeder
             'BGO-20260910-0640' => [
                 'uuid' => 'fb81c717-d314-4569-a28f-3158e6cfdb94',
                 'client_uuid' => '2778c1eb-7419-4580-9f11-da891dddafe0',
-                'barangay' => 'Dulao',
+                'barangay' => 'Bilaran',
                 'farmer_or_farm_owner_name' => 'Lorna Villanueva',
-                'province' => 'Negros Occidental',
-                'municipality' => 'Bago',
-                'final_latitude' => 10.5334000,
-                'final_longitude' => 122.8387000,
+                'province' => 'Batangas',
+                'municipality' => 'Nasugbu',
+                'final_latitude' => 14.0487000,
+                'final_longitude' => 120.6846000,
                 'location_source' => Report::LOCATION_SOURCE_MANUAL_MAP,
                 'gps_accuracy' => null,
                 'predicted_label' => Report::LABEL_SMUT,
@@ -321,12 +321,12 @@ class AdvisorDemoSeeder extends Seeder
             'BGO-20260919-0820' => [
                 'uuid' => '8f0e9123-4df7-4574-9074-962b1929b878',
                 'client_uuid' => 'd559d384-5677-49f0-a710-fa82a2cc34ea',
-                'barangay' => 'Mailum',
+                'barangay' => 'Banilad',
                 'farmer_or_farm_owner_name' => 'Danilo Panganiban',
-                'province' => 'Negros Occidental',
-                'municipality' => 'Bago',
-                'final_latitude' => 10.5857000,
-                'final_longitude' => 122.8432000,
+                'province' => 'Batangas',
+                'municipality' => 'Nasugbu',
+                'final_latitude' => 14.0730000,
+                'final_longitude' => 120.7408000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 9.50,
                 'predicted_label' => Report::LABEL_RUST,
@@ -352,12 +352,12 @@ class AdvisorDemoSeeder extends Seeder
             'BGO-20260912-0900' => [
                 'uuid' => 'ff502f07-b595-42ac-81f5-68c289b7b931',
                 'client_uuid' => '59842f7b-cfed-4604-963f-4de02dd31e44',
-                'barangay' => 'Ma-ao',
+                'barangay' => 'Bulihan',
                 'farmer_or_farm_owner_name' => 'Corazon Alonzo',
-                'province' => 'Negros Occidental',
-                'municipality' => 'Bago',
-                'final_latitude' => 10.6152000,
-                'final_longitude' => 122.8854000,
+                'province' => 'Batangas',
+                'municipality' => 'Nasugbu',
+                'final_latitude' => 14.1552000,
+                'final_longitude' => 120.6540000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 5.00,
                 'predicted_label' => Report::LABEL_RUST,
@@ -387,12 +387,12 @@ class AdvisorDemoSeeder extends Seeder
             'BGO-20260915-0730' => [
                 'uuid' => 'cdeb885f-1f01-4a38-b79f-9113723c4363',
                 'client_uuid' => '9a8263ee-c325-4227-8f84-1fe269252c16',
-                'barangay' => 'Poblacion',
+                'barangay' => 'Bucana',
                 'farmer_or_farm_owner_name' => 'Teodoro Gamboa',
-                'province' => 'Negros Occidental',
-                'municipality' => 'Bago',
-                'final_latitude' => 10.5418000,
-                'final_longitude' => 122.8392000,
+                'province' => 'Batangas',
+                'municipality' => 'Nasugbu',
+                'final_latitude' => 14.0678000,
+                'final_longitude' => 120.6267000,
                 'location_source' => Report::LOCATION_SOURCE_GPS,
                 'gps_accuracy' => 7.20,
                 'predicted_label' => Report::LABEL_SMUT,
@@ -419,10 +419,10 @@ class AdvisorDemoSeeder extends Seeder
                 'uuid' => '1a123908-927b-43e7-9e5a-a6970c488ffd',
                 'client_uuid' => '54ef47b9-e620-482c-bfc4-cd63721d7abf',
                 'scan_record_client_uuid' => 'efcb6026-044d-4c4c-b330-cbdc111d7aef',
-                'barangay' => 'Lag-asan',
+                'barangay' => 'Dayap',
                 'farmer_or_farm_owner_name' => 'Nena Salcedo',
-                'province' => 'Negros Occidental',
-                'municipality' => 'Bago',
+                'province' => 'Batangas',
+                'municipality' => 'Nasugbu',
                 'final_latitude' => null,
                 'final_longitude' => null,
                 'location_source' => Report::LOCATION_SOURCE_UNAVAILABLE,
@@ -456,7 +456,7 @@ class AdvisorDemoSeeder extends Seeder
         string $image,
     ): Report {
         $number = array_search($referenceCode, self::REPORT_REFERENCES, true) + 1;
-        $report = Report::query()->firstOrCreate(
+        $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
@@ -475,7 +475,7 @@ class AdvisorDemoSeeder extends Seeder
                 'review_notes' => $attributes['review_notes'] ?? 'Reviewed against the submitted field evidence.',
                 'lock_version' => 0,
             ],
-        );
+        ));
 
         $disk = Storage::disk('local');
         if (($report->wasRecentlyCreated || ! $disk->exists($report->image_path))
@@ -523,7 +523,7 @@ class AdvisorDemoSeeder extends Seeder
         User $reporter,
         User $reviewer,
     ): void {
-        FieldValidationAssignment::query()->firstOrCreate(
+        FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
                 'uuid' => '885b0373-0c86-41d8-a838-0921c71f3a35',
@@ -540,7 +540,7 @@ class AdvisorDemoSeeder extends Seeder
         User $reporter,
         User $reviewer,
     ): void {
-        FieldValidationAssignment::query()->firstOrCreate(
+        FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
                 'uuid' => 'efcb6026-044d-4c4c-b330-cbdc111d7aef',
@@ -559,7 +559,7 @@ class AdvisorDemoSeeder extends Seeder
         string $image,
         bool $hasFollowUpOutcome,
     ): void {
-        $assignment = FieldValidationAssignment::query()->firstOrCreate(
+        $assignment = FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
                 'uuid' => '6feab924-3ecd-49f2-96c2-5fb878ef48f6',
@@ -578,10 +578,10 @@ class AdvisorDemoSeeder extends Seeder
             'visited_at' => CarbonImmutable::parse('2026-09-18 07:30:00', 'UTC'),
             'gps_outcome' => 'resolved',
             'gps_attempted_at' => CarbonImmutable::parse('2026-09-18 07:20:00', 'UTC'),
-            'gps_latitude' => 10.5208000,
-            'gps_longitude' => 122.8241000,
+            'gps_latitude' => 14.1260000,
+            'gps_longitude' => 120.6039000,
             'gps_accuracy' => 6.10,
-            'fresh_photo_path' => 'field-validation/2026-09-18-abuanan.png',
+            'fresh_photo_path' => 'field-validation/2026-09-18-balaytigui.png',
             'fresh_photo_mime_type' => 'image/png',
             'fresh_photo_size_bytes' => strlen($image),
         ];
@@ -589,7 +589,7 @@ class AdvisorDemoSeeder extends Seeder
             $completionAttributes['follow_up_outcome'] = 'improved';
         }
 
-        $completion = FieldValidationCompletion::query()->firstOrCreate(
+        $completion = FieldValidationCompletion::query()->updateOrCreate(
             ['assignment_id' => $assignment->getKey()],
             $completionAttributes,
         );
@@ -602,7 +602,7 @@ class AdvisorDemoSeeder extends Seeder
         User $reviewer,
         bool $hasFollowUpOutcome,
     ): void {
-        $assignment = FieldValidationAssignment::query()->firstOrCreate(
+        $assignment = FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
                 'uuid' => '7649e5e2-cdec-45aa-9f1a-8500272527b8',
@@ -621,15 +621,15 @@ class AdvisorDemoSeeder extends Seeder
             'visited_at' => CarbonImmutable::parse('2026-09-16 07:15:00', 'UTC'),
             'gps_outcome' => 'low_accuracy',
             'gps_attempted_at' => CarbonImmutable::parse('2026-09-16 07:05:00', 'UTC'),
-            'gps_latitude' => 10.5418000,
-            'gps_longitude' => 122.8392000,
+            'gps_latitude' => 14.0678000,
+            'gps_longitude' => 120.6267000,
             'gps_accuracy' => 38.00,
         ];
         if ($hasFollowUpOutcome) {
             $completionAttributes['follow_up_outcome'] = 'worsened';
         }
 
-        FieldValidationCompletion::query()->firstOrCreate(
+        FieldValidationCompletion::query()->updateOrCreate(
             ['assignment_id' => $assignment->getKey()],
             $completionAttributes,
         );
@@ -641,7 +641,7 @@ class AdvisorDemoSeeder extends Seeder
     ): void {
         $path = $completion->fresh_photo_path;
         if ($path === null) {
-            $path = 'field-validation/2026-09-18-abuanan.png';
+            $path = 'field-validation/2026-09-18-balaytigui.png';
             $completion->forceFill([
                 'fresh_photo_path' => $path,
                 'fresh_photo_mime_type' => 'image/png',
@@ -660,7 +660,7 @@ class AdvisorDemoSeeder extends Seeder
         User $reviewer,
         User $expert,
     ): void {
-        ReportReferral::query()->firstOrCreate(
+        ReportReferral::query()->updateOrCreate(
             [
                 'report_id' => $report->getKey(),
                 'reference' => 'BGO-CONSULT-20260910',
@@ -704,7 +704,7 @@ class AdvisorDemoSeeder extends Seeder
         User $reviewer,
         User $expert,
     ): void {
-        ReportReferral::query()->firstOrCreate(
+        ReportReferral::query()->updateOrCreate(
             [
                 'report_id' => $report->getKey(),
                 'reference' => 'BGO-CONSULT-20260919',
@@ -750,12 +750,7 @@ class AdvisorDemoSeeder extends Seeder
             'actor_id' => $expert->getKey(),
             'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
         ];
-        if (ReportReviewEvent::query()->where($attributes)->exists()) {
-            return;
-        }
-
-        ReportReviewEvent::query()->create([
-            ...$attributes,
+        ReportReviewEvent::query()->updateOrCreate($attributes, [
             'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
             'notes' => 'Attributed expert verification recorded for the monthly feedback loop.',

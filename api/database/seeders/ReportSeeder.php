@@ -36,18 +36,18 @@ class ReportSeeder extends Seeder
         // contract.
         $labels = Report::v2Labels();
         $barangays = [
-            'Abuanan',
-            'Balingasag',
-            'Dulao',
-            'Lag-asan',
-            'Mailum',
-            'Ma-ao',
-            'Malingin',
-            'Napoles',
-            'Poblacion',
-            'Sagasa',
-            'Taloc',
-            'Tinongan',
+            'Aga',
+            'Balaytigui',
+            'Banilad',
+            'Bilaran',
+            'Bucana',
+            'Bulihan',
+            'Bunducan',
+            'Butucan',
+            'Calayo',
+            'Catandaan',
+            'Cogunan',
+            'Dayap',
         ];
         $farmOwners = [
             'Nicanor Paredes',
@@ -91,15 +91,16 @@ class ReportSeeder extends Seeder
             '59b73792-4dff-4293-866d-0f6ca8442cc0',
             '250d7001-6d71-44f5-af64-057e4529515b',
         ];
-        // Null entries preserve reports without a valid location.
+        // Reference points are from the corresponding Nasugbu barangay maps;
+        // null entries preserve reports without a valid location.
         $locations = [
             1 => null,
-            2 => ['latitude' => 10.5234, 'longitude' => 122.8281, 'source' => 'gps', 'accuracy' => 4.2],
+            2 => ['latitude' => 14.1260, 'longitude' => 120.6039, 'source' => 'gps', 'accuracy' => 4.2],
             3 => null,
             4 => null,
             5 => null,
             6 => null,
-            7 => ['latitude' => 10.5710, 'longitude' => 122.8500, 'source' => 'manual_map', 'accuracy' => null],
+            7 => ['latitude' => 14.1069, 'longitude' => 120.6521, 'source' => 'manual_map', 'accuracy' => null],
             8 => null,
             9 => null,
             10 => null,
@@ -144,7 +145,7 @@ class ReportSeeder extends Seeder
                 $submittedAt,
                 $image,
             ): void {
-                $report = Report::query()->firstOrCreate(
+                $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
                     ['reference_code' => $referenceCode],
                     [
                         'uuid' => $reportUuid,
@@ -152,8 +153,8 @@ class ReportSeeder extends Seeder
                         'client_uuid' => $clientUuid,
                         'barangay' => $barangays[($number - 1) % count($barangays)],
                         'farmer_or_farm_owner_name' => $farmerOrFarmOwnerName,
-                        'province' => 'Negros Occidental',
-                        'municipality' => 'Bago',
+                        'province' => 'Batangas',
+                        'municipality' => 'Nasugbu',
                         'final_latitude' => $location['latitude'] ?? null,
                         'final_longitude' => $location['longitude'] ?? null,
                         'location_source' => $location['source'] ?? null,
@@ -188,11 +189,7 @@ class ReportSeeder extends Seeder
                             ? null
                             : $submittedAt->addDay(),
                     ],
-                );
-
-                if (! $report->wasRecentlyCreated && $report->client_uuid !== $clientUuid) {
-                    return;
-                }
+                ));
 
                 $disk = Storage::disk('local');
                 if (($report->wasRecentlyCreated || ! $disk->exists($report->image_path))
