@@ -74,8 +74,21 @@ describe("ReportTable", () => {
     expect(screen.getByText("Overdue")).toBeInTheDocument();
   });
 
-  it("labels the derived badge as Work status and never shows AI confidence", () => {
-    renderTable([report()]);
+  it("keeps work status while hiding model confidence and machine facts", () => {
+    renderTable([report({
+      modelVersion: "CaneGuard-model-v1",
+      attentionBand: "red",
+      attentionBandReasons: ["test-only backend detail"],
+      machineFacts: {
+        confidence: 0.95,
+        checklistConsistency: "inconsistent",
+        qualityWarnings: ["blurred"],
+        gpsAccuracy: 4.25,
+        locationSource: "gps",
+        reporterConcern: "RSSI",
+        reporterMismatch: true,
+      },
+    })]);
 
     expect(
       screen.getByRole("columnheader", { name: "Work status" }),
@@ -85,6 +98,10 @@ describe("ReportTable", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText("95%")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/confidence/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("CaneGuard-model-v1")).not.toBeInTheDocument();
+    expect(screen.queryByText("red")).not.toBeInTheDocument();
+    expect(screen.queryByText("4.25")).not.toBeInTheDocument();
     expect(screen.getByText("Possible Condition: Rust")).toBeInTheDocument();
   });
 
@@ -119,10 +136,33 @@ describe("ReportTable", () => {
     expect(screen.getByText("Location unavailable")).toBeInTheDocument();
   });
 
-  it("states when no visit is scheduled", () => {
-    renderTable([report({ followUp: { dueOn: null, overdue: false } })]);
+  it("states when no visit is scheduled and makes expert waiting explicit", () => {
+    renderTable([report({
+      followUp: { dueOn: null, overdue: false },
+      expertConsult: {
+        id: 1,
+        status: "pending",
+        referralDate: "2026-08-01",
+        dueDate: null,
+        expertName: "Field expert",
+        daysUntilDue: null,
+        daysOut: 3,
+        overdue: false,
+        ageLabel: "No due date",
+      },
+    })]);
 
     expect(screen.getByText("No visit scheduled")).toBeInTheDocument();
+    expect(screen.getByText("Waiting on expert: No due date")).toBeInTheDocument();
+  });
+
+  it("uses actionable identification-gap wording without an automated risk level", () => {
+    renderTable([report({
+      identificationGap: { state: "unidentified", reasons: ["no_condition"] },
+    })]);
+
+    expect(screen.getByText("Condition not identified — review needed")).toBeInTheDocument();
+    expect(screen.queryByText(/risk|score|band/i)).not.toBeInTheDocument();
   });
 
   it("navigates to report details when a row is clicked", async () => {

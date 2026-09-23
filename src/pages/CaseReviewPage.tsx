@@ -997,7 +997,7 @@ export function CaseReviewPage() {
     }
   };
 
-  if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report evidence..." /></PageContent>;
+  if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report..." /></PageContent>;
   if (reportQuery.isSuccess && !report) return <PageContent><ErrorState message="This report does not exist in the current submitted report queue." /></PageContent>;
   if ((reportQuery.isError && (!report || suppressCachedDetail)) || !report) return <PageContent><ErrorState message={detailErrorMessage} onRetry={suppressCachedDetail ? undefined : () => reportQuery.refetch()} /></PageContent>;
 
@@ -1032,13 +1032,6 @@ export function CaseReviewPage() {
           <p className="scan-hero__consequence">
             {heroContent.consequence}
           </p>
-          {report.attentionBand ? (
-            <p className={`attention-band-note attention-band-note--${report.attentionBand}`}>
-              <strong>Attention band: {report.attentionBand}</strong>
-              <span>{report.attentionBandReasons?.join(" ")}</span>
-              <small>Decision support only. The reviewer keeps the final call.</small>
-            </p>
-          ) : null}
           {report.identificationGap?.state === "unidentified" ? (
             <p className="identification-gap-banner" role="status">
               <strong>No condition has been identified yet.</strong> Referring to an expert is the recommended next action. <a href="#review-next-action">Choose an expert referral</a>.
@@ -1203,7 +1196,7 @@ export function CaseReviewPage() {
           </div>
                 <div className="evidence-stage">
                   {report.imageStatus === "available" ? (
-                    <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
+                    <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane photo for ${report.referenceCode}`} />
                   ) : (
                     <ImagePendingState status={report.imageStatus} />
                   )}

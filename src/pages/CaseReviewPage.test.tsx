@@ -218,18 +218,42 @@ beforeEach(() => {
 });
 
 describe("CaseReviewPage", () => {
-  it("renders the real evidence, model, observation, and review detail", async () => {
+  it("does not display the backend attention band", () => {
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      data: { ...report, attentionBand: "red", attentionBandReasons: ["test-only backend detail"] },
+    }));
+
+    renderPage();
+
+    expect(screen.queryByText(/Attention band/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("red")).not.toBeInTheDocument();
+  });
+
+  it("uses plain loading copy", () => {
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      data: undefined,
+      isPending: true,
+      isSuccess: false,
+    }));
+
+    renderPage();
+
+    expect(screen.getByText("Loading report...")).toBeInTheDocument();
+  });
+
+  it("renders the submitted photo, Possible Condition, observations, and review detail", async () => {
     const user = userEvent.setup();
     renderPage();
 
     const image = screen.getByRole("img", {
-      name: `Submitted sugarcane evidence for ${report.referenceCode}`,
+      name: `Submitted sugarcane photo for ${report.referenceCode}`,
     });
     expect(image).toHaveAttribute("src", report.imageUrl);
     // Technical detail stays internal: no Technical Evidence section, no model
     // version, coordinates, GPS accuracy, class scores, or machine-fact chips
     // in the normal workflow.
     expect(screen.queryByText("Technical Evidence")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Attention band/i)).not.toBeInTheDocument();
     expect(screen.queryByText(report.modelVersion!)).not.toBeInTheDocument();
     expect(screen.queryByText("Machine facts")).not.toBeInTheDocument();
     expect(screen.queryByText("Checklist consistency")).not.toBeInTheDocument();
@@ -319,7 +343,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Retry image" }));
     expect(
       screen.getByRole("img", {
-        name: `Submitted sugarcane evidence for ${report.referenceCode}`,
+        name: `Submitted sugarcane photo for ${report.referenceCode}`,
       }),
     ).toBeInTheDocument();
   });

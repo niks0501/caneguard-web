@@ -58,7 +58,7 @@ export function ExpertVerificationPanelView({
               <strong>{metrics.consultVolume.completed}</strong>
             </div>
             <div className="monthly-summary-metric">
-              <span>Agreed with AI</span>
+              <span>Agreed with Possible Condition</span>
               <strong>{metrics.expertAgreement.count}</strong>
             </div>
             <div className="monthly-summary-metric">
@@ -104,7 +104,7 @@ export function ExpertVerificationPanelView({
               </div>
               <dl className="monthly-summary-definition-list">
                 <div>
-                  <dt>Agreed with AI</dt>
+                  <dt>Agreed with Possible Condition</dt>
                   <dd>{metrics.expertAgreement.count}</dd>
                 </div>
                 <div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   CalendarClock,
   CalendarDays,
+  ChevronDown,
   CheckCircle2,
   ClipboardCheck,
   CircleHelp,
@@ -84,6 +85,8 @@ const queueOrder: OperationalQueue[] = [
 export function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState(manilaMonthAt);
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
+  const [analyticsRequested, setAnalyticsRequested] = useState(false);
   const dashboard = useDashboard(selectedMonth);
   const summary = dashboard.data;
 
@@ -206,8 +209,6 @@ export function DashboardPage() {
         )}
       </section>
 
-      <AnalyticsSection />
-
       {summary.monthlySummary ? (
         <MonthlyCaseSummary
           summary={summary.monthlySummary}
@@ -216,42 +217,62 @@ export function DashboardPage() {
         />
       ) : null}
 
-      <ExpertVerificationPanel month={activeMonth} />
-
-      <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
-        <div className="dashboard-section-heading">
-          <div>
-            <h2>Report totals</h2>
+      <details
+        className="dashboard-secondary-analytics"
+        onToggle={(event) => {
+          const open = event.currentTarget.open;
+          setAnalyticsExpanded(open);
+          if (open) setAnalyticsRequested(true);
+        }}
+      >
+        <summary>
+          <span>
+            <strong>Detailed analytics and historical totals</strong>
+            <span>Comparisons, lifecycle, workload, turnaround and expert consultation</span>
+          </span>
+          <ChevronDown aria-hidden="true" />
+        </summary>
+        {analyticsRequested ? (
+          <div className="dashboard-secondary-analytics__content" hidden={!analyticsExpanded}>
+            <AnalyticsSection />
+            <ExpertVerificationPanel month={activeMonth} />
+            <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
+              <div className="dashboard-section-heading">
+                <div>
+                  <h2>Report totals</h2>
+                </div>
+                <p className="dashboard-refreshed" aria-live="polite">
+                  <RefreshCw aria-hidden="true" />
+                  <span>Last refreshed</span>
+                  <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
+                </p>
+              </div>
+              <section className="dashboard-secondary-row" aria-label="Historical report status totals">
+                <SecondaryMetric
+                  label="Total submitted"
+                  value={summary.totalSubmitted}
+                  icon={<FileStack aria-hidden="true" />}
+                />
+                <SecondaryMetric
+                  label="Verified by staff"
+                  value={summary.counts.verified_by_staff}
+                  icon={<CheckCircle2 aria-hidden="true" />}
+                />
+                <SecondaryMetric
+                  label="Unable to verify"
+                  value={summary.counts.unable_to_verify}
+                  icon={<CircleHelp aria-hidden="true" />}
+                />
+                <SecondaryMetric
+                  label="Resolved"
+                  value={summary.counts.resolved}
+                  icon={<Clock3 aria-hidden="true" />}
+                />
+              </section>
+            </section>
           </div>
-          <p className="dashboard-refreshed" aria-live="polite">
-            <RefreshCw aria-hidden="true" />
-            <span>Last refreshed</span>
-            <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
-          </p>
-        </div>
-        <section className="dashboard-secondary-row" aria-label="Historical report status totals">
-          <SecondaryMetric
-            label="Total submitted"
-            value={summary.totalSubmitted}
-            icon={<FileStack aria-hidden="true" />}
-          />
-          <SecondaryMetric
-            label="Verified by staff"
-            value={summary.counts.verified_by_staff}
-            icon={<CheckCircle2 aria-hidden="true" />}
-          />
-          <SecondaryMetric
-            label="Unable to verify"
-            value={summary.counts.unable_to_verify}
-            icon={<CircleHelp aria-hidden="true" />}
-          />
-          <SecondaryMetric
-            label="Resolved"
-            value={summary.counts.resolved}
-            icon={<Clock3 aria-hidden="true" />}
-          />
-        </section>
-      </section>
+        ) : null}
+      </details>
       <ReportDocumentBuilder
         open={reportBuilderOpen}
         onClose={() => setReportBuilderOpen(false)}

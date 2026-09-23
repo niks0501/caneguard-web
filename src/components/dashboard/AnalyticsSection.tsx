@@ -172,7 +172,6 @@ export function AnalyticsSectionView({
           <h2 id="report-analytics-heading">Report analytics</h2>
           <p>
             Charts of submitted reports for any week, month or custom range.
-            The monthly summary panel below uses the same Philippine calendar month.
           </p>
         </div>
       </div>
