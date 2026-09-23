@@ -128,7 +128,7 @@ describe("FieldValidationMapPage", () => {
     expect(screen.getByRole("heading", { name: "Field-validation map" })).toBeInTheDocument();
     expect(screen.getByText("Map provider is not configured.")).toBeInTheDocument();
     expect(screen.getByText(/1 located, 1 unlocated/)).toBeInTheDocument();
-    expect(screen.getByText(/1 filtered report has no valid Nasugbu coordinate pair/)).toBeInTheDocument();
+    expect(screen.getByText(/1 filtered report has no valid coordinate pair/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
     expect(screen.getAllByText("Needs field validation").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Open Report" })[0]).toHaveAttribute(
@@ -287,7 +287,7 @@ describe("FieldValidationMapPage", () => {
     renderPage();
 
     expect(screen.getByText(/0 located, 2 unlocated/)).toBeInTheDocument();
-    expect(screen.getByText(/2 filtered reports have no valid Nasugbu coordinate pair/)).toBeInTheDocument();
+    expect(screen.getByText(/2 filtered reports have no valid coordinate pair/)).toBeInTheDocument();
   });
 
   it("reports malformed map data without hiding a healthy queue", () => {
