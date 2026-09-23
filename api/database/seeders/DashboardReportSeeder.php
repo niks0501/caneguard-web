@@ -985,7 +985,7 @@ class DashboardReportSeeder extends Seeder
             'gps_longitude' => $longitude,
             'gps_accuracy' => $ordinal % 5 === 0 ? 34.50 : round(4.5 + ($ordinal % 12), 2),
             'fresh_photo_path' => $photoPath,
-            'follow_up_outcome' => ['improved', 'unchanged', 'worsened', 'monitoring'][$ordinal % 4],
+            'follow_up_outcome' => ['improved', 'unchanged', 'worsened', 'unable_to_determine'][$ordinal % 4],
         ];
     }
 

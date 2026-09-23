@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\Report;
 use App\Models\ReportClassScore;
 use App\Models\ReportReferral;
@@ -352,6 +353,21 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
 
         $this->seed(DatabaseSeeder::class);
+        $allowedFollowUpOutcomes = MobileFieldValidationCompletionContract::field(
+            'follow_up_outcome',
+        )['enum'];
+        $unsupportedFollowUpOutcomes = DB::table('field_validation_completions')
+            ->whereNotNull('follow_up_outcome')
+            ->whereNotIn('follow_up_outcome', $allowedFollowUpOutcomes)
+            ->distinct()
+            ->pluck('follow_up_outcome')
+            ->all();
+        $this->assertSame(
+            [],
+            $unsupportedFollowUpOutcomes,
+            'Seeded outcomes must match the client contract.',
+        );
+
         $locatedReport = Report::query()
             ->where('reference_code', 'BGO-20260703-1015')
             ->firstOrFail();
