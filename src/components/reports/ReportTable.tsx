@@ -16,7 +16,6 @@ import {
   formatDueState,
 } from "../../lib/formatters";
 import { EvidenceThumbnail } from "./EvidenceThumbnail";
-import { MachineFactsChips } from "./MachineFactsChips";
 import {
   DiseaseBadge,
   IdentificationGapBadge,
@@ -113,24 +112,13 @@ export function ReportTable({
         <tbody>
           {reports.map((report) => {
             const due = formatDueState(report.followUp);
-            const machineFacts = report.machineFacts ?? {
-              confidence: report.confidence ?? null,
-              checklistConsistency: report.checklistConsistency ?? null,
-              qualityWarnings: report.qualityWarnings ?? [],
-              gpsAccuracy: report.gpsAccuracy ?? null,
-              locationSource: report.locationSource ?? null,
-              reporterConcern: report.reporterSuspectedCondition ?? null,
-              reporterMismatch: report.mismatchReported ?? null,
-            };
             const isExpanded = Boolean(expandedRows[report.uuid]);
             const expertName = report.expertConsult?.expertName
               ?? report.expertConsult?.expert?.name
               ?? (report.expertConsult?.status === "pending" ? "Unassigned" : "Unknown expert");
             return (
               <tr
-                className={`report-row report-row--${report.reviewStatus}${
-                  report.mismatchReported ? " report-row--mismatch" : ""
-                }`}
+                className={`report-row report-row--${report.reviewStatus}`}
                 data-review-status={report.reviewStatus}
                 key={report.uuid}
                 tabIndex={0}
@@ -141,7 +129,7 @@ export function ReportTable({
                   <div className="report-identity">
                     <EvidenceThumbnail
                       status={report.imageStatus}
-                      label={`Submitted evidence for ${report.referenceCode}`}
+                      label={`Submitted photo for ${report.referenceCode}`}
                       src={report.imageUrl}
                     />
                     <div>
@@ -161,7 +149,7 @@ export function ReportTable({
                       ) : null}
                       {report.mismatchReported === true ? (
                         <span className="mismatch-table-marker">
-                          AI mismatch flagged
+                          Reporter concern needs review
                         </span>
                       ) : null}
                     </div>
@@ -206,7 +194,7 @@ export function ReportTable({
                       ) : (
                         <span className="table-secondary">
                           {report.fieldValidationAssignment?.targetVisitDate
-                            ? "Visit assigned; evidence pending"
+                            ? "Field visit assigned; report pending"
                             : "No visit completed"}
                         </span>
                       )}
@@ -314,21 +302,12 @@ export function ReportTable({
                 <td className="report-status-cell">
                   <div className="report-status-cell__wrapper">
                     <ReviewStatusBadge status={report.reviewStatus} />
-                    {report.attentionBand ? (
-                      <span
-                        className={`attention-band attention-band--${report.attentionBand}`}
-                        title={report.attentionBandReasons?.join(" ")}
-                      >
-                        {report.attentionBand}
-                      </span>
-                    ) : null}
                     <IdentificationGapBadge state={report.identificationGap?.state} />
                     {report.expertConsult ? (
                       <span className={`expert-consult-age${report.expertConsult.overdue ? " expert-consult-age--overdue" : ""}`}>
-                        {report.expertConsult.ageLabel}
+                        Waiting on expert: {report.expertConsult.ageLabel}
                       </span>
                     ) : null}
-                    <MachineFactsChips facts={machineFacts} compact />
                     <button
                       type="button"
                       className="row-expand-btn"

@@ -81,39 +81,38 @@
             <div class="metric"><span class="metric-label">Submitted reports</span><span class="metric-value">{{ number_format($metrics['reported_cases']) }}</span><span class="metric-unit">submitted case records</span></div>
             <div class="metric"><span class="metric-label">Estimated affected area</span><span class="metric-value">{{ number_format($metrics['estimated_affected_hectares'], 2) }}</span><span class="metric-unit">hectares</span></div>
             <div class="metric"><span class="metric-label">Reports with farmer/farm information</span><span class="metric-value">{{ number_format($metrics['reports_containing_farmer_farm_information']) }}</span><span class="metric-unit">submitted case records</span></div>
-            <div class="metric"><span class="metric-label">Cases requiring field validation</span><span class="metric-value">{{ number_format($operational_queues['needs_visit']) }}</span><span class="metric-unit">open visits, including unassigned legacy work</span></div>
-            <div class="metric"><span class="metric-label">Open cases</span><span class="metric-value">{{ number_format($metrics['reported_cases'] - $metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></div>
-            <div class="metric"><span class="metric-label">Closed cases</span><span class="metric-value">{{ number_format($metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></div>
+            <div class="metric"><span class="metric-label">Reports requiring field validation</span><span class="metric-value">{{ number_format($operational_queues['needs_visit']) }}</span><span class="metric-unit">open visits, including unassigned legacy work</span></div>
+            <div class="metric"><span class="metric-label">Open submitted reports</span><span class="metric-value">{{ number_format($metrics['reported_cases'] - $metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></div>
+            <div class="metric"><span class="metric-label">Closed submitted reports</span><span class="metric-value">{{ number_format($metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></div>
         </div>
         <p class="muted">The farmer/farm-information value counts submitted case records containing that information; it is not an estimate of total affected farmers in Nasugbu. Estimated affected hectares is a separate reported-area metric, and reports may describe overlapping ground.</p>
     </section>
 
-    <section aria-labelledby="submissions"><div class="section-band" id="submissions">Submissions over the period</div>
-        @if (count($trend))
-            @php($maxTrend = max(array_column($trend, 'count')))
-            <svg class="bar-chart" viewBox="0 0 900 180" role="img" aria-label="Submissions trend">
-                @foreach ($trend as $index => $point)
-                    @php($barHeight = max(2, round(($point['count'] / $maxTrend) * 125)))
-                    @php($barX = 12 + ($index * (876 / max(1, count($trend)))) + 4)
-                    @php($barWidth = max(5, (876 / max(1, count($trend))) - 8))
-                    <rect x="{{ $barX }}" y="{{ 140 - $barHeight }}" width="{{ $barWidth }}" height="{{ $barHeight }}" rx="2"></rect>
-                    <text x="{{ $barX + ($barWidth / 2) }}" y="160" text-anchor="middle">{{ $point['label'] }}</text>
-                @endforeach
-            </svg>
-        @else <div class="empty">No submitted reports in this period.</div> @endif
-    </section>
-
-    <section aria-labelledby="distribution"><div class="section-band" id="distribution">Distribution</div><div class="columns"><div class="column"><h3>By barangay</h3><table><thead><tr><th>Barangay</th><th>Cases</th></tr></thead><tbody>@forelse ($metrics['cases_by_barangay'] as $row)<tr><td>{{ $row['barangay'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div><div class="column"><h3>By Possible Condition</h3><table><thead><tr><th>Possible condition</th><th>Cases</th></tr></thead><tbody>@forelse ($metrics['cases_by_possible_condition'] as $row)<tr><td>{{ $row['possible_condition'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div></div></section>
+    <section aria-labelledby="distribution"><div class="section-band" id="distribution">Distribution</div><div class="columns"><div class="column"><h3>By barangay</h3><table><thead><tr><th>Barangay</th><th>Submitted reports</th></tr></thead><tbody>@forelse ($metrics['cases_by_barangay'] as $row)<tr><td>{{ $row['barangay'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div><div class="column"><h3>By Possible Condition</h3><table><thead><tr><th>Possible condition</th><th>Submitted reports</th></tr></thead><tbody>@forelse ($metrics['cases_by_possible_condition'] as $row)<tr><td>{{ $row['possible_condition'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div></div></section>
 
     <section aria-labelledby="lifecycle"><div class="section-band" id="lifecycle">Field-validation workload</div><table><thead><tr><th>Validation state</th><th>Submitted reports</th></tr></thead><tbody>@foreach ($metrics['field_validation_counts'] as $state => $count)<tr><td>{{ str_replace('_', ' ', ucfirst($state)) }}</td><td>{{ $count }}</td></tr>@endforeach</tbody></table></section>
 
     @php($queueLabels = ['needs_review' => 'Needs Review', 'needs_visit' => 'Needs Visit', 'follow_up_due' => 'Follow-up Due', 'upcoming' => 'Upcoming Visits', 'unverified_no_active_work' => 'Unverified, no active work'])
-    <section aria-labelledby="queues"><div class="section-band" id="queues">Operational queue status</div><p class="muted">These counts show submitted cases by current work queue. Follow-up Due reflects open validation work past its target date; Upcoming Visits includes target dates today or later.</p><table><thead><tr><th>Queue</th><th>Cases</th></tr></thead><tbody>@foreach ($operational_queues as $queue => $count)<tr><td>{{ $queueLabels[$queue] ?? str_replace('_', ' ', ucfirst($queue)) }}</td><td class="{{ in_array($queue, ['follow_up_due', 'needs_visit'], true) && $count ? 'danger' : '' }}">{{ $count }}</td></tr>@endforeach</tbody></table></section>
+    <section aria-labelledby="queues"><div class="section-band" id="queues">Operational queue status</div><p class="muted">These counts show submitted reports by current work queue. Follow-up Due reflects open validation work past its target date; Upcoming Visits includes target dates today or later.</p><table><thead><tr><th>Queue</th><th>Submitted reports</th></tr></thead><tbody>@foreach ($operational_queues as $queue => $count)<tr><td>{{ $queueLabels[$queue] ?? str_replace('_', ' ', ucfirst($queue)) }}</td><td class="{{ in_array($queue, ['follow_up_due', 'needs_visit'], true) && $count ? 'danger' : '' }}">{{ $count }}</td></tr>@endforeach</tbody></table></section>
 
     <details class="supplementary-metrics">
-        <summary>Supplementary review and expert-consult indicators</summary>
+        <summary>Supplementary trend, review and expert-consult information</summary>
+        <section aria-labelledby="submissions"><div class="section-band" id="submissions">Submissions over the period</div>
+            @if (count($trend))
+                @php($maxTrend = max(array_column($trend, 'count')))
+                <svg class="bar-chart" viewBox="0 0 900 180" role="img" aria-label="Submissions trend">
+                    @foreach ($trend as $index => $point)
+                        @php($barHeight = max(2, round(($point['count'] / $maxTrend) * 125)))
+                        @php($barX = 12 + ($index * (876 / max(1, count($trend)))) + 4)
+                        @php($barWidth = max(5, (876 / max(1, count($trend))) - 8))
+                        <rect x="{{ $barX }}" y="{{ 140 - $barHeight }}" width="{{ $barWidth }}" height="{{ $barHeight }}" rx="2"></rect>
+                        <text x="{{ $barX + ($barWidth / 2) }}" y="160" text-anchor="middle">{{ $point['label'] }}</text>
+                    @endforeach
+                </svg>
+            @else <div class="empty">No submitted reports in this period.</div> @endif
+        </section>
         <section aria-labelledby="review-time"><h2 id="review-time">Review duration</h2><table><tbody><tr><td>Reviewed cases</td><td>{{ $metrics['review_time']['reviewed_cases'] }}</td></tr><tr><td>Average</td><td>{{ $metrics['review_time']['average_hours'] !== null ? $metrics['review_time']['average_hours'].' hours' : 'Not available' }}</td></tr><tr><td>Median</td><td>{{ $metrics['review_time']['median_hours'] !== null ? $metrics['review_time']['median_hours'].' hours' : 'Not available' }}</td></tr></tbody></table></section>
-        <section aria-labelledby="expert"><h2 id="expert">Expert consultation</h2><p class="muted">Possible Condition and staff-classification agreement is descriptive and is not model accuracy.</p><table><tbody><tr><td>Consult volume</td><td>{{ $metrics['expert_verification']['consult_volume']['total'] }}</td></tr><tr><td>Possible Condition/staff-classification agreement</td><td>{{ $metrics['expert_verification']['expert_agreement']['percentage'] !== null ? $metrics['expert_verification']['expert_agreement']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Unable-to-classify rate</td><td>{{ $metrics['expert_verification']['unable_to_classify_rate']['percentage'] !== null ? $metrics['expert_verification']['unable_to_classify_rate']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Advisory coverage</td><td>{{ $metrics['expert_verification']['advisory_coverage']['coverage_rate'] !== null ? ($metrics['expert_verification']['advisory_coverage']['coverage_rate'] * 100).'%' : 'Not available' }}</td></tr></tbody></table></section>
+        <section aria-labelledby="expert"><h2 id="expert">Expert consultation</h2><p class="muted">Possible Condition and staff-classification agreement is descriptive, not a measure of model performance.</p><table><tbody><tr><td>Consult volume</td><td>{{ $metrics['expert_verification']['consult_volume']['total'] }}</td></tr><tr><td>Possible Condition/staff-classification agreement</td><td>{{ $metrics['expert_verification']['expert_agreement']['percentage'] !== null ? $metrics['expert_verification']['expert_agreement']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Unable-to-classify rate</td><td>{{ $metrics['expert_verification']['unable_to_classify_rate']['percentage'] !== null ? $metrics['expert_verification']['unable_to_classify_rate']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Advisory coverage</td><td>{{ $metrics['expert_verification']['advisory_coverage']['coverage_rate'] !== null ? ($metrics['expert_verification']['advisory_coverage']['coverage_rate'] * 100).'%' : 'Not available' }}</td></tr></tbody></table></section>
     </details>
 
     @if ($appendix_enabled)

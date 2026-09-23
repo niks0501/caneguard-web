@@ -6,7 +6,6 @@ import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { mockReports } from "../data/mock/mockReports";
-import { useAnalytics } from "../hooks/useAnalytics";
 import { useDashboard } from "../hooks/useDashboard";
 import { useMonthlyReportSummary } from "../hooks/useReports";
 import { DashboardPage } from "./DashboardPage";
@@ -21,10 +20,6 @@ vi.mock("../hooks/useDashboard", () => ({
 
 vi.mock("../hooks/useReports", () => ({
   useMonthlyReportSummary: vi.fn(),
-}));
-
-vi.mock("../hooks/useAnalytics", () => ({
-  useAnalytics: vi.fn(),
 }));
 
 
@@ -75,12 +70,6 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.mocked(useDashboard).mockReturnValue(dashboardResult());
-  vi.mocked(useAnalytics).mockReturnValue({
-    data: undefined,
-    isPending: true,
-    isError: false,
-    refetch: vi.fn(),
-  } as unknown as ReturnType<typeof useAnalytics>);
   vi.mocked(useMonthlyReportSummary).mockReturnValue({
     data: {
       month: "2026-07",
@@ -163,7 +152,8 @@ describe("DashboardPage", () => {
     expect(useDashboard).toHaveBeenLastCalledWith("2026-08");
   });
 
-  it("leads with operational queues and keeps historical totals secondary", () => {
+  it("leads with office queues and reports, with analytics behind a disclosure", async () => {
+    const user = userEvent.setup();
     renderDashboard();
 
     const queues = within(
@@ -172,6 +162,8 @@ describe("DashboardPage", () => {
     expect(queues.getByText("Needs Review")).toBeInTheDocument();
     expect(queues.getByText("Needs Visit")).toBeInTheDocument();
     expect(queues.getByText("Follow-up Due")).toBeInTheDocument();
+    expect(queues.getByText("Upcoming Visits")).toBeInTheDocument();
+    expect(queues.getByText("Unverified, no active work")).toBeInTheDocument();
     expect(queues.getByText("3")).toBeInTheDocument();
     expect(queues.getByText("1")).toBeInTheDocument();
     expect(
@@ -184,6 +176,13 @@ describe("DashboardPage", () => {
       queues.getByRole("link", { name: "Open Follow-up Due queue" }),
     ).toHaveAttribute("href", "/map?queue=follow_up_due");
 
+    expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Report analytics" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Historical report totals" })).not.toBeInTheDocument();
+    await user.click(
+      screen.getByText("Detailed analytics and historical totals"),
+    );
+    expect(screen.getByRole("region", { name: "Report analytics" })).toBeInTheDocument();
     const historical = within(
       screen.getByRole("region", { name: "Historical report totals" }),
     );
@@ -199,7 +198,7 @@ describe("DashboardPage", () => {
     );
     expect(
       screen.getByRole("img", {
-        name: "Submitted evidence for CG-2026-0718",
+        name: "Submitted photo for CG-2026-0718",
       }),
     ).toHaveAttribute("src", mockReports[0].imageUrl);
     expect(screen.queryByRole("region", { name: /Start with Needs Review/ })).not.toBeInTheDocument();
@@ -208,6 +207,11 @@ describe("DashboardPage", () => {
     );
     expect(recentReports.getAllByText("Mosaic").length).toBeGreaterThan(0);
     expect(screen.queryByText("Possible Condition: Mosaic")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("Detailed analytics and historical totals"));
+    expect(screen.queryByRole("region", { name: "Report analytics" })).not.toBeInTheDocument();
+    await user.click(screen.getByText("Detailed analytics and historical totals"));
+    expect(screen.getByRole("region", { name: "Report analytics" })).toBeInTheDocument();
   });
 
   it("renders monthly case summaries", async () => {
@@ -251,12 +255,14 @@ describe("DashboardPage", () => {
     const monthly = within(
       screen.getByRole("region", { name: "Monthly submitted report summary" }),
     );
-    // Barangay and Possible Condition lists now render as PHT charts in the
-    // Report analytics section; the panel keeps tiles, validation and review time.
-    expect(monthly.queryByText("3 submitted reports")).not.toBeInTheDocument();
-    expect(monthly.queryByText("Possible Condition: rust")).not.toBeInTheDocument();
-    expect(monthly.getByText(/Barangay and Possible Condition breakdowns now render as charts/)).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Report analytics" })).toBeInTheDocument();
+    expect(monthly.getByText("Submitted reports")).toBeInTheDocument();
+    expect(monthly.getByText("Estimated affected area")).toBeInTheDocument();
+    expect(monthly.getByText("Requiring field validation")).toBeInTheDocument();
+    expect(monthly.getByText("Closed submitted reports")).toBeInTheDocument();
+    expect(monthly.getByRole("heading", { name: "Field-validation counts" })).toBeInTheDocument();
+    expect(monthly.queryByRole("heading", { name: "Review time" })).not.toBeInTheDocument();
+    expect(monthly.queryByText(/farmer/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Report analytics" })).not.toBeInTheDocument();
   });
 
   it("refreshes on demand and links to the full queue", async () => {
@@ -405,9 +411,11 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the expert verification panel on the overview dashboard", () => {
+  it("keeps expert verification available in secondary analytics", async () => {
+    const user = userEvent.setup();
     renderDashboard();
 
+    await user.click(screen.getByText("Detailed analytics and historical totals"));
     const expertPanel = screen.getByRole("region", {
       name: "Expert verification",
     });
@@ -417,7 +425,7 @@ describe("DashboardPage", () => {
     const findingOutcomes = within(expertPanel).getByRole("region", {
       name: "Finding outcomes",
     });
-    expect(within(findingOutcomes).getByText("Agreed with AI")).toBeInTheDocument();
+    expect(within(findingOutcomes).getByText("Agreed with Possible Condition")).toBeInTheDocument();
   });
 });
 

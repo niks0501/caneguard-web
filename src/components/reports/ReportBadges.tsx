@@ -29,8 +29,8 @@ export function IdentificationGapBadge({ state }: { state?: IdentificationGapSta
   if (state !== "unidentified") return null;
 
   return (
-    <span className="badge identification-gap-badge" title="No condition has been identified yet">
-      Not yet identified
+    <span className="badge identification-gap-badge" title="Review the report before deciding the next action">
+      Condition not identified — review needed
     </span>
   );
 }

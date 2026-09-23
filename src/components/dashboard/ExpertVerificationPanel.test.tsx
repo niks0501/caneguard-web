@@ -161,7 +161,7 @@ describe("ExpertVerificationPanelView", () => {
 
     // Finding outcomes breakdown
     const findingOutcomes = within(section).getByRole("region", { name: "Finding outcomes" });
-    expect(within(findingOutcomes).getByText("Agreed with AI")).toBeInTheDocument();
+    expect(within(findingOutcomes).getByText("Agreed with Possible Condition")).toBeInTheDocument();
     expect(within(findingOutcomes).getByText("Unable to classify")).toBeInTheDocument();
     expect(within(findingOutcomes).getByText("Symptom disagreement")).toBeInTheDocument();
   });

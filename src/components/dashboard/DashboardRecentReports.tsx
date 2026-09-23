@@ -27,7 +27,7 @@ export function DashboardRecentReports({
         <tbody>
           {reports.map((report) => (
             <tr
-              className={`report-row report-row--${report.reviewStatus}${report.mismatchReported ? " report-row--mismatch" : ""}`}
+              className={`report-row report-row--${report.reviewStatus}`}
               data-review-status={report.reviewStatus}
               key={report.uuid}
             >
@@ -35,7 +35,7 @@ export function DashboardRecentReports({
                 <div className="report-identity">
                   <EvidenceThumbnail
                     status={report.imageStatus}
-                    label={`Submitted evidence for ${report.referenceCode}`}
+                    label={`Submitted photo for ${report.referenceCode}`}
                     src={report.imageUrl}
                   />
                   <div className="report-identity__meta">
