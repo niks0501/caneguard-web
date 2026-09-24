@@ -7,6 +7,7 @@ import { ApiError } from "../api/ApiError";
 import { mockReports } from "../data/mock/mockReports";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useDashboard } from "../hooks/useDashboard";
+import { useFieldValidationMap } from "../hooks/useFieldValidation";
 import type { ReportAnalytics } from "../domain/dashboard.types";
 import { DashboardPage } from "./DashboardPage";
 
@@ -18,6 +19,10 @@ vi.mock("../hooks/useDashboard", async (importOriginal) => {
 
 vi.mock("../hooks/useAnalytics", () => ({
   useAnalytics: vi.fn(),
+}));
+
+vi.mock("../hooks/useFieldValidation", () => ({
+  useFieldValidationMap: vi.fn(),
 }));
 
 const summary = {
@@ -95,6 +100,47 @@ const analytics = {
     ],
     oldestWaitingDays: 5,
   },
+  reportedConcern: [
+    { concern: "RSSI", label: "RSSI", count: 4, share: 0.3333 },
+    { concern: "smut", label: "Smut", count: 1, share: 0.0833 },
+    { concern: "mosaic", label: "Mosaic", count: 3, share: 0.25 },
+    { concern: "rust", label: "Rust", count: 2, share: 0.1667 },
+    { concern: "other", label: "Other reported", count: 1, share: 0.0833 },
+    { concern: "not_stated", label: "Not stated", count: 1, share: 0.0833 },
+  ],
+  possibleCondition: [
+    { condition: "healthy", count: 2 },
+    { condition: "mosaic", count: 6 },
+    { condition: "rust", count: 4 },
+  ],
+  verificationOutcome: {
+    not_determined: 7,
+    verified: 3,
+    unable_to_verify: 2,
+  },
+  validationByBarangay: [
+    {
+      barangay: "Balaytigui",
+      submitted: 5,
+      open: 3,
+      pastTargetDate: 1,
+      scheduled: 1,
+      unscheduled: 1,
+    },
+    {
+      barangay: "Bucana",
+      submitted: 2,
+      open: 1,
+      pastTargetDate: 0,
+      scheduled: 0,
+      unscheduled: 1,
+    },
+  ],
+  barangayScope: {
+    municipality: "Nasugbu",
+    province: "Batangas",
+    barangays: ["Balaytigui", "Bucana"],
+  },
 } as unknown as ReportAnalytics;
 
 function dashboardResult(
@@ -144,6 +190,11 @@ afterEach(() => {
 beforeEach(() => {
   vi.mocked(useDashboard).mockReturnValue(dashboardResult());
   vi.mocked(useAnalytics).mockReturnValue(analyticsResult());
+  vi.mocked(useFieldValidationMap).mockReturnValue({
+    data: undefined,
+    isPending: false,
+    isError: false,
+  } as unknown as ReturnType<typeof useFieldValidationMap>);
 });
 
 describe("DashboardPage", () => {
@@ -155,8 +206,12 @@ describe("DashboardPage", () => {
       include: "counts,queues,recent,monthly",
       recentLimit: 10,
     });
-    expect(useAnalytics).toHaveBeenLastCalledWith(
+    expect(useAnalytics).toHaveBeenCalledWith(
       { from: "2026-09-01", to: "2026-09-30", granularity: "day" },
+      { enabled: true },
+    );
+    expect(useAnalytics).toHaveBeenCalledWith(
+      { from: "2026-08-08", to: "2026-08-31", granularity: "day" },
       { enabled: true },
     );
 
@@ -167,13 +222,13 @@ describe("DashboardPage", () => {
       include: "counts,queues,recent,monthly",
       recentLimit: 10,
     });
-    expect(useAnalytics).toHaveBeenLastCalledWith(
+    expect(useAnalytics).toHaveBeenCalledWith(
       { from: "2026-08-01", to: "2026-08-31", granularity: "day" },
       { enabled: true },
     );
 
     fireEvent.click(screen.getByLabelText("Last 30 days"));
-    expect(useAnalytics).toHaveBeenLastCalledWith(
+    expect(useAnalytics).toHaveBeenCalledWith(
       { from: "2026-08-26", to: "2026-09-24", granularity: "day" },
       { enabled: true },
     );
@@ -341,6 +396,26 @@ describe("DashboardPage", () => {
       screen.getByRole("button", { name: "Refresh dashboard" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
+  });
+
+  it("mounts the three decision charts and the map once period data arrives", async () => {
+    renderDashboard();
+
+    expect(
+      await screen.findByText("Inflow: this period vs the previous period"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Reported concern vs Possible Condition"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Validation attention by barangay"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Field-report locations — Nasugbu"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "GPS points" }),
+    ).toBeInTheDocument();
   });
 
   it("mounts no legacy analytics, verification panel, monthly panel or disclosure", () => {

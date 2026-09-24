@@ -98,6 +98,47 @@ const analytics: ReportAnalytics = {
       { label: "Over 7 days", count: 0 },
     ],
   },
+  reportedConcern: [
+    { concern: "RSSI", label: "RSSI", count: 1, share: 0.2 },
+    { concern: "smut", label: "Smut", count: 0, share: 0 },
+    { concern: "mosaic", label: "Mosaic", count: 2, share: 0.4 },
+    { concern: "rust", label: "Rust", count: 1, share: 0.2 },
+    { concern: "other", label: "Other reported", count: 1, share: 0.2 },
+    { concern: "not_stated", label: "Not stated", count: 0, share: 0 },
+  ],
+  possibleCondition: [
+    { condition: "healthy", count: 2 },
+    { condition: "mosaic", count: 2 },
+    { condition: "rust", count: 1 },
+  ],
+  verificationOutcome: {
+    not_determined: 4,
+    verified: 1,
+    unable_to_verify: 0,
+  },
+  validationByBarangay: [
+    {
+      barangay: "Mabini",
+      submitted: 4,
+      open: 3,
+      pastTargetDate: 1,
+      scheduled: 1,
+      unscheduled: 1,
+    },
+    {
+      barangay: "Rizal",
+      submitted: 1,
+      open: 1,
+      pastTargetDate: 0,
+      scheduled: 0,
+      unscheduled: 1,
+    },
+  ],
+  barangayScope: {
+    municipality: "Nasugbu",
+    province: "Batangas",
+    barangays: ["Mabini", "Rizal"],
+  },
 };
 
 const emptyAnalytics: ReportAnalytics = {

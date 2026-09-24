@@ -315,6 +315,97 @@ export class MockDashboardRepository implements DashboardRepository {
       turnaroundBuckets[index].count += 1;
     });
 
+    // Decision aggregates (dashboard overhaul P2), mirroring the API shapes.
+    const declaredConcerns = ["RSSI", "smut", "mosaic", "rust"] as const;
+    const concernCounts: Record<string, number> = {
+      RSSI: 0,
+      smut: 0,
+      mosaic: 0,
+      rust: 0,
+      other: 0,
+      not_stated: 0,
+    };
+    reports.forEach((report) => {
+      const raw = report.reporterSuspectedCondition;
+      if (!raw || !raw.trim()) {
+        concernCounts.not_stated += 1;
+        return;
+      }
+      const normalised = raw.trim().toLowerCase();
+      const canonical = declaredConcerns.find((value) => value.toLowerCase() === normalised);
+      concernCounts[canonical ?? "other"] += 1;
+    });
+    const concernLabels: Record<string, string> = {
+      RSSI: "RSSI",
+      smut: "Smut",
+      mosaic: "Mosaic",
+      rust: "Rust",
+      other: "Other reported",
+      not_stated: "Not stated",
+    };
+    const reportedConcern = [
+      ...declaredConcerns,
+      "other",
+      "not_stated",
+    ].map((concern) => ({
+      concern,
+      label: concernLabels[concern],
+      count: concernCounts[concern],
+      share: reports.length > 0 ? Number((concernCounts[concern] / reports.length).toFixed(4)) : 0,
+    }));
+
+    const declaredConditions = ["healthy", "mosaic", "rust"];
+    const possibleCondition = declaredConditions.map((condition) => ({
+      condition,
+      count: reports.filter((report) => report.predictedDisease === condition).length,
+    }));
+
+    const verificationOutcome = {
+      not_determined: lifecycleCounts.verificationOutcome.not_determined ?? 0,
+      verified: lifecycleCounts.verificationOutcome.verified ?? 0,
+      unable_to_verify: lifecycleCounts.verificationOutcome.unable_to_verify ?? 0,
+    };
+
+    const barangayRows = new Map<string, {
+      submitted: number;
+      open: number;
+      pastTargetDate: number;
+      scheduled: number;
+      unscheduled: number;
+    }>();
+    const barangayRow = (barangay: string) => {
+      const row = barangayRows.get(barangay) ?? {
+        submitted: 0,
+        open: 0,
+        pastTargetDate: 0,
+        scheduled: 0,
+        unscheduled: 0,
+      };
+      barangayRows.set(barangay, row);
+      return row;
+    };
+    reports.forEach((report) => {
+      barangayRow(report.barangay).submitted += 1;
+    });
+    openValidation.forEach((report) => {
+      const row = barangayRow(report.barangay);
+      row.open += 1;
+      const target = report.fieldValidationAssignment?.targetVisitDate;
+      if (!target) row.unscheduled += 1;
+      else if (target < today) row.pastTargetDate += 1;
+      else row.scheduled += 1;
+    });
+    const validationByBarangay = [...barangayRows.entries()]
+      .map(([barangay, row]) => ({ barangay, ...row }))
+      .sort((first, second) =>
+        second.submitted - first.submitted ||
+        first.barangay.localeCompare(second.barangay));
+    const barangayScope = {
+      municipality: "Nasugbu",
+      province: "Batangas",
+      barangays: [...barangayRows.keys()].sort(),
+    };
+
     return {
       period: {
         from: params.from,
@@ -363,6 +454,11 @@ export class MockDashboardRepository implements DashboardRepository {
         buckets: backlogBuckets.map(({ label, count }) => ({ label, count })),
         oldestWaitingDays: waitingDays.length > 0 ? Math.max(...waitingDays) : null,
       },
+      reportedConcern,
+      possibleCondition,
+      verificationOutcome,
+      validationByBarangay,
+      barangayScope,
       validationTurnaround: {
         source: "activated_at_to_visited_at",
         completed: turnaroundHours.length,

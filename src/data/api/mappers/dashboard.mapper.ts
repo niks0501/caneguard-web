@@ -49,6 +49,22 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
       fieldValidationState: { ...data.lifecycle.field_validation_state },
       referralState: { ...data.lifecycle.referral_state },
     },
+    reportedConcern: data.reported_concern.map((item) => ({ ...item })),
+    possibleCondition: data.possible_condition.map((item) => ({ ...item })),
+    verificationOutcome: { ...data.verification_outcome },
+    validationByBarangay: data.validation_by_barangay.map((item) => ({
+      barangay: item.barangay,
+      submitted: item.submitted,
+      open: item.open,
+      pastTargetDate: item.past_target_date,
+      scheduled: item.scheduled,
+      unscheduled: item.unscheduled,
+    })),
+    barangayScope: {
+      municipality: data.barangay_scope.municipality,
+      province: data.barangay_scope.province,
+      barangays: [...data.barangay_scope.barangays],
+    },
     area: {
       estimatedHectares: data.area.estimated_hectares,
       contributingReports: data.area.contributing_reports,

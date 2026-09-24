@@ -129,6 +129,11 @@ export interface ReportAnalytics {
     delta: number;
   };
   lifecycle: LifecycleDistributions;
+  reportedConcern: ReportedConcernCount[];
+  possibleCondition: PossibleConditionCount[];
+  verificationOutcome: VerificationOutcomeSplit;
+  validationByBarangay: BarangayValidationRow[];
+  barangayScope: BarangayScope;
   area: AreaEstimate;
   validationWorkload: ValidationWorkload;
   validationSchedule: ValidationSchedule;
@@ -180,6 +185,39 @@ export interface ReviewBacklog {
   totalWaiting: number;
   buckets: ReportAnalyticsSeriesPoint[];
   oldestWaitingDays: number | null;
+}
+
+export interface ReportedConcernCount {
+  concern: string;
+  label: string;
+  count: number;
+  share: number;
+}
+
+export interface PossibleConditionCount {
+  condition: string;
+  count: number;
+}
+
+export interface VerificationOutcomeSplit {
+  not_determined: number;
+  verified: number;
+  unable_to_verify: number;
+}
+
+export interface BarangayValidationRow {
+  barangay: string;
+  submitted: number;
+  open: number;
+  pastTargetDate: number;
+  scheduled: number;
+  unscheduled: number;
+}
+
+export interface BarangayScope {
+  municipality: string;
+  province: string;
+  barangays: string[];
 }
 
 export interface ValidationTurnaround {

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Models\Report;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -107,6 +108,15 @@ final class BuildReportAnalytics
                 'delta' => $total - $previousTotal,
             ],
             'lifecycle' => $this->lifecycle(clone $base),
+            'reported_concern' => $this->reportedConcern(clone $base, $total),
+            'possible_condition' => $this->possibleCondition(clone $base),
+            'verification_outcome' => $this->verificationOutcome(clone $base),
+            'validation_by_barangay' => $this->validationByBarangay(clone $base),
+            'barangay_scope' => [
+                'municipality' => LocationReferenceController::SCOPE_MUNICIPALITY,
+                'province' => LocationReferenceController::SCOPE_PROVINCE,
+                'barangays' => LocationReferenceController::barangayScope(),
+            ],
             'area' => $this->area(clone $base, $start, $end, $filters),
             'validation_workload' => $this->validationWorkload(clone $base),
             'validation_schedule' => $this->validationSchedule(clone $base),
@@ -255,6 +265,194 @@ final class BuildReportAnalytics
         }
 
         return $result;
+    }
+
+    /**
+     * Reported concern (C2, reporter vocabulary) in a fixed declared order.
+     * The field is free text, so values are normalised case-insensitively
+     * against the declared list; the tail folds into `other` and blanks
+     * into `not_stated`. Totals always reconcile with the scoped count.
+     *
+     * @return array<int, array{concern: string, label: string, count: int, share: float}>
+     */
+    private function reportedConcern(Builder $base, int $total): array
+    {
+        $declared = [
+            ['concern' => Report::REPORTER_CONCERN_RSSI, 'label' => 'RSSI'],
+            ['concern' => Report::LABEL_SMUT, 'label' => 'Smut'],
+            ['concern' => Report::LABEL_MOSAIC, 'label' => 'Mosaic'],
+            ['concern' => Report::LABEL_RUST, 'label' => 'Rust'],
+        ];
+        $counts = [
+            Report::REPORTER_CONCERN_RSSI => 0,
+            Report::LABEL_SMUT => 0,
+            Report::LABEL_MOSAIC => 0,
+            Report::LABEL_RUST => 0,
+            'other' => 0,
+            'not_stated' => 0,
+        ];
+        (clone $base)
+            ->select('reporter_suspected_condition')
+            ->selectRaw('COUNT(*) AS concern_count')
+            ->groupBy('reporter_suspected_condition')
+            ->get()
+            ->each(function (Report $report) use (&$counts): void {
+                $raw = $report->getAttribute('reporter_suspected_condition');
+                $bucket = 'other';
+                if ($raw === null || trim((string) $raw) === '') {
+                    $bucket = 'not_stated';
+                } else {
+                    $normalised = strtolower(trim((string) $raw));
+                    foreach ([Report::REPORTER_CONCERN_RSSI, Report::LABEL_SMUT, Report::LABEL_MOSAIC, Report::LABEL_RUST] as $canonical) {
+                        if ($normalised === strtolower($canonical)) {
+                            $bucket = $canonical;
+                            break;
+                        }
+                    }
+                }
+                $counts[$bucket] += (int) $report->getAttribute('concern_count');
+            });
+
+        $rows = [];
+        foreach ($declared as $item) {
+            $count = $counts[$item['concern']];
+            $rows[] = [
+                'concern' => $item['concern'],
+                'label' => $item['label'],
+                'count' => $count,
+                'share' => $total > 0 ? round($count / $total, 4) : 0.0,
+            ];
+        }
+        foreach (['other' => 'Other reported', 'not_stated' => 'Not stated'] as $concern => $label) {
+            $count = $counts[$concern];
+            $rows[] = [
+                'concern' => $concern,
+                'label' => $label,
+                'count' => $count,
+                'share' => $total > 0 ? round($count / $total, 4) : 0.0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Possible Condition (C2, AI vocabulary): decision support only. The
+     * series enumerates the shipped model's declared list
+     * (healthy/mosaic/rust); RSSI never enters it, and smut joins only
+     * with model integration.
+     *
+     * @return array<int, array{condition: string, count: int}>
+     */
+    private function possibleCondition(Builder $base): array
+    {
+        $declared = [Report::LABEL_HEALTHY, Report::LABEL_MOSAIC, Report::LABEL_RUST];
+        $counts = array_fill_keys($declared, 0);
+        (clone $base)
+            ->select('predicted_label')
+            ->selectRaw('COUNT(*) AS condition_count')
+            ->groupBy('predicted_label')
+            ->get()
+            ->each(function (Report $report) use (&$counts): void {
+                $condition = (string) $report->getAttribute('predicted_label');
+                if (array_key_exists($condition, $counts)) {
+                    $counts[$condition] = (int) $report->getAttribute('condition_count');
+                }
+            });
+
+        $rows = [];
+        foreach ($declared as $condition) {
+            $rows[] = ['condition' => $condition, 'count' => $counts[$condition]];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Staff verification outcome split (C2 strip): every lifecycle outcome
+     * is present, including empty ones.
+     *
+     * @return array<string, int>
+     */
+    private function verificationOutcome(Builder $base): array
+    {
+        $counts = array_fill_keys(Report::verificationOutcomes(), 0);
+        (clone $base)
+            ->select('verification_outcome')
+            ->selectRaw('COUNT(*) AS outcome_count')
+            ->groupBy('verification_outcome')
+            ->get()
+            ->each(function (Report $report) use (&$counts): void {
+                $outcome = (string) $report->getAttribute('verification_outcome');
+                if (array_key_exists($outcome, $counts)) {
+                    $counts[$outcome] = (int) $report->getAttribute('outcome_count');
+                }
+            });
+
+        return $counts;
+    }
+
+    /**
+     * Per-barangay validation attention (C3). Submitted reports in the
+     * window are the baseline; open validation work splits into past
+     * target date / scheduled ahead / unscheduled using the same queue
+     * predicates the dashboard counts open, so the chart and the KPI
+     * segments can never disagree. Every scope barangay is present
+     * (zero-filled); observed out-of-scope barangays are appended, never
+     * dropped.
+     *
+     * @return array<int, array{barangay: string, submitted: int, open: int, past_target_date: int, scheduled: int, unscheduled: int}>
+     */
+    private function validationByBarangay(Builder $base): array
+    {
+        $grouped = static function (Builder $query): array {
+            return $query
+                ->select('barangay')
+                ->selectRaw('COUNT(*) AS place_count')
+                ->groupBy('barangay')
+                ->get()
+                ->mapWithKeys(static fn (Report $report): array => [
+                    (string) $report->getAttribute('barangay') => (int) $report->getAttribute('place_count'),
+                ])
+                ->all();
+        };
+        $submitted = $grouped(clone $base);
+        $open = $grouped($this->applyOperationalQueueFilter->handle(
+            clone $base,
+            Report::QUEUE_NEEDS_VISIT,
+        ));
+        $past = $grouped($this->applyOperationalQueueFilter->handle(
+            clone $base,
+            Report::QUEUE_FOLLOW_UP_DUE,
+        ));
+        $scheduled = $grouped($this->applyOperationalQueueFilter->handle(
+            clone $base,
+            Report::QUEUE_UPCOMING,
+        ));
+
+        $names = array_unique(array_merge(
+            LocationReferenceController::barangayScope(),
+            array_keys($submitted),
+        ));
+        sort($names);
+        $rows = [];
+        foreach ($names as $barangay) {
+            $openCount = $open[$barangay] ?? 0;
+            $pastCount = $past[$barangay] ?? 0;
+            $scheduledCount = $scheduled[$barangay] ?? 0;
+            $rows[] = [
+                'barangay' => $barangay,
+                'submitted' => $submitted[$barangay] ?? 0,
+                'open' => $openCount,
+                'past_target_date' => $pastCount,
+                'scheduled' => $scheduledCount,
+                'unscheduled' => max(0, $openCount - $pastCount - $scheduledCount),
+            ];
+        }
+        usort($rows, static fn (array $a, array $b): int => $b['submitted'] <=> $a['submitted']
+            ?: $a['barangay'] <=> $b['barangay']);
+
+        return $rows;
     }
 
     /**
