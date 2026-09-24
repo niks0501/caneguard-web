@@ -49,6 +49,7 @@ import {
   type VerificationOutcome,
 } from "../domain/report.types";
 import type {
+  ConsultInvite,
   OperationalMetadataCorrections,
   ReportReviewInput,
 } from "../domain/review.types";
@@ -57,6 +58,7 @@ import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
   useAdvisories,
   useExpertDirectory,
+  useIssueConsultInvite,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useUnlinkDuplicateReport,
@@ -545,6 +547,9 @@ export function CaseReviewPage() {
   const [officeDecisionModalOpen, setOfficeDecisionModalOpen] = useState(false);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const [referralModalOpen, setReferralModalOpen] = useState(false);
+  const [savedReferral, setSavedReferral] = useState(false);
+  const [referralInvite, setReferralInvite] = useState<ConsultInvite | null>(null);
+  const [referralInviteFailed, setReferralInviteFailed] = useState(false);
   const [duplicateLinkModalOpen, setDuplicateLinkModalOpen] = useState(false);
   const [metadataCorrectionModalOpen, setMetadataCorrectionModalOpen] = useState(false);
   const [fieldValidationAssignSubmitted, setFieldValidationAssignSubmitted] = useState(false);
@@ -561,6 +566,7 @@ export function CaseReviewPage() {
   const duplicateLinkMutation = useLinkDuplicateReport(reportId);
   const duplicateUnlinkMutation = useUnlinkDuplicateReport(reportId);
   const recordReferral = useRecordReportReferral(reportId);
+  const issueReferralInvite = useIssueConsultInvite(reportId);
   const report = reportQuery.data;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
   const advisories = advisoriesQuery.data ?? [];
@@ -633,8 +639,10 @@ export function CaseReviewPage() {
     : !referralDate
       ? "Add the referral date."
       : !referralExpertUuid && !referralExpertName.trim()
-        ? "Select an in-system expert or enter an external expert name."
-        : null;
+        ? "Select an expert or enter the invitee's name."
+        : !referralExpertUuid && !referralExpertContact.trim()
+          ? "Add a contact for the invitee."
+          : null;
   const referralFieldError = referralSubmitted && referralNeeded ? referralInputError : null;
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
   const visibleHistory = historyFilter === "all"
@@ -730,7 +738,10 @@ export function CaseReviewPage() {
     if (confirmDiscardUnsavedChanges(assignmentDirty)) setAssignmentModalOpen(false);
   };
   const closeReferralModal = () => {
-    if (confirmDiscardUnsavedChanges(referralHandoffDirty)) setReferralModalOpen(false);
+    if (savedReferral) {
+      setReferralModalOpen(false);
+      navigate(routes.reports, { state: { notice: `${report?.referenceCode} - Awaiting expert input.` } });
+    } else if (confirmDiscardUnsavedChanges(referralHandoffDirty)) setReferralModalOpen(false);
   };
   const closeDuplicateLinkModal = () => {
     if (confirmDiscardUnsavedChanges(duplicateLinkDirty)) setDuplicateLinkModalOpen(false);
@@ -947,6 +958,7 @@ export function CaseReviewPage() {
   };
 
   const saveReferralHandoff = async () => {
+    if (savedReferral) return;
     setReferralSubmitted(true);
     if (referralInputError) return;
     if (report?.reviewVersion === undefined) return;
@@ -958,8 +970,8 @@ export function CaseReviewPage() {
         referralDate,
         ...(referralDueDateTouched ? { dueDate: referralDueDate || null } : {}),
         ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
-        ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
-        ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
+        ...(!referralExpertUuid && referralExpertName.trim() ? { expertName: referralExpertName } : {}),
+        ...(!referralExpertUuid && referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
         ...(referralShareFullContext ? { shareFullContext: true } : {}),
         note: referralNote,
         authorityClassifiedCondition: selectedAuthorityClassification,
@@ -967,14 +979,26 @@ export function CaseReviewPage() {
         officeNotes: notes,
         expectedVersion: report.reviewVersion,
       });
-      setReferralModalOpen(false);
-      navigate(routes.reports, {
-        state: {
-          notice: `${report.referenceCode} - Expert referral recorded. The case remains open while input is pending.`,
-        },
-      });
+      if (referralExpertUuid) {
+        setReferralModalOpen(false);
+        navigate(routes.reports, {
+          state: { notice: `${report.referenceCode} - Awaiting expert input.` },
+        });
+      } else {
+        setSavedReferral(true);
+        await createReferralInvite();
+      }
     } catch {
       return;
+    }
+  };
+
+  const createReferralInvite = async () => {
+    setReferralInviteFailed(false);
+    try {
+      setReferralInvite(await issueReferralInvite.mutateAsync(referralShareFullContext));
+    } catch {
+      setReferralInviteFailed(true);
     }
   };
 
@@ -1468,7 +1492,7 @@ export function CaseReviewPage() {
               variant="secondary"
               onClick={() => setReferralModalOpen(true)}
             >
-              Record expert referral
+              Request expert input
             </Button>
           ) : null}
         </div>
@@ -1994,35 +2018,51 @@ export function CaseReviewPage() {
       {/* Modal 3: Expert Referral (F3) */}
       <Modal
         id="referral-modal"
-        title="Record expert referral"
-        description="Print/download remains the default handoff. You can optionally create a signed, time-limited read-only link after saving."
+        title="Request expert input"
+        description="Address an expert from the directory or invite someone outside it. Both requests keep the case open while input is pending."
         open={referralModalOpen}
         onClose={closeReferralModal}
-        disabled={recordReferral.isPending}
-        isDirty={referralHandoffDirty}
+        disabled={recordReferral.isPending || issueReferralInvite.isPending}
+        isDirty={!savedReferral && referralHandoffDirty}
         footer={
           <>
             <Button
               type="button"
               variant="secondary"
-              disabled={recordReferral.isPending}
+              disabled={recordReferral.isPending || issueReferralInvite.isPending}
               onClick={closeReferralModal}
             >
-              Cancel
+              {savedReferral ? "Done" : "Cancel"}
             </Button>
-            <Button
-              type="button"
-              disabled={recordReferral.isPending}
-              onClick={saveReferralHandoff}
-            >
-              {recordReferral.isPending ? "Saving referral..." : "Save referral"}
-            </Button>
+            {!savedReferral ? (
+              <Button type="button" disabled={recordReferral.isPending} onClick={saveReferralHandoff}>
+                {recordReferral.isPending ? "Requesting expert input..." : "Request expert input"}
+              </Button>
+            ) : null}
           </>
         }
       >
-        <div className="review-subform" aria-label="Expert referral details">
+        {savedReferral ? (
+          <div className="review-subform" aria-label="Expert request delivery" role="status">
+            <p>Awaiting expert input. The request was saved. Copy the secure link and share it with the invitee using the contact provided; the link cannot be retrieved after you leave this page.</p>
+            {referralInvite?.url ? (
+              <label className="select-filter" htmlFor="referral-invite-link">
+                <span>Secure invite link (copy to share)</span>
+                <input id="referral-invite-link" readOnly value={referralInvite.url} onFocus={(event) => event.target.select()} />
+              </label>
+            ) : null}
+            {referralInviteFailed ? (
+              <p className="form-error" role="alert">The request was saved, but the secure link could not be created. Retry here or create a new link from the case.</p>
+            ) : null}
+            {referralInviteFailed ? (
+              <Button type="button" disabled={issueReferralInvite.isPending} onClick={() => void createReferralInvite()}>
+                {issueReferralInvite.isPending ? "Creating secure link..." : "Retry secure link"}
+              </Button>
+            ) : null}
+          </div>
+        ) : <div className="review-subform" aria-label="Expert referral details">
           <p className="authority-classification-help">
-            Capture the handoff as plain operational text. Print/download remains the default; a secure link can be created from the saved consult.
+            Choose who should receive the request. A directory expert is assigned to their account; for someone else, a secure link is created after saving for you to share. Print/download remains available from the case.
           </p>
           {referralFieldError ? (
             <p id="referral-destination-error" className="form-error" role="alert">
@@ -2095,7 +2135,7 @@ export function CaseReviewPage() {
           </label>
           <SelectFilter
             id="referral-expert"
-            label="In-system expert (optional)"
+            label="Expert from directory"
             value={referralExpertUuid ?? ""}
             onChange={(event) => {
               setReferralExpertUuid(event.target.value || null);
@@ -2103,7 +2143,7 @@ export function CaseReviewPage() {
               recordReferral.reset();
             }}
           >
-            <option value="">Choose an in-system expert or use the external path below</option>
+            <option value="">Invite someone outside the directory</option>
             {(expertDirectoryQuery.data ?? []).map((expert) => (
               <option value={expert.uuid} key={expert.uuid}>
                 {expert.name} ({expert.email})
@@ -2112,11 +2152,11 @@ export function CaseReviewPage() {
           </SelectFilter>
           {expertDirectoryQuery.isError ? (
             <p className="form-error" role="alert">
-              In-system experts could not be loaded. You can still enter an external expert name.
+              The expert directory could not be loaded. You can still address an invitee below.
             </p>
           ) : null}
-          <label className="select-filter" htmlFor="referral-expert-name">
-            <span>External expert name (optional)</span>
+          {!referralExpertUuid ? <label className="select-filter" htmlFor="referral-expert-name">
+            <span>Invitee name</span>
             <input
               id="referral-expert-name"
               maxLength={160}
@@ -2128,9 +2168,9 @@ export function CaseReviewPage() {
               }}
               placeholder="Named expert or service"
             />
-          </label>
-          <label className="select-filter" htmlFor="referral-expert-contact">
-            <span>Expert contact (optional)</span>
+          </label> : null}
+          {!referralExpertUuid ? <label className="select-filter" htmlFor="referral-expert-contact">
+            <span>Invitee contact</span>
             <input
               id="referral-expert-contact"
               maxLength={320}
@@ -2142,7 +2182,7 @@ export function CaseReviewPage() {
               }}
               placeholder="Email, phone, or office contact"
             />
-          </label>
+          </label> : null}
           <label className="case-confirmation" htmlFor="referral-share-full-context">
             <input
               id="referral-share-full-context"
@@ -2174,7 +2214,7 @@ export function CaseReviewPage() {
             placeholder="What should the expert review?"
           />
           {referralRecordError ? <p className="form-error" role="alert">{referralRecordError}</p> : null}
-        </div>
+        </div>}
       </Modal>
 
       {/* Modal 4: Duplicate Linkage (F5) */}

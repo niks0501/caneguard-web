@@ -203,7 +203,7 @@ function renderPage() {
 beforeEach(() => {
   vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
   vi.mocked(useConfirmExpertReferral).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useConfirmExpertReferral>);
-  vi.mocked(useIssueConsultInvite).mockReturnValue(referralMutationResult() as unknown as ReturnType<typeof useIssueConsultInvite>);
+  vi.mocked(useIssueConsultInvite).mockReturnValue(referralMutationResult({ mutateAsync: vi.fn().mockResolvedValue({ url: "https://example.test/secure-consult-link" }) }) as unknown as ReturnType<typeof useIssueConsultInvite>);
   vi.mocked(useExpertDirectory).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useExpertDirectory>);
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
@@ -1226,11 +1226,12 @@ describe("CaseReviewPage", () => {
     await user.click(within(decision).getByRole("button", { name: "Continue to referral" }));
 
     expect(reviewSave).not.toHaveBeenCalled();
-    const handoff = screen.getByRole("dialog", { name: "Record expert referral" });
+    const handoff = screen.getByRole("dialog", { name: "Request expert input" });
     await user.type(within(handoff).getByLabelText("Expert destination"), "Regional office");
     await user.type(within(handoff).getByLabelText("Referral date"), "2026-09-04");
-    await user.type(within(handoff).getByLabelText("External expert name (optional)"), "Dr. Expert");
-    await user.click(within(handoff).getByRole("button", { name: "Save referral" }));
+    await user.type(within(handoff).getByLabelText("Invitee name"), "Dr. Expert");
+    await user.type(within(handoff).getByLabelText("Invitee contact"), "expert@example.test");
+    await user.click(within(handoff).getByRole("button", { name: "Request expert input" }));
 
     expect(referralSave).toHaveBeenCalledWith(expect.objectContaining({
       destination: "Regional office",
@@ -1281,17 +1282,18 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     // Referral fields are revealed only for the Refer to expert choice.
-    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request expert input" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
-    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
-    const modal = screen.getByRole("dialog", { name: "Record expert referral" });
+    await user.click(screen.getByRole("button", { name: "Request expert input" }));
+    const modal = screen.getByRole("dialog", { name: "Request expert input" });
     await user.type(within(modal).getByLabelText("Expert destination"), " Regional office ");
     await user.type(within(modal).getByLabelText("Expert office reference (optional)"), " SRA-2026-0042 ");
     await user.type(within(modal).getByLabelText("Referral date"), "2026-09-04");
-    await user.type(within(modal).getByLabelText("External expert name (optional)"), " Dr. External Expert ");
+    await user.type(within(modal).getByLabelText("Invitee name"), " Dr. External Expert ");
+    await user.type(within(modal).getByLabelText("Invitee contact"), "expert@example.test");
     await user.type(within(modal).getByLabelText(/Referral note \(optional\)/), " Review the mismatch. ");
-    await user.click(within(modal).getByRole("button", { name: "Save referral" }));
+    await user.click(within(modal).getByRole("button", { name: "Request expert input" }));
 
     // One save request through the existing atomic referral endpoint, carrying
     // the visible office classification, verification, and notes snapshot.
@@ -1300,15 +1302,18 @@ describe("CaseReviewPage", () => {
       reference: "SRA-2026-0042",
       referralDate: "2026-09-04",
       expertName: " Dr. External Expert ",
+      expertContact: "expert@example.test",
       note: " Review the mismatch. ",
       authorityClassifiedCondition: null,
       verificationOutcome: undefined,
       officeNotes: "",
       expectedVersion: report.reviewVersion,
     });
-    expect(
-      await screen.findByText("Returned to report queue"),
-    ).toBeInTheDocument();
+    expect(await within(modal).findByDisplayValue("https://example.test/secure-consult-link")).toBeInTheDocument();
+    expect(within(modal).getByText(/Awaiting expert input/)).toBeInTheDocument();
+    expect(within(modal).queryByRole("button", { name: "Request expert input" })).not.toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Done" }));
+    expect(await screen.findByText("Returned to report queue")).toBeInTheDocument();
   });
 
   it("records an expert referral without an external reference", async () => {
@@ -1320,16 +1325,45 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
-    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
-    const modal = screen.getByRole("dialog", { name: "Record expert referral" });
+    await user.click(screen.getByRole("button", { name: "Request expert input" }));
+    const modal = screen.getByRole("dialog", { name: "Request expert input" });
     expect(within(modal).getByText(/add it when the expert responds/i)).toBeInTheDocument();
     await user.type(within(modal).getByLabelText("Expert destination"), "Regional office");
     await user.type(within(modal).getByLabelText("Referral date"), "2026-09-04");
-    await user.type(within(modal).getByLabelText("External expert name (optional)"), "Dr. External Expert");
-    await user.click(within(modal).getByRole("button", { name: "Save referral" }));
+    await user.type(within(modal).getByLabelText("Invitee name"), "Dr. External Expert");
+    await user.type(within(modal).getByLabelText("Invitee contact"), "expert@example.test");
+    await user.click(within(modal).getByRole("button", { name: "Request expert input" }));
 
     expect(mutateAsync.mock.calls[0]?.[0]).not.toHaveProperty("reference");
-    expect(await screen.findByText("Returned to report queue")).toBeInTheDocument();
+    expect(await within(modal).findByDisplayValue("https://example.test/secure-consult-link")).toBeInTheDocument();
+  });
+
+  it("keeps a saved outsider request pending when link issuance fails and retries without duplicating the consult", async () => {
+    const user = userEvent.setup();
+    const save = vi.fn().mockResolvedValue(referredReport);
+    const issue = vi.fn().mockRejectedValueOnce(new Error("unavailable"))
+      .mockResolvedValueOnce({ url: "https://example.test/retried-link" });
+    vi.mocked(useRecordReportReferral).mockReturnValue(referralMutationResult({ mutateAsync: save }));
+    vi.mocked(useIssueConsultInvite).mockReturnValue(referralMutationResult({ mutateAsync: issue }) as unknown as ReturnType<typeof useIssueConsultInvite>);
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
+    await user.click(screen.getByRole("button", { name: "Request expert input" }));
+    const modal = screen.getByRole("dialog", { name: "Request expert input" });
+    await user.type(within(modal).getByLabelText("Expert destination"), "Regional office");
+    await user.type(within(modal).getByLabelText("Referral date"), "2026-09-04");
+    await user.type(within(modal).getByLabelText("Invitee name"), "Dr. Expert");
+    await user.click(within(modal).getByRole("button", { name: "Request expert input" }));
+    expect(within(modal).getByText("Add a contact for the invitee.")).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+    await user.type(within(modal).getByLabelText("Invitee contact"), "expert@example.test");
+    await user.click(within(modal).getByRole("button", { name: "Request expert input" }));
+    expect(await within(modal).findByRole("button", { name: "Retry secure link" })).toBeInTheDocument();
+    expect(within(modal).getByText(/request was saved, but the secure link could not be created/i)).toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Retry secure link" }));
+    expect(await within(modal).findByDisplayValue("https://example.test/retried-link")).toBeInTheDocument();
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(issue).toHaveBeenCalledTimes(2);
   });
 
   it("shows the tracking code and a placeholder when the referral has no external reference", () => {
@@ -1361,19 +1395,22 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
-    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
-    const expertModal = screen.getByRole("dialog", { name: "Record expert referral" });
+    await user.click(screen.getByRole("button", { name: "Request expert input" }));
+    const expertModal = screen.getByRole("dialog", { name: "Request expert input" });
     await user.type(within(expertModal).getByLabelText("Expert destination"), " Regional office ");
     await user.type(within(expertModal).getByLabelText("Expert office reference (optional)"), " SRA-2026-0042 ");
     await user.type(within(expertModal).getByLabelText("Referral date"), "2026-09-04");
-    await user.selectOptions(within(expertModal).getByLabelText("In-system expert (optional)"), "expert-uuid");
-    await user.click(within(expertModal).getByRole("button", { name: "Save referral" }));
+    await user.selectOptions(within(expertModal).getByLabelText("Expert from directory"), "expert-uuid");
+    expect(within(expertModal).queryByLabelText("Invitee name")).not.toBeInTheDocument();
+    await user.click(within(expertModal).getByRole("button", { name: "Request expert input" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       expertUuid: "expert-uuid",
       expectedVersion: report.reviewVersion,
     }));
     expect(mutateAsync.mock.calls[0][0]).not.toHaveProperty("expertName");
+    expect(vi.mocked(useIssueConsultInvite).mock.results.at(-1)?.value.mutateAsync).not.toHaveBeenCalled();
+    expect(await screen.findByText("Returned to report queue")).toBeInTheDocument();
   });
 
   it.each([
@@ -1391,8 +1428,8 @@ describe("CaseReviewPage", () => {
     // A terminal consult leaves no active handoff, so the guided choice is
     // pre-selected and the referral modal carries the fields again.
     expect(screen.getByRole("radio", { name: /Refer to expert/ })).toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Record expert referral" }));
-    const modal = screen.getByRole("dialog", { name: "Record expert referral" });
+    await user.click(screen.getByRole("button", { name: "Request expert input" }));
+    const modal = screen.getByRole("dialog", { name: "Request expert input" });
     expect(within(modal).getByLabelText("Expert destination")).toBeInTheDocument();
     expect(within(modal).getByLabelText("Expert office reference (optional)")).toBeInTheDocument();
     expect(within(modal).getByLabelText("Referral date")).toBeInTheDocument();
@@ -1582,19 +1619,19 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     expect(screen.queryByRole("button", { name: "Assign visit" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request expert input" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: /Provide advisory/ }));
     expect(screen.queryByRole("button", { name: "Assign visit" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request expert input" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Expert destination")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: /Needs field validation/ }));
     expect(screen.getByRole("button", { name: "Assign visit" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Record expert referral" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request expert input" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Assign visit" }));
     const modal = screen.getByRole("dialog", { name: "Assign visit" });
     expect(within(modal).getByLabelText("Field Inspector assignee")).toBeInTheDocument();
