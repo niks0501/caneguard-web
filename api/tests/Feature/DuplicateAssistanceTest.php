@@ -525,7 +525,7 @@ class DuplicateAssistanceTest extends TestCase
             ->assertJsonPath('meta.total', 0);
 
         Sanctum::actingAs($reviewer);
-        $this->getJson('/api/v1/dashboard/summary?month=2026-09')
+        $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.counts.total_submitted', 1)
             ->assertJsonPath('data.monthly_summary.reported_cases', 1);

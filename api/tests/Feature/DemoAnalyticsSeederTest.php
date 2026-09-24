@@ -173,7 +173,7 @@ class DemoAnalyticsSeederTest extends TestCase
                 ->assertJsonPath('meta.total', DemoAnalyticsSeeder::REPORT_COUNT)
                 ->assertJsonCount(DemoAnalyticsSeeder::REPORT_COUNT, 'data');
 
-            $dashboard = $this->getJson('/api/v1/dashboard/summary?month=2026-09')
+            $dashboard = $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')
                 ->assertOk()
                 ->assertJsonPath('data.counts.total_submitted', DemoAnalyticsSeeder::REPORT_COUNT)
                 ->assertJsonPath('data.monthly_summary.month', '2026-09')

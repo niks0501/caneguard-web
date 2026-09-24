@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Models\Report;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Calibrate attention-band edges from cases that already have a human review.
@@ -22,9 +23,29 @@ final class CalibrateReportTriage
      */
     public function handle(): array
     {
+        // Dashboard overhaul P1: calibration grows linearly with the
+        // reviewed register, so the measurement is cached on a short TTL
+        // keyed by the reviewed count and the newest review instant. Any
+        // new review changes the key; the TTL bounds every other staleness.
+        $reviewedCount = Report::query()->whereNotNull('first_reviewed_at')->count();
+        $newestReviewedAt = Report::query()->whereNotNull('first_reviewed_at')->max('first_reviewed_at');
+        $cacheKey = sprintf(
+            'triage-calibration:v1:%d:%s',
+            $reviewedCount,
+            $newestReviewedAt ?? 'none',
+        );
+
+        return Cache::remember($cacheKey, 300, fn (): array => $this->measure());
+    }
+
+    /**
+     * @return array{enabled: bool, green_min_confidence: float|null, reviewed_cases: int, calibration_cases: int, green_misfires: int, measured_at: string, next_measurement_due_at: string, note: string}
+     */
+    private function measure(): array
+    {
         $reviewed = Report::query()
             ->whereNotNull('first_reviewed_at')
-            ->with('qualityWarnings')
+            ->withCount('qualityWarnings')
             ->get([
                 'id',
                 'predicted_label',
@@ -114,11 +135,26 @@ final class CalibrateReportTriage
             && (float) $report->confidence >= $threshold
             && $report->checklist_consistency === 'consistent'
             && $report->mismatch_reported === false
-            && $report->qualityWarnings->isEmpty()
+            && $this->qualityWarningCount($report) === 0
             && $report->location_source === Report::LOCATION_SOURCE_GPS
             && $report->gps_accuracy !== null
             && $report->reporter_suspected_condition === null
             && $report->reported_severity !== 'high';
+    }
+
+    /**
+     * Prefer the withCount aggregate so callers never hydrate every
+     * quality-warning row; fall back to the relation for reports that
+     * were already loaded with it.
+     */
+    private function qualityWarningCount(Report $report): int
+    {
+        $count = $report->getAttribute('quality_warnings_count');
+        if ($count !== null) {
+            return (int) $count;
+        }
+
+        return $report->qualityWarnings->count();
     }
 
     /**
@@ -136,7 +172,7 @@ final class CalibrateReportTriage
         if (in_array($report->checklist_consistency, ['inconsistent', 'inconclusive'], true)) {
             $reasons[] = 'Checklist signature does not agree with the possible condition.';
         }
-        if ($report->qualityWarnings->isNotEmpty()) {
+        if ($this->qualityWarningCount($report) > 0) {
             $reasons[] = 'Image quality warnings are present.';
         }
         if ($report->reported_severity === 'high') {
@@ -169,7 +205,7 @@ final class CalibrateReportTriage
         if ($report->mismatch_reported !== false) {
             $reasons[] = 'Reporter agreement is not an explicit match.';
         }
-        if ($report->qualityWarnings->isNotEmpty()) {
+        if ($this->qualityWarningCount($report) > 0) {
             $reasons[] = 'Image quality needs a closer look.';
         }
         if ($report->location_source !== Report::LOCATION_SOURCE_GPS

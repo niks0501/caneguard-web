@@ -1,5 +1,6 @@
 import type {
   DashboardRepository,
+  DashboardSummaryOptions,
 } from "../contracts/DashboardRepository";
 import type {
   DashboardSummary,
@@ -149,7 +150,7 @@ function buildMonthlySummary(
 }
 
 export class MockDashboardRepository implements DashboardRepository {
-  async getSummary(month?: string): Promise<DashboardSummary> {
+  async getSummary(month?: string, options?: DashboardSummaryOptions): Promise<DashboardSummary> {
     const counts: Record<ReviewStatus, number> = {
       submitted_unverified: 0,
       for_field_validation: 0,
@@ -173,7 +174,7 @@ export class MockDashboardRepository implements DashboardRepository {
       totalSubmitted: canonicalReports.length,
       counts,
       queues,
-      recentReports: canonicalReports.slice(0, 5),
+      recentReports: canonicalReports.slice(0, options?.recentLimit ?? 10),
       monthlySummary: buildMonthlySummary(canonicalReports, selectedMonth),
     };
   }

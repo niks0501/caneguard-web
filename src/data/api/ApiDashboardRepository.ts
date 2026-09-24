@@ -1,6 +1,9 @@
 import type { AxiosInstance } from "axios";
 import { axiosClient } from "../../api/axiosClient";
-import type { DashboardRepository } from "../contracts/DashboardRepository";
+import type {
+  DashboardRepository,
+  DashboardSummaryOptions,
+} from "../contracts/DashboardRepository";
 import type {
   DashboardSummary,
   ReportAnalytics,
@@ -20,9 +23,13 @@ export class ApiDashboardRepository implements DashboardRepository {
     this.client = client;
   }
 
-  async getSummary(month?: string): Promise<DashboardSummary> {
+  async getSummary(month?: string, options?: DashboardSummaryOptions): Promise<DashboardSummary> {
     const response = await this.client.get("/api/v1/dashboard/summary", {
-      params: month ? { month } : undefined,
+      params: {
+        ...(month ? { month } : {}),
+        ...(options?.include ? { include: options.include } : {}),
+        ...(options?.recentLimit ? { recent_limit: options.recentLimit } : {}),
+      },
     });
     return mapDashboard(dashboardResponseSchema.parse(response.data));
   }

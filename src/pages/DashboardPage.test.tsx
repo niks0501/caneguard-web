@@ -10,9 +10,11 @@ import { useDashboard } from "../hooks/useDashboard";
 import type { ReportAnalytics } from "../domain/dashboard.types";
 import { DashboardPage } from "./DashboardPage";
 
-vi.mock("../hooks/useDashboard", () => ({
-  useDashboard: vi.fn(),
-}));
+vi.mock("../hooks/useDashboard", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../hooks/useDashboard")>();
+  return { ...actual, useDashboard: vi.fn() };
+});
 
 vi.mock("../hooks/useAnalytics", () => ({
   useAnalytics: vi.fn(),
@@ -149,7 +151,10 @@ describe("DashboardPage", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
     renderDashboard();
-    expect(useDashboard).toHaveBeenLastCalledWith("2026-09");
+    expect(useDashboard).toHaveBeenLastCalledWith("2026-09", {
+      include: "counts,queues,recent,monthly",
+      recentLimit: 10,
+    });
     expect(useAnalytics).toHaveBeenLastCalledWith(
       { from: "2026-09-01", to: "2026-09-30", granularity: "day" },
       { enabled: true },
@@ -158,7 +163,10 @@ describe("DashboardPage", () => {
     fireEvent.change(screen.getByLabelText("Scope month"), {
       target: { value: "2026-08" },
     });
-    expect(useDashboard).toHaveBeenLastCalledWith("2026-08");
+    expect(useDashboard).toHaveBeenLastCalledWith("2026-08", {
+      include: "counts,queues,recent,monthly",
+      recentLimit: 10,
+    });
     expect(useAnalytics).toHaveBeenLastCalledWith(
       { from: "2026-08-01", to: "2026-08-31", granularity: "day" },
       { enabled: true },

@@ -18,7 +18,7 @@ import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
 import { useAnalytics } from "../hooks/useAnalytics";
-import { useDashboard } from "../hooks/useDashboard";
+import { dashboardSummaryOptions, useDashboard } from "../hooks/useDashboard";
 import { manilaDateAt, manilaMonthAt } from "../domain/reportingTime";
 
 const MAX_ANALYTICS_RANGE_DAYS = 366;
@@ -33,7 +33,7 @@ export function DashboardPage() {
   const [selection, setSelection] = useState<ScopeSelection>(initialSelection);
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
   const scope = resolveScope(selection);
-  const dashboard = useDashboard(scope.month);
+  const dashboard = useDashboard(scope.month, dashboardSummaryOptions);
   const rangeDays = dateDifferenceInDays(scope.from, scope.to) + 1;
   const rangeTooLong = rangeDays > MAX_ANALYTICS_RANGE_DAYS;
   const analytics = useAnalytics(
