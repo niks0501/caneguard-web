@@ -250,14 +250,12 @@ describe("DashboardPage", () => {
 
     // KPI 1: real previous-window comparison with both windows printed.
     expect(snapshot.getByText(/▲ Up from 9/)).toBeInTheDocument();
-    expect(snapshot.getByText("1–30 Sep 2026 · PHT")).toBeInTheDocument();
     expect(snapshot.getByText(/8–31 Aug 2026/)).toBeInTheDocument();
-    expect(
-      snapshot.getByText(/Records still waiting to sync/),
-    ).toBeInTheDocument();
+    expect(snapshot.getByText("Synchronized only")).toBeInTheDocument();
 
-    // Queue KPIs carry an "as of" stamp instead of a faked delta.
-    expect(snapshot.getAllByText("as of 21:14:03 PHT")).toHaveLength(3);
+    // Queue KPIs are marked current-state in one word instead of repeating a
+    // point-in-time sentence and an "as of" stamp on every card.
+    expect(snapshot.getAllByText("now")).toHaveLength(3);
 
     // KPI 3 folds the two calendar subsets in as labelled segments.
     expect(snapshot.getByText("Past target date")).toBeInTheDocument();
@@ -273,7 +271,7 @@ describe("DashboardPage", () => {
       snapshot.getByRole("link", { name: "Open unscheduled validation work" }),
     ).toHaveAttribute("href", "/map?queue=needs_visit");
     expect(
-      snapshot.getByText("Unassigned 1 · Assigned 2 · In progress 1"),
+      snapshot.getByText("1 unassigned · 2 assigned · 1 in progress"),
     ).toBeInTheDocument();
 
     expect(
@@ -355,33 +353,85 @@ describe("DashboardPage", () => {
 
   it("keeps long queue identifiers inside the KPI grid without sideways push", () => {
     // §13.2: the 4-up KPI track exposes unbreakable identifiers such as
-    // summary.queues.unverified_no_active_work. The wrap rule itself is
-    // enforced by the design-spine validator (validateDashboardWrapRules);
-    // this fixture proves the longest real labels still mount.
+    // summary.queues.unverified_no_active_work. The wrap and track rules are
+    // enforced against index.css by the design-spine validator
+    // (validateDashboardWrapRules: min-width 0, max-width 100%, wrap
+    // anywhere); this fixture proves the longest real labels still mount and
+    // that the removed explanatory prose is gone rather than shortened.
     renderDashboard();
     expect(screen.getByText("Unverified, no active work")).toBeInTheDocument();
     expect(
-      screen.getByText(/no referral in flight, no validation assignment/),
-    ).toBeInTheDocument();
+      screen.queryByText(/no referral in flight, no validation assignment/),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows recent reports with the reported-concern column and a freshness stamp", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
+  it("shows recent reports with the reported-concern column and no table prose", () => {
     renderDashboard();
 
     const recent = within(screen.getByRole("region", { name: "Recent reports" }));
     expect(recent.getByText("Reported concern")).toBeInTheDocument();
+    expect(recent.getByText("Possible Condition (AI)")).toBeInTheDocument();
     expect(recent.getAllByText("Not stated").length).toBeGreaterThan(0);
-    expect(
-      screen.getByText("5 most recent synchronized submissions · as of 21:14:03 PHT"),
-    ).toBeInTheDocument();
+    // The table keeps only its heading and the short register label: the old
+    // "5 most recent synchronized submissions · as of 21:14:03 PHT" line is
+    // gone, and the freshness lives once in the page header instead.
+    expect(screen.getByText("synchronized submissions")).toBeInTheDocument();
+    expect(screen.queryByText(/most recent synchronized submissions/)).not.toBeInTheDocument();
     expect(
       recent.getByRole("link", { name: "Open CG-2026-0718" }),
     ).toHaveAttribute(
       "href",
       "/reports/00000000-0000-4000-8000-000000000001",
     );
+  });
+
+  it("keeps the reporter's concern distinct from the AI classification in the table", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: {
+          ...summary,
+          recentReports: [
+            {
+              ...mockReports[0],
+              reporterSuspectedCondition: "RSSI",
+              predictedDisease: "mosaic",
+            },
+          ],
+        },
+      }),
+    );
+    renderDashboard();
+
+    const table = within(
+      screen.getByRole("region", { name: "Recent reports" }),
+    ).getByRole("table");
+    const headers = within(table)
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent);
+    const concernColumn = headers.indexOf("Reported concern");
+    const conditionColumn = headers.indexOf("Possible Condition (AI)");
+    expect(concernColumn).toBeGreaterThan(-1);
+    expect(conditionColumn).toBeGreaterThan(-1);
+
+    const cells = within(table).getAllByRole("cell");
+    // Reported concern is the reporter's own words.
+    expect(cells[concernColumn]).toHaveTextContent("RSSI");
+    expect(cells[concernColumn]).not.toHaveTextContent("Mosaic");
+    // Possible Condition (AI) is the model's classification, never merged in.
+    expect(cells[conditionColumn]).toHaveTextContent("Mosaic");
+    expect(cells[conditionColumn]).not.toHaveTextContent("RSSI");
+  });
+
+  it("names the timezone once on the page and prints every time in 12-hour form", () => {
+    const { container } = renderDashboard();
+    const copy = container.textContent ?? "";
+    // Single shared location: the page description. No card repeats it and
+    // the period-boundary timezone prose is gone entirely.
+    expect(copy.match(/PHT \(UTC\+8\)/g) ?? []).toHaveLength(1);
+    expect(copy).not.toContain("Period boundaries");
+    expect(copy).not.toContain("as of 21:14:03");
+    // The freshness stamp is 12-hour with an explicit meridiem marker.
+    expect(screen.getByText("9:14:03 PM")).toBeInTheDocument();
   });
 
   it("renders the header with the scope ruler and an always-visible freshness stamp", () => {

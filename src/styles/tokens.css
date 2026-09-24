@@ -102,8 +102,9 @@
   --grid-gap: var(--space-4);
   --section-gap: var(--space-6);
   --card-padding: var(--space-4);
+  --card-gap: var(--space-3);
   --chart-height-sm: 240px;
-  --chart-height-md: 300px;
+  --chart-height-md: 340px;
   --chart-height-lg: 420px;
   --chart-sparkline-height: 40px;
 

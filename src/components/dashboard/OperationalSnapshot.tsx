@@ -14,33 +14,26 @@ import type {
 import { AgeLadder } from "./AgeLadder";
 import { KpiCard } from "./KpiCard";
 import { Sparkline } from "./Sparkline";
-import {
-  formatWindow,
-  type DashboardScope,
-} from "./dashboardScope";
+import { formatWindow } from "./dashboardScope";
 
 /**
  * Section A — Operational snapshot (overhaul §3.2). Four KPI cards; the two
  * calendar subsets of the field-validation queue (past target date and
  * scheduled ahead) are labelled segments inside KPI 3, never peer cards.
- * Queue KPIs are point-in-time counts with an "as of" stamp — no period
- * delta is faked for them. Only KPI 1 (period-scoped submissions) carries
- * a real previous-window comparison.
+ * Queue KPIs are marked "now" because they are current-state counts, not
+ * period-scoped ones; only KPI 1 (period-scoped submissions) carries a real
+ * previous-window comparison. Freshness is stamped once in the page header.
  */
 export function OperationalSnapshot({
   summary,
   analytics,
   analyticsPending,
   analyticsFailed,
-  scope,
-  asOf,
 }: {
   summary: DashboardSummary;
   analytics?: ReportAnalytics;
   analyticsPending: boolean;
   analyticsFailed: boolean;
-  scope: DashboardScope;
-  asOf: string;
 }) {
   const comparison = analytics?.comparison;
   const delta = comparison?.delta ?? 0;
@@ -52,7 +45,7 @@ export function OperationalSnapshot({
         : `■ No change from ${comparison.previousTotal} (${formatWindow(comparison.previousFrom, comparison.previousTo)})`
     : analyticsPending
       ? "Loading the period comparison…"
-      : "Period comparison is unavailable while period data fails to load.";
+      : "Comparison unavailable.";
 
   const unscheduled = Math.max(
     0,
@@ -62,7 +55,7 @@ export function OperationalSnapshot({
   );
   const assignment = summary.monthlySummary?.fieldValidationCounts;
   const assignmentLine = assignment
-    ? `Unassigned ${assignment.unassigned} · Assigned ${assignment.assigned} · In progress ${assignment.inProgress}`
+    ? `${assignment.unassigned} unassigned · ${assignment.assigned} assigned · ${assignment.inProgress} in progress`
     : undefined;
 
   return (
@@ -73,15 +66,14 @@ export function OperationalSnapshot({
           value={analytics ? String(analytics.totalSubmitted) : "—"}
           icon={<Rows3 aria-hidden="true" strokeWidth={1.75} />}
           comparison={comparisonLine}
-          scopeLine={`${formatWindow(scope.from, scope.to)} · PHT`}
-          footnote="Synchronized submitted reports. Records still waiting to sync from a device are not counted."
+          hint="Synchronized only"
           href={routes.reports}
           linkLabel="Open the submitted reports register"
         >
           {analytics ? (
             <Sparkline
               points={analytics.series.map((point) => point.count)}
-              label={`Submissions across ${formatWindow(scope.from, scope.to)}`}
+              label={`Submissions ${formatWindow(analytics.period.from, analytics.period.to)}`}
             />
           ) : null}
         </KpiCard>
@@ -91,29 +83,28 @@ export function OperationalSnapshot({
           label="Awaiting review"
           value={String(summary.queues.needs_review)}
           icon={<ShieldCheck aria-hidden="true" strokeWidth={1.75} />}
-          asOf={asOf}
-          scopeLine="Point-in-time queue count"
+          pointInTime
           href={routes.reportQueue("needs_review")}
           linkLabel="Open the Awaiting review queue"
           emptyMessage={
             summary.queues.needs_review === 0 ? "Nothing awaiting review." : undefined
           }
+          hint={
+            analytics && summary.queues.needs_review > 0
+              ? analytics.reviewBacklog.oldestWaitingDays === null
+                ? "No report is waiting for a first review."
+                : `Oldest wait ${analytics.reviewBacklog.oldestWaitingDays} days.`
+              : undefined
+          }
         >
           {analytics && summary.queues.needs_review > 0 ? (
-            <>
-              <AgeLadder
-                label="Waiting age"
-                segments={analytics.reviewBacklog.buckets.map((bucket) => ({
-                  label: bucket.label,
-                  count: bucket.count,
-                }))}
-              />
-              <p className="kpi-card__scope">
-                {analytics.reviewBacklog.oldestWaitingDays === null
-                  ? "No report is waiting for a first review."
-                  : `Oldest wait ${analytics.reviewBacklog.oldestWaitingDays} days.`}
-              </p>
-            </>
+            <AgeLadder
+              label="Waiting age"
+              segments={analytics.reviewBacklog.buckets.map((bucket) => ({
+                label: bucket.label,
+                count: bucket.count,
+              }))}
+            />
           ) : null}
           {!analytics && !analyticsFailed && summary.queues.needs_review > 0 ? (
             <div className="skeleton skeleton--ladder" aria-hidden="true" />
@@ -125,8 +116,7 @@ export function OperationalSnapshot({
           label="Needing field validation"
           value={String(summary.queues.needs_visit)}
           icon={<ClipboardCheck aria-hidden="true" strokeWidth={1.75} />}
-          asOf={asOf}
-          scopeLine="Point-in-time queue count"
+          pointInTime
           href={routes.fieldValidationQueue("needs_visit")}
           linkLabel="Open the Needing field validation queue"
           emptyMessage={
@@ -134,6 +124,7 @@ export function OperationalSnapshot({
               ? "No open field-validation work."
               : undefined
           }
+          hint={assignmentLine}
           segments={
             summary.queues.needs_visit === 0
               ? []
@@ -160,18 +151,14 @@ export function OperationalSnapshot({
                   },
                 ]
           }
-        >
-          {assignmentLine ? <p className="kpi-card__scope">{assignmentLine}</p> : null}
-        </KpiCard>
+        />
       </div>
       <div className="col-3">
         <KpiCard
           label="Unverified, no active work"
           value={String(summary.queues.unverified_no_active_work)}
           icon={<CircleHelp aria-hidden="true" strokeWidth={1.75} />}
-          asOf={asOf}
-          scopeLine="Point-in-time queue count"
-          footnote="Reports with an action recorded, no referral in flight, no validation assignment and no verification outcome."
+          pointInTime
           href={routes.reportQueue("unverified_no_active_work")}
           linkLabel="Open the Unverified, no active work queue"
           emptyMessage={

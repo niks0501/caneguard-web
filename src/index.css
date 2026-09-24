@@ -724,14 +724,6 @@ a {
   font-size: var(--text-body-sm);
 }
 
-.dashboard-recent {
-  overflow: hidden;
-}
-
-.dashboard-report-table {
-  min-width: 920px;
-}
-
 .report-workspace,
 .review-card {
   background: var(--color-surface);
@@ -4407,10 +4399,6 @@ textarea:focus-visible {
   font-size: var(--text-table);
 }
 
-.dashboard-report-table {
-  min-width: 940px;
-}
-
 .report-identity > div:last-child {
   display: grid;
   gap: 3px;
@@ -6642,9 +6630,12 @@ body {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   gap: var(--grid-gap);
+  min-width: 0;
+  max-width: 100%;
 }
 .dashboard-grid > * {
   min-width: 0;
+  max-width: 100%;
   grid-column: span 12;
 }
 .dashboard-grid > .col-3 {
@@ -6656,11 +6647,36 @@ body {
 .dashboard-grid > .col-12 {
   grid-column: span 12;
 }
+/* One vertical rhythm for the whole page: equal gaps between sections,
+   no per-section top margin that would double the header-to-snapshot gap. */
+.dashboard-sections {
+  display: grid;
+  gap: var(--section-gap);
+  min-width: 0;
+  max-width: 100%;
+}
 .dashboard-section {
-  margin-block-start: var(--section-gap);
+  min-width: 0;
+  max-width: 100%;
 }
 .dashboard-section__heading {
-  margin-bottom: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: var(--card-gap);
+}
+.dashboard-section__heading > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.dashboard-section__meta {
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+  font-size: var(--text-body-sm);
 }
 .dashboard-section__heading h2 {
   margin: 0;
@@ -6670,11 +6686,26 @@ body {
   font-weight: 700;
   letter-spacing: -0.025em;
 }
+.dashboard-card {
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--card-padding);
+  overflow-wrap: anywhere;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-surface);
+}
+.dashboard-card--table {
+  padding: 0;
+  overflow: hidden;
+}
 .kpi-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
+  max-width: 100%;
   height: 100%;
   padding: var(--card-padding);
   overflow-wrap: anywhere;
@@ -6685,8 +6716,11 @@ body {
 }
 .kpi-card__top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+  max-width: 100%;
 }
 .kpi-card__icon {
   display: flex;
@@ -6698,11 +6732,29 @@ body {
   height: 18px;
 }
 .kpi-card__label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
   font-weight: 600;
 }
+/* Current-state counts are not period-scoped; the pill says so in one word
+   instead of a repeated "point-in-time queue count" sentence. */
+.kpi-card__now {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
 .kpi-card__value {
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--color-primary-dark);
   font-family: var(--font-heading);
@@ -6710,16 +6762,18 @@ body {
   font-weight: 700;
   line-height: 1;
 }
-.kpi-card__comparison,
-.kpi-card__scope {
+.kpi-card__comparison {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
 }
-.kpi-card__asof,
-.kpi-card__footnote {
+.kpi-card__hint {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--color-muted);
   font-size: var(--text-body-sm);
@@ -6727,6 +6781,8 @@ body {
 .kpi-card__segments {
   display: grid;
   gap: var(--space-1);
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -6735,6 +6791,8 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
   padding: var(--space-1) var(--space-2);
   color: var(--color-text);
   text-decoration: none;
@@ -6760,6 +6818,7 @@ body {
 .kpi-card__segment-label {
   flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
@@ -6772,6 +6831,8 @@ body {
 }
 .kpi-card__empty {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--color-primary-dark);
   font-size: var(--text-body-sm);
@@ -6938,6 +6999,7 @@ body {
 }
 .decision-chart-card {
   min-width: 0;
+  max-width: 100%;
   height: 100%;
   padding: var(--card-padding);
   overflow-wrap: anywhere;
@@ -6948,17 +7010,20 @@ body {
 }
 .decision-chart-card__title {
   margin: 0 0 var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: var(--color-primary-dark);
   font-family: var(--font-heading);
   font-size: var(--text-h3);
   font-weight: 700;
   letter-spacing: -0.025em;
 }
-.decision-chart-card__description,
-.decision-chart-card__period,
-.decision-chart-card__takeaway,
-.decision-chart-card__scope {
+.decision-chart-card__hint,
+.decision-chart-card__period {
   margin: 0 0 var(--space-2);
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
@@ -6966,23 +7031,71 @@ body {
 .decision-chart-card__period {
   color: var(--color-muted);
 }
-.decision-chart-card__takeaway {
-  margin: var(--space-2) 0 0;
-  color: var(--color-primary-dark);
-  font-weight: 600;
-}
 .decision-chart-card__empty {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: var(--space-4) 0;
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
   font-weight: 600;
+}
+.decision-chart__canvas {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .decision-chart__canvas--md {
   height: var(--chart-height-md);
 }
 .decision-chart__canvas--lg {
   height: var(--chart-height-lg);
+}
+/* Dashboard report table: fixed colgroup tracks, never a width floor above
+   100%. Cells wrap long references and barangay names instead of pushing the
+   card, sections and page sideways. Below 680px the tracks keep a readable
+   floor and the card scrolls horizontally instead of squashing to noise. */
+.dashboard-report-table {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  table-layout: fixed;
+}
+.dashboard-report-table th,
+.dashboard-report-table td {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.dashboard-report-table .report-identity {
+  min-width: 0;
+}
+.dashboard-report-table__col-report {
+  width: 20%;
+}
+.dashboard-report-table__col-concern {
+  width: 14%;
+}
+.dashboard-report-table__col-condition {
+  width: 15%;
+}
+.dashboard-report-table__col-barangay {
+  width: 13%;
+}
+.dashboard-report-table__col-submitted {
+  width: 17%;
+}
+.dashboard-report-table__col-status {
+  width: 15%;
+}
+.dashboard-report-table__col-action {
+  width: 6%;
+}
+@media (max-width: 680px) {
+  .dashboard-report-table {
+    min-width: 640px;
+  }
 }
 .decision-chart__legend {
   display: flex;
@@ -7101,6 +7214,8 @@ body {
   background: var(--color-primary);
 }
 .decision-map {
+  min-width: 0;
+  max-width: 100%;
   height: var(--chart-height-lg);
   overflow: hidden;
   border: 1px solid var(--color-border);

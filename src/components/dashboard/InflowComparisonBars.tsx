@@ -12,10 +12,8 @@ import type {
   ReportAnalyticsSeriesPoint,
 } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
-import { chartPeriodLine, dashboardChartCopy } from "./chartCopy";
-import {
-  chartTheme,
-} from "./chartTheme";
+import { dashboardChartCopy } from "./chartCopy";
+import { chartTheme } from "./chartTheme";
 import { formatWindow } from "./dashboardScope";
 
 function shortTick(value: string): string {
@@ -54,18 +52,14 @@ export function InflowComparisonBars({
     previous: previousByLabel.get(label) ?? 0,
   }));
   const comparison = analytics.comparison;
-  const periodLine = chartPeriodLine(
-    `${scopeLabel} vs ${formatWindow(comparison.previousFrom, comparison.previousTo)}`,
-  );
+  const periodLine = `${scopeLabel} vs ${formatWindow(comparison.previousFrom, comparison.previousTo)}`;
   const empty = analytics.totalSubmitted === 0 && comparison.previousTotal === 0;
 
   return (
     <DecisionChartFrame
       titleId="chart-inflow"
       title={copy.title}
-      description={copy.description}
       periodLine={periodLine}
-      takeaway={copy.takeaway}
       chartLabel={`${copy.title}: ${analytics.totalSubmitted} submitted this period, ${comparison.previousTotal} in the previous period`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
@@ -80,7 +74,7 @@ export function InflowComparisonBars({
     >
       <div className="decision-chart__canvas decision-chart__canvas--md">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+          <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
               <pattern
                 id="pattern-inflow-previous"

@@ -44,22 +44,30 @@ test("validateSemanticContrast catches failing token pairs", () => {
   assert.equal(passingErrors.length, 0);
 });
 
-test("validateDashboardWrapRules requires overflow-wrap on KPI text slots", () => {
-  const passing = [
-    ".kpi-card",
-    ".kpi-card__value",
-    ".kpi-card__comparison",
-    ".kpi-card__scope",
-    ".kpi-card__asof",
-    ".kpi-card__footnote",
-    ".kpi-card__segment-label",
-  ]
-    .map((selector) => `${selector} { overflow-wrap: anywhere; }`)
-    .join("\n");
+test("validateDashboardWrapRules requires min-width 0, max-width 100% and wrapping on dashboard tracks", () => {
+  const passing = `
+    .dashboard-grid > * { min-width: 0; max-width: 100%; }
+    .dashboard-section { min-width: 0; max-width: 100%; }
+    .dashboard-section__heading > * { min-width: 0; max-width: 100%; }
+    .dashboard-card { min-width: 0; max-width: 100%; }
+    .kpi-card { min-width: 0; max-width: 100%; }
+    .kpi-card__label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .kpi-card__value { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .kpi-card__comparison { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .kpi-card__hint { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .kpi-card__segment-label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .decision-chart-card { min-width: 0; max-width: 100%; }
+    .decision-chart-card__title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .decision-chart-card__hint { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .dashboard-report-table { min-width: 0; max-width: 100%; }
+    .dashboard-report-table th { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .dashboard-report-table td { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  `;
   assert.equal(validateDashboardWrapRules(passing).length, 0);
 
   const failing = ".kpi-card { display: flex; }\n.kpi-card__value { overflow-wrap: anywhere; }";
   const errors = validateDashboardWrapRules(failing);
   assert.ok(errors.length > 0);
-  assert.match(errors[0], /kpi-card.*overflow-wrap/);
+  assert.ok(errors.some((error) => /kpi-card.*min-width/.test(error)));
+  assert.ok(errors.some((error) => /kpi-card__value.*max-width/.test(error)));
 });
