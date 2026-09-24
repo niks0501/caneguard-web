@@ -59,6 +59,17 @@ final class LocationReferenceController extends Controller
         'Wawa',
     ];
 
+    /** Nasugbu scope shared with the dashboard analytics aggregates. */
+    public const SCOPE_MUNICIPALITY = 'Nasugbu';
+
+    public const SCOPE_PROVINCE = 'Batangas';
+
+    /** @return list<string> */
+    public static function barangayScope(): array
+    {
+        return self::BARANGAYS;
+    }
+
     public function __invoke(Request $request): JsonResponse|Response
     {
         $headers = ['ETag' => self::ETAG];

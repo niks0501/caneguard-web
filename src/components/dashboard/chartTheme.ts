@@ -11,10 +11,17 @@
 type TokenName =
   | "--color-brand"
   | "--color-brand-hover"
+  | "--color-primary"
+  | "--color-primary-dark"
+  | "--color-primary-light"
+  | "--color-muted"
+  | "--color-border-strong"
+  | "--color-danger"
   | "--color-text"
   | "--color-secondary-text"
   | "--color-border"
   | "--color-surface"
+  | "--color-surface-soft"
   | "--disease-healthy"
   | "--disease-mosaic"
   | "--disease-rust"
@@ -52,6 +59,21 @@ export const chartTheme = {
   get brandHover(): string {
     return readToken("--color-brand-hover");
   },
+  get primaryDark(): string {
+    return readToken("--color-primary-dark");
+  },
+  get primaryLight(): string {
+    return readToken("--color-primary-light");
+  },
+  get danger(): string {
+    return readToken("--color-danger");
+  },
+  get muted(): string {
+    return readToken("--color-muted");
+  },
+  get borderStrong(): string {
+    return readToken("--color-border-strong");
+  },
   get text(): string {
     return readToken("--color-text");
   },
@@ -71,6 +93,19 @@ export const chartTheme = {
     return Number.isFinite(parsed) ? parsed : 16;
   },
 };
+
+/** Reported-concern ramp slot (single-hue brand family, never --disease-*). */
+export function reportedConcernColor(index: number): string {
+  const ramp: TokenName[] = [
+    "--color-primary-dark",
+    "--color-brand-hover",
+    "--color-primary",
+    "--color-primary-light",
+    "--color-muted",
+    "--color-border-strong",
+  ];
+  return readToken(ramp[index % ramp.length]);
+}
 
 /** Possible-Condition colours stay the token set, keyed by condition. */
 export function conditionColor(condition: string): string {

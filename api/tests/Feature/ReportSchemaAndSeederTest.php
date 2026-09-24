@@ -678,7 +678,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $month = CarbonImmutable::now('UTC')->format('Y-m');
         $expectedMonthCount = $monthCounts[$month];
 
-        $response = $this->getJson('/api/v1/dashboard/summary?month='.$month)
+        $response = $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.monthly_summary.month', $month)
             ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount)

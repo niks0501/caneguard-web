@@ -174,10 +174,48 @@ export function validateSemanticContrast(tokensContent = readFileSync(TOKENS_PAT
   return errors;
 }
 
+/**
+ * §13.2 long-identifier guard: the 4-up KPI track exposes unbreakable
+ * identifiers (e.g. summary.queues.unverified_no_active_work), so the KPI
+ * card and its text slots must wrap anywhere instead of pushing the grid
+ * sideways.
+ */
+export function validateDashboardWrapRules(
+  cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
+) {
+  const errors = [];
+  const selectors = [
+    ".kpi-card",
+    ".kpi-card__value",
+    ".kpi-card__comparison",
+    ".kpi-card__scope",
+    ".kpi-card__asof",
+    ".kpi-card__footnote",
+    ".kpi-card__segment-label",
+  ];
+  for (const selector of selectors) {
+    const start = cssContent.indexOf(selector);
+    if (start === -1) {
+      errors.push(`Missing dashboard wrap rule for '${selector}'`);
+      continue;
+    }
+    const open = cssContent.indexOf("{", start);
+    const close = cssContent.indexOf("}", open);
+    const block = cssContent.slice(open, close + 1);
+    if (!/overflow-wrap\s*:\s*anywhere/.test(block)) {
+      errors.push(
+        `Dashboard wrap rule '${selector}' must set 'overflow-wrap: anywhere'`,
+      );
+    }
+  }
+  return errors;
+}
+
 export function assertDesignSpine() {
   const tokenErrors = validateDesignTokens();
   const contrastErrors = validateSemanticContrast();
-  const allErrors = [...tokenErrors, ...contrastErrors];
+  const wrapErrors = validateDashboardWrapRules();
+  const allErrors = [...tokenErrors, ...contrastErrors, ...wrapErrors];
 
   if (allErrors.length > 0) {
     throw new Error(

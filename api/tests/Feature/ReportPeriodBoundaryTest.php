@@ -18,7 +18,7 @@ class ReportPeriodBoundaryTest extends TestCase
     {
         Sanctum::actingAs(User::factory()->reviewer()->create());
 
-        $this->getJson('/api/v1/dashboard/summary?month=2026-09')
+        $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.monthly_summary.month', '2026-09')
             ->assertJsonPath('data.monthly_summary.reported_cases', 0)
@@ -65,7 +65,7 @@ class ReportPeriodBoundaryTest extends TestCase
                 ->assertJsonPath('data.reported_cases', 1)
                 ->json('data');
 
-            $dashboard = $this->getJson('/api/v1/dashboard/summary?month='.$period['month'])
+            $dashboard = $this->getJson('/api/v1/dashboard/summary?month='.$period['month'].'&include=counts,queues,recent,monthly')
                 ->assertOk()
                 ->assertJsonPath('data.monthly_summary.month', $period['month'])
                 ->assertJsonPath('data.monthly_summary.reported_cases', 1)

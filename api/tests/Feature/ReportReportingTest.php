@@ -373,7 +373,7 @@ class ReportReportingTest extends TestCase
             ->assertJsonPath('data.reported_cases', 4)
             ->assertJsonPath('data.reports_containing_farmer_farm_information', 2)
             ->assertJsonMissingPath('data.affected_farmers');
-        $this->getJson('/api/v1/dashboard/summary?month=2026-07')
+        $this->getJson('/api/v1/dashboard/summary?month=2026-07&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.monthly_summary.reported_cases', 4)
             ->assertJsonPath('data.monthly_summary.reports_containing_farmer_farm_information', 2);
@@ -509,7 +509,7 @@ class ReportReportingTest extends TestCase
         ]);
         Sanctum::actingAs($reviewer);
 
-        $this->getJson('/api/v1/dashboard/summary?month=2026-06')
+        $this->getJson('/api/v1/dashboard/summary?month=2026-06&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.monthly_summary.month', '2026-06')
             ->assertJsonPath('data.monthly_summary.reported_cases', 1)

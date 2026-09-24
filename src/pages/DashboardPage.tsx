@@ -1,96 +1,84 @@
-import { useState } from "react";
-import {
-  CalendarClock,
-  CalendarDays,
-  ChevronDown,
-  CheckCircle2,
-  ClipboardCheck,
-  CircleHelp,
-  Clock3,
-  FileStack,
-  RefreshCw,
-  Rows3,
-  ShieldCheck,
-} from "lucide-react";
-import type { ReactNode } from "react";
+import { Suspense, lazy, useState } from "react";
+import { FileStack, RefreshCw, Rows3 } from "lucide-react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
-import { AnalyticsSection } from "../components/dashboard/AnalyticsSection";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
-import { ExpertVerificationPanel } from "../components/dashboard/ExpertVerificationPanel";
-import { MonthlyCaseSummary } from "../components/dashboard/MonthlyCaseSummary";
-import { OperationalQueueCard } from "../components/dashboard/OperationalQueueCard";
+import { OperationalSnapshot } from "../components/dashboard/OperationalSnapshot";
+import { ScopeRuler } from "../components/dashboard/ScopeRuler";
+import {
+  dateDifferenceInDays,
+  formatAsOfTime,
+  formatWindow,
+  resolveScope,
+  type ScopeSelection,
+} from "../components/dashboard/dashboardScope";
 import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
-import { SecondaryMetric } from "../components/dashboard/SecondaryMetric";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
-import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
-import { useDashboard } from "../hooks/useDashboard";
-import type { OperationalQueue } from "../domain/operationalQueue";
-import { manilaMonthAt } from "../domain/reportingTime";
+import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
+import { useAnalytics } from "../hooks/useAnalytics";
+import { dashboardSummaryOptions, useDashboard } from "../hooks/useDashboard";
+import { manilaDateAt, manilaMonthAt } from "../domain/reportingTime";
 
-function formatRefreshTime(timestamp: number) {
-  if (!timestamp) return "Not refreshed yet";
+const MAX_ANALYTICS_RANGE_DAYS = 366;
 
-  return new Intl.DateTimeFormat("en-PH", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(timestamp);
+const InflowComparisonBars = lazy(() =>
+  import("../components/dashboard/InflowComparisonBars").then((module) => ({
+    default: module.InflowComparisonBars,
+  })),
+);
+const ConcernVsConditionBars = lazy(() =>
+  import("../components/dashboard/ConcernVsConditionBars").then((module) => ({
+    default: module.ConcernVsConditionBars,
+  })),
+);
+const BarangayValidationBars = lazy(() =>
+  import("../components/dashboard/BarangayValidationBars").then((module) => ({
+    default: module.BarangayValidationBars,
+  })),
+);
+const ReportLocationMap = lazy(() =>
+  import("../components/dashboard/ReportLocationMap").then((module) => ({
+    default: module.ReportLocationMap,
+  })),
+);
+
+function initialSelection(): ScopeSelection {
+  const month = manilaMonthAt();
+  const today = manilaDateAt();
+  return { mode: "month", month, from: `${month}-01`, to: today };
 }
 
-const queueCopy: Record<OperationalQueue, {
-  label: string;
-  icon: ReactNode;
-  href: string;
-}> = {
-  needs_review: {
-    label: "Needs Review",
-    icon: <ShieldCheck aria-hidden="true" />,
-    href: routes.reportQueue("needs_review"),
-  },
-  needs_visit: {
-    label: "Needs Visit",
-    icon: <ClipboardCheck aria-hidden="true" />,
-    href: routes.fieldValidationQueue("needs_visit"),
-  },
-  follow_up_due: {
-    label: "Follow-up Due",
-    icon: <CalendarClock aria-hidden="true" />,
-    href: routes.fieldValidationQueue("follow_up_due"),
-  },
-  upcoming: {
-    label: "Upcoming Visits",
-    icon: <CalendarDays aria-hidden="true" />,
-    href: routes.fieldValidationQueue("upcoming"),
-  },
-  unverified_no_active_work: {
-    label: "Unverified, no active work",
-    icon: <Rows3 aria-hidden="true" />,
-    href: routes.reportQueue("unverified_no_active_work"),
-  },
-};
-
-
-const queueOrder: OperationalQueue[] = [
-  "needs_review",
-  "needs_visit",
-  "follow_up_due",
-  "upcoming",
-  "unverified_no_active_work",
-];
-
 export function DashboardPage() {
-  const [selectedMonth, setSelectedMonth] = useState(manilaMonthAt);
+  const [selection, setSelection] = useState<ScopeSelection>(initialSelection);
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
-  const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
-  const [analyticsRequested, setAnalyticsRequested] = useState(false);
-  const dashboard = useDashboard(selectedMonth);
+  const scope = resolveScope(selection);
+  const dashboard = useDashboard(scope.month, dashboardSummaryOptions);
+  const rangeDays = dateDifferenceInDays(scope.from, scope.to) + 1;
+  const rangeTooLong = rangeDays > MAX_ANALYTICS_RANGE_DAYS;
+  const analytics = useAnalytics(
+    {
+      from: scope.from,
+      to: scope.to,
+      granularity: scope.granularity,
+    },
+    { enabled: !rangeTooLong },
+  );
+  const comparison = rangeTooLong ? undefined : analytics.data?.comparison;
+  const previousAnalytics = useAnalytics(
+    {
+      from: comparison?.previousFrom ?? scope.from,
+      to: comparison?.previousTo ?? scope.to,
+      granularity: scope.granularity,
+    },
+    { enabled: !rangeTooLong && comparison !== undefined },
+  );
   const summary = dashboard.data;
+  const asOf = formatAsOfTime(dashboard.dataUpdatedAt);
+  const scopeLabel = formatWindow(scope.from, scope.to);
 
-  const activeMonth = selectedMonth;
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
   const isRateLimited =
@@ -114,33 +102,23 @@ export function DashboardPage() {
         ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous dashboard remains visible."
         : "The latest refresh failed. Showing the most recently loaded dashboard.";
 
-  if (dashboard.isPending) {
-    return (
-      <PageContent>
-        <LoadingState message="Loading the SRA Don Pedro report overview..." />
-      </PageContent>
-    );
-  }
-
-  if (dashboard.isError && !summary) {
-    return (
-      <PageContent>
-        <ErrorState
-          message={initialErrorMessage}
-          onRetry={isForbidden ? undefined : () => dashboard.refetch()}
-        />
-      </PageContent>
-    );
-  }
-
-  if (!summary) return null;
-
   return (
     <PageContent>
       <PageHeader
-        title="CaneGuard dashboard"
+        eyebrow="SRA Don Pedro Mill District Office"
+        title="Overview"
+        description="Nasugbu, Batangas · synchronized field reports · period boundaries PHT (UTC+8)"
         actions={
           <>
+            <ScopeRuler selection={selection} onChange={setSelection} />
+            <p className="dashboard-last-updated" aria-live="polite">
+              <RefreshCw
+                className={dashboard.isFetching ? "spin" : ""}
+                aria-hidden="true"
+              />
+              <span>Last updated</span>
+              <strong>{asOf}</strong>
+            </p>
             <Button
               type="button"
               variant="secondary"
@@ -171,108 +149,159 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="dashboard-operational-section" aria-labelledby="operational-queues-heading">
-        <div className="dashboard-section-heading">
-          <div>
-            <h2 id="operational-queues-heading">Operational queues</h2>
-          </div>
-        </div>
-        <div className="dashboard-operational-queues">
-          {queueOrder.map((queue) => {
-            const copy = queueCopy[queue];
-            return (
-              <OperationalQueueCard
-                key={queue}
-                queue={queue}
-                label={copy.label}
-                count={summary.queues?.[queue] ?? 0}
-                href={copy.href}
-                icon={copy.icon}
-              />
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="report-workspace dashboard-recent" aria-labelledby="recent-reports-heading">
-        <div className="workspace-heading">
-          <div>
-            <h2 id="recent-reports-heading">Recent reports</h2>
-          </div>
-          <span className="workspace-heading__meta">{summary.recentReports.length} latest submissions</span>
-        </div>
-
-        {summary.recentReports.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <DashboardRecentReports reports={summary.recentReports} />
-        )}
-      </section>
-
-      {summary.monthlySummary ? (
-        <MonthlyCaseSummary
-          summary={summary.monthlySummary}
-          month={activeMonth}
-          onMonthChange={setSelectedMonth}
+      {dashboard.isError && !summary ? (
+        <ErrorState
+          message={initialErrorMessage}
+          onRetry={isForbidden ? undefined : () => dashboard.refetch()}
         />
-      ) : null}
-
-      <details
-        className="dashboard-secondary-analytics"
-        onToggle={(event) => {
-          const open = event.currentTarget.open;
-          setAnalyticsExpanded(open);
-          if (open) setAnalyticsRequested(true);
-        }}
-      >
-        <summary>
-          <span>
-            <strong>Detailed analytics and historical totals</strong>
-            <span>Comparisons, lifecycle, workload, turnaround and expert consultation</span>
-          </span>
-          <ChevronDown aria-hidden="true" />
-        </summary>
-        {analyticsRequested ? (
-          <div className="dashboard-secondary-analytics__content" hidden={!analyticsExpanded}>
-            <AnalyticsSection />
-            <ExpertVerificationPanel month={activeMonth} />
-            <section className="dashboard-metrics-band dashboard-history-band" aria-label="Historical report totals">
-              <div className="dashboard-section-heading">
-                <div>
-                  <h2>Report totals</h2>
+      ) : (
+        <>
+          <section
+            className="dashboard-section"
+            aria-labelledby="operational-snapshot-heading"
+            aria-busy={dashboard.isPending || analytics.isPending}
+          >
+            <div className="dashboard-section__heading">
+              <h2 id="operational-snapshot-heading">Operational snapshot</h2>
+            </div>
+            {!summary ? (
+              <>
+                <span className="sr-only">Loading the operational snapshot…</span>
+                <div className="dashboard-grid" aria-hidden="true">
+                  <div className="col-3"><Skeleton label="Loading submitted reports" /></div>
+                  <div className="col-3"><Skeleton label="Loading the review queue" /></div>
+                  <div className="col-3"><Skeleton label="Loading field-validation work" /></div>
+                  <div className="col-3"><Skeleton label="Loading unverified reports" /></div>
                 </div>
-                <p className="dashboard-refreshed" aria-live="polite">
-                  <RefreshCw aria-hidden="true" />
-                  <span>Last refreshed</span>
-                  <strong>{formatRefreshTime(dashboard.dataUpdatedAt)}</strong>
-                </p>
+              </>
+            ) : (
+              <OperationalSnapshot
+                summary={summary}
+                analytics={rangeTooLong ? undefined : analytics.data}
+                analyticsPending={rangeTooLong ? false : analytics.isPending}
+                analyticsFailed={rangeTooLong ? true : analytics.isError}
+                scope={scope}
+                asOf={asOf}
+              />
+            )}
+            {rangeTooLong ? (
+              <p className="dashboard-scope-note" role="alert">
+                Custom range cannot exceed 366 days. Shorten the range to load
+                the period comparison.
+              </p>
+            ) : null}
+          </section>
+
+          <section
+            className="report-workspace dashboard-recent"
+            aria-labelledby="recent-reports-heading"
+            aria-busy={dashboard.isPending}
+          >
+            <div className="workspace-heading">
+              <div>
+                <h2 id="recent-reports-heading">Recent reports</h2>
               </div>
-              <section className="dashboard-secondary-row" aria-label="Historical report status totals">
-                <SecondaryMetric
-                  label="Total submitted"
-                  value={summary.totalSubmitted}
-                  icon={<FileStack aria-hidden="true" />}
-                />
-                <SecondaryMetric
-                  label="Verified by staff"
-                  value={summary.counts.verified_by_staff}
-                  icon={<CheckCircle2 aria-hidden="true" />}
-                />
-                <SecondaryMetric
-                  label="Unable to verify"
-                  value={summary.counts.unable_to_verify}
-                  icon={<CircleHelp aria-hidden="true" />}
-                />
-                <SecondaryMetric
-                  label="Resolved"
-                  value={summary.counts.resolved}
-                  icon={<Clock3 aria-hidden="true" />}
-                />
-              </section>
-            </section>
-          </div>
-        ) : null}
-      </details>
+              {summary ? (
+                <span className="workspace-heading__meta">
+                  {summary.recentReports.length} most recent synchronized
+                  submissions · as of {asOf} PHT
+                </span>
+              ) : null}
+            </div>
+
+            {!summary ? (
+              <>
+                <span className="sr-only">Loading recent reports…</span>
+                <div aria-hidden="true">
+                  <Skeleton label="Loading recent reports" />
+                </div>
+              </>
+            ) : summary.recentReports.length === 0 ? (
+              <EmptyState
+                title="No submitted reports yet"
+                message="Reports appear here once a device synchronizes."
+              />
+            ) : (
+              <DashboardRecentReports reports={summary.recentReports} />
+            )}
+          </section>
+
+          <section
+            className="dashboard-section"
+            aria-labelledby="decision-visualizations-heading"
+            aria-busy={analytics.isPending || previousAnalytics.isPending}
+          >
+            <div className="dashboard-section__heading">
+              <h2 id="decision-visualizations-heading">Decision visualizations</h2>
+            </div>
+            {!analytics.data ? (
+              <>
+                <span className="sr-only">Loading decision visualizations…</span>
+                <div className="dashboard-grid" aria-hidden="true">
+                  <div className="col-6"><Skeleton label="Loading inflow comparison" /></div>
+                  <div className="col-6"><Skeleton label="Loading concern comparison" /></div>
+                  <div className="col-12"><Skeleton label="Loading barangay validation" /></div>
+                </div>
+              </>
+            ) : (
+              <div className="dashboard-grid">
+                <Suspense
+                  fallback={
+                    <div className="col-6" aria-hidden="true">
+                      <Skeleton label="Loading inflow comparison" />
+                    </div>
+                  }
+                >
+                  <InflowComparisonBars
+                    analytics={analytics.data}
+                    previousSeries={previousAnalytics.data?.series ?? []}
+                    scopeLabel={scopeLabel}
+                  />
+                </Suspense>
+                <Suspense
+                  fallback={
+                    <div className="col-6" aria-hidden="true">
+                      <Skeleton label="Loading concern comparison" />
+                    </div>
+                  }
+                >
+                  <ConcernVsConditionBars
+                    analytics={analytics.data}
+                    scopeLabel={scopeLabel}
+                  />
+                </Suspense>
+                <Suspense
+                  fallback={
+                    <div className="col-12" aria-hidden="true">
+                      <Skeleton label="Loading barangay validation" />
+                    </div>
+                  }
+                >
+                  <BarangayValidationBars
+                    analytics={analytics.data}
+                    scopeLabel={scopeLabel}
+                  />
+                </Suspense>
+                <Suspense
+                  fallback={
+                    <div className="col-12" aria-hidden="true">
+                      <Skeleton label="Loading field-report map" />
+                    </div>
+                  }
+                >
+                  <ReportLocationMap
+                    rows={analytics.data.validationByBarangay}
+                    scopeLabel={scopeLabel}
+                    from={scope.from}
+                    to={scope.to}
+                  />
+                </Suspense>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
       <ReportDocumentBuilder
         open={reportBuilderOpen}
         onClose={() => setReportBuilderOpen(false)}

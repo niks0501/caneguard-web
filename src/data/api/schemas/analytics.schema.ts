@@ -64,6 +64,40 @@ export const analyticsResponseSchema = z.object({
       field_validation_state: lifecycleDistributionSchema,
       referral_state: lifecycleDistributionSchema,
     }),
+    reported_concern: z.array(
+      z.object({
+        concern: z.string(),
+        label: z.string(),
+        count: z.number().int().nonnegative(),
+        share: z.number().nonnegative(),
+      }),
+    ),
+    possible_condition: z.array(
+      z.object({
+        condition: z.string(),
+        count: z.number().int().nonnegative(),
+      }),
+    ),
+    verification_outcome: z.object({
+      not_determined: z.number().int().nonnegative(),
+      verified: z.number().int().nonnegative(),
+      unable_to_verify: z.number().int().nonnegative(),
+    }),
+    validation_by_barangay: z.array(
+      z.object({
+        barangay: z.string(),
+        submitted: z.number().int().nonnegative(),
+        open: z.number().int().nonnegative(),
+        past_target_date: z.number().int().nonnegative(),
+        scheduled: z.number().int().nonnegative(),
+        unscheduled: z.number().int().nonnegative(),
+      }),
+    ),
+    barangay_scope: z.object({
+      municipality: z.string(),
+      province: z.string(),
+      barangays: z.array(z.string()),
+    }),
     area: z.object({
       estimated_hectares: z.number().nonnegative(),
       contributing_reports: z.number().int().nonnegative(),

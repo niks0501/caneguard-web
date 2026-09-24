@@ -22,6 +22,18 @@ const qaApiProxy = qaApiProxyTarget
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Overhaul P1: keep the chart vendor out of the initial chunk so
+        // every route stops shipping Recharts before any chart mounts.
+        manualChunks: (id) => {
+          if (id.includes("node_modules/recharts")) return "chart-vendor";
+          return undefined;
+        },
+      },
+    },
+  },
   optimizeDeps: {
     exclude: ["maplibre-gl"],
   },

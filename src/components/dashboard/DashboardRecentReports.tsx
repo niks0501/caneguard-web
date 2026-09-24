@@ -17,6 +17,7 @@ export function DashboardRecentReports({
         <thead>
           <tr>
             <th scope="col">Report</th>
+            <th scope="col">Reported concern</th>
             <th scope="col">Possible Condition</th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
@@ -44,6 +45,7 @@ export function DashboardRecentReports({
                 </div>
               </td>
               <td><DiseaseBadge disease={report.predictedDisease} includePossibleConditionPrefix={false} /></td>
+              <td>{report.reporterSuspectedCondition?.trim() ? report.reporterSuspectedCondition : "Not stated"}</td>
               <td><strong className="table-primary">{report.barangay}</strong></td>
               <td>{formatDateTime(report.submittedAt)}</td>
               <td className="report-status-cell"><ReviewStatusBadge status={report.reviewStatus} /></td>

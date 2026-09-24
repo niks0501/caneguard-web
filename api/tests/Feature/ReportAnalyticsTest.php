@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -261,5 +262,141 @@ class ReportAnalyticsTest extends TestCase
             $analytics['cases_by_possible_condition'],
         );
         $this->assertSame($monthly['closed_cases'], $analytics['case_state']['closed']);
+    }
+
+    public function test_analytics_reports_reported_concern_beside_the_ai_series(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $rows = [
+            ['concern' => Report::REPORTER_CONCERN_RSSI, 'label' => Report::LABEL_MOSAIC],
+            ['concern' => Report::LABEL_SMUT, 'label' => Report::LABEL_SMUT],
+            ['concern' => 'Red stripe', 'label' => Report::LABEL_HEALTHY],
+            ['concern' => null, 'label' => Report::LABEL_RUST],
+            ['concern' => ' mosaic ', 'label' => Report::LABEL_MOSAIC],
+        ];
+        foreach ($rows as $index => $row) {
+            Report::factory()->create([
+                'reporter_suspected_condition' => $row['concern'],
+                'predicted_label' => $row['label'],
+                'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+                'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z')->addHours($index),
+            ]);
+        }
+        Sanctum::actingAs($reviewer);
+
+        $analytics = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
+            'from' => '2026-09-01',
+            'to' => '2026-09-07',
+            'granularity' => 'day',
+        ]))->assertOk()->json('data');
+
+        $this->assertSame(5, $analytics['total_submitted']);
+        // Declared order, normalised (' mosaic ' folds into mosaic), tail in
+        // `other`, blanks in `not_stated`, totals reconciling with the count.
+        $this->assertSame(
+            [Report::REPORTER_CONCERN_RSSI, Report::LABEL_SMUT, Report::LABEL_MOSAIC, Report::LABEL_RUST, 'other', 'not_stated'],
+            array_column($analytics['reported_concern'], 'concern'),
+        );
+        $this->assertSame([1, 1, 1, 0, 1, 1], array_column($analytics['reported_concern'], 'count'));
+        $this->assertSame(5, array_sum(array_column($analytics['reported_concern'], 'count')));
+        $this->assertEqualsWithDelta(1.0, array_sum(array_column($analytics['reported_concern'], 'share')), 0.001);
+
+        // The AI series enumerates the shipped model's declared list only:
+        // RSSI never enters it, and smut waits for model integration.
+        $this->assertSame(
+            [
+                ['condition' => Report::LABEL_HEALTHY, 'count' => 1],
+                ['condition' => Report::LABEL_MOSAIC, 'count' => 2],
+                ['condition' => Report::LABEL_RUST, 'count' => 1],
+            ],
+            $analytics['possible_condition'],
+        );
+
+        $this->assertSame(
+            Report::verificationOutcomes(),
+            array_keys($analytics['verification_outcome']),
+        );
+    }
+
+    public function test_analytics_splits_validation_attention_per_barangay_with_nasugbu_scope(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-10 09:00:00');
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            $assignee = User::factory()->fieldReporter()->create();
+            $past = Report::factory()->create([
+                'barangay' => 'Aga',
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+                'case_state' => Report::CASE_STATE_OPEN,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
+            ]);
+            FieldValidationAssignment::factory()->create([
+                'report_id' => $past->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => '2026-09-09',
+            ]);
+            $upcoming = Report::factory()->create([
+                'barangay' => 'Aga',
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+                'case_state' => Report::CASE_STATE_OPEN,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
+            ]);
+            FieldValidationAssignment::factory()->create([
+                'report_id' => $upcoming->getKey(),
+                'assignee_id' => $assignee->getKey(),
+                'assigned_by_id' => $reviewer->getKey(),
+                'target_visit_date' => '2026-09-12',
+            ]);
+            Report::factory()->create([
+                'barangay' => 'Banilad',
+                'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+                'case_state' => Report::CASE_STATE_OPEN,
+                'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+                'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
+            ]);
+            Sanctum::actingAs($reviewer);
+
+            $analytics = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
+                'from' => '2026-09-01',
+                'to' => '2026-09-30',
+                'granularity' => 'week',
+            ]))->assertOk()->json('data');
+
+            $byBarangay = [];
+            foreach ($analytics['validation_by_barangay'] as $row) {
+                $byBarangay[$row['barangay']] = $row;
+            }
+            $this->assertSame(
+                ['barangay' => 'Aga', 'submitted' => 2, 'open' => 2, 'past_target_date' => 1, 'scheduled' => 1, 'unscheduled' => 0],
+                $byBarangay['Aga'],
+            );
+            $this->assertSame(
+                ['barangay' => 'Banilad', 'submitted' => 1, 'open' => 1, 'past_target_date' => 0, 'scheduled' => 0, 'unscheduled' => 1],
+                $byBarangay['Banilad'],
+            );
+
+            // Nasugbu scope proof: every scope barangay present, none omitted.
+            $this->assertSame('Nasugbu', $analytics['barangay_scope']['municipality']);
+            $this->assertSame('Batangas', $analytics['barangay_scope']['province']);
+            foreach (['Aga', 'Banilad', 'Bucana'] as $barangay) {
+                $this->assertContains($barangay, $analytics['barangay_scope']['barangays']);
+                $this->assertArrayHasKey($barangay, $byBarangay);
+            }
+            $this->assertSame(0, $byBarangay['Bucana']['submitted']);
+
+            // Segments reconcile with the open count per barangay.
+            foreach ($byBarangay as $row) {
+                $this->assertSame(
+                    $row['open'],
+                    $row['past_target_date'] + $row['scheduled'] + $row['unscheduled'],
+                    $row['barangay'],
+                );
+            }
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 }

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   contrastRatio,
   parseTokensCss,
+  validateDashboardWrapRules,
   validateSemanticContrast,
 } from "./validate-design-spine.mjs";
 
@@ -41,4 +42,24 @@ test("validateSemanticContrast catches failing token pairs", () => {
   `;
   const passingErrors = validateSemanticContrast(passingTokens);
   assert.equal(passingErrors.length, 0);
+});
+
+test("validateDashboardWrapRules requires overflow-wrap on KPI text slots", () => {
+  const passing = [
+    ".kpi-card",
+    ".kpi-card__value",
+    ".kpi-card__comparison",
+    ".kpi-card__scope",
+    ".kpi-card__asof",
+    ".kpi-card__footnote",
+    ".kpi-card__segment-label",
+  ]
+    .map((selector) => `${selector} { overflow-wrap: anywhere; }`)
+    .join("\n");
+  assert.equal(validateDashboardWrapRules(passing).length, 0);
+
+  const failing = ".kpi-card { display: flex; }\n.kpi-card__value { overflow-wrap: anywhere; }";
+  const errors = validateDashboardWrapRules(failing);
+  assert.ok(errors.length > 0);
+  assert.match(errors[0], /kpi-card.*overflow-wrap/);
 });

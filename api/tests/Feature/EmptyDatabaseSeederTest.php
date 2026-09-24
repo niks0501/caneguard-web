@@ -60,7 +60,7 @@ class EmptyDatabaseSeederTest extends TestCase
             $this->assertNotEmpty($advisory['content']);
         }
 
-        $dashboard = $this->getJson('/api/v1/dashboard/summary?month=2026-09')
+        $dashboard = $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')
             ->assertOk()
             ->json('data');
         $this->assertSame(0, $dashboard['counts']['total_submitted']);

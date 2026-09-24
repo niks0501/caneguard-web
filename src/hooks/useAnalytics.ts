@@ -14,9 +14,16 @@ export const analyticsQueryOptions = (params: ReportAnalyticsParams) =>
     queryKey: analyticsKeys.period(params),
     queryFn: () => dashboardRepository.getAnalytics(params),
     placeholderData: keepPreviousData,
+    // Overhaul P1: the aggregates are expensive, so a window-focus refetch
+    // is skipped while the data is younger than 60s (React Query only
+    // refetches on focus when the data is stale).
+    staleTime: 60_000,
     ...getOperationalQueryRefreshOptions(),
   });
 
-export function useAnalytics(params: ReportAnalyticsParams) {
-  return useQuery(analyticsQueryOptions(params));
+export function useAnalytics(params: ReportAnalyticsParams, options?: { enabled?: boolean }) {
+  return useQuery({
+    ...analyticsQueryOptions(params),
+    enabled: options?.enabled,
+  });
 }
