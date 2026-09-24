@@ -17,6 +17,9 @@ export const analyticsQueryOptions = (params: ReportAnalyticsParams) =>
     ...getOperationalQueryRefreshOptions(),
   });
 
-export function useAnalytics(params: ReportAnalyticsParams) {
-  return useQuery(analyticsQueryOptions(params));
+export function useAnalytics(params: ReportAnalyticsParams, options?: { enabled?: boolean }) {
+  return useQuery({
+    ...analyticsQueryOptions(params),
+    enabled: options?.enabled,
+  });
 }

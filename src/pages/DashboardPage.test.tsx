@@ -1,51 +1,106 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { ZodError } from "zod";
 import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { mockReports } from "../data/mock/mockReports";
+import { useAnalytics } from "../hooks/useAnalytics";
 import { useDashboard } from "../hooks/useDashboard";
-import { useMonthlyReportSummary } from "../hooks/useReports";
+import type { ReportAnalytics } from "../domain/dashboard.types";
 import { DashboardPage } from "./DashboardPage";
-
-vi.mock("../components/dashboard/AnalyticsSection", () => ({
-  AnalyticsSection: () => <section aria-label="Report analytics" />,
-}));
 
 vi.mock("../hooks/useDashboard", () => ({
   useDashboard: vi.fn(),
 }));
 
-vi.mock("../hooks/useReports", () => ({
-  useMonthlyReportSummary: vi.fn(),
+vi.mock("../hooks/useAnalytics", () => ({
+  useAnalytics: vi.fn(),
 }));
-
 
 const summary = {
   totalSubmitted: 8,
   queues: {
     needs_review: 3,
-    needs_visit: 1,
-    follow_up_due: 0,
+    needs_visit: 4,
+    follow_up_due: 1,
+    upcoming: 2,
+    unverified_no_active_work: 1,
   },
   counts: {
     submitted_unverified: 3,
-    for_field_validation: 1,
+    for_field_validation: 4,
     verified_by_staff: 2,
     unable_to_verify: 1,
     resolved: 1,
   },
   recentReports: mockReports.slice(0, 5),
+  monthlySummary: {
+    month: "2026-09",
+    period: { from: "2026-09-01", to: "2026-09-30" },
+    reportedCases: 6,
+    casesByBarangay: [],
+    casesByPossibleCondition: [],
+    estimatedAffectedHectares: 0,
+    reportsContainingFarmerFarmInformation: 0,
+    fieldValidationCounts: {
+      unassigned: 1,
+      assigned: 2,
+      inProgress: 1,
+      completed: 0,
+      requiringValidation: 3,
+    },
+    closedCases: 0,
+    reviewTime: {
+      source: "submitted_at_to_reviewed_at",
+      reviewedCases: 0,
+      averageHours: null,
+      medianHours: null,
+      minHours: null,
+      maxHours: null,
+    },
+  },
 };
+
+const analytics = {
+  period: {
+    from: "2026-09-01",
+    to: "2026-09-24",
+    granularity: "day",
+    label: "1–24 Sep 2026",
+    timezone: "Asia/Manila",
+    timezoneLabel: "PHT (UTC+8)",
+    days: 24,
+    partial: false,
+  },
+  totalSubmitted: 12,
+  series: [
+    { label: "2026-09-01", count: 2 },
+    { label: "2026-09-02", count: 1 },
+  ],
+  comparison: {
+    previousFrom: "2026-08-08",
+    previousTo: "2026-08-31",
+    previousTotal: 9,
+    currentTotal: 12,
+    delta: 3,
+  },
+  reviewBacklog: {
+    totalWaiting: 3,
+    buckets: [
+      { label: "0–2 days waiting", count: 1 },
+      { label: "3–6 days waiting", count: 2 },
+    ],
+    oldestWaitingDays: 5,
+  },
+} as unknown as ReportAnalytics;
 
 function dashboardResult(
   overrides: Record<string, unknown> = {},
 ): ReturnType<typeof useDashboard> {
   return {
     data: summary,
-    dataUpdatedAt: new Date("2026-07-27T01:00:00+08:00").getTime(),
+    dataUpdatedAt: new Date("2026-09-24T13:14:03Z").getTime(),
     error: null,
     isError: false,
     isFetching: false,
@@ -54,6 +109,22 @@ function dashboardResult(
     refetch: vi.fn(),
     ...overrides,
   } as unknown as ReturnType<typeof useDashboard>;
+}
+
+function analyticsResult(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof useAnalytics> {
+  return {
+    data: analytics,
+    dataUpdatedAt: new Date("2026-09-24T13:14:03Z").getTime(),
+    error: null,
+    isError: false,
+    isFetching: false,
+    isPending: false,
+    isRefetchError: false,
+    refetch: vi.fn(),
+    ...overrides,
+  } as unknown as ReturnType<typeof useAnalytics>;
 }
 
 function renderDashboard() {
@@ -70,243 +141,121 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.mocked(useDashboard).mockReturnValue(dashboardResult());
-  vi.mocked(useMonthlyReportSummary).mockReturnValue({
-    data: {
-      month: "2026-07",
-      period: { from: "2026-07-01", to: "2026-07-31" },
-      reportedCases: 3,
-      expertVerification: {
-        consultVolume: {
-          total: 3,
-          consultedCases: 3,
-          pending: 1,
-          inProgress: 0,
-          completed: 2,
-          cancelled: 0,
-        },
-        expertAgreement: {
-          count: 2,
-          denominator: 2,
-          rate: 1.0,
-          percentage: 100,
-        },
-        unableToClassifyRate: {
-          count: 0,
-          denominator: 2,
-          rate: 0,
-          percentage: 0,
-        },
-        symptomVerificationDisagreement: {
-          count: 0,
-          denominator: 2,
-          rate: 0,
-          percentage: 0,
-        },
-      },
-    },
-    isPending: false,
-    isError: false,
-    refetch: vi.fn(),
-  } as unknown as ReturnType<typeof useMonthlyReportSummary>);
+  vi.mocked(useAnalytics).mockReturnValue(analyticsResult());
 });
 
-
 describe("DashboardPage", () => {
-  it("requests the current PHT month by default and allows changing it", () => {
+  it("requests the current PHT month by default and allows changing the scope", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-31T16:30:00.000Z"));
-    vi.mocked(useDashboard).mockReturnValue(dashboardResult({
-      data: {
-        ...summary,
-        monthlySummary: {
-          month: "2026-09",
-          period: { from: "2026-09-01", to: "2026-09-30" },
-          reportedCases: 0,
-          casesByBarangay: [],
-          casesByPossibleCondition: [],
-          estimatedAffectedHectares: 0,
-          fieldValidationCounts: {
-            unassigned: 0,
-            assigned: 0,
-            inProgress: 0,
-            completed: 0,
-            requiringValidation: 0,
-          },
-          closedCases: 0,
-          reviewTime: {
-            source: "submitted_at_to_reviewed_at",
-            reviewedCases: 0,
-            averageHours: null,
-            medianHours: null,
-            minHours: null,
-            maxHours: null,
-          },
-        },
-      },
-    }));
-
+    vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
     renderDashboard();
     expect(useDashboard).toHaveBeenLastCalledWith("2026-09");
+    expect(useAnalytics).toHaveBeenLastCalledWith(
+      { from: "2026-09-01", to: "2026-09-30", granularity: "day" },
+      { enabled: true },
+    );
 
-    fireEvent.change(screen.getByLabelText("Summary month"), { target: { value: "2026-08" } });
+    fireEvent.change(screen.getByLabelText("Scope month"), {
+      target: { value: "2026-08" },
+    });
     expect(useDashboard).toHaveBeenLastCalledWith("2026-08");
+    expect(useAnalytics).toHaveBeenLastCalledWith(
+      { from: "2026-08-01", to: "2026-08-31", granularity: "day" },
+      { enabled: true },
+    );
+
+    fireEvent.click(screen.getByLabelText("Last 30 days"));
+    expect(useAnalytics).toHaveBeenLastCalledWith(
+      { from: "2026-08-26", to: "2026-09-24", granularity: "day" },
+      { enabled: true },
+    );
   });
 
-  it("leads with office queues and reports, with analytics behind a disclosure", async () => {
-    const user = userEvent.setup();
+  it("renders the four-KPI operational snapshot with honest windows", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
     renderDashboard();
 
-    const queues = within(
-      screen.getByRole("region", { name: "Operational queues" }),
+    const snapshot = within(
+      screen.getByRole("region", { name: "Operational snapshot" }),
     );
-    expect(queues.getByText("Needs Review")).toBeInTheDocument();
-    expect(queues.getByText("Needs Visit")).toBeInTheDocument();
-    expect(queues.getByText("Follow-up Due")).toBeInTheDocument();
-    expect(queues.getByText("Upcoming Visits")).toBeInTheDocument();
-    expect(queues.getByText("Unverified, no active work")).toBeInTheDocument();
-    expect(queues.getByText("3")).toBeInTheDocument();
-    expect(queues.getByText("1")).toBeInTheDocument();
+    expect(snapshot.getByText("Submitted reports")).toBeInTheDocument();
+    expect(snapshot.getByText("Awaiting review")).toBeInTheDocument();
+    expect(snapshot.getByText("Needing field validation")).toBeInTheDocument();
+    expect(snapshot.getByText("Unverified, no active work")).toBeInTheDocument();
+
+    // KPI 1: real previous-window comparison with both windows printed.
+    expect(snapshot.getByText(/▲ Up from 9/)).toBeInTheDocument();
+    expect(snapshot.getByText("1–30 Sep 2026 · PHT")).toBeInTheDocument();
+    expect(snapshot.getByText(/8–31 Aug 2026/)).toBeInTheDocument();
     expect(
-      queues.getByRole("link", { name: "Open Needs Review queue" }),
-    ).toHaveAttribute("href", "/reports?queue=needs_review");
+      snapshot.getByText(/Records still waiting to sync/),
+    ).toBeInTheDocument();
+
+    // Queue KPIs carry an "as of" stamp instead of a faked delta.
+    expect(snapshot.getAllByText("as of 21:14:03 PHT")).toHaveLength(3);
+
+    // KPI 3 folds the two calendar subsets in as labelled segments.
+    expect(snapshot.getByText("Past target date")).toBeInTheDocument();
+    expect(snapshot.getByText("Scheduled ahead")).toBeInTheDocument();
+    expect(snapshot.getByText("Unscheduled")).toBeInTheDocument();
     expect(
-      queues.getByRole("link", { name: "Open Needs Visit queue" }),
+      snapshot.getByRole("link", { name: "Open the Past target date queue" }),
+    ).toHaveAttribute("href", "/map?queue=follow_up_due");
+    expect(
+      snapshot.getByRole("link", { name: "Open the Scheduled ahead queue" }),
+    ).toHaveAttribute("href", "/map?queue=upcoming");
+    expect(
+      snapshot.getByRole("link", { name: "Open unscheduled validation work" }),
     ).toHaveAttribute("href", "/map?queue=needs_visit");
     expect(
-      queues.getByRole("link", { name: "Open Follow-up Due queue" }),
-    ).toHaveAttribute("href", "/map?queue=follow_up_due");
+      snapshot.getByText("Unassigned 1 · Assigned 2 · In progress 1"),
+    ).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Report analytics" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Historical report totals" })).not.toBeInTheDocument();
-    await user.click(
-      screen.getByText("Detailed analytics and historical totals"),
-    );
-    expect(screen.getByRole("region", { name: "Report analytics" })).toBeInTheDocument();
-    const historical = within(
-      screen.getByRole("region", { name: "Historical report totals" }),
-    );
-    expect(historical.getByText("Total submitted")).toBeInTheDocument();
-    expect(historical.getByText("Verified by staff")).toBeInTheDocument();
-    expect(historical.getByText("Unable to verify")).toBeInTheDocument();
-    expect(historical.getByText("Resolved")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Open CG-2026-0718" }),
-    ).toHaveAttribute(
-      "href",
-      "/reports/00000000-0000-4000-8000-000000000001",
-    );
+      snapshot.getByRole("link", { name: "Open the Awaiting review queue" }),
+    ).toHaveAttribute("href", "/reports?queue=needs_review");
     expect(
-      screen.getByRole("img", {
-        name: "Submitted photo for CG-2026-0718",
+      snapshot.getByRole("link", {
+        name: "Open the Unverified, no active work queue",
       }),
-    ).toHaveAttribute("src", mockReports[0].imageUrl);
-    expect(screen.queryByRole("region", { name: /Start with Needs Review/ })).not.toBeInTheDocument();
-    const recentReports = within(
-      screen.getByRole("region", { name: "Recent reports" }),
-    );
-    expect(recentReports.getAllByText("Mosaic").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Possible Condition: Mosaic")).not.toBeInTheDocument();
+    ).toHaveAttribute("href", "/reports?queue=unverified_no_active_work");
 
-    await user.click(screen.getByText("Detailed analytics and historical totals"));
-    expect(screen.queryByRole("region", { name: "Report analytics" })).not.toBeInTheDocument();
-    await user.click(screen.getByText("Detailed analytics and historical totals"));
-    expect(screen.getByRole("region", { name: "Report analytics" })).toBeInTheDocument();
+    // Waiting-age ladder with the oldest wait stated.
+    expect(snapshot.getByText("0–2 days waiting")).toBeInTheDocument();
+    expect(snapshot.getByText("Oldest wait 5 days.")).toBeInTheDocument();
   });
 
-  it("renders monthly case summaries", async () => {
-    vi.mocked(useDashboard).mockReturnValue(
-      dashboardResult({
+  it("words the comparison honestly when submissions fall or hold steady", () => {
+    vi.mocked(useAnalytics).mockReturnValue(
+      analyticsResult({
         data: {
-          ...summary,
-          monthlySummary: {
-            month: "2026-07",
-            period: { from: "2026-07-01", to: "2026-07-31" },
-            reportedCases: 4,
-            casesByBarangay: [{ barangay: "Mabini", reportedCases: 3 }],
-            casesByPossibleCondition: [
-              { possibleCondition: "rust", reportedCases: 2 },
-              { possibleCondition: "smut", reportedCases: 1 },
-            ],
-            estimatedAffectedHectares: 3.75,
-            reportsContainingFarmerFarmInformation: 2,
-            fieldValidationCounts: {
-              unassigned: 1,
-              assigned: 1,
-              inProgress: 0,
-              completed: 2,
-              requiringValidation: 1,
-            },
-            closedCases: 2,
-            reviewTime: {
-              source: "submitted_at_to_reviewed_at",
-              reviewedCases: 2,
-              averageHours: 30,
-              medianHours: 30,
-              minHours: 6,
-              maxHours: 54,
-            },
+          ...analytics,
+          comparison: {
+            previousFrom: "2026-08-08",
+            previousTo: "2026-08-31",
+            previousTotal: 15,
+            currentTotal: 12,
+            delta: -3,
           },
         },
       }),
     );
-    renderDashboard();
-
-    const monthly = within(
-      screen.getByRole("region", { name: "Monthly submitted report summary" }),
-    );
-    expect(monthly.getByText("Submitted reports")).toBeInTheDocument();
-    expect(monthly.getByText("Estimated affected area")).toBeInTheDocument();
-    expect(monthly.getByText("Requiring field validation")).toBeInTheDocument();
-    expect(monthly.getByText("Closed submitted reports")).toBeInTheDocument();
-    expect(monthly.getByRole("heading", { name: "Field-validation counts" })).toBeInTheDocument();
-    expect(monthly.queryByRole("heading", { name: "Review time" })).not.toBeInTheDocument();
-    expect(monthly.queryByText(/farmer/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Report analytics" })).not.toBeInTheDocument();
-  });
-
-  it("refreshes on demand and links to the full queue", async () => {
-    const refetch = vi.fn();
-    vi.mocked(useDashboard).mockReturnValue(dashboardResult({ refetch }));
-    const user = userEvent.setup();
-    renderDashboard();
-
-    await user.click(
-      screen.getByRole("button", { name: "Refresh dashboard" }),
-    );
-
-    expect(refetch).toHaveBeenCalledOnce();
-    expect(
-      screen.getByRole("link", { name: "View all reports" }),
-    ).toHaveAttribute("href", "/reports");
-  });
-
-  it("shows a zero due queue without inventing a deadline", () => {
-    vi.mocked(useDashboard).mockReturnValue(
-      dashboardResult({
-        data: {
-          ...summary,
-          queues: { ...summary.queues, needs_review: 0, needs_visit: 0, follow_up_due: 0 },
-        },
-      }),
-    );
-    renderDashboard();
-
-    expect(screen.getByRole("link", { name: "Open Follow-up Due queue" })).toBeInTheDocument();
-  });
-
-  it("shows loading and empty states", () => {
-    vi.mocked(useDashboard).mockReturnValue(
-      dashboardResult({ data: undefined, isPending: true }),
-    );
     const { rerender } = renderDashboard();
-    expect(
-      screen.getByText("Loading the SRA Don Pedro report overview..."),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/▼ Down from 15/)).toBeInTheDocument();
 
-    vi.mocked(useDashboard).mockReturnValue(
-      dashboardResult({
-        data: { ...summary, recentReports: [] },
+    vi.mocked(useAnalytics).mockReturnValue(
+      analyticsResult({
+        data: {
+          ...analytics,
+          comparison: {
+            previousFrom: "2026-08-08",
+            previousTo: "2026-08-31",
+            previousTotal: 12,
+            currentTotal: 12,
+            delta: 0,
+          },
+        },
       }),
     );
     rerender(
@@ -314,7 +263,123 @@ describe("DashboardPage", () => {
         <DashboardPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText("No submitted reports yet")).toBeInTheDocument();
+    expect(screen.getByText(/■ No change from 12/)).toBeInTheDocument();
+  });
+
+  it("states the good outcome when a queue is empty", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: {
+          ...summary,
+          queues: {
+            needs_review: 0,
+            needs_visit: 0,
+            follow_up_due: 0,
+            upcoming: 0,
+            unverified_no_active_work: 0,
+          },
+        },
+      }),
+    );
+    renderDashboard();
+
+    expect(screen.getByText("Nothing awaiting review.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No open field-validation work."),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps long queue identifiers inside the KPI grid without sideways push", () => {
+    // §13.2: the 4-up KPI track exposes unbreakable identifiers such as
+    // summary.queues.unverified_no_active_work. The wrap rule itself is
+    // enforced by the design-spine validator (validateDashboardWrapRules);
+    // this fixture proves the longest real labels still mount.
+    renderDashboard();
+    expect(screen.getByText("Unverified, no active work")).toBeInTheDocument();
+    expect(
+      screen.getByText(/no referral in flight, no validation assignment/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows recent reports with the reported-concern column and a freshness stamp", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
+    renderDashboard();
+
+    const recent = within(screen.getByRole("region", { name: "Recent reports" }));
+    expect(recent.getByText("Reported concern")).toBeInTheDocument();
+    expect(recent.getAllByText("Not stated").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("5 most recent synchronized submissions · as of 21:14:03 PHT"),
+    ).toBeInTheDocument();
+    expect(
+      recent.getByRole("link", { name: "Open CG-2026-0718" }),
+    ).toHaveAttribute(
+      "href",
+      "/reports/00000000-0000-4000-8000-000000000001",
+    );
+  });
+
+  it("renders the header with the scope ruler and an always-visible freshness stamp", () => {
+    renderDashboard();
+
+    expect(
+      screen.getByText("SRA Don Pedro Mill District Office"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Report scope" })).toBeInTheDocument();
+    expect(screen.getByText("Last updated")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Refresh dashboard" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
+  });
+
+  it("mounts no legacy analytics, verification panel, monthly panel or disclosure", () => {
+    renderDashboard();
+
+    expect(
+      screen.queryByText("Detailed analytics and historical totals"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Monthly submitted report summary")).not.toBeInTheDocument();
+    expect(screen.queryByText("Expert verification")).not.toBeInTheDocument();
+    expect(screen.queryByText("Report totals")).not.toBeInTheDocument();
+    expect(screen.queryByText("Submitted reports over time")).not.toBeInTheDocument();
+  });
+
+  it("progressively loads with skeletons instead of a blank page", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({ data: undefined, isPending: true }),
+    );
+    const { rerender } = renderDashboard();
+    expect(screen.getByText("Loading the operational snapshot…")).toBeInTheDocument();
+    expect(screen.getByText("Loading recent reports…")).toBeInTheDocument();
+    // The header and its freshness stamp paint before any request resolves.
+    expect(screen.getByText("Last updated")).toBeInTheDocument();
+
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({ data: { ...summary, recentReports: [] } }),
+    );
+    rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText("Reports appear here once a device synchronizes."),
+    ).toBeInTheDocument();
+  });
+
+  it("refreshes on demand and links to the full register", async () => {
+    const refetch = vi.fn();
+    vi.mocked(useDashboard).mockReturnValue(dashboardResult({ refetch }));
+    renderDashboard();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh dashboard" }));
+    expect(refetch).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole("link", { name: "View all reports" }),
+    ).toHaveAttribute("href", "/reports");
   });
 
   it("distinguishes access denied from a server error", () => {
@@ -331,9 +396,7 @@ describe("DashboardPage", () => {
         "Your account does not have access to the SRA Don Pedro dashboard.",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Try again" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
 
     vi.mocked(useDashboard).mockReturnValue(
       dashboardResult({
@@ -350,9 +413,7 @@ describe("DashboardPage", () => {
     expect(
       screen.getByText("The dashboard could not be loaded from CaneGuard."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Try again" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("explains when the dashboard cannot connect to the API", () => {
@@ -410,23 +471,4 @@ describe("DashboardPage", () => {
       screen.getByRole("link", { name: "Open CG-2026-0718" }),
     ).toBeInTheDocument();
   });
-
-  it("keeps expert verification available in secondary analytics", async () => {
-    const user = userEvent.setup();
-    renderDashboard();
-
-    await user.click(screen.getByText("Detailed analytics and historical totals"));
-    const expertPanel = screen.getByRole("region", {
-      name: "Expert verification",
-    });
-    expect(expertPanel).toBeInTheDocument();
-    expect(within(expertPanel).getByText("Total consults")).toBeInTheDocument();
-    expect(within(expertPanel).getAllByText("Completed").length).toBeGreaterThanOrEqual(1);
-    const findingOutcomes = within(expertPanel).getByRole("region", {
-      name: "Finding outcomes",
-    });
-    expect(within(findingOutcomes).getByText("Agreed with Possible Condition")).toBeInTheDocument();
-  });
 });
-
-

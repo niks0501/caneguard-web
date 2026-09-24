@@ -96,6 +96,17 @@
   --space-8: 50px;
   --space-9: 60px;
 
+  /* Dashboard grid rhythm (analytical dashboard overhaul): one 12-column
+     grid, 20px gaps between related components, 30px between sections. */
+  --grid-columns: 12;
+  --grid-gap: var(--space-4);
+  --section-gap: var(--space-6);
+  --card-padding: var(--space-4);
+  --chart-height-sm: 240px;
+  --chart-height-md: 300px;
+  --chart-height-lg: 420px;
+  --chart-sparkline-height: 40px;
+
   /* Radius: 2 values (sm=4px, md=8px) and pill */
   --radius-sm: 4px;
   --radius-md: 8px;

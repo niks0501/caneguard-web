@@ -23,11 +23,11 @@ describe("mock data mode", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "CaneGuard dashboard" }),
+      await screen.findByRole("heading", { name: "Overview" }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/dashboard");
     expect(
-      screen.getByRole("link", { name: "Open CG-2026-0718" }),
+      await screen.findByRole("link", { name: "Open CG-2026-0718" }),
     ).toBeInTheDocument();
   });
 
