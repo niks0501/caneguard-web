@@ -1207,6 +1207,71 @@ describe("CaseReviewPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("continues an office decision for a new referral into the handoff instead of sending an incomplete review", async () => {
+    const user = userEvent.setup();
+    const reviewSave = vi.fn();
+    const referralSave = vi.fn().mockResolvedValue(referredReport);
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      referralMutationResult({ mutateAsync: reviewSave }) as unknown as ReturnType<typeof useUpdateReportReview>,
+    );
+    vi.mocked(useRecordReportReferral).mockReturnValue(
+      referralMutationResult({ mutateAsync: referralSave }),
+    );
+    renderPage();
+
+    await user.click(screen.getByRole("radio", { name: /Refer to expert/ }));
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const decision = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.type(within(decision).getByRole("textbox", { name: /Review notes/ }), "Please evaluate the field evidence.");
+    await user.click(within(decision).getByRole("button", { name: "Continue to referral" }));
+
+    expect(reviewSave).not.toHaveBeenCalled();
+    const handoff = screen.getByRole("dialog", { name: "Record expert referral" });
+    await user.type(within(handoff).getByLabelText("Expert destination"), "Regional office");
+    await user.type(within(handoff).getByLabelText("Referral date"), "2026-09-04");
+    await user.type(within(handoff).getByLabelText("External expert name (optional)"), "Dr. Expert");
+    await user.click(within(handoff).getByRole("button", { name: "Save referral" }));
+
+    expect(referralSave).toHaveBeenCalledWith(expect.objectContaining({
+      destination: "Regional office",
+      officeNotes: "Please evaluate the field evidence.",
+      expectedVersion: report.reviewVersion,
+    }));
+    expect(referralSave.mock.calls[0][0]).not.toHaveProperty("reference");
+  });
+
+  it("lets an office review save after a completed consult without silently creating a second referral", async () => {
+    const user = userEvent.setup();
+    const reviewSave = vi.fn().mockResolvedValue(referredReport);
+    const referralSave = vi.fn();
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      data: {
+        ...reportAfterTerminalConsult("completed", "expert_response_received"),
+        referral: {
+          ...referredReport.referral!,
+          status: "completed",
+          consultReviewOutcome: "accepted",
+        },
+      },
+    }));
+    vi.mocked(useUpdateReportReview).mockReturnValue(
+      referralMutationResult({ mutateAsync: reviewSave }) as unknown as ReturnType<typeof useUpdateReportReview>,
+    );
+    vi.mocked(useRecordReportReferral).mockReturnValue(referralMutationResult({ mutateAsync: referralSave }));
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Record office decision" }));
+    const decision = screen.getByRole("dialog", { name: "Record office decision" });
+    await user.type(within(decision).getByRole("textbox", { name: /Review notes/ }), "Decision after expert response.");
+    await user.click(within(decision).getByRole("button", { name: "Save decision" }));
+
+    expect(reviewSave).toHaveBeenCalledWith(expect.objectContaining({
+      notes: "Decision after expert response.",
+      actionTaken: undefined,
+    }));
+    expect(referralSave).not.toHaveBeenCalled();
+  });
+
   it("records a referral through the guided next action", async () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockResolvedValue(referredReport);

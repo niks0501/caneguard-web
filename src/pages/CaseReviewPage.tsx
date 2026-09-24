@@ -876,6 +876,14 @@ export function CaseReviewPage() {
     if (report?.reviewVersion === undefined || proposalNeedsDecision) return;
     if (!hasReviewInput || noteError) return;
 
+    // A new referral is saved atomically with the office context by the handoff
+    // endpoint. Sending only its action to /review fails referral validation.
+    if (nextActionTouched && referralNeeded) {
+      setOfficeDecisionModalOpen(false);
+      setReferralModalOpen(true);
+      return;
+    }
+
     const nextActionTaken = selectedNextAction
       ? actionTakenForNextAction(selectedNextAction)
       : undefined;
@@ -901,7 +909,7 @@ export function CaseReviewPage() {
     try {
       await reviewMutation.mutateAsync(input);
       setOfficeDecisionModalOpen(false);
-      const notice = selectedNextAction
+      const notice = nextActionTouched && selectedNextAction
         ? `Next action recorded: ${nextActionLabels[selectedNextAction]}.`
         : "The office review was updated.";
       navigate(routes.reports, {
@@ -1686,7 +1694,9 @@ export function CaseReviewPage() {
       <Modal
         id="office-decision-modal"
         title="Record office decision"
-        description="Choose staff classification, verification outcome, guidance, and record intervention notes."
+        description={nextActionTouched && referralNeeded
+          ? "Record the office context, then complete the expert handoff. Both are saved together."
+          : "Choose staff classification, verification outcome, guidance, and record intervention notes."}
         open={officeDecisionModalOpen}
         onClose={closeOfficeDecisionModal}
         disabled={reviewMutation.isPending}
@@ -1706,7 +1716,7 @@ export function CaseReviewPage() {
               disabled={reviewMutation.isPending}
               onClick={saveOfficeDecision}
             >
-              {reviewMutation.isPending ? "Saving decision..." : "Save decision"}
+              {reviewMutation.isPending ? "Saving decision..." : nextActionTouched && referralNeeded ? "Continue to referral" : "Save decision"}
             </Button>
           </>
         }

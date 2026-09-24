@@ -6,6 +6,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
+use App\Notifications\ExpertReferralAssignedNotification;
 use App\Notifications\ExpertReferralResponseReceivedNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,6 +20,120 @@ use Tests\TestCase;
 class ReportReferralTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_exact_incomplete_review_payload_is_rejected_but_complete_handoff_flows_through_expert_to_closure(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-24 12:00:00 UTC');
+
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            $expert = User::factory()->expert()->create();
+            $report = Report::factory()->create();
+            $report->symptoms()->create(['symptom_key' => 'leaf_spots']);
+            Sanctum::actingAs($reviewer);
+
+            // The old office-decision button sent this exact shape (without a
+            // handoff) and surfaced the generic "server rejected this review".
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'notes' => null,
+                'authority_classified_condition' => null,
+                'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
+                'expected_version' => 0,
+            ])->assertUnprocessable()->assertJsonValidationErrors([
+                'referral_destination', 'referral_date', 'expert_uuid', 'expert_name',
+            ]);
+            $this->assertSame(0, $report->fresh()->lock_version);
+            $this->assertDatabaseCount('report_referrals', 0);
+
+            // The handoff form sends the same office context atomically with
+            // the destination, date, expert and optional external reference.
+            $this->postJson("/api/v1/reports/{$report->uuid}/referral", [
+                'destination' => 'Regional crop protection office',
+                'referral_date' => '2026-09-24',
+                'expert_uuid' => $expert->uuid,
+                'note' => 'Please inspect the visible symptoms.',
+                'office_notes' => 'Please evaluate the field evidence.',
+                'authority_classified_condition' => null,
+                'expected_version' => 0,
+            ])
+                ->assertCreated()
+                ->assertJsonPath('data.referral.reference', null)
+                ->assertJsonPath('data.referral.due_date', '2026-10-01')
+                ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
+                ->assertJsonPath('data.referral.office_context.notes', 'Please evaluate the field evidence.');
+            $referral = ReportReferral::query()->where('report_id', $report->getKey())->sole();
+            $this->assertSame(sprintf('CG-20260924-%08d', $referral->getKey()), $referral->tracking_code);
+            $this->assertSame(1, $expert->notifications()->where('type', ExpertReferralAssignedNotification::class)->count());
+
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'case_state' => Report::CASE_STATE_CLOSED,
+                'expected_version' => 1,
+            ])->assertUnprocessable()->assertJsonValidationErrors('case_state');
+
+            Sanctum::actingAs($expert);
+            $this->getJson('/api/v1/reports/expert-queue')
+                ->assertOk()->assertJsonFragment(['uuid' => $report->uuid]);
+            $this->getJson("/api/v1/reports/{$report->uuid}/consult")
+                ->assertOk()
+                ->assertJsonPath('data.consult.reference', null)
+                ->assertJsonPath('data.consult.due_date', '2026-10-01');
+            $this->postJson("/api/v1/reports/{$report->uuid}/referral/finding", [
+                'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+                'symptom_verdicts' => ['leaf_spots' => ['verdict' => 'present']],
+                'basis' => 'The photo supports smut.',
+                'recommendation' => 'Inspect nearby rows.',
+                'consult_status' => ReportReferral::STATUS_COMPLETED,
+                'response_date' => '2026-09-24',
+                'reference' => 'EXPERT-LETTER-42',
+                'expected_version' => 1,
+            ])
+                ->assertOk()
+                ->assertJsonPath('data.referral.reference', 'EXPERT-LETTER-42')
+                ->assertJsonPath('data.referral.finding_details', 'The photo supports smut.')
+                ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED)
+                ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN);
+            $this->assertSame(1, $reviewer->notifications()->where('type', ExpertReferralResponseReceivedNotification::class)->count());
+
+            Sanctum::actingAs($reviewer);
+            $this->getJson("/api/v1/reports/{$report->uuid}")
+                ->assertOk()
+                ->assertJsonPath('data.referral.finding_recommendation', 'Inspect nearby rows.')
+                ->assertJsonPath('data.referral.finding_source', ReportReferral::FINDING_SOURCE_IN_SYSTEM);
+            $this->postJson("/api/v1/reports/{$report->uuid}/referral/confirm", [
+                'consult_review_outcome' => 'accepted',
+                'expected_version' => 2,
+            ])->assertOk()->assertJsonPath('data.referral.consult_review_outcome', 'accepted');
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'case_state' => Report::CASE_STATE_CLOSED,
+                'expected_version' => $report->fresh()->lock_version,
+            ])->assertOk()->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_CLOSED);
+            $this->assertDatabaseHas('report_referrals', [
+                'id' => $referral->getKey(),
+                'tracking_code' => $referral->tracking_code,
+                'reference' => 'EXPERT-LETTER-42',
+                'destination' => 'Regional crop protection office',
+            ]);
+
+            $external = Report::factory()->create();
+            $this->postJson("/api/v1/reports/{$external->uuid}/referral", [
+                'destination' => 'External laboratory',
+                'reference' => 'MEMO-17',
+                'referral_date' => '2026-09-24',
+                'due_date' => '2026-10-05',
+                'expert_name' => 'Dr. External',
+                'expected_version' => 0,
+            ])->assertCreated()->assertJsonPath('data.referral.reference', 'MEMO-17')
+                ->assertJsonPath('data.referral.due_date', '2026-10-05');
+            $invite = $this->postJson("/api/v1/reports/{$external->uuid}/referral/invite")
+                ->assertCreated()->json('data.url');
+            $this->getJson($invite)
+                ->assertOk()
+                ->assertJsonPath('data.case.reference_code', $external->reference_code);
+            $this->assertDatabaseCount('report_referrals', 2);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
 
     public function test_reviewer_records_referral_as_an_action_and_keeps_the_case_open(): void
     {
