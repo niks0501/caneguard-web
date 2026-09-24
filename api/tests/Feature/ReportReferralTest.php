@@ -59,6 +59,8 @@ class ReportReferralTest extends TestCase
                 ->assertCreated()
                 ->assertJsonPath('data.referral.reference', null)
                 ->assertJsonPath('data.referral.due_date', '2026-10-01')
+                ->assertJsonPath('data.referral.status', ReportReferral::STATUS_PENDING)
+                ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_REFERRED)
                 ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
                 ->assertJsonPath('data.referral.office_context.notes', 'Please evaluate the field evidence.');
             $referral = ReportReferral::query()->where('report_id', $report->getKey())->sole();
@@ -121,9 +123,13 @@ class ReportReferralTest extends TestCase
                 'referral_date' => '2026-09-24',
                 'due_date' => '2026-10-05',
                 'expert_name' => 'Dr. External',
+                'expert_contact' => 'external@example.test',
                 'expected_version' => 0,
             ])->assertCreated()->assertJsonPath('data.referral.reference', 'MEMO-17')
-                ->assertJsonPath('data.referral.due_date', '2026-10-05');
+                ->assertJsonPath('data.referral.due_date', '2026-10-05')
+                ->assertJsonPath('data.referral.status', ReportReferral::STATUS_PENDING)
+                ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_REFERRED)
+                ->assertJsonPath('data.referral.expert_contact', 'external@example.test');
             $invite = $this->postJson("/api/v1/reports/{$external->uuid}/referral/invite")
                 ->assertCreated()->json('data.url');
             $this->getJson($invite)
@@ -133,6 +139,61 @@ class ReportReferralTest extends TestCase
         } finally {
             CarbonImmutable::setTestNow();
         }
+    }
+
+    public function test_directory_and_invitee_requests_share_pending_state_and_response_resource_shape(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $expert = User::factory()->expert()->create();
+        $assigned = Report::factory()->create();
+        $invited = Report::factory()->create();
+        Sanctum::actingAs($reviewer);
+
+        $directoryResponse = $this->postJson("/api/v1/reports/{$assigned->uuid}/referral", [
+            'destination' => 'Regional office',
+            'referral_date' => '2026-09-24',
+            'expert_uuid' => $expert->uuid,
+            'expected_version' => 0,
+        ])->assertCreated()->json('data');
+        $inviteeResponse = $this->postJson("/api/v1/reports/{$invited->uuid}/referral", [
+            'destination' => 'Regional office',
+            'referral_date' => '2026-09-24',
+            'expert_name' => 'Dr. Outside',
+            'expert_contact' => 'outside@example.test',
+            'expected_version' => 0,
+        ])->assertCreated()->json('data');
+
+        foreach ([$directoryResponse, $inviteeResponse] as $response) {
+            $this->assertSame(Report::REFERRAL_STATE_REFERRED, $response['lifecycle']['referral_state']);
+            $this->assertSame(ReportReferral::STATUS_PENDING, $response['referral']['status']);
+            $this->assertNotEmpty($response['referral']['tracking_code']);
+            $this->assertNotEmpty($response['referral']['due_date']);
+        }
+        $this->assertSame(array_keys($directoryResponse['referral']), array_keys($inviteeResponse['referral']));
+
+        $this->postJson("/api/v1/reports/{$invited->uuid}/referral/invite")->assertCreated();
+        $this->postJson("/api/v1/reports/{$invited->uuid}/referral/response", [
+            'response_date' => '2026-09-25',
+            'response_finding' => 'Evidence supports smut.',
+            'finding_source' => ReportReferral::FINDING_SOURCE_TRANSCRIBED,
+            'expected_version' => 1,
+        ])->assertOk();
+        Sanctum::actingAs($expert);
+        $this->postJson("/api/v1/reports/{$assigned->uuid}/referral/finding", [
+            'condition_opinion' => Report::AUTHORITY_CONDITION_SMUT,
+            'basis' => 'Evidence supports smut.',
+            'consult_status' => ReportReferral::STATUS_COMPLETED,
+            'response_date' => '2026-09-25',
+            'expected_version' => 1,
+        ])->assertOk();
+        Sanctum::actingAs($reviewer);
+        $directoryFinding = $this->getJson("/api/v1/reports/{$assigned->uuid}")->assertOk()->json('data');
+        $inviteeFinding = $this->getJson("/api/v1/reports/{$invited->uuid}")->assertOk()->json('data');
+        $this->assertSame(array_keys($directoryFinding['referral']), array_keys($inviteeFinding['referral']));
+        $this->assertSame(Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED, $directoryFinding['lifecycle']['referral_state']);
+        $this->assertSame(Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED, $inviteeFinding['lifecycle']['referral_state']);
+        $this->assertSame('Evidence supports smut.', $directoryFinding['referral']['finding_details']);
+        $this->assertSame('Evidence supports smut.', $inviteeFinding['referral']['finding_details']);
     }
 
     public function test_reviewer_records_referral_as_an_action_and_keeps_the_case_open(): void
@@ -302,7 +363,8 @@ class ReportReferralTest extends TestCase
             ->assertJsonPath('data.referral.finding_summary', 'The external consult was transcribed into the case record.')
             ->assertJsonPath('data.referral.finding_details', 'Observed evidence is consistent with smut.')
             ->assertJsonPath('data.referral.finding_recommendation', 'Schedule a follow-up field visit.')
-            ->assertJsonPath('data.referral.finding_recorded_by.uuid', $reviewer->uuid);
+            ->assertJsonPath('data.referral.finding_recorded_by.uuid', $reviewer->uuid)
+            ->assertJsonPath('data.lifecycle.referral_state', Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED);
 
         $this->getJson("/api/v1/reports/{$report->uuid}")
             ->assertOk()

@@ -246,6 +246,12 @@ final class BuildReportCaseHistory
             return $value ? 'Yes' : 'No';
         }
 
+        // Invite issuance audits store structured before/after metadata. Keep
+        // their history readable instead of failing the case detail response.
+        if (is_array($value)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+
         return (string) $value;
     }
 }
