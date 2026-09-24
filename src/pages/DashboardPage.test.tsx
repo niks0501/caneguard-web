@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
+import { ANALYTICS_FORBIDDEN_WORDS } from "../components/dashboard/analyticsCopy";
 import { mockReports } from "../data/mock/mockReports";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useDashboard } from "../hooks/useDashboard";
@@ -396,6 +397,18 @@ describe("DashboardPage", () => {
       screen.getByRole("button", { name: "Refresh dashboard" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
+  });
+
+  it("keeps dashboard copy within the forbidden-word contract", () => {
+    const { container } = renderDashboard();
+
+    const copy = container.textContent ?? "";
+    for (const word of ANALYTICS_FORBIDDEN_WORDS) {
+      expect(copy.toLowerCase()).not.toContain(word.toLowerCase());
+    }
+    // The one named exception: past target date is measured against the
+    // recorded target visit date, while "overdue" itself stays forbidden.
+    expect(copy).toContain("Past target date");
   });
 
   it("mounts the three decision charts and the map once period data arrives", async () => {
