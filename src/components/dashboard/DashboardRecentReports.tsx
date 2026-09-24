@@ -6,6 +6,12 @@ import { formatDateTime } from "../../lib/formatters";
 import { DiseaseBadge, ReviewStatusBadge } from "../reports/ReportBadges";
 import { EvidenceThumbnail } from "../reports/EvidenceThumbnail";
 
+/**
+ * The table always fits its card: fixed tracks from `<colgroup>`, wrapping
+ * cells, and no width floor above 100% — so a long barangay name or
+ * reference code wraps inside its column instead of pushing the page. Below
+ * 680px the tracks keep a readable floor and the card scrolls instead.
+ */
 export function DashboardRecentReports({
   reports,
 }: {
@@ -14,11 +20,20 @@ export function DashboardRecentReports({
   return (
     <div className="table-scroll">
       <table className="report-table dashboard-report-table">
+        <colgroup>
+          <col className="dashboard-report-table__col-report" />
+          <col className="dashboard-report-table__col-concern" />
+          <col className="dashboard-report-table__col-condition" />
+          <col className="dashboard-report-table__col-barangay" />
+          <col className="dashboard-report-table__col-submitted" />
+          <col className="dashboard-report-table__col-status" />
+          <col className="dashboard-report-table__col-action" />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col">Report</th>
             <th scope="col">Reported concern</th>
-            <th scope="col">Possible Condition</th>
+            <th scope="col">Possible Condition (AI)</th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
             <th scope="col">Work status</th>
@@ -44,8 +59,8 @@ export function DashboardRecentReports({
                   </div>
                 </div>
               </td>
-              <td><DiseaseBadge disease={report.predictedDisease} includePossibleConditionPrefix={false} /></td>
               <td>{report.reporterSuspectedCondition?.trim() ? report.reporterSuspectedCondition : "Not stated"}</td>
+              <td><DiseaseBadge disease={report.predictedDisease} includePossibleConditionPrefix={false} /></td>
               <td><strong className="table-primary">{report.barangay}</strong></td>
               <td>{formatDateTime(report.submittedAt)}</td>
               <td className="report-status-cell"><ReviewStatusBadge status={report.reviewStatus} /></td>

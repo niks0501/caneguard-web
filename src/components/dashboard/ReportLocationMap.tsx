@@ -105,10 +105,8 @@ export function ReportLocationMap({
         <h3 id="chart-location-map" className="decision-chart-card__title">
           {copy.title}
         </h3>
-        <p className="decision-chart-card__description">{copy.description}</p>
-        <p className="decision-chart-card__period">
-          {scopeLabel}. Period boundaries use PHT (UTC+8).
-        </p>
+        <p className="decision-chart-card__hint">{copy.hint}</p>
+        <p className="decision-chart-card__period">{scopeLabel}</p>
         <div className="decision-chart__toggle" role="group" aria-label="Map layer">
           <button
             type="button"
@@ -133,12 +131,10 @@ export function ReportLocationMap({
           ) : !mapTilerStyle ? (
             <div className="decision-map__unavailable" role="status">
               <strong>Map tiles are not configured.</strong>
-              <p>The barangay counts below are unaffected.</p>
             </div>
           ) : circles.length === 0 && layer === "barangay" ? (
             <div className="decision-map__unavailable" role="status">
               <strong>No located reports in this period.</strong>
-              <p>Barangay counts below are unaffected.</p>
             </div>
           ) : (
             <Map
@@ -213,15 +209,14 @@ export function ReportLocationMap({
           )}
         </div>
         {layer === "gps" && inView && gps.isPending ? (
-          <p className="decision-chart-card__scope" role="status">
-            Loading indicative GPS points…
+          <p className="decision-chart-card__hint" role="status">
+            Loading GPS points…
           </p>
         ) : null}
         {layer === "gps" && inView && gps.data ? (
-          <p className="decision-chart-card__scope">
-            {gps.data.metadata.returnedCount} indicative GPS points shown
-            (limit {GPS_LIMIT})
-            {gps.data.metadata.truncated ? "; more exist outside this sample" : ""}.
+          <p className="decision-chart-card__hint">
+            {gps.data.metadata.returnedCount} GPS points shown (limit {GPS_LIMIT})
+            {gps.data.metadata.truncated ? "; a sample only" : ""}.
           </p>
         ) : null}
         <ul className="decision-chart__barangay-list">
@@ -237,7 +232,6 @@ export function ReportLocationMap({
             </li>
           ))}
         </ul>
-        <p className="decision-chart-card__takeaway">{copy.takeaway}</p>
       </section>
     </div>
   );

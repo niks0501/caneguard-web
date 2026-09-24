@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
-import { chartPeriodLine, dashboardChartCopy } from "./chartCopy";
+import { dashboardChartCopy } from "./chartCopy";
 import { chartTheme, conditionColor, reportedConcernColor } from "./chartTheme";
 import {
   patternIdFor,
@@ -72,13 +72,12 @@ export function ConcernVsConditionBars({
     <DecisionChartFrame
       titleId="chart-concern-condition"
       title={copy.title}
-      description={copy.description}
-      periodLine={chartPeriodLine(scopeLabel)}
-      takeaway={copy.takeaway}
+      hint={copy.hint}
+      periodLine={scopeLabel}
       chartLabel={`${copy.title}: reported ${analytics.reportedConcern.map((item) => `${reportedConcernLabel(item.concern)} ${item.count}`).join(", ")}; possible condition ${POSSIBLE_CONDITIONS.map((entry) => `${entry.label} ${analytics.possibleCondition.find((item) => item.condition === entry.value)?.count ?? 0}`).join(", ")}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
-      tableCaption={`${copy.title}. ${chartPeriodLine(scopeLabel)}`}
+      tableCaption={`${copy.title}. ${scopeLabel}`}
       tableHead={["Series", "Count"]}
       tableRows={rows.map((row) => [row.rowLabel, String(row.count)])}
       span="col-6"
@@ -125,7 +124,7 @@ export function ConcernVsConditionBars({
             <YAxis
               type="category"
               dataKey="rowLabel"
-              width={150}
+              width="auto"
               tick={{ fontSize: chartTheme.tickFontSize, fill: chartTheme.text }}
             />
             <Tooltip formatter={(value) => [value, "Submitted reports"]} />

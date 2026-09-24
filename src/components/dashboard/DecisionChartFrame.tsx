@@ -2,16 +2,17 @@ import type { ReactNode } from "react";
 
 /**
  * Shared card frame for the three decision charts (overhaul §3.4, §5):
- * title, honest description, printed period with timezone, one takeaway
- * line, the chart as role="img" with a headline aria-label, and a
- * visually-hidden data table as the accessible equivalent.
+ * title, one optional short hint, the printed period (no repeated timezone —
+ * the page names it once), the chart as role="img" with a headline
+ * aria-label, and a visually-hidden data table as the accessible
+ * equivalent. Long descriptions and "what to do" takeaways are gone: the
+ * marks, printed values and legends carry the reading.
  */
 export function DecisionChartFrame({
   titleId,
   title,
-  description,
+  hint,
   periodLine,
-  takeaway,
   chartLabel,
   empty,
   emptyMessage,
@@ -23,9 +24,8 @@ export function DecisionChartFrame({
 }: {
   titleId: string;
   title: string;
-  description: string;
+  hint?: string;
   periodLine: string;
-  takeaway: string;
   chartLabel: string;
   empty: boolean;
   emptyMessage: string;
@@ -41,7 +41,7 @@ export function DecisionChartFrame({
         <h3 id={titleId} className="decision-chart-card__title">
           {title}
         </h3>
-        <p className="decision-chart-card__description">{description}</p>
+        {hint ? <p className="decision-chart-card__hint">{hint}</p> : null}
         <p className="decision-chart-card__period">{periodLine}</p>
         {empty ? (
           <p className="decision-chart-card__empty">{emptyMessage}</p>
@@ -71,7 +71,6 @@ export function DecisionChartFrame({
             ))}
           </tbody>
         </table>
-        <p className="decision-chart-card__takeaway">{takeaway}</p>
       </section>
     </div>
   );

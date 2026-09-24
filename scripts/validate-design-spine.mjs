@@ -175,33 +175,84 @@ export function validateSemanticContrast(tokensContent = readFileSync(TOKENS_PAT
 }
 
 /**
- * §13.2 long-identifier guard: the 4-up KPI track exposes unbreakable
- * identifiers (e.g. summary.queues.unverified_no_active_work), so the KPI
- * card and its text slots must wrap anywhere instead of pushing the grid
- * sideways.
+ * Layout-track guard (P0 grid rhythm + §13.2 long identifiers).
+ *
+ * The dashboard grid, its cards and the report table expose unbreakable
+ * identifiers (e.g. summary.queues.unverified_no_active_work) and long
+ * barangay names, so every track keeps `min-width: 0` and
+ * `max-width: 100%`; the text slots inside a track additionally wrap
+ * anywhere. A missing rule here is a real sideways-push bug, not a style
+ * preference.
  */
+const DASHBOARD_TRACK_SELECTORS = [
+  ".dashboard-grid > *",
+  ".dashboard-section",
+  ".dashboard-section__heading > *",
+  ".dashboard-card",
+  ".kpi-card",
+  ".kpi-card__label",
+  ".kpi-card__value",
+  ".kpi-card__comparison",
+  ".kpi-card__hint",
+  ".kpi-card__segment-label",
+  ".decision-chart-card",
+  ".decision-chart-card__title",
+  ".decision-chart-card__hint",
+  ".dashboard-report-table",
+  ".dashboard-report-table th",
+  ".dashboard-report-table td",
+];
+
+/** Slots whose own text must wrap instead of widening its track. */
+const DASHBOARD_WRAP_SELECTORS = [
+  ".kpi-card__label",
+  ".kpi-card__value",
+  ".kpi-card__comparison",
+  ".kpi-card__hint",
+  ".kpi-card__segment-label",
+  ".decision-chart-card__title",
+  ".decision-chart-card__hint",
+  ".dashboard-report-table th",
+  ".dashboard-report-table td",
+];
+
+function blockForSelector(cssContent, selector) {
+  // Match the selector as a whole token: a rule boundary (start of file, `}`
+  // or `,`) before it and `{` or `,` after it, so `.dashboard-section`
+  // never matches `.dashboard-section-heading`.
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(?:^|[}{,])\\s*${escaped}\\s*(?=[,{])`, "m");
+  const match = pattern.exec(cssContent);
+  if (!match) return null;
+  const open = cssContent.indexOf("{", match.index);
+  if (open === -1) return null;
+  const close = cssContent.indexOf("}", open);
+  return cssContent.slice(open, close + 1);
+}
+
 export function validateDashboardWrapRules(
   cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
 ) {
   const errors = [];
-  const selectors = [
-    ".kpi-card",
-    ".kpi-card__value",
-    ".kpi-card__comparison",
-    ".kpi-card__scope",
-    ".kpi-card__asof",
-    ".kpi-card__footnote",
-    ".kpi-card__segment-label",
-  ];
-  for (const selector of selectors) {
-    const start = cssContent.indexOf(selector);
-    if (start === -1) {
+  for (const selector of DASHBOARD_TRACK_SELECTORS) {
+    const block = blockForSelector(cssContent, selector);
+    if (block === null) {
+      errors.push(`Missing dashboard layout rule for '${selector}'`);
+      continue;
+    }
+    if (!/min-width\s*:\s*0/.test(block)) {
+      errors.push(`Dashboard track '${selector}' must set 'min-width: 0'`);
+    }
+    if (!/max-width\s*:\s*100%/.test(block)) {
+      errors.push(`Dashboard track '${selector}' must set 'max-width: 100%'`);
+    }
+  }
+  for (const selector of DASHBOARD_WRAP_SELECTORS) {
+    const block = blockForSelector(cssContent, selector);
+    if (block === null) {
       errors.push(`Missing dashboard wrap rule for '${selector}'`);
       continue;
     }
-    const open = cssContent.indexOf("{", start);
-    const close = cssContent.indexOf("}", open);
-    const block = cssContent.slice(open, close + 1);
     if (!/overflow-wrap\s*:\s*anywhere/.test(block)) {
       errors.push(
         `Dashboard wrap rule '${selector}' must set 'overflow-wrap: anywhere'`,

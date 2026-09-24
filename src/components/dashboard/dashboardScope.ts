@@ -1,4 +1,5 @@
 import { manilaDateAt } from "../../domain/reportingTime";
+import { formatClockTimeWithSeconds } from "../../lib/formatters";
 
 /**
  * Single page-scope ruler for the analytical dashboard (overhaul §3.1, §4,
@@ -120,10 +121,12 @@ export function formatWindow(from: string, to: string): string {
   return `${start.day} ${start.month} ${start.year} – ${end.day} ${end.month} ${end.year}`;
 }
 
-/** "21:14:03" 24-hour PHT wall time for freshness stamps. */
+/**
+ * Freshness stamp: Asia/Manila wall time in 12-hour form with an explicit
+ * meridiem marker (never 24-hour). The timezone is named once by the page
+ * description, so this returns a bare clock time.
+ */
 export function formatAsOfTime(timestamp: number): string {
   if (!timestamp) return "Not refreshed yet";
-  const manila = new Date(timestamp + 8 * 60 * 60 * 1000);
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${pad(manila.getUTCHours())}:${pad(manila.getUTCMinutes())}:${pad(manila.getUTCSeconds())}`;
+  return formatClockTimeWithSeconds(timestamp);
 }

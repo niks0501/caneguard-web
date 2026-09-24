@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
+import { DASHBOARD_TIMEZONE_LABEL } from "../components/dashboard/analyticsCopy";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
 import { OperationalSnapshot } from "../components/dashboard/OperationalSnapshot";
 import { ScopeRuler } from "../components/dashboard/ScopeRuler";
@@ -107,7 +108,7 @@ export function DashboardPage() {
       <PageHeader
         eyebrow="SRA Don Pedro Mill District Office"
         title="Overview"
-        description="Nasugbu, Batangas · synchronized field reports · period boundaries PHT (UTC+8)"
+        description={`Nasugbu, Batangas · times ${DASHBOARD_TIMEZONE_LABEL}`}
         actions={
           <>
             <ScopeRuler selection={selection} onChange={setSelection} />
@@ -155,7 +156,7 @@ export function DashboardPage() {
           onRetry={isForbidden ? undefined : () => dashboard.refetch()}
         />
       ) : (
-        <>
+        <div className="dashboard-sections">
           <section
             className="dashboard-section"
             aria-labelledby="operational-snapshot-heading"
@@ -180,8 +181,6 @@ export function DashboardPage() {
                 analytics={rangeTooLong ? undefined : analytics.data}
                 analyticsPending={rangeTooLong ? false : analytics.isPending}
                 analyticsFailed={rangeTooLong ? true : analytics.isError}
-                scope={scope}
-                asOf={asOf}
               />
             )}
             {rangeTooLong ? (
@@ -193,20 +192,13 @@ export function DashboardPage() {
           </section>
 
           <section
-            className="report-workspace dashboard-recent"
+            className="dashboard-section"
             aria-labelledby="recent-reports-heading"
             aria-busy={dashboard.isPending}
           >
-            <div className="workspace-heading">
-              <div>
-                <h2 id="recent-reports-heading">Recent reports</h2>
-              </div>
-              {summary ? (
-                <span className="workspace-heading__meta">
-                  {summary.recentReports.length} most recent synchronized
-                  submissions · as of {asOf} PHT
-                </span>
-              ) : null}
+            <div className="dashboard-section__heading">
+              <h2 id="recent-reports-heading">Recent reports</h2>
+              <span className="dashboard-section__meta">synchronized submissions</span>
             </div>
 
             {!summary ? (
@@ -217,12 +209,16 @@ export function DashboardPage() {
                 </div>
               </>
             ) : summary.recentReports.length === 0 ? (
-              <EmptyState
-                title="No submitted reports yet"
-                message="Reports appear here once a device synchronizes."
-              />
+              <div className="dashboard-card">
+                <EmptyState
+                  title="No submitted reports yet"
+                  message="Reports appear here once a device synchronizes."
+                />
+              </div>
             ) : (
-              <DashboardRecentReports reports={summary.recentReports} />
+              <div className="dashboard-card dashboard-card--table">
+                <DashboardRecentReports reports={summary.recentReports} />
+              </div>
             )}
           </section>
 
@@ -299,7 +295,7 @@ export function DashboardPage() {
               </div>
             )}
           </section>
-        </>
+        </div>
       )}
 
       <ReportDocumentBuilder

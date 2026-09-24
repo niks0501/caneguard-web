@@ -10,19 +10,18 @@ export interface KpiSegment {
 }
 
 /**
- * KPI card: the MetricCard shape (label / value / context) extended with the
- * overhaul's trend, segment, as-of and link slots (§3.2). Values and
- * secondary text wrap anywhere so long identifiers (§13.2) cannot push the
- * 4-up grid sideways.
+ * KPI card: label, value, one optional comparison line, optional linked
+ * segments and at most one short hint. Every text slot wraps anywhere and
+ * the card caps at `max-width: 100%`, so the longest real queue identifier
+ * (§13.2) wraps inside its track instead of pushing the 4-up band sideways.
  */
 export function KpiCard({
   label,
   value,
   icon,
   comparison,
-  scopeLine,
-  asOf,
-  footnote,
+  pointInTime,
+  hint,
   href,
   linkLabel,
   segments,
@@ -33,9 +32,9 @@ export function KpiCard({
   value: string;
   icon: ReactNode;
   comparison?: string;
-  scopeLine?: string;
-  asOf?: string;
-  footnote?: string;
+  /** Marks a count that is current-state, not scoped to the period ruler. */
+  pointInTime?: boolean;
+  hint?: string;
   href: string;
   linkLabel: string;
   segments?: KpiSegment[];
@@ -49,6 +48,7 @@ export function KpiCard({
           {icon}
         </span>
         <span className="kpi-card__label">{label}</span>
+        {pointInTime ? <span className="kpi-card__now">now</span> : null}
       </div>
       <strong className="kpi-card__value">{value}</strong>
       {comparison ? <p className="kpi-card__comparison">{comparison}</p> : null}
@@ -75,11 +75,9 @@ export function KpiCard({
         </ul>
       ) : null}
       {emptyMessage ? <p className="kpi-card__empty">{emptyMessage}</p> : null}
-      {scopeLine ? <p className="kpi-card__scope">{scopeLine}</p> : null}
-      {asOf ? <p className="kpi-card__asof">as of {asOf} PHT</p> : null}
-      {footnote ? <p className="kpi-card__footnote">{footnote}</p> : null}
+      {hint ? <p className="kpi-card__hint">{hint}</p> : null}
       <Link className="kpi-card__action" to={href} aria-label={linkLabel}>
-        <span>Open queue</span>
+        <span>Open</span>
         <span aria-hidden="true">→</span>
       </Link>
     </article>

@@ -5,14 +5,55 @@ export const formatDate = (value: string) =>
     year: "numeric",
   }).format(new Date(value));
 
+/**
+ * Operational times are Asia/Manila wall time (UTC+8, no DST) shown in
+ * 12-hour form with an explicit meridiem marker. Never 24-hour: a bare
+ * "21:14" is unreadable to the district-office staff who read this screen.
+ * The timezone itself is named once on the dashboard (see
+ * `DASHBOARD_TIMEZONE_LABEL`), never repeated per component.
+ */
+export const MANILA_TIME_ZONE = "Asia/Manila";
+
+const manilaClock = new Intl.DateTimeFormat("en-PH", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: MANILA_TIME_ZONE,
+});
+
+const manilaClockWithSeconds = new Intl.DateTimeFormat("en-PH", {
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: true,
+  timeZone: MANILA_TIME_ZONE,
+});
+
+const manilaDateTime = new Intl.DateTimeFormat("en-PH", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: MANILA_TIME_ZONE,
+});
+
+/** "9:14 PM" — 12-hour PHT clock time for stamps inside a sentence. */
+export const formatClockTime = (value: string | number | Date) => {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : manilaClock.format(date);
+};
+
+/** "9:14:03 PM" — freshness stamps keep seconds so a refresh is visible. */
+export const formatClockTimeWithSeconds = (value: string | number | Date) => {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : manilaClockWithSeconds.format(date);
+};
+
+/** "Jul 18, 2026, 9:16 AM" — PHT date and 12-hour time on one line. */
 export const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat("en-PH", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+  manilaDateTime.format(new Date(value));
 
 export const formatConfidence = (confidence: number) =>
   new Intl.NumberFormat("en-PH", { style: "percent", maximumFractionDigits: 0 }).format(

@@ -132,6 +132,11 @@ describe("InflowComparisonBars", () => {
     expect(
       container.querySelector(".decision-chart-card__period"),
     ).toHaveTextContent("1–24 Sep 2026 vs 8–31 Aug 2026");
+    // The long description and the "what to do" takeaway are gone: the card
+    // carries title, one period line and the marks.
+    expect(container.querySelector(".decision-chart-card__description")).toBeNull();
+    expect(container.querySelector(".decision-chart-card__takeaway")).toBeNull();
+    expect(screen.queryByText(/says nothing about what comes next/)).not.toBeInTheDocument();
     // Series meaning never depends on colour alone: names and totals print.
     expect(screen.getByText(/This period \(12\)/)).toBeInTheDocument();
     expect(screen.getByText(/Previous period \(9\)/)).toBeInTheDocument();
@@ -156,7 +161,13 @@ describe("ConcernVsConditionBars", () => {
     expect(
       screen.getByText("Reported concern vs Possible Condition"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/what the reporter observed/)).toBeInTheDocument();
+    // One short hint keeps the two vocabularies apart; the removed paragraph
+    // stays removed rather than reworded.
+    expect(
+      screen.getByText(/Reporter observation vs AI decision support/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/what the reporter observed/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Neither is a diagnosis/)).not.toBeInTheDocument();
     // Every reported row is prefixed; RSSI appears only there.
     const table = screen.getByRole("table");
     expect(within(table).getByText("Reported: RSSI")).toBeInTheDocument();
@@ -219,7 +230,13 @@ describe("BarangayValidationBars", () => {
     expect(
       screen.getByText("Validation attention by barangay"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Barangay first/)).toBeInTheDocument();
+    // The long "Barangay first" paragraph is gone; only the one honest hint
+    // about how past target date is measured remains.
+    expect(
+      screen.getByText(/Past target date uses the recorded target visit date/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Barangay first/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/policy deadline/)).not.toBeInTheDocument();
     const c3Table = screen.getByRole("table");
     expect(within(c3Table).getByText("Past target date")).toBeInTheDocument();
     expect(

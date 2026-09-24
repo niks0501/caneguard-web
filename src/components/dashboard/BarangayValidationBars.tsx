@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
-import { chartPeriodLine, dashboardChartCopy } from "./chartCopy";
+import { dashboardChartCopy } from "./chartCopy";
 import { chartTheme } from "./chartTheme";
 
 interface BarangayRow {
@@ -72,13 +72,12 @@ export function BarangayValidationBars({
     <DecisionChartFrame
       titleId="chart-barangay-validation"
       title={copy.title}
-      description={copy.description}
-      periodLine={chartPeriodLine(scopeLabel)}
-      takeaway={copy.takeaway}
+      hint={copy.hint}
+      periodLine={scopeLabel}
       chartLabel={`${copy.title}: ${rows.map((row) => `${row.barangay} ${row.submitted} submitted, ${row.pastTargetDate} past target date`).join("; ")}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
-      tableCaption={`${copy.title}. ${chartPeriodLine(scopeLabel)}`}
+      tableCaption={`${copy.title}. ${scopeLabel}`}
       tableHead={[
         "Barangay",
         "Submitted",
@@ -144,7 +143,7 @@ export function BarangayValidationBars({
             <YAxis
               type="category"
               dataKey="barangay"
-              width={110}
+              width="auto"
               tick={{ fontSize: chartTheme.tickFontSize, fill: chartTheme.text }}
             />
             <Tooltip

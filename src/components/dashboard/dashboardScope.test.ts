@@ -76,9 +76,13 @@ describe("dashboardScope", () => {
     expect(shiftDateString("2026-09-24", -29)).toBe("2026-08-26");
   });
 
-  it("stamps freshness as 24-hour PHT wall time", () => {
+  it("stamps freshness as 12-hour Asia/Manila wall time with a meridiem marker", () => {
+    // 13:14 UTC is 21:14 in Asia/Manila: shown as 9:14 PM, never 24-hour.
     expect(formatAsOfTime(new Date("2026-09-24T13:14:03Z").getTime())).toBe(
-      "21:14:03",
+      "9:14:03 PM",
+    );
+    expect(formatAsOfTime(new Date("2026-09-24T01:05:00Z").getTime())).toBe(
+      "9:05:00 AM",
     );
     expect(formatAsOfTime(0)).toBe("Not refreshed yet");
   });
