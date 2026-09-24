@@ -72,7 +72,6 @@ export function BarangayValidationBars({
     <DecisionChartFrame
       titleId="chart-barangay-validation"
       title={copy.title}
-      hint={copy.hint}
       periodLine={scopeLabel}
       chartLabel={`${copy.title}: ${rows.map((row) => `${row.barangay} ${row.submitted} submitted, ${row.pastTargetDate} past target date`).join("; ")}`}
       empty={empty}

@@ -116,6 +116,7 @@ export function InflowComparisonBars({
               dataKey="current"
               name="This period"
               fill={chartTheme.primaryDark}
+              radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             />
             <Bar
@@ -124,6 +125,7 @@ export function InflowComparisonBars({
               fill="url(#pattern-inflow-previous)"
               stroke={chartTheme.brandHover}
               strokeWidth={1}
+              radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             />
           </BarChart>

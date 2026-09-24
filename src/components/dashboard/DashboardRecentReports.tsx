@@ -33,10 +33,14 @@ export function DashboardRecentReports({
           <tr>
             <th scope="col">Report</th>
             <th scope="col">Reported concern</th>
-            <th scope="col">Possible Condition (AI)</th>
+            <th scope="col">
+              <span className="table-header-capsule">Possible Condition</span>
+            </th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
-            <th scope="col">Work status</th>
+            <th scope="col">
+              <span className="table-header-capsule">Work status</span>
+            </th>
             <th scope="col"><span className="sr-only">Action</span></th>
           </tr>
         </thead>
@@ -64,9 +68,9 @@ export function DashboardRecentReports({
               <td><strong className="table-primary">{report.barangay}</strong></td>
               <td>{formatDateTime(report.submittedAt)}</td>
               <td className="report-status-cell"><ReviewStatusBadge status={report.reviewStatus} /></td>
-              <td>
+              <td className="dashboard-report-table__action-cell">
                 <Link
-                  className="table-action"
+                  className="table-action table-action--nowrap"
                   to={routes.reportDetail(report.uuid)}
                   aria-label={`Open ${report.referenceCode}`}
                 >

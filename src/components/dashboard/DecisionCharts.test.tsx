@@ -161,11 +161,10 @@ describe("ConcernVsConditionBars", () => {
     expect(
       screen.getByText("Reported concern vs Possible Condition"),
     ).toBeInTheDocument();
-    // One short hint keeps the two vocabularies apart; the removed paragraph
-    // stays removed rather than reworded.
+    // Explanatory hint copy is removed from visualization components.
     expect(
-      screen.getByText(/Reporter observation vs AI decision support/),
-    ).toBeInTheDocument();
+      screen.queryByText(/Reporter observation vs AI decision support/),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/what the reporter observed/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Neither is a diagnosis/)).not.toBeInTheDocument();
     // Every reported row is prefixed; RSSI appears only there.
@@ -230,11 +229,10 @@ describe("BarangayValidationBars", () => {
     expect(
       screen.getByText("Validation attention by barangay"),
     ).toBeInTheDocument();
-    // The long "Barangay first" paragraph is gone; only the one honest hint
-    // about how past target date is measured remains.
+    // Explanatory hint copy is removed from visualization components.
     expect(
-      screen.getByText(/Past target date uses the recorded target visit date/),
-    ).toBeInTheDocument();
+      screen.queryByText(/Past target date uses the recorded target visit date/),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/Barangay first/)).not.toBeInTheDocument();
     expect(screen.queryByText(/policy deadline/)).not.toBeInTheDocument();
     const c3Table = screen.getByRole("table");
@@ -279,8 +277,8 @@ describe("ReportLocationMap", () => {
       screen.getByRole("button", { name: "GPS points" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByText(/GPS points are indicative/),
-    ).toBeInTheDocument();
+      screen.queryByText(/GPS points are indicative/),
+    ).not.toBeInTheDocument();
   });
 });
 

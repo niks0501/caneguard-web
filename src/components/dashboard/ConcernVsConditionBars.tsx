@@ -72,7 +72,6 @@ export function ConcernVsConditionBars({
     <DecisionChartFrame
       titleId="chart-concern-condition"
       title={copy.title}
-      hint={copy.hint}
       periodLine={scopeLabel}
       chartLabel={`${copy.title}: reported ${analytics.reportedConcern.map((item) => `${reportedConcernLabel(item.concern)} ${item.count}`).join(", ")}; possible condition ${POSSIBLE_CONDITIONS.map((entry) => `${entry.label} ${analytics.possibleCondition.find((item) => item.condition === entry.value)?.count ?? 0}`).join(", ")}`}
       empty={empty}
@@ -128,7 +127,7 @@ export function ConcernVsConditionBars({
               tick={{ fontSize: chartTheme.tickFontSize, fill: chartTheme.text }}
             />
             <Tooltip formatter={(value) => [value, "Submitted reports"]} />
-            <Bar dataKey="count" isAnimationActive={false}>
+            <Bar dataKey="count" radius={[0, 4, 4, 0]} isAnimationActive={false}>
               {rows.map((row) => (
                 <Cell
                   key={row.key}

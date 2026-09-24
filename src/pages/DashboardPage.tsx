@@ -16,7 +16,7 @@ import {
   type ScopeSelection,
 } from "../components/dashboard/dashboardScope";
 import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
-import { PageContent, PageHeader } from "../components/layout/Page";
+import { PageContent } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -105,12 +105,16 @@ export function DashboardPage() {
 
   return (
     <PageContent>
-      <PageHeader
-        eyebrow="SRA Don Pedro Mill District Office"
-        title="Overview"
-        description={`Nasugbu, Batangas · times ${DASHBOARD_TIMEZONE_LABEL}`}
-        actions={
-          <>
+      <header className="page-header dashboard-header">
+        <div className="dashboard-header__main">
+          <div className="dashboard-header__identity">
+            <p className="eyebrow">SRA Don Pedro Mill District Office</p>
+            <h1>Overview</h1>
+            <p className="dashboard-header__description">
+              {`Nasugbu, Batangas · times ${DASHBOARD_TIMEZONE_LABEL}`}
+            </p>
+          </div>
+          <div className="dashboard-header__context">
             <ScopeRuler selection={selection} onChange={setSelection} />
             <p className="dashboard-last-updated" aria-live="polite">
               <RefreshCw
@@ -120,29 +124,31 @@ export function DashboardPage() {
               <span>Last updated</span>
               <strong>{asOf}</strong>
             </p>
-            <Button
-              type="button"
-              variant="secondary"
-              icon={<FileStack aria-hidden="true" />}
-              onClick={() => setReportBuilderOpen(true)}
-            >
-              Generate report
-            </Button>
-            <Link className="button button--secondary" to={routes.reports}>
-              <Rows3 aria-hidden="true" />
-              <span>View all reports</span>
-            </Link>
-            <Button
-              type="button"
-              icon={<RefreshCw className={dashboard.isFetching ? "spin" : ""} aria-hidden="true" />}
-              disabled={dashboard.isFetching}
-              onClick={() => dashboard.refetch()}
-            >
-              {dashboard.isFetching ? "Refreshing..." : "Refresh dashboard"}
-            </Button>
-          </>
-        }
-      />
+          </div>
+        </div>
+        <div className="dashboard-header__actions">
+          <Button
+            type="button"
+            variant="secondary"
+            icon={<FileStack aria-hidden="true" />}
+            onClick={() => setReportBuilderOpen(true)}
+          >
+            Generate report
+          </Button>
+          <Link className="button button--secondary" to={routes.reports}>
+            <Rows3 aria-hidden="true" />
+            <span>View all reports</span>
+          </Link>
+          <Button
+            type="button"
+            icon={<RefreshCw className={dashboard.isFetching ? "spin" : ""} aria-hidden="true" />}
+            disabled={dashboard.isFetching}
+            onClick={() => dashboard.refetch()}
+          >
+            {dashboard.isFetching ? "Refreshing..." : "Refresh dashboard"}
+          </Button>
+        </div>
+      </header>
 
       {dashboard.isRefetchError ? (
         <div className="dashboard-refresh-warning" role="alert">
@@ -159,15 +165,15 @@ export function DashboardPage() {
         <div className="dashboard-sections">
           <section
             className="dashboard-section"
-            aria-labelledby="operational-snapshot-heading"
+            aria-labelledby="current-operations-heading"
             aria-busy={dashboard.isPending || analytics.isPending}
           >
             <div className="dashboard-section__heading">
-              <h2 id="operational-snapshot-heading">Operational snapshot</h2>
+              <h2 id="current-operations-heading">Current operations</h2>
             </div>
             {!summary ? (
               <>
-                <span className="sr-only">Loading the operational snapshot…</span>
+                <span className="sr-only">Loading current operations…</span>
                 <div className="dashboard-grid" aria-hidden="true">
                   <div className="col-3"><Skeleton label="Loading submitted reports" /></div>
                   <div className="col-3"><Skeleton label="Loading the review queue" /></div>
@@ -198,7 +204,6 @@ export function DashboardPage() {
           >
             <div className="dashboard-section__heading">
               <h2 id="recent-reports-heading">Recent reports</h2>
-              <span className="dashboard-section__meta">synchronized submissions</span>
             </div>
 
             {!summary ? (
@@ -224,15 +229,15 @@ export function DashboardPage() {
 
           <section
             className="dashboard-section"
-            aria-labelledby="decision-visualizations-heading"
+            aria-labelledby="trends-analysis-heading"
             aria-busy={analytics.isPending || previousAnalytics.isPending}
           >
             <div className="dashboard-section__heading">
-              <h2 id="decision-visualizations-heading">Decision visualizations</h2>
+              <h2 id="trends-analysis-heading">Trends and analysis</h2>
             </div>
             {!analytics.data ? (
               <>
-                <span className="sr-only">Loading decision visualizations…</span>
+                <span className="sr-only">Loading trends and analysis…</span>
                 <div className="dashboard-grid" aria-hidden="true">
                   <div className="col-6"><Skeleton label="Loading inflow comparison" /></div>
                   <div className="col-6"><Skeleton label="Loading concern comparison" /></div>

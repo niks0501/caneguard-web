@@ -19,9 +19,7 @@ export function KpiCard({
   label,
   value,
   icon,
-  comparison,
   pointInTime,
-  hint,
   href,
   linkLabel,
   segments,
@@ -51,7 +49,6 @@ export function KpiCard({
         {pointInTime ? <span className="kpi-card__now">now</span> : null}
       </div>
       <strong className="kpi-card__value">{value}</strong>
-      {comparison ? <p className="kpi-card__comparison">{comparison}</p> : null}
       {children}
       {segments && segments.length > 0 ? (
         <ul className="kpi-card__segments">
@@ -75,7 +72,6 @@ export function KpiCard({
         </ul>
       ) : null}
       {emptyMessage ? <p className="kpi-card__empty">{emptyMessage}</p> : null}
-      {hint ? <p className="kpi-card__hint">{hint}</p> : null}
       <Link className="kpi-card__action" to={href} aria-label={linkLabel}>
         <span>Open</span>
         <span aria-hidden="true">→</span>
