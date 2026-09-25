@@ -7,10 +7,14 @@ import { DiseaseBadge, ReviewStatusBadge } from "../reports/ReportBadges";
 import { EvidenceThumbnail } from "../reports/EvidenceThumbnail";
 
 /**
- * The table always fits its card: fixed tracks from `<colgroup>`, wrapping
- * cells, and no width floor above 100% — so a long barangay name or
- * reference code wraps inside its column instead of pushing the page. Below
- * 680px the tracks keep a readable floor and the card scrolls instead.
+ * The table fits its card wherever it can: `<colgroup>` sets the preferred
+ * tracks, long references and barangay names wrap inside their cell, and no
+ * column carries a width floor above 100%. The two badge columns are the
+ * exception — they size to their content (`min-width: max-content` plus a
+ * no-wrap badge) so the longest real strings, "No supported disease detected"
+ * and "Needs field validation", stay on one line. When the sum of those floors
+ * outgrows the card, `.table-scroll` scrolls sideways instead of wrapping a
+ * pill.
  */
 export function DashboardRecentReports({
   reports,
@@ -33,14 +37,10 @@ export function DashboardRecentReports({
           <tr>
             <th scope="col">Report</th>
             <th scope="col">Reported concern</th>
-            <th scope="col">
-              <span className="table-header-capsule">Possible Condition</span>
-            </th>
+            <th scope="col" className="dashboard-report-table__cell-condition">Possible Condition (AI)</th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
-            <th scope="col">
-              <span className="table-header-capsule">Work status</span>
-            </th>
+            <th scope="col" className="dashboard-report-table__cell-status">Work status</th>
             <th scope="col"><span className="sr-only">Action</span></th>
           </tr>
         </thead>
@@ -64,10 +64,10 @@ export function DashboardRecentReports({
                 </div>
               </td>
               <td>{report.reporterSuspectedCondition?.trim() ? report.reporterSuspectedCondition : "Not stated"}</td>
-              <td><DiseaseBadge disease={report.predictedDisease} includePossibleConditionPrefix={false} /></td>
+              <td className="dashboard-report-table__cell-condition"><DiseaseBadge disease={report.predictedDisease} includePossibleConditionPrefix={false} /></td>
               <td><strong className="table-primary">{report.barangay}</strong></td>
               <td>{formatDateTime(report.submittedAt)}</td>
-              <td className="report-status-cell"><ReviewStatusBadge status={report.reviewStatus} /></td>
+              <td className="report-status-cell dashboard-report-table__cell-status"><ReviewStatusBadge status={report.reviewStatus} /></td>
               <td className="dashboard-report-table__action-cell">
                 <Link
                   className="table-action table-action--nowrap"

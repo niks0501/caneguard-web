@@ -256,6 +256,33 @@ describe("DashboardPage", () => {
     // point-in-time sentence and an "as of" stamp on every card.
     expect(snapshot.getAllByText("now")).toHaveLength(3);
 
+    // Four compact cards in one band, each with one named graphic and no
+    // comparison/hint paragraphs.
+    expect(snapshot.getAllByRole("article")).toHaveLength(4);
+    expect(
+      snapshot.getByRole("img", { name: "Submissions 1–24 Sep 2026" }),
+    ).toBeInTheDocument();
+    expect(
+      snapshot.getByRole("img", {
+        name: "Waiting age: 0–2 days waiting 1, 3–6 days waiting 2",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      snapshot.getByRole("img", {
+        name: "Field-validation schedule: Past target date 1, Scheduled ahead 2, Unscheduled 1",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      snapshot.getByRole("img", {
+        name: "No field-validation visit is assigned to these reports",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      snapshot.getByRole("img", {
+        name: "No expert referral is active on these reports",
+      }),
+    ).toBeInTheDocument();
+
     // KPI 3 folds the two calendar subsets in as labelled segments.
     expect(snapshot.getByText("Past target date")).toBeInTheDocument();
     expect(snapshot.getByText("Scheduled ahead")).toBeInTheDocument();
@@ -370,8 +397,21 @@ describe("DashboardPage", () => {
 
     const recent = within(screen.getByRole("region", { name: "Recent reports" }));
     expect(recent.getByText("Reported concern")).toBeInTheDocument();
-    expect(recent.getByText("Possible Condition")).toBeInTheDocument();
-    expect(recent.queryByText("Possible Condition (AI)")).not.toBeInTheDocument();
+    // The two badge headers are plain again: no capsule spans, and the
+    // wording is the pre-capsule "Possible Condition (AI)".
+    const headers = within(recent.getByRole("table"))
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent);
+    expect(headers).toContain("Possible Condition (AI)");
+    expect(headers).toContain("Work status");
+    // No capsule wrapper: the header text sits directly in the <th>, which
+    // carries the same content-sized no-wrap contract as its body cells.
+    const conditionHeader = recent.getByText("Possible Condition (AI)");
+    const statusHeader = recent.getByText("Work status");
+    expect(conditionHeader.tagName).toBe("TH");
+    expect(conditionHeader).toHaveClass("dashboard-report-table__cell-condition");
+    expect(statusHeader.tagName).toBe("TH");
+    expect(statusHeader).toHaveClass("dashboard-report-table__cell-status");
     expect(recent.getAllByText("Not stated").length).toBeGreaterThan(0);
     // Section-meta line 'synchronized submissions' is removed everywhere.
     expect(screen.queryByText("synchronized submissions")).not.toBeInTheDocument();
@@ -408,7 +448,7 @@ describe("DashboardPage", () => {
       .getAllByRole("columnheader")
       .map((header) => header.textContent);
     const concernColumn = headers.indexOf("Reported concern");
-    const conditionColumn = headers.indexOf("Possible Condition");
+    const conditionColumn = headers.indexOf("Possible Condition (AI)");
     expect(concernColumn).toBeGreaterThan(-1);
     expect(conditionColumn).toBeGreaterThan(-1);
 
@@ -419,6 +459,47 @@ describe("DashboardPage", () => {
     // Possible Condition (AI) is the model's classification, never merged in.
     expect(cells[conditionColumn]).toHaveTextContent("Mosaic");
     expect(cells[conditionColumn]).not.toHaveTextContent("RSSI");
+  });
+
+  it("keeps the longest real condition and work-status pills in content-sized no-wrap cells", () => {
+    // The longest strings the badges can render: diseaseLabels.healthy minus
+    // its "Possible Condition: " prefix, and reviewStatusLabels
+    // .for_field_validation. Both must stay one line, so both cells carry the
+    // content-sized no-wrap contract that the design-spine validator asserts
+    // against index.css (`min-width: max-content; white-space: nowrap`), with
+    // `.table-scroll` (`overflow-x: auto`) as the small-screen escape.
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: {
+          ...summary,
+          recentReports: [
+            {
+              ...mockReports[0],
+              predictedDisease: "healthy",
+              reviewStatus: "for_field_validation",
+            },
+          ],
+        },
+      }),
+    );
+    const { container } = renderDashboard();
+
+    const table = within(
+      screen.getByRole("region", { name: "Recent reports" }),
+    ).getByRole("table");
+    expect(container.querySelector(".table-scroll")).toContainElement(table);
+
+    const conditionPill = within(table).getByText("No supported disease detected");
+    const statusPill = within(table).getByText("Needs field validation");
+    expect(conditionPill.closest("td")).toHaveClass(
+      "dashboard-report-table__cell-condition",
+    );
+    expect(statusPill.closest("td")).toHaveClass(
+      "dashboard-report-table__cell-status",
+    );
+    // The pill itself is one element: no wrapping span splits the string.
+    expect(conditionPill.tagName).toBe("SPAN");
+    expect(statusPill.tagName).toBe("SPAN");
   });
 
   it("names the timezone once on the page and prints every time in 12-hour form", () => {
