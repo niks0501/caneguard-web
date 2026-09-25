@@ -238,6 +238,45 @@ describe("DashboardPage", () => {
     );
   });
 
+  it("labels the current-month scope as month to date on the ruler itself", () => {
+    const { rerender } = renderDashboard();
+
+    // The open month is named on the ruler, not in a prose note beside it.
+    expect(screen.getByLabelText("This month to date")).toBeInTheDocument();
+    expect(screen.queryByLabelText("This month")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Month to date; compared with/)).not.toBeInTheDocument();
+    expect(screen.getByText("+3 vs previous period · month to date")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Scope month"), {
+      target: { value: "2026-08" },
+    });
+    vi.mocked(useAnalytics).mockReturnValue(
+      analyticsResult({
+        data: {
+          ...analytics,
+          period: {
+            ...analytics.period,
+            from: "2026-08-01",
+            to: "2026-08-31",
+            label: "1–31 Aug 2026",
+          },
+        },
+      }),
+    );
+    rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+    // A closed month is not month to date, and KPI 1 stops saying so.
+    expect(screen.getByLabelText("This month")).toBeInTheDocument();
+    expect(screen.queryByLabelText("This month to date")).not.toBeInTheDocument();
+    expect(screen.getByText("+3 vs previous period")).toBeInTheDocument();
+    expect(
+      screen.queryByText("+3 vs previous period · month to date"),
+    ).not.toBeInTheDocument();
+  });
+
   it("reports an unavailable analytics window instead of showing an endless loading frame", () => {
     vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: undefined, isError: true, isPending: false }));
     renderDashboard();
@@ -264,7 +303,45 @@ describe("DashboardPage", () => {
     renderDashboard();
     const card = screen.getByText("Awaiting review").closest("article")!;
     expect(within(card).getByText("1")).toBeInTheDocument();
+    expect(within(card).getByText("Oldest: 2 days")).toBeInTheDocument();
     expect(within(card).getByRole("img", { name: "Waiting age: 0–2 days waiting 1" })).toBeInTheDocument();
+  });
+
+  it("labels an empty or unmeasurable waiting backlog honestly", () => {
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
+      ...analytics,
+      reviewBacklog: {
+        totalWaiting: 0,
+        buckets: analytics.reviewBacklog.buckets.map((bucket) => ({ ...bucket, count: 0 })),
+        oldestWaitingDays: null,
+      },
+    } }));
+    const { rerender } = renderDashboard();
+
+    const card = screen.getByText("Awaiting review").closest("article")!;
+    expect(within(card).getByText("0")).toBeInTheDocument();
+    // Nothing waiting has no oldest age, and the empty split draws no slices.
+    expect(within(card).getByText("No reports awaiting review")).toBeInTheDocument();
+    expect(
+      within(card).getByRole("img", { name: "Waiting age: nothing recorded" }),
+    ).toBeInTheDocument();
+    expect(card.querySelectorAll(".kpi-radial__slice")).toHaveLength(0);
+
+    // A counted backlog without a measured wait stays unavailable, never "0 days".
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
+      ...analytics,
+      reviewBacklog: { ...analytics.reviewBacklog, oldestWaitingDays: null },
+    } }));
+    rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+    expect(
+      within(screen.getByText("Awaiting review").closest("article")!).getByText(
+        "Oldest waiting age unavailable",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("renders the four-KPI operational snapshot with honest windows", () => {
@@ -285,14 +362,14 @@ describe("DashboardPage", () => {
     expect(snapshot.queryByText("Synchronized only")).not.toBeInTheDocument();
 
     // Queue KPIs carry no point-in-time pill: the card is header, value,
-    // graphic and Open action only.
+    // supporting line, graphic and its own link.
     expect(snapshot.queryByText("now")).not.toBeInTheDocument();
 
     // Four compact cards in one band, each with one named graphic and no
     // comparison/hint paragraphs.
-    expect(snapshot.getAllByRole("article")).toHaveLength(4);
-    // Nothing but header, value, graphic and Open action: no text paragraph
-    // and no chip list survive inside the band.
+    const cards = snapshot.getAllByRole("article");
+    expect(cards).toHaveLength(4);
+    // Nothing but the four assigned slots: no paragraph and no chip list.
     expect(snapshot.queryAllByRole("paragraph")).toHaveLength(0);
     expect(snapshot.queryAllByRole("list")).toHaveLength(0);
     expect(
@@ -310,13 +387,22 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
     expect(
       snapshot.getByRole("img", {
-        name: "No field-validation visit is assigned to these reports",
+        name: "1 unverified report with no validation or referral underway",
       }),
     ).toBeInTheDocument();
+
+    // Each supporting line carries the figure of its own population: the
+    // scoped comparison delta, the same backlog's oldest wait, the same
+    // queue's past-target subset, and the queue's own state.
     expect(
-      snapshot.getByRole("img", {
-        name: "No expert referral is active on these reports",
-      }),
+      within(cards[0]).getByText("+3 vs previous period · month to date"),
+    ).toBeInTheDocument();
+    expect(within(cards[1]).getByText("Oldest: 5 days")).toBeInTheDocument();
+    expect(
+      within(cards[2]).getByText("1 past target date"),
+    ).toBeInTheDocument();
+    expect(
+      within(cards[3]).getByText("No validation or referral underway"),
     ).toBeInTheDocument();
 
     // KPI 3 encodes the two calendar subsets inside its bar: the removed chip
@@ -334,9 +420,8 @@ describe("DashboardPage", () => {
     expect(snapshot.queryByText("0–2 days waiting")).not.toBeInTheDocument();
     expect(snapshot.queryByText("Oldest wait 5 days.")).not.toBeInTheDocument();
 
-    // One Open action per card and nothing else clickable: the deleted segment
-    // lists carried no navigation the cards still need, and every per-card
-    // target survives.
+    // One link per card and nothing else clickable: the whole card is the
+    // action, so every per-card target survives without an Open row.
     expect(snapshot.getAllByRole("link")).toHaveLength(4);
     expect(
       snapshot.getByRole("link", { name: "Open the submitted reports register" }),
@@ -356,7 +441,7 @@ describe("DashboardPage", () => {
     ).toHaveAttribute("href", "/reports?queue=unverified_no_active_work");
   });
 
-  it("omits comparison copy from KPI cards when submissions fall or hold steady", () => {
+  it("prints the signed delta from the same comparison window on KPI 1", () => {
     vi.mocked(useAnalytics).mockReturnValue(
       analyticsResult({
         data: {
@@ -372,6 +457,7 @@ describe("DashboardPage", () => {
       }),
     );
     renderDashboard();
+    expect(screen.getByText("-3 vs previous period · month to date")).toBeInTheDocument();
     expect(screen.queryByText(/▼ Down from 15/)).not.toBeInTheDocument();
 
     vi.mocked(useAnalytics).mockReturnValue(
@@ -394,7 +480,41 @@ describe("DashboardPage", () => {
         <DashboardPage />
       </MemoryRouter>,
     );
+    expect(
+      screen.getByText("No change vs previous period · month to date"),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/■ No change from 12/)).not.toBeInTheDocument();
+  });
+
+  it("shows unavailable figures instead of zero when a period has no data", () => {
+    vi.mocked(useAnalytics).mockReturnValue(
+      analyticsResult({ data: undefined, isError: true, isPending: false }),
+    );
+    renderDashboard();
+
+    const submitted = screen.getByText("Submitted reports").closest("article")!;
+    // The value is stated as unavailable, and the sr-only copy repeats it.
+    expect(within(submitted).getByText("—")).toBeInTheDocument();
+    expect(within(submitted).getByText("Unavailable")).toHaveClass("sr-only");
+    expect(
+      within(submitted).getByText("Previous period unavailable"),
+    ).toBeInTheDocument();
+
+    const awaiting = screen.getByText("Awaiting review").closest("article")!;
+    expect(within(awaiting).getByText("—")).toBeInTheDocument();
+    expect(
+      within(awaiting).getByText("Waiting age unavailable"),
+    ).toBeInTheDocument();
+    // No graphic at all when the split was never loaded, never an empty ring
+    // that reads as zero work.
+    expect(within(awaiting).queryByRole("img")).not.toBeInTheDocument();
+
+    // The summary-backed cards still count: their population is current state.
+    const validation = screen
+      .getByText("Needing field validation")
+      .closest("article")!;
+    expect(within(validation).getByText("4")).toBeInTheDocument();
+    expect(within(validation).getByText("1 past target date")).toBeInTheDocument();
   });
 
   it("shows no empty-state sentence when a queue is empty", () => {
@@ -414,7 +534,7 @@ describe("DashboardPage", () => {
     );
     renderDashboard();
 
-    // The value "0" and the Open action carry the empty state; the deleted
+    // The value and its supporting line carry the empty state; the deleted
     // good-outcome sentences are not relocated anywhere on the cards.
     const snapshot = within(
       screen.getByRole("region", { name: "Current operations" }),
@@ -425,6 +545,23 @@ describe("DashboardPage", () => {
     ).not.toBeInTheDocument();
     expect(snapshot.queryByText("No unverified report is without active work.")).not.toBeInTheDocument();
     expect(snapshot.getAllByText("0")).toHaveLength(2);
+    // An empty field-validation queue draws an empty track, never three equal
+    // shares of nothing.
+    expect(
+      snapshot.getByRole("img", {
+        name: "Field-validation schedule: nothing recorded",
+      }),
+    ).toBeInTheDocument();
+    expect(snapshot.queryAllByText("Past target date")).toHaveLength(0);
+    expect(snapshot.getByText("0 past target date")).toBeInTheDocument();
+    expect(
+      snapshot.getByText("No validation or referral underway"),
+    ).toBeInTheDocument();
+    expect(
+      snapshot.getByRole("img", {
+        name: "0 unverified reports with no validation or referral underway",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("keeps long queue identifiers inside the KPI grid without sideways push", () => {

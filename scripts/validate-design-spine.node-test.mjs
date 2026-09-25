@@ -4,6 +4,7 @@ import {
   contrastRatio,
   parseTokensCss,
   validateDashboardWrapRules,
+  validateKpiCardFillRules,
   validateReportTablePillRules,
   validateSemanticContrast,
 } from "./validate-design-spine.mjs";
@@ -54,6 +55,7 @@ test("validateDashboardWrapRules requires min-width 0, max-width 100% and wrappi
     .kpi-card { min-width: 0; max-width: 100%; }
     .kpi-card__label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .kpi-card__value { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .kpi-card__support { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .decision-chart-card { min-width: 0; max-width: 100%; }
     .decision-chart-card__title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .decision-chart-card__hint { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
@@ -89,4 +91,21 @@ test("validateReportTablePillRules requires content-sized no-wrap pill columns",
   assert.ok(errors.some((error) => /cell-condition.*nowrap/.test(error)));
   assert.ok(errors.some((error) => /cell-status.*max-content/.test(error)));
   assert.ok(errors.some((error) => /table-scroll.*overflow-x/.test(error)));
+});
+
+test("validateKpiCardFillRules requires the KPI graphic to absorb card height", () => {
+  const passing = `
+    .kpi-card__link { display: flex; height: 100%; }
+    .kpi-card__graphic { display: flex; flex: 1 1 auto; }
+  `;
+  assert.equal(validateKpiCardFillRules(passing).length, 0);
+
+  const failing = `
+    .kpi-card__link { display: flex; }
+    .kpi-card__graphic { display: flex; }
+  `;
+  const errors = validateKpiCardFillRules(failing);
+  assert.ok(errors.length > 0);
+  assert.ok(errors.some((error) => /kpi-card__link.*height/.test(error)));
+  assert.ok(errors.some((error) => /kpi-card__graphic.*flex/.test(error)));
 });

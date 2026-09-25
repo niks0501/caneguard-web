@@ -192,6 +192,7 @@ const DASHBOARD_TRACK_SELECTORS = [
   ".kpi-card",
   ".kpi-card__label",
   ".kpi-card__value",
+  ".kpi-card__support",
   ".decision-chart-card",
   ".decision-chart-card__title",
   ".decision-chart-card__hint",
@@ -204,6 +205,7 @@ const DASHBOARD_TRACK_SELECTORS = [
 const DASHBOARD_WRAP_SELECTORS = [
   ".kpi-card__label",
   ".kpi-card__value",
+  ".kpi-card__support",
   ".decision-chart-card__title",
   ".decision-chart-card__hint",
   ".dashboard-report-table th",
@@ -298,16 +300,53 @@ export function validateReportTablePillRules(
   return errors;
 }
 
+/**
+ * KPI card fill guard (overhaul §3.2 card composition).
+ *
+ * Each KPI card is header row, large value, supporting line and graphic, with
+ * the card itself as the action. The graphic therefore owns the leftover card
+ * height: when one card in the 4-up band is taller, the others must fill rather
+ * than leave their graphic floating at the top and the band half empty.
+ */
+const KPI_CARD_FILL_RULES = [
+  {
+    selector: ".kpi-card__link",
+    requirement: /height\s*:\s*100%/,
+    message: "'.kpi-card__link' must set 'height: 100%' to fill the card",
+  },
+  {
+    selector: ".kpi-card__graphic",
+    requirement: /flex\s*:\s*1 1 auto/,
+    message:
+      "'.kpi-card__graphic' must set 'flex: 1 1 auto' to absorb the card's spare height",
+  },
+];
+
+export function validateKpiCardFillRules(
+  cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
+) {
+  const errors = [];
+  for (const { selector, requirement, message } of KPI_CARD_FILL_RULES) {
+    const block = blockForSelector(cssContent, selector);
+    if (block === null || !requirement.test(block)) {
+      errors.push(message);
+    }
+  }
+  return errors;
+}
+
 export function assertDesignSpine() {
   const tokenErrors = validateDesignTokens();
   const contrastErrors = validateSemanticContrast();
   const wrapErrors = validateDashboardWrapRules();
   const pillErrors = validateReportTablePillRules();
+  const kpiErrors = validateKpiCardFillRules();
   const allErrors = [
     ...tokenErrors,
     ...contrastErrors,
     ...wrapErrors,
     ...pillErrors,
+    ...kpiErrors,
   ];
 
   if (allErrors.length > 0) {
