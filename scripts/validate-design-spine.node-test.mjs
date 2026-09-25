@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   contrastRatio,
   parseTokensCss,
   validateDashboardWrapRules,
+  validateKpiBandDistinction,
   validateKpiCardFillRules,
   validateReportTablePillRules,
   validateSemanticContrast,
@@ -108,4 +110,120 @@ test("validateKpiCardFillRules requires the KPI graphic to absorb card height", 
   assert.ok(errors.length > 0);
   assert.ok(errors.some((error) => /kpi-card__link.*height/.test(error)));
   assert.ok(errors.some((error) => /kpi-card__graphic.*flex/.test(error)));
+});
+
+const KPI_BAND_CSS = `
+  .kpi-bar__track { gap: var(--kpi-band-gap); }
+  .kpi-band-fill--1 {
+    background-color: var(--kpi-band-1);
+    background-image: repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px);
+    border: var(--kpi-band-stroke) solid var(--color-surface);
+  }
+  .kpi-band-fill--2 {
+    background-color: var(--kpi-band-2);
+    background-image: repeating-linear-gradient(45deg, var(--color-surface) 0 1px, transparent 1px 8px);
+    border: var(--kpi-band-stroke) solid var(--color-surface);
+  }
+  .kpi-band-fill--3 {
+    background-color: var(--kpi-band-3);
+    background-image: repeating-linear-gradient(90deg, var(--color-surface) 0 1px, transparent 1px 8px);
+    border: var(--kpi-band-stroke) solid var(--color-surface);
+  }
+  .kpi-band-fill--4 {
+    background-color: var(--kpi-band-4);
+    background-image: repeating-linear-gradient(-45deg, var(--color-surface) 0 1px, transparent 1px 8px);
+    border: var(--kpi-band-stroke) solid var(--color-surface);
+  }
+  .kpi-radial__separator { stroke: var(--color-surface); }
+  .kpi-radial__slice { fill: none; stroke-width: 9; }
+  .kpi-pattern__mark { stroke: var(--color-surface); }
+  .kpi-pattern--1 .kpi-pattern__base { fill: var(--kpi-band-1); }
+  .kpi-pattern--2 .kpi-pattern__base { fill: var(--kpi-band-2); }
+  .kpi-pattern--3 .kpi-pattern__base { fill: var(--kpi-band-3); }
+  .kpi-pattern--4 .kpi-pattern__base { fill: var(--kpi-band-4); }
+  .kpi-sparkline__halo { stroke: var(--color-surface); }
+  .kpi-status__lane { background-image: none; }
+  .kpi-status__mark { border: 2px solid var(--color-warning); }
+`;
+
+function bandTokens(bands) {
+  return `
+    :root {
+      --color-surface: #ffffff;
+      --color-warning: #6e5213;
+      --kpi-band-1: ${bands[0]};
+      --kpi-band-2: ${bands[1]};
+      --kpi-band-3: ${bands[2]};
+      --kpi-band-4: ${bands[3]};
+    }
+  `;
+}
+
+test("validateKpiBandDistinction passes the shipped tuned band set", () => {
+  const shipped = readFileSync(
+    new URL("../src/styles/tokens.css", import.meta.url),
+    "utf8",
+  );
+  const shippedCss = readFileSync(
+    new URL("../src/index.css", import.meta.url),
+    "utf8",
+  );
+  assert.deepEqual(validateKpiBandDistinction(shipped, shippedCss), []);
+});
+
+test("validateKpiBandDistinction rejects colour-only or near-identical bands", () => {
+  // The shipped pre-fix brand ramp: neighbouring fills at 1.08-1.40:1.
+  const ramp = bandTokens(["#1e452a", "#2d6b40", "#447a54", "#4d5c52"]);
+  const rampErrors = validateKpiBandDistinction(ramp, KPI_BAND_CSS);
+  assert.ok(rampErrors.length > 0);
+  assert.ok(rampErrors.some((error) => /bands 1 and 2 are adjacent/.test(error)));
+
+  // A band fill that vanishes on the card surface.
+  const paleTokens = bandTokens(["#f6faf5", "#1e452a", "#ae8a1b", "#45370b"]);
+  assert.ok(
+    validateKpiBandDistinction(paleTokens, KPI_BAND_CSS).some((error) =>
+      /--kpi-band-1' .*on '--color-surface'/.test(error),
+    ),
+  );
+
+  // One hatch reused for every band is colour-only again.
+  const sharedHatch = KPI_BAND_CSS.replaceAll(
+    "repeating-linear-gradient(45deg, var(--color-surface) 0 1px, transparent 1px 8px)",
+    "repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px)",
+  ).replaceAll(
+    "repeating-linear-gradient(90deg, var(--color-surface) 0 1px, transparent 1px 8px)",
+    "repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px)",
+  ).replaceAll(
+    "repeating-linear-gradient(-45deg, var(--color-surface) 0 1px, transparent 1px 8px)",
+    "repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px)",
+  );
+  assert.ok(
+    validateKpiBandDistinction(
+      bandTokens(["#749926", "#1e452a", "#ae8a1b", "#45370b"]),
+      sharedHatch,
+    ).some((error) => /hatches must be distinct/.test(error)),
+  );
+
+  // A flat colour creeping back onto a radial slice, and a missing gutter.
+  const flatSlice = KPI_BAND_CSS.replace(
+    ".kpi-radial__slice { fill: none; stroke-width: 9; }",
+    ".kpi-radial__slice { fill: none; stroke: var(--color-primary); }",
+  );
+  assert.ok(
+    validateKpiBandDistinction(
+      bandTokens(["#749926", "#1e452a", "#ae8a1b", "#45370b"]),
+      flatSlice,
+    ).some((error) => /must not paint a flat colour/.test(error)),
+  );
+
+  const noGutter = KPI_BAND_CSS.replace(
+    "gap: var(--kpi-band-gap);",
+    "gap: 0;",
+  );
+  assert.ok(
+    validateKpiBandDistinction(
+      bandTokens(["#749926", "#1e452a", "#ae8a1b", "#45370b"]),
+      noGutter,
+    ).some((error) => /kpi-bar__track.*kpi-band-gap/.test(error)),
+  );
 });

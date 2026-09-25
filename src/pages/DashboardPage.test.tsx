@@ -578,11 +578,15 @@ describe("DashboardPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("labels the unfiltered recent report list independently of the selected period", () => {
+  it("keeps the recent-reports heading free of the retired all-periods note", () => {
     renderDashboard();
     fireEvent.change(screen.getByLabelText("Scope month"), { target: { value: "2026-08" } });
     const recent = within(screen.getByRole("region", { name: "Recent reports" }));
-    expect(recent.getByText(/latest submissions across all periods/)).toBeInTheDocument();
+    // The section meta line was deleted rather than reworded, so the heading
+    // carries the section name alone.
+    expect(recent.queryByText(/all periods/)).not.toBeInTheDocument();
+    expect(recent.queryByText(/not filtered by report scope/)).not.toBeInTheDocument();
+    expect(recent.getByRole("heading", { name: "Recent reports" })).toBeInTheDocument();
   });
 
   it("shows recent reports with the reported-concern column and no table prose", () => {
@@ -607,8 +611,8 @@ describe("DashboardPage", () => {
     expect(statusHeader.tagName).toBe("TH");
     expect(statusHeader).toHaveClass("dashboard-report-table__cell-status");
     expect(recent.getAllByText("Not stated").length).toBeGreaterThan(0);
-    // The table is explicitly unfiltered, independent of the scope ruler.
-    expect(recent.getByText(/latest submissions across all periods/)).toBeInTheDocument();
+    // The retired all-periods note stays deleted, not reworded.
+    expect(recent.queryByText(/all periods/)).not.toBeInTheDocument();
     // Section-meta line 'synchronized submissions' is removed everywhere.
     expect(screen.queryByText("synchronized submissions")).not.toBeInTheDocument();
     expect(screen.queryByText(/most recent synchronized submissions/)).not.toBeInTheDocument();

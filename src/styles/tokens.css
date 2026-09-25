@@ -51,6 +51,30 @@
   --disease-rust: #b54b17;
   --disease-smut: #6b4783;
 
+  /* KPI graphic band encoding (overhaul §3.8 + risk 7).
+     The compact KPI graphics split one whole into up to four ordered bands
+     (waiting age, field-validation schedule). The shipped brand ramp put
+     neighbouring bands at 1.08-1.40:1, so the bands alternate a deepened
+     brand light with a deep brand tone and every *neighbouring* pair now
+     clears the plan's 3:1 adjacent-fill rule (measured in
+     scripts/validate-design-spine.mjs, which fails the gate if any pair
+     regresses). Colour is still not the only separator: each band also
+     carries a 2px gap, a --color-surface separator stroke and its own hatch
+     pattern, and every graphic keeps its text accessible name. Bands 1 and 3
+     (both light) and bands 2 and 4 (both deep) are never adjacent; they
+     differ by hue and by pattern. Light bands are fills only, never text. */
+  /* Measured contrast against the white surface runs 3.32, 10.83, 3.26 and
+     11.64, and the four neighbouring pairs run 3.26, 3.33, 3.58 and 3.51.
+     Keep these comments free of `name colon value` shapes, because the
+     design-spine token parser reads those as real declarations. */
+  --kpi-band-1: #749926; /* brand-lime, deepened */
+  --kpi-band-2: #1e452a; /* --color-primary-dark */
+  --kpi-band-3: #ae8a1b; /* brand-gold, deepened */
+  --kpi-band-4: #45370b; /* brand-gold, deepest */
+  --kpi-band-gap: 2px;
+  --kpi-band-stroke: 1px;
+  --kpi-band-separator: 2px;
+
   /* Timeline event category badge colors */
   --badge-review-bg: #e0f2fe;
   --badge-review-text: #0369a1;

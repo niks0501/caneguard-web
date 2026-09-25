@@ -199,7 +199,6 @@ export function DashboardPage() {
           >
             <div className="dashboard-section__heading">
               <h2 id="recent-reports-heading">Recent reports</h2>
-              <p>Showing latest submissions across all periods (not filtered by report scope).</p>
             </div>
 
             {!summary ? (
