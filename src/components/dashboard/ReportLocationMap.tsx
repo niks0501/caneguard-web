@@ -6,7 +6,6 @@ import {
   NavigationControl,
   Source,
 } from "react-map-gl/maplibre";
-import { MapPin } from "lucide-react";
 import { env } from "../../config/env";
 import type { BarangayValidationRow } from "../../domain/dashboard.types";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
@@ -76,6 +75,15 @@ export function ReportLocationMap({
   );
 
   const counted = rows.filter((row) => row.submitted > 0 || row.open > 0);
+  const sortedCounted = [...counted].sort(
+    (a, b) => b.submitted + b.open - (a.submitted + a.open) || a.barangay.localeCompare(b.barangay),
+  );
+  const TOP_BARANGAY_LIMIT = 5;
+  const hasRemainder = sortedCounted.length > TOP_BARANGAY_LIMIT;
+  const topBarangays = hasRemainder ? sortedCounted.slice(0, TOP_BARANGAY_LIMIT) : sortedCounted;
+  const remainderBarangays = hasRemainder ? sortedCounted.slice(TOP_BARANGAY_LIMIT) : [];
+  const remainderSubmitted = remainderBarangays.reduce((sum, r) => sum + r.submitted, 0);
+  const remainderOpen = remainderBarangays.reduce((sum, r) => sum + r.open, 0);
   const countFor = (barangay: string) =>
     counted.find((row) => row.barangay === barangay);
   const circles = NASUGBU_BARANGAY_POINTS.filter((point) =>
@@ -105,7 +113,6 @@ export function ReportLocationMap({
         <h3 id="chart-location-map" className="decision-chart-card__title">
           {copy.title}
         </h3>
-        <p className="decision-chart-card__hint">{copy.hint}</p>
         <p className="decision-chart-card__period">{scopeLabel}</p>
         <div className="decision-chart__toggle" role="group" aria-label="Map layer">
           <button
@@ -219,19 +226,47 @@ export function ReportLocationMap({
             {gps.data.metadata.truncated ? "; a sample only" : ""}.
           </p>
         ) : null}
-        <ul className="decision-chart__barangay-list">
-          {counted.map((row) => (
-            <li key={row.barangay}>
-              <Link to={`/reports?barangay=${encodeURIComponent(row.barangay)}`}>
-                <MapPin aria-hidden="true" />
-                <strong>{row.barangay}</strong>{" "}
+        <div className="decision-chart__barangay-summary">
+          <ul className="decision-chart__barangay-list" aria-label="Active barangays in scope">
+            {topBarangays.map((row) => (
+              <li key={row.barangay}>
+                <Link
+                  className="decision-chart__barangay-chip"
+                  to={`/reports?barangay=${encodeURIComponent(row.barangay)}`}
+                >
+                  <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
+                  <span className="decision-chart__barangay-count">
+                    {row.submitted} submitted · {row.open} open validation
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {remainderBarangays.length > 0 ? (
+            <details className="decision-chart__barangay-remainder">
+              <summary className="decision-chart__barangay-remainder-summary">
                 <span>
-                  {row.submitted} submitted · {row.open} open validation
+                  +{remainderBarangays.length} more barangays ({remainderSubmitted} submitted · {remainderOpen} open validation)
                 </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+              </summary>
+              <ul className="decision-chart__barangay-list decision-chart__barangay-list--remainder">
+                {remainderBarangays.map((row) => (
+                  <li key={row.barangay}>
+                    <Link
+                      className="decision-chart__barangay-chip"
+                      to={`/reports?barangay=${encodeURIComponent(row.barangay)}`}
+                    >
+                      <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
+                      <span className="decision-chart__barangay-count">
+                        {row.submitted} submitted · {row.open} open validation
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </div>
       </section>
     </div>
   );

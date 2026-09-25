@@ -11,7 +11,6 @@ import type { ReactNode } from "react";
 export function DecisionChartFrame({
   titleId,
   title,
-  hint,
   periodLine,
   chartLabel,
   empty,
@@ -24,7 +23,6 @@ export function DecisionChartFrame({
 }: {
   titleId: string;
   title: string;
-  hint?: string;
   periodLine: string;
   chartLabel: string;
   empty: boolean;
@@ -41,7 +39,6 @@ export function DecisionChartFrame({
         <h3 id={titleId} className="decision-chart-card__title">
           {title}
         </h3>
-        {hint ? <p className="decision-chart-card__hint">{hint}</p> : null}
         <p className="decision-chart-card__period">{periodLine}</p>
         {empty ? (
           <p className="decision-chart-card__empty">{emptyMessage}</p>

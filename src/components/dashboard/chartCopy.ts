@@ -14,16 +14,13 @@ export const dashboardChartCopy = {
   },
   concernVsCondition: {
     title: "Reported concern vs Possible Condition",
-    hint: "Reporter observation vs AI decision support, not a diagnosis.",
     verificationStrip: "Staff verification so far",
   },
   barangayValidation: {
     title: "Validation attention by barangay",
-    hint: "Past target date uses the recorded target visit date.",
   },
   locationMap: {
     title: "Field-report locations — Nasugbu",
-    hint: "Barangay counts; GPS points are indicative.",
     barangayLayer: "Barangay circles",
     gpsLayer: "GPS points",
   },

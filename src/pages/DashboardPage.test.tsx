@@ -241,17 +241,16 @@ describe("DashboardPage", () => {
     renderDashboard();
 
     const snapshot = within(
-      screen.getByRole("region", { name: "Operational snapshot" }),
+      screen.getByRole("region", { name: "Current operations" }),
     );
     expect(snapshot.getByText("Submitted reports")).toBeInTheDocument();
     expect(snapshot.getByText("Awaiting review")).toBeInTheDocument();
     expect(snapshot.getByText("Needing field validation")).toBeInTheDocument();
     expect(snapshot.getByText("Unverified, no active work")).toBeInTheDocument();
 
-    // KPI 1: real previous-window comparison with both windows printed.
-    expect(snapshot.getByText(/▲ Up from 9/)).toBeInTheDocument();
-    expect(snapshot.getByText(/8–31 Aug 2026/)).toBeInTheDocument();
-    expect(snapshot.getByText("Synchronized only")).toBeInTheDocument();
+    // KPI 1: comparison and hint paragraphs are stripped.
+    expect(snapshot.queryByText(/▲ Up from/)).not.toBeInTheDocument();
+    expect(snapshot.queryByText("Synchronized only")).not.toBeInTheDocument();
 
     // Queue KPIs are marked current-state in one word instead of repeating a
     // point-in-time sentence and an "as of" stamp on every card.
@@ -271,8 +270,8 @@ describe("DashboardPage", () => {
       snapshot.getByRole("link", { name: "Open unscheduled validation work" }),
     ).toHaveAttribute("href", "/map?queue=needs_visit");
     expect(
-      snapshot.getByText("1 unassigned · 2 assigned · 1 in progress"),
-    ).toBeInTheDocument();
+      snapshot.queryByText("1 unassigned · 2 assigned · 1 in progress"),
+    ).not.toBeInTheDocument();
 
     expect(
       snapshot.getByRole("link", { name: "Open the Awaiting review queue" }),
@@ -283,12 +282,12 @@ describe("DashboardPage", () => {
       }),
     ).toHaveAttribute("href", "/reports?queue=unverified_no_active_work");
 
-    // Waiting-age ladder with the oldest wait stated.
+    // Waiting-age ladder without hint copy.
     expect(snapshot.getByText("0–2 days waiting")).toBeInTheDocument();
-    expect(snapshot.getByText("Oldest wait 5 days.")).toBeInTheDocument();
+    expect(snapshot.queryByText("Oldest wait 5 days.")).not.toBeInTheDocument();
   });
 
-  it("words the comparison honestly when submissions fall or hold steady", () => {
+  it("omits comparison copy from KPI cards when submissions fall or hold steady", () => {
     vi.mocked(useAnalytics).mockReturnValue(
       analyticsResult({
         data: {
@@ -303,8 +302,8 @@ describe("DashboardPage", () => {
         },
       }),
     );
-    const { rerender } = renderDashboard();
-    expect(screen.getByText(/▼ Down from 15/)).toBeInTheDocument();
+    renderDashboard();
+    expect(screen.queryByText(/▼ Down from 15/)).not.toBeInTheDocument();
 
     vi.mocked(useAnalytics).mockReturnValue(
       analyticsResult({
@@ -320,12 +319,13 @@ describe("DashboardPage", () => {
         },
       }),
     );
+    const { rerender } = renderDashboard();
     rerender(
       <MemoryRouter>
         <DashboardPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/■ No change from 12/)).toBeInTheDocument();
+    expect(screen.queryByText(/■ No change from 12/)).not.toBeInTheDocument();
   });
 
   it("states the good outcome when a queue is empty", () => {
@@ -370,12 +370,11 @@ describe("DashboardPage", () => {
 
     const recent = within(screen.getByRole("region", { name: "Recent reports" }));
     expect(recent.getByText("Reported concern")).toBeInTheDocument();
-    expect(recent.getByText("Possible Condition (AI)")).toBeInTheDocument();
+    expect(recent.getByText("Possible Condition")).toBeInTheDocument();
+    expect(recent.queryByText("Possible Condition (AI)")).not.toBeInTheDocument();
     expect(recent.getAllByText("Not stated").length).toBeGreaterThan(0);
-    // The table keeps only its heading and the short register label: the old
-    // "5 most recent synchronized submissions · as of 21:14:03 PHT" line is
-    // gone, and the freshness lives once in the page header instead.
-    expect(screen.getByText("synchronized submissions")).toBeInTheDocument();
+    // Section-meta line 'synchronized submissions' is removed everywhere.
+    expect(screen.queryByText("synchronized submissions")).not.toBeInTheDocument();
     expect(screen.queryByText(/most recent synchronized submissions/)).not.toBeInTheDocument();
     expect(
       recent.getByRole("link", { name: "Open CG-2026-0718" }),
@@ -409,7 +408,7 @@ describe("DashboardPage", () => {
       .getAllByRole("columnheader")
       .map((header) => header.textContent);
     const concernColumn = headers.indexOf("Reported concern");
-    const conditionColumn = headers.indexOf("Possible Condition (AI)");
+    const conditionColumn = headers.indexOf("Possible Condition");
     expect(concernColumn).toBeGreaterThan(-1);
     expect(conditionColumn).toBeGreaterThan(-1);
 
@@ -498,7 +497,7 @@ describe("DashboardPage", () => {
       dashboardResult({ data: undefined, isPending: true }),
     );
     const { rerender } = renderDashboard();
-    expect(screen.getByText("Loading the operational snapshot…")).toBeInTheDocument();
+    expect(screen.getByText("Loading current operations…")).toBeInTheDocument();
     expect(screen.getByText("Loading recent reports…")).toBeInTheDocument();
     // The header and its freshness stamp paint before any request resolves.
     expect(screen.getByText("Last updated")).toBeInTheDocument();

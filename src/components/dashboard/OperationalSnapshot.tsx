@@ -27,36 +27,19 @@ import { formatWindow } from "./dashboardScope";
 export function OperationalSnapshot({
   summary,
   analytics,
-  analyticsPending,
   analyticsFailed,
 }: {
   summary: DashboardSummary;
   analytics?: ReportAnalytics;
-  analyticsPending: boolean;
+  analyticsPending?: boolean;
   analyticsFailed: boolean;
 }) {
-  const comparison = analytics?.comparison;
-  const delta = comparison?.delta ?? 0;
-  const comparisonLine = comparison
-    ? delta > 0
-      ? `▲ Up from ${comparison.previousTotal} (${formatWindow(comparison.previousFrom, comparison.previousTo)})`
-      : delta < 0
-        ? `▼ Down from ${comparison.previousTotal} (${formatWindow(comparison.previousFrom, comparison.previousTo)})`
-        : `■ No change from ${comparison.previousTotal} (${formatWindow(comparison.previousFrom, comparison.previousTo)})`
-    : analyticsPending
-      ? "Loading the period comparison…"
-      : "Comparison unavailable.";
-
   const unscheduled = Math.max(
     0,
     summary.queues.needs_visit -
       summary.queues.follow_up_due -
       summary.queues.upcoming,
   );
-  const assignment = summary.monthlySummary?.fieldValidationCounts;
-  const assignmentLine = assignment
-    ? `${assignment.unassigned} unassigned · ${assignment.assigned} assigned · ${assignment.inProgress} in progress`
-    : undefined;
 
   return (
     <div className="dashboard-grid">
@@ -65,8 +48,6 @@ export function OperationalSnapshot({
           label="Submitted reports"
           value={analytics ? String(analytics.totalSubmitted) : "—"}
           icon={<Rows3 aria-hidden="true" strokeWidth={1.75} />}
-          comparison={comparisonLine}
-          hint="Synchronized only"
           href={routes.reports}
           linkLabel="Open the submitted reports register"
         >
@@ -88,13 +69,6 @@ export function OperationalSnapshot({
           linkLabel="Open the Awaiting review queue"
           emptyMessage={
             summary.queues.needs_review === 0 ? "Nothing awaiting review." : undefined
-          }
-          hint={
-            analytics && summary.queues.needs_review > 0
-              ? analytics.reviewBacklog.oldestWaitingDays === null
-                ? "No report is waiting for a first review."
-                : `Oldest wait ${analytics.reviewBacklog.oldestWaitingDays} days.`
-              : undefined
           }
         >
           {analytics && summary.queues.needs_review > 0 ? (
@@ -124,7 +98,6 @@ export function OperationalSnapshot({
               ? "No open field-validation work."
               : undefined
           }
-          hint={assignmentLine}
           segments={
             summary.queues.needs_visit === 0
               ? []
