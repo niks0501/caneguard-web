@@ -371,6 +371,65 @@ export function validateKpiBandDistinction(
  * stay. Test files are exempt, because the visual tests exist to assert these
  * exact strings are absent.
  */
+/**
+ * One-tooltip guard (the replacement for the retired visible scope note).
+ *
+ * The removed header note defined KPI 1's `previous period` in visible prose.
+ * Exactly one tooltip replaces it, and these rules keep it real: the bubble
+ * stays in the accessibility tree while hidden (clipped, never `display: none`)
+ * so the card link's `aria-describedby` always resolves, and it is revealed on
+ * both hover and keyboard focus, painted from the established tokens.
+ */
+export const KPI_TOOLTIP_SELECTOR = ".kpi-card__support-tip";
+export const KPI_TOOLTIP_REVEAL_SELECTORS = [
+  ".kpi-card__link:hover .kpi-card__support-tip",
+  ".kpi-card__link:focus-visible .kpi-card__support-tip",
+];
+
+export function validateKpiSupportTooltip(
+  cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
+) {
+  const errors = [];
+  const hidden = blockForSelector(cssContent, KPI_TOOLTIP_SELECTOR);
+  if (hidden === null) {
+    errors.push(`Missing '${KPI_TOOLTIP_SELECTOR}' rule`);
+  } else {
+    if (/display\s*:\s*none/.test(hidden)) {
+      errors.push(
+        `'${KPI_TOOLTIP_SELECTOR}' must stay clipped rather than 'display: none' so aria-describedby resolves`,
+      );
+    }
+    if (!/clip\s*:/.test(hidden)) {
+      errors.push(`'${KPI_TOOLTIP_SELECTOR}' must be clipped while hidden`);
+    }
+  }
+
+  for (const selector of KPI_TOOLTIP_REVEAL_SELECTORS) {
+    const block = blockForSelector(cssContent, selector);
+    if (block === null) {
+      errors.push(`Missing tooltip reveal rule '${selector}'`);
+      continue;
+    }
+    if (!/background\s*:[^;]*var\(--color-surface\)/.test(block)) {
+      errors.push(
+        `'${selector}' must paint the tooltip from the established tokens`,
+      );
+    }
+  }
+
+  const annotated = blockForSelector(
+    cssContent,
+    ".kpi-card__support--annotated",
+  );
+  if (annotated === null || !/underline\s+dotted/.test(annotated)) {
+    errors.push(
+      "'.kpi-card__support--annotated' must mark the annotated line with a dotted underline",
+    );
+  }
+
+  return errors;
+}
+
 export function validateNoPatternEncoding(
   cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
   dashboardDir = join(SRC_DIR, "components", "dashboard"),
@@ -584,6 +643,7 @@ export function assertDesignSpine() {
   const contrastErrors = validateSemanticContrast();
   const bandErrors = validateKpiBandDistinction();
   const patternErrors = validateNoPatternEncoding();
+  const tooltipErrors = validateKpiSupportTooltip();
   const wrapErrors = validateDashboardWrapRules();
   const pillErrors = validateReportTablePillRules();
   const kpiErrors = validateKpiCardFillRules();
@@ -592,6 +652,7 @@ export function assertDesignSpine() {
     ...contrastErrors,
     ...bandErrors,
     ...patternErrors,
+    ...tooltipErrors,
     ...wrapErrors,
     ...pillErrors,
     ...kpiErrors,

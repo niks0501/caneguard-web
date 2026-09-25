@@ -32,6 +32,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Never claim a check passed unless it actually ran and succeeded.
 - Never hide failures by deleting tests, weakening assertions, or disabling validation.
 - Dashboard layout rules live in `src/index.css`; `npm run test:design-spine` asserts named selectors in `scripts/validate-design-spine.mjs`, so removing or renaming a dashboard class requires updating that validator in the same change.
+- The dashboard has exactly one tooltip: `.kpi-card__support-tip` on KPI 1, revealed on hover and `:focus-visible` and pointed at by the card link's `aria-describedby`. It must stay clipped rather than `display: none` while hidden, or the description stops resolving; `npm run test:design-spine` enforces both.
 - Dashboard graphics draw solid fills only: the KPI graphics (sparkline, waiting-age radial, schedule bar, status indicator), the decision charts and every legend swatch all take a flat `--kpi-band-*` solid from `src/styles/tokens.css`, indexed by `src/components/dashboard/kpiBandEncoding.ts`. `npm run test:design-spine` fails if a pattern or texture returns, if neighbouring fills drop below 3:1 (including the radial ring's 4-1 join), or if a band loses its gap or separator stroke. Tune a new band there, never with ad-hoc colours in a component.
 
 ## Failure Handling

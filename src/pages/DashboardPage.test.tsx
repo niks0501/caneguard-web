@@ -277,6 +277,40 @@ describe("DashboardPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("defines the previous-period comparison in one tooltip reachable by hover and keyboard focus", () => {
+    renderDashboard();
+
+    // The retired header note explained the comparison in visible prose; the
+    // definition now lives in exactly one tooltip on KPI 1's supporting line.
+    const card = screen.getByText("Submitted reports").closest("article")!;
+    const support = within(card).getByText("+3 vs previous period · month to date");
+    expect(support).toHaveClass("kpi-card__support--annotated");
+
+    const tooltip = within(card).getByRole("tooltip");
+    expect(tooltip).toHaveTextContent(
+      "Previous period: the same number of days immediately before this scope, 8–31 Aug 2026.",
+    );
+
+    // The card link is the aria-described anchor, so the definition is read on
+    // keyboard focus; index.css reveals it on hover and `:focus-visible`,
+    // asserted by the design-spine validator.
+    const link = within(card).getByRole("link");
+    expect(link).toHaveAttribute("aria-describedby", tooltip.id);
+    expect(screen.getAllByRole("tooltip")).toHaveLength(1);
+  });
+
+  it("drops the comparison tooltip when no previous window was returned", () => {
+    vi.mocked(useAnalytics).mockReturnValue(
+      analyticsResult({ data: undefined, isError: true, isPending: false }),
+    );
+    renderDashboard();
+
+    const card = screen.getByText("Submitted reports").closest("article")!;
+    expect(within(card).getByText("Previous period unavailable")).toBeInTheDocument();
+    expect(within(card).queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(within(card).getByRole("link")).not.toHaveAttribute("aria-describedby");
+  });
+
   it("reports an unavailable analytics window instead of showing an endless loading frame", () => {
     vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: undefined, isError: true, isPending: false }));
     renderDashboard();

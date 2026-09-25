@@ -9,6 +9,7 @@ import {
   validateDashboardWrapRules,
   validateKpiBandDistinction,
   validateKpiCardFillRules,
+  validateKpiSupportTooltip,
   validateNoPatternEncoding,
   validateReportTablePillRules,
   validateSemanticContrast,
@@ -237,6 +238,48 @@ test("validateKpiBandDistinction rejects colour-only or textured bands", () => {
   assert.ok(
     validateKpiBandDistinction(SHIPPED_BANDS, noGutter).some((error) =>
       /kpi-bar__track.*kpi-band-gap/.test(error),
+    ),
+  );
+});
+
+test("validateKpiSupportTooltip requires a clipped, hover- and focus-reachable, token-painted bubble", () => {
+  const shippedCss = readFileSync(
+    new URL("../src/index.css", import.meta.url),
+    "utf8",
+  );
+  assert.deepEqual(validateKpiSupportTooltip(shippedCss), []);
+
+  const passing = `
+    .kpi-card__support--annotated { text-decoration: underline dotted var(--color-border-strong); }
+    .kpi-card__support-tip { position: absolute; width: 1px; clip: rect(0, 0, 0, 0); border: 0; }
+    .kpi-card__link:hover .kpi-card__support-tip,
+    .kpi-card__link:focus-visible .kpi-card__support-tip {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border-strong);
+    }
+  `;
+  assert.deepEqual(validateKpiSupportTooltip(passing), []);
+
+  // A bubble that is display:none drops out of the accessibility tree, so the
+  // card link's aria-describedby would resolve to nothing.
+  const removedFromTree = passing.replace(
+    "clip: rect(0, 0, 0, 0);",
+    "display: none;",
+  );
+  assert.ok(
+    validateKpiSupportTooltip(removedFromTree).some((error) =>
+      /display: none.*aria-describedby/.test(error),
+    ),
+  );
+
+  // A tooltip reachable by hover alone strands keyboard users.
+  const hoverOnly = passing.replace(
+    ".kpi-card__link:focus-visible .kpi-card__support-tip",
+    ".kpi-card__link--unused .kpi-card__support-tip",
+  );
+  assert.ok(
+    validateKpiSupportTooltip(hoverOnly).some((error) =>
+      /Missing tooltip reveal rule '.kpi-card__link:focus-visible/.test(error),
     ),
   );
 });
