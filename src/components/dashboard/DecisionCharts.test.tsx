@@ -191,11 +191,52 @@ describe("ConcernVsConditionBars", () => {
       expect(container.querySelector(`pattern#${id}`)).not.toBeNull();
     }
 
-    // The verification strip closes the card with staff outcomes.
+    // The verification strip is a real legend: one patterned mark per outcome
+    // with its own accessible name, and the same rows in the card's
+    // visually-hidden data table.
     const strip = screen.getByRole("list", { name: "Staff verification so far" });
-    expect(within(strip).getByText("Verified by staff")).toBeInTheDocument();
-    expect(within(strip).getByText("Unable to verify")).toBeInTheDocument();
-    expect(within(strip).getByText("Not yet determined")).toBeInTheDocument();
+    expect(strip).toHaveClass("decision-chart__legend--verification");
+    expect(
+      within(strip).getByRole("img", { name: "Verified by staff: 3" }),
+    ).toBeInTheDocument();
+    expect(
+      within(strip).getByRole("img", { name: "Unable to verify: 2" }),
+    ).toBeInTheDocument();
+    expect(
+      within(strip).getByRole("img", { name: "Not yet determined: 7" }),
+    ).toBeInTheDocument();
+    // Patterns, never colour alone: solid, single hatch, cross hatch.
+    expect(
+      strip.querySelector(".decision-chart__swatch--verified"),
+    ).not.toBeNull();
+    expect(strip.querySelector(".decision-chart__swatch--unable")).not.toBeNull();
+    expect(
+      strip.querySelector(".decision-chart__swatch--not-determined"),
+    ).not.toBeNull();
+    // Each category prints its label and count on one line.
+    for (const [label, count] of [
+      ["Verified by staff", "3"],
+      ["Unable to verify", "2"],
+      ["Not yet determined", "7"],
+    ]) {
+      expect(within(strip).getByText(label)).toBeInTheDocument();
+      expect(
+        within(strip).getByRole("img", { name: `${label}: ${count}` }),
+      ).toHaveTextContent(count);
+    }
+    for (const [label, count] of [
+      ["Verified by staff", "3"],
+      ["Unable to verify", "2"],
+      ["Not yet determined", "7"],
+    ]) {
+      const row = within(table)
+        .getAllByRole("row")
+        .find((candidate) =>
+          candidate.textContent?.startsWith(`Staff verification: ${label}`),
+        );
+      expect(row).toBeDefined();
+      expect(row).toHaveTextContent(count);
+    }
 
     // Reported totals reconcile with the scoped count: nothing dropped.
     const reportedSum = analytics.reportedConcern.reduce(

@@ -54,7 +54,6 @@ test("validateDashboardWrapRules requires min-width 0, max-width 100% and wrappi
     .kpi-card { min-width: 0; max-width: 100%; }
     .kpi-card__label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .kpi-card__value { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-    .kpi-card__segment-label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .decision-chart-card { min-width: 0; max-width: 100%; }
     .decision-chart-card__title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .decision-chart-card__hint { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }

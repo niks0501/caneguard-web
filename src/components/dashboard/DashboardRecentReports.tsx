@@ -37,7 +37,7 @@ export function DashboardRecentReports({
           <tr>
             <th scope="col">Report</th>
             <th scope="col">Reported concern</th>
-            <th scope="col" className="dashboard-report-table__cell-condition">Possible Condition (AI)</th>
+            <th scope="col" className="dashboard-report-table__cell-condition">Possible Condition</th>
             <th scope="col">Barangay</th>
             <th scope="col">Submitted</th>
             <th scope="col" className="dashboard-report-table__cell-status">Work status</th>

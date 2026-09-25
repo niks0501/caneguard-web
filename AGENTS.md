@@ -31,6 +31,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Expand to broader tests, builds, E2E, browser, or device verification only when justified.
 - Never claim a check passed unless it actually ran and succeeded.
 - Never hide failures by deleting tests, weakening assertions, or disabling validation.
+- Dashboard layout rules live in `src/index.css`; `npm run test:design-spine` asserts named selectors in `scripts/validate-design-spine.mjs`, so removing or renaming a dashboard class requires updating that validator in the same change.
 
 ## Failure Handling
 

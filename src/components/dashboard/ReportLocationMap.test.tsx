@@ -1,5 +1,5 @@
 import { createElement, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +19,8 @@ vi.mock("../../config/env", () => ({
 const mapState = vi.hoisted(() => ({
   sources: [] as Array<{ id: string; features: number }>,
   layers: [] as Array<{ id: string; paint?: Record<string, unknown> }>,
+  /** Recorded MapLibre map click event replayed by the canvas stand-in. */
+  mapClickEvent: undefined as unknown,
 }));
 
 /**
@@ -31,8 +33,28 @@ const mapState = vi.hoisted(() => ({
  * 2. <Layer> mounts once per id.
  */
 vi.mock("react-map-gl/maplibre", () => {
-  const Boundary = ({ children }: { children?: ReactNode }) =>
-    createElement("div", { "data-testid": "map-canvas" }, children);
+  const Boundary = ({
+    children,
+    onClick,
+  }: {
+    children?: ReactNode;
+    onClick?: (event: unknown) => void;
+  }) =>
+    createElement(
+      "div",
+      { "data-testid": "map-canvas" },
+      children,
+      // MapLibre clicks land on the canvas, not on a DOM node per dot, so the
+      // stand-in exposes a trigger that replays a recorded map click event.
+      onClick
+        ? createElement("button", {
+            type: "button",
+            "data-testid": "map-click",
+            "aria-label": "Simulate a click on the map canvas",
+            onClick: () => onClick(mapState.mapClickEvent),
+          })
+        : null,
+    );
 
   const Source = ({ id, data, children }: {
     id?: string;
@@ -66,10 +88,14 @@ vi.mock("react-map-gl/maplibre", () => {
     return null;
   };
 
+  const Popup = ({ children }: { children?: ReactNode }) =>
+    createElement("div", { "data-testid": "map-popup" }, children);
+
   return {
     Layer,
     Map: Boundary,
     NavigationControl: () => null,
+    Popup,
     Source,
   };
 });
@@ -167,6 +193,7 @@ function renderMap() {
 beforeEach(() => {
   mapState.sources.length = 0;
   mapState.layers.length = 0;
+  mapState.mapClickEvent = undefined;
   vi.mocked(useFieldValidationMap).mockReturnValue({
     data: gpsData(),
     isPending: false,
@@ -276,5 +303,74 @@ describe("ReportLocationMap layer toggle", () => {
       if (index > 0) expect(stops[index]).toBeGreaterThan(stops[index - 2]);
     }
     expect(stops).toEqual([1, 10, 2, 30]);
+  });
+
+  it("opens a dot summary popup with the counts and a link through", async () => {
+    const user = userEvent.setup();
+    renderMap();
+
+    mapState.mapClickEvent = {
+      features: [
+        {
+          layer: { id: "dashboard-barangay-circle" },
+          properties: { barangay: "Balaytigui", submitted: 8, open: 5 },
+        },
+      ],
+      lngLat: { lng: 120.6, lat: 14.07 },
+    };
+    await user.click(screen.getByTestId("map-click"));
+    const barangayPopup = screen.getByRole("group", {
+      name: "Balaytigui report summary",
+    });
+    expect(barangayPopup).toHaveTextContent("Balaytigui");
+    expect(barangayPopup).toHaveTextContent("8 submitted · 5 open validation");
+    expect(
+      within(barangayPopup).getByRole("link", {
+        name: "Open Balaytigui reports register",
+      }),
+    ).toHaveAttribute("href", "/reports?barangay=Balaytigui");
+
+    // The GPS dot reaches the single report instead, and switching layers
+    // clears the previous popup.
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    expect(barangayPopup).not.toBeInTheDocument();
+    mapState.mapClickEvent = {
+      features: [
+        {
+          layer: { id: "dashboard-gps-point" },
+          properties: {
+            uuid: "00000000-0000-4000-8000-000000000001",
+            referenceCode: "CG-2026-0718",
+            barangay: "Balaytigui",
+          },
+        },
+      ],
+      lngLat: { lng: 120.6, lat: 14.07 },
+    };
+    await user.click(screen.getByTestId("map-click"));
+    const gpsPopup = screen.getByRole("group", {
+      name: "Report CG-2026-0718 summary",
+    });
+    expect(gpsPopup).toHaveTextContent("CG-2026-0718");
+    expect(
+      within(gpsPopup).getByRole("link", { name: "Open CG-2026-0718" }),
+    ).toHaveAttribute(
+      "href",
+      "/reports/00000000-0000-4000-8000-000000000001",
+    );
+  });
+
+  it("keeps the barangay list as the keyboard route to the same destinations", () => {
+    renderMap();
+
+    // The list links stay focusable and unchanged while the map dots now open
+    // their own popups, so a keyboard user keeps every destination the dots
+    // offer (the register for a barangay, the report for a GPS point).
+    const listLink = screen.getByRole("link", {
+      name: /Balaytigui 8 submitted/,
+    });
+    expect(listLink).toHaveAttribute("href", "/reports?barangay=Balaytigui");
+    listLink.focus();
+    expect(listLink).toHaveFocus();
   });
 });

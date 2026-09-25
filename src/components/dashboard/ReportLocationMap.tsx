@@ -4,8 +4,11 @@ import {
   Layer,
   Map,
   NavigationControl,
+  Popup,
   Source,
 } from "react-map-gl/maplibre";
+import type { MapLayerMouseEvent } from "react-map-gl/maplibre";
+import { routes } from "../../app/routes";
 import { env } from "../../config/env";
 import type { BarangayValidationRow } from "../../domain/dashboard.types";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
@@ -23,6 +26,43 @@ const mapTilerStyle = env.mapTilerKey
 const GPS_LIMIT = 100;
 
 type MapLayer = "barangay" | "gps";
+
+/** Layer ids whose dots answer clicks (the map-wide handlers filter on these). */
+const INTERACTIVE_LAYER_IDS = [
+  "dashboard-barangay-circle",
+  "dashboard-gps-point",
+];
+
+/** The dot whose summary popup is open, with the counts it carries. */
+type SelectedDot =
+  | {
+      layer: "barangay";
+      longitude: number;
+      latitude: number;
+      barangay: string;
+      submitted: number;
+      open: number;
+    }
+  | {
+      layer: "gps";
+      longitude: number;
+      latitude: number;
+      uuid: string;
+      referenceCode: string;
+      barangay: string;
+    };
+
+function readString(properties: unknown, key: string): string {
+  if (!properties || typeof properties !== "object") return "";
+  const value = (properties as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+}
+
+function readNumber(properties: unknown, key: string): number {
+  if (!properties || typeof properties !== "object") return 0;
+  const value = (properties as Record<string, unknown>)[key];
+  return typeof value === "number" ? value : 0;
+}
 
 /** Mount the map only when scrolled into view (overhaul §6). */
 function useInView(): [React.RefObject<HTMLDivElement | null>, boolean] {
@@ -52,8 +92,11 @@ function useInView(): [React.RefObject<HTMLDivElement | null>, boolean] {
  * Map · Field-report locations — Nasugbu (overhaul §3.4, decision D5).
  * Default layer: proportional circles at the barangay reference points for
  * barangays with reports in scope. Labelled toggle: indicative GPS points
- * (explicit small limit). The barangay list below is a real list of links,
- * so the map is never the only route to the data.
+ * (explicit small limit). Every dot is interactive: clicking it opens a
+ * small summary popup anchored on the map with the essential counts and a
+ * link through to the barangay reports register or the single report. The
+ * barangay list below is a real list of links and stays the keyboard route
+ * to those destinations, so the map is never the only way through.
  */
 export function ReportLocationMap({
   rows,
@@ -68,6 +111,7 @@ export function ReportLocationMap({
 }) {
   const copy = dashboardChartCopy.locationMap;
   const [layer, setLayer] = useState<MapLayer>("barangay");
+  const [selected, setSelected] = useState<SelectedDot | null>(null);
   const [frameRef, inView] = useInView();
   const gps = useFieldValidationMap(
     { dateFrom: from, dateTo: to, limit: GPS_LIMIT },
@@ -93,6 +137,7 @@ export function ReportLocationMap({
     properties: {
       barangay: point.barangay,
       submitted: countFor(point.barangay)?.submitted ?? 0,
+      open: countFor(point.barangay)?.open ?? 0,
     },
     geometry: {
       type: "Point" as const,
@@ -107,9 +152,49 @@ export function ReportLocationMap({
 
   const gpsFeatures = (gps.data?.features ?? []).map((feature) => ({
     type: "Feature" as const,
-    properties: { uuid: feature.properties.uuid },
+    properties: {
+      uuid: feature.properties.uuid,
+      referenceCode: feature.properties.referenceCode,
+      barangay: feature.properties.barangay,
+    },
     geometry: feature.geometry,
   }));
+
+  const showCursor = (pointer: boolean) => (event: MapLayerMouseEvent) => {
+    event.target.getCanvas().style.cursor = pointer ? "pointer" : "";
+  };
+
+  /**
+   * One map-wide click handler: react-map-gl only fills `features` from the
+   * layers named in `interactiveLayerIds`, and the feature carries its own
+   * layer id, so a dot opens the summary for the series it belongs to.
+   */
+  const handleDotClick = (event: MapLayerMouseEvent) => {
+    const feature = event.features?.find(
+      (candidate) => candidate.layer?.id === "dashboard-gps-point",
+    ) ?? event.features?.[0];
+    if (!feature) return;
+    const properties: unknown = feature.properties;
+    if (feature.layer?.id === "dashboard-gps-point") {
+      setSelected({
+        layer: "gps",
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+        uuid: readString(properties, "uuid"),
+        referenceCode: readString(properties, "referenceCode"),
+        barangay: readString(properties, "barangay"),
+      });
+      return;
+    }
+    setSelected({
+      layer: "barangay",
+      longitude: event.lngLat.lng,
+      latitude: event.lngLat.lat,
+      barangay: readString(properties, "barangay"),
+      submitted: readNumber(properties, "submitted"),
+      open: readNumber(properties, "open"),
+    });
+  };
 
   return (
     <div className="col-12">
@@ -123,7 +208,10 @@ export function ReportLocationMap({
             type="button"
             aria-pressed={layer === "barangay"}
             className={layer === "barangay" ? "decision-chart__toggle-option decision-chart__toggle-option--active" : "decision-chart__toggle-option"}
-            onClick={() => setLayer("barangay")}
+            onClick={() => {
+              setLayer("barangay");
+              setSelected(null);
+            }}
           >
             {copy.barangayLayer}
           </button>
@@ -131,7 +219,10 @@ export function ReportLocationMap({
             type="button"
             aria-pressed={layer === "gps"}
             className={layer === "gps" ? "decision-chart__toggle-option decision-chart__toggle-option--active" : "decision-chart__toggle-option"}
-            onClick={() => setLayer("gps")}
+            onClick={() => {
+              setLayer("gps");
+              setSelected(null);
+            }}
           >
             {copy.gpsLayer}
           </button>
@@ -156,6 +247,10 @@ export function ReportLocationMap({
               initialViewState={NASUGBU_MAP_CENTER}
               mapStyle={mapTilerStyle}
               attributionControl={{ compact: true }}
+              interactiveLayerIds={INTERACTIVE_LAYER_IDS}
+              onClick={handleDotClick}
+              onMouseEnter={showCursor(true)}
+              onMouseLeave={showCursor(false)}
             >
               <NavigationControl position="top-right" showCompass={false} />
               {/* Each layer swap remounts its own <Source>: a mounted
@@ -226,6 +321,61 @@ export function ReportLocationMap({
                   />
                 </Source>
               )}
+              {selected ? (
+                <Popup
+                  longitude={selected.longitude}
+                  latitude={selected.latitude}
+                  anchor="top"
+                  closeOnClick={false}
+                  onClose={() => setSelected(null)}
+                  className="decision-map__popup"
+                >
+                  <div
+                    className="decision-map__popup-body"
+                    role="group"
+                    aria-label={
+                      selected.layer === "barangay"
+                        ? `${selected.barangay} report summary`
+                        : `Report ${selected.referenceCode} summary`
+                    }
+                  >
+                    {selected.layer === "barangay" ? (
+                      <>
+                        <strong className="decision-map__popup-title">
+                          {selected.barangay}
+                        </strong>
+                        <p className="decision-map__popup-counts">
+                          {selected.submitted} submitted · {selected.open} open
+                          validation
+                        </p>
+                        <Link
+                          className="decision-map__popup-link"
+                          to={`/reports?barangay=${encodeURIComponent(selected.barangay)}`}
+                          aria-label={`Open ${selected.barangay} reports register`}
+                        >
+                          Open barangay reports →
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <strong className="decision-map__popup-title">
+                          {selected.referenceCode}
+                        </strong>
+                        <p className="decision-map__popup-counts">
+                          {selected.barangay} · GPS point
+                        </p>
+                        <Link
+                          className="decision-map__popup-link"
+                          to={routes.reportDetail(selected.uuid)}
+                          aria-label={`Open ${selected.referenceCode}`}
+                        >
+                          Open report →
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </Popup>
+              ) : null}
             </Map>
           )}
         </div>
