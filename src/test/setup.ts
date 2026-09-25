@@ -11,5 +11,8 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  // Dashboard controls (scope, map layer) and the auth hint persist in local
+  // storage, so one test's choice must never leak into the next.
+  window.localStorage.clear();
 });
 afterAll(() => server.close());

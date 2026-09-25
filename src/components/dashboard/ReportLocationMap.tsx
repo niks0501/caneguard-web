@@ -15,6 +15,11 @@ import { useFieldValidationMap } from "../../hooks/useFieldValidation";
 import { Skeleton } from "../ui/States";
 import { dashboardChartCopy } from "./chartCopy";
 import { chartTheme } from "./chartTheme";
+import {
+  readDashboardPreferences,
+  saveDashboardMapLayer,
+  type MapLayer,
+} from "./dashboardPreferences";
 import { NASUGBU_BARANGAY_POINTS, NASUGBU_MAP_CENTER } from "./nasugbuBarangays";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -24,8 +29,6 @@ const mapTilerStyle = env.mapTilerKey
   : undefined;
 
 const GPS_LIMIT = 100;
-
-type MapLayer = "barangay" | "gps";
 
 /** Layer ids whose dots answer clicks (the map-wide handlers filter on these). */
 const INTERACTIVE_LAYER_IDS = [
@@ -110,13 +113,21 @@ export function ReportLocationMap({
   to: string;
 }) {
   const copy = dashboardChartCopy.locationMap;
-  const [layer, setLayer] = useState<MapLayer>("barangay");
+  // The chosen layer is dashboard control state: it survives leaving the page
+  // and reloading it, and an unreadable stored value falls back to circles.
+  const [layer, setLayer] = useState<MapLayer>(
+    () => readDashboardPreferences().mapLayer,
+  );
   const [selected, setSelected] = useState<SelectedDot | null>(null);
   const [frameRef, inView] = useInView();
   const gps = useFieldValidationMap(
     { dateFrom: from, dateTo: to, limit: GPS_LIMIT },
     { enabled: inView && layer === "gps" },
   );
+
+  useEffect(() => {
+    saveDashboardMapLayer(layer);
+  }, [layer]);
 
   const counted = rows.filter((row) => row.submitted > 0 || row.open > 0);
   const sortedCounted = [...counted].sort(

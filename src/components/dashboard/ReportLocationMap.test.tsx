@@ -4,6 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReportLocationMap } from "./ReportLocationMap";
+import {
+  DASHBOARD_PREFERENCES_STORAGE_KEY,
+  DASHBOARD_PREFERENCES_VERSION,
+} from "./dashboardPreferences";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
 import type { FieldValidationMapData } from "../../domain/fieldValidation.types";
 
@@ -372,5 +376,108 @@ describe("ReportLocationMap layer toggle", () => {
     expect(listLink).toHaveAttribute("href", "/reports?barangay=Balaytigui");
     listLink.focus();
     expect(listLink).toHaveFocus();
+  });
+});
+
+describe("ReportLocationMap layer memory", () => {
+  function stored(): Record<string, unknown> {
+    return JSON.parse(
+      window.localStorage.getItem(DASHBOARD_PREFERENCES_STORAGE_KEY) ?? "null",
+    ) as Record<string, unknown>;
+  }
+
+  it("brings back the chosen layer after the page is left and reopened", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderMap();
+    expect(
+      screen.getByRole("button", { name: "Barangay circles" }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    unmount();
+
+    // A later visit starts from the stored layer instead of the default.
+    mapState.sources.length = 0;
+    renderMap();
+
+    expect(screen.getByRole("button", { name: "GPS points" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByLabelText("Map of field-report locations: GPS points")).toBeInTheDocument();
+    expect(mapState.sources).toEqual([
+      { id: "dashboard-gps-points", features: 2 },
+    ]);
+    // The restored layer still drives the GPS query for the current scope.
+    expect(useFieldValidationMap).toHaveBeenLastCalledWith(
+      { dateFrom: "2026-09-01", dateTo: "2026-09-24", limit: 100 },
+      { enabled: true },
+    );
+  });
+
+  it("brings back barangay circles after that layer is chosen again", async () => {
+    const user = userEvent.setup();
+    const first = renderMap();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    await user.click(screen.getByRole("button", { name: "Barangay circles" }));
+    first.unmount();
+
+    mapState.sources.length = 0;
+    renderMap();
+
+    expect(
+      screen.getByRole("button", { name: "Barangay circles" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(mapState.sources).toEqual([
+      { id: "dashboard-barangay-circles", features: 2 },
+    ]);
+  });
+
+  it("writes the chosen layer into the versioned store", async () => {
+    const user = userEvent.setup();
+    renderMap();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+
+    expect(stored().version).toBe(DASHBOARD_PREFERENCES_VERSION);
+    expect(stored().mapLayer).toBe("gps");
+  });
+
+  it("falls back to barangay circles when the stored layer is corrupt", () => {
+    window.localStorage.setItem(DASHBOARD_PREFERENCES_STORAGE_KEY, "");
+
+    renderMap();
+
+    expect(
+      screen.getByRole("button", { name: "Barangay circles" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(mapState.sources).toEqual([
+      { id: "dashboard-barangay-circles", features: 2 },
+    ]);
+  });
+
+  it("falls back to barangay circles for an unknown map layer", () => {
+    window.localStorage.setItem(
+      DASHBOARD_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: DASHBOARD_PREFERENCES_VERSION,
+        selection: {
+          mode: "month",
+          month: "2026-09",
+          from: "2026-09-01",
+          to: "2026-09-24",
+        },
+        mapLayer: "satellite",
+      }),
+    );
+
+    renderMap();
+
+    expect(
+      screen.getByRole("button", { name: "Barangay circles" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(useFieldValidationMap).toHaveBeenLastCalledWith(
+      { dateFrom: "2026-09-01", dateTo: "2026-09-24", limit: 100 },
+      { enabled: false },
+    );
   });
 });

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { FileStack, RefreshCw, Rows3 } from "lucide-react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
@@ -8,6 +8,10 @@ import { DASHBOARD_TIMEZONE_LABEL } from "../components/dashboard/analyticsCopy"
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
 import { OperationalSnapshot } from "../components/dashboard/OperationalSnapshot";
 import { ScopeRuler } from "../components/dashboard/ScopeRuler";
+import {
+  readDashboardPreferences,
+  saveDashboardScope,
+} from "../components/dashboard/dashboardPreferences";
 import {
   dateDifferenceInDays,
   formatAsOfTime,
@@ -21,7 +25,6 @@ import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { dashboardSummaryOptions, useDashboard } from "../hooks/useDashboard";
-import { manilaDateAt, manilaMonthAt } from "../domain/reportingTime";
 
 const MAX_ANALYTICS_RANGE_DAYS = 366;
 
@@ -46,15 +49,19 @@ const ReportLocationMap = lazy(() =>
   })),
 );
 
-function initialSelection(): ScopeSelection {
-  const month = manilaMonthAt();
-  const today = manilaDateAt();
-  return { mode: "month", month, from: `${month}-01`, to: today };
-}
-
 export function DashboardPage() {
-  const [selection, setSelection] = useState<ScopeSelection>(initialSelection);
+  // The scope ruler's last-chosen mode and window survive leaving the page and
+  // reloading it; a missing or unreadable stored value falls back to the
+  // current PHT month to date (see dashboardPreferences.ts).
+  const [selection, setSelection] = useState<ScopeSelection>(
+    () => readDashboardPreferences().selection,
+  );
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
+
+  useEffect(() => {
+    saveDashboardScope(selection);
+  }, [selection]);
+
   const scope = resolveScope(selection);
   const dashboard = useDashboard(scope.month, dashboardSummaryOptions);
   const rangeDays = dateDifferenceInDays(scope.from, scope.to) + 1;

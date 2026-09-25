@@ -5,9 +5,14 @@ import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { ANALYTICS_FORBIDDEN_WORDS } from "../components/dashboard/analyticsCopy";
+import {
+  DASHBOARD_PREFERENCES_STORAGE_KEY,
+  DASHBOARD_PREFERENCES_VERSION,
+} from "../components/dashboard/dashboardPreferences";
+import type { ScopeSelection } from "../components/dashboard/dashboardScope";
 import { mockReports } from "../data/mock/mockReports";
 import { useAnalytics } from "../hooks/useAnalytics";
-import { useDashboard } from "../hooks/useDashboard";
+import { dashboardSummaryOptions, useDashboard } from "../hooks/useDashboard";
 import { useFieldValidationMap } from "../hooks/useFieldValidation";
 import type { ReportAnalytics } from "../domain/dashboard.types";
 import { manilaDateAt } from "../domain/reportingTime";
@@ -936,5 +941,157 @@ describe("DashboardPage", () => {
     expect(
       screen.getByRole("link", { name: "Open CG-2026-0718" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("DashboardPage control memory", () => {
+  function stored(): Record<string, unknown> {
+    return JSON.parse(
+      window.localStorage.getItem(DASHBOARD_PREFERENCES_STORAGE_KEY) ?? "null",
+    ) as Record<string, unknown>;
+  }
+
+  it("brings back the chosen month after the page is left and reopened, and queries follow it", () => {
+    const { unmount } = renderDashboard();
+    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
+
+    fireEvent.change(screen.getByLabelText("Scope month"), {
+      target: { value: "2026-08" },
+    });
+    expect(useDashboard).toHaveBeenLastCalledWith(
+      "2026-08",
+      dashboardSummaryOptions,
+    );
+
+    // Leaving the route unmounts the page; the dashboard is opened again later.
+    unmount();
+    renderDashboard();
+
+    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-08");
+    expect(useDashboard).toHaveBeenLastCalledWith(
+      "2026-08",
+      dashboardSummaryOptions,
+    );
+    expect(useAnalytics).toHaveBeenLastCalledWith(
+      { from: "2026-08-01", to: "2026-08-31", granularity: "day" },
+      { enabled: true },
+    );
+  });
+
+  it("brings back a custom window and keeps its dates in the ruler", () => {
+    const { unmount } = renderDashboard();
+    fireEvent.click(screen.getByLabelText("Custom"));
+    fireEvent.change(screen.getByLabelText("Scope start date"), {
+      target: { value: "2026-07-05" },
+    });
+    fireEvent.change(screen.getByLabelText("Scope end date"), {
+      target: { value: "2026-07-19" },
+    });
+
+    unmount();
+    renderDashboard();
+
+    expect(screen.getByLabelText("Custom")).toBeChecked();
+    expect(screen.getByLabelText("Scope start date")).toHaveValue("2026-07-05");
+    expect(screen.getByLabelText("Scope end date")).toHaveValue("2026-07-19");
+    expect(useDashboard).toHaveBeenLastCalledWith(
+      "2026-07",
+      dashboardSummaryOptions,
+    );
+    expect(useAnalytics).toHaveBeenLastCalledWith(
+      { from: "2026-07-05", to: "2026-07-19", granularity: "day" },
+      { enabled: true },
+    );
+  });
+
+  it("brings back the last-30-days mode resolved against today", () => {
+    const { unmount } = renderDashboard();
+    fireEvent.click(screen.getByLabelText("Last 30 days"));
+
+    unmount();
+    renderDashboard();
+
+    expect(screen.getByLabelText("Last 30 days")).toBeChecked();
+    expect(useAnalytics).toHaveBeenLastCalledWith(
+      { from: "2026-08-26", to: "2026-09-24", granularity: "day" },
+      { enabled: true },
+    );
+  });
+
+  it("writes the chosen scope into the versioned store", () => {
+    renderDashboard();
+    fireEvent.change(screen.getByLabelText("Scope month"), {
+      target: { value: "2026-08" },
+    });
+
+    expect(stored().version).toBe(DASHBOARD_PREFERENCES_VERSION);
+    expect((stored().selection as ScopeSelection).mode).toBe("month");
+    expect((stored().selection as ScopeSelection).month).toBe("2026-08");
+  });
+
+  it("falls back to the current defaults when the stored scope is corrupt", () => {
+    window.localStorage.setItem(
+      DASHBOARD_PREFERENCES_STORAGE_KEY,
+      "{ half-written",
+    );
+
+    renderDashboard();
+
+    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
+    expect(useDashboard).toHaveBeenLastCalledWith(
+      "2026-09",
+      dashboardSummaryOptions,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Current operations" }),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back to the current defaults for an unreadable stored version", () => {
+    window.localStorage.setItem(
+      DASHBOARD_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: DASHBOARD_PREFERENCES_VERSION + 1,
+        selection: {
+          mode: "custom",
+          month: "2026-01",
+          from: "2026-01-01",
+          to: "2026-01-09",
+        },
+        mapLayer: "gps",
+      }),
+    );
+
+    renderDashboard();
+
+    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
+    expect(useDashboard).toHaveBeenLastCalledWith(
+      "2026-09",
+      dashboardSummaryOptions,
+    );
+  });
+
+  it("falls back when the stored month has not started yet", () => {
+    window.localStorage.setItem(
+      DASHBOARD_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: DASHBOARD_PREFERENCES_VERSION,
+        selection: {
+          mode: "month",
+          month: "2026-10",
+          from: "2026-10-01",
+          to: "2026-10-31",
+        },
+        mapLayer: "barangay",
+      }),
+    );
+
+    renderDashboard();
+
+    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
+    expect(useDashboard).toHaveBeenLastCalledWith(
+      "2026-09",
+      dashboardSummaryOptions,
+    );
   });
 });
