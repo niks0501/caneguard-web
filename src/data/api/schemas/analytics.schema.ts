@@ -5,6 +5,7 @@ export const analyticsParamsSchema = z.object({
   from: z.iso.date(),
   to: z.iso.date(),
   granularity: z.enum(["day", "week"]).optional(),
+  comparison: z.enum(["previous_month"]).optional(),
 });
 
 export type AnalyticsParams = z.infer<typeof analyticsParamsSchema>;
@@ -56,6 +57,8 @@ export const analyticsResponseSchema = z.object({
       previous_from: z.iso.date(),
       previous_to: z.iso.date(),
       previous_total: z.number().int().nonnegative(),
+      previous_series: z.array(analyticsSeriesPointSchema).optional(),
+      current_series: z.array(analyticsSeriesPointSchema).optional(),
       current_total: z.number().int().nonnegative(),
       delta: z.number().int(),
     }),

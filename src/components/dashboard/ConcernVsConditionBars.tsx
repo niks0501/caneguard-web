@@ -36,7 +36,7 @@ interface ConcernRow {
  * the comparison the reviewer needs is read directly instead of across two
  * charts. Vocabularies are never merged — every row is prefixed with its
  * vocabulary, RSSI appears only in the reported series, and the AI series
- * enumerates the shipped model's declared list. A compact
+ * enumerates the deployed Model V1 four-class list. A compact
  * staff-verification strip closes the card, printed as a legend whose swatch
  * patterns mirror the chart's own mark grammar (solid / single hatch /
  * cross hatch), with the same three rows in the card's accessible table.

@@ -10,7 +10,8 @@ import {
 
 describe("dashboardScope", () => {
   it("resolves the month scope to PHT calendar bounds with day buckets", () => {
-    expect(resolveScope({ mode: "month", month: "2026-09", from: "", to: "" })).toEqual({
+    expect(resolveScope({ mode: "month", month: "2026-09", from: "", to: "" }, "2026-08-15")).toEqual({
+
       mode: "month",
       month: "2026-09",
       from: "2026-09-01",
@@ -21,6 +22,11 @@ describe("dashboardScope", () => {
       from: "2026-02-01",
       to: "2026-02-28",
     });
+  });
+
+  it("uses month-to-date and an equivalent prior-month comparison for the current month", () => {
+    expect(resolveScope({ mode: "month", month: "2026-09", from: "", to: "" }, "2026-09-24"))
+      .toMatchObject({ from: "2026-09-01", to: "2026-09-24", comparison: "previous_month" });
   });
 
   it("resolves the last-30-days scope ending today", () => {

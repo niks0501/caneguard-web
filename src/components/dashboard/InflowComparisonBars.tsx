@@ -23,7 +23,7 @@ function shortTick(value: string): string {
 /**
  * C1 · Inflow: this period vs the same-length previous period (overhaul
  * §3.4, decision D2). Grouped bars per bucket; the previous window is
- * fetched with the same granularity and paired by bucket label. This period
+ * fetched with the same granularity and paired by relative bucket position. This period
  * is brand-only; the previous period carries a hatch so the comparison
  * never depends on colour alone.
  */
@@ -33,34 +33,29 @@ export function InflowComparisonBars({
   scopeLabel,
 }: {
   analytics: ReportAnalytics;
-  previousSeries: ReportAnalyticsSeriesPoint[];
+  previousSeries?: ReportAnalyticsSeriesPoint[];
   scopeLabel: string;
 }) {
   const copy = dashboardChartCopy.inflow;
-  const previousByLabel = new Map(
-    previousSeries.map((point) => [point.label, point.count]),
-  );
-  const labels = Array.from(
-    new Set([
-      ...analytics.series.map((point) => point.label),
-      ...previousSeries.map((point) => point.label),
-    ]),
-  ).sort();
-  const rows = labels.map((label) => ({
-    label,
-    current: analytics.series.find((point) => point.label === label)?.count ?? 0,
-    previous: previousByLabel.get(label) ?? 0,
+  const rows = (analytics.comparison.currentSeries ?? analytics.series).map((point, index) => ({
+    label: point.label,
+    current: point.count,
+    previous: previousSeries?.[index]?.count ?? null,
+    previousLabel: previousSeries?.[index]?.label,
   }));
+  const comparisonAvailable = previousSeries !== undefined &&
+    rows.every((row) => row.previous !== null);
   const comparison = analytics.comparison;
   const periodLine = `${scopeLabel} vs ${formatWindow(comparison.previousFrom, comparison.previousTo)}`;
-  const empty = analytics.totalSubmitted === 0 && comparison.previousTotal === 0;
+  const empty = analytics.totalSubmitted === 0 &&
+    comparisonAvailable && comparison.previousTotal === 0;
 
   return (
     <DecisionChartFrame
       titleId="chart-inflow"
       title={copy.title}
       periodLine={periodLine}
-      chartLabel={`${copy.title}: ${analytics.totalSubmitted} submitted this period, ${comparison.previousTotal} in the previous period`}
+      chartLabel={`${copy.title}: ${analytics.totalSubmitted} submitted this period; ${comparisonAvailable ? `${comparison.previousTotal} in the previous period` : "previous period unavailable"}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${periodLine}`}
@@ -68,7 +63,7 @@ export function InflowComparisonBars({
       tableRows={rows.map((row) => [
         row.label,
         String(row.current),
-        String(row.previous),
+        row.previous === null ? "Unavailable" : String(row.previous),
       ])}
       span="col-6"
     >
@@ -110,7 +105,12 @@ export function InflowComparisonBars({
                 value,
                 name === "current" ? "This period" : "Previous period",
               ]}
-              labelFormatter={(label) => `Bucket ${label}`}
+              labelFormatter={(_, payload) => {
+                const point = payload[0]?.payload as (typeof rows)[number] | undefined;
+                return point?.previousLabel
+                  ? `${point.label} vs ${point.previousLabel}`
+                  : `Bucket ${point?.label ?? "unavailable"}`;
+              }}
             />
             <Bar
               dataKey="current"
@@ -119,7 +119,7 @@ export function InflowComparisonBars({
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             />
-            <Bar
+            {comparisonAvailable ? <Bar
               dataKey="previous"
               name="Previous period"
               fill="url(#pattern-inflow-previous)"
@@ -127,7 +127,7 @@ export function InflowComparisonBars({
               strokeWidth={1}
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
-            />
+            /> : null}
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -137,8 +137,8 @@ export function InflowComparisonBars({
           This period ({analytics.totalSubmitted})
         </li>
         <li>
-          <span className="decision-chart__swatch decision-chart__swatch--previous" aria-hidden="true" />
-          Previous period ({comparison.previousTotal})
+          {comparisonAvailable ? <span className="decision-chart__swatch decision-chart__swatch--previous" aria-hidden="true" /> : null}
+          {comparisonAvailable ? `Previous period (${comparison.previousTotal})` : "Previous period unavailable"}
         </li>
       </ul>
     </DecisionChartFrame>

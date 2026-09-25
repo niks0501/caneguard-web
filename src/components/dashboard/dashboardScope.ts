@@ -18,6 +18,7 @@ export interface DashboardScope {
   from: string;
   to: string;
   granularity: "day" | "week";
+  comparison?: "previous_month";
 }
 
 export interface ScopeSelection {
@@ -57,12 +58,14 @@ export function resolveScope(
 ): DashboardScope {
   if (selection.mode === "month") {
     const { from, to } = monthBounds(selection.month);
+    const currentMonth = selection.month === today.slice(0, 7);
     return {
       mode: "month",
       month: selection.month,
       from,
-      to,
+      to: currentMonth ? today : to,
       granularity: "day",
+      ...(currentMonth ? { comparison: "previous_month" as const } : {}),
     };
   }
   if (selection.mode === "last30") {

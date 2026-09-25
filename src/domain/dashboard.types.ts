@@ -125,6 +125,8 @@ export interface ReportAnalytics {
     previousFrom: string;
     previousTo: string;
     previousTotal: number;
+    previousSeries?: ReportAnalyticsSeriesPoint[];
+    currentSeries?: ReportAnalyticsSeriesPoint[];
     currentTotal: number;
     delta: number;
   };
@@ -145,6 +147,7 @@ export interface ReportAnalyticsParams {
   from: string;
   to: string;
   granularity?: "day" | "week";
+  comparison?: "previous_month";
 }
 
 export interface LifecycleDistributions {

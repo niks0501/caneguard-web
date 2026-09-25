@@ -39,6 +39,7 @@ export class ApiDashboardRepository implements DashboardRepository {
       from: params.from,
       to: params.to,
       ...(params.granularity ? { granularity: params.granularity } : {}),
+      ...(params.comparison ? { comparison: params.comparison } : {}),
     };
     const response = await this.client.get("/api/v1/reports/analytics", {
       params: query,

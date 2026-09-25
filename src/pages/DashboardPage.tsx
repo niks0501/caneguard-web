@@ -64,21 +64,16 @@ export function DashboardPage() {
       from: scope.from,
       to: scope.to,
       granularity: scope.granularity,
+      ...(scope.comparison ? { comparison: scope.comparison } : {}),
     },
     { enabled: !rangeTooLong },
   );
-  const comparison = rangeTooLong ? undefined : analytics.data?.comparison;
-  const previousAnalytics = useAnalytics(
-    {
-      from: comparison?.previousFrom ?? scope.from,
-      to: comparison?.previousTo ?? scope.to,
-      granularity: scope.granularity,
-    },
-    { enabled: !rangeTooLong && comparison !== undefined },
-  );
+  const scopedAnalytics = !rangeTooLong && !analytics.isPlaceholderData &&
+    analytics.data?.period.from === scope.from && analytics.data.period.to === scope.to
+    ? analytics.data : undefined;
   const summary = dashboard.data;
   const asOf = formatAsOfTime(dashboard.dataUpdatedAt);
-  const scopeLabel = formatWindow(scope.from, scope.to);
+  const scopeLabel = `${formatWindow(scope.from, scope.to)}${scope.comparison ? " · month to date" : ""}`;
 
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
@@ -116,6 +111,9 @@ export function DashboardPage() {
           </div>
           <div className="dashboard-header__context">
             <ScopeRuler selection={selection} onChange={setSelection} />
+            {scope.comparison ? (
+              <p className="dashboard-scope-note">Month to date; compared with the same calendar dates in the prior month when available.</p>
+            ) : null}
             <p className="dashboard-last-updated" aria-live="polite">
               <RefreshCw
                 className={dashboard.isFetching ? "spin" : ""}
@@ -166,7 +164,7 @@ export function DashboardPage() {
           <section
             className="dashboard-section"
             aria-labelledby="current-operations-heading"
-            aria-busy={dashboard.isPending || analytics.isPending}
+            aria-busy={dashboard.isPending || !scopedAnalytics}
           >
             <div className="dashboard-section__heading">
               <h2 id="current-operations-heading">Current operations</h2>
@@ -184,7 +182,7 @@ export function DashboardPage() {
             ) : (
               <OperationalSnapshot
                 summary={summary}
-                analytics={rangeTooLong ? undefined : analytics.data}
+                analytics={scopedAnalytics}
                 analyticsFailed={rangeTooLong ? true : analytics.isError}
               />
             )}
@@ -203,6 +201,7 @@ export function DashboardPage() {
           >
             <div className="dashboard-section__heading">
               <h2 id="recent-reports-heading">Recent reports</h2>
+              <p>Showing latest submissions across all periods (not filtered by report scope).</p>
             </div>
 
             {!summary ? (
@@ -229,12 +228,14 @@ export function DashboardPage() {
           <section
             className="dashboard-section"
             aria-labelledby="trends-analysis-heading"
-            aria-busy={analytics.isPending || previousAnalytics.isPending}
+            aria-busy={!scopedAnalytics}
           >
             <div className="dashboard-section__heading">
               <h2 id="trends-analysis-heading">Trends and analysis</h2>
             </div>
-            {!analytics.data ? (
+            {!scopedAnalytics && analytics.isError && !analytics.isFetching ? (
+              <ErrorState message="Report analytics unavailable for the selected period." onRetry={() => analytics.refetch()} />
+            ) : !scopedAnalytics ? (
               <>
                 <span className="sr-only">Loading trends and analysis…</span>
                 <div className="dashboard-grid" aria-hidden="true">
@@ -253,8 +254,8 @@ export function DashboardPage() {
                   }
                 >
                   <InflowComparisonBars
-                    analytics={analytics.data}
-                    previousSeries={previousAnalytics.data?.series ?? []}
+                    analytics={scopedAnalytics}
+                    previousSeries={scopedAnalytics.comparison.previousSeries}
                     scopeLabel={scopeLabel}
                   />
                 </Suspense>
@@ -266,7 +267,7 @@ export function DashboardPage() {
                   }
                 >
                   <ConcernVsConditionBars
-                    analytics={analytics.data}
+                    analytics={scopedAnalytics}
                     scopeLabel={scopeLabel}
                   />
                 </Suspense>
@@ -278,7 +279,7 @@ export function DashboardPage() {
                   }
                 >
                   <BarangayValidationBars
-                    analytics={analytics.data}
+                    analytics={scopedAnalytics}
                     scopeLabel={scopeLabel}
                   />
                 </Suspense>
@@ -290,7 +291,7 @@ export function DashboardPage() {
                   }
                 >
                   <ReportLocationMap
-                    rows={analytics.data.validationByBarangay}
+                    rows={scopedAnalytics.validationByBarangay}
                     scopeLabel={scopeLabel}
                     from={scope.from}
                     to={scope.to}

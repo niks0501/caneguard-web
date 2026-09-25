@@ -47,7 +47,7 @@ export function OperationalSnapshot({
   );
 
   const waitingAge: MetricSegment[] =
-    analytics && summary.queues.needs_review > 0
+    analytics && analytics.reviewBacklog.totalWaiting > 0
       ? analytics.reviewBacklog.buckets.map((bucket) => ({
           label: bucket.label,
           count: bucket.count,
@@ -84,15 +84,17 @@ export function OperationalSnapshot({
       <div className="col-3">
         <KpiCard
           label="Awaiting review"
-          value={String(summary.queues.needs_review)}
+          value={analytics ? String(analytics.reviewBacklog.totalWaiting) : "—"}
           icon={<ShieldCheck aria-hidden="true" strokeWidth={1.75} />}
-          href={routes.reportQueue("needs_review")}
+          href={analytics
+            ? `${routes.reportQueue("needs_review")}&date_from=${analytics.period.from}&date_to=${analytics.period.to}`
+            : routes.reportQueue("needs_review")}
           linkLabel="Open the Awaiting review queue"
         >
           {waitingAge.length > 0 ? (
             <RadialMeter label="Waiting age" segments={waitingAge} />
           ) : null}
-          {!analytics && !analyticsFailed && summary.queues.needs_review > 0 ? (
+          {!analytics && !analyticsFailed ? (
             <div className="skeleton skeleton--ladder" aria-hidden="true" />
           ) : null}
         </KpiCard>
