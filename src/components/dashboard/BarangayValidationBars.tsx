@@ -12,7 +12,8 @@ import {
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { dashboardChartCopy } from "./chartCopy";
-import { chartTheme } from "./chartTheme";
+import { bandColor, chartTheme } from "./chartTheme";
+import { kpiBandFillClass, type KpiBand } from "./kpiBandEncoding";
 
 interface BarangayRow {
   barangay: string;
@@ -22,6 +23,17 @@ interface BarangayRow {
   scheduled: number;
   unscheduled: number;
 }
+
+/**
+ * The four flat solids this card paints, in bar and legend order. Every entry
+ * is one slot of the shared `--kpi-band-<N>` ramp, so the submitted baseline
+ * and the three stacked open-work segments each clear 3:1 against the card
+ * and against their neighbour.
+ */
+const BASELINE_BAND: KpiBand = 1;
+const PAST_TARGET_BAND: KpiBand = 2;
+const SCHEDULED_BAND: KpiBand = 3;
+const UNSCHEDULED_BAND: KpiBand = 4;
 
 /** Render the labelled count rows instead of the stack below ~680px. */
 function useNarrowStack(): boolean {
@@ -48,11 +60,12 @@ function useNarrowStack(): boolean {
  * C3 · Validation attention by barangay (overhaul §3.4, decision D3).
  * Submitted reports this period set the baseline bar; open validation work
  * splits into past target date / scheduled ahead / unscheduled segments
- * using the same queue predicates as KPI 3. The past-target segment is the
- * only non-brand workflow fill on the page and always carries its hatch
- * plus a printed value. Below ~680px the stack cannot carry labels, so a
- * labelled count-row list takes over (the sr-only table stays the single
- * accessible equivalent).
+ * using the same queue predicates as KPI 3. Each of the four marks is one
+ * flat solid from the shared band ramp, and the past-target segment — the
+ * attention one — keeps a printed value plus its legend entry, so the reading
+ * never depends on fill colour alone. Below ~680px the stack cannot carry
+ * labels, so a labelled count-row list takes over (the sr-only table stays
+ * the single accessible equivalent).
  */
 export function BarangayValidationBars({
   analytics,
@@ -102,37 +115,6 @@ export function BarangayValidationBars({
             margin={{ top: 0, right: 48, bottom: 0, left: 8 }}
             barCategoryGap="28%"
           >
-            <defs>
-              <pattern
-                id="pattern-barangay-past"
-                width="6"
-                height="6"
-                patternUnits="userSpaceOnUse"
-                patternTransform="rotate(45)"
-              >
-                <rect width="6" height="6" fill={chartTheme.danger} />
-                <line x1="0" y1="0" x2="0" y2="6" stroke={chartTheme.surface} strokeWidth={2} />
-              </pattern>
-              <pattern
-                id="pattern-barangay-scheduled"
-                width="6"
-                height="6"
-                patternUnits="userSpaceOnUse"
-                patternTransform="rotate(-45)"
-              >
-                <rect width="6" height="6" fill={chartTheme.brandHover} />
-                <line x1="0" y1="0" x2="0" y2="6" stroke={chartTheme.surface} strokeWidth={2} />
-              </pattern>
-              <pattern
-                id="pattern-barangay-unscheduled"
-                width="6"
-                height="6"
-                patternUnits="userSpaceOnUse"
-              >
-                <rect width="6" height="6" fill={chartTheme.muted} />
-                <circle cx="3" cy="3" r="1" fill={chartTheme.surface} />
-              </pattern>
-            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} horizontal={false} />
             <XAxis
               type="number"
@@ -160,8 +142,7 @@ export function BarangayValidationBars({
             <Bar
               dataKey="submitted"
               name="submitted"
-              fill={chartTheme.primaryLight}
-              fillOpacity={0.45}
+              fill={bandColor(BASELINE_BAND)}
               barSize={20}
               isAnimationActive={false}
             />
@@ -169,7 +150,7 @@ export function BarangayValidationBars({
               dataKey="past_target_date"
               name="past_target_date"
               stackId="validation"
-              fill="url(#pattern-barangay-past)"
+              fill={bandColor(PAST_TARGET_BAND)}
               stroke={chartTheme.surface}
               strokeWidth={2}
               barSize={12}
@@ -179,7 +160,7 @@ export function BarangayValidationBars({
               dataKey="scheduled"
               name="scheduled"
               stackId="validation"
-              fill="url(#pattern-barangay-scheduled)"
+              fill={bandColor(SCHEDULED_BAND)}
               stroke={chartTheme.surface}
               strokeWidth={2}
               barSize={12}
@@ -189,7 +170,7 @@ export function BarangayValidationBars({
               dataKey="unscheduled"
               name="unscheduled"
               stackId="validation"
-              fill="url(#pattern-barangay-unscheduled)"
+              fill={bandColor(UNSCHEDULED_BAND)}
               stroke={chartTheme.surface}
               strokeWidth={2}
               barSize={12}
@@ -218,19 +199,35 @@ export function BarangayValidationBars({
       {!empty ? (
       <ul className="decision-chart__legend">
         <li>
-          <span className="decision-chart__swatch decision-chart__swatch--baseline" aria-hidden="true" />
+          <span
+            className={`decision-chart__swatch decision-chart__swatch--baseline ${kpiBandFillClass(BASELINE_BAND)}`}
+            data-series-band={BASELINE_BAND}
+            aria-hidden="true"
+          />
           Submitted this period
         </li>
         <li>
-          <span className="decision-chart__swatch decision-chart__swatch--past" aria-hidden="true" />
+          <span
+            className={`decision-chart__swatch decision-chart__swatch--past ${kpiBandFillClass(PAST_TARGET_BAND)}`}
+            data-series-band={PAST_TARGET_BAND}
+            aria-hidden="true"
+          />
           Past target date
         </li>
         <li>
-          <span className="decision-chart__swatch decision-chart__swatch--scheduled" aria-hidden="true" />
+          <span
+            className={`decision-chart__swatch decision-chart__swatch--scheduled ${kpiBandFillClass(SCHEDULED_BAND)}`}
+            data-series-band={SCHEDULED_BAND}
+            aria-hidden="true"
+          />
           Scheduled ahead
         </li>
         <li>
-          <span className="decision-chart__swatch decision-chart__swatch--unscheduled" aria-hidden="true" />
+          <span
+            className={`decision-chart__swatch decision-chart__swatch--unscheduled ${kpiBandFillClass(UNSCHEDULED_BAND)}`}
+            data-series-band={UNSCHEDULED_BAND}
+            aria-hidden="true"
+          />
           Unscheduled
         </li>
       </ul>

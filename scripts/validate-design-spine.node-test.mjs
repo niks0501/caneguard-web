@@ -1,12 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   contrastRatio,
   parseTokensCss,
   validateDashboardWrapRules,
   validateKpiBandDistinction,
   validateKpiCardFillRules,
+  validateKpiSupportTooltip,
+  validateNoPatternEncoding,
   validateReportTablePillRules,
   validateSemanticContrast,
 } from "./validate-design-spine.mjs";
@@ -116,33 +120,28 @@ const KPI_BAND_CSS = `
   .kpi-bar__track { gap: var(--kpi-band-gap); }
   .kpi-band-fill--1 {
     background-color: var(--kpi-band-1);
-    background-image: repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px);
     border: var(--kpi-band-stroke) solid var(--color-surface);
   }
   .kpi-band-fill--2 {
     background-color: var(--kpi-band-2);
-    background-image: repeating-linear-gradient(45deg, var(--color-surface) 0 1px, transparent 1px 8px);
     border: var(--kpi-band-stroke) solid var(--color-surface);
   }
   .kpi-band-fill--3 {
     background-color: var(--kpi-band-3);
-    background-image: repeating-linear-gradient(90deg, var(--color-surface) 0 1px, transparent 1px 8px);
     border: var(--kpi-band-stroke) solid var(--color-surface);
   }
   .kpi-band-fill--4 {
     background-color: var(--kpi-band-4);
-    background-image: repeating-linear-gradient(-45deg, var(--color-surface) 0 1px, transparent 1px 8px);
     border: var(--kpi-band-stroke) solid var(--color-surface);
   }
   .kpi-radial__separator { stroke: var(--color-surface); }
   .kpi-radial__slice { fill: none; stroke-width: 9; }
-  .kpi-pattern__mark { stroke: var(--color-surface); }
-  .kpi-pattern--1 .kpi-pattern__base { fill: var(--kpi-band-1); }
-  .kpi-pattern--2 .kpi-pattern__base { fill: var(--kpi-band-2); }
-  .kpi-pattern--3 .kpi-pattern__base { fill: var(--kpi-band-3); }
-  .kpi-pattern--4 .kpi-pattern__base { fill: var(--kpi-band-4); }
+  .kpi-radial__slice--band-1 { stroke: var(--kpi-band-1); }
+  .kpi-radial__slice--band-2 { stroke: var(--kpi-band-2); }
+  .kpi-radial__slice--band-3 { stroke: var(--kpi-band-3); }
+  .kpi-radial__slice--band-4 { stroke: var(--kpi-band-4); }
   .kpi-sparkline__halo { stroke: var(--color-surface); }
-  .kpi-status__lane { background-image: none; }
+  .kpi-status__lane { background-color: var(--color-surface-tint); border: 1px solid var(--color-border-strong); }
   .kpi-status__mark { border: 2px solid var(--color-warning); }
 `;
 
@@ -159,7 +158,9 @@ function bandTokens(bands) {
   `;
 }
 
-test("validateKpiBandDistinction passes the shipped tuned band set", () => {
+const SHIPPED_BANDS = ["#749926", "#1e452a", "#ae8a1b", "#45370b"];
+
+test("validateKpiBandDistinction passes the shipped tuned solid band set", () => {
   const shipped = readFileSync(
     new URL("../src/styles/tokens.css", import.meta.url),
     "utf8",
@@ -171,7 +172,7 @@ test("validateKpiBandDistinction passes the shipped tuned band set", () => {
   assert.deepEqual(validateKpiBandDistinction(shipped, shippedCss), []);
 });
 
-test("validateKpiBandDistinction rejects colour-only or near-identical bands", () => {
+test("validateKpiBandDistinction rejects colour-only or textured bands", () => {
   // The shipped pre-fix brand ramp: neighbouring fills at 1.08-1.40:1.
   const ramp = bandTokens(["#1e452a", "#2d6b40", "#447a54", "#4d5c52"]);
   const rampErrors = validateKpiBandDistinction(ramp, KPI_BAND_CSS);
@@ -186,34 +187,48 @@ test("validateKpiBandDistinction rejects colour-only or near-identical bands", (
     ),
   );
 
-  // One hatch reused for every band is colour-only again.
-  const sharedHatch = KPI_BAND_CSS.replaceAll(
-    "repeating-linear-gradient(45deg, var(--color-surface) 0 1px, transparent 1px 8px)",
-    "repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px)",
-  ).replaceAll(
-    "repeating-linear-gradient(90deg, var(--color-surface) 0 1px, transparent 1px 8px)",
-    "repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px)",
-  ).replaceAll(
-    "repeating-linear-gradient(-45deg, var(--color-surface) 0 1px, transparent 1px 8px)",
-    "repeating-linear-gradient(0deg, var(--color-surface) 0 1px, transparent 1px 8px)",
+  // A band fill that swaps its flat solid for a texture.
+  const texturedBand = KPI_BAND_CSS.replace(
+    ".kpi-band-fill--2 {\n    background-color: var(--kpi-band-2);",
+    ".kpi-band-fill--2 {\n    background-color: var(--kpi-band-2);\n    background-image: repeating-linear-gradient(45deg, var(--color-surface) 0 1px, transparent 1px 8px);",
   );
   assert.ok(
-    validateKpiBandDistinction(
-      bandTokens(["#749926", "#1e452a", "#ae8a1b", "#45370b"]),
-      sharedHatch,
-    ).some((error) => /hatches must be distinct/.test(error)),
+    validateKpiBandDistinction(SHIPPED_BANDS, texturedBand).some((error) =>
+      /kpi-band-fill--2.*flat solid/.test(error),
+    ),
   );
 
-  // A flat colour creeping back onto a radial slice, and a missing gutter.
+  // The radial: a flat colour creeping onto the base slice, and a band class
+  // that stops naming its own solid.
   const flatSlice = KPI_BAND_CSS.replace(
     ".kpi-radial__slice { fill: none; stroke-width: 9; }",
     ".kpi-radial__slice { fill: none; stroke: var(--color-primary); }",
   );
   assert.ok(
-    validateKpiBandDistinction(
-      bandTokens(["#749926", "#1e452a", "#ae8a1b", "#45370b"]),
-      flatSlice,
-    ).some((error) => /must not paint a flat colour/.test(error)),
+    validateKpiBandDistinction(SHIPPED_BANDS, flatSlice).some((error) =>
+      /kpi-radial__slice' must not paint its own colour/.test(error),
+    ),
+  );
+
+  const missingBandSlice = KPI_BAND_CSS.replace(
+    ".kpi-radial__slice--band-1 { stroke: var(--kpi-band-1); }",
+    "",
+  );
+  assert.ok(
+    validateKpiBandDistinction(SHIPPED_BANDS, missingBandSlice).some((error) =>
+      /Missing '.kpi-radial__slice--band-1' rule/.test(error),
+    ),
+  );
+
+  // The status lane must stay a flat solid rather than a hatch.
+  const texturedLane = KPI_BAND_CSS.replace(
+    ".kpi-status__lane { background-color: var(--color-surface-tint); border: 1px solid var(--color-border-strong); }",
+    ".kpi-status__lane { background-image: repeating-linear-gradient(45deg, var(--color-border-strong) 0 1px, transparent 1px 7px); }",
+  );
+  assert.ok(
+    validateKpiBandDistinction(SHIPPED_BANDS, texturedLane).some((error) =>
+      /kpi-status__lane.*flat solid/.test(error),
+    ),
   );
 
   const noGutter = KPI_BAND_CSS.replace(
@@ -221,9 +236,80 @@ test("validateKpiBandDistinction rejects colour-only or near-identical bands", (
     "gap: 0;",
   );
   assert.ok(
-    validateKpiBandDistinction(
-      bandTokens(["#749926", "#1e452a", "#ae8a1b", "#45370b"]),
-      noGutter,
-    ).some((error) => /kpi-bar__track.*kpi-band-gap/.test(error)),
+    validateKpiBandDistinction(SHIPPED_BANDS, noGutter).some((error) =>
+      /kpi-bar__track.*kpi-band-gap/.test(error),
+    ),
   );
+});
+
+test("validateKpiSupportTooltip requires a clipped, hover- and focus-reachable, token-painted bubble", () => {
+  const shippedCss = readFileSync(
+    new URL("../src/index.css", import.meta.url),
+    "utf8",
+  );
+  assert.deepEqual(validateKpiSupportTooltip(shippedCss), []);
+
+  const passing = `
+    .kpi-card__support--annotated { text-decoration: underline dotted var(--color-border-strong); }
+    .kpi-card__support-tip { position: absolute; width: 1px; clip: rect(0, 0, 0, 0); border: 0; }
+    .kpi-card__link:hover .kpi-card__support-tip,
+    .kpi-card__link:focus-visible .kpi-card__support-tip {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border-strong);
+    }
+  `;
+  assert.deepEqual(validateKpiSupportTooltip(passing), []);
+
+  // A bubble that is display:none drops out of the accessibility tree, so the
+  // card link's aria-describedby would resolve to nothing.
+  const removedFromTree = passing.replace(
+    "clip: rect(0, 0, 0, 0);",
+    "display: none;",
+  );
+  assert.ok(
+    validateKpiSupportTooltip(removedFromTree).some((error) =>
+      /display: none.*aria-describedby/.test(error),
+    ),
+  );
+
+  // A tooltip reachable by hover alone strands keyboard users.
+  const hoverOnly = passing.replace(
+    ".kpi-card__link:focus-visible .kpi-card__support-tip",
+    ".kpi-card__link--unused .kpi-card__support-tip",
+  );
+  assert.ok(
+    validateKpiSupportTooltip(hoverOnly).some((error) =>
+      /Missing tooltip reveal rule '.kpi-card__link:focus-visible/.test(error),
+    ),
+  );
+});
+
+test("validateNoPatternEncoding passes the shipped dashboard and rejects any pattern", () => {
+  assert.deepEqual(validateNoPatternEncoding(), []);
+
+  const dir = mkdtempSync(join(tmpdir(), "spine-pattern-"));
+  writeFileSync(
+    join(dir, "PatternedChart.tsx"),
+    `
+      export function PatternedChart() {
+        return (
+          <svg>
+            <defs>
+              <pattern id="pattern-x" patternUnits="userSpaceOnUse" />
+            </defs>
+            <rect fill="url(#pattern-x)" data-kpi-pattern="x/hatch" />
+          </svg>
+        );
+      }
+    `,
+  );
+  const errors = validateNoPatternEncoding(
+    ".kpi-pattern__mark { fill: var(--color-surface); }",
+    dir,
+  );
+  assert.ok(errors.some((error) => /must not use an SVG <pattern> definition/.test(error)));
+  assert.ok(errors.some((error) => /must not use a patternUnits attribute/.test(error)));
+  assert.ok(errors.some((error) => /must not use a url\(#…\) paint reference/.test(error)));
+  assert.ok(errors.some((error) => /must not use a data-kpi-pattern attribute/.test(error)));
+  assert.ok(errors.some((error) => /must not define '.kpi-pattern\*' rules/.test(error)));
 });

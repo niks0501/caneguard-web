@@ -1,7 +1,5 @@
-import { KpiBandPatternDefs } from "./KpiBandPatternDefs";
-import { kpiBandForIndex, kpiBandSignature } from "./kpiBandEncoding";
+import { kpiBandForIndex, type KpiBand } from "./kpiBandEncoding";
 import { metricSegmentName, type MetricSegment } from "./metricSegments";
-import { useKpiBandPatternIds } from "./useKpiBandPatternIds";
 
 const VIEWBOX = 64;
 const CENTER = VIEWBOX / 2;
@@ -16,9 +14,7 @@ interface Slice {
   label: string;
   dashArray: string;
   dashOffset: number;
-  band: 1 | 2 | 3 | 4;
-  patternId: string;
-  signature: string;
+  band: KpiBand;
 }
 
 /**
@@ -26,11 +22,10 @@ interface Slice {
  * accessible name that lists every slice label and count, so the split is
  * never carried by the arcs alone (§3.8, risk 7).
  *
- * Each band reads apart three ways on top of its `--kpi-band-<N>` fill:
- * its own hatch pattern as the arc paint, a `--color-surface` separator ring
- * drawn under the band, and a `SLICE_GAP` arc gap at its tail. The fills
- * themselves are tuned to clear 3:1 between neighbours; the strokes, gaps and
- * patterns are what make the split legible without colour at all.
+ * Every band paints one flat solid from the shared `--kpi-band-<N>` ramp, and
+ * three separators keep the solids legible next to each other: the fill
+ * itself (tuned to clear 3:1 between neighbours), a `--color-surface`
+ * separator ring drawn under the band, and a `SLICE_GAP` arc gap at its tail.
  */
 export function RadialMeter({
   label,
@@ -39,7 +34,6 @@ export function RadialMeter({
   label: string;
   segments: MetricSegment[];
 }) {
-  const patternIds = useKpiBandPatternIds();
   const total = segments.reduce((sum, segment) => sum + segment.count, 0);
   const slices: Slice[] = [];
   let consumed = 0;
@@ -54,9 +48,7 @@ export function RadialMeter({
       label: segment.label,
       dashArray: `${drawn} ${CIRCUMFERENCE - drawn}`,
       dashOffset: -consumed,
-      band: band.band,
-      patternId: patternIds[band.band - 1],
-      signature: kpiBandSignature(band),
+      band,
     });
     consumed += length;
   });
@@ -69,7 +61,6 @@ export function RadialMeter({
         role="img"
         aria-label={metricSegmentName(label, segments)}
       >
-        <KpiBandPatternDefs ids={patternIds} />
         <circle
           className="kpi-radial__track"
           cx={CENTER}
@@ -94,11 +85,9 @@ export function RadialMeter({
             key={slice.label}
             className={`kpi-radial__slice kpi-radial__slice--band-${slice.band}`}
             data-kpi-band={slice.band}
-            data-kpi-pattern={slice.signature}
             cx={CENTER}
             cy={CENTER}
             r={RADIUS}
-            stroke={`url(#${slice.patternId})`}
             strokeDasharray={slice.dashArray}
             strokeDashoffset={slice.dashOffset}
             transform={`rotate(-90 ${CENTER} ${CENTER})`}

@@ -8,6 +8,8 @@
  * defaults instead of receiving an invented palette.
  */
 
+import { kpiBandForIndex, kpiBandFillToken, type KpiBand } from "./kpiBandEncoding";
+
 type TokenName =
   | "--color-brand"
   | "--color-brand-hover"
@@ -22,10 +24,15 @@ type TokenName =
   | "--color-border"
   | "--color-surface"
   | "--color-surface-soft"
+  | "--color-surface-tint"
   | "--disease-healthy"
   | "--disease-mosaic"
   | "--disease-rust"
   | "--disease-smut"
+  | "--kpi-band-1"
+  | "--kpi-band-2"
+  | "--kpi-band-3"
+  | "--kpi-band-4"
   | "--text-body-sm";
 
 export type ChartTokenName = TokenName;
@@ -94,17 +101,20 @@ export const chartTheme = {
   },
 };
 
-/** Reported-concern ramp slot (single-hue brand family, never --disease-*). */
-export function reportedConcernColor(index: number): string {
-  const ramp: TokenName[] = [
-    "--color-primary-dark",
-    "--color-brand-hover",
-    "--color-primary",
-    "--color-primary-light",
-    "--color-muted",
-    "--color-border-strong",
-  ];
-  return readToken(ramp[index % ramp.length]);
+/**
+ * The shared solid band ramp, read as a real colour value for Recharts.
+ *
+ * Every dashboard series fill resolves through here, so a chart mark and its
+ * legend swatch can never disagree about which `--kpi-band-<N>` solid they
+ * use. There are no pattern or texture fills left on the dashboard.
+ */
+export function bandColor(band: KpiBand): string {
+  return readToken(kpiBandFillToken(band) as TokenName);
+}
+
+/** The band ramp slot for a zero-based series index. */
+export function seriesColor(index: number): string {
+  return bandColor(kpiBandForIndex(index));
 }
 
 /** Possible-Condition colours stay the token set, keyed by condition. */

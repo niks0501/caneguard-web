@@ -1,4 +1,5 @@
 import type { ReportAnalytics } from "../../domain/dashboard.types";
+import { formatWindow } from "./dashboardScope";
 
 /**
  * Supporting lines for the four current-operations KPI cards (overhaul §3.2).
@@ -26,6 +27,19 @@ export function deltaSupportLine(delta: number, monthToDate: boolean): string {
       ? "No change vs previous period"
       : `${delta > 0 ? "+" : ""}${delta} vs previous period`;
   return monthToDate ? `${line} · month to date` : line;
+}
+
+/**
+ * The definition behind KPI 1's bare "vs previous period" figure.
+ *
+ * The retired header note defined the comparison as "the same calendar dates
+ * in the prior month" and sat beside the scope ruler. That wording no longer
+ * matched the API after the period-comparison fix, which pairs this scope with
+ * the same number of days immediately *before* it, so the one dashboard
+ * tooltip states the real rule and the window the request returned.
+ */
+export function comparisonWindowTooltip(from: string, to: string): string {
+  return `Previous period: the same number of days immediately before this scope, ${formatWindow(from, to)}.`;
 }
 
 /**

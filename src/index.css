@@ -6825,13 +6825,58 @@ body {
   font-weight: 700;
   line-height: 1;
 }
+/* The position:relative is what anchors the one dashboard tooltip; it does not
+   move the supporting line. */
 .kpi-card__support {
+  position: relative;
   min-width: 0;
   max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
   font-weight: 600;
+}
+/* The page's single tooltip: the definition of the one figure whose prose was
+   stripped. A dotted underline is the only affordance, and the bubble is
+   clipped rather than `display: none` so the card link's aria-describedby
+   always resolves, even before hover or focus. */
+.kpi-card__support--annotated {
+  text-decoration: underline dotted var(--color-border-strong);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+.kpi-card__support-tip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  color: var(--color-text);
+}
+.kpi-card__link:hover .kpi-card__support-tip,
+.kpi-card__link:focus-visible .kpi-card__support-tip {
+  top: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: 280px;
+  height: auto;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-floating);
+  font-size: var(--text-body-sm);
+  font-weight: 400;
+  line-height: 1.4;
 }
 .kpi-card__graphic {
   display: flex;
@@ -6943,52 +6988,28 @@ body {
   background: var(--color-surface-soft);
   border-radius: var(--radius-pill);
 }
-/* Each band is filled by its --kpi-band-<N> token AND its own hatch, so the
-   split survives without colour (§3.8, risk 7). The four hatches are
-   different shapes, not one shape at four opacities; every band also carries
-   the --color-surface separator stroke, kept in each band's own rule so no
-   grouped block can shadow a band's hatch. */
+/* Every dashboard band is one flat solid from the shared --kpi-band-<N> ramp
+   (§3.8, risk 7). No pattern, hatch or texture is drawn. Neighbouring bands
+   read apart by hue and lightness — every adjacent pair clears 3:1, asserted
+   by the design-spine validator — and each band additionally carries the
+   --color-surface separator stroke, kept in its own rule so no grouped block
+   can shadow a band's fill. The same class fills a KPI bar segment, a legend
+   swatch and every decision-chart mark, so a legend can never drift from the
+   chart it explains. */
 .kpi-band-fill--1 {
   background-color: var(--kpi-band-1);
-  background-image: radial-gradient(var(--color-surface) 1px, transparent 1.1px);
-  background-size: 8px 8px;
   border: var(--kpi-band-stroke) solid var(--color-surface);
 }
 .kpi-band-fill--2 {
   background-color: var(--kpi-band-2);
-  background-image: repeating-linear-gradient(
-    45deg,
-    var(--color-surface) 0 1.5px,
-    transparent 1.5px 8px
-  );
   border: var(--kpi-band-stroke) solid var(--color-surface);
 }
 .kpi-band-fill--3 {
   background-color: var(--kpi-band-3);
-  background-image: repeating-linear-gradient(
-      45deg,
-      var(--color-surface) 0 1.5px,
-      transparent 1.5px 8px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      var(--color-surface) 0 1.5px,
-      transparent 1.5px 8px
-    );
   border: var(--kpi-band-stroke) solid var(--color-surface);
 }
 .kpi-band-fill--4 {
   background-color: var(--kpi-band-4);
-  background-image: repeating-linear-gradient(
-      90deg,
-      var(--color-surface) 0 1.5px,
-      transparent 1.5px 8px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      var(--color-surface) 0 1.5px,
-      transparent 1.5px 8px
-    );
   border: var(--kpi-band-stroke) solid var(--color-surface);
 }
 .kpi-bar__segment {
@@ -7021,29 +7042,25 @@ body {
   stroke-width: calc(9px + 2 * var(--kpi-band-separator));
   stroke-linecap: butt;
 }
+/* Each band class supplies the slice's flat solid paint, so a radial slice
+   can never fall back to an invented colour and the ring uses the same four
+   fills as every other dashboard mark. */
 .kpi-radial__slice {
   fill: none;
   stroke-width: 9;
   stroke-linecap: butt;
 }
-.kpi-pattern--1 .kpi-pattern__base {
-  fill: var(--kpi-band-1);
+.kpi-radial__slice--band-1 {
+  stroke: var(--kpi-band-1);
 }
-.kpi-pattern--2 .kpi-pattern__base {
-  fill: var(--kpi-band-2);
+.kpi-radial__slice--band-2 {
+  stroke: var(--kpi-band-2);
 }
-.kpi-pattern--3 .kpi-pattern__base {
-  fill: var(--kpi-band-3);
+.kpi-radial__slice--band-3 {
+  stroke: var(--kpi-band-3);
 }
-.kpi-pattern--4 .kpi-pattern__base {
-  fill: var(--kpi-band-4);
-}
-/* The hatch ink is the surface colour, so the texture reads on every band
-   without adding a fifth vocabulary. Every pattern carries its band class. */
-.kpi-pattern__mark {
-  fill: var(--color-surface);
-  stroke: var(--color-surface);
-  stroke-width: 1.5;
+.kpi-radial__slice--band-4 {
+  stroke: var(--kpi-band-4);
 }
 .kpi-status {
   display: flex;
@@ -7070,18 +7087,14 @@ body {
   width: 18px;
   height: 18px;
 }
-/* The lane is the mark's near-white neighbour, so it carries a hatch as well
-   as its border: the two never read as one flat surface. */
+/* The lane is the mark's near-white neighbour. Both are flat solids now, so
+   the two are told apart by hue (greenish lane tint against the cream mark
+   chip) and by their rings, never by a texture. */
 .kpi-status__lane {
   flex: 1 1 auto;
   align-self: stretch;
   min-height: 12px;
-  background-color: var(--color-surface-soft);
-  background-image: repeating-linear-gradient(
-    45deg,
-    var(--color-border-strong) 0 1px,
-    transparent 1px 7px
-  );
+  background-color: var(--color-surface-tint);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
 }
@@ -7259,46 +7272,16 @@ body {
   align-items: center;
   gap: var(--space-1);
 }
+/* Legend swatches are flat solids too: every one carries a shared
+   `.kpi-band-fill--<N>` class, so a swatch always paints exactly the band its
+   chart mark paints. The `--current`/`--past`/`--verified` modifiers live in
+   the markup as semantic hooks and deliberately declare no paint of their own,
+   so a swatch can never drift from the band ramp. */
 .decision-chart__swatch {
   display: inline-block;
   width: 14px;
   height: 14px;
   border-radius: var(--radius-sm);
-}
-.decision-chart__swatch--current {
-  background: var(--color-primary-dark);
-}
-.decision-chart__swatch--previous {
-  background: repeating-linear-gradient(45deg, var(--color-primary-light) 0 2px, var(--color-surface) 2px 4px);
-  border: 1px solid var(--color-brand-hover);
-}
-.decision-chart__swatch--baseline {
-  background: var(--color-primary-light);
-  opacity: 0.45;
-}
-.decision-chart__swatch--past {
-  background: repeating-linear-gradient(45deg, var(--color-danger) 0 2px, var(--color-surface) 2px 4px);
-}
-.decision-chart__swatch--scheduled {
-  background: repeating-linear-gradient(-45deg, var(--color-brand-hover) 0 2px, var(--color-surface) 2px 4px);
-}
-.decision-chart__swatch--unscheduled {
-  background: var(--color-muted);
-}
-/* Staff-verification legend: the same mark grammar as the chart's bars
-   (solid, single hatch, cross hatch), so no reading rests on colour alone.
-   The hatches sit on a bordered swatch so their contrast never depends on
-   the surface behind them. */
-.decision-chart__swatch--verified {
-  background: var(--color-primary-dark);
-}
-.decision-chart__swatch--unable {
-  background: repeating-linear-gradient(45deg, var(--color-danger) 0 2px, var(--color-surface) 2px 4px);
-  border: 1px solid var(--color-danger);
-}
-.decision-chart__swatch--not-determined {
-  background: repeating-linear-gradient(45deg, var(--color-secondary-text) 0 2px, var(--color-surface) 2px 4px), repeating-linear-gradient(-45deg, var(--color-secondary-text) 0 2px, var(--color-surface) 2px 4px);
-  border: 1px solid var(--color-secondary-text);
 }
 .decision-chart__legend--verification {
   margin-top: var(--space-2);

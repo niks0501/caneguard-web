@@ -13,19 +13,26 @@ import type {
 } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { dashboardChartCopy } from "./chartCopy";
-import { chartTheme } from "./chartTheme";
+import { bandColor, chartTheme } from "./chartTheme";
+import { kpiBandFillClass, type KpiBand } from "./kpiBandEncoding";
 import { formatWindow } from "./dashboardScope";
 
 function shortTick(value: string): string {
   return value.length === 10 ? value.slice(5).replace("-", "/") : value;
 }
 
+/** Band slots for the pair: this period deep, the previous window light. */
+const CURRENT_BAND: KpiBand = 2;
+const PREVIOUS_BAND: KpiBand = 1;
+
 /**
  * C1 · Inflow: this period vs the same-length previous period (overhaul
  * §3.4, decision D2). Grouped bars per bucket; the previous window is
- * fetched with the same granularity and paired by relative bucket position. This period
- * is brand-only; the previous period carries a hatch so the comparison
- * never depends on colour alone.
+ * fetched with the same granularity and paired by relative bucket position.
+ * Both series are flat solids from the shared band ramp — a deep brand tone
+ * for this period and a deepened brand light for the previous window — so the
+ * comparison rests on one measured 3:1 fill pair plus the printed legend
+ * totals, never on a texture.
  */
 export function InflowComparisonBars({
   analytics,
@@ -70,25 +77,6 @@ export function InflowComparisonBars({
       <div className="decision-chart__canvas decision-chart__canvas--md">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-            <defs>
-              <pattern
-                id="pattern-inflow-previous"
-                width="6"
-                height="6"
-                patternUnits="userSpaceOnUse"
-                patternTransform="rotate(45)"
-              >
-                <rect width="6" height="6" fill={chartTheme.primaryLight} />
-                <line
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="6"
-                  stroke={chartTheme.surface}
-                  strokeWidth={2}
-                />
-              </pattern>
-            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} vertical={false} />
             <XAxis
               dataKey="label"
@@ -115,16 +103,14 @@ export function InflowComparisonBars({
             <Bar
               dataKey="current"
               name="This period"
-              fill={chartTheme.primaryDark}
+              fill={bandColor(CURRENT_BAND)}
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             />
             {comparisonAvailable ? <Bar
               dataKey="previous"
               name="Previous period"
-              fill="url(#pattern-inflow-previous)"
-              stroke={chartTheme.brandHover}
-              strokeWidth={1}
+              fill={bandColor(PREVIOUS_BAND)}
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             /> : null}
@@ -133,11 +119,21 @@ export function InflowComparisonBars({
       </div>
       <ul className="decision-chart__legend">
         <li>
-          <span className="decision-chart__swatch decision-chart__swatch--current" aria-hidden="true" />
+          <span
+            className={`decision-chart__swatch decision-chart__swatch--current ${kpiBandFillClass(CURRENT_BAND)}`}
+            data-series-band={CURRENT_BAND}
+            aria-hidden="true"
+          />
           This period ({analytics.totalSubmitted})
         </li>
         <li>
-          {comparisonAvailable ? <span className="decision-chart__swatch decision-chart__swatch--previous" aria-hidden="true" /> : null}
+          {comparisonAvailable ? (
+            <span
+              className={`decision-chart__swatch decision-chart__swatch--previous ${kpiBandFillClass(PREVIOUS_BAND)}`}
+              data-series-band={PREVIOUS_BAND}
+              aria-hidden="true"
+            />
+          ) : null}
           {comparisonAvailable ? `Previous period (${comparison.previousTotal})` : "Previous period unavailable"}
         </li>
       </ul>

@@ -8,6 +8,7 @@ import { KpiCard } from "./KpiCard";
 import {
   COMPARISON_UNAVAILABLE,
   UNVERIFIED_SUPPORT_LINE,
+  comparisonWindowTooltip,
   deltaSupportLine,
   noActiveWorkGraphicName,
   pastTargetDateSupportLine,
@@ -29,7 +30,10 @@ import type { MetricSegment } from "./metricSegments";
  * read from the population and window the card already shows (`kpiSupport`):
  * KPI 1's delta from the same analytics request, KPI 2's oldest wait from the
  * same review backlog it counts, KPI 3's past-target count from the same
- * current-state queue. The two calendar subsets of the field-validation queue
+ * current-state queue. KPI 1 alone also carries the page's single tooltip,
+ * defining what "previous period" means for the window the request returned
+ * (the retired header scope note used to say it in prose). The two calendar
+ * subsets of the field-validation queue
  * are encoded inside KPI 3's bar only, never as peer cards or chip lists, and
  * freshness is stamped once in the page header.
  */
@@ -83,6 +87,14 @@ export function OperationalSnapshot({
             analytics
               ? deltaSupportLine(analytics.comparison.delta, monthToDate)
               : COMPARISON_UNAVAILABLE
+          }
+          supportTooltip={
+            analytics
+              ? comparisonWindowTooltip(
+                  analytics.comparison.previousFrom,
+                  analytics.comparison.previousTo,
+                )
+              : undefined
           }
           icon={<Rows3 aria-hidden="true" strokeWidth={1.75} />}
           href={routes.reports}

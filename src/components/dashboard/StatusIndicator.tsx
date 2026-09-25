@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
  * Simple status indicator for KPI 4 (overhaul §3.2 + §3.8). One icon-led mark
  * beside an empty status lane, so "no validation or referral is underway" is
  * carried by the icon and by the graphic's accessible name, never by colour
- * alone. The mark and the lane both sit near white, so the mark keeps a
- * `--color-warning` ring and the lane carries a `--color-border-strong`
- * hatch: the two tones are told apart by the ring, the hatch and the icon,
- * not by their near-identical fills.
+ * alone. Both the mark and the lane are flat solids: the mark keeps its
+ * `--color-warning` ring over a cream chip, and the lane is the greenish
+ * `--color-surface-tint` track inside a `--color-border-strong` border, so
+ * the two near-white surfaces read apart by hue and by their rings rather
+ * than by a texture.
  */
 export function StatusIndicator({
   icon,
@@ -21,11 +22,7 @@ export function StatusIndicator({
       <span className="kpi-status__mark" aria-hidden="true">
         {icon}
       </span>
-      <span
-        className="kpi-status__lane"
-        data-kpi-pattern="status-lane/hatch"
-        aria-hidden="true"
-      />
+      <span className="kpi-status__lane" aria-hidden="true" />
     </span>
   );
 }

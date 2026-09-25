@@ -4,7 +4,12 @@ import { RadialMeter, RADIAL_ARC_LENGTH, RADIAL_SLICE_GAP } from "./RadialMeter"
 import { SegmentedBar } from "./SegmentedBar";
 import { Sparkline } from "./Sparkline";
 import { StatusIndicator } from "./StatusIndicator";
-import { KPI_BANDS, kpiBandSignature } from "./kpiBandEncoding";
+import {
+  KPI_BANDS,
+  kpiBandFillClass,
+  kpiBandFillToken,
+  kpiBandForIndex,
+} from "./kpiBandEncoding";
 import { metricSegmentName } from "./metricSegments";
 
 /** One attribute read from every node matching a selector. */
@@ -19,16 +24,27 @@ function attrValues(
 }
 
 describe("KPI graphics", () => {
-  it("gives every band a distinct hatch signature, not one hatch at four opacities", () => {
-    // The non-colour channel: four different tile shapes. A regression to a
-    // single shape (or two) would leave the split colour-only.
-    const signatures = KPI_BANDS.map((band) => kpiBandSignature(band));
-    expect(new Set(signatures).size).toBe(KPI_BANDS.length);
-    expect(new Set(KPI_BANDS.map((band) => band.band)).size).toBe(4);
-    // Bands 1 and 3, and bands 2 and 4, are the pairs that are never
-    // adjacent; they still differ in shape as well as in fill.
-    expect(signatures[0]).not.toBe(signatures[2]);
-    expect(signatures[1]).not.toBe(signatures[3]);
+  it("indexes every band onto one four-step solid ramp", () => {
+    // The whole encoding is the shared `--kpi-band-<N>` ramp: four ordered
+    // solids, one class and one token per band, cycled by segment index.
+    expect(KPI_BANDS).toEqual([1, 2, 3, 4]);
+    expect(KPI_BANDS.map(kpiBandFillToken)).toEqual([
+      "--kpi-band-1",
+      "--kpi-band-2",
+      "--kpi-band-3",
+      "--kpi-band-4",
+    ]);
+    expect(KPI_BANDS.map(kpiBandFillClass)).toEqual([
+      "kpi-band-fill--1",
+      "kpi-band-fill--2",
+      "kpi-band-fill--3",
+      "kpi-band-fill--4",
+    ]);
+    // The fifth segment wraps to band 1, so a long split keeps cycling the
+    // ramp instead of inventing a fifth fill.
+    expect(kpiBandForIndex(0)).toBe(1);
+    expect(kpiBandForIndex(3)).toBe(4);
+    expect(kpiBandForIndex(4)).toBe(1);
   });
 
   it("names every segment of a bar in text, so the split never rests on colour", () => {
@@ -52,14 +68,14 @@ describe("KPI graphics", () => {
     // Proportional widths come from counts.
     expect((segments[0] as HTMLElement).style.flexGrow).toBe("1");
     expect((segments[1] as HTMLElement).style.flexGrow).toBe("2");
-    // Adjacent segments paint different band fills AND different patterns.
+    // Adjacent segments paint two distinct band solids, and the whole track
+    // is texture-free: a flat fill carries the split.
     expect(segments[0]).toHaveClass("kpi-band-fill--1");
     expect(segments[1]).toHaveClass("kpi-band-fill--2");
     expect(segments[0].getAttribute("data-kpi-band")).toBe("1");
     expect(segments[1].getAttribute("data-kpi-band")).toBe("2");
-    expect(segments[0].getAttribute("data-kpi-pattern")).not.toBe(
-      segments[1].getAttribute("data-kpi-pattern"),
-    );
+    expect(container.querySelector("pattern")).toBeNull();
+    expect(container.querySelector("[data-kpi-pattern]")).toBeNull();
   });
 
   it("keeps a zero-count bar proportional instead of dividing by zero", () => {
@@ -80,11 +96,11 @@ describe("KPI graphics", () => {
       // Equal shares, never "0" or "NaN".
       expect((segment as HTMLElement).style.flexGrow).toBe("1");
     }
-    // Four-band cycle: the third segment is a third pattern, not a repeat.
-    expect(new Set(attrValues(container, ".kpi-bar__segment", "data-kpi-pattern")).size).toBe(3);
+    // Four-band cycle: the third segment is a third band, not a repeat.
+    expect(new Set(attrValues(container, ".kpi-bar__segment", "data-kpi-band")).size).toBe(3);
   });
 
-  it("draws one gapped, separately patterned radial slice per segment", () => {
+  it("draws one gapped, separately banded radial slice per segment", () => {
     const { container } = render(
       <RadialMeter
         label="Waiting age"
@@ -122,29 +138,21 @@ describe("KPI graphics", () => {
       5,
     );
 
-    // Each band paints its own pattern tile, never a flat colour...
-    const paints = Array.from(slices, (slice) => slice.getAttribute("stroke"));
-    for (const paint of paints) {
-      expect(paint).toMatch(/^url\(#kpi-band-/);
+    // No slice paints a pattern: each publishes its band and takes its flat
+    // solid from that band's CSS class instead.
+    expect(container.querySelector("pattern")).toBeNull();
+    for (const slice of slices) {
+      expect(slice.getAttribute("stroke")).toBeNull();
     }
-    expect(new Set(paints).size).toBe(2);
-    // ...and carries a --color-surface separator ring plus its own hatch.
-    expect(container.querySelectorAll(".kpi-radial__separator")).toHaveLength(2);
-    // Every slice publishes its band and its hatch shape to the DOM.
     expect(attrValues(container, ".kpi-radial__slice", "data-kpi-band")).toEqual([
       "1",
       "2",
     ]);
-    expect(
-      new Set(attrValues(container, ".kpi-radial__slice", "data-kpi-pattern"))
-        .size,
-    ).toBe(2);
-    // All four tiles are defined, so any band count renders distinctly.
-    expect(new Set(attrValues(container, "pattern", "data-kpi-pattern")).size).toBe(
-      KPI_BANDS.length,
-    );
-    expect(slices[0]).toHaveClass("kpi-radial__slice--band-1");
+    expect(slices[0]).toHaveClass("kpi-radial__slice--band-1", "kpi-radial__slice");
     expect(slices[1]).toHaveClass("kpi-radial__slice--band-2");
+    // ...and carries a --color-surface separator ring so the two solids never
+    // touch edge to edge.
+    expect(container.querySelectorAll(".kpi-radial__separator")).toHaveLength(2);
   });
 
   it("keeps the radial gap proportional for a one-report band", () => {
@@ -168,7 +176,7 @@ describe("KPI graphics", () => {
     expect(tiny).toBeGreaterThan(0);
   });
 
-  it("keeps pattern ids unique when two KPI graphics mount together", () => {
+  it("defines no pattern when two KPI graphics mount together", () => {
     const { container } = render(
       <>
         <RadialMeter
@@ -188,17 +196,16 @@ describe("KPI graphics", () => {
       </>,
     );
 
-    const ids = Array.from(
-      container.querySelectorAll("pattern"),
-      (pattern) => pattern.id,
-    );
-    expect(ids).toHaveLength(KPI_BANDS.length * 2);
-    expect(new Set(ids).size).toBe(ids.length);
-    // Every slice points at a pattern that actually exists in this graphic.
-    const paints = attrValues(container, ".kpi-radial__slice", "stroke");
-    for (const paint of paints) {
-      const id = paint.replace(/^url\(#|\)$/g, "");
-      expect(ids).toContain(id);
+    // Two mounted rings used to need scope-unique pattern ids; with flat
+    // solids there is nothing to scope and nothing to collide.
+    expect(container.querySelectorAll("pattern")).toHaveLength(0);
+    const slices = Array.from(container.querySelectorAll(".kpi-radial__slice"));
+    expect(slices).toHaveLength(4);
+    for (const slice of slices) {
+      expect(slice.getAttribute("stroke")).toBeNull();
+      expect(slice.getAttribute("class")).toMatch(
+        /kpi-radial__slice--band-[1-4]/,
+      );
     }
   });
 
@@ -236,7 +243,8 @@ describe("KPI graphics", () => {
       }),
     ).toBeInTheDocument();
     // Area, halo, line and an end marker all use the same path geometry, so
-    // the line is drawn over a separator rather than beside its area.
+    // the line is drawn over a separator rather than beside its area. The
+    // sparkline has no band split, so all of it is flat solid fill.
     const area = container.querySelector(".kpi-sparkline__area");
     const halo = container.querySelector(".kpi-sparkline__halo");
     const line = container.querySelector(".kpi-sparkline__line");
@@ -250,6 +258,8 @@ describe("KPI graphics", () => {
     for (const node of [area, halo, line]) {
       expect(node).toHaveAttribute("aria-hidden", "true");
     }
+    expect(container.querySelector("pattern")).toBeNull();
+    expect(container.querySelector("[fill^='url(']")).toBeNull();
   });
 
   it("returns no sparkline for a series too short to plot", () => {
@@ -257,7 +267,7 @@ describe("KPI graphics", () => {
     expect(container.querySelector(".kpi-sparkline")).toBeNull();
   });
 
-  it("states a single status indicator as one named graphic with a hatched lane", () => {
+  it("states a single status indicator as one named graphic with a solid lane", () => {
     const { container } = render(
       <StatusIndicator
         icon={<span data-testid="status-icon" />}
@@ -270,15 +280,17 @@ describe("KPI graphics", () => {
     });
     expect(indicator).toHaveClass("kpi-status");
     expect(indicator).toContainHTML("status-icon");
-    // The lane is decoration, but it is textured rather than another
-    // near-white fill beside the mark's near-white chip.
+    // The lane is decoration, and it is a flat solid: no hatch, no pattern
+    // attribute, no paint reference.
     const lane = indicator.querySelector(".kpi-status__lane");
     expect(lane).toHaveAttribute("aria-hidden", "true");
-    expect(lane).toHaveAttribute("data-kpi-pattern", "status-lane/hatch");
+    expect(lane).not.toHaveAttribute("data-kpi-pattern");
+    expect(lane?.getAttribute("class")).toBe("kpi-status__lane");
     expect(container.querySelector(".kpi-status__mark")).toHaveAttribute(
       "aria-hidden",
       "true",
     );
+    expect(container.querySelector("pattern")).toBeNull();
   });
 
   it("falls back to a plain sentence for an empty segment list", () => {
