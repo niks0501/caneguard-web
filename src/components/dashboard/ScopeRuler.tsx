@@ -1,8 +1,11 @@
+import { manilaMonthAt } from "../../domain/reportingTime";
 import type { ScopeMode, ScopeSelection } from "./dashboardScope";
 
 /**
  * One scope ruler for the whole page (overhaul §3.1, §4; decision Q1):
- * This month / Last 30 days / Custom. Native form controls only.
+ * This month / Last 30 days / Custom. Native form controls only. A month
+ * scope that ends at today is labelled as such here, so the ruler itself
+ * carries the month-to-date character instead of a prose note.
  */
 export function ScopeRuler({
   selection,
@@ -13,17 +16,22 @@ export function ScopeRuler({
 }) {
   const set = (patch: Partial<ScopeSelection>) =>
     onChange({ ...selection, ...patch });
+  const modes: Array<{ mode: ScopeMode; label: string }> = [
+    {
+      mode: "month",
+      label:
+        selection.month === manilaMonthAt()
+          ? "This month to date"
+          : "This month",
+    },
+    { mode: "last30", label: "Last 30 days" },
+    { mode: "custom", label: "Custom" },
+  ];
   return (
     <fieldset className="scope-ruler">
       <legend>Report scope</legend>
       <div className="scope-ruler__modes" role="radiogroup" aria-label="Scope">
-        {(
-          [
-            { mode: "month", label: "This month" },
-            { mode: "last30", label: "Last 30 days" },
-            { mode: "custom", label: "Custom" },
-          ] as Array<{ mode: ScopeMode; label: string }>
-        ).map((option) => (
+        {modes.map((option) => (
           <label
             key={option.mode}
             className={

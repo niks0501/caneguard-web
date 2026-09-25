@@ -6766,7 +6766,6 @@ body {
 .kpi-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
   min-width: 0;
   max-width: 100%;
   height: 100%;
@@ -6776,6 +6775,18 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-surface);
+}
+/* The card is its own action: header row, value, supporting line and graphic
+   fill the card, with no separate Open row and no other copy to read. */
+.kpi-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
 }
 .kpi-card__top {
   display: flex;
@@ -6802,9 +6813,8 @@ body {
   font-size: var(--text-body-sm);
   font-weight: 600;
 }
-/* Current-state queue cards are reduced to header, value, graphic and the
-   Open action: no point-in-time pill, no chip legend and no empty-state
-   sentence. */
+/* Current-state queue cards are reduced to header, value, supporting line and
+   graphic: no point-in-time pill, no chip legend and no empty-state sentence. */
 .kpi-card__value {
   min-width: 0;
   max-width: 100%;
@@ -6815,21 +6825,23 @@ body {
   font-weight: 700;
   line-height: 1;
 }
+.kpi-card__support {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+}
 .kpi-card__graphic {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
+  flex: 1 1 auto;
   gap: var(--space-1);
+  min-height: 0;
   min-width: 0;
   max-width: 100%;
-}
-.kpi-card__action {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  margin-top: auto;
-  color: var(--color-primary);
-  font-size: var(--text-body-sm);
-  font-weight: 600;
 }
 .scope-ruler {
   display: flex;
@@ -6915,13 +6927,18 @@ body {
   50% { opacity: 0.55; }
 }
 .kpi-bar {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 12px;
   min-width: 0;
   max-width: 100%;
 }
 .kpi-bar__track {
   display: flex;
+  flex: 1 1 auto;
   gap: 2px;
-  height: 12px;
+  min-height: 12px;
   overflow: hidden;
   background: var(--color-surface-soft);
   border-radius: var(--radius-pill);
@@ -6944,6 +6961,9 @@ body {
 .kpi-radial {
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
   min-width: 0;
   max-width: 100%;
 }
@@ -6973,42 +6993,44 @@ body {
 .kpi-radial__slice--3 {
   stroke: var(--color-muted);
 }
-.kpi-chips {
+.kpi-status {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+  min-height: 0;
   min-width: 0;
   max-width: 100%;
 }
-.kpi-chip {
-  display: inline-flex;
+.kpi-status__mark {
+  display: flex;
   align-items: center;
-  gap: var(--space-1);
-  max-width: 100%;
-  padding: var(--space-1) var(--space-2);
-  color: var(--color-primary-dark);
-  font-size: var(--text-body-sm);
-  font-weight: 600;
-  background: var(--color-primary-tint);
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
 }
-.kpi-chip__icon {
-  display: flex;
-  align-items: center;
+.kpi-status__mark svg {
+  width: 18px;
+  height: 18px;
 }
-.kpi-chip__icon svg {
-  width: 16px;
-  height: 16px;
-}
-.kpi-chip__text {
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
+.kpi-status__lane {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-height: 12px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
 }
 .kpi-sparkline {
+  flex: 1 1 auto;
   width: 100%;
   height: var(--chart-sparkline-height);
+  min-height: var(--chart-sparkline-height);
 }
 .kpi-sparkline__area {
   fill: var(--color-primary-tint);

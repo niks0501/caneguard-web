@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { RadialMeter } from "./RadialMeter";
 import { SegmentedBar } from "./SegmentedBar";
-import { StatusChip } from "./StatusChip";
+import { StatusIndicator } from "./StatusIndicator";
 import { metricSegmentName } from "./metricSegments";
 
 describe("KPI graphics", () => {
@@ -92,20 +92,37 @@ describe("KPI graphics", () => {
     ).toBeInTheDocument();
   });
 
-  it("states an icon-led chip as one named graphic", () => {
+  it("renders an empty track, not equal shares, for an empty split", () => {
+    const { container } = render(
+      <SegmentedBar label="Field-validation schedule" segments={[]} />,
+    );
+
+    expect(
+      screen.getByRole("img", {
+        name: "Field-validation schedule: nothing recorded",
+      }),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll(".kpi-bar__segment")).toHaveLength(0);
+  });
+
+  it("states a single status indicator as one named graphic", () => {
     render(
-      <StatusChip
-        icon={<span data-testid="chip-icon" />}
-        text="No field visit assigned"
-        name="No field-validation visit is assigned to these reports"
+      <StatusIndicator
+        icon={<span data-testid="status-icon" />}
+        name="3 unverified reports with no validation or referral underway"
       />,
     );
 
-    const chip = screen.getByRole("img", {
-      name: "No field-validation visit is assigned to these reports",
+    const indicator = screen.getByRole("img", {
+      name: "3 unverified reports with no validation or referral underway",
     });
-    expect(chip).toHaveTextContent("No field visit assigned");
-    expect(chip).toContainHTML("chip-icon");
+    expect(indicator).toHaveClass("kpi-status");
+    expect(indicator).toContainHTML("status-icon");
+    // The lane is decoration: the state is the icon plus the named graphic.
+    expect(indicator.querySelector(".kpi-status__lane")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 
   it("falls back to a plain sentence for an empty segment list", () => {

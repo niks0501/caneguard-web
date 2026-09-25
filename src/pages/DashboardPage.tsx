@@ -111,9 +111,6 @@ export function DashboardPage() {
           </div>
           <div className="dashboard-header__context">
             <ScopeRuler selection={selection} onChange={setSelection} />
-            {scope.comparison ? (
-              <p className="dashboard-scope-note">Month to date; compared with the same calendar dates in the prior month when available.</p>
-            ) : null}
             <p className="dashboard-last-updated" aria-live="polite">
               <RefreshCw
                 className={dashboard.isFetching ? "spin" : ""}
@@ -184,6 +181,7 @@ export function DashboardPage() {
                 summary={summary}
                 analytics={scopedAnalytics}
                 analyticsFailed={rangeTooLong ? true : analytics.isError}
+                monthToDate={scope.comparison !== undefined}
               />
             )}
             {rangeTooLong ? (
