@@ -76,6 +76,7 @@ class DashboardAggregatesMySqlTest extends TestCase
                     ['condition' => Report::LABEL_HEALTHY, 'count' => 1],
                     ['condition' => Report::LABEL_MOSAIC, 'count' => 1],
                     ['condition' => Report::LABEL_RUST, 'count' => 0],
+                    ['condition' => Report::LABEL_SMUT, 'count' => 0],
                 ],
                 $analytics['possible_condition'],
             );

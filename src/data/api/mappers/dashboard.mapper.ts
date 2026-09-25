@@ -41,6 +41,8 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
       previousFrom: data.comparison.previous_from,
       previousTo: data.comparison.previous_to,
       previousTotal: data.comparison.previous_total,
+      previousSeries: data.comparison.previous_series?.map((point) => ({ ...point })),
+      currentSeries: data.comparison.current_series?.map((point) => ({ ...point })),
       currentTotal: data.comparison.current_total,
       delta: data.comparison.delta,
     },

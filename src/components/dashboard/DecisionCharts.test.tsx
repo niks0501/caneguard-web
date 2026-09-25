@@ -116,6 +116,65 @@ beforeEach(() => {
 });
 
 describe("InflowComparisonBars", () => {
+  it("aligns previous buckets by relative position rather than calendar label", () => {
+    renderWithRouter(
+      <InflowComparisonBars
+        analytics={analytics}
+        previousSeries={[
+          { label: "2026-08-08", count: 3 },
+          { label: "2026-08-09", count: 6 },
+        ]}
+        scopeLabel={scopeLabel}
+      />,
+    );
+    const rows = within(screen.getByRole("table")).getAllByRole("row");
+    expect(rows).toHaveLength(3);
+    expect(rows[1]).toHaveTextContent("2026-09-01");
+    expect(rows[1]).toHaveTextContent("3");
+    expect(rows[2]).toHaveTextContent("6");
+  });
+
+  it("uses equal relative week buckets from the API rather than ISO calendar keys", () => {
+    renderWithRouter(
+      <InflowComparisonBars
+        analytics={{
+          ...analytics,
+          comparison: {
+            ...analytics.comparison,
+            currentSeries: [{ label: "2026-09-01", count: 5 }, { label: "2026-09-08", count: 7 }],
+          },
+        }}
+        previousSeries={[{ label: "2026-08-18", count: 2 }, { label: "2026-08-25", count: 7 }]}
+        scopeLabel={scopeLabel}
+      />,
+    );
+    const rows = within(screen.getByRole("table")).getAllByRole("row");
+    expect(rows).toHaveLength(3);
+    expect(rows[1]).toHaveTextContent("2026-09-01");
+    expect(rows[1]).toHaveTextContent("2");
+    expect(rows[2]).toHaveTextContent("7");
+  });
+
+  it("distinguishes a measured zero from unavailable comparison data", () => {
+    renderWithRouter(
+      <InflowComparisonBars
+        analytics={{ ...analytics, comparison: { ...analytics.comparison, previousTotal: 0 } }}
+        previousSeries={[{ label: "2026-08-08", count: 0 }, { label: "2026-08-09", count: 0 }]}
+        scopeLabel={scopeLabel}
+      />,
+    );
+    expect(screen.getByText("Previous period (0)")).toBeInTheDocument();
+    expect(screen.queryByText(/Previous period unavailable/)).not.toBeInTheDocument();
+  });
+
+  it("does not encode missing comparison data as zero", () => {
+    renderWithRouter(
+      <InflowComparisonBars analytics={analytics} scopeLabel={scopeLabel} />,
+    );
+    expect(screen.getByText(/Previous period unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText(/Previous period \(0\)/)).not.toBeInTheDocument();
+    expect(screen.getByRole("table")).toHaveTextContent("Unavailable");
+  });
   it("pairs this period against the previous window with both windows printed", () => {
     const { container } = renderWithRouter(
       <InflowComparisonBars
@@ -173,7 +232,7 @@ describe("ConcernVsConditionBars", () => {
     expect(within(table).getByText("Reported: Mosaic")).toBeInTheDocument();
     expect(within(table).getByText("Possible: Mosaic")).toBeInTheDocument();
     expect(within(table).queryByText("Possible: RSSI")).not.toBeInTheDocument();
-    expect(within(table).queryByText("Possible: Smut")).not.toBeInTheDocument();
+    expect(within(table).getByText("Possible: Smut")).toBeInTheDocument();
     // The axis labels carry the same prefixed names on the marks themselves.
     const axisText = [...container.querySelectorAll("svg text")]
       .map((node) => node.textContent ?? "")

@@ -18,6 +18,7 @@ final class ReportAnalyticsRequest extends ApiFormRequest
             'from' => ['required', 'date_format:Y-m-d'],
             'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
             'granularity' => ['sometimes', Rule::in(['day', 'week'])],
+            'comparison' => ['sometimes', Rule::in(['previous_month'])],
             'search' => ['sometimes', 'string', 'max:120'],
             ...ReportFilterRules::rules(),
         ];

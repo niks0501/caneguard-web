@@ -77,6 +77,15 @@ final class BuildReportAnalytics
         $closed = (int) $metrics['closed_cases'];
 
         [$previousStart, $previousEnd] = [$start->subDays($days), $start];
+        // A current-month-to-date window compares the same calendar days in
+        // the preceding month when that month contains enough days. Other
+        // windows retain the immediately preceding equal-length interval.
+        if (($input['comparison'] ?? null) === 'previous_month' && $start->day === 1) {
+            $monthStart = $start->subMonthNoOverflow()->startOfMonth();
+            if ($monthStart->daysInMonth >= $days) {
+                [$previousStart, $previousEnd] = [$monthStart, $monthStart->addDays($days)];
+            }
+        }
         $previousTotal = $this->scopedQuery($previousStart, $previousEnd, $filters)
             ->count('reports.id');
 
@@ -104,6 +113,14 @@ final class BuildReportAnalytics
                 'previous_from' => $previousStart->toDateString(),
                 'previous_to' => $previousEnd->subDay()->toDateString(),
                 'previous_total' => $previousTotal,
+                'current_series' => $this->buckets(clone $base, $start, $end, $granularity, true),
+                'previous_series' => $this->buckets(
+                    $this->scopedQuery($previousStart, $previousEnd, $filters),
+                    $previousStart,
+                    $previousEnd,
+                    $granularity,
+                    true,
+                ),
                 'current_total' => $total,
                 'delta' => $total - $previousTotal,
             ],
@@ -196,7 +213,8 @@ final class BuildReportAnalytics
 
     /**
      * Bucket submitted reports per PHT calendar day, or per ISO week starting
-     * Monday. Every bucket in the window is present, including empty ones, so
+     * Monday (comparison weeks instead start at each window boundary so equal
+     * positions cover equal elapsed days). Every bucket is present, so
      * a quiet stretch renders as zero rather than disappearing.
      *
      * @return array<int, array{label: string, count: int}>
@@ -206,6 +224,7 @@ final class BuildReportAnalytics
         CarbonImmutable $start,
         CarbonImmutable $end,
         string $granularity,
+        bool $relative = false,
     ): array {
         $counts = [];
         foreach ($query->get(['submitted_at']) as $report) {
@@ -214,13 +233,15 @@ final class BuildReportAnalytics
             }
             $date = $report->submitted_at->timezone(self::TIMEZONE);
             $key = $granularity === 'week'
-                ? $date->startOfWeek(CarbonImmutable::MONDAY)->toDateString()
+                ? ($relative
+                    ? $start->addWeeks((int) floor($start->diffInDays($date->startOfDay()) / 7))->toDateString()
+                    : $date->startOfWeek(CarbonImmutable::MONDAY)->toDateString())
                 : $date->toDateString();
             $counts[$key] = ($counts[$key] ?? 0) + 1;
         }
 
         $buckets = [];
-        $cursor = $granularity === 'week'
+        $cursor = $granularity === 'week' && ! $relative
             ? $start->startOfWeek(CarbonImmutable::MONDAY)
             : $start;
         $step = $granularity === 'week' ? 'addWeek' : 'addDay';
@@ -338,15 +359,14 @@ final class BuildReportAnalytics
 
     /**
      * Possible Condition (C2, AI vocabulary): decision support only. The
-     * series enumerates the shipped model's declared list
-     * (healthy/mosaic/rust); RSSI never enters it, and smut joins only
-     * with model integration.
+     * series enumerates the deployed four-class Model V1 contract;
+     * reporter-only RSSI never enters it.
      *
      * @return array<int, array{condition: string, count: int}>
      */
     private function possibleCondition(Builder $base): array
     {
-        $declared = [Report::LABEL_HEALTHY, Report::LABEL_MOSAIC, Report::LABEL_RUST];
+        $declared = Report::v2Labels();
         $counts = array_fill_keys($declared, 0);
         (clone $base)
             ->select('predicted_label')
@@ -608,9 +628,8 @@ final class BuildReportAnalytics
             ['label' => '30+ days waiting', 'min' => 30, 'max' => null, 'count' => 0],
         ];
 
-        $reports = (clone $base)
-            ->where('case_state', Report::CASE_STATE_OPEN)
-            ->where('verification_outcome', Report::VERIFICATION_OUTCOME_NOT_DETERMINED)
+        $reports = $this->applyOperationalQueueFilter
+            ->handle(clone $base, Report::QUEUE_NEEDS_REVIEW)
             ->get(['submitted_at']);
 
         $oldest = null;

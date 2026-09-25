@@ -10,6 +10,7 @@ import { useAnalytics } from "../hooks/useAnalytics";
 import { useDashboard } from "../hooks/useDashboard";
 import { useFieldValidationMap } from "../hooks/useFieldValidation";
 import type { ReportAnalytics } from "../domain/dashboard.types";
+import { manilaDateAt } from "../domain/reportingTime";
 import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../hooks/useDashboard", async (importOriginal) => {
@@ -90,6 +91,10 @@ const analytics = {
     previousFrom: "2026-08-08",
     previousTo: "2026-08-31",
     previousTotal: 9,
+    previousSeries: [
+      { label: "2026-08-08", count: 4 },
+      { label: "2026-08-09", count: 5 },
+    ],
     currentTotal: 12,
     delta: 3,
   },
@@ -189,6 +194,8 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
   vi.mocked(useDashboard).mockReturnValue(dashboardResult());
   vi.mocked(useAnalytics).mockReturnValue(analyticsResult());
   vi.mocked(useFieldValidationMap).mockReturnValue({
@@ -208,11 +215,7 @@ describe("DashboardPage", () => {
       recentLimit: 10,
     });
     expect(useAnalytics).toHaveBeenCalledWith(
-      { from: "2026-09-01", to: "2026-09-30", granularity: "day" },
-      { enabled: true },
-    );
-    expect(useAnalytics).toHaveBeenCalledWith(
-      { from: "2026-08-08", to: "2026-08-31", granularity: "day" },
+      { from: "2026-09-01", to: "2026-09-24", granularity: "day", comparison: "previous_month" },
       { enabled: true },
     );
 
@@ -233,6 +236,35 @@ describe("DashboardPage", () => {
       { from: "2026-08-26", to: "2026-09-24", granularity: "day" },
       { enabled: true },
     );
+  });
+
+  it("reports an unavailable analytics window instead of showing an endless loading frame", () => {
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: undefined, isError: true, isPending: false }));
+    renderDashboard();
+    expect(screen.getByText("Report analytics unavailable for the selected period.")).toBeInTheDocument();
+    expect(screen.queryByText("Loading trends and analysis…")).not.toBeInTheDocument();
+  });
+
+  it("never shows the old period while a new period is loading", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
+    const { rerender } = renderDashboard();
+    fireEvent.change(screen.getByLabelText("Scope month"), { target: { value: "2026-08" } });
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ isPlaceholderData: true }));
+    rerender(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    const snapshot = within(screen.getByRole("region", { name: "Current operations" }));
+    expect(snapshot.queryByRole("img", { name: /Submissions 1–24 Sep/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Inflow: this period/ })).not.toBeInTheDocument();
+  });
+
+  it("uses the same review population for the KPI and waiting-age breakdown", () => {
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
+      ...analytics, reviewBacklog: { totalWaiting: 1, buckets: [{ label: "0–2 days waiting", count: 1 }], oldestWaitingDays: 2 },
+    } }));
+    renderDashboard();
+    const card = screen.getByText("Awaiting review").closest("article")!;
+    expect(within(card).getByText("1")).toBeInTheDocument();
+    expect(within(card).getByRole("img", { name: "Waiting age: 0–2 days waiting 1" })).toBeInTheDocument();
   });
 
   it("renders the four-KPI operational snapshot with honest windows", () => {
@@ -311,7 +343,7 @@ describe("DashboardPage", () => {
     ).toHaveAttribute("href", "/reports");
     expect(
       snapshot.getByRole("link", { name: "Open the Awaiting review queue" }),
-    ).toHaveAttribute("href", "/reports?queue=needs_review");
+    ).toHaveAttribute("href", "/reports?queue=needs_review&date_from=2026-09-01&date_to=2026-09-24");
     expect(
       snapshot.getByRole("link", {
         name: "Open the Needing field validation queue",
@@ -392,7 +424,7 @@ describe("DashboardPage", () => {
       snapshot.queryByText("No open field-validation work."),
     ).not.toBeInTheDocument();
     expect(snapshot.queryByText("No unverified report is without active work.")).not.toBeInTheDocument();
-    expect(snapshot.getAllByText("0")).toHaveLength(3);
+    expect(snapshot.getAllByText("0")).toHaveLength(2);
   });
 
   it("keeps long queue identifiers inside the KPI grid without sideways push", () => {
@@ -407,6 +439,13 @@ describe("DashboardPage", () => {
     expect(
       screen.queryByText(/no referral in flight, no validation assignment/),
     ).not.toBeInTheDocument();
+  });
+
+  it("labels the unfiltered recent report list independently of the selected period", () => {
+    renderDashboard();
+    fireEvent.change(screen.getByLabelText("Scope month"), { target: { value: "2026-08" } });
+    const recent = within(screen.getByRole("region", { name: "Recent reports" }));
+    expect(recent.getByText(/latest submissions across all periods/)).toBeInTheDocument();
   });
 
   it("shows recent reports with the reported-concern column and no table prose", () => {
@@ -431,6 +470,8 @@ describe("DashboardPage", () => {
     expect(statusHeader.tagName).toBe("TH");
     expect(statusHeader).toHaveClass("dashboard-report-table__cell-status");
     expect(recent.getAllByText("Not stated").length).toBeGreaterThan(0);
+    // The table is explicitly unfiltered, independent of the scope ruler.
+    expect(recent.getByText(/latest submissions across all periods/)).toBeInTheDocument();
     // Section-meta line 'synchronized submissions' is removed everywhere.
     expect(screen.queryByText("synchronized submissions")).not.toBeInTheDocument();
     expect(screen.queryByText(/most recent synchronized submissions/)).not.toBeInTheDocument();
@@ -562,6 +603,10 @@ describe("DashboardPage", () => {
   });
 
   it("mounts the three decision charts and the map once period data arrives", async () => {
+    vi.useRealTimers();
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
+      ...analytics, period: { ...analytics.period, to: manilaDateAt() },
+    } }));
     renderDashboard();
 
     expect(

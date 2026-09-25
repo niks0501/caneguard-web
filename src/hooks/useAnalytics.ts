@@ -1,4 +1,4 @@
-import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import type { ReportAnalyticsParams } from "../domain/dashboard.types";
 import { dashboardRepository } from "../services/dashboard.service";
 import { getOperationalQueryRefreshOptions } from "./queryRefresh";
@@ -13,7 +13,7 @@ export const analyticsQueryOptions = (params: ReportAnalyticsParams) =>
   queryOptions({
     queryKey: analyticsKeys.period(params),
     queryFn: () => dashboardRepository.getAnalytics(params),
-    placeholderData: keepPreviousData,
+    // A new scope must never render the previous scope's aggregate as its own.
     // Overhaul P1: the aggregates are expensive, so a window-focus refetch
     // is skipped while the data is younger than 60s (React Query only
     // refetches on focus when the data is stale).

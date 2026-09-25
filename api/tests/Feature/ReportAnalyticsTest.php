@@ -123,6 +123,20 @@ class ReportAnalyticsTest extends TestCase
             ]);
     }
 
+    public function test_week_comparison_aligns_equal_seven_day_slices_from_each_window_start(): void
+    {
+        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-08-26T02:00:00Z')]);
+        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z')]);
+        $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-14&granularity=week')
+            ->assertOk()->json('data');
+        $this->assertSame(2, count($data['comparison']['current_series']));
+        $this->assertSame(['label' => '2026-09-01', 'count' => 1], $data['comparison']['current_series'][0]);
+        $this->assertSame(['label' => '2026-08-18', 'count' => 0], $data['comparison']['previous_series'][0]);
+        $this->assertSame(['label' => '2026-08-25', 'count' => 1], $data['comparison']['previous_series'][1]);
+        $this->assertSame(1, array_sum(array_column($data['comparison']['previous_series'], 'count')));
+    }
+
     public function test_analytics_compares_against_the_previous_equal_window(): void
     {
         $reviewer = User::factory()->reviewer()->create();
@@ -148,7 +162,11 @@ class ReportAnalyticsTest extends TestCase
             ->assertJsonPath('data.comparison.previous_to', '2026-08-31')
             ->assertJsonPath('data.comparison.previous_total', 0)
             ->assertJsonPath('data.comparison.current_total', 2)
-            ->assertJsonPath('data.comparison.delta', 2);
+            ->assertJsonPath('data.comparison.delta', 2)
+            ->assertJsonPath('data.comparison.previous_series', array_map(
+                static fn (int $offset): array => ['label' => CarbonImmutable::parse('2026-08-25')->addDays($offset)->toDateString(), 'count' => 0],
+                range(0, 6),
+            ));
     }
 
     public function test_analytics_applies_the_same_filters_as_the_csv_export(): void
@@ -167,6 +185,12 @@ class ReportAnalyticsTest extends TestCase
             'submitted_at' => CarbonImmutable::parse('2026-09-04T03:00:00Z'),
         ]);
 
+        Report::factory()->create([
+            'barangay' => 'Poblacion',
+            'predicted_label' => Report::LABEL_RUST,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'submitted_at' => CarbonImmutable::parse('2026-08-28T02:00:00Z'),
+        ]);
         Sanctum::actingAs($reviewer);
 
         $query = http_build_query([
@@ -181,6 +205,7 @@ class ReportAnalyticsTest extends TestCase
         $this->getJson('/api/v1/reports/analytics?'.$query)
             ->assertOk()
             ->assertJsonPath('data.total_submitted', 1)
+            ->assertJsonPath('data.comparison.previous_total', 0)
             ->assertJsonPath('data.cases_by_barangay', [
                 ['barangay' => 'Mabini', 'reported_cases' => 1],
             ]);
@@ -301,13 +326,13 @@ class ReportAnalyticsTest extends TestCase
         $this->assertSame(5, array_sum(array_column($analytics['reported_concern'], 'count')));
         $this->assertEqualsWithDelta(1.0, array_sum(array_column($analytics['reported_concern'], 'share')), 0.001);
 
-        // The AI series enumerates the shipped model's declared list only:
-        // RSSI never enters it, and smut waits for model integration.
+        // Model V1 includes Smut; reporter-only RSSI never enters the AI series.
         $this->assertSame(
             [
                 ['condition' => Report::LABEL_HEALTHY, 'count' => 1],
                 ['condition' => Report::LABEL_MOSAIC, 'count' => 2],
                 ['condition' => Report::LABEL_RUST, 'count' => 1],
+                ['condition' => Report::LABEL_SMUT, 'count' => 1],
             ],
             $analytics['possible_condition'],
         );
@@ -316,6 +341,86 @@ class ReportAnalyticsTest extends TestCase
             Report::verificationOutcomes(),
             array_keys($analytics['verification_outcome']),
         );
+    }
+
+    public function test_review_waiting_age_uses_the_same_period_scoped_population_as_the_review_count(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-10 09:00:00');
+        try {
+            $reviewer = User::factory()->reviewer()->create();
+            Report::factory()->create([
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'submitted_at' => CarbonImmutable::parse('2026-09-08T02:00:00Z'),
+            ]);
+            Report::factory()->create([
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'submitted_at' => CarbonImmutable::parse('2026-08-08T02:00:00Z'),
+            ]);
+            Report::factory()->create([
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+                'submitted_at' => CarbonImmutable::parse('2026-09-08T03:00:00Z'),
+            ]);
+            Sanctum::actingAs($reviewer);
+            $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-10')
+                ->assertOk()->json('data');
+            $this->assertSame(1, $data['review_backlog']['total_waiting']);
+            $this->assertSame(1, array_sum(array_column($data['review_backlog']['buckets'], 'count')));
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_month_to_date_comparison_uses_the_same_dates_in_the_prior_month(): void
+    {
+        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-08-02T02:00:00Z')]);
+        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z')]);
+        $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-24&granularity=day&comparison=previous_month')
+            ->assertOk()->json('data');
+        $this->assertSame('2026-08-01', $data['comparison']['previous_from']);
+        $this->assertSame('2026-08-24', $data['comparison']['previous_to']);
+        $this->assertSame(1, $data['comparison']['previous_total']);
+        $this->assertSame(1, $data['comparison']['current_total']);
+        $this->assertSame(['label' => '2026-08-02', 'count' => 1], $data['comparison']['previous_series'][1]);
+        $this->assertCount(24, $data['comparison']['previous_series']);
+        $this->assertSame($data['comparison']['previous_total'], array_sum(array_column($data['comparison']['previous_series'], 'count')));
+        $this->assertCount(24, $data['series']);
+    }
+
+    public function test_month_to_date_marks_a_partial_window_and_falls_back_to_equal_length_when_prior_month_is_shorter(): void
+    {
+        CarbonImmutable::setTestNow('2026-03-31 09:00:00 Asia/Manila');
+        try {
+            Sanctum::actingAs(User::factory()->reviewer()->create());
+            $data = $this->getJson('/api/v1/reports/analytics?from=2026-03-01&to=2026-03-31&granularity=day&comparison=previous_month')
+                ->assertOk()->json('data');
+            $this->assertTrue($data['period']['partial']);
+            $this->assertSame(31, $data['period']['days']);
+            $this->assertSame('2026-01-29', $data['comparison']['previous_from']);
+            $this->assertSame('2026-02-28', $data['comparison']['previous_to']);
+            $this->assertCount(31, $data['comparison']['previous_series']);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_possible_condition_includes_supported_smut_but_never_reporter_only_rssi(): void
+    {
+        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Report::factory()->create([
+            'predicted_label' => Report::LABEL_SMUT,
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
+        ]);
+        $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-07')
+            ->assertOk()->json('data');
+        $this->assertContains(['condition' => Report::LABEL_SMUT, 'count' => 1], $data['possible_condition']);
+        $this->assertNotContains('rssi', array_column($data['possible_condition'], 'condition'));
+        $this->assertSame(1, array_sum(array_column($data['possible_condition'], 'count')));
     }
 
     public function test_analytics_splits_validation_attention_per_barangay_with_nasugbu_scope(): void
