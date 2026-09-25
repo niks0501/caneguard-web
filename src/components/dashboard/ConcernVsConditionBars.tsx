@@ -13,9 +13,9 @@ import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { VerificationLegend } from "./VerificationLegend";
 import { dashboardChartCopy } from "./chartCopy";
-import { chartTheme, conditionColor, reportedConcernColor } from "./chartTheme";
+import { bandColor, chartTheme } from "./chartTheme";
+import { kpiBandForIndex, type KpiBand } from "./kpiBandEncoding";
 import {
-  patternIdFor,
   POSSIBLE_CONDITIONS,
   reportedConcernLabel,
 } from "./reportedConcern";
@@ -25,8 +25,8 @@ interface ConcernRow {
   key: string;
   rowLabel: string;
   count: number;
-  fill: string;
-  pattern: string | null;
+  /** The `--kpi-band-<N>` slot this row paints, in ramp order. */
+  band: KpiBand;
 }
 
 /**
@@ -36,10 +36,16 @@ interface ConcernRow {
  * the comparison the reviewer needs is read directly instead of across two
  * charts. Vocabularies are never merged — every row is prefixed with its
  * vocabulary, RSSI appears only in the reported series, and the AI series
- * enumerates the deployed Model V1 four-class list. A compact
- * staff-verification strip closes the card, printed as a legend whose swatch
- * patterns mirror the chart's own mark grammar (solid / single hatch /
- * cross hatch), with the same three rows in the card's accessible table.
+ * enumerates the deployed Model V1 four-class list.
+ *
+ * Every bar is one flat solid from the shared `--kpi-band-<N>` ramp, taken in
+ * row order so each neighbouring pair clears 3:1 (the ramp alternates a
+ * deepened light with a deep tone). Both vocabularies draw from the same ramp
+ * and are told apart by their printed `Reported:` / `Possible:` row labels,
+ * the white bar gaps and the card's accessible table — never by a texture. A
+ * compact staff-verification strip closes the card as a real legend of solid
+ * marks with printed counts, backed by the same three rows in the card's
+ * accessible table.
  */
 export function ConcernVsConditionBars({
   analytics,
@@ -53,10 +59,10 @@ export function ConcernVsConditionBars({
     key: `reported-${item.concern}`,
     rowLabel: `Reported: ${item.label}`,
     count: item.count,
-    fill: reportedConcernColor(index),
-    pattern: patternIdFor("reported", item.concern),
+    band: kpiBandForIndex(index),
   }));
-  const aiRows: ConcernRow[] = POSSIBLE_CONDITIONS.map((entry) => {
+  const offset = reportedRows.length;
+  const aiRows: ConcernRow[] = POSSIBLE_CONDITIONS.map((entry, index) => {
     const count =
       analytics.possibleCondition.find((item) => item.condition === entry.value)
         ?.count ?? 0;
@@ -64,8 +70,7 @@ export function ConcernVsConditionBars({
       key: `possible-${entry.value}`,
       rowLabel: `Possible: ${entry.label}`,
       count,
-      fill: conditionColor(entry.value),
-      pattern: patternIdFor("possible", entry.value),
+      band: kpiBandForIndex(offset + index),
     };
   });
   const rows = [...reportedRows, ...aiRows];
@@ -96,32 +101,6 @@ export function ConcernVsConditionBars({
             layout="vertical"
             margin={{ top: 0, right: 40, bottom: 0, left: 8 }}
           >
-            <defs>
-              {rows.map((row) =>
-                row.pattern ? (
-                  <pattern
-                    key={row.pattern}
-                    id={row.pattern}
-                    width="6"
-                    height="6"
-                    patternUnits="userSpaceOnUse"
-                    patternTransform={
-                      row.key.startsWith("possible-") ? "rotate(45)" : "rotate(-45)"
-                    }
-                  >
-                    <rect width="6" height="6" fill={row.fill} />
-                    <line
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="6"
-                      stroke={chartTheme.surface}
-                      strokeWidth={2}
-                    />
-                  </pattern>
-                ) : null,
-              )}
-            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} horizontal={false} />
             <XAxis
               type="number"
@@ -139,7 +118,7 @@ export function ConcernVsConditionBars({
               {rows.map((row) => (
                 <Cell
                   key={row.key}
-                  fill={row.pattern ? `url(#${row.pattern})` : row.fill}
+                  fill={bandColor(row.band)}
                   stroke={chartTheme.surface}
                   strokeWidth={1}
                 />

@@ -51,18 +51,20 @@
   --disease-rust: #b54b17;
   --disease-smut: #6b4783;
 
-  /* KPI graphic band encoding (overhaul §3.8 + risk 7).
-     The compact KPI graphics split one whole into up to four ordered bands
-     (waiting age, field-validation schedule). The shipped brand ramp put
-     neighbouring bands at 1.08-1.40:1, so the bands alternate a deepened
-     brand light with a deep brand tone and every *neighbouring* pair now
-     clears the plan's 3:1 adjacent-fill rule (measured in
-     scripts/validate-design-spine.mjs, which fails the gate if any pair
-     regresses). Colour is still not the only separator: each band also
-     carries a 2px gap, a --color-surface separator stroke and its own hatch
-     pattern, and every graphic keeps its text accessible name. Bands 1 and 3
-     (both light) and bands 2 and 4 (both deep) are never adjacent; they
-     differ by hue and by pattern. Light bands are fills only, never text. */
+  /* Dashboard solid fill ramp (overhaul §3.8 + risk 7).
+     Every dashboard mark that splits one whole into ordered parts — the KPI
+     waiting-age radial, the field-validation schedule bar, the decision-chart
+     series and their legend swatches — paints one flat solid from this
+     four-step ramp. The shipped brand ramp put neighbouring fills at
+     1.08-1.40:1, so the ramp alternates a deepened brand light with a deep
+     brand tone and every *neighbouring* pair clears the plan's 3:1
+     adjacent-fill rule (measured in scripts/validate-design-spine.mjs, which
+     fails the gate if any pair regresses). No pattern, hatch or texture is
+     drawn: separation is hue and lightness only, and every graphic keeps its
+     direct labels, printed counts, legend entries and accessible name.
+     Bands 1 and 3 are the deepened lights and bands 2 and 4 the deep tones;
+     they are never adjacent, so they differ by hue. Light bands are fills
+     only, never text. */
   /* Measured contrast against the white surface runs 3.32, 10.83, 3.26 and
      11.64, and the four neighbouring pairs run 3.26, 3.33, 3.58 and 3.51.
      Keep these comments free of `name colon value` shapes, because the

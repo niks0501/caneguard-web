@@ -175,17 +175,19 @@ export function validateSemanticContrast(tokensContent = readFileSync(TOKENS_PAT
 }
 
 /**
- * KPI band distinction guard (overhaul §3.8 + risk 7).
+ * Dashboard solid fill guard (overhaul §3.8 + risk 7).
  *
- * The compact KPI graphics split one whole into up to four ordered bands (the
- * waiting-age radial and the field-validation schedule bar). The plan measured
- * the shipped brand ramp's neighbouring fills at 1.08–1.40:1, so colour cannot
- * be the separator. These rules keep the replacement honest: the four
- * `--kpi-band-<N>` fills must each clear 3:1 against `--color-surface`, every
- * neighbouring pair must clear 3:1 too — including the radial ring's 4-1 join,
- * because a ring's last band touches its first — each band's bar fill must be a
- * distinct hatch rather than one hatch at four opacities, the separator strokes
- * must stay token-driven, and no flat colour may return to a radial slice.
+ * Every dashboard mark that splits one whole into ordered parts — the KPI
+ * waiting-age radial, the field-validation schedule bar, the decision-chart
+ * series and every legend swatch — paints one flat solid from the four-step
+ * `--kpi-band-<N>` ramp. The plan measured the shipped brand ramp's
+ * neighbouring fills at 1.08–1.40:1, and a hatch pattern used to carry the
+ * split; both are gone. These rules keep the solid replacement honest: the
+ * four fills must each clear 3:1 against `--color-surface`, every neighbouring
+ * pair must clear 3:1 too — including the radial ring's 4-1 join, because a
+ * ring's last band touches its first — every band fill and radial slice must
+ * be that band's own flat solid rather than a texture, the separator strokes
+ * must stay token-driven, and no pattern may return.
  */
 export const KPI_BAND_FILL_TOKENS = [
   "--kpi-band-1",
@@ -201,8 +203,37 @@ export const KPI_BAND_ADJACENT_PAIRS = [
 ];
 export const KPI_BAND_MIN_CONTRAST = 3;
 
+/**
+ * The one solid fill class every dashboard band paints: a KPI bar segment, a
+ * radial slice's band rule, a decision-chart mark and every legend swatch all
+ * resolve through it, so a legend can never drift from the chart it explains.
+ */
+export const KPI_BAND_FILL_CLASSES = KPI_BAND_FILL_TOKENS.map(
+  (_, index) => `.kpi-band-fill--${index + 1}`,
+);
+
 /** Sparkline tones: the area fill against the series line over it. */
 export const SPARKLINE_ADJACENT_TOKENS = ["--kpi-band-1", "--color-primary-dark"];
+
+/**
+ * Assert one selector paints a flat solid and draws no texture.
+ *
+ * A missing fill token is the colour-only regression; a `background-image` is
+ * the pattern regression this task removed.
+ */
+function assertSolidFill(errors, cssContent, selector, token) {
+  const block = blockForSelector(cssContent, selector);
+  if (block === null) {
+    errors.push(`Missing flat solid rule for '${selector}'`);
+    return;
+  }
+  if (!block.includes(`var(${token})`)) {
+    errors.push(`'${selector}' must paint the flat solid 'var(${token})'`);
+  }
+  if (/background-image\s*:/.test(block)) {
+    errors.push(`'${selector}' must be a flat solid, not a texture`);
+  }
+}
 
 export function validateKpiBandDistinction(
   tokensContent = readFileSync(TOKENS_PATH, "utf8"),
@@ -253,8 +284,8 @@ export function validateKpiBandDistinction(
     }
   }
 
-  // The bar: a real gutter plus a --color-surface stroke, and one distinct
-  // hatch per band. One hatch reused four times would be colour-only again.
+  // The bar: a real gutter plus a --color-surface stroke, and one flat solid
+  // per band straight from that band's own token.
   const track = blockForSelector(cssContent, ".kpi-bar__track");
   if (track === null || !/gap\s*:\s*var\(--kpi-band-gap\)/.test(track)) {
     errors.push(
@@ -269,28 +300,17 @@ export function validateKpiBandDistinction(
     );
   }
 
-  const hatches = KPI_BAND_FILL_TOKENS.map((_, index) =>
-    declarationValue(
-      ownBlockForSelector(cssContent, `.kpi-band-fill--${index + 1}`),
-      "background-image",
-    ),
-  );
-  hatches.forEach((hatch, index) => {
-    if (!hatch) {
-      errors.push(
-        `Missing hatch 'background-image' on '.kpi-band-fill--${index + 1}'`,
-      );
-    }
-  });
-  const distinctHatches = new Set(hatches.filter(Boolean));
-  if (distinctHatches.size !== KPI_BAND_FILL_TOKENS.length) {
-    errors.push(
-      `KPI bar hatches must be distinct per band, found ${distinctHatches.size} of ${KPI_BAND_FILL_TOKENS.length}`,
+  KPI_BAND_FILL_TOKENS.forEach((token, index) => {
+    assertSolidFill(
+      errors,
+      cssContent,
+      KPI_BAND_FILL_CLASSES[index],
+      token,
     );
-  }
+  });
 
-  // The radial: a --color-surface separator ring under every band, pattern
-  // paint on the band, and no flat colour left on a slice.
+  // The radial: a --color-surface separator ring under every band, and one
+  // flat band solid on each slice band class instead of a pattern paint.
   const separator = blockForSelector(cssContent, ".kpi-radial__separator");
   if (
     separator === null ||
@@ -305,46 +325,94 @@ export function validateKpiBandDistinction(
     errors.push("Missing '.kpi-radial__slice' rule");
   } else if (/(?:^|[;{\s])stroke\s*:/.test(slice)) {
     errors.push(
-      "'.kpi-radial__slice' must not paint a flat colour; its paint is the band pattern",
-    );
-  }
-  const patternMark = blockForSelector(cssContent, ".kpi-pattern__mark");
-  if (
-    patternMark === null ||
-    !/stroke\s*:\s*var\(--color-surface\)/.test(patternMark)
-  ) {
-    errors.push(
-      "KPI band patterns must draw their hatch in '--color-surface'",
+      "'.kpi-radial__slice' must not paint its own colour; each band class supplies the band solid",
     );
   }
   KPI_BAND_FILL_TOKENS.forEach((token, index) => {
-    const block = blockForSelector(
-      cssContent,
-      `.kpi-pattern--${index + 1} .kpi-pattern__base`,
-    );
-    if (block === null || !block.includes(`var(${token})`)) {
-      errors.push(
-        `KPI pattern ${index + 1} must fill with 'var(${token})'`,
-      );
+    const selector = `.kpi-radial__slice--band-${index + 1}`;
+    const block = blockForSelector(cssContent, selector);
+    if (block === null) {
+      errors.push(`Missing '${selector}' rule`);
+    } else if (!block.includes(`var(${token})`)) {
+      errors.push(`'${selector}' must paint the flat solid 'var(${token})'`);
     }
   });
 
   // The sibling KPI graphics: the sparkline's tone pair is separated by a
-  // surface halo, and the status mark/lane pair is no longer two near-white
-  // fills.
+  // surface halo, and the status lane is a flat solid rather than a hatch.
   const halo = blockForSelector(cssContent, ".kpi-sparkline__halo");
   if (halo === null || !/stroke\s*:\s*var\(--color-surface\)/.test(halo)) {
     errors.push(
       "'.kpi-sparkline__halo' must separate the sparkline line from its area",
     );
   }
-  const statusLane = blockForSelector(cssContent, ".kpi-status__lane");
-  if (statusLane === null || !/background-image\s*:/.test(statusLane)) {
-    errors.push("'.kpi-status__lane' must carry a hatch, not a flat near-white fill");
-  }
+  assertSolidFill(
+    errors,
+    cssContent,
+    ".kpi-status__lane",
+    "--color-surface-tint",
+  );
   const statusMark = blockForSelector(cssContent, ".kpi-status__mark");
   if (statusMark === null || !/var\(--color-warning\)/.test(statusMark)) {
     errors.push("'.kpi-status__mark' must ring its icon in '--color-warning'");
+  }
+
+  return errors;
+}
+
+/**
+ * No-pattern guard: the dashboard draws solids only.
+ *
+ * Patterns are gone from every KPI graphic, decision chart, legend and the map
+ * symbology, so no `<pattern>` definition, `patternUnits` attribute, pattern
+ * id helper, `url(#…)` paint reference or MapLibre `fill-pattern` may survive
+ * in the shipped dashboard components or in the dashboard CSS. The decorative
+ * auth page background gradients are page chrome, not a data encoding, and
+ * stay. Test files are exempt, because the visual tests exist to assert these
+ * exact strings are absent.
+ */
+export function validateNoPatternEncoding(
+  cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
+  dashboardDir = join(SRC_DIR, "components", "dashboard"),
+) {
+  const errors = [];
+  const forbidden = [
+    { pattern: /<pattern[\s>]/, what: "an SVG <pattern> definition" },
+    { pattern: /patternUnits/, what: "a patternUnits attribute" },
+    { pattern: /data-kpi-pattern/, what: "a data-kpi-pattern attribute" },
+    {
+      pattern: /kpiBandPatternId|kpiBandSignature|patternIdFor/,
+      what: "a pattern id helper",
+    },
+    { pattern: /url\(#/, what: "a url(#…) paint reference" },
+    { pattern: /fill-pattern/, what: "a MapLibre fill-pattern" },
+  ];
+
+  for (const entry of readdirSync(dashboardDir)) {
+    if (!/\.(ts|tsx)$/.test(entry)) continue;
+    if (/\.test\.(ts|tsx)$/.test(entry)) continue;
+    const content = readFileSync(join(dashboardDir, entry), "utf8");
+    for (const { pattern, what } of forbidden) {
+      if (pattern.test(content)) {
+        errors.push(`components/dashboard/${entry} must not use ${what}`);
+      }
+    }
+  }
+
+  if (/\.kpi-pattern/.test(cssContent)) {
+    errors.push("index.css must not define '.kpi-pattern*' rules any more");
+  }
+
+  const solidSelectors = [
+    ...KPI_BAND_FILL_CLASSES,
+    ...KPI_BAND_FILL_TOKENS.map((_, index) => `.kpi-radial__slice--band-${index + 1}`),
+    ".kpi-status__lane",
+  ];
+  for (const selector of solidSelectors) {
+    const block = blockForSelector(cssContent, selector);
+    if (block !== null && /background-image\s*:|repeating-linear-gradient|\.kpi-pattern/.test(block)) {
+      errors.push(`'${selector}' must be a flat solid, not a texture`);
+    }
   }
 
   return errors;
@@ -400,31 +468,6 @@ function blockForSelector(cssContent, selector) {
   if (open === -1) return null;
   const close = cssContent.indexOf("}", open);
   return cssContent.slice(open, close + 1);
-}
-
-/**
- * The block whose own selector is exactly `selector` (no selector list). The
- * KPI band fills share one grouped rule for their separator stroke and then
- * declare their own hatch separately, so `blockForSelector` — which returns
- * the first grouped match — cannot read the hatch.
- */
-function ownBlockForSelector(cssContent, selector) {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`(?:^|[}{;\\n])\\s*${escaped}\\s*\\{`, "m");
-  const match = pattern.exec(cssContent);
-  if (!match) return null;
-  const open = cssContent.indexOf("{", match.index);
-  if (open === -1) return null;
-  const close = cssContent.indexOf("}", open);
-  return cssContent.slice(open, close + 1);
-}
-
-function declarationValue(block, property) {
-  if (block === null) return null;
-  const match = block.match(
-    new RegExp(`(?:^|[;{\\s])${property}\\s*:\\s*([^;]+);`),
-  );
-  return match ? match[1].replace(/\s+/g, " ").trim() : null;
 }
 
 export function validateDashboardWrapRules(
@@ -540,6 +583,7 @@ export function assertDesignSpine() {
   const tokenErrors = validateDesignTokens();
   const contrastErrors = validateSemanticContrast();
   const bandErrors = validateKpiBandDistinction();
+  const patternErrors = validateNoPatternEncoding();
   const wrapErrors = validateDashboardWrapRules();
   const pillErrors = validateReportTablePillRules();
   const kpiErrors = validateKpiCardFillRules();
@@ -547,6 +591,7 @@ export function assertDesignSpine() {
     ...tokenErrors,
     ...contrastErrors,
     ...bandErrors,
+    ...patternErrors,
     ...wrapErrors,
     ...pillErrors,
     ...kpiErrors,

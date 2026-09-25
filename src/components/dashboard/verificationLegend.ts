@@ -3,11 +3,13 @@ import type { VerificationOutcomeSplit } from "../../domain/dashboard.types";
 /**
  * Staff-verification legend for the concern-vs-condition card (overhaul §3.4).
  *
- * The strip under the chart is a real legend of the card: one swatch per
- * verification outcome, each with its own non-colour encoding (solid, single
- * hatch, cross hatch) so the split never rests on colour alone. The same three
- * outcomes are appended to the card's visually-hidden data table, so the
- * legend and its accessible table stay in parity.
+ * The strip under the chart is a real legend of the card: one flat solid
+ * swatch per verification outcome, each drawn from the shared ordered
+ * `--kpi-band-<N>` ramp so neighbouring entries clear 3:1 against each other
+ * and the card. The same three outcomes are appended to the card's
+ * visually-hidden data table, and every mark prints its label and count, so
+ * the legend and its accessible table stay in parity and nothing is read by
+ * fill colour alone.
  */
 export type VerificationLegendTone = "verified" | "unable" | "not-determined";
 

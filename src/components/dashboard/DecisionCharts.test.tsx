@@ -16,7 +16,7 @@ vi.mock("../../hooks/useFieldValidation", () => ({
 }));
 
 // jsdom has no layout: give Recharts a fixed canvas so SVG-level
-// assertions (patterns, printed values) actually render.
+// assertions (fills, printed values) actually render.
 vi.stubGlobal(
   "ResizeObserver",
   class {
@@ -199,9 +199,20 @@ describe("InflowComparisonBars", () => {
     // Series meaning never depends on colour alone: names and totals print.
     expect(screen.getByText(/This period \(12\)/)).toBeInTheDocument();
     expect(screen.getByText(/Previous period \(9\)/)).toBeInTheDocument();
+    // Both series are flat band solids: no pattern definition survives, no
+    // mark paints a `url(#…)` reference, and the two legend swatches name the
+    // same bands the bars use.
+    expect(container.querySelectorAll("pattern")).toHaveLength(0);
+    expect(container.querySelector("svg [fill^='url(']")).toBeNull();
+    const inflowSwatches = Array.from(
+      container.querySelectorAll(".decision-chart__swatch"),
+    );
+    expect(inflowSwatches).toHaveLength(2);
     expect(
-      container.querySelector("pattern#pattern-inflow-previous"),
-    ).not.toBeNull();
+      inflowSwatches.map((node) => node.getAttribute("data-series-band")),
+    ).toEqual(["2", "1"]);
+    expect(inflowSwatches[0]).toHaveClass("kpi-band-fill--2");
+    expect(inflowSwatches[1]).toHaveClass("kpi-band-fill--1");
 
     const table = screen.getByRole("table");
     expect(within(table).getByText("2026-09-01")).toBeInTheDocument();
@@ -240,18 +251,14 @@ describe("ConcernVsConditionBars", () => {
     expect(axisText).toContain("Reported: RSSI");
     expect(axisText).toContain("Possible: Rust");
     expect(axisText).not.toContain("Possible: RSSI");
-    // Pattern fills back every series for non-colour separation.
-    for (const id of [
-      "pattern-reported-rssi",
-      "pattern-reported-mosaic",
-      "pattern-possible-mosaic",
-      "pattern-possible-healthy",
-    ]) {
-      expect(container.querySelector(`pattern#${id}`)).not.toBeNull();
-    }
+    // Solid fills back every series. No pattern definition and no `url(#…)`
+    // paint reference may survive; separation rides on the shared four-step
+    // band ramp plus the printed `Reported:` / `Possible:` row labels.
+    expect(container.querySelectorAll("pattern")).toHaveLength(0);
+    expect(container.querySelector("svg [fill^='url(']")).toBeNull();
 
-    // The verification strip is a real legend: one patterned mark per outcome
-    // with its own accessible name, and the same rows in the card's
+    // The verification strip is a real legend: one flat solid mark per
+    // outcome with its own accessible name, and the same rows in the card's
     // visually-hidden data table.
     const strip = screen.getByRole("list", { name: "Staff verification so far" });
     expect(strip).toHaveClass("decision-chart__legend--verification");
@@ -264,14 +271,24 @@ describe("ConcernVsConditionBars", () => {
     expect(
       within(strip).getByRole("img", { name: "Not yet determined: 7" }),
     ).toBeInTheDocument();
-    // Patterns, never colour alone: solid, single hatch, cross hatch.
+    // Solids, never colour alone: three flat band fills in ramp order, each
+    // with its own printed label and count, and no texture anywhere.
+    const outcomeSwatches = Array.from(
+      strip.querySelectorAll(".decision-chart__swatch"),
+    );
+    expect(outcomeSwatches).toHaveLength(3);
     expect(
-      strip.querySelector(".decision-chart__swatch--verified"),
-    ).not.toBeNull();
-    expect(strip.querySelector(".decision-chart__swatch--unable")).not.toBeNull();
-    expect(
-      strip.querySelector(".decision-chart__swatch--not-determined"),
-    ).not.toBeNull();
+      outcomeSwatches.map((node) => node.getAttribute("data-series-band")),
+    ).toEqual(["1", "2", "3"]);
+    expect(outcomeSwatches[0]).toHaveClass("kpi-band-fill--1");
+    expect(outcomeSwatches[1]).toHaveClass("kpi-band-fill--2");
+    expect(outcomeSwatches[2]).toHaveClass("kpi-band-fill--3");
+    expect(outcomeSwatches[0]).toHaveClass("decision-chart__swatch--verified");
+    expect(outcomeSwatches[1]).toHaveClass("decision-chart__swatch--unable");
+    expect(outcomeSwatches[2]).toHaveClass(
+      "decision-chart__swatch--not-determined",
+    );
+    expect(strip.querySelector("pattern")).toBeNull();
     // Each category prints its label and count on one line.
     for (const [label, count] of [
       ["Verified by staff", "3"],
@@ -337,9 +354,20 @@ describe("BarangayValidationBars", () => {
     expect(screen.queryByText(/policy deadline/)).not.toBeInTheDocument();
     const c3Table = screen.getByRole("table");
     expect(within(c3Table).getByText("Past target date")).toBeInTheDocument();
+    // The baseline and the three stacked segments are four flat band solids,
+    // and the legend swatches name the same bands in the same order.
+    expect(container.querySelectorAll("pattern")).toHaveLength(0);
+    expect(container.querySelector("svg [fill^='url(']")).toBeNull();
+    const validationSwatches = Array.from(
+      container.querySelectorAll(".decision-chart__swatch"),
+    );
     expect(
-      container.querySelector("pattern#pattern-barangay-past"),
-    ).not.toBeNull();
+      validationSwatches.map((node) => node.getAttribute("data-series-band")),
+    ).toEqual(["1", "2", "3", "4"]);
+    expect(validationSwatches[0]).toHaveClass("kpi-band-fill--1");
+    expect(validationSwatches[1]).toHaveClass("kpi-band-fill--2");
+    expect(validationSwatches[2]).toHaveClass("kpi-band-fill--3");
+    expect(validationSwatches[3]).toHaveClass("kpi-band-fill--4");
 
     const body = within(c3Table).getAllByRole("row").slice(1);
     expect(body[0]).toHaveTextContent("Balaytigui");
@@ -407,5 +435,49 @@ describe("decision chart copy discipline", () => {
     // while "overdue" itself stays forbidden.
     expect(copy).toContain("Past target date");
     expect(copy.toLowerCase()).not.toContain("overdue");
+  });
+});
+
+describe("dashboard solid fill discipline", () => {
+  it("renders every decision chart without a pattern definition or paint reference", () => {
+    // The decisive gate for the solids change: no matter how many charts mount
+    // together, none of them may define a pattern or paint one through
+    // `url(#…)`. Separation is the shared band ramp plus printed labels only.
+    const { container } = renderWithRouter(
+      <>
+        <InflowComparisonBars
+          analytics={analytics}
+          previousSeries={[
+            { label: "2026-09-01", count: 4 },
+            { label: "2026-09-02", count: 5 },
+          ]}
+          scopeLabel={scopeLabel}
+        />
+        <ConcernVsConditionBars analytics={analytics} scopeLabel={scopeLabel} />
+        <BarangayValidationBars analytics={analytics} scopeLabel={scopeLabel} />
+      </>,
+    );
+
+    expect(container.querySelectorAll("pattern")).toHaveLength(0);
+    expect(container.querySelector("[patternUnits]")).toBeNull();
+    const marks = Array.from(
+      container.querySelectorAll("svg [fill], svg [stroke]"),
+    );
+    expect(marks.length).toBeGreaterThan(0);
+    for (const mark of marks) {
+      expect(mark.getAttribute("fill") ?? "").not.toContain("url(");
+      expect(mark.getAttribute("stroke") ?? "").not.toContain("url(");
+    }
+
+    // Every legend entry survives, and each swatch names a band from the ramp.
+    const swatches = Array.from(
+      container.querySelectorAll(".decision-chart__swatch"),
+    );
+    expect(swatches).toHaveLength(9);
+    for (const swatch of swatches) {
+      const band = swatch.getAttribute("data-series-band");
+      expect(band).toMatch(/^[1-4]$/);
+      expect(swatch).toHaveClass(`kpi-band-fill--${band}`);
+    }
   });
 });

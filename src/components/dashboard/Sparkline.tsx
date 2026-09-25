@@ -1,7 +1,7 @@
 /**
  * Dependency-free sparkline for KPI 1 (overhaul §3.2 + §3.8). One series, so
- * there is no band split to pattern; the distinction standard still applies
- * to its two tones. The shipped `--color-primary-tint` area sat 1.09:1
+ * there is no band split; the distinction standard still applies to its two
+ * flat tones. The shipped `--color-primary-tint` area sat 1.09:1
  * against the card — effectively invisible — so the area now paints in the
  * tuned `--kpi-band-1` fill (3.32:1 against the card) and the series line is
  * drawn over a `--color-surface` halo in `--color-primary-dark`, giving the
