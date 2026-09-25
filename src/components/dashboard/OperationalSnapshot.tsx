@@ -11,7 +11,7 @@ import type {
   DashboardSummary,
   ReportAnalytics,
 } from "../../domain/dashboard.types";
-import { KpiCard, type KpiSegment } from "./KpiCard";
+import { KpiCard } from "./KpiCard";
 import { RadialMeter } from "./RadialMeter";
 import { SegmentedBar } from "./SegmentedBar";
 import { Sparkline } from "./Sparkline";
@@ -21,13 +21,14 @@ import type { MetricSegment } from "./metricSegments";
 
 /**
  * Section A — Current operations (overhaul §3.2). Four compact KPI cards, one
- * per metric, each pairing a large value with a single compact graphic drawn
- * from data the page already loads: a submission sparkline, a waiting-age
- * radial, the field-validation schedule bar and an icon-led queue chip. The
- * two calendar subsets of the field-validation queue (past target date and
- * scheduled ahead) stay labelled segments inside KPI 3, never peer cards.
- * Queue KPIs are marked "now" because they are current-state counts, not
- * period-scoped ones; freshness is stamped once in the page header.
+ * per metric, each reduced to its header row, one large value, one compact
+ * graphic drawn from data the page already loads (a submission sparkline, a
+ * waiting-age radial, the field-validation schedule bar and an icon-led queue
+ * chip) and its Open action. The two calendar subsets of the field-validation
+ * queue (past target date and scheduled ahead) are encoded inside KPI 3's bar
+ * only, never as peer cards or chip lists. Queue KPIs count current state, and
+ * freshness is stamped once in the page header. Every graphic names its own
+ * split, so the card never needs a text legend to stay accessible.
  */
 export function OperationalSnapshot({
   summary,
@@ -53,28 +54,13 @@ export function OperationalSnapshot({
         }))
       : [];
 
-  const scheduleSplit: KpiSegment[] =
+  const scheduleSplit: MetricSegment[] =
     summary.queues.needs_visit === 0
       ? []
       : [
-          {
-            label: "Past target date",
-            count: summary.queues.follow_up_due,
-            href: routes.fieldValidationQueue("follow_up_due"),
-            linkLabel: "Open the Past target date queue",
-          },
-          {
-            label: "Scheduled ahead",
-            count: summary.queues.upcoming,
-            href: routes.fieldValidationQueue("upcoming"),
-            linkLabel: "Open the Scheduled ahead queue",
-          },
-          {
-            label: "Unscheduled",
-            count: unscheduled,
-            href: routes.fieldValidationQueue("needs_visit"),
-            linkLabel: "Open unscheduled validation work",
-          },
+          { label: "Past target date", count: summary.queues.follow_up_due },
+          { label: "Scheduled ahead", count: summary.queues.upcoming },
+          { label: "Unscheduled", count: unscheduled },
         ];
 
   return (
@@ -100,13 +86,8 @@ export function OperationalSnapshot({
           label="Awaiting review"
           value={String(summary.queues.needs_review)}
           icon={<ShieldCheck aria-hidden="true" strokeWidth={1.75} />}
-          pointInTime
           href={routes.reportQueue("needs_review")}
           linkLabel="Open the Awaiting review queue"
-          emptyMessage={
-            summary.queues.needs_review === 0 ? "Nothing awaiting review." : undefined
-          }
-          segments={waitingAge}
         >
           {waitingAge.length > 0 ? (
             <RadialMeter label="Waiting age" segments={waitingAge} />
@@ -121,15 +102,8 @@ export function OperationalSnapshot({
           label="Needing field validation"
           value={String(summary.queues.needs_visit)}
           icon={<ClipboardCheck aria-hidden="true" strokeWidth={1.75} />}
-          pointInTime
           href={routes.fieldValidationQueue("needs_visit")}
           linkLabel="Open the Needing field validation queue"
-          emptyMessage={
-            summary.queues.needs_visit === 0
-              ? "No open field-validation work."
-              : undefined
-          }
-          segments={scheduleSplit}
         >
           {scheduleSplit.length > 0 ? (
             <SegmentedBar
@@ -144,14 +118,8 @@ export function OperationalSnapshot({
           label="Unverified, no active work"
           value={String(summary.queues.unverified_no_active_work)}
           icon={<CircleHelp aria-hidden="true" strokeWidth={1.75} />}
-          pointInTime
           href={routes.reportQueue("unverified_no_active_work")}
           linkLabel="Open the Unverified, no active work queue"
-          emptyMessage={
-            summary.queues.unverified_no_active_work === 0
-              ? "No unverified report is without active work."
-              : undefined
-          }
         >
           {summary.queues.unverified_no_active_work > 0 ? (
             <div className="kpi-chips">

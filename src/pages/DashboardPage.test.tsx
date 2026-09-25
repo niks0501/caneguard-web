@@ -252,13 +252,17 @@ describe("DashboardPage", () => {
     expect(snapshot.queryByText(/▲ Up from/)).not.toBeInTheDocument();
     expect(snapshot.queryByText("Synchronized only")).not.toBeInTheDocument();
 
-    // Queue KPIs are marked current-state in one word instead of repeating a
-    // point-in-time sentence and an "as of" stamp on every card.
-    expect(snapshot.getAllByText("now")).toHaveLength(3);
+    // Queue KPIs carry no point-in-time pill: the card is header, value,
+    // graphic and Open action only.
+    expect(snapshot.queryByText("now")).not.toBeInTheDocument();
 
     // Four compact cards in one band, each with one named graphic and no
     // comparison/hint paragraphs.
     expect(snapshot.getAllByRole("article")).toHaveLength(4);
+    // Nothing but header, value, graphic and Open action: no text paragraph
+    // and no chip list survive inside the band.
+    expect(snapshot.queryAllByRole("paragraph")).toHaveLength(0);
+    expect(snapshot.queryAllByRole("list")).toHaveLength(0);
     expect(
       snapshot.getByRole("img", { name: "Submissions 1–24 Sep 2026" }),
     ).toBeInTheDocument();
@@ -283,35 +287,41 @@ describe("DashboardPage", () => {
       }),
     ).toBeInTheDocument();
 
-    // KPI 3 folds the two calendar subsets in as labelled segments.
-    expect(snapshot.getByText("Past target date")).toBeInTheDocument();
-    expect(snapshot.getByText("Scheduled ahead")).toBeInTheDocument();
-    expect(snapshot.getByText("Unscheduled")).toBeInTheDocument();
-    expect(
-      snapshot.getByRole("link", { name: "Open the Past target date queue" }),
-    ).toHaveAttribute("href", "/map?queue=follow_up_due");
-    expect(
-      snapshot.getByRole("link", { name: "Open the Scheduled ahead queue" }),
-    ).toHaveAttribute("href", "/map?queue=upcoming");
-    expect(
-      snapshot.getByRole("link", { name: "Open unscheduled validation work" }),
-    ).toHaveAttribute("href", "/map?queue=needs_visit");
+    // KPI 3 encodes the two calendar subsets inside its bar: the removed chip
+    // list leaves no text row behind, and the bar's accessible name still
+    // prints every label and count for assistive technology.
+    expect(snapshot.queryByText("Past target date")).not.toBeInTheDocument();
+    expect(snapshot.queryByText("Scheduled ahead")).not.toBeInTheDocument();
+    expect(snapshot.queryByText("Unscheduled")).not.toBeInTheDocument();
     expect(
       snapshot.queryByText("1 unassigned · 2 assigned · 1 in progress"),
     ).not.toBeInTheDocument();
 
+    // Waiting-age rows are gone too: the radial meter's name is the only
+    // remaining text alternative, and it keeps the split.
+    expect(snapshot.queryByText("0–2 days waiting")).not.toBeInTheDocument();
+    expect(snapshot.queryByText("Oldest wait 5 days.")).not.toBeInTheDocument();
+
+    // One Open action per card and nothing else clickable: the deleted segment
+    // lists carried no navigation the cards still need, and every per-card
+    // target survives.
+    expect(snapshot.getAllByRole("link")).toHaveLength(4);
+    expect(
+      snapshot.getByRole("link", { name: "Open the submitted reports register" }),
+    ).toHaveAttribute("href", "/reports");
     expect(
       snapshot.getByRole("link", { name: "Open the Awaiting review queue" }),
     ).toHaveAttribute("href", "/reports?queue=needs_review");
     expect(
       snapshot.getByRole("link", {
+        name: "Open the Needing field validation queue",
+      }),
+    ).toHaveAttribute("href", "/map?queue=needs_visit");
+    expect(
+      snapshot.getByRole("link", {
         name: "Open the Unverified, no active work queue",
       }),
     ).toHaveAttribute("href", "/reports?queue=unverified_no_active_work");
-
-    // Waiting-age ladder without hint copy.
-    expect(snapshot.getByText("0–2 days waiting")).toBeInTheDocument();
-    expect(snapshot.queryByText("Oldest wait 5 days.")).not.toBeInTheDocument();
   });
 
   it("omits comparison copy from KPI cards when submissions fall or hold steady", () => {
@@ -355,7 +365,7 @@ describe("DashboardPage", () => {
     expect(screen.queryByText(/■ No change from 12/)).not.toBeInTheDocument();
   });
 
-  it("states the good outcome when a queue is empty", () => {
+  it("shows no empty-state sentence when a queue is empty", () => {
     vi.mocked(useDashboard).mockReturnValue(
       dashboardResult({
         data: {
@@ -372,10 +382,17 @@ describe("DashboardPage", () => {
     );
     renderDashboard();
 
-    expect(screen.getByText("Nothing awaiting review.")).toBeInTheDocument();
+    // The value "0" and the Open action carry the empty state; the deleted
+    // good-outcome sentences are not relocated anywhere on the cards.
+    const snapshot = within(
+      screen.getByRole("region", { name: "Current operations" }),
+    );
+    expect(snapshot.queryByText("Nothing awaiting review.")).not.toBeInTheDocument();
     expect(
-      screen.getByText("No open field-validation work."),
-    ).toBeInTheDocument();
+      snapshot.queryByText("No open field-validation work."),
+    ).not.toBeInTheDocument();
+    expect(snapshot.queryByText("No unverified report is without active work.")).not.toBeInTheDocument();
+    expect(snapshot.getAllByText("0")).toHaveLength(3);
   });
 
   it("keeps long queue identifiers inside the KPI grid without sideways push", () => {
@@ -398,15 +415,16 @@ describe("DashboardPage", () => {
     const recent = within(screen.getByRole("region", { name: "Recent reports" }));
     expect(recent.getByText("Reported concern")).toBeInTheDocument();
     // The two badge headers are plain again: no capsule spans, and the
-    // wording is the pre-capsule "Possible Condition (AI)".
+    // Possible Condition header drops the retired "(AI)" suffix while the
+    // cell contract stays untouched.
     const headers = within(recent.getByRole("table"))
       .getAllByRole("columnheader")
       .map((header) => header.textContent);
-    expect(headers).toContain("Possible Condition (AI)");
+    expect(headers).toContain("Possible Condition");
     expect(headers).toContain("Work status");
     // No capsule wrapper: the header text sits directly in the <th>, which
     // carries the same content-sized no-wrap contract as its body cells.
-    const conditionHeader = recent.getByText("Possible Condition (AI)");
+    const conditionHeader = recent.getByText("Possible Condition");
     const statusHeader = recent.getByText("Work status");
     expect(conditionHeader.tagName).toBe("TH");
     expect(conditionHeader).toHaveClass("dashboard-report-table__cell-condition");
@@ -448,7 +466,7 @@ describe("DashboardPage", () => {
       .getAllByRole("columnheader")
       .map((header) => header.textContent);
     const concernColumn = headers.indexOf("Reported concern");
-    const conditionColumn = headers.indexOf("Possible Condition (AI)");
+    const conditionColumn = headers.indexOf("Possible Condition");
     expect(concernColumn).toBeGreaterThan(-1);
     expect(conditionColumn).toBeGreaterThan(-1);
 
@@ -456,7 +474,7 @@ describe("DashboardPage", () => {
     // Reported concern is the reporter's own words.
     expect(cells[concernColumn]).toHaveTextContent("RSSI");
     expect(cells[concernColumn]).not.toHaveTextContent("Mosaic");
-    // Possible Condition (AI) is the model's classification, never merged in.
+    // Possible Condition is the model's classification, never merged in.
     expect(cells[conditionColumn]).toHaveTextContent("Mosaic");
     expect(cells[conditionColumn]).not.toHaveTextContent("RSSI");
   });
@@ -536,9 +554,11 @@ describe("DashboardPage", () => {
     for (const word of ANALYTICS_FORBIDDEN_WORDS) {
       expect(copy.toLowerCase()).not.toContain(word.toLowerCase());
     }
-    // The one named exception: past target date is measured against the
-    // recorded target visit date, while "overdue" itself stays forbidden.
-    expect(copy).toContain("Past target date");
+    // The one named exception ("Past target date", measured against the
+    // recorded target visit date) now lives only in the lazily mounted
+    // decision charts, where DecisionCharts.test.tsx asserts it; "overdue"
+    // itself stays forbidden everywhere.
+    expect(copy.toLowerCase()).not.toContain("overdue");
   });
 
   it("mounts the three decision charts and the map once period data arrives", async () => {

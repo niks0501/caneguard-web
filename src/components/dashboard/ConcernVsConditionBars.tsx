@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
+import { VerificationLegend } from "./VerificationLegend";
 import { dashboardChartCopy } from "./chartCopy";
 import { chartTheme, conditionColor, reportedConcernColor } from "./chartTheme";
 import {
@@ -18,6 +19,7 @@ import {
   POSSIBLE_CONDITIONS,
   reportedConcernLabel,
 } from "./reportedConcern";
+import { VERIFICATION_LEGEND } from "./verificationLegend";
 
 interface ConcernRow {
   key: string;
@@ -35,7 +37,9 @@ interface ConcernRow {
  * charts. Vocabularies are never merged — every row is prefixed with its
  * vocabulary, RSSI appears only in the reported series, and the AI series
  * enumerates the shipped model's declared list. A compact
- * staff-verification strip closes the card.
+ * staff-verification strip closes the card, printed as a legend whose swatch
+ * patterns mirror the chart's own mark grammar (solid / single hatch /
+ * cross hatch), with the same three rows in the card's accessible table.
  */
 export function ConcernVsConditionBars({
   analytics,
@@ -79,6 +83,10 @@ export function ConcernVsConditionBars({
       tableCaption={`${copy.title}. ${scopeLabel}`}
       tableHead={["Series", "Count"]}
       tableRows={rows.map((row) => [row.rowLabel, String(row.count)])}
+      tableFootRows={VERIFICATION_LEGEND.map((entry) => [
+        `Staff verification: ${entry.label}`,
+        String(verification[entry.key]),
+      ])}
       span="col-6"
     >
       <div className="decision-chart__canvas decision-chart__canvas--md">
@@ -146,20 +154,10 @@ export function ConcernVsConditionBars({
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <ul className="decision-chart__strip" aria-label={copy.verificationStrip}>
-        <li>
-          <span>Verified by staff</span>
-          <strong>{verification.verified}</strong>
-        </li>
-        <li>
-          <span>Unable to verify</span>
-          <strong>{verification.unable_to_verify}</strong>
-        </li>
-        <li>
-          <span>Not yet determined</span>
-          <strong>{verification.not_determined}</strong>
-        </li>
-      </ul>
+      <VerificationLegend
+        outcome={verification}
+        label={copy.verificationStrip}
+      />
     </DecisionChartFrame>
   );
 }

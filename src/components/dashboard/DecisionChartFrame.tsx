@@ -6,7 +6,9 @@ import type { ReactNode } from "react";
  * the page names it once), the chart as role="img" with a headline
  * aria-label, and a visually-hidden data table as the accessible
  * equivalent. Long descriptions and "what to do" takeaways are gone: the
- * marks, printed values and legends carry the reading.
+ * marks, printed values and legends carry the reading. `tableFootRows`
+ * appends rows for a legend the card prints beside the chart, so the
+ * accessible table keeps parity with every number on the card.
  */
 export function DecisionChartFrame({
   titleId,
@@ -18,6 +20,7 @@ export function DecisionChartFrame({
   tableCaption,
   tableHead,
   tableRows,
+  tableFootRows = [],
   span,
   children,
 }: {
@@ -30,6 +33,8 @@ export function DecisionChartFrame({
   tableCaption: string;
   tableHead: string[];
   tableRows: string[][];
+  /** Extra table rows for a legend the card prints outside the chart. */
+  tableFootRows?: string[][];
   span: "col-6" | "col-12";
   children: ReactNode;
 }) {
@@ -63,6 +68,13 @@ export function DecisionChartFrame({
               <tr key={`${row[0]}-${index}`}>
                 {row.map((cell, cellIndex) => (
                   <td key={`${cell}-${cellIndex}`}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+            {tableFootRows.map((row, index) => (
+              <tr key={`${row[0]}-foot-${index}`}>
+                {row.map((cell, cellIndex) => (
+                  <td key={`${cell}-foot-${cellIndex}`}>{cell}</td>
                 ))}
               </tr>
             ))}

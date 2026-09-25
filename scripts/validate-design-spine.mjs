@@ -192,7 +192,6 @@ const DASHBOARD_TRACK_SELECTORS = [
   ".kpi-card",
   ".kpi-card__label",
   ".kpi-card__value",
-  ".kpi-card__segment-label",
   ".decision-chart-card",
   ".decision-chart-card__title",
   ".decision-chart-card__hint",
@@ -205,7 +204,6 @@ const DASHBOARD_TRACK_SELECTORS = [
 const DASHBOARD_WRAP_SELECTORS = [
   ".kpi-card__label",
   ".kpi-card__value",
-  ".kpi-card__segment-label",
   ".decision-chart-card__title",
   ".decision-chart-card__hint",
   ".dashboard-report-table th",
