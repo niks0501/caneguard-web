@@ -185,7 +185,6 @@ export function DashboardPage() {
               <OperationalSnapshot
                 summary={summary}
                 analytics={rangeTooLong ? undefined : analytics.data}
-                analyticsPending={rangeTooLong ? false : analytics.isPending}
                 analyticsFailed={rangeTooLong ? true : analytics.isError}
               />
             )}

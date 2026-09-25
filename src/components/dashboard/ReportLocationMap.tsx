@@ -100,6 +100,10 @@ export function ReportLocationMap({
     },
   }));
   const maxSubmitted = Math.max(1, ...circles.map((circle) => circle.properties.submitted));
+  // Strictly above 1: when every barangay holds a single report the interpolate
+  // stops would otherwise repeat 1 and the whole circle layer is rejected as an
+  // invalid expression ("strictly ascending order"), leaving a blank canvas.
+  const maxRadiusStop = Math.max(2, Math.sqrt(maxSubmitted));
 
   const gpsFeatures = (gps.data?.features ?? []).map((feature) => ({
     type: "Feature" as const,
@@ -132,7 +136,11 @@ export function ReportLocationMap({
             {copy.gpsLayer}
           </button>
         </div>
-        <div ref={frameRef} className="decision-map" aria-label="Map of field-report locations">
+        <div
+          ref={frameRef}
+          className="decision-map"
+          aria-label={`Map of field-report locations: ${layer === "barangay" ? copy.barangayLayer : copy.gpsLayer}`}
+        >
           {!inView ? (
             <Skeleton label="Map loads when scrolled into view" />
           ) : !mapTilerStyle ? (
@@ -150,8 +158,13 @@ export function ReportLocationMap({
               attributionControl={{ compact: true }}
             >
               <NavigationControl position="top-right" showCompass={false} />
+              {/* Each layer swap remounts its own <Source>: a mounted
+                  react-map-gl Source pins its id and throws "source id
+                  changed" when the id prop changes, which blanked the map
+                  canvas on the GPS toggle. */}
               {layer === "barangay" ? (
                 <Source
+                  key="dashboard-barangay-circles"
                   id="dashboard-barangay-circles"
                   type="geojson"
                   data={{ type: "FeatureCollection", features: circles }}
@@ -168,7 +181,7 @@ export function ReportLocationMap({
                         ["sqrt", ["get", "submitted"]],
                         1,
                         10,
-                        Math.sqrt(maxSubmitted),
+                        maxRadiusStop,
                         30,
                       ],
                       "circle-stroke-color": chartTheme.surface || "#ffffff",
@@ -195,6 +208,7 @@ export function ReportLocationMap({
                 </Source>
               ) : (
                 <Source
+                  key="dashboard-gps-points"
                   id="dashboard-gps-points"
                   type="geojson"
                   data={{ type: "FeatureCollection", features: gpsFeatures }}
@@ -218,6 +232,11 @@ export function ReportLocationMap({
         {layer === "gps" && inView && gps.isPending ? (
           <p className="decision-chart-card__hint" role="status">
             Loading GPS points…
+          </p>
+        ) : null}
+        {layer === "gps" && inView && gps.isError ? (
+          <p className="decision-chart-card__hint" role="status">
+            GPS points could not be loaded.
           </p>
         ) : null}
         {layer === "gps" && inView && gps.data ? (

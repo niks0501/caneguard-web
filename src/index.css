@@ -6770,7 +6770,7 @@ body {
   min-width: 0;
   max-width: 100%;
   height: 100%;
-  padding: var(--card-padding);
+  padding: var(--space-3) var(--space-4);
   overflow-wrap: anywhere;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -6825,24 +6825,16 @@ body {
   font-weight: 700;
   line-height: 1;
 }
-.kpi-card__comparison {
-  margin: 0;
+.kpi-card__graphic {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   min-width: 0;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  color: var(--color-secondary-text);
-  font-size: var(--text-body-sm);
-}
-.kpi-card__hint {
-  margin: 0;
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  color: var(--color-muted);
-  font-size: var(--text-body-sm);
 }
 .kpi-card__segments {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-1);
   min-width: 0;
   max-width: 100%;
@@ -6851,32 +6843,45 @@ body {
   list-style: none;
 }
 .kpi-card__segment {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   min-width: 0;
   max-width: 100%;
-  padding: var(--space-1) var(--space-2);
+  padding: 2px var(--space-2);
   color: var(--color-text);
+  font-size: var(--text-body-sm);
   text-decoration: none;
+  background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
 }
 .kpi-card__segment:hover {
-  background: var(--color-surface-soft);
+  background: var(--color-surface-tint);
 }
 .kpi-card__segment:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
-.kpi-card__segment-icon {
-  display: flex;
-  align-items: center;
-  color: var(--color-primary-dark);
+/* Swatches repeat the bar/meter tone order, so each chip is visually tied to
+   its own slice while the printed label and count carry the meaning. */
+.kpi-card__segment-swatch {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
 }
-.kpi-card__segment-icon svg {
-  width: 18px;
-  height: 18px;
+.kpi-card__segment-swatch--0 {
+  background: var(--color-primary-dark);
+}
+.kpi-card__segment-swatch--1 {
+  background: var(--color-primary);
+}
+.kpi-card__segment-swatch--2 {
+  background: var(--color-primary-light);
+}
+.kpi-card__segment-swatch--3 {
+  background: var(--color-muted);
 }
 .kpi-card__segment-label {
   flex: 1 1 auto;
@@ -6993,11 +6998,11 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
 }
-.age-ladder {
-  display: grid;
-  gap: var(--space-1);
+.kpi-bar {
+  min-width: 0;
+  max-width: 100%;
 }
-.age-ladder__bar {
+.kpi-bar__track {
   display: flex;
   gap: 2px;
   height: 12px;
@@ -7005,47 +7010,99 @@ body {
   background: var(--color-surface-soft);
   border-radius: var(--radius-pill);
 }
-.age-ladder__segment {
+.kpi-bar__segment {
   min-width: 4px;
 }
-.age-ladder__segment--0 {
+.kpi-bar__segment--0 {
   background: var(--color-primary-dark);
 }
-.age-ladder__segment--1 {
+.kpi-bar__segment--1 {
   background: var(--color-primary);
 }
-.age-ladder__segment--2 {
+.kpi-bar__segment--2 {
   background: var(--color-primary-light);
 }
-.age-ladder__segment--3 {
+.kpi-bar__segment--3 {
   background: var(--color-muted);
 }
-.age-ladder__legend {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.age-ladder__legend li {
+.kpi-radial {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
-  color: var(--color-secondary-text);
-  font-size: var(--text-body-sm);
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
-.age-ladder__legend strong {
-  color: var(--color-text);
+.kpi-radial__chart {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+}
+.kpi-radial__track {
+  fill: none;
+  stroke: var(--color-surface-tint);
+  stroke-width: 9;
+}
+.kpi-radial__slice {
+  fill: none;
+  stroke-width: 9;
+}
+.kpi-radial__slice--0 {
+  stroke: var(--color-primary-dark);
+}
+.kpi-radial__slice--1 {
+  stroke: var(--color-primary);
+}
+.kpi-radial__slice--2 {
+  stroke: var(--color-primary-light);
+}
+.kpi-radial__slice--3 {
+  stroke: var(--color-muted);
+}
+.kpi-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+}
+.kpi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-primary-dark);
+  font-size: var(--text-body-sm);
   font-weight: 600;
+  background: var(--color-primary-tint);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+.kpi-chip__icon {
+  display: flex;
+  align-items: center;
+}
+.kpi-chip__icon svg {
+  width: 16px;
+  height: 16px;
+}
+.kpi-chip__text {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .kpi-sparkline {
   width: 100%;
   height: var(--chart-sparkline-height);
 }
+.kpi-sparkline__area {
+  fill: var(--color-primary-tint);
+  stroke: none;
+}
 .kpi-sparkline__line {
   fill: none;
   stroke: var(--color-primary);
   stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 @media (max-width: 1279px) {
   .dashboard-grid > .col-3 {
@@ -7115,15 +7172,18 @@ body {
 .decision-chart__canvas--lg {
   height: var(--chart-height-lg);
 }
-/* Dashboard report table: fixed colgroup tracks, never a width floor above
-   100%. Cells wrap long references and barangay names instead of pushing the
-   card, sections and page sideways. Below 680px the tracks keep a readable
-   floor and the card scrolls horizontally instead of squashing to noise. */
+/* Dashboard report table: `<colgroup>` sets the preferred tracks and no column
+   carries a width floor above 100%, so a long reference or barangay name wraps
+   inside its cell instead of pushing the card, sections and page sideways.
+   The two badge columns are content-sized instead: `min-width: max-content`
+   plus no-wrap keeps every real pill on one line (longest: "No supported
+   disease detected", "Needs field validation"), and when the sum of those
+   floors outgrows the card the `.table-scroll` wrapper scrolls sideways. */
 .dashboard-report-table {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
 }
 .dashboard-report-table th,
 .dashboard-report-table td {
@@ -7141,16 +7201,16 @@ body {
   width: 14%;
 }
 .dashboard-report-table__col-condition {
-  width: 17%;
+  width: 18%;
 }
 .dashboard-report-table__col-barangay {
-  width: 13%;
+  width: 12%;
 }
 .dashboard-report-table__col-submitted {
-  width: 16%;
+  width: 15%;
 }
 .dashboard-report-table__col-status {
-  width: 14%;
+  width: 15%;
 }
 .dashboard-report-table__col-action {
   width: 8%;
@@ -7165,23 +7225,11 @@ body {
   align-items: center;
   gap: var(--space-1);
 }
-.table-header-capsule {
-  display: inline-flex;
-  align-items: center;
+/* The badge columns never wrap and never shrink below their longest pill. */
+.dashboard-report-table__cell-condition,
+.dashboard-report-table__cell-status {
+  min-width: max-content;
   white-space: nowrap;
-  font-size: var(--text-machine);
-  font-weight: 600;
-  padding: 2px var(--space-2);
-  color: var(--color-primary-dark);
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  letter-spacing: 0.01em;
-}
-@media (max-width: 860px) {
-  .dashboard-report-table {
-    min-width: 780px;
-  }
 }
 .decision-chart__legend {
   display: flex;

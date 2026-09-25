@@ -192,8 +192,6 @@ const DASHBOARD_TRACK_SELECTORS = [
   ".kpi-card",
   ".kpi-card__label",
   ".kpi-card__value",
-  ".kpi-card__comparison",
-  ".kpi-card__hint",
   ".kpi-card__segment-label",
   ".decision-chart-card",
   ".decision-chart-card__title",
@@ -207,8 +205,6 @@ const DASHBOARD_TRACK_SELECTORS = [
 const DASHBOARD_WRAP_SELECTORS = [
   ".kpi-card__label",
   ".kpi-card__value",
-  ".kpi-card__comparison",
-  ".kpi-card__hint",
   ".kpi-card__segment-label",
   ".decision-chart-card__title",
   ".decision-chart-card__hint",
@@ -262,11 +258,59 @@ export function validateDashboardWrapRules(
   return errors;
 }
 
+/**
+ * Report-table pill guard (dashboard P0A follow-up).
+ *
+ * The Possible Condition and Work status columns hold badges, not prose, so
+ * their cells must size to their content and never wrap: the longest real
+ * strings ("No supported disease detected", "Needs field validation") have to
+ * stay on one line, with the card's horizontal scroll as the small-screen
+ * escape. A missing rule here silently squashes a real badge onto two lines.
+ */
+export const REPORT_TABLE_PILL_SELECTORS = [
+  ".dashboard-report-table__cell-condition",
+  ".dashboard-report-table__cell-status",
+];
+
+export function validateReportTablePillRules(
+  cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
+) {
+  const errors = [];
+  for (const selector of REPORT_TABLE_PILL_SELECTORS) {
+    const block = blockForSelector(cssContent, selector);
+    if (block === null) {
+      errors.push(`Missing report-table pill rule for '${selector}'`);
+      continue;
+    }
+    if (!/white-space\s*:\s*nowrap/.test(block)) {
+      errors.push(`Pill column '${selector}' must set 'white-space: nowrap'`);
+    }
+    if (!/min-width\s*:\s*max-content/.test(block)) {
+      errors.push(
+        `Pill column '${selector}' must set 'min-width: max-content'`,
+      );
+    }
+  }
+  const scrollBlock = blockForSelector(cssContent, ".table-scroll");
+  if (scrollBlock === null || !/overflow-x\s*:\s*auto/.test(scrollBlock)) {
+    errors.push(
+      "'.table-scroll' must keep 'overflow-x: auto' as the small-screen escape",
+    );
+  }
+  return errors;
+}
+
 export function assertDesignSpine() {
   const tokenErrors = validateDesignTokens();
   const contrastErrors = validateSemanticContrast();
   const wrapErrors = validateDashboardWrapRules();
-  const allErrors = [...tokenErrors, ...contrastErrors, ...wrapErrors];
+  const pillErrors = validateReportTablePillRules();
+  const allErrors = [
+    ...tokenErrors,
+    ...contrastErrors,
+    ...wrapErrors,
+    ...pillErrors,
+  ];
 
   if (allErrors.length > 0) {
     throw new Error(

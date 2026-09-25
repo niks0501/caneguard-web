@@ -4,6 +4,7 @@ import {
   contrastRatio,
   parseTokensCss,
   validateDashboardWrapRules,
+  validateReportTablePillRules,
   validateSemanticContrast,
 } from "./validate-design-spine.mjs";
 
@@ -53,8 +54,6 @@ test("validateDashboardWrapRules requires min-width 0, max-width 100% and wrappi
     .kpi-card { min-width: 0; max-width: 100%; }
     .kpi-card__label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .kpi-card__value { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-    .kpi-card__comparison { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-    .kpi-card__hint { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .kpi-card__segment-label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .decision-chart-card { min-width: 0; max-width: 100%; }
     .decision-chart-card__title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
@@ -70,4 +69,25 @@ test("validateDashboardWrapRules requires min-width 0, max-width 100% and wrappi
   assert.ok(errors.length > 0);
   assert.ok(errors.some((error) => /kpi-card.*min-width/.test(error)));
   assert.ok(errors.some((error) => /kpi-card__value.*max-width/.test(error)));
+});
+
+test("validateReportTablePillRules requires content-sized no-wrap pill columns", () => {
+  const passing = `
+    .table-scroll { width: 100%; overflow-x: auto; }
+    .dashboard-report-table__cell-condition { min-width: max-content; white-space: nowrap; }
+    .dashboard-report-table__cell-status { min-width: max-content; white-space: nowrap; }
+  `;
+  assert.equal(validateReportTablePillRules(passing).length, 0);
+
+  // The pre-fix shape: wrapping cells and no small-screen scroll escape.
+  const failing = `
+    .table-scroll { width: 100%; }
+    .dashboard-report-table__cell-condition { overflow-wrap: anywhere; }
+    .dashboard-report-table__cell-status { overflow-wrap: anywhere; }
+  `;
+  const errors = validateReportTablePillRules(failing);
+  assert.ok(errors.length > 0);
+  assert.ok(errors.some((error) => /cell-condition.*nowrap/.test(error)));
+  assert.ok(errors.some((error) => /cell-status.*max-content/.test(error)));
+  assert.ok(errors.some((error) => /table-scroll.*overflow-x/.test(error)));
 });
