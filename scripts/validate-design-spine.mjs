@@ -175,6 +175,182 @@ export function validateSemanticContrast(tokensContent = readFileSync(TOKENS_PAT
 }
 
 /**
+ * KPI band distinction guard (overhaul §3.8 + risk 7).
+ *
+ * The compact KPI graphics split one whole into up to four ordered bands (the
+ * waiting-age radial and the field-validation schedule bar). The plan measured
+ * the shipped brand ramp's neighbouring fills at 1.08–1.40:1, so colour cannot
+ * be the separator. These rules keep the replacement honest: the four
+ * `--kpi-band-<N>` fills must each clear 3:1 against `--color-surface`, every
+ * neighbouring pair must clear 3:1 too — including the radial ring's 4-1 join,
+ * because a ring's last band touches its first — each band's bar fill must be a
+ * distinct hatch rather than one hatch at four opacities, the separator strokes
+ * must stay token-driven, and no flat colour may return to a radial slice.
+ */
+export const KPI_BAND_FILL_TOKENS = [
+  "--kpi-band-1",
+  "--kpi-band-2",
+  "--kpi-band-3",
+  "--kpi-band-4",
+];
+export const KPI_BAND_ADJACENT_PAIRS = [
+  [1, 2],
+  [2, 3],
+  [3, 4],
+  [4, 1],
+];
+export const KPI_BAND_MIN_CONTRAST = 3;
+
+/** Sparkline tones: the area fill against the series line over it. */
+export const SPARKLINE_ADJACENT_TOKENS = ["--kpi-band-1", "--color-primary-dark"];
+
+export function validateKpiBandDistinction(
+  tokensContent = readFileSync(TOKENS_PATH, "utf8"),
+  cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
+) {
+  const errors = [];
+  const tokens = parseTokensCss(tokensContent);
+  const surface = tokens["--color-surface"];
+
+  if (!surface) {
+    errors.push("Missing '--color-surface' for the KPI band contrast check");
+  }
+
+  for (const token of KPI_BAND_FILL_TOKENS) {
+    const value = tokens[token];
+    if (!value) {
+      errors.push(`Missing KPI band token '${token}'`);
+      continue;
+    }
+    if (!surface) continue;
+    const ratio = contrastRatio(value, surface);
+    if (ratio < KPI_BAND_MIN_CONTRAST) {
+      errors.push(
+        `KPI band '${token}' (${value}) on '--color-surface' (${surface}) is ${ratio.toFixed(2)}:1 (required >= ${KPI_BAND_MIN_CONTRAST}:1)`,
+      );
+    }
+  }
+
+  for (const [a, b] of KPI_BAND_ADJACENT_PAIRS) {
+    const va = tokens[`--kpi-band-${a}`];
+    const vb = tokens[`--kpi-band-${b}`];
+    if (!va || !vb) continue;
+    const ratio = contrastRatio(va, vb);
+    if (ratio < KPI_BAND_MIN_CONTRAST) {
+      errors.push(
+        `KPI bands ${a} and ${b} are adjacent (or join across the ring): ${ratio.toFixed(2)}:1 (required >= ${KPI_BAND_MIN_CONTRAST}:1)`,
+      );
+    }
+  }
+
+  const [sparkFill, sparkLine] = SPARKLINE_ADJACENT_TOKENS;
+  if (tokens[sparkFill] && tokens[sparkLine]) {
+    const ratio = contrastRatio(tokens[sparkFill], tokens[sparkLine]);
+    if (ratio < KPI_BAND_MIN_CONTRAST) {
+      errors.push(
+        `Sparkline area '${sparkFill}' and line '${sparkLine}' are ${ratio.toFixed(2)}:1 (required >= ${KPI_BAND_MIN_CONTRAST}:1)`,
+      );
+    }
+  }
+
+  // The bar: a real gutter plus a --color-surface stroke, and one distinct
+  // hatch per band. One hatch reused four times would be colour-only again.
+  const track = blockForSelector(cssContent, ".kpi-bar__track");
+  if (track === null || !/gap\s*:\s*var\(--kpi-band-gap\)/.test(track)) {
+    errors.push(
+      "'.kpi-bar__track' must set 'gap: var(--kpi-band-gap)' between bands",
+    );
+  }
+
+  const bandStroke = blockForSelector(cssContent, ".kpi-band-fill--1");
+  if (bandStroke === null || !/border[^;]*var\(--color-surface\)/.test(bandStroke)) {
+    errors.push(
+      "KPI bar bands must carry a '--color-surface' separator stroke",
+    );
+  }
+
+  const hatches = KPI_BAND_FILL_TOKENS.map((_, index) =>
+    declarationValue(
+      ownBlockForSelector(cssContent, `.kpi-band-fill--${index + 1}`),
+      "background-image",
+    ),
+  );
+  hatches.forEach((hatch, index) => {
+    if (!hatch) {
+      errors.push(
+        `Missing hatch 'background-image' on '.kpi-band-fill--${index + 1}'`,
+      );
+    }
+  });
+  const distinctHatches = new Set(hatches.filter(Boolean));
+  if (distinctHatches.size !== KPI_BAND_FILL_TOKENS.length) {
+    errors.push(
+      `KPI bar hatches must be distinct per band, found ${distinctHatches.size} of ${KPI_BAND_FILL_TOKENS.length}`,
+    );
+  }
+
+  // The radial: a --color-surface separator ring under every band, pattern
+  // paint on the band, and no flat colour left on a slice.
+  const separator = blockForSelector(cssContent, ".kpi-radial__separator");
+  if (
+    separator === null ||
+    !/stroke\s*:\s*var\(--color-surface\)/.test(separator)
+  ) {
+    errors.push(
+      "'.kpi-radial__separator' must draw a '--color-surface' separator ring",
+    );
+  }
+  const slice = blockForSelector(cssContent, ".kpi-radial__slice");
+  if (slice === null) {
+    errors.push("Missing '.kpi-radial__slice' rule");
+  } else if (/(?:^|[;{\s])stroke\s*:/.test(slice)) {
+    errors.push(
+      "'.kpi-radial__slice' must not paint a flat colour; its paint is the band pattern",
+    );
+  }
+  const patternMark = blockForSelector(cssContent, ".kpi-pattern__mark");
+  if (
+    patternMark === null ||
+    !/stroke\s*:\s*var\(--color-surface\)/.test(patternMark)
+  ) {
+    errors.push(
+      "KPI band patterns must draw their hatch in '--color-surface'",
+    );
+  }
+  KPI_BAND_FILL_TOKENS.forEach((token, index) => {
+    const block = blockForSelector(
+      cssContent,
+      `.kpi-pattern--${index + 1} .kpi-pattern__base`,
+    );
+    if (block === null || !block.includes(`var(${token})`)) {
+      errors.push(
+        `KPI pattern ${index + 1} must fill with 'var(${token})'`,
+      );
+    }
+  });
+
+  // The sibling KPI graphics: the sparkline's tone pair is separated by a
+  // surface halo, and the status mark/lane pair is no longer two near-white
+  // fills.
+  const halo = blockForSelector(cssContent, ".kpi-sparkline__halo");
+  if (halo === null || !/stroke\s*:\s*var\(--color-surface\)/.test(halo)) {
+    errors.push(
+      "'.kpi-sparkline__halo' must separate the sparkline line from its area",
+    );
+  }
+  const statusLane = blockForSelector(cssContent, ".kpi-status__lane");
+  if (statusLane === null || !/background-image\s*:/.test(statusLane)) {
+    errors.push("'.kpi-status__lane' must carry a hatch, not a flat near-white fill");
+  }
+  const statusMark = blockForSelector(cssContent, ".kpi-status__mark");
+  if (statusMark === null || !/var\(--color-warning\)/.test(statusMark)) {
+    errors.push("'.kpi-status__mark' must ring its icon in '--color-warning'");
+  }
+
+  return errors;
+}
+
+/**
  * Layout-track guard (P0 grid rhythm + §13.2 long identifiers).
  *
  * The dashboard grid, its cards and the report table expose unbreakable
@@ -224,6 +400,31 @@ function blockForSelector(cssContent, selector) {
   if (open === -1) return null;
   const close = cssContent.indexOf("}", open);
   return cssContent.slice(open, close + 1);
+}
+
+/**
+ * The block whose own selector is exactly `selector` (no selector list). The
+ * KPI band fills share one grouped rule for their separator stroke and then
+ * declare their own hatch separately, so `blockForSelector` — which returns
+ * the first grouped match — cannot read the hatch.
+ */
+function ownBlockForSelector(cssContent, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(?:^|[}{;\\n])\\s*${escaped}\\s*\\{`, "m");
+  const match = pattern.exec(cssContent);
+  if (!match) return null;
+  const open = cssContent.indexOf("{", match.index);
+  if (open === -1) return null;
+  const close = cssContent.indexOf("}", open);
+  return cssContent.slice(open, close + 1);
+}
+
+function declarationValue(block, property) {
+  if (block === null) return null;
+  const match = block.match(
+    new RegExp(`(?:^|[;{\\s])${property}\\s*:\\s*([^;]+);`),
+  );
+  return match ? match[1].replace(/\s+/g, " ").trim() : null;
 }
 
 export function validateDashboardWrapRules(
@@ -338,12 +539,14 @@ export function validateKpiCardFillRules(
 export function assertDesignSpine() {
   const tokenErrors = validateDesignTokens();
   const contrastErrors = validateSemanticContrast();
+  const bandErrors = validateKpiBandDistinction();
   const wrapErrors = validateDashboardWrapRules();
   const pillErrors = validateReportTablePillRules();
   const kpiErrors = validateKpiCardFillRules();
   const allErrors = [
     ...tokenErrors,
     ...contrastErrors,
+    ...bandErrors,
     ...wrapErrors,
     ...pillErrors,
     ...kpiErrors,

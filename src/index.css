@@ -6937,26 +6937,62 @@ body {
 .kpi-bar__track {
   display: flex;
   flex: 1 1 auto;
-  gap: 2px;
+  gap: var(--kpi-band-gap);
   min-height: 12px;
   overflow: hidden;
   background: var(--color-surface-soft);
   border-radius: var(--radius-pill);
 }
+/* Each band is filled by its --kpi-band-<N> token AND its own hatch, so the
+   split survives without colour (§3.8, risk 7). The four hatches are
+   different shapes, not one shape at four opacities; every band also carries
+   the --color-surface separator stroke, kept in each band's own rule so no
+   grouped block can shadow a band's hatch. */
+.kpi-band-fill--1 {
+  background-color: var(--kpi-band-1);
+  background-image: radial-gradient(var(--color-surface) 1px, transparent 1.1px);
+  background-size: 8px 8px;
+  border: var(--kpi-band-stroke) solid var(--color-surface);
+}
+.kpi-band-fill--2 {
+  background-color: var(--kpi-band-2);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--color-surface) 0 1.5px,
+    transparent 1.5px 8px
+  );
+  border: var(--kpi-band-stroke) solid var(--color-surface);
+}
+.kpi-band-fill--3 {
+  background-color: var(--kpi-band-3);
+  background-image: repeating-linear-gradient(
+      45deg,
+      var(--color-surface) 0 1.5px,
+      transparent 1.5px 8px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      var(--color-surface) 0 1.5px,
+      transparent 1.5px 8px
+    );
+  border: var(--kpi-band-stroke) solid var(--color-surface);
+}
+.kpi-band-fill--4 {
+  background-color: var(--kpi-band-4);
+  background-image: repeating-linear-gradient(
+      90deg,
+      var(--color-surface) 0 1.5px,
+      transparent 1.5px 8px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      var(--color-surface) 0 1.5px,
+      transparent 1.5px 8px
+    );
+  border: var(--kpi-band-stroke) solid var(--color-surface);
+}
 .kpi-bar__segment {
   min-width: 4px;
-}
-.kpi-bar__segment--0 {
-  background: var(--color-primary-dark);
-}
-.kpi-bar__segment--1 {
-  background: var(--color-primary);
-}
-.kpi-bar__segment--2 {
-  background: var(--color-primary-light);
-}
-.kpi-bar__segment--3 {
-  background: var(--color-muted);
 }
 .kpi-radial {
   display: flex;
@@ -6977,21 +7013,37 @@ body {
   stroke: var(--color-surface-tint);
   stroke-width: 9;
 }
+/* A --color-surface ring drawn under each band, 2px wider on every side: the
+   separator stroke §3.8 requires between neighbouring bands. */
+.kpi-radial__separator {
+  fill: none;
+  stroke: var(--color-surface);
+  stroke-width: calc(9px + 2 * var(--kpi-band-separator));
+  stroke-linecap: butt;
+}
 .kpi-radial__slice {
   fill: none;
   stroke-width: 9;
+  stroke-linecap: butt;
 }
-.kpi-radial__slice--0 {
-  stroke: var(--color-primary-dark);
+.kpi-pattern--1 .kpi-pattern__base {
+  fill: var(--kpi-band-1);
 }
-.kpi-radial__slice--1 {
-  stroke: var(--color-primary);
+.kpi-pattern--2 .kpi-pattern__base {
+  fill: var(--kpi-band-2);
 }
-.kpi-radial__slice--2 {
-  stroke: var(--color-primary-light);
+.kpi-pattern--3 .kpi-pattern__base {
+  fill: var(--kpi-band-3);
 }
-.kpi-radial__slice--3 {
-  stroke: var(--color-muted);
+.kpi-pattern--4 .kpi-pattern__base {
+  fill: var(--kpi-band-4);
+}
+/* The hatch ink is the surface colour, so the texture reads on every band
+   without adding a fifth vocabulary. Every pattern carries its band class. */
+.kpi-pattern__mark {
+  fill: var(--color-surface);
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
 }
 .kpi-status {
   display: flex;
@@ -7011,19 +7063,26 @@ body {
   height: 32px;
   color: var(--color-warning);
   background: var(--color-warning-soft);
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--color-warning);
   border-radius: var(--radius-pill);
 }
 .kpi-status__mark svg {
   width: 18px;
   height: 18px;
 }
+/* The lane is the mark's near-white neighbour, so it carries a hatch as well
+   as its border: the two never read as one flat surface. */
 .kpi-status__lane {
   flex: 1 1 auto;
   align-self: stretch;
   min-height: 12px;
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-soft);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--color-border-strong) 0 1px,
+    transparent 1px 7px
+  );
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
 }
 .kpi-sparkline {
@@ -7032,13 +7091,29 @@ body {
   height: var(--chart-sparkline-height);
   min-height: var(--chart-sparkline-height);
 }
+/* 3.32:1 against the card, so the area reads as a measurable field rather
+   than the 1.09:1 tint it replaced. */
 .kpi-sparkline__area {
-  fill: var(--color-primary-tint);
+  fill: var(--kpi-band-1);
   stroke: none;
+}
+/* The separator between the area and the line: a --color-surface stroke
+   under the 2px line, so the pair never relies on two close tones. */
+.kpi-sparkline__halo {
+  fill: none;
+  stroke: var(--color-surface);
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
 }
 .kpi-sparkline__line {
   fill: none;
-  stroke: var(--color-primary);
+  stroke: var(--color-primary-dark);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.kpi-sparkline__end {
+  fill: none;
+  stroke: var(--color-primary-dark);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
