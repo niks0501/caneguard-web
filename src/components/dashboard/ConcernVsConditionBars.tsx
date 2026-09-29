@@ -19,7 +19,7 @@ import {
   POSSIBLE_CONDITIONS,
   reportedConcernLabel,
 } from "./reportedConcern";
-import { VERIFICATION_LEGEND } from "./verificationLegendData";
+import { VERIFICATION_LEGEND } from "./verificationLegend";
 
 interface ConcernRow {
   key: string;
