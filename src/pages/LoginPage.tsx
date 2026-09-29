@@ -3,6 +3,7 @@ import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import caneGuardLogoFlat from "../assets/brand/CaneGuard_logo_flat.svg";
 import caneGuardLogoFlatOnDark from "../assets/brand/CaneGuard_logo_flat_onDark.svg";
+import farmHero from "../assets/hero.png";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { isPublicRegistrationEnabled } from "../app/publicRegistration";
@@ -101,6 +102,12 @@ export function LoginPage() {
   return (
     <main className="login-page login-page--portal">
       <aside className="login-visual" aria-label="CaneGuard decision support">
+        <img
+          src={farmHero}
+          alt=""
+          aria-hidden="true"
+          className="login-visual__farm-image"
+        />
         <div className="login-visual__hero">
           <div className="login-visual__hero-frame">
             <img

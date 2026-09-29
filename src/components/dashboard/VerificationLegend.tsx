@@ -1,6 +1,6 @@
 import type { VerificationOutcomeSplit } from "../../domain/dashboard.types";
 import { kpiBandFillClass, kpiBandForIndex } from "./kpiBandEncoding";
-import { VERIFICATION_LEGEND, verificationLegendName } from "./verificationLegend";
+import { VERIFICATION_LEGEND, verificationLegendName } from "./verificationLegendData";
 
 /**
  * Legend for the staff-verification split printed inside the
