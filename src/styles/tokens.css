@@ -26,6 +26,15 @@
   --color-surface-muted: #f8faf8;
   --color-surface-tint: #e2ece3;
 
+  /* Login portal backdrop and type sizes */
+  --login-page-mint-light: #f9fcfa;
+  --login-page-mint-mid: #eef7f1;
+  --login-page-mint-soft: #f5faf6;
+  --login-panel-radius: 24px;
+  --login-text-badge: 10px;
+  --login-text-small: 14px;
+  --login-text-caption: 15px;
+
   --color-text: #1d2720;
   --color-secondary-text: #4d5c52;
   --color-muted: #4d5c52;
