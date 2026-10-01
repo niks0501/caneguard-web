@@ -1,12 +1,13 @@
 ## Engineering Practice
 
 - Inspect the repository and existing patterns before making changes.
+- Before using an unfamiliar CLI subcommand or flag, check that CLI's help; do not assume compatibility with another tool's syntax.
 - Prefer the simplest complete solution and avoid unnecessary abstractions or dependencies.
 - Keep changes focused, readable, deterministic, and maintainable.
 - Preserve unrelated user work and never overwrite, reset, stash, delete, or rewrite unrelated changes.
 - Treat secrets, credentials, tokens, environment values, production data, and personal data as sensitive.
 - Do not expose sensitive values in output, logs, commits, examples, or generated files.
-- Ask before destructive actions, production changes, deployments, publishing, force operations, dependency changes, credential access, or other externally consequential actions.
+- Ask before destructive actions, production changes, deployments, publishing, force operations, dependency changes, credential access, or other externally consequential actions. Permission to push or open a PR does not authorize a force-push, including `--force-with-lease`; ask separately.
 - Resolve facts that can be discovered from the repository before asking the user.
 - Ask only when a genuine product decision, missing credential, destructive behavior, or material tradeoff requires user input.
 
@@ -20,7 +21,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Prefer these scoped commands over reading the full graph or performing broad source searches.
 - If `graphify-out/wiki/index.md` exists, use it for broad repository navigation.
 - Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when `query`, `path`, and `explain` do not provide enough context.
-- Dirty files under `graphify-out/` are expected after hooks or incremental updates and are not a reason to avoid Graphify.
+- Dirty files under `graphify-out/` are expected after hooks or incremental updates and are not a reason to avoid Graphify. Before staging, inspect generated diffs and stage only artifacts required by the task; refreshing Graphify does not by itself justify committing its output. Leave unrelated generated changes unstaged rather than resetting or deleting them.
 - After modifying code, run `graphify update .` to keep the graph current.
 - When the user explicitly invokes `/graphify`, follow the installed Graphify skill or instructions before doing anything else.
 
