@@ -21,6 +21,10 @@ Fast verification means the relevant static checks and unit/component tests.
 Affected backend/contract checks mean integration/Feature and API/contract checks when those boundaries are changed or central to the claim.
 A missing or unavailable higher rung is a verification gap only when its decision gate makes that rung necessary.
 
+## Database-backed checks
+
+Before running a database-backed suite, inspect its connection configuration and verify that the required local test credentials are available without exposing their values. For `npm run api:test:mysql`, use `api/phpunit.mysql.xml` as the suite configuration reference.
+
 ## E2E decision gate
 
 E2E is exceptional evidence, not an automatic extra-confidence step.
