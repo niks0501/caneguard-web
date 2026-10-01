@@ -793,20 +793,24 @@ describe("DashboardPage", () => {
     } }));
     renderDashboard();
 
+    // Each decision chart and the map is a separate lazy chunk, so its first
+    // paint can land after the 1s default wait on a loaded runner.
+    const lazyChunk = { timeout: 5_000 };
+
     expect(
-      await screen.findByText("Inflow: this period vs the previous period"),
+      await screen.findByText("Inflow: this period vs the previous period", undefined, lazyChunk),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Reported concern vs Possible Condition"),
+      await screen.findByText("Reported concern vs Possible Condition", undefined, lazyChunk),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Validation attention by barangay"),
+      await screen.findByText("Validation attention by barangay", undefined, lazyChunk),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Field-report locations — Nasugbu"),
+      await screen.findByText("Field-report locations — Nasugbu", undefined, lazyChunk),
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole("button", { name: "GPS points" }),
+      await screen.findByRole("button", { name: "GPS points" }, lazyChunk),
     ).toBeInTheDocument();
   });
 
