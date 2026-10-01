@@ -36,6 +36,13 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Dashboard control memory lives in `src/components/dashboard/dashboardPreferences.ts`: a versioned, validated `localStorage` payload holding the scope ruler (mode, month, custom window) and the map layer. Add new Overview controls there, restore them lazily in `useState`, and keep the corrupt/stale-value fallback covered by `src/components/dashboard/dashboardPreferences.test.ts`.
 - Dashboard graphics draw solid fills only: the KPI graphics (sparkline, waiting-age radial, schedule bar, status indicator), the decision charts and every legend swatch all take a flat `--kpi-band-*` solid from `src/styles/tokens.css`, indexed by `src/components/dashboard/kpiBandEncoding.ts`. `npm run test:design-spine` fails if a pattern or texture returns, if neighbouring fills drop below 3:1 (including the radial ring's 4-1 join), or if a band loses its gap or separator stroke. Tune a new band there, never with ad-hoc colours in a component.
 
+## Dashboard Visual Doctrine
+
+- Minimal text: dashboard surfaces carry data, not explanation. Delete retired prose rather than shortening it, and never add notes that restate what a chart or table already shows.
+- Every displayed time is 12-hour Asia/Manila with an explicit meridiem marker (`src/lib/formatters.ts`); never 24-hour.
+- Graphics draw flat solids from the `--kpi-band-*` ramp (`src/components/dashboard/kpiBandEncoding.ts`), never patterns, textures or ad-hoc colours.
+- Be honest about scope and shade: never label a scoped or filtered list as unfiltered or all-periods, and keep neighbouring graphic fills distinguishable rather than relying on a subtle tint.
+
 ## Failure Handling
 
 - Read the actual error before attempting a fix.
