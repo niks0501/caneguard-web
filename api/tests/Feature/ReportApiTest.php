@@ -875,6 +875,10 @@ class ReportApiTest extends TestCase
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             'action_taken' => null,
+            // The factory scatters submitted_at over the last 30 days, which
+            // straddles the month boundary; pin it so all three reports stay
+            // inside the month that monthly_summary counts.
+            'submitted_at' => now(),
         ]);
         Sanctum::actingAs($reviewer);
 
