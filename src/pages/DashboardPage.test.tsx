@@ -15,7 +15,7 @@ import { useAnalytics } from "../hooks/useAnalytics";
 import { dashboardSummaryOptions, useDashboard } from "../hooks/useDashboard";
 import { useFieldValidationMap } from "../hooks/useFieldValidation";
 import type { ReportAnalytics } from "../domain/dashboard.types";
-import { manilaDateAt } from "../domain/reportingTime";
+import { manilaDateAt, manilaMonthAt } from "../domain/reportingTime";
 import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../hooks/useDashboard", async (importOriginal) => {
@@ -784,8 +784,12 @@ describe("DashboardPage", () => {
 
   it("mounts the three decision charts and the map once period data arrives", async () => {
     vi.useRealTimers();
+    // The default scope is the current PHT month: first of the month through
+    // today. The fixture must agree with both bounds or the page treats the
+    // payload as out of scope and never mounts the charts.
     vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
-      ...analytics, period: { ...analytics.period, to: manilaDateAt() },
+      ...analytics,
+      period: { ...analytics.period, from: `${manilaMonthAt()}-01`, to: manilaDateAt() },
     } }));
     renderDashboard();
 
