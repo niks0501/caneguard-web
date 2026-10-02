@@ -31,6 +31,37 @@ class DemoAnalyticsSeederTest extends TestCase
         $this->assertDatabaseCount('field_validation_assignments', 0);
     }
 
+    public function test_opt_in_seeder_restores_missing_dashboard_image_from_tracked_asset(): void
+    {
+        Storage::fake('local');
+        $this->configureDemoPasswords();
+
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(DemoAnalyticsSeeder::class);
+
+        $report = Report::query()
+            ->where('reference_code', DemoAnalyticsSeeder::REFERENCE_PREFIX.'0001')
+            ->firstOrFail();
+        $imagePath = 'reports/demo-analytics/synthetic-field-evidence.png';
+        $sourceImage = file_get_contents(database_path('seeders/assets/synthetic-sugarcane-rust.png'));
+        $this->assertIsString($sourceImage);
+        $this->assertSame($imagePath, $report->image_path);
+        $this->assertSame($sourceImage, Storage::disk('local')->get($imagePath));
+
+        Storage::disk('local')->delete($imagePath);
+        $this->assertFalse(Storage::disk('local')->exists($imagePath));
+
+        $this->seed(DemoAnalyticsSeeder::class);
+
+        Storage::disk('local')->assertExists($imagePath);
+        $this->assertSame($sourceImage, Storage::disk('local')->get($imagePath));
+        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+        $response = $this->get("/api/v1/reports/{$report->uuid}/image")
+            ->assertOk()
+            ->assertHeader('content-type', 'image/png');
+        $this->assertSame($sourceImage, $response->streamedContent());
+    }
+
     public function test_opt_in_dataset_matches_mobile_contract_and_feeds_report_surfaces(): void
     {
         CarbonImmutable::setTestNow('2026-09-24T12:00:00Z');
