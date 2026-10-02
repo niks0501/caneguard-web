@@ -71,6 +71,32 @@ describe("report mappers", () => {
     expect(report.confidence).toBeUndefined();
   });
 
+  it("resolves relative detail image URLs against the configured API base", () => {
+    const relativePath = "/storage/reports/detail-photo.jpg";
+    const relativeReport = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: { ...reportDetailDto, image: { ...reportDetailDto.image, url: relativePath } },
+      }).data,
+    );
+    const lanReport = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: { ...reportDetailDto, image: { ...reportDetailDto.image, url: relativePath } },
+      }).data,
+      "http://192.168.1.42:8000",
+    );
+    const absoluteReport = mapReportDetail(
+      reportDetailResponseSchema.parse({ data: reportDetailDto }).data,
+    );
+
+    expect(relativeReport.imageUrl).toBe(
+      "http://localhost:8000/storage/reports/detail-photo.jpg",
+    );
+    expect(lanReport.imageUrl).toBe(
+      "http://192.168.1.42:8000/storage/reports/detail-photo.jpg",
+    );
+    expect(absoluteReport.imageUrl).toBe(reportDetailDto.image.url);
+  });
+
   it("maps detail observations and review data", () => {
     const report = mapReportDetail(
       reportDetailResponseSchema.parse({ data: reportDetailDto }).data,
