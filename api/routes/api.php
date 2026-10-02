@@ -49,10 +49,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', HealthController::class);
 
 Route::get('/v1/consult-invites/{token}', ConsultInviteController::class)
-    ->middleware('signed')
+    ->middleware('signed:relative')
     ->name('api.v1.consult-invites.show');
 Route::get('/v1/consult-invites/{token}/image', [ConsultInviteController::class, 'image'])
-    ->middleware('signed')
+    ->middleware('signed:relative')
     ->name('api.v1.consult-invites.image');
 
 Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])

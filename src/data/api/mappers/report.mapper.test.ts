@@ -36,6 +36,18 @@ describe("report mappers", () => {
     ).toBe("https://cdn.caneguard.test/storage/reports/photo.jpg");
   });
 
+  it("resolves app-relative image links against localhost and LAN API bases", () => {
+    const imagePath = "/api/v1/reports/report-uuid/image";
+
+    expect(imagePath.startsWith("/")).toBe(true);
+    expect(resolveReportImageUrl(imagePath, "http://localhost:8000")).toBe(
+      "http://localhost:8000/api/v1/reports/report-uuid/image",
+    );
+    expect(resolveReportImageUrl(imagePath, "http://192.168.1.42:8000")).toBe(
+      "http://192.168.1.42:8000/api/v1/reports/report-uuid/image",
+    );
+  });
+
   it("maps snake_case list fields into the domain model", () => {
     const report = mapReportListItem(paginatedReportsDto.data[0]);
 

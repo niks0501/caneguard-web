@@ -27,7 +27,12 @@ class ExpertPhaseThreeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.share_full_context', false);
         $inviteUrl = $issue->json('data.url');
+        $photoUrl = $issue->json('data.photo_url');
         $this->assertIsString($inviteUrl);
+        $this->assertStringStartsWith('/api/v1/consult-invites/', $inviteUrl);
+        $this->assertIsString($photoUrl);
+        $this->assertStringStartsWith('/api/v1/consult-invites/', $photoUrl);
+        $this->get($photoUrl)->assertOk();
 
         $this->getJson($inviteUrl)
             ->assertOk()
@@ -35,9 +40,13 @@ class ExpertPhaseThreeTest extends TestCase
             ->assertJsonMissingPath('data.location.latitude')
             ->assertJsonMissingPath('data.location.longitude')
             ->assertJsonMissingPath('data.office_context')
-            ->assertJsonPath('data.case.reference_code', $report->reference_code);
+            ->assertJsonPath('data.case.reference_code', $report->reference_code)
+            ->assertJsonPath('data.photo_url', fn ($url) => is_string($url) && str_starts_with(
+                $url,
+                '/api/v1/consult-invites/',
+            ));
         $this->getJson($inviteUrl)->assertOk();
-        $this->assertSame(2, $consult->fresh()->invite_access_count);
+        $this->assertSame(3, $consult->fresh()->invite_access_count);
 
         $this->deleteJson("/api/v1/reports/{$report->uuid}/referral/invite")
             ->assertOk()

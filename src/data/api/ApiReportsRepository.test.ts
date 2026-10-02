@@ -52,6 +52,37 @@ describe("ApiReportsRepository", () => {
     expect(result.reports[0].referenceCode).toBe("CG-2026-0001");
   });
 
+  it("rebases relative consult invite links onto the configured API origin", async () => {
+    server.use(
+      http.post(`${baseUrl}/api/v1/reports/report-uuid/referral/invite`, () =>
+        HttpResponse.json({
+          data: {
+            url: "/api/v1/consult-invites/token?expires=123&signature=abc",
+            photo_url: "/api/v1/consult-invites/token/image?expires=123&signature=def",
+            consult_id: 1,
+            issued_at: null,
+            expires_at: null,
+            revoked_at: null,
+            access_count: 0,
+            share_full_context: false,
+          },
+        }),
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    const invite = await repository.issueConsultInvite("report-uuid");
+
+    expect(invite.url).toBe(
+      `${baseUrl}/api/v1/consult-invites/token?expires=123&signature=abc`,
+    );
+    expect(invite.photoUrl).toBe(
+      `${baseUrl}/api/v1/consult-invites/token/image?expires=123&signature=def`,
+    );
+  });
+
   it("requests a filter-scoped CSV without pagination parameters", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports/export`, ({ request }) => {

@@ -41,6 +41,7 @@ class ReportResource extends JsonResource
                 'url' => route(
                     'api.v1.reports.image',
                     ['report' => $this->uuid],
+                    false,
                 ),
                 'mime_type' => $this->image_mime_type,
                 'size_bytes' => $this->image_size_bytes,

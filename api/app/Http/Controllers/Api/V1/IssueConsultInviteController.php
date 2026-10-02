@@ -88,11 +88,13 @@ class IssueConsultInviteController extends Controller
             'api.v1.consult-invites.show',
             $consult->invite_expires_at,
             ['token' => $token],
+            false,
         );
         $photoUrl = URL::temporarySignedRoute(
             'api.v1.consult-invites.image',
             $consult->invite_expires_at,
             ['token' => $token],
+            false,
         );
 
         return response()->json([

@@ -90,6 +90,7 @@ class ReportApiTest extends TestCase
                 route(
                     'api.v1.reports.image',
                     ['report' => $newestSubmission->uuid],
+                    false,
                 ),
             )
             ->assertJsonPath('data.0.province', 'Negros Occidental')
