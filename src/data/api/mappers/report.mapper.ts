@@ -270,7 +270,10 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
   };
 }
 
-export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
+export function mapReportDetail(
+  dto: ReportDetailDto,
+  apiBaseUrl = env.apiBaseUrl,
+): DiseaseReport {
   return {
     uuid: dto.identity.uuid,
     referenceCode: dto.identity.reference_code,
@@ -294,7 +297,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     scanRecordClientUuid: dto.identity.scan_record_client_uuid ?? undefined,
     predictedDisease: dto.model.predicted_label,
     confidence: dto.model.confidence,
-    imageUrl: dto.image.url,
+    imageUrl: resolveReportImageUrl(dto.image.url, apiBaseUrl),
     imageStatus: dto.image.url ? "available" : "unavailable",
     imageMimeType: dto.image.mime_type,
     imageSizeBytes: dto.image.size_bytes,
@@ -367,7 +370,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
                   url:
                     resolveApiUrl(
                       dto.field_validation_assignment.completion.fresh_photo.url,
-                      env.apiBaseUrl,
+                      apiBaseUrl,
                     ) ?? dto.field_validation_assignment.completion.fresh_photo.url,
                 },
               }
