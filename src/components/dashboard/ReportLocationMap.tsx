@@ -21,6 +21,7 @@ import {
   type MapLayer,
 } from "./dashboardPreferences";
 import { NASUGBU_BARANGAY_POINTS, NASUGBU_MAP_CENTER } from "./nasugbuBarangays";
+import { registerMissingMapImage } from "./registerMissingMapImage";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -260,6 +261,11 @@ export function ReportLocationMap({
               attributionControl={{ compact: true }}
               interactiveLayerIds={INTERACTIVE_LAYER_IDS}
               onClick={handleDotClick}
+              onLoad={(event) => {
+                event.target.on("styleimagemissing", (missingImage) => {
+                  registerMissingMapImage(event.target, missingImage.id);
+                });
+              }}
               onMouseEnter={showCursor(true)}
               onMouseLeave={showCursor(false)}
             >

@@ -12,6 +12,7 @@ import type {
   ReportListItemDto,
   ReportListResponseDto,
 } from "../schemas/report.schema";
+import { env } from "../../../config/env";
 import { mapReportLifecycle } from "./lifecycle.mapper";
 
 const humanize = (value: string) =>
@@ -19,6 +20,27 @@ const humanize = (value: string) =>
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+
+/** Rebase Laravel's host-local storage URLs onto the configured API host. */
+export function resolveReportImageUrl(
+  imageUrl: string | null | undefined,
+  apiBaseUrl: string,
+): string | undefined {
+  if (!imageUrl) return undefined;
+
+  try {
+    const image = new URL(imageUrl, apiBaseUrl);
+    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(image.hostname)) {
+      const apiOrigin = new URL(apiBaseUrl);
+      image.protocol = apiOrigin.protocol;
+      image.hostname = apiOrigin.hostname;
+      image.port = apiOrigin.port;
+    }
+    return image.href;
+  } catch {
+    return imageUrl;
+  }
+}
 
 function mapCaseHistory(dto: ReportDetailDto["case_history"]): ReportCaseHistory | undefined {
   if (!dto) return undefined;
@@ -190,7 +212,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     firstReviewedAt: dto.first_reviewed_at ?? undefined,
     predictedDisease: dto.predicted_label,
     mismatchReported: dto.mismatch_reported,
-    imageUrl: dto.image_url,
+    imageUrl: resolveReportImageUrl(dto.image_url, env.apiBaseUrl),
     imageStatus: dto.image_url ? "available" : "unavailable",
     symptoms: [],
     reviewStatus: dto.review_status,

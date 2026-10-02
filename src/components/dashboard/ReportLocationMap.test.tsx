@@ -25,6 +25,8 @@ const mapState = vi.hoisted(() => ({
   layers: [] as Array<{ id: string; paint?: Record<string, unknown> }>,
   /** Recorded MapLibre map click event replayed by the canvas stand-in. */
   mapClickEvent: undefined as unknown,
+  missingImageListener: undefined as ((event: { id: string }) => void) | undefined,
+  addImage: vi.fn(),
 }));
 
 /**
@@ -40,11 +42,30 @@ vi.mock("react-map-gl/maplibre", () => {
   const Boundary = ({
     children,
     onClick,
+    onLoad,
   }: {
     children?: ReactNode;
     onClick?: (event: unknown) => void;
-  }) =>
-    createElement(
+    onLoad?: (event: {
+      target: {
+        on: (name: string, callback: (event: { id: string }) => void) => void;
+        hasImage: (id: string) => boolean;
+        addImage: (id: string, image: { width: number; height: number; data: Uint8Array }) => void;
+      };
+    }) => void;
+  }) => {
+    useEffect(() => {
+      onLoad?.({
+        target: {
+          on: (_name: string, callback: (event: { id: string }) => void) => {
+            mapState.missingImageListener = callback;
+          },
+          hasImage: () => false,
+          addImage: mapState.addImage,
+        },
+      });
+    }, [onLoad]);
+    return createElement(
       "div",
       { "data-testid": "map-canvas" },
       children,
@@ -59,6 +80,7 @@ vi.mock("react-map-gl/maplibre", () => {
           })
         : null,
     );
+  };
 
   const Source = ({ id, data, children }: {
     id?: string;
@@ -198,6 +220,8 @@ beforeEach(() => {
   mapState.sources.length = 0;
   mapState.layers.length = 0;
   mapState.mapClickEvent = undefined;
+  mapState.missingImageListener = undefined;
+  mapState.addImage.mockClear();
   vi.mocked(useFieldValidationMap).mockReturnValue({
     data: gpsData(),
     isPending: false,
@@ -206,6 +230,19 @@ beforeEach(() => {
 });
 
 describe("ReportLocationMap layer toggle", () => {
+  it("registers an image fallback when the map style requests an absent sprite", async () => {
+    renderMap();
+
+    await vi.waitFor(() => expect(mapState.missingImageListener).toBeDefined());
+    mapState.missingImageListener?.({ id: "missing-marker" });
+
+    expect(mapState.addImage).toHaveBeenCalledWith("missing-marker", {
+      width: 1,
+      height: 1,
+      data: new Uint8Array([45, 107, 64, 255]),
+    });
+  });
+
   it("remounts the map source per layer so the GPS toggle plots real points", async () => {
     const user = userEvent.setup();
     renderMap();
