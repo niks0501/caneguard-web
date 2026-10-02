@@ -74,6 +74,8 @@ graphify-out/.graphify_uncached.txt
 
 
 
+.backpassrc.json
+
 # >>> AkiDev project-local runtime >>>
 .akidev/cache/
 .akidev/home/
@@ -81,4 +83,3 @@ graphify-out/.graphify_uncached.txt
 .akidev/tmp/
 .akidev/conflicts/
 # <<< AkiDev project-local runtime <<<
-.backpassrc.json
