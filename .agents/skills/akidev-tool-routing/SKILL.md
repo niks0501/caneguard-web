@@ -1,6 +1,6 @@
 ---
 name: akidev-tool-routing
-description: Route unfamiliar, cross-cutting, debugging, runtime, and verification work to the smallest selected AkiDev capability; use shared CLIs without installing workstation tools.
+description: Route UI design, unfamiliar, cross-cutting, debugging, runtime, and verification work to the smallest selected AkiDev capability; use shared CLIs without installing workstation tools.
 ---
 
 <!-- Managed by AkiDev integration: akidev-tool-routing -->
@@ -18,6 +18,20 @@ When a trigger applies, follow that capability's documented transport or fallbac
 3. Use mobile runtime capabilities only after explicit user intent to inspect, reproduce, verify, or interact with a device, emulator, or running app.
 4. For mobile verification policy, read `akidev-mobile-verification` once and follow its intent gate, operating modes, freshness, and evidence rules.
 5. Use the project npm commands and shared agent-device CLI for the deterministic final gate.
+
+## UI guidance and browser verification
+
+For a selected `taste` integration, load `design-taste-frontend` for visual direction, aesthetics, landing pages, portfolios, and marketing redesigns.
+For a selected `impeccable` integration, load `impeccable` for UI implementation refinement: layout, typography, interaction, consistency, audit, or polish.
+Choose the skill matching the current phase; do not auto-load both, and do not apply marketing taste to native mobile or data-heavy product screens.
+Existing frontend, accessibility, security, and stack rules still apply.
+Firstmate owns orchestration; these skills supply guidance, not a new coordination framework.
+
+For justified web UI verification, use the shared `chrome-devtools-axi` from PATH.
+Its verified CLI provides `snapshot`, `screenshot`, `eval`, `console`, `network`, and `lighthouse`; inspect `--help` and command help for the installed version.
+Use snapshots for accessible names/roles and keyboard checks, screenshots for visual evidence, and Lighthouse where supported for accessibility diagnostics.
+These are not equivalent to the application's existing accessibility test suite; preserve and run app-owned tests when relevant.
+Never install browser/a11y dependencies merely because AkiDev is selected.
 
 ## Shared prerequisite policy
 

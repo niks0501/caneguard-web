@@ -43,7 +43,9 @@ When the gate is met, choose the smallest flow that proves the specific claim ra
 
 ## Retry and native blocker policy
 
-Preserve a two-attempt ceiling for each justified E2E flow: one initial attempt and at most one evidence-based retry.
+Preserve a two-attempt ceiling for each justified deterministic Mode B E2E/replay flow: one initial attempt and at most one evidence-based retry.
+This ceiling applies to deterministic flow attempts, not to individual interactive actions inside Mode A exploratory debugging.
+Mode A should avoid pointless loops, but it may inspect, act, diagnose, fix, and continue from the current state without restarting the full journey after every failure.
 Never blindly rerun a failed flow or use retries to compensate for missing diagnosis.
 Biometrics, gallery pickers, permissions, and comparable native blockers are manual/native verification required conditions, not retry loops.
 Record the blocker and finish the lower test levels instead of repeatedly fighting native dialogs.
@@ -55,6 +57,8 @@ Agent Device is only a small representative native-boundary check after fast tes
 Ordinary tests must mock or abstract biometrics, gallery/image pickers, permissions, secure storage, notifications, and similar native APIs.
 Prefer deterministic ADB/emulator mechanisms over repeated dialog fighting when a native-boundary check is justified.
 Load `akidev-mobile-verification` before treating device or E2E results as valid evidence.
+For newly implemented or changed mobile behavior whose successful path is not yet established, use Agent Device Mode A interactive verification first when the E2E decision gate justifies device evidence.
+A relevant checked-in regression flow may use Mode B replay first as regression evidence.
 Assess native-runtime freshness first so a stale development build is deferred instead of being mistaken for a feature failure.
 
 ## Principles
