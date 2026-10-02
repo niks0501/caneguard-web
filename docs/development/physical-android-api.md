@@ -8,6 +8,29 @@ This guide covers the primary private-LAN connection for an Android development 
 
 ## Primary workflow: private LAN
 
+If `api/.env` does not exist, create it from the example.
+
+```bash
+test -f api/.env || cp api/.env.example api/.env
+```
+
+Success: `api/.env` exists locally and is not committed.
+
+Set the API URL and trusted host to the PC's current private LAN address. Edit the local file.
+
+```bash
+nano api/.env
+```
+
+Set these values in `api/.env`.
+
+```env
+APP_URL=http://<PC-LAN-IP>:8000
+APP_TRUSTED_HOSTS=localhost,<PC-LAN-IP>
+```
+
+Success: both settings include the current private LAN address. Keep these local values out of commits. Do not change `.env.example`.
+
 Run the API command from the root of this repository.
 
 ```bash
