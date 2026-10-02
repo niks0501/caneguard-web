@@ -6,7 +6,7 @@ description: Route UI design, unfamiliar, cross-cutting, debugging, runtime, and
 <!-- Managed by AkiDev integration: akidev-tool-routing -->
 # AkiDev tool routing
 
-This laravel-react project declares these AkiDev integrations/capabilities: `context7`.
+This laravel-react project declares these AkiDev integrations/capabilities: `context7,taste,impeccable`.
 Read `.akidev/config` as the source of truth.
 Availability alone does not mandate use, and it never overrides an explicit request or authoritative project/global instruction.
 When a trigger applies, follow that capability's documented transport or fallback rather than suppressing it because the integration is optional.
