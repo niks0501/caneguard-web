@@ -33,7 +33,12 @@ vi.mock("../realtime/echo", () => ({
 
 function Probe() {
   const { status } = useRealtimeInvalidation();
-  return <span data-testid="realtime-status">{status}</span>;
+  return (
+    <>
+      <span data-testid="realtime-status">{status}</span>
+      <h1>Overview</h1>
+    </>
+  );
 }
 
 function renderProbe(client: QueryClient) {
@@ -169,6 +174,17 @@ describe("useRealtimeInvalidation", () => {
     unmount();
     expect(echo.leave).toHaveBeenCalledWith("users.user-1");
     expect(echo.disconnect).toHaveBeenCalled();
+  });
+
+  it("keeps dashboard content rendered when the socket connection is refused", async () => {
+    renderProbe(new QueryClient());
+
+    act(() => connectionChange?.("failed"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("realtime-status")).toHaveTextContent("degraded");
+    });
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
   });
 
   it("disconnects after one connection error and logs one debug note", async () => {

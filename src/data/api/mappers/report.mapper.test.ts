@@ -11,9 +11,31 @@ import {
   mapPaginationMeta,
   mapReportDetail,
   mapReportListItem,
+  resolveReportImageUrl,
 } from "./report.mapper";
 
 describe("report mappers", () => {
+  it("rebases host-local image URLs onto the configured API host", () => {
+    expect(
+      resolveReportImageUrl(
+        "http://localhost/storage/reports/photo.jpg",
+        "https://api.caneguard.test/api/v1",
+      ),
+    ).toBe("https://api.caneguard.test/storage/reports/photo.jpg");
+    expect(
+      resolveReportImageUrl(
+        "http://127.0.0.1:8000/storage/reports/photo.jpg",
+        "https://api.caneguard.test/api/v1",
+      ),
+    ).toBe("https://api.caneguard.test/storage/reports/photo.jpg");
+    expect(
+      resolveReportImageUrl(
+        "https://cdn.caneguard.test/storage/reports/photo.jpg",
+        "https://api.caneguard.test/api/v1",
+      ),
+    ).toBe("https://cdn.caneguard.test/storage/reports/photo.jpg");
+  });
+
   it("maps snake_case list fields into the domain model", () => {
     const report = mapReportListItem(paginatedReportsDto.data[0]);
 
