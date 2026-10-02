@@ -1056,7 +1056,7 @@ class ReportReferralTest extends TestCase
             ->assertJsonPath('data.affected.area_hectares', 12.5)
             ->assertJsonPath('data.affected.portion_percent', 42.75)
             ->assertJsonPath('data.primary_evidence.available', true)
-            ->assertJsonPath('data.primary_evidence.url', route('api.v1.reports.image', ['report' => $report->uuid]))
+            ->assertJsonPath('data.primary_evidence.url', route('api.v1.reports.image', ['report' => $report->uuid], false))
             ->assertJsonPath('data.reporter_observations.observation_text', 'Dark whip-like growths are visible.')
             ->assertJsonPath('data.possible_ai_result.role', 'decision_support_only')
             ->assertJsonPath('data.possible_ai_result.label', Report::LABEL_RUST)
@@ -1073,7 +1073,7 @@ class ReportReferralTest extends TestCase
             ->assertSee('Juan Dela Cruz')
             ->assertSee('Office context captured before external review.')
             ->assertSee('SRA-2026-0099')
-            ->assertSee(route('api.v1.reports.image', ['report' => $report->uuid]), false);
+            ->assertSee(route('api.v1.reports.image', ['report' => $report->uuid], false), false);
     }
 
     public function test_authenticated_web_session_can_open_the_html_referral_summary(): void

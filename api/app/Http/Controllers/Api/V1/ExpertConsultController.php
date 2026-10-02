@@ -116,7 +116,7 @@ class ExpertConsultController extends Controller
             'uuid' => $report->uuid,
             'reference_code' => $report->reference_code,
             'submitted_at' => $report->submitted_at->utc()->toISOString(),
-            'photo_url' => route('api.v1.reports.image', ['report' => $report->uuid]),
+            'photo_url' => route('api.v1.reports.image', ['report' => $report->uuid], false),
             'reporter_observations' => $evidence,
             'reporter_suspected_condition' => $report->reporter_suspected_condition,
             'ai_possible_condition' => [
@@ -137,7 +137,7 @@ class ExpertConsultController extends Controller
             // narrow workspace without making the office form reusable here.
             'reference_code' => $report->reference_code,
             'submitted_at' => $report->submitted_at->utc()->toISOString(),
-            'photo_url' => route('api.v1.reports.image', ['report' => $report->uuid]),
+            'photo_url' => route('api.v1.reports.image', ['report' => $report->uuid], false),
             'reporter_observations' => $evidence,
             'reporter_suspected_condition' => $report->reporter_suspected_condition,
             'symptom_keys' => $symptomKeys,

@@ -100,6 +100,7 @@ class BuildConsultInvitePayload
             'api.v1.consult-invites.image',
             $consult->invite_expires_at,
             ['token' => $token],
+            false,
         );
     }
 }

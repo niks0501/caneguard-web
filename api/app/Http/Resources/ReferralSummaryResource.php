@@ -67,7 +67,7 @@ class ReferralSummaryResource extends JsonResource
                     : (float) $report->affected_portion_percent,
             ],
             'primary_evidence' => [
-                'url' => route('api.v1.reports.image', ['report' => $report->uuid]),
+                'url' => route('api.v1.reports.image', ['report' => $report->uuid], false),
                 'available' => $primaryImageAvailable,
                 'mime_type' => $report->image_mime_type,
                 'source_type' => $report->image_source_type,

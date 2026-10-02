@@ -58,6 +58,7 @@ class ReportListResource extends JsonResource
             'image_url' => route(
                 'api.v1.reports.image',
                 ['report' => $this->uuid],
+                false,
             ),
         ];
     }
@@ -192,7 +193,7 @@ class ReportListResource extends JsonResource
             'fresh_photo' => [
                 'available' => $completion->fresh_photo_path !== null,
                 'url' => $completion->fresh_photo_path !== null
-                    ? route('api.v1.reports.validation-photo', ['report' => $this->uuid])
+                    ? route('api.v1.reports.validation-photo', ['report' => $this->uuid], false)
                     : null,
             ],
         ];

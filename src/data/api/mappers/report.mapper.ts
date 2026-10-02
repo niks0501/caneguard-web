@@ -21,25 +21,32 @@ const humanize = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-/** Rebase Laravel's host-local storage URLs onto the configured API host. */
+/** Resolve app-relative API links and rebase legacy host-local URLs onto the API host. */
+export function resolveApiUrl(
+  apiUrl: string | null | undefined,
+  apiBaseUrl: string,
+): string | undefined {
+  if (!apiUrl) return undefined;
+
+  try {
+    const url = new URL(apiUrl, apiBaseUrl);
+    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname)) {
+      const apiOrigin = new URL(apiBaseUrl);
+      url.protocol = apiOrigin.protocol;
+      url.hostname = apiOrigin.hostname;
+      url.port = apiOrigin.port;
+    }
+    return url.href;
+  } catch {
+    return apiUrl;
+  }
+}
+
 export function resolveReportImageUrl(
   imageUrl: string | null | undefined,
   apiBaseUrl: string,
 ): string | undefined {
-  if (!imageUrl) return undefined;
-
-  try {
-    const image = new URL(imageUrl, apiBaseUrl);
-    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(image.hostname)) {
-      const apiOrigin = new URL(apiBaseUrl);
-      image.protocol = apiOrigin.protocol;
-      image.hostname = apiOrigin.hostname;
-      image.port = apiOrigin.port;
-    }
-    return image.href;
-  } catch {
-    return imageUrl;
-  }
+  return resolveApiUrl(imageUrl, apiBaseUrl);
 }
 
 function mapCaseHistory(dto: ReportDetailDto["case_history"]): ReportCaseHistory | undefined {
@@ -158,7 +165,7 @@ export function mapExpertConsult(dto: ExpertConsultResponseDto): ExpertConsultPa
   return {
     referenceCode: data.reference_code,
     submittedAt: data.submitted_at,
-    photoUrl: data.photo_url,
+    photoUrl: resolveApiUrl(data.photo_url, env.apiBaseUrl) ?? data.photo_url,
     reporterObservations: {
       symptomKeys: observations.symptom_keys,
       reporterObservationText: observations.reporter_observation_text ?? null,
@@ -245,7 +252,12 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
           actionTaken: dto.latest_validation.action_taken,
           followUpOutcome: dto.latest_validation.follow_up_outcome,
           assignee: dto.latest_validation.assignee,
-          freshPhoto: dto.latest_validation.fresh_photo,
+          freshPhoto: {
+            ...dto.latest_validation.fresh_photo,
+            url:
+              resolveApiUrl(dto.latest_validation.fresh_photo.url, env.apiBaseUrl) ??
+              dto.latest_validation.fresh_photo.url,
+          },
         }
       : null,
     locationUnavailable: dto.location_unavailable ?? false,
@@ -352,7 +364,11 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
                 visitedAt: dto.field_validation_assignment.completion.visited_at,
                 freshPhoto: {
                   available: dto.field_validation_assignment.completion.fresh_photo.available,
-                  url: dto.field_validation_assignment.completion.fresh_photo.url,
+                  url:
+                    resolveApiUrl(
+                      dto.field_validation_assignment.completion.fresh_photo.url,
+                      env.apiBaseUrl,
+                    ) ?? dto.field_validation_assignment.completion.fresh_photo.url,
                 },
               }
             : undefined,

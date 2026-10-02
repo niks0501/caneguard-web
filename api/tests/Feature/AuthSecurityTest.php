@@ -122,20 +122,25 @@ class AuthSecurityTest extends TestCase
             ->assertJsonPath('code', 'EMAIL_VERIFIED');
     }
 
-    public function test_spoofed_host_cannot_change_generated_api_urls(): void
+    public function test_generated_api_asset_urls_are_host_independent_and_app_relative(): void
     {
         $reviewer = User::factory()->reviewer()->create();
         $report = Report::factory()->create();
         Sanctum::actingAs($reviewer);
 
-        $this->withHeader('Host', 'attacker.example.test')
+        $localhostResponse = $this->withHeader('Host', 'localhost:8000')
             ->getJson('/api/v1/reports?per_page=1')
-            ->assertOk()
-            ->assertJsonPath(
-                'data.0.image_url',
-                route('api.v1.reports.image', ['report' => $report->uuid]),
-            )
-            ->assertDontSee('attacker.example.test');
+            ->assertOk();
+        $lanResponse = $this->withHeader('Host', '192.168.1.42:8000')
+            ->getJson('/api/v1/reports?per_page=1')
+            ->assertOk();
+
+        $imagePath = '/api/v1/reports/'.$report->uuid.'/image';
+        $this->assertSame($imagePath, $localhostResponse->json('data.0.image_url'));
+        $this->assertSame(
+            $localhostResponse->json('data.0.image_url'),
+            $lanResponse->json('data.0.image_url'),
+        );
     }
 
     public function test_spoofed_host_cannot_change_signed_verification_links(): void

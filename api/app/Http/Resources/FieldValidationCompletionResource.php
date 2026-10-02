@@ -30,7 +30,7 @@ class FieldValidationCompletionResource extends JsonResource
                 'url' => $this->fresh_photo_path !== null
                     ? route('api.v1.reports.validation-photo', [
                         'report' => $this->assignment->report->uuid,
-                    ])
+                    ], false)
                     : null,
                 'mime_type' => $this->fresh_photo_mime_type,
                 'size_bytes' => $this->fresh_photo_size_bytes,

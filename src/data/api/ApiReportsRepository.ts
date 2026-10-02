@@ -23,9 +23,11 @@ import type {
   ReportReviewInput,
 } from "../../domain/review.types";
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
+import { env } from "../../config/env";
 import {
   mapExpertConsult,
   mapPaginationMeta,
+  resolveApiUrl,
   mapReportDetail,
   mapReportListItem,
 } from "./mappers/report.mapper";
@@ -394,9 +396,10 @@ export class ApiReportsRepository implements ReportsRepository {
       shareFullContext === undefined ? undefined : { share_full_context: shareFullContext },
     );
     const data = response.data?.data;
+    const apiBaseUrl = this.client.defaults.baseURL ?? env.apiBaseUrl;
     return {
-      url: data.url,
-      photoUrl: data.photo_url,
+      url: resolveApiUrl(data.url, apiBaseUrl) ?? data.url,
+      photoUrl: resolveApiUrl(data.photo_url, apiBaseUrl) ?? data.photo_url,
       consultId: data.consult_id,
       issuedAt: data.issued_at ?? null,
       expiresAt: data.expires_at ?? null,
