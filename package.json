@@ -17,7 +17,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "api:install": "composer install --working-dir=api",
-    "api:dev": "php -d upload_max_filesize=12M -d post_max_size=16M -S 127.0.0.1:8000 -t api/public api/server.php",
+    "api:dev": "php -d upload_max_filesize=12M -d post_max_size=16M -S 0.0.0.0:8000 -t api/public api/server.php",
     "api:queue": "php api/artisan queue:listen --tries=1 --timeout=0",
     "api:reverb": "php api/artisan reverb:start",
     "api:test": "cd api && php artisan test",
