@@ -53,6 +53,8 @@ class ExpertPhaseThreeTest extends TestCase
             ->assertJsonPath('data.revoked_at', fn ($value) => is_string($value));
         $this->assertNotNull($consult->fresh()->invite_revoked_at);
         $this->getJson($inviteUrl)->assertForbidden();
+        $this->get($photoUrl)->assertForbidden();
+        $this->assertSame(3, $consult->fresh()->invite_access_count);
     }
 
     public function test_in_system_expert_packet_and_summary_apply_the_same_redaction(): void
