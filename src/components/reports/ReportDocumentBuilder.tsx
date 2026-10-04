@@ -8,6 +8,7 @@ import { routes } from "../../app/routes";
 import { ApiError, isApiConnectionError, toApiError } from "../../api/ApiError";
 import { checkApiHealth } from "../../api/apiHealth";
 import { Button } from "../ui/Button";
+import { WeeklyReportApproval } from "./WeeklyReportApproval";
 import { previousManilaIsoWeekAt } from "../../domain/reportingTime";
 import {
   authorityClassifiedConditionLabels,
@@ -264,6 +265,7 @@ export function ReportDocumentBuilder({
         ) : null}
         <div className="report-builder__actions"><Button type="button" variant="secondary" icon={<House aria-hidden="true" />} onClick={goHome}>Back to home</Button><Button type="button" variant="secondary" icon={<Printer aria-hidden="true" />} disabled={!previewUrl} onClick={printPreview}>Print</Button><Button type="button" icon={<Download aria-hidden="true" />} disabled={pdfPending || apiAvailability !== "available"} onClick={() => void downloadPdf()}>{pdfPending ? "Preparing PDF..." : "Download PDF"}</Button></div>
         {pdfError ? <div className="report-builder__error" role="alert">{pdfError}</div> : null}
+        {state.periodType === "weekly" ? <WeeklyReportApproval key={state.week} week={state.week} /> : null}
         <div className="report-builder__preview" aria-label="Live report preview">
           {apiAvailability === "checking" ? <p>Checking the CaneGuard API connection...</p> : previewUrl ? <iframe title="Live report preview" src={previewUrl} /> : apiAvailability === "available" ? <p>Preparing the report preview...</p> : null}
         </div>

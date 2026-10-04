@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Notifications\CreateLifecycleNotifications;
+use App\Actions\Notifications\ScopeNotifications;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MobileNotificationMutationRequest;
 use App\Http\Requests\MobileNotificationRequest;
@@ -30,7 +31,7 @@ class MobileNotificationController extends Controller
         }
 
         $user = $request->user();
-        $items = $user->notifications()
+        $items = app(ScopeNotifications::class)->handle($user->notifications(), $user)
             ->where('created_at', '<=', $syncBefore)
             ->orderBy('created_at')
             ->orderBy('id')
@@ -55,7 +56,7 @@ class MobileNotificationController extends Controller
         DatabaseNotification $notification,
     ): MobileNotificationResource {
         $user = $request->user();
-        $owned = $user->notifications()
+        $owned = app(ScopeNotifications::class)->handle($user->notifications(), $user)
             ->whereKey($notification->getKey())
             ->firstOrFail();
 
@@ -68,7 +69,7 @@ class MobileNotificationController extends Controller
             && filled($data['report_uuid'] ?? null)
             && filled($data['advisory_uuid'] ?? null)
         ) {
-            Report::query()
+            Report::query()->visibleTo(request()->user())
                 ->where('uuid', $data['report_uuid'])
                 ->whereBelongsTo($user, 'reporter')
                 ->whereHas('advisory', fn ($query) => $query->where('uuid', $data['advisory_uuid']))
@@ -81,7 +82,7 @@ class MobileNotificationController extends Controller
 
         return (new MobileNotificationResource($owned->refresh()))->additional([
             'meta' => [
-                'unread_count' => $user->unreadNotifications()->count(),
+                'unread_count' => app(ScopeNotifications::class)->handle($user->unreadNotifications(), $user)->count(),
             ],
         ]);
     }
@@ -91,7 +92,7 @@ class MobileNotificationController extends Controller
         MobileNotificationMutationRequest $request,
     ): JsonResponse {
         $user = $request->user();
-        $markedCount = $user->unreadNotifications()->update(['read_at' => now()]);
+        $markedCount = app(ScopeNotifications::class)->handle($user->unreadNotifications(), $user)->update(['read_at' => now()]);
 
         return response()->json([
             'data' => [],

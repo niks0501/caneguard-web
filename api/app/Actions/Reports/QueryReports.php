@@ -21,7 +21,7 @@ class QueryReports
      */
     public function handle(array $filters): LengthAwarePaginator
     {
-        $query = Report::query()
+        $query = Report::query()->visibleTo(request()->user())
             ->whereNull('canonical_report_id')
             ->with([
                 'reporter',

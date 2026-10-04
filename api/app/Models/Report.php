@@ -5,8 +5,10 @@ namespace App\Models;
 use App\Contracts\MobileReportUploadContract;
 use App\Contracts\MobileReportUploadV2Contract;
 use App\Contracts\ReportLifecycleContract;
+use App\Security\DistrictAccess;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'uuid',
     'reference_code',
     'reporter_id',
+    'district_id',
     'client_uuid',
     'scan_record_client_uuid',
     'barangay',
@@ -507,6 +510,11 @@ class Report extends Model
         return ['uuid'];
     }
 
+    public function scopeVisibleTo(Builder $query, ?User $user, bool $ownerOnly = true): Builder
+    {
+        return app(DistrictAccess::class)->scope($query, $user, $ownerOnly);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'uuid';
@@ -649,6 +657,7 @@ class Report extends Model
     protected function casts(): array
     {
         return [
+            'district_id' => 'integer',
             'image_size_bytes' => 'integer',
             'source_width' => 'integer',
             'source_height' => 'integer',

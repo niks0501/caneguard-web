@@ -26,9 +26,9 @@ class DashboardAggregatesMySqlTest extends TestCase
         $this->assertSame('mysql', DB::connection()->getDriverName());
         CarbonImmutable::setTestNow('2026-09-10 09:00:00');
         try {
-            $reviewer = User::factory()->reviewer()->create();
-            $assignee = User::factory()->fieldReporter()->create();
-            $past = Report::factory()->create([
+            $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+            $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+            $past = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'barangay' => 'Aga',
                 'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
                 'predicted_label' => Report::LABEL_MOSAIC,
@@ -44,7 +44,7 @@ class DashboardAggregatesMySqlTest extends TestCase
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-09',
             ]);
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'barangay' => 'Banilad',
                 'reporter_suspected_condition' => null,
                 'predicted_label' => Report::LABEL_HEALTHY,
@@ -107,7 +107,7 @@ class DashboardAggregatesMySqlTest extends TestCase
     public function test_decision_aggregates_return_an_empty_shape_for_a_quiet_scope(): void
     {
         $this->assertSame('mysql', DB::connection()->getDriverName());
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
 
         $analytics = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
             'from' => '2026-09-01',

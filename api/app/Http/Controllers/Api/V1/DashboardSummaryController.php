@@ -42,7 +42,7 @@ class DashboardSummaryController extends Controller
 
         $counts = array_fill_keys(Report::reviewStatuses(), 0);
 
-        Report::query()
+        Report::query()->visibleTo(request()->user())
             ->whereNull('canonical_report_id')
             ->selectRaw('review_status, COUNT(*) AS aggregate')
             ->groupBy('review_status')
@@ -62,14 +62,14 @@ class DashboardSummaryController extends Controller
             $queueCounts = [];
             foreach (Report::operationalQueues() as $queue) {
                 $queueCounts[$queue] = $applyOperationalQueueFilter
-                    ->handle(Report::query(), $queue)
+                    ->handle(Report::query()->visibleTo(request()->user()), $queue)
                     ->count('reports.id');
             }
             $data['queues'] = $queueCounts;
         }
 
         if (in_array('recent', $include, true)) {
-            $recentReports = Report::query()
+            $recentReports = Report::query()->visibleTo(request()->user())
                 ->whereNull('canonical_report_id')
                 ->with(['reporter', 'reviewer', 'fieldValidationAssignment', 'qualityWarnings'])
                 ->latest('submitted_at')
@@ -85,7 +85,7 @@ class DashboardSummaryController extends Controller
             if ($riskCalibration['enabled']) {
                 $applyOperationalQueueFilter
                     ->handle(
-                        Report::query()->withCount('qualityWarnings'),
+                        Report::query()->visibleTo(request()->user())->withCount('qualityWarnings'),
                         Report::QUEUE_NEEDS_REVIEW,
                     )
                     ->get()

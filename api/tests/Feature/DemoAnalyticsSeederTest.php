@@ -53,6 +53,7 @@ class DemoAnalyticsSeederTest extends TestCase
 
         $this->seed(DemoAnalyticsSeeder::class);
 
+        $this->approveSeededPilotFixtures();
         Storage::disk('local')->assertExists($imagePath);
         $this->assertSame($sourceImage, Storage::disk('local')->get($imagePath));
         Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
@@ -74,6 +75,7 @@ class DemoAnalyticsSeederTest extends TestCase
 
             $this->seed(DemoAnalyticsSeeder::class);
             $this->seed(DemoAnalyticsSeeder::class);
+            $this->approveSeededPilotFixtures();
 
             $reports = Report::query()
                 ->where('reference_code', 'like', DemoAnalyticsSeeder::REFERENCE_PREFIX.'%')

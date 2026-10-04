@@ -25,7 +25,7 @@ final class BuildMonthlyReportSummary
             : CarbonImmutable::createFromFormat('!Y-m', $month, self::TIMEZONE);
         $periodEnd = $periodStart->addMonth();
 
-        $baseQuery = Report::query()
+        $baseQuery = Report::query()->visibleTo(request()->user())
             ->whereNull('canonical_report_id')
             ->where('submitted_at', '>=', $periodStart->utc())
             ->where('submitted_at', '<', $periodEnd->utc());

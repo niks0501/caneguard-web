@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\FieldValidationAssignment;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use App\Support\MobilePreviousVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,8 @@ class MobilePreviousEvidencePhotoController extends Controller
     ): StreamedResponse {
         abort_unless(
             $request->user()?->role === User::ROLE_FIELD_REPORTER
-                && (string) $assignment->assignee_id === (string) $request->user()->getKey(),
+                && (string) $assignment->assignee_id === (string) $request->user()->getKey()
+                && app(DistrictAccess::class)->report($request->user(), $assignment->report, true),
             403,
         );
 

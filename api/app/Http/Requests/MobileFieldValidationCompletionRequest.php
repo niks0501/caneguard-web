@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\FieldValidationAssignment;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use DateTimeImmutable;
 use Illuminate\Validation\Validator;
 
@@ -29,7 +30,8 @@ class MobileFieldValidationCompletionRequest extends ApiFormRequest
 
         return $this->user()?->role === User::ROLE_FIELD_REPORTER
             && $assignment instanceof FieldValidationAssignment
-            && $assignment->assignee_id === $this->user()->getKey();
+            && $assignment->assignee_id === $this->user()->getKey()
+            && app(DistrictAccess::class)->report($this->user(), $assignment->report, true);
     }
 
     public function rules(): array

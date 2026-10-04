@@ -18,13 +18,13 @@ class ReportDocumentTest extends TestCase
 
     public function test_document_uses_pht_week_boundaries_and_hides_appendix_by_default(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CG-PHT-IN',
             'farmer_or_farm_owner_name' => 'PHT farmer reference',
             'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CG-PHT-OUT',
             'submitted_at' => CarbonImmutable::parse('2026-09-20T16:30:00Z'),
         ]);
@@ -70,8 +70,8 @@ class ReportDocumentTest extends TestCase
 
     public function test_appendix_is_explicit_and_warns_about_farmer_references(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CG-APPENDIX',
             'farmer_or_farm_owner_name' => 'Farmer reference',
             'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
@@ -92,8 +92,8 @@ class ReportDocumentTest extends TestCase
 
     public function test_pdf_route_returns_a_rendered_document_for_seeded_reports(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CG-PDF-SEEDED',
             'submitted_at' => CarbonImmutable::parse('2026-09-17T08:00:00Z'),
         ]);
@@ -117,8 +117,8 @@ class ReportDocumentTest extends TestCase
         $this->assertSame('dompdf', config('laravel-pdf.driver'));
         $this->assertSame(public_path(), config('laravel-pdf.dompdf.chroot'));
 
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CG-PDF-DOMPDF',
             'submitted_at' => CarbonImmutable::parse('2026-09-17T08:00:00Z'),
         ]);

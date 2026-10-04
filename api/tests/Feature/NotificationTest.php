@@ -31,9 +31,9 @@ class NotificationTest extends TestCase
     {
         Storage::fake('local');
         Event::fake([NewCaseSubmitted::class]);
-        $reporter = User::factory()->fieldReporter()->create();
-        $reviewer = User::factory()->reviewer()->create();
-        $admin = User::factory()->admin()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
         $clientUuid = fake()->uuid();
         $token = $reporter->createToken('notification-upload')->plainTextToken;
 
@@ -82,8 +82,8 @@ class NotificationTest extends TestCase
     {
         Storage::fake('local');
         Event::fake([NewCaseSubmitted::class]);
-        $reporter = User::factory()->fieldReporter()->create();
-        User::factory()->reviewer()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $token = $reporter->createToken('notification-idempotency')->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -102,9 +102,9 @@ class NotificationTest extends TestCase
 
     public function test_notification_feed_and_read_actions_are_scoped_to_the_authenticated_user(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $otherReviewer = User::factory()->reviewer()->create();
-        $fieldReporter = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $otherReviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $first = $this->createNotification($reviewer, 'CG-20260817-A');
         $second = $this->createNotification($reviewer, 'CG-20260817-B');
         $other = $this->createNotification($otherReviewer, 'CG-20260817-C');
@@ -150,10 +150,10 @@ class NotificationTest extends TestCase
     public function test_assignment_creation_and_material_changes_notify_only_the_current_assignee(): void
     {
         Event::fake([CaseAttentionChanged::class]);
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $otherAssignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $otherAssignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs($reviewer);
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
@@ -208,10 +208,10 @@ class NotificationTest extends TestCase
     {
         Storage::fake('local');
         Event::fake([CaseAttentionChanged::class]);
-        $reviewer = User::factory()->reviewer()->create();
-        $admin = User::factory()->admin()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -242,10 +242,10 @@ class NotificationTest extends TestCase
 
     public function test_follow_up_due_is_derived_only_from_an_overdue_target_date_and_is_idempotent(): void
     {
-        $assignee = User::factory()->fieldReporter()->create();
-        $reviewer = User::factory()->reviewer()->create();
-        $admin = User::factory()->admin()->create();
-        $report = Report::factory()->create([
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'case_state' => Report::CASE_STATE_OPEN,
         ]);
@@ -255,7 +255,7 @@ class NotificationTest extends TestCase
             'assigned_by_id' => $reviewer->getKey(),
             'target_visit_date' => now()->subDay()->toDateString(),
         ]);
-        $noDateReport = Report::factory()->create([
+        $noDateReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'case_state' => Report::CASE_STATE_OPEN,
         ]);
@@ -265,7 +265,7 @@ class NotificationTest extends TestCase
             'assigned_by_id' => $reviewer->getKey(),
             'target_visit_date' => null,
         ]);
-        $closedReport = Report::factory()->create([
+        $closedReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'case_state' => Report::CASE_STATE_CLOSED,
         ]);
@@ -297,10 +297,10 @@ class NotificationTest extends TestCase
 
     public function test_final_office_review_notifies_submitter_and_validator_but_metadata_corrections_are_quiet(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $submitter = User::factory()->fieldReporter()->create();
-        $validator = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $submitter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $validator = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reporter_id' => $submitter,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
         ]);
@@ -334,8 +334,8 @@ class NotificationTest extends TestCase
 
     public function test_mobile_notification_feed_is_owner_scoped_and_preserves_server_read_state(): void
     {
-        $owner = User::factory()->fieldReporter()->create();
-        $other = User::factory()->fieldReporter()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $notification = $this->createNotification($owner, 'CG-20260817-MOBILE');
         $token = $owner->createToken('notification-read', ['notification:read'])->plainTextToken;
 
@@ -372,8 +372,8 @@ class NotificationTest extends TestCase
 
     public function test_mobile_mark_read_acknowledges_only_the_owners_notification(): void
     {
-        $owner = User::factory()->fieldReporter()->create();
-        $other = User::factory()->fieldReporter()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $owned = $this->createNotification($owner, 'CG-20260817-OWNED');
         $foreign = $this->createNotification($other, 'CG-20260817-FOREIGN');
         $token = $owner->createToken('notification-read', ['notification:read'])->plainTextToken;
@@ -397,7 +397,7 @@ class NotificationTest extends TestCase
 
     public function test_mobile_mark_read_is_idempotent_and_preserves_the_first_timestamp(): void
     {
-        $owner = User::factory()->fieldReporter()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $notification = $this->createNotification($owner, 'CG-20260817-IDEMPOTENT');
         $token = $owner->createToken('notification-read', ['notification:read'])->plainTextToken;
 
@@ -419,8 +419,8 @@ class NotificationTest extends TestCase
 
     public function test_mobile_mark_all_read_clears_only_the_owners_unread_items(): void
     {
-        $owner = User::factory()->fieldReporter()->create();
-        $other = User::factory()->fieldReporter()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $this->createNotification($owner, 'CG-20260817-ONE');
         $this->createNotification($owner, 'CG-20260817-TWO');
         $foreign = $this->createNotification($other, 'CG-20260817-THREE');
@@ -444,8 +444,8 @@ class NotificationTest extends TestCase
 
     public function test_mobile_read_mutations_require_the_field_reporter_role_and_read_ability(): void
     {
-        $owner = User::factory()->fieldReporter()->create();
-        $reviewer = User::factory()->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $notification = $this->createNotification($owner, 'CG-20260817-ROLE');
         $reviewerToken = $reviewer->createToken('reviewer', ['notification:read'])->plainTextToken;
         $weakToken = $owner->createToken('no-ability', ['report:submit'])->plainTextToken;
@@ -479,9 +479,9 @@ class NotificationTest extends TestCase
             'broadcasting.connections.reverb.app_id' => 'test-app',
         ]);
         require base_path('routes/channels.php');
-        $reviewer = User::factory()->reviewer()->create();
-        $otherReviewer = User::factory()->reviewer()->create();
-        $fieldReporter = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $otherReviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
 
         $this->actingAs($reviewer, 'web')->assertAuthenticatedAs($reviewer, 'web');
         $response = $this->postJson('/broadcasting/auth', [
@@ -508,8 +508,8 @@ class NotificationTest extends TestCase
     public function test_broadcast_dispatch_failure_does_not_break_a_submitted_case(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
-        User::factory()->reviewer()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $token = $reporter->createToken('degraded-broadcast-upload')->plainTextToken;
         Event::listen(NewCaseSubmitted::class, function (): never {
             throw new \RuntimeException('Reverb is unavailable.');
@@ -530,8 +530,12 @@ class NotificationTest extends TestCase
 
     private function createNotification(User $recipient, string $referenceCode): DatabaseNotification
     {
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reference_code' => $referenceCode,
+            'reporter_id' => $recipient->role === User::ROLE_FIELD_REPORTER ? $recipient : User::factory()->inDistrict($this->pilotDistrict())->fieldReporter(),
+        ]);
         $recipient->notify(new NewCaseSubmittedNotification(
-            fake()->uuid(),
+            $report->uuid,
             $referenceCode,
         ));
 

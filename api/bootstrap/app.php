@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveIdentity;
+use App\Http\Middleware\EnsureInspectorAccess;
 use App\Http\Middleware\EnsureMobileTokenFresh;
+use App\Http\Middleware\EnsureOfficeAccess;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -39,6 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
             'mobile.token' => EnsureMobileTokenFresh::class,
+            'office.access' => EnsureOfficeAccess::class,
+            'inspector.access' => EnsureInspectorAccess::class,
+            'access.identity' => EnsureActiveIdentity::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

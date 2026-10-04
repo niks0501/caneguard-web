@@ -20,12 +20,12 @@ class ReportAnalyticsTest extends TestCase
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');
 
-        Sanctum::actingAs(User::factory()->fieldReporter()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create());
         $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-07')
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
 
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->getJson('/api/v1/reports/analytics?from=2026-09-07&to=2026-09-01')
             ->assertUnprocessable()
             ->assertJsonPath('code', 'VALIDATION_ERROR');
@@ -48,25 +48,25 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_analytics_buckets_by_pht_day_includes_empty_days_and_excludes_duplicates(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         // 2026-09-01T16:30:00Z is 2026-09-02 in PHT (UTC+8).
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_RUST,
             'case_state' => Report::CASE_STATE_OPEN,
             'submitted_at' => CarbonImmutable::parse('2026-09-01T16:30:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_MOSAIC,
             'case_state' => Report::CASE_STATE_CLOSED,
             'submitted_at' => CarbonImmutable::parse('2026-09-02T01:00:00Z'),
         ]);
-        $canonical = Report::factory()->create([
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'canonical_report_id' => $canonical->getKey(),
             'submitted_at' => CarbonImmutable::parse('2026-09-02T03:00:00Z'),
@@ -99,12 +99,12 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_analytics_buckets_by_iso_week_starting_monday(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         // 2026-09-06 is a Sunday; its ISO week starts Monday 2026-08-31.
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'submitted_at' => CarbonImmutable::parse('2026-09-06T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'submitted_at' => CarbonImmutable::parse('2026-09-08T02:00:00Z'),
         ]);
 
@@ -125,9 +125,9 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_week_comparison_aligns_equal_seven_day_slices_from_each_window_start(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-08-26T02:00:00Z')]);
-        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z')]);
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        Report::factory()->inDistrict($this->pilotDistrict())->create(['submitted_at' => CarbonImmutable::parse('2026-08-26T02:00:00Z')]);
+        Report::factory()->inDistrict($this->pilotDistrict())->create(['submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z')]);
         $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-14&granularity=week')
             ->assertOk()->json('data');
         $this->assertSame(2, count($data['comparison']['current_series']));
@@ -139,14 +139,14 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_analytics_compares_against_the_previous_equal_window(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'submitted_at' => CarbonImmutable::parse('2026-08-20T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
         ]);
 
@@ -171,21 +171,21 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_analytics_applies_the_same_filters_as_the_csv_export(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_RUST,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Poblacion',
             'predicted_label' => Report::LABEL_RUST,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'submitted_at' => CarbonImmutable::parse('2026-09-04T03:00:00Z'),
         ]);
 
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Poblacion',
             'predicted_label' => Report::LABEL_RUST,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -224,7 +224,7 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_analytics_returns_an_empty_shape_for_a_quiet_period(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
 
         Sanctum::actingAs($reviewer);
 
@@ -253,14 +253,14 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_analytics_shares_the_monthly_aggregate_for_mid_month_rows(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'predicted_label' => Report::LABEL_RUST,
             'case_state' => Report::CASE_STATE_CLOSED,
             'submitted_at' => CarbonImmutable::parse('2026-09-15T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Rizal',
             'predicted_label' => Report::LABEL_MOSAIC,
             'case_state' => Report::CASE_STATE_OPEN,
@@ -291,7 +291,7 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_analytics_reports_reported_concern_beside_the_ai_series(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $rows = [
             ['concern' => Report::REPORTER_CONCERN_RSSI, 'label' => Report::LABEL_MOSAIC],
             ['concern' => Report::LABEL_SMUT, 'label' => Report::LABEL_SMUT],
@@ -300,7 +300,7 @@ class ReportAnalyticsTest extends TestCase
             ['concern' => ' mosaic ', 'label' => Report::LABEL_MOSAIC],
         ];
         foreach ($rows as $index => $row) {
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'reporter_suspected_condition' => $row['concern'],
                 'predicted_label' => $row['label'],
                 'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
@@ -347,18 +347,18 @@ class ReportAnalyticsTest extends TestCase
     {
         CarbonImmutable::setTestNow('2026-09-10 09:00:00');
         try {
-            $reviewer = User::factory()->reviewer()->create();
-            Report::factory()->create([
+            $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'submitted_at' => CarbonImmutable::parse('2026-09-08T02:00:00Z'),
             ]);
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'submitted_at' => CarbonImmutable::parse('2026-08-08T02:00:00Z'),
             ]);
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
@@ -376,9 +376,9 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_month_to_date_comparison_uses_the_same_dates_in_the_prior_month(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-08-02T02:00:00Z')]);
-        Report::factory()->create(['submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z')]);
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        Report::factory()->inDistrict($this->pilotDistrict())->create(['submitted_at' => CarbonImmutable::parse('2026-08-02T02:00:00Z')]);
+        Report::factory()->inDistrict($this->pilotDistrict())->create(['submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z')]);
         $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-24&granularity=day&comparison=previous_month')
             ->assertOk()->json('data');
         $this->assertSame('2026-08-01', $data['comparison']['previous_from']);
@@ -395,7 +395,7 @@ class ReportAnalyticsTest extends TestCase
     {
         CarbonImmutable::setTestNow('2026-03-31 09:00:00 Asia/Manila');
         try {
-            Sanctum::actingAs(User::factory()->reviewer()->create());
+            Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
             $data = $this->getJson('/api/v1/reports/analytics?from=2026-03-01&to=2026-03-31&granularity=day&comparison=previous_month')
                 ->assertOk()->json('data');
             $this->assertTrue($data['period']['partial']);
@@ -410,8 +410,8 @@ class ReportAnalyticsTest extends TestCase
 
     public function test_possible_condition_includes_supported_smut_but_never_reporter_only_rssi(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        Report::factory()->create([
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'predicted_label' => Report::LABEL_SMUT,
             'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
             'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
@@ -427,9 +427,9 @@ class ReportAnalyticsTest extends TestCase
     {
         CarbonImmutable::setTestNow('2026-09-10 09:00:00');
         try {
-            $reviewer = User::factory()->reviewer()->create();
-            $assignee = User::factory()->fieldReporter()->create();
-            $past = Report::factory()->create([
+            $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+            $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+            $past = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'barangay' => 'Aga',
                 'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
                 'case_state' => Report::CASE_STATE_OPEN,
@@ -442,7 +442,7 @@ class ReportAnalyticsTest extends TestCase
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-09',
             ]);
-            $upcoming = Report::factory()->create([
+            $upcoming = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'barangay' => 'Aga',
                 'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
                 'case_state' => Report::CASE_STATE_OPEN,
@@ -455,7 +455,7 @@ class ReportAnalyticsTest extends TestCase
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-12',
             ]);
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'barangay' => 'Banilad',
                 'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
                 'case_state' => Report::CASE_STATE_OPEN,

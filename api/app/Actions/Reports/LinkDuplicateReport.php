@@ -5,6 +5,7 @@ namespace App\Actions\Reports;
 use App\Models\Report;
 use App\Models\ReportAudit;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -31,7 +32,7 @@ class LinkDuplicateReport
             $lockedDuplicate = Report::query()
                 ->lockForUpdate()
                 ->findOrFail($duplicate->getKey());
-            $canonical = Report::query()
+            $canonical = Report::query()->visibleTo($actor)
                 ->lockForUpdate()
                 ->where('uuid', $canonicalReportUuid)
                 ->firstOrFail();
@@ -41,6 +42,7 @@ class LinkDuplicateReport
                 409,
             );
 
+            abort_unless(app(DistrictAccess::class)->report($actor, $lockedDuplicate), 403);
             $this->guardLifecycle->handle($lockedDuplicate);
 
             if ($lockedDuplicate->is($canonical)) {

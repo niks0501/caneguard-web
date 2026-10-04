@@ -26,8 +26,8 @@ class MobileFieldValidationAssignmentController extends Controller
         }
         $query = FieldValidationAssignment::query()
             ->where('assignee_id', $request->user()->getKey())
-            ->whereHas('report', function ($query): void {
-                $query
+            ->whereHas('report', function ($query) use ($request): void {
+                $query->visibleTo($request->user(), false)
                     ->where('case_state', Report::CASE_STATE_OPEN)
                     ->whereIn('field_validation_state', [
                         Report::FIELD_VALIDATION_STATE_ASSIGNED,

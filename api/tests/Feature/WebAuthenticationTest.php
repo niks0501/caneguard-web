@@ -16,7 +16,7 @@ class WebAuthenticationTest extends TestCase
 
     public function test_reviewer_can_login_restore_session_and_logout(): void
     {
-        $reviewer = User::factory()->reviewer()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'email' => 'reviewer@example.test',
             'password' => 'correct-password',
         ]);
@@ -39,6 +39,8 @@ class WebAuthenticationTest extends TestCase
                     'name' => $reviewer->name,
                     'email' => $reviewer->email,
                     'role' => User::ROLE_REVIEWER,
+                    'capabilities' => ['case:review'],
+                    'district_id' => $this->pilotDistrict()->id,
                 ],
             ]);
 
@@ -52,7 +54,7 @@ class WebAuthenticationTest extends TestCase
 
     public function test_admin_can_login_to_the_web_workspace(): void
     {
-        $admin = User::factory()->admin()->create([
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create([
             'password' => 'correct-password',
         ]);
 
@@ -68,7 +70,7 @@ class WebAuthenticationTest extends TestCase
 
     public function test_invalid_credentials_are_rejected_without_a_session(): void
     {
-        $reviewer = User::factory()->reviewer()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'password' => 'correct-password',
         ]);
 
@@ -90,7 +92,7 @@ class WebAuthenticationTest extends TestCase
 
     public function test_field_reporter_is_blocked_and_logged_back_out(): void
     {
-        $fieldReporter = User::factory()->fieldReporter()->create([
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create([
             'password' => 'correct-password',
         ]);
 

@@ -21,6 +21,12 @@ class ReportApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_reports_are_searchable_filterable_sorted_and_paginated(): void
     {
         $reporter = User::factory()->fieldReporter()->create([

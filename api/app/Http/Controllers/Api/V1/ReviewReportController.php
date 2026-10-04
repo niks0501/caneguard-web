@@ -12,6 +12,7 @@ use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportAudit;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -202,6 +203,7 @@ class ReviewReportController extends Controller
                     ->where('uuid', $data['field_validation_assignee_uuid'])
                     ->where('role', User::ROLE_FIELD_REPORTER)
                     ->firstOrFail();
+                abort_unless(app(DistrictAccess::class)->allows($assignee, $locked->district_id), 403);
                 $targetVisitDate = array_key_exists('field_validation_target_date', $data)
                     ? $data['field_validation_target_date']
                     : $existingAssignment?->target_visit_date?->format('Y-m-d');

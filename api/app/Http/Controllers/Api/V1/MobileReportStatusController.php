@@ -19,7 +19,7 @@ class MobileReportStatusController extends Controller
             $request->validated('sync_before') ?? now(),
         )->utc();
         $isV3 = $request->routeIs('api.v3.mobile.reports.statuses');
-        $reports = Report::query()
+        $reports = Report::query()->visibleTo(request()->user())
             ->when($isV3, fn ($query) => $query->with('advisory'))
             ->whereBelongsTo($request->user(), 'reporter')
             ->when(

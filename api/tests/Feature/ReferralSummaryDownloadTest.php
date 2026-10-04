@@ -19,6 +19,12 @@ class ReferralSummaryDownloadTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     #[DataProvider('photoFormatsAndSummaryRoutes')]
     public function test_only_html_downloads_embed_the_private_evidence_photo(
         string $extension,
@@ -27,14 +33,14 @@ class ReferralSummaryDownloadTest extends TestCase
     ): void {
         Storage::fake('local');
         $photo = UploadedFile::fake()->image('evidence.'.$extension)->get();
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'image_path' => 'reports/private-evidence.'.$extension,
             'image_mime_type' => $mimeType,
             'image_size_bytes' => strlen($photo),
         ]);
         ReportReferral::factory()->for($report)->create();
         Storage::disk('local')->put($report->image_path, $photo);
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
 
         $summaryUrl = "/api/v1/reports/{$report->uuid}/{$summaryPath}";
         $imageUrl = route('api.v1.reports.image', ['report' => $report->uuid], false);
@@ -86,7 +92,7 @@ class ReferralSummaryDownloadTest extends TestCase
     {
         Storage::fake('local');
         $report = ReportReferral::factory()->create()->report;
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $summaryUrl = "/api/v1/reports/{$report->uuid}/{$summaryPath}";
 
         foreach (['', '?download=1'] as $query) {
@@ -115,8 +121,8 @@ class ReferralSummaryDownloadTest extends TestCase
             ->assertDontSee('base64,', false);
 
         foreach ([
-            User::factory()->fieldReporter()->create(),
-            User::factory()->create(['role' => 'expert']),
+            User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create(),
+            User::factory()->inDistrict($this->pilotDistrict())->create(['role' => 'expert']),
         ] as $unauthorizedUser) {
             Sanctum::actingAs($unauthorizedUser);
             $this->get($summaryUrl)
@@ -130,7 +136,7 @@ class ReferralSummaryDownloadTest extends TestCase
     public function test_download_keeps_the_missing_evidence_notice_when_the_photo_cannot_be_read(): void
     {
         $report = ReportReferral::factory()->create()->report;
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $disk = Mockery::mock(FilesystemAdapter::class);
         $disk->shouldReceive('exists')->with($report->image_path)->once()->andReturn(true);
         $disk->shouldReceive('readStream')->with($report->image_path)->once()->andReturn(null);
@@ -150,7 +156,7 @@ class ReferralSummaryDownloadTest extends TestCase
         $photo = str_pad(UploadedFile::fake()->image('evidence.jpeg')->get(), $maxBytes, "\0");
         $report = ReportReferral::factory()->create()->report;
         Storage::disk('local')->put($report->image_path, $photo);
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
 
         $download = $this->get("/api/v1/reports/{$report->uuid}/referral/summary?download=1")
             ->assertOk();
@@ -169,13 +175,13 @@ class ReferralSummaryDownloadTest extends TestCase
     public function test_download_does_not_embed_a_private_file_above_the_size_ceiling(): void
     {
         Storage::fake('local');
-        $report = Report::factory()->create(['image_size_bytes' => 1]);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['image_size_bytes' => 1]);
         ReportReferral::factory()->for($report)->create();
         Storage::disk('local')->put(
             $report->image_path,
             str_repeat('x', MobileReportUploadContract::field('image')['max_bytes'] + 1),
         );
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $summaryUrl = "/api/v1/reports/{$report->uuid}/referral/summary";
 
         $this->get($summaryUrl.'?download=1')

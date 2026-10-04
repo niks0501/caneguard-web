@@ -15,6 +15,12 @@ class ReportReportingTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_export_is_filter_scoped_and_includes_case_lifecycle_assignment_and_referral_fields(): void
     {
         $reviewer = User::factory()->reviewer()->create(['name' => 'Office Reviewer']);

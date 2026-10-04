@@ -14,8 +14,8 @@ class ReportLifecycleTest extends TestCase
 
     public function test_lifecycle_dimensions_are_independent_and_available_to_web_clients(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
@@ -56,8 +56,8 @@ class ReportLifecycleTest extends TestCase
 
     public function test_lifecycle_dimensions_are_included_in_list_map_and_field_validation_resources(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
@@ -138,8 +138,8 @@ class ReportLifecycleTest extends TestCase
 
     public function test_legacy_status_review_updates_keep_the_lifecycle_compatibility_mapping_in_sync(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
         ]);
 
@@ -167,8 +167,8 @@ class ReportLifecycleTest extends TestCase
 
     public function test_legacy_status_review_updates_do_not_reset_other_lifecycle_dimensions(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
             'referral_state' => Report::REFERRAL_STATE_REFERRED,

@@ -20,13 +20,19 @@ class FieldValidationAssignmentTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_mobile_assignment_feed_requires_a_field_reporter_session(): void
     {
         $this->getJson('/api/v1/mobile/assignments')
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');
 
-        Sanctum::actingAs(User::factory()->reviewer()->create(), ['assignment:read']);
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create(), ['assignment:read']);
         $this->getJson('/api/v1/mobile/assignments')
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
@@ -34,8 +40,8 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_selecting_field_validation_requires_an_assignee_and_target_date_is_optional(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs($reviewer);
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
@@ -61,8 +67,8 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_legacy_field_validation_selection_also_requires_an_assignee(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs($reviewer);
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
@@ -75,8 +81,8 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_assignment_cannot_be_combined_with_closing_the_case(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs($reviewer);
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
@@ -92,10 +98,10 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_only_field_reporters_are_eligible_and_web_list_is_role_scoped(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $otherReviewer = User::factory()->reviewer()->create();
-        $fieldReporter = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $otherReviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs($reviewer);
 
         $this->getJson('/api/v1/field-reporters')
@@ -124,9 +130,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_assignment_is_immediate_and_same_submitter_relationship_is_visible(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $submitter = User::factory()->fieldReporter()->create(['name' => 'Original Submitter']);
-        $report = Report::factory()->create(['reporter_id' => $submitter]);
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $submitter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create(['name' => 'Original Submitter']);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $submitter]);
         Sanctum::actingAs($reviewer);
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
@@ -165,9 +171,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_rescheduling_a_target_date_writes_a_report_audit(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
         ]);
@@ -205,9 +211,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_mobile_assignment_feed_preserves_smut_model_labels(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->mobileModelV1()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
             'predicted_label' => Report::LABEL_SMUT,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
@@ -226,11 +232,11 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_mobile_assignment_feed_is_owner_scoped_and_can_materialize_a_server_only_case(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $submitter = User::factory()->fieldReporter()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $otherAssignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $submitter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $otherAssignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reporter_id' => $submitter,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
@@ -241,7 +247,7 @@ class FieldValidationAssignmentTest extends TestCase
             'assigned_by_id' => $reviewer->getKey(),
             'target_visit_date' => null,
         ]);
-        $otherReport = Report::factory()->create([
+        $otherReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reporter_id' => $submitter,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
@@ -268,9 +274,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_mobile_assignment_feed_uses_authenticated_owner_and_stable_cursor_checkpoint(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $reports = Report::factory()->count(3)->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reports = Report::factory()->inDistrict($this->pilotDistrict())->count(3)->create([
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
@@ -295,7 +301,7 @@ class FieldValidationAssignmentTest extends TestCase
             ->assertOk()
             ->assertJsonPath('sync.before', $first->json('sync.before'));
 
-        $other = User::factory()->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         Sanctum::actingAs($other, ['assignment:read']);
         $this->getJson('/api/v1/mobile/assignments')
             ->assertOk()
@@ -304,9 +310,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_reviewer_can_clear_an_assignment_with_an_explicit_null_assignee(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -333,9 +339,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_completed_validation_evidence_cannot_be_reassigned_or_removed(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -366,10 +372,10 @@ class FieldValidationAssignmentTest extends TestCase
     public function test_field_reporter_can_complete_an_assignment_and_the_case_returns_to_review(): void
     {
         Storage::fake('local');
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
-            'reporter_id' => User::factory()->fieldReporter()->create()->getKey(),
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create()->getKey(),
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
@@ -438,9 +444,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_completion_conflict_echoes_the_submitted_client_uuid(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -478,12 +484,12 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_follow_up_outcome_round_trips_supported_values_and_rejects_unknown_values(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         Sanctum::actingAs($assignee, ['assignment:complete']);
 
         foreach (['improved', 'unchanged', 'worsened', 'unable_to_determine'] as $outcome) {
-            $report = Report::factory()->create([
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             ]);
             $assignment = FieldValidationAssignment::factory()->create([
@@ -511,7 +517,7 @@ class FieldValidationAssignmentTest extends TestCase
             ]);
         }
 
-        $invalidReport = Report::factory()->create([
+        $invalidReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $invalidAssignment = FieldValidationAssignment::factory()->create([
@@ -536,10 +542,10 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_completion_requires_assignment_ownership_and_completion_ability(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $other = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -569,9 +575,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_completion_rejects_impossible_iso_calendar_dates(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -598,8 +604,8 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_completion_accepts_contract_iso_date_time_forms(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         Sanctum::actingAs($assignee, ['assignment:complete']);
 
         foreach ([
@@ -607,7 +613,7 @@ class FieldValidationAssignmentTest extends TestCase
             ['visited_at' => '2026-09-02T04:05:06.1Z', 'gps_attempted_at' => '2026-09-02T04:05:01.123456Z'],
             ['visited_at' => '2026-09-02T04:05:06+08:00', 'gps_attempted_at' => '2026-09-02T04:05:01+08:00'],
         ] as $timestamps) {
-            $report = Report::factory()->create([
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             ]);
             $assignment = FieldValidationAssignment::factory()->create([
@@ -632,9 +638,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_completion_requires_all_field_evidence_but_allows_an_unavailable_gps_attempt_and_no_photo(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -668,9 +674,9 @@ class FieldValidationAssignmentTest extends TestCase
     public function test_completion_accepts_a_fresh_photo_and_contract_matches_the_route(): void
     {
         Storage::fake('local');
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -711,9 +717,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_mobile_assignment_feed_includes_previous_visit_context_for_the_same_farm(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $previousReport = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $previousReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'farmer_or_farm_owner_name' => 'Farm Alpha',
             'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
@@ -735,7 +741,7 @@ class FieldValidationAssignmentTest extends TestCase
             'visited_at' => '2026-09-10T08:30:00.000Z',
             'fresh_photo_path' => 'field-validation/previous/photo.jpg',
         ]);
-        $currentReport = Report::factory()->create([
+        $currentReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => ' mabini ',
             'farmer_or_farm_owner_name' => '  FARM   ALPHA  ',
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
@@ -767,9 +773,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_mobile_assignment_feed_returns_a_null_previous_visit_when_none_exists(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
         ]);
@@ -787,9 +793,9 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_mobile_assignment_feed_returns_a_null_previous_visit_outcome_when_the_prior_visit_has_no_choice(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $assignee = User::factory()->fieldReporter()->create();
-        $previousReport = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $previousReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'farmer_or_farm_owner_name' => 'Farm Alpha',
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
@@ -807,7 +813,7 @@ class FieldValidationAssignmentTest extends TestCase
             'follow_up_outcome' => null,
             'visited_at' => '2026-09-10T08:30:00.000Z',
         ]);
-        $currentReport = Report::factory()->create([
+        $currentReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'mabini',
             'farmer_or_farm_owner_name' => 'farm alpha',
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
@@ -830,10 +836,10 @@ class FieldValidationAssignmentTest extends TestCase
 
     public function test_mobile_assignment_feed_keeps_previous_visit_outcome_owner_scoped_with_the_assignment(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $owner = User::factory()->fieldReporter()->create();
-        $other = User::factory()->fieldReporter()->create();
-        $previousReport = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $previousReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'farmer_or_farm_owner_name' => 'Farm Alpha',
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
@@ -849,7 +855,7 @@ class FieldValidationAssignmentTest extends TestCase
             'follow_up_outcome' => 'worsened',
             'visited_at' => '2026-09-10T08:30:00.000Z',
         ]);
-        $currentReport = Report::factory()->create([
+        $currentReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'farmer_or_farm_owner_name' => 'Farm Alpha',
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
@@ -876,10 +882,10 @@ class FieldValidationAssignmentTest extends TestCase
     public function test_previous_evidence_photo_is_owner_scoped_and_private(): void
     {
         Storage::fake('local');
-        $reviewer = User::factory()->reviewer()->create();
-        $owner = User::factory()->fieldReporter()->create();
-        $other = User::factory()->fieldReporter()->create();
-        $previousReport = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $previousReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'farmer_or_farm_owner_name' => 'Farm Alpha',
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
@@ -898,7 +904,7 @@ class FieldValidationAssignmentTest extends TestCase
             'fresh_photo_mime_type' => 'image/jpeg',
         ]);
         Storage::disk('local')->put($photoPath, 'previous evidence');
-        $currentReport = Report::factory()->create([
+        $currentReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'farmer_or_farm_owner_name' => 'Farm Alpha',
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,

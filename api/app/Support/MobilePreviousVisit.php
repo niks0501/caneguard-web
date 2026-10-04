@@ -22,6 +22,7 @@ final class MobilePreviousVisit
             // feed; never match a completion assigned to another reporter.
             ->where('assignee_id', $assignment->assignee_id)
             ->whereHas('completion')
+            ->whereHas('report', fn ($query) => $query->where('district_id', $report->district_id))
             ->with(['report', 'completion'])
             ->get()
             ->filter(function (FieldValidationAssignment $candidate) use (

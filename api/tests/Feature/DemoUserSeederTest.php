@@ -40,7 +40,8 @@ class DemoUserSeederTest extends TestCase
         ]);
         $this->assertDatabaseMissing('users', ['role' => 'expert']);
 
-        $expectedRoles = User::roles();
+        // The demo seeds staff identities only, never farmer sign-up or district grants.
+        $expectedRoles = [User::ROLE_FIELD_REPORTER, User::ROLE_REVIEWER, User::ROLE_ADMIN];
         sort($expectedRoles);
 
         $this->assertSame($expectedRoles, User::query()->pluck('role')->sort()->values()->all());

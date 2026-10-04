@@ -8521,6 +8521,22 @@ body {
   background: var(--color-surface);
 }
 
+.report-builder__weekly {
+  border-block: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.report-builder__weekly h3,
+.report-builder__weekly > p {
+  margin: var(--space-3) var(--space-6);
+}
+
+.report-builder__weekly .report-builder__actions {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .report-builder__preview {
   position: relative;
   flex: 1;

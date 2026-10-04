@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Auth\RevokeUserAuthentication;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,12 +12,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\NewAccessToken;
 
 #[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
+    public const ROLE_FARMER = 'farmer';
+
     public const ROLE_FIELD_REPORTER = 'field_reporter';
 
     public const ROLE_REVIEWER = 'reviewer';
@@ -24,7 +29,19 @@ class User extends Authenticatable implements MustVerifyEmail
     public const ROLE_ADMIN = 'admin';
 
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasUuids, Notifiable;
+    use HasApiTokens {
+        createToken as private createSanctumToken;
+    }
+
+    use HasFactory, HasUuids, Notifiable;
+
+    public function createToken(string $name, array $abilities = ['*'], ?\DateTimeInterface $expiresAt = null): NewAccessToken
+    {
+        $maximum = now()->addDays(30);
+        $expiry = $expiresAt === null || $expiresAt > $maximum ? $maximum : $expiresAt;
+
+        return $this->createSanctumToken($name, $abilities, $expiry);
+    }
 
     /**
      * Get the columns that should receive unique identifiers.
@@ -44,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public static function roles(): array
     {
         return [
+            self::ROLE_FARMER,
             self::ROLE_FIELD_REPORTER,
             self::ROLE_REVIEWER,
             self::ROLE_ADMIN,
@@ -73,6 +91,24 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             ...self::officeRoles(),
         ];
+    }
+
+    public function isMobileUser(): bool
+    {
+        return $this->hasVerifiedEmail() && in_array($this->role, [self::ROLE_FARMER, self::ROLE_FIELD_REPORTER], true);
+    }
+
+    protected static function booted(): void
+    {
+        static::updated(function (self $user): void {
+            if ($user->wasChanged('role')) {
+                DistrictGrant::query()->where('user_id', $user->id)->update([
+                    'revoked_at' => now()->utc(),
+                    'revision' => DB::raw('revision + 1'),
+                ]);
+                app(RevokeUserAuthentication::class)->handle($user);
+            }
+        });
     }
 
     public function isOfficeUser(): bool

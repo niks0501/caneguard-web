@@ -3,8 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\Advisory;
+use App\Models\DistrictMembership;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
@@ -232,6 +234,10 @@ class ReviewReportRequest extends ApiFormRequest
                 && ! User::query()
                     ->where('uuid', $this->input('field_validation_assignee_uuid'))
                     ->where('role', User::ROLE_FIELD_REPORTER)
+                    ->whereNotNull('email_verified_at')
+                    ->whereIn('id', DistrictMembership::query()
+                        ->where('district_id', app(DistrictAccess::class)->pilotId())
+                        ->whereNull('revoked_at')->select('user_id'))
                     ->exists()
             ) {
                 $validator->errors()->add(
