@@ -11,10 +11,10 @@ class ReportMySqlSchemaTest extends TestCase
     public function test_report_schema_matches_the_mysql_contract(): void
     {
         $this->assertSame('mysql', DB::connection()->getDriverName());
-        $this->assertSame('caneguard_test', DB::connection()->getDatabaseName());
+        $this->assertMatchesRegularExpression('/^(caneguard_test|firstmate_[a-z0-9_]+)$/D', DB::connection()->getDatabaseName());
 
         $table = DB::table('information_schema.tables')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'reports')
             ->firstOrFail();
 
@@ -22,7 +22,7 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertSame('utf8mb4_unicode_ci', $table->TABLE_COLLATION);
 
         $columns = DB::table('information_schema.columns')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'reports')
             ->get()
             ->keyBy('COLUMN_NAME');
@@ -112,7 +112,7 @@ class ReportMySqlSchemaTest extends TestCase
             ->selectRaw(
                 'INDEX_NAME, NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns',
             )
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'reports')
             ->groupBy('INDEX_NAME', 'NON_UNIQUE')
             ->get()
@@ -188,7 +188,7 @@ class ReportMySqlSchemaTest extends TestCase
         );
 
         $foreignKeys = DB::table('information_schema.key_column_usage')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'reports')
             ->whereNotNull('referenced_table_name')
             ->get()
@@ -208,7 +208,7 @@ class ReportMySqlSchemaTest extends TestCase
         );
 
         $deleteRules = DB::table('information_schema.referential_constraints')
-            ->where('constraint_schema', 'caneguard_test')
+            ->where('constraint_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'reports')
             ->pluck('DELETE_RULE', 'CONSTRAINT_NAME');
 
@@ -233,7 +233,7 @@ class ReportMySqlSchemaTest extends TestCase
 
         foreach ($childPrimaryKeys as $childTable => $primaryColumns) {
             $rule = DB::table('information_schema.referential_constraints')
-                ->where('constraint_schema', 'caneguard_test')
+                ->where('constraint_schema', DB::connection()->getDatabaseName())
                 ->where('table_name', $childTable)
                 ->value('DELETE_RULE');
 
@@ -243,7 +243,7 @@ class ReportMySqlSchemaTest extends TestCase
                 ->selectRaw(
                     'GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns',
                 )
-                ->where('table_schema', 'caneguard_test')
+                ->where('table_schema', DB::connection()->getDatabaseName())
                 ->where('table_name', $childTable)
                 ->where('index_name', 'PRIMARY')
                 ->value('indexed_columns');
@@ -252,17 +252,17 @@ class ReportMySqlSchemaTest extends TestCase
         }
 
         $scoreColumn = DB::table('information_schema.columns')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'report_class_scores')
             ->where('column_name', 'score')
             ->firstOrFail();
         $symptomColumn = DB::table('information_schema.columns')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'report_symptoms')
             ->where('column_name', 'symptom_key')
             ->firstOrFail();
         $warningColumn = DB::table('information_schema.columns')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'report_quality_warnings')
             ->where('column_name', 'warning_key')
             ->firstOrFail();

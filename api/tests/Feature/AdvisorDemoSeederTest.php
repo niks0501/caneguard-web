@@ -6,7 +6,6 @@ use App\Contracts\MobileFieldValidationAssignmentContract;
 use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\Advisory;
 use App\Models\Report;
-use App\Models\ReportReferral;
 use App\Models\User;
 use Database\Seeders\AdvisorDemoSeeder;
 use Database\Seeders\DashboardReportSeeder;
@@ -30,7 +29,6 @@ class AdvisorDemoSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
             'caneguard.demo_users.admin_password' => 'admin-test-password',
-            'caneguard.demo_users.expert_password' => 'expert-test-password',
         ]);
         Storage::fake('local');
     }
@@ -47,10 +45,10 @@ class AdvisorDemoSeederTest extends TestCase
                 + count(DashboardReportSeeder::reportReferences()),
         );
         $this->assertDatabaseCount('advisories', 4);
-        $this->assertGreaterThan(4, ReportReferral::query()->count());
+        $this->assertDatabaseCount('report_referrals', 0);
         $this->assertGreaterThan(4, DB::table('field_validation_assignments')->count());
         $this->assertGreaterThan(2, DB::table('field_validation_completions')->count());
-        $this->assertDatabaseCount('report_review_events', 1);
+        $this->assertDatabaseCount('report_review_events', 0);
 
         $scheduled = Report::query()->where('reference_code', 'BGO-20260920-0810')->firstOrFail();
         $this->assertSame('Rogelio Manalo', $scheduled->farmer_or_farm_owner_name);
@@ -65,17 +63,6 @@ class AdvisorDemoSeederTest extends TestCase
         $this->assertNotNull($completion);
         $this->assertSame('improved', $completion->follow_up_outcome);
         Storage::disk('local')->assertExists('field-validation/2026-09-18-balaytigui.png');
-
-        $consult = ReportReferral::query()
-            ->where('reference', 'BGO-CONSULT-20260910')
-            ->firstOrFail();
-        $this->assertSame(
-            User::query()->where('email', 'expert@caneguard.test')->value('id'),
-            $consult->expert_id,
-        );
-        $this->assertSame(ReportReferral::STATUS_COMPLETED, $consult->consult_status);
-        $this->assertSame('2026-09-14', $consult->response_date?->format('Y-m-d'));
-        $this->assertNotNull($consult->response_finding);
 
         $advisory = Advisory::query()->where('code', AdvisorDemoSeeder::ADVISORY_CODE)->firstOrFail();
         $this->assertSame(Advisory::STATUS_VALIDATED, $advisory->status);
@@ -131,40 +118,14 @@ class AdvisorDemoSeederTest extends TestCase
         Sanctum::actingAs($reviewer);
         $summary = $this->getJson('/api/v1/reports/summary?month=2026-09')
             ->assertOk();
-        $this->assertGreaterThan(
-            2,
-            $summary->json('data.expert_verification.consult_volume.total'),
-        );
-        $this->assertGreaterThan(
-            1,
-            $summary->json('data.expert_verification.consult_volume.completed'),
-        );
-        $this->assertGreaterThanOrEqual(
-            1,
-            $summary->json('data.expert_verification.advisory_coverage.cases_with_advisory'),
-        );
-        $this->assertGreaterThanOrEqual(
-            1,
-            $summary->json('data.expert_verification.advisory_coverage.delivered_cases'),
-        );
-        $this->assertGreaterThanOrEqual(
-            1,
-            $summary->json('data.expert_verification.expert_agreement.count'),
-        );
+        $summary->assertJsonMissingPath('data.expert_verification');
+        $this->assertDatabaseCount('report_referrals', 0);
 
         $this->getJson("/api/v1/reports/{$photoReport->uuid}/validation-photo")
             ->assertOk()
             ->assertHeader('Cache-Control', 'max-age=300, private')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
 
-        $expert = User::query()->where('email', 'expert@caneguard.test')->firstOrFail();
-        Sanctum::actingAs($expert);
-        $this->getJson('/api/v1/reports/expert-queue')
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.reference_code', 'BGO-20260919-0820')
-            ->assertJsonPath('data.0.expert_consult.status', ReportReferral::STATUS_PENDING)
-            ->assertJsonPath('data.0.expert_consult.due_date', '2026-09-26');
     }
 
     public function test_cleanup_removes_only_demo_rows_and_files(): void
@@ -178,7 +139,7 @@ class AdvisorDemoSeederTest extends TestCase
             12 + count(DashboardReportSeeder::reportReferences()),
         );
         $this->assertDatabaseCount('advisories', 3);
-        $this->assertGreaterThan(2, ReportReferral::query()->count());
+        $this->assertDatabaseCount('report_referrals', 0);
         $this->assertGreaterThan(0, DB::table('field_validation_assignments')->count());
         $this->assertGreaterThan(0, DB::table('field_validation_completions')->count());
         $this->assertDatabaseCount('report_review_events', 0);

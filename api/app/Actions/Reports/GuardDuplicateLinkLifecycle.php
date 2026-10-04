@@ -3,7 +3,6 @@
 namespace App\Actions\Reports;
 
 use App\Models\Report;
-use App\Models\ReportReferral;
 use Illuminate\Validation\ValidationException;
 
 final class GuardDuplicateLinkLifecycle
@@ -15,15 +14,6 @@ final class GuardDuplicateLinkLifecycle
         if ($lifecycle['case_state'] !== Report::CASE_STATE_OPEN) {
             throw ValidationException::withMessages([
                 'case_state' => 'Duplicate links can only be changed while a case is open.',
-            ]);
-        }
-
-        if ($report->referrals()
-            ->whereIn('consult_status', ReportReferral::activeStatuses())
-            ->exists()
-        ) {
-            throw ValidationException::withMessages([
-                'referral' => 'Duplicate links cannot be changed while an expert consult is active.',
             ]);
         }
 

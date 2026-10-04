@@ -193,10 +193,10 @@ class ReportApiTest extends TestCase
 
         $this->getJson('/api/v1/reports?queue='.Report::QUEUE_UNVERIFIED_NO_ACTIVE_WORK)
             ->assertOk()
-            ->assertJsonCount(3, 'data')
+            ->assertJsonCount(2, 'data')
             ->assertJsonFragment(['uuid' => $unqueued->uuid])
             ->assertJsonFragment(['uuid' => $technicalAssistance->uuid])
-            ->assertJsonFragment(['uuid' => $cancelledReferral->uuid])
+            ->assertJsonMissing(['uuid' => $cancelledReferral->uuid])
             ->assertJsonMissing(['uuid' => $activeReferral->uuid])
             ->assertJsonMissing(['uuid' => $closed->uuid]);
     }

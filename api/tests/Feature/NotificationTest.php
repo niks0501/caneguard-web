@@ -108,6 +108,9 @@ class NotificationTest extends TestCase
         $first = $this->createNotification($reviewer, 'CG-20260817-A');
         $second = $this->createNotification($reviewer, 'CG-20260817-B');
         $other = $this->createNotification($otherReviewer, 'CG-20260817-C');
+        // MySQL timestamps have second precision; make feed order explicit.
+        $first->update(['created_at' => now()->subMinutes(2)]);
+        $second->update(['created_at' => now()->subMinute()]);
 
         $this->actingAs($reviewer, 'web')
             ->getJson('/api/v1/notifications')
@@ -532,7 +535,7 @@ class NotificationTest extends TestCase
             $referenceCode,
         ));
 
-        return $recipient->notifications()->latest()->firstOrFail();
+        return $recipient->notifications()->where('data->reference_code', $referenceCode)->sole();
     }
 
     /**

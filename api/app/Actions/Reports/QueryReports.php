@@ -4,7 +4,6 @@ namespace App\Actions\Reports;
 
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
-use App\Models\ReportReferral;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -31,7 +30,6 @@ class QueryReports
                 'fieldValidationAssignment.assignedBy',
                 'fieldValidationAssignment.completion',
                 'qualityWarnings',
-                'referral.expert',
             ]);
         $this->applyReportFilters->handle($query, $filters, 'submitted_at');
         if (isset($filters['queue'])) {
@@ -45,11 +43,8 @@ class QueryReports
 
         $this->applySort(
             $query,
-            (string) ($filters['sort'] ?? (($filters['referral'] ?? null) === 'active'
-                ? 'due_soonest'
-                : '-submitted_at')),
+            (string) ($filters['sort'] ?? '-submitted_at'),
             $calibration,
-            ($filters['referral'] ?? null) === 'active',
         );
 
         $paginator = $query
@@ -78,7 +73,6 @@ class QueryReports
         Builder $query,
         string $sort,
         ?array $calibration,
-        bool $referralActive = false,
     ): void {
         if ($calibration !== null && $calibration['enabled'] && $sort === 'submitted_at') {
             $this->applyTriageSort($query, $calibration);
@@ -87,17 +81,11 @@ class QueryReports
         }
 
         if ($sort === 'due_soonest') {
-            $dueSubquery = $referralActive
-                ? ReportReferral::query()
-                    ->selectRaw('report_id, MIN(due_date) as due_on')
-                    ->whereIn('consult_status', ReportReferral::activeStatuses())
-                    ->whereNotNull('due_date')
-                    ->groupBy('report_id')
-                : FieldValidationAssignment::query()
-                    ->selectRaw('report_id, MIN(target_visit_date) as due_on')
-                    ->whereNotNull('target_visit_date')
-                    ->groupBy('report_id');
-            $alias = $referralActive ? 'due_referrals' : 'due_assignments';
+            $dueSubquery = FieldValidationAssignment::query()
+                ->selectRaw('report_id, MIN(target_visit_date) as due_on')
+                ->whereNotNull('target_visit_date')
+                ->groupBy('report_id');
+            $alias = 'due_assignments';
 
             $query
                 ->leftJoinSub(

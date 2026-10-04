@@ -68,7 +68,7 @@ final class BuildReportDocument
             ],
             'filters' => $filters,
             'filter_summary' => $this->filterSummary($filters),
-            'generated_at' => now(self::TIMEZONE)->format('j F Y H:i').' PHT',
+            'generated_at' => now(self::TIMEZONE)->format('j F Y g:i A').' PHT',
             'generated_by' => auth()->user()?->name ?? 'CaneGuard office',
             'metrics' => $metrics,
             'trend' => $this->trend($query, $period),
@@ -155,7 +155,7 @@ final class BuildReportDocument
         $keys = [
             'search', 'status', 'case_state', 'verification_outcome',
             'field_validation_state', 'authority_classified_condition',
-            'concern', 'follow_up_outcome', 'referral', 'predicted_label',
+            'concern', 'follow_up_outcome', 'predicted_label',
             'barangay', 'queue',
         ];
 
@@ -219,7 +219,7 @@ final class BuildReportDocument
     private function appendix(Builder $query): array
     {
         return (clone $query)
-            ->with(['reporter', 'fieldValidationAssignment.assignee', 'referral'])
+            ->with(['reporter', 'fieldValidationAssignment.assignee'])
             ->orderBy('submitted_at')
             ->limit(1000)
             ->get()

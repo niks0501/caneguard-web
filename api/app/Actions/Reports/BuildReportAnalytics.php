@@ -256,8 +256,7 @@ final class BuildReportAnalytics
 
     /**
      * Where submitted reports sit in the lifecycle (C5). Every known state
-     * is present, including empty ones. Referral stays a supporting state
-     * split here, never an independent process stream.
+     * is present, including empty ones.
      *
      * @return array<string, array<string, int>>
      */
@@ -266,7 +265,6 @@ final class BuildReportAnalytics
         $dimensions = [
             'verification_outcome' => Report::verificationOutcomes(),
             'field_validation_state' => Report::fieldValidationStates(),
-            'referral_state' => Report::referralStates(),
         ];
         $result = [];
         foreach ($dimensions as $column => $states) {

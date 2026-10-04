@@ -114,7 +114,7 @@
     <section aria-labelledby="queues"><div class="section-band" id="queues">Operational queue status</div><p class="muted">These counts show submitted reports by current work queue. Follow-up Due reflects open validation work past its target date; Upcoming Visits includes target dates today or later.</p><table><thead><tr><th>Queue</th><th>Submitted reports</th></tr></thead><tbody>@foreach ($operational_queues as $queue => $count)<tr><td>{{ $queueLabels[$queue] ?? str_replace('_', ' ', ucfirst($queue)) }}</td><td class="{{ in_array($queue, ['follow_up_due', 'needs_visit'], true) && $count ? 'danger' : '' }}">{{ $count }}</td></tr>@endforeach</tbody></table></section>
 
     <details class="supplementary-metrics">
-        <summary>Supplementary trend, review and expert-consult information</summary>
+        <summary>Supplementary trend and review information</summary>
         <section aria-labelledby="submissions"><div class="section-band" id="submissions">Submissions over the period</div>
             @if (count($trend))
                 @php($maxTrend = max(array_column($trend, 'count')))
@@ -130,7 +130,6 @@
             @else <div class="empty">No submitted reports in this period.</div> @endif
         </section>
         <section aria-labelledby="review-time"><h2 id="review-time">Review duration</h2><table><tbody><tr><td>Reviewed cases</td><td>{{ $metrics['review_time']['reviewed_cases'] }}</td></tr><tr><td>Average</td><td>{{ $metrics['review_time']['average_hours'] !== null ? $metrics['review_time']['average_hours'].' hours' : 'Not available' }}</td></tr><tr><td>Median</td><td>{{ $metrics['review_time']['median_hours'] !== null ? $metrics['review_time']['median_hours'].' hours' : 'Not available' }}</td></tr></tbody></table></section>
-        <section aria-labelledby="expert"><h2 id="expert">Expert consultation</h2><p class="muted">Possible Condition and staff-classification agreement is descriptive, not a measure of model performance.</p><table><tbody><tr><td>Consult volume</td><td>{{ $metrics['expert_verification']['consult_volume']['total'] }}</td></tr><tr><td>Possible Condition/staff-classification agreement</td><td>{{ $metrics['expert_verification']['expert_agreement']['percentage'] !== null ? $metrics['expert_verification']['expert_agreement']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Unable-to-classify rate</td><td>{{ $metrics['expert_verification']['unable_to_classify_rate']['percentage'] !== null ? $metrics['expert_verification']['unable_to_classify_rate']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Advisory coverage</td><td>{{ $metrics['expert_verification']['advisory_coverage']['coverage_rate'] !== null ? ($metrics['expert_verification']['advisory_coverage']['coverage_rate'] * 100).'%' : 'Not available' }}</td></tr></tbody></table></section>
     </details>
 
     @if ($appendix_enabled)

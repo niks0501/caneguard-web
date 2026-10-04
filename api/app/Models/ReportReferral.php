@@ -23,7 +23,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'response_recorded_by_id',
     'response_recorded_at',
     'consult_status',
-    'status',
     'due_date',
     'expert_name',
     'expert_contact',
@@ -43,7 +42,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'finding_confidence',
     'finding_recommendation',
     'finding_source',
-    'source',
     'finding_recorded_by_id',
     'finding_recorded_at',
     'office_case_state',
@@ -159,60 +157,5 @@ class ReportReferral extends Model
             'office_reviewed_at' => 'immutable_datetime',
             'consult_reviewed_at' => 'immutable_datetime',
         ];
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function statuses(): array
-    {
-        return [
-            self::STATUS_PENDING,
-            self::STATUS_IN_PROGRESS,
-            self::STATUS_COMPLETED,
-            self::STATUS_CANCELLED,
-        ];
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function activeStatuses(): array
-    {
-        return [self::STATUS_PENDING, self::STATUS_IN_PROGRESS];
-    }
-
-    public static function findingSources(): array
-    {
-        return [
-            self::FINDING_SOURCE_IN_SYSTEM,
-            self::FINDING_SOURCE_TRANSCRIBED,
-        ];
-    }
-
-    public function isActive(): bool
-    {
-        return in_array($this->consult_status, self::activeStatuses(), true);
-    }
-
-    /** Keep the concise Phase 1 attribute name available to API/domain callers. */
-    public function getStatusAttribute(): ?string
-    {
-        return $this->consult_status;
-    }
-
-    public function setStatusAttribute(?string $status): void
-    {
-        $this->attributes['consult_status'] = $status;
-    }
-
-    public function getSourceAttribute(): ?string
-    {
-        return $this->finding_source;
-    }
-
-    public function setSourceAttribute(?string $source): void
-    {
-        $this->attributes['finding_source'] = $source;
     }
 }

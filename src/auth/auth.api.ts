@@ -13,7 +13,7 @@ const userResponseSchema = z.object({
     uuid: z.string(),
     name: z.string(),
     email: z.email(),
-    role: z.enum(["field_reporter", "reviewer", "admin", "expert"]),
+    role: z.enum(["field_reporter", "reviewer", "admin"]),
   }),
 });
 
@@ -102,7 +102,7 @@ export async function logoutRequest(): Promise<void> {
 }
 
 function isWebRole(role: string): role is WebRole {
-  return role === "reviewer" || role === "admin" || role === "expert";
+  return role === "reviewer" || role === "admin";
 }
 
 export class WebRoleError extends Error {

@@ -558,6 +558,11 @@ class Report extends Model
      *
      * @return HasOne<ReportReferral, $this>
      */
+    public function handoffNotes(): HasMany
+    {
+        return $this->hasMany(ReportHandoffNote::class)->orderByDesc('id');
+    }
+
     public function referral(): HasOne
     {
         return $this->hasOne(ReportReferral::class)->latestOfMany();

@@ -85,7 +85,7 @@ class DemoAnalyticsSeederTest extends TestCase
             $this->assertDatabaseCount('report_class_scores', DemoAnalyticsSeeder::REPORT_COUNT * 4);
             $this->assertDatabaseCount('field_validation_assignments', 10);
             $this->assertDatabaseCount('field_validation_completions', 5);
-            $this->assertDatabaseCount('report_referrals', 4);
+            $this->assertDatabaseCount('report_referrals', 0);
 
             $upload = MobileReportUploadV2Contract::definition()['fields'];
             $allowedLabels = $upload['predicted_label']['enum'];
@@ -183,7 +183,7 @@ class DemoAnalyticsSeederTest extends TestCase
             $actions = array_filter($reports->pluck('action_taken')->all());
             $this->assertNotContains(Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED, $actions);
             $this->assertContains(Report::ACTION_ADVISORY_PROVIDED, $actions);
-            $this->assertContains(Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION, $actions);
+            $this->assertNotContains(Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION, $actions);
             $this->assertContains(Report::ACTION_NO_FURTHER_ACTION_REQUIRED, $actions);
             $advisoryCases = $reports->where('action_taken', Report::ACTION_ADVISORY_PROVIDED);
             $this->assertCount(15, $advisoryCases);
@@ -192,11 +192,9 @@ class DemoAnalyticsSeederTest extends TestCase
             $reporter = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
             $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
             $admin = User::query()->where('email', 'admin@caneguard.test')->firstOrFail();
-            $expert = User::query()->where('email', 'expert@caneguard.test')->firstOrFail();
             $this->assertSame([$reporter->getKey()], $reports->pluck('reporter_id')->unique()->values()->all());
             $this->assertContains($reviewer->getKey(), $reports->pluck('reviewer_id')->all());
             $this->assertContains($admin->getKey(), $reports->pluck('reviewer_id')->all());
-            $this->assertDatabaseHas('report_referrals', ['expert_id' => $expert->getKey()]);
             Sanctum::actingAs($reviewer);
 
             $this->getJson('/api/v1/reports?per_page=100')
@@ -292,7 +290,6 @@ class DemoAnalyticsSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
             'caneguard.demo_users.admin_password' => 'admin-test-password',
-            'caneguard.demo_users.expert_password' => 'expert-test-password',
         ]);
     }
 }

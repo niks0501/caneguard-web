@@ -24,7 +24,7 @@ class MobileReportSecurityContractMySqlTest extends TestCase
         parent::setUp();
 
         $this->assertSame('mysql', DB::connection()->getDriverName());
-        $this->assertSame('caneguard_test', DB::connection()->getDatabaseName());
+        $this->assertMatchesRegularExpression('/^(caneguard_test|firstmate_[a-z0-9_]+)$/D', DB::connection()->getDatabaseName());
     }
 
     public function test_mysql_review_snapshot_survives_reload_and_mobile_serialization(): void

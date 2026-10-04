@@ -426,7 +426,7 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
     expect(
       snapshot.getByRole("img", {
-        name: "1 unverified report with no validation or referral underway",
+        name: "1 unverified report with no validation underway",
       }),
     ).toBeInTheDocument();
 
@@ -441,7 +441,7 @@ describe("DashboardPage", () => {
       within(cards[2]).getByText("1 past target date"),
     ).toBeInTheDocument();
     expect(
-      within(cards[3]).getByText("No validation or referral underway"),
+      within(cards[3]).getByText("No validation underway"),
     ).toBeInTheDocument();
 
     // KPI 3 encodes the two calendar subsets inside its bar: the removed chip
@@ -594,11 +594,11 @@ describe("DashboardPage", () => {
     expect(snapshot.queryAllByText("Past target date")).toHaveLength(0);
     expect(snapshot.getByText("0 past target date")).toBeInTheDocument();
     expect(
-      snapshot.getByText("No validation or referral underway"),
+      snapshot.getByText("No validation underway"),
     ).toBeInTheDocument();
     expect(
       snapshot.getByRole("img", {
-        name: "0 unverified reports with no validation or referral underway",
+        name: "0 unverified reports with no validation underway",
       }),
     ).toBeInTheDocument();
   });

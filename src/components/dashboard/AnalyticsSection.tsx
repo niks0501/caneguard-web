@@ -620,11 +620,6 @@ function LifecycleCard({
       title: analyticsCopy.lifecycle.fieldValidationState,
       entries: Object.entries(analytics.lifecycle.fieldValidationState),
     },
-    {
-      key: "referral_state",
-      title: analyticsCopy.lifecycle.referralState,
-      entries: Object.entries(analytics.lifecycle.referralState),
-    },
   ];
 
   return (

@@ -7,8 +7,6 @@ export const routes = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   dashboard: "/dashboard",
-  expertQueue: "/expert/queue",
-  expertReportDetail: (reportId: string) => `/expert/queue/${reportId}`,
   reports: "/reports",
   monitoring: "/monitoring",
   needsAssessment: "/needs-assessment",

@@ -295,7 +295,6 @@ Replace angle-bracket values with local values and never commit the file.
 | `CANEGUARD_FIELD_PASSWORD` | A local password you choose for `field@caneguard.test`. |
 | `CANEGUARD_REVIEWER_PASSWORD` | A local password you choose for `mao@caneguard.test`. |
 | `CANEGUARD_ADMIN_PASSWORD` | A local password you choose for `admin@caneguard.test`. |
-| `CANEGUARD_EXPERT_PASSWORD` | A local password you choose for `expert@caneguard.test`. |
 | `VITE_API_BASE_URL` | The same exact value as `QA_PUBLIC_URL`. Browser API paths use the Web proxy to reach the private API. |
 | `VITE_DATA_SOURCE` | Keep `api`. |
 | `VITE_REPORT_REFRESH_MS` | Keep `600000`. |

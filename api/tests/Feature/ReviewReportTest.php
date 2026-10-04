@@ -473,6 +473,9 @@ class ReviewReportTest extends TestCase
 
     public function test_review_status_is_persisted_and_reloaded_as_the_mobile_snapshot(): void
     {
+        // The snapshot has second-precision updated_at and millisecond reviewed_at.
+        // Use one exact clock tick to test persistence, not MySQL fractional rounding.
+        $this->travelTo(now()->startOfSecond());
         $reviewer = User::factory()->reviewer()->create();
         $reporter = User::factory()->fieldReporter()->create();
         $report = Report::factory()->create([

@@ -48,10 +48,9 @@ export const analyticsCopy = {
   lifecycle: {
     title: "Where work sits in the lifecycle",
     description:
-      "Submitted reports split by verification outcome, field-validation state and referral state. Referral is a supporting state here, not a separate process.",
+      "Submitted reports split by verification outcome and field-validation state.",
     verificationOutcome: "Verification outcome",
     fieldValidationState: "Field-validation state",
-    referralState: "Referral state",
   },
   area: {
     title: "Estimated affected area",

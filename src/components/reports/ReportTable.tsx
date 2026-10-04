@@ -33,15 +33,11 @@ export function ReportTable({
   variant = "default",
 }: {
   reports: DiseaseReport[];
-  variant?: "default" | "monitoring" | "expert" | "out-with-experts";
+  variant?: "default" | "monitoring";
 }) {
   const navigate = useNavigate();
   const isMonitoring = variant === "monitoring";
-  const isOutWithExperts = variant === "out-with-experts";
-  const isExpert = variant === "expert";
-  const detailRoute = (uuid: string) => isExpert
-    ? routes.expertReportDetail(uuid)
-    : routes.reportDetail(uuid);
+  const detailRoute = routes.reportDetail;
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggleRow = (uuid: string) => {
@@ -91,13 +87,6 @@ export function ReportTable({
                 <th scope="col">Action taken</th>
                 <th scope="col">Next follow-up</th>
               </>
-            ) : isOutWithExperts ? (
-              <>
-                <th scope="col">Expert</th>
-                <th scope="col">Referral date</th>
-                <th scope="col">Due date</th>
-                <th scope="col">Days out</th>
-              </>
             ) : (
               <>
                 <th scope="col">Possible Condition</th>
@@ -113,9 +102,6 @@ export function ReportTable({
           {reports.map((report) => {
             const due = formatDueState(report.followUp);
             const isExpanded = Boolean(expandedRows[report.uuid]);
-            const expertName = report.expertConsult?.expertName
-              ?? report.expertConsult?.expert?.name
-              ?? (report.expertConsult?.status === "pending" ? "Unassigned" : "Unknown expert");
             return (
               <tr
                 className={`report-row report-row--${report.reviewStatus}`}
@@ -144,18 +130,6 @@ export function ReportTable({
                       <span>{isMonitoring
                         ? (report.farmReference ?? report.barangay)
                         : (report.farmReference ?? "No farm reference")}</span>
-                      {(isExpert || isOutWithExperts) && report.expertConsult ? (
-                        <>
-                          {isOutWithExperts ? (
-                            <span className="table-secondary">
-                              Tracking: {report.expertConsult.trackingCode ?? "Unavailable"}
-                            </span>
-                          ) : null}
-                          <span className="table-secondary">
-                            External reference: {report.expertConsult.reference ?? "Not provided yet"}
-                          </span>
-                        </>
-                      ) : null}
                       {isMonitoring ? (
                         <span className="table-secondary">Barangay: {report.barangay}</span>
                       ) : null}
@@ -240,24 +214,6 @@ export function ReportTable({
                       )}
                     </td>
                   </>
-                ) : isOutWithExperts ? (
-                  <>
-                    <td>
-                      <strong className="table-primary">{expertName}</strong>
-                    </td>
-                    <td>
-                      <strong className="table-primary">{report.expertConsult?.referralDate ?? "Not set"}</strong>
-                    </td>
-                    <td>
-                      <strong className={`table-primary${report.expertConsult?.overdue ? " table-overdue" : ""}`}>
-                        {report.expertConsult?.dueDate ?? "No due date"}
-                      </strong>
-                      {report.expertConsult?.overdue ? <span className="table-secondary">Overdue</span> : null}
-                    </td>
-                    <td>
-                      <strong className="table-primary">{report.expertConsult?.daysOut === null || report.expertConsult?.daysOut === undefined ? "Not available" : `${report.expertConsult.daysOut} ${report.expertConsult.daysOut === 1 ? "day" : "days"}`}</strong>
-                    </td>
-                  </>
                 ) : (
                   <>
                     <td>
@@ -315,11 +271,6 @@ export function ReportTable({
                   <div className="report-status-cell__wrapper">
                     <ReviewStatusBadge status={report.reviewStatus} />
                     <IdentificationGapBadge state={report.identificationGap?.state} />
-                    {report.expertConsult ? (
-                      <span className={`expert-consult-age${report.expertConsult.overdue ? " expert-consult-age--overdue" : ""}`}>
-                        Waiting on expert: {report.expertConsult.ageLabel}
-                      </span>
-                    ) : null}
                     <button
                       type="button"
                       className="row-expand-btn"
