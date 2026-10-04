@@ -89,7 +89,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     public function test_report_referrals_cascade_when_their_report_is_deleted(): void
     {
-        $report = Report::factory()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         $referral = ReportReferral::factory()->create([
             'report_id' => $report->getKey(),
         ]);
@@ -105,7 +105,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     public function test_report_factory_supports_smart_field_values_and_casts_them(): void
     {
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'sugarcane_variety' => 'PSR 86',
             'crop_age' => '6 months',
             'cane_class' => 'Class A',
@@ -168,7 +168,7 @@ class ReportSchemaAndSeederTest extends TestCase
     public function test_report_factory_supports_every_active_and_legacy_classification_value(): void
     {
         foreach (Report::authorityClassifiedConditions() as $condition) {
-            $report = Report::factory()->create([
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'authority_classified_condition' => $condition,
             ]);
 
@@ -198,7 +198,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     public function test_legacy_report_values_can_leave_new_contract_fields_null(): void
     {
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'farmer_or_farm_owner_name' => null,
             'province' => null,
             'municipality' => null,
@@ -238,8 +238,8 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CUSTOM-REPORT-001',
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.7312345,
@@ -306,7 +306,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'BGO-20260702-0915',
             'client_uuid' => 'c93939fc-601e-42b3-8d30-c786b2402f78',
             'image_path' => 'reports/2026-07/bgo-20260702-0915.png',
@@ -351,6 +351,7 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
 
         $this->seedReportDemoDataset();
+        $this->approveSeededPilotFixtures();
         $mobileReportedSeverities = ['Mild', 'Moderate', 'Severe'];
         foreach (Report::query()->get() as $seededReport) {
             $this->assertContains(
@@ -652,6 +653,7 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
 
         $this->seedReportDemoDataset();
+        $this->approveSeededPilotFixtures();
 
         $monthCounts = Report::query()
             ->get(['submitted_at'])

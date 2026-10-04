@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +13,9 @@ vi.mock("../../api/apiHealth", () => ({
   checkApiHealth: vi.fn(),
 }));
 
+// Authentication is covered by the route guard and approval-component suites.
+vi.mock("../../auth/useAuth", () => ({ useAuth: () => ({ user: null }) }));
+
 beforeEach(() => {
   vi.mocked(checkApiHealth).mockReset();
 });
@@ -22,12 +26,14 @@ afterEach(() => {
 
 function renderBuilder(onClose: () => void = vi.fn()) {
   render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
     <MemoryRouter initialEntries={["/reports"]}>
       <Routes>
         <Route path="/reports" element={<ReportDocumentBuilder open onClose={onClose} />} />
         <Route path="/dashboard" element={<p>Dashboard home</p>} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

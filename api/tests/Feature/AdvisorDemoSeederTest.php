@@ -37,6 +37,7 @@ class AdvisorDemoSeederTest extends TestCase
     {
         $this->seedReportDemoDataset();
         $this->seedReportDemoDataset();
+        $this->approveSeededPilotFixtures();
 
         $this->assertDatabaseCount(
             'reports',

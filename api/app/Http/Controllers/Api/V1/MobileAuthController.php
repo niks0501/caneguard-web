@@ -6,6 +6,7 @@ use App\Actions\Auth\CheckStepUpPassword;
 use App\Actions\Auth\IssueMobileToken;
 use App\Actions\Auth\RecordSecurityAudit;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DeviceSessionRequest;
 use App\Http\Requests\EnrollMobileDeviceRequest;
 use App\Http\Requests\MobileLoginRequest;
 use App\Http\Requests\MobileSessionRequest;
@@ -59,9 +60,9 @@ class MobileAuthController extends Controller
             ], 403);
         }
 
-        if ($user->role !== User::ROLE_FIELD_REPORTER) {
+        if (! $user->isMobileUser()) {
             return response()->json([
-                'message' => 'This account cannot submit mobile field reports.',
+                'message' => 'This account cannot access Mobile.',
                 'code' => 'FORBIDDEN',
             ], 403);
         }
@@ -123,7 +124,7 @@ class MobileAuthController extends Controller
         return $this->tokenResponse($token, $user, $request);
     }
 
-    public function devices(MobileSessionRequest $request): JsonResponse
+    public function devices(DeviceSessionRequest $request): JsonResponse
     {
         $tokens = $request->user()->tokens()
             ->where('name', 'like', IssueMobileToken::TOKEN_NAME_PREFIX.'%')
@@ -145,7 +146,7 @@ class MobileAuthController extends Controller
     }
 
     public function revokeDevice(
-        MobileSessionRequest $request,
+        DeviceSessionRequest $request,
         string $device,
         RecordSecurityAudit $audits,
     ): JsonResponse {

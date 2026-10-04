@@ -14,10 +14,16 @@ class ReviewReportTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_reviewer_can_persist_a_review_with_server_identity_and_time(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($reviewer);
 
@@ -48,8 +54,8 @@ class ReviewReportTest extends TestCase
 
     public function test_reviewer_can_persist_an_authority_classification_without_changing_model_evidence(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->mobileModelV1()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
             'predicted_label' => Report::LABEL_SMUT,
             'confidence' => 0.82,
         ]);
@@ -88,8 +94,8 @@ class ReviewReportTest extends TestCase
 
     public function test_reviewer_can_preserve_a_historical_downy_mildew_classification(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->mobileModelV1()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.74,
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
@@ -124,8 +130,8 @@ class ReviewReportTest extends TestCase
 
     public function test_new_review_cannot_select_legacy_downy_mildew(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->mobileModelV1()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
             'predicted_label' => Report::LABEL_RUST,
         ]);
 
@@ -148,7 +154,7 @@ class ReviewReportTest extends TestCase
 
     public function test_active_staff_classified_conditions_are_additive_and_preserve_submitted_evidence(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
 
         $this->assertSame([
             Report::AUTHORITY_CONDITION_HEALTHY,
@@ -174,7 +180,7 @@ class ReviewReportTest extends TestCase
         Sanctum::actingAs($reviewer);
 
         foreach (Report::activeAuthorityClassifiedConditions() as $condition) {
-            $report = Report::factory()->mobileModelV1()->create([
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.74,
                 'farmer_or_farm_owner_name' => 'Juan Dela Cruz',
@@ -291,8 +297,8 @@ class ReviewReportTest extends TestCase
 
     public function test_review_without_classification_preserves_an_existing_authority_finding(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
         ]);
 
@@ -316,8 +322,8 @@ class ReviewReportTest extends TestCase
 
     public function test_authority_classification_uses_only_the_server_owned_allowlist(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        $report = Report::factory()->create();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_RESOLVED,
@@ -333,8 +339,8 @@ class ReviewReportTest extends TestCase
 
     public function test_unable_to_verify_can_keep_authority_classification_null(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($reviewer);
 
@@ -351,8 +357,8 @@ class ReviewReportTest extends TestCase
 
     public function test_admin_can_mutate_a_report_review(): void
     {
-        $admin = User::factory()->admin()->create();
-        $report = Report::factory()->create();
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($admin);
 
@@ -376,7 +382,7 @@ class ReviewReportTest extends TestCase
 
     public function test_unauthenticated_user_cannot_review_a_report(): void
     {
-        $report = Report::factory()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_RESOLVED,
@@ -389,10 +395,10 @@ class ReviewReportTest extends TestCase
 
     public function test_admin_can_review_another_reporter_owned_report_but_cannot_spoof_identity(): void
     {
-        $admin = User::factory()->admin()->create();
-        $reporter = User::factory()->fieldReporter()->create();
-        $spoofedReviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $spoofedReviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $reporter]);
 
         Sanctum::actingAs($admin);
 
@@ -415,8 +421,8 @@ class ReviewReportTest extends TestCase
 
     public function test_field_reporter_cannot_review_a_report(): void
     {
-        $fieldReporter = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create();
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($fieldReporter);
 
@@ -436,8 +442,8 @@ class ReviewReportTest extends TestCase
 
     public function test_review_validation_uses_the_canonical_error_shape(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        $report = Report::factory()->create();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => 'not-a-status',
@@ -459,8 +465,8 @@ class ReviewReportTest extends TestCase
 
     public function test_unable_to_verify_requires_a_note(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        $report = Report::factory()->create();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_UNABLE_TO_VERIFY,
@@ -476,9 +482,9 @@ class ReviewReportTest extends TestCase
         // The snapshot has second-precision updated_at and millisecond reviewed_at.
         // Use one exact clock tick to test persistence, not MySQL fractional rounding.
         $this->travelTo(now()->startOfSecond());
-        $reviewer = User::factory()->reviewer()->create();
-        $reporter = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reporter_id' => $reporter,
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
             'lock_version' => 0,
@@ -526,8 +532,8 @@ class ReviewReportTest extends TestCase
 
     public function test_reviewer_can_record_independent_lifecycle_decisions_and_audited_corrections(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'barangay' => 'Mabini',
             'farmer_or_farm_owner_name' => 'Original Farmer',
             'affected_area_hectares' => 10.5,
@@ -585,8 +591,8 @@ class ReviewReportTest extends TestCase
 
     public function test_verification_does_not_close_a_case_until_closure_is_explicit(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($reviewer);
 
@@ -611,8 +617,8 @@ class ReviewReportTest extends TestCase
 
     public function test_review_requires_an_explicit_field_and_does_not_default_to_verification(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($reviewer);
 
@@ -628,8 +634,8 @@ class ReviewReportTest extends TestCase
 
     public function test_field_reporter_cannot_submit_an_independent_final_disposition(): void
     {
-        $fieldReporter = User::factory()->fieldReporter()->create();
-        $report = Report::factory()->create();
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($fieldReporter);
 
@@ -647,7 +653,7 @@ class ReviewReportTest extends TestCase
 
     public function test_synchronized_report_evidence_and_nested_observations_are_immutable(): void
     {
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'predicted_label' => Report::LABEL_RUST,
         ]);
         $score = $report->classScores()->firstOrFail();
@@ -677,8 +683,8 @@ class ReviewReportTest extends TestCase
 
     public function test_stale_review_is_rejected_without_overwriting_changes(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        $report = Report::factory()->create();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         $report->refresh();
         $staleVersion = $report->lock_version;
         $report->update([
@@ -703,8 +709,8 @@ class ReviewReportTest extends TestCase
 
     public function test_review_remains_available_when_optional_review_history_table_is_missing(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Schema::dropIfExists('report_review_events');
         Sanctum::actingAs($reviewer);
 
@@ -726,8 +732,8 @@ class ReviewReportTest extends TestCase
 
     public function test_review_persists_review_event_history_and_projects_latest_state(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($reviewer);
 
@@ -749,7 +755,7 @@ class ReviewReportTest extends TestCase
         $firstReviewedAt = $firstResponse->json('data.first_reviewed_at');
         $this->assertNotNull($firstReviewedAt);
 
-        $secondReviewer = User::factory()->reviewer()->create();
+        $secondReviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         Sanctum::actingAs($secondReviewer);
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [

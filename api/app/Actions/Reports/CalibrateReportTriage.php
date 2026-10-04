@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Models\Report;
+use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -27,10 +28,12 @@ final class CalibrateReportTriage
         // reviewed register, so the measurement is cached on a short TTL
         // keyed by the reviewed count and the newest review instant. Any
         // new review changes the key; the TTL bounds every other staleness.
-        $reviewedCount = Report::query()->whereNotNull('first_reviewed_at')->count();
-        $newestReviewedAt = Report::query()->whereNotNull('first_reviewed_at')->max('first_reviewed_at');
+        $reviewedCount = Report::query()->visibleTo(request()->user())->whereNotNull('first_reviewed_at')->count();
+        $newestReviewedAt = Report::query()->visibleTo(request()->user())->whereNotNull('first_reviewed_at')->max('first_reviewed_at');
         $cacheKey = sprintf(
-            'triage-calibration:v1:%d:%s',
+            'triage-calibration:v2:%s:%s:%d:%s',
+            (string) app(DistrictAccess::class)->pilotId(),
+            (string) request()->user()?->uuid,
             $reviewedCount,
             $newestReviewedAt ?? 'none',
         );
@@ -43,7 +46,7 @@ final class CalibrateReportTriage
      */
     private function measure(): array
     {
-        $reviewed = Report::query()
+        $reviewed = Report::query()->visibleTo(request()->user())
             ->whereNotNull('first_reviewed_at')
             ->withCount('qualityWarnings')
             ->get([

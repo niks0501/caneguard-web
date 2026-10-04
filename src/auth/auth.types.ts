@@ -5,6 +5,8 @@ export interface AppUser {
   name: string;
   email: string;
   role: WebRole;
+  capabilities?: string[];
+  district_id?: number | null;
 }
 
 export interface LoginCredentials {

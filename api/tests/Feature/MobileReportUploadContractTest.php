@@ -546,7 +546,7 @@ class MobileReportUploadContractTest extends TestCase
 
     private function fieldReporterToken(): string
     {
-        return User::factory()
+        return User::factory()->inDistrict($this->pilotDistrict())
             ->fieldReporter()
             ->create()
             ->createToken('mobile-upload-contract-test')

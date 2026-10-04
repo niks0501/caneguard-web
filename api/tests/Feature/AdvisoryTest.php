@@ -16,6 +16,12 @@ class AdvisoryTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_advisory_library_requires_provenance_for_validation_and_retirement_is_terminal(): void
     {
         $reviewer = User::factory()->reviewer()->create();
@@ -68,6 +74,7 @@ class AdvisoryTest extends TestCase
             'caneguard.demo_users.expert_password' => 'expert-test-password',
         ]);
         $this->seed(DatabaseSeeder::class);
+        $this->approveSeededPilotFixtures();
 
         $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
         $reporter = User::factory()->fieldReporter()->create();
@@ -165,6 +172,7 @@ class AdvisoryTest extends TestCase
             $report->fresh()->advisory_delivery_state,
         );
 
+        $this->withoutToken();
         Auth::forgetGuards();
         Sanctum::actingAs($reviewer);
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [

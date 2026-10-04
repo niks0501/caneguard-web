@@ -18,7 +18,7 @@ class MobileMapTileTest extends TestCase
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');
 
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $token = $reviewer->createToken('map-tile-reviewer-test')->plainTextToken;
 
         $this->withToken($token)
@@ -130,7 +130,7 @@ class MobileMapTileTest extends TestCase
 
     private function fieldReporterToken(): string
     {
-        return User::factory()
+        return User::factory()->inDistrict($this->pilotDistrict())
             ->fieldReporter()
             ->create()
             ->createToken('map-tile-test')

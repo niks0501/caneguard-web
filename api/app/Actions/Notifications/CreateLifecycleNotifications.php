@@ -14,6 +14,7 @@ use App\Notifications\FieldValidationAssignmentChangedNotification;
 use App\Notifications\FieldValidationCompletedNotification;
 use App\Notifications\FollowUpDueNotification;
 use App\Notifications\OfficeReviewCompletedNotification;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Notifications\DatabaseNotification;
@@ -202,6 +203,12 @@ class CreateLifecycleNotifications
 
     private function send(User $recipient, CaseAttentionNotification $notification): void
     {
+        $data = $notification->toDatabase($recipient);
+        $report = Report::query()->where('uuid', $data['report_uuid'] ?? '')->first();
+        if ($report === null || ! app(DistrictAccess::class)->report($recipient, $report, true)) {
+            return;
+        }
+
         if (DatabaseNotification::query()->whereKey($notification->id)->exists()) {
             return;
         }

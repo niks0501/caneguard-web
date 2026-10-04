@@ -26,11 +26,11 @@ class ReleaseDemoFlowMySqlTest extends TestCase
         $this->assertMatchesRegularExpression('/^(caneguard_test|firstmate_[a-z0-9_]+)$/D', DB::connection()->getDatabaseName());
 
         $reviewerPassword = Str::random(40);
-        $reviewer = User::factory()->reviewer()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'name' => 'Release Test Reviewer',
             'password' => $reviewerPassword,
         ]);
-        $fieldReporter = User::factory()->fieldReporter()->create([
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create([
             'name' => 'Release Test Field Reporter',
         ]);
 

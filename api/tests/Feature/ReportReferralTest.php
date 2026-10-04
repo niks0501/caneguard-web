@@ -20,10 +20,10 @@ class ReportReferralTest extends TestCase
 
     public function test_retired_write_paths_do_not_change_rows_or_create_notifications(): void
     {
-        $report = Report::factory()->create(['referral_state' => 'referred', 'action_taken' => 'referred_for_expert_validation']);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['referral_state' => 'referred', 'action_taken' => 'referred_for_expert_validation']);
         $referral = ReportReferral::factory()->for($report)->create();
         $before = $referral->fresh()->getAttributes();
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         foreach (['', '/response', '/finding', '/confirm', '/invite', '/invite/revoke'] as $operation) {
             $this->postJson("/api/v1/reports/{$report->uuid}/referral{$operation}", ['expected_version' => 0])
                 ->assertStatus(410)->assertJsonPath('message', 'The in-system expert workflow was retired.');
@@ -37,9 +37,9 @@ class ReportReferralTest extends TestCase
 
     public function test_review_rejects_retired_fields_but_can_close_a_historical_case(): void
     {
-        $report = Report::factory()->create(['referral_state' => 'referred', 'action_taken' => 'referred_for_expert_validation']);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['referral_state' => 'referred', 'action_taken' => 'referred_for_expert_validation']);
         ReportReferral::factory()->for($report)->create(['consult_status' => 'pending']);
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         foreach ([['action_taken' => 'referred_for_expert_validation'], ['referral_state' => 'not_referred'], ['referral_destination' => 'Desk']] as $input) {
             $this->patchJson("/api/v1/reports/{$report->uuid}/review", ['expected_version' => 0, ...$input])->assertUnprocessable();
         }
@@ -54,8 +54,8 @@ class ReportReferralTest extends TestCase
 
     public function test_retirement_migration_preserves_rows_findings_lifecycle_and_completed_status(): void
     {
-        $expert = User::factory()->create(['role' => 'expert']);
-        $report = Report::factory()->create(['referral_state' => 'referred', 'action_taken' => 'referred_for_expert_validation']);
+        $expert = User::factory()->inDistrict($this->pilotDistrict())->create(['role' => 'expert']);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['referral_state' => 'referred', 'action_taken' => 'referred_for_expert_validation']);
         $pending = ReportReferral::factory()->for($report)->create(['expert_id' => $expert->id, 'consult_status' => 'pending', 'invite_token_hash' => hash('sha256', 'retired-token'), 'invite_revoked_at' => null]);
         $progress = ReportReferral::factory()->for($report)->create(['consult_status' => 'in_progress']);
         $completed = ReportReferral::factory()->for($report)->create(['consult_status' => 'completed', 'finding_summary' => 'Historical finding']);
@@ -78,7 +78,7 @@ class ReportReferralTest extends TestCase
         $this->assertSame('disabled', $expert->fresh()->role);
         $this->assertSame('referred', $report->fresh()->referral_state);
         $this->assertSame('referred_for_expert_validation', $report->fresh()->action_taken);
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()->assertJsonFragment([
             'test-symptom' => ['verdict' => 'present', 'note' => null],
         ]);
@@ -88,8 +88,8 @@ class ReportReferralTest extends TestCase
 
     public function test_retirement_does_not_skip_consults_when_the_active_query_shrinks_between_batches(): void
     {
-        $report = Report::factory()->create();
-        $author = User::factory()->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $author = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         DB::table('report_referrals')->insert(array_fill(0, 1005, [
             'report_id' => $report->getKey(), 'referred_by_id' => $author->getKey(),
             'destination' => 'Historical destination', 'referral_date' => '2026-10-01',
@@ -107,9 +107,9 @@ class ReportReferralTest extends TestCase
 
     public function test_old_expert_accounts_and_existing_tokens_have_no_office_access(): void
     {
-        $report = Report::factory()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         foreach (['expert', 'disabled'] as $role) {
-            Sanctum::actingAs(User::factory()->create(['role' => $role]));
+            Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->create(['role' => $role]));
             $this->getJson('/api/v1/me')->assertForbidden();
             $this->getJson('/api/v1/reports')->assertForbidden();
             $this->getJson("/api/v1/reports/{$report->uuid}")->assertForbidden();
@@ -123,7 +123,7 @@ class ReportReferralTest extends TestCase
     public function test_existing_tokens_and_browser_credentials_cannot_bypass_disabled_expert_access(): void
     {
         $password = Str::random(40);
-        $expert = User::factory()->create(['role' => 'expert', 'password' => $password]);
+        $expert = User::factory()->inDistrict($this->pilotDistrict())->create(['role' => 'expert', 'password' => $password]);
         $token = $expert->createToken('retired-expert-regression')->plainTextToken;
         $migration = require database_path('migrations/2026_10_04_000000_retire_in_system_expert_workflow.php');
         $migration->up();
@@ -141,8 +141,8 @@ class ReportReferralTest extends TestCase
 
     public function test_removed_expert_reads_invites_and_command_are_absent(): void
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        $report = Report::factory()->create();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         foreach (['/api/v1/experts', '/api/v1/reports/expert-queue', "/api/v1/reports/{$report->uuid}/consult", '/api/v1/consult-invites/old-token', '/api/v1/consult-invites/old-token/image'] as $url) {
             $this->getJson($url)->assertNotFound();
         }
@@ -151,8 +151,8 @@ class ReportReferralTest extends TestCase
 
     public function test_plain_handoff_note_does_not_write_an_expert_lifecycle_or_notification(): void
     {
-        $report = Report::factory()->create(['referral_state' => 'expert_response_received', 'action_taken' => 'referred_for_expert_validation']);
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['referral_state' => 'expert_response_received', 'action_taken' => 'referred_for_expert_validation']);
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [
             'destination' => ' Offline agronomy desk ', 'reference' => ' EXT-42 ', 'sent_date' => '2026-10-04',
             'note' => 'Printed case summary sent.', 'advice_received_note' => 'Offline advice retained as a note.', 'expected_version' => 0,
@@ -172,14 +172,14 @@ class ReportReferralTest extends TestCase
 
     public function test_handoff_notes_require_authority_valid_fields_and_current_version(): void
     {
-        $report = Report::factory()->create();
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $url = "/api/v1/reports/{$report->uuid}/handoff-notes";
         $this->postJson($url, ['expected_version' => 0])->assertUnprocessable();
         $input = ['destination' => 'Desk', 'sent_date' => '2026-10-04', 'expected_version' => 1];
         $this->postJson($url, $input)->assertConflict();
         $this->postJson($url, [...$input, 'expected_version' => 0, 'due_date' => '2026-10-11'])->assertUnprocessable();
-        Sanctum::actingAs(User::factory()->fieldReporter()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create());
         $this->postJson($url, [...$input, 'expected_version' => 0])->assertForbidden();
         $this->assertDatabaseCount('report_handoff_notes', 0);
     }
@@ -187,10 +187,10 @@ class ReportReferralTest extends TestCase
     public function test_historical_records_and_recommendations_remain_readable_and_printable(): void
     {
         Storage::fake('local');
-        $report = Report::factory()->create(['referral_state' => 'expert_response_received', 'authority_classified_condition' => 'smut', 'review_notes' => 'Current office recommendation']);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['referral_state' => 'expert_response_received', 'authority_classified_condition' => 'smut', 'review_notes' => 'Current office recommendation']);
         ReportReferral::factory()->for($report)->create(['consult_status' => 'completed', 'destination' => 'Historical desk', 'finding_summary' => 'Historical advice']);
         ReportReferral::factory()->for($report)->create(['consult_status' => 'cancelled', 'destination' => 'Second historical desk']);
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()->assertJsonCount(2, 'data.consults');
         $this->getJson('/api/v1/reports')->assertOk()->assertJsonMissingPath('data.0.expert_consult')->assertJsonMissingPath('data.0.consults');
         $this->get("/api/v1/reports/{$report->uuid}/referral/summary")->assertOk()
@@ -200,8 +200,8 @@ class ReportReferralTest extends TestCase
 
     public function test_case_summary_works_without_any_referral(): void
     {
-        $report = Report::factory()->create();
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->getJson("/api/v1/reports/{$report->uuid}/referral/summary")->assertOk()->assertJsonPath('data.referral', null);
         $this->get("/api/v1/reports/{$report->uuid}/referral/summary?download=1")->assertOk()->assertSee('CaneGuard case summary');
     }

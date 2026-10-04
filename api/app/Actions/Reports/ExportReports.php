@@ -53,7 +53,7 @@ final class ExportReports
      */
     public function handle(array $filters): StreamedResponse
     {
-        $query = Report::query()
+        $query = Report::query()->visibleTo(request()->user())
             ->whereNull('canonical_report_id')
             ->with([
                 'reporter',

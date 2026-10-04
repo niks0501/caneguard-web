@@ -198,7 +198,7 @@ final class BuildReportAnalytics
         CarbonImmutable $end,
         array $filters,
     ): Builder {
-        $query = Report::query()
+        $query = Report::query()->visibleTo(request()->user())
             ->whereNull('canonical_report_id')
             ->where('submitted_at', '>=', $start->utc())
             ->where('submitted_at', '<', $end->utc());
@@ -511,7 +511,7 @@ final class BuildReportAnalytics
             }
         }
 
-        $duplicates = Report::query()
+        $duplicates = Report::query()->visibleTo(request()->user())
             ->whereNotNull('canonical_report_id')
             ->where('submitted_at', '>=', $start->utc())
             ->where('submitted_at', '<', $end->utc())

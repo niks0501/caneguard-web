@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Models\Report;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
@@ -26,11 +27,12 @@ final class BuildReportDocument
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    public function handle(array $input): array
+    public function handle(array $input, ?User $actor = null): array
     {
+        $actor ??= request()->user();
         $period = $this->resolvePeriod($input);
         $filters = $this->filters($input);
-        $query = Report::query()
+        $query = Report::query()->visibleTo($actor)
             ->whereNull('canonical_report_id')
             ->where('submitted_at', '>=', $period['start']->utc())
             ->where('submitted_at', '<', $period['end']->utc());
@@ -69,7 +71,7 @@ final class BuildReportDocument
             'filters' => $filters,
             'filter_summary' => $this->filterSummary($filters),
             'generated_at' => now(self::TIMEZONE)->format('j F Y g:i A').' PHT',
-            'generated_by' => auth()->user()?->name ?? 'CaneGuard office',
+            'generated_by' => $actor?->name ?? 'CaneGuard office',
             'metrics' => $metrics,
             'trend' => $this->trend($query, $period),
             'operational_queues' => $this->operationalQueues($query),

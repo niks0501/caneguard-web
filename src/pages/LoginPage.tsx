@@ -209,7 +209,7 @@ export function LoginPage() {
 
         {isPublicRegistrationEnabled() ? (
           <p className="login-support">
-            Field inspector? <Link to={routes.register}>Create an account</Link>
+            Farmer? <Link to={routes.register}>Create an account</Link>
           </p>
         ) : null}
       </section>

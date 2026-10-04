@@ -7,6 +7,7 @@ use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\CalibrateReportTriage;
 use App\Models\Report;
 use App\Models\ReportAudit;
+use App\Security\DistrictAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -356,6 +357,9 @@ class ReportResource extends JsonResource
         $canonical = $this->relationLoaded('canonicalReport')
             ? $this->canonicalReport
             : null;
+        if ($canonical !== null && ! app(DistrictAccess::class)->report(request()->user(), $canonical)) {
+            $canonical = null;
+        }
 
         $isDuplicate = $this->canonical_report_id !== null;
 

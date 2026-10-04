@@ -38,6 +38,8 @@ export function RegisterPage() {
             error.errors?.password_confirmation?.[0] ??
             "Check the account details and try again.",
         );
+      } else if (error instanceof ApiError && error.code === "REGISTRATION_DISABLED") {
+        setErrorMessage("Registration is closed until the district office certifies the pilot roster.");
       } else if (error instanceof ApiError && error.status === 429) {
         setErrorMessage("Too many registration attempts. Wait a minute and try again.");
       } else {
@@ -53,9 +55,9 @@ export function RegisterPage() {
   return (
     <AuthPageFrame
       headingId="register-heading"
-      eyebrow="Field Inspector registration"
-      title="Create your field account"
-      description="Register with an email address so field reports can be securely connected to you."
+      eyebrow="Farmer registration"
+      title="Create your farmer account"
+      description="Use your farmer account in CaneGuard Mobile for personal scans and history. Official field reports require an office-authorized inspector account."
       icon={<UserPlus aria-hidden="true" />}
     >
       {isCreated ? (
@@ -127,7 +129,7 @@ export function RegisterPage() {
             Use 15 to 128 characters. A phrase is fine; no symbol or number pattern is required.
           </p>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating account..." : "Create field account"}
+            {isSubmitting ? "Creating account..." : "Create farmer account"}
           </Button>
         </form>
       )}

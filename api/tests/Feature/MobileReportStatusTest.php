@@ -14,6 +14,12 @@ class MobileReportStatusTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_status_feed_requires_authentication(): void
     {
         $this->getJson('/api/v1/mobile/reports/statuses')

@@ -38,7 +38,7 @@ afterEach(() => {
 });
 
 describe("public authentication pages", () => {
-  it("registers a field reporter without accepting a client role when explicitly enabled", async () => {
+  it("registers a farmer without accepting a client role when explicitly enabled", async () => {
     vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
     let requestBody: Record<string, unknown> | undefined;
     server.use(
@@ -55,7 +55,7 @@ describe("public authentication pages", () => {
               uuid: "user-1",
               name: "Field Reporter",
               email: "field@example.test",
-              role: "field_reporter",
+              role: "farmer",
               email_verified: false,
             },
           },
@@ -72,7 +72,7 @@ describe("public authentication pages", () => {
       screen.getByLabelText("Confirm password"),
       "A field reporter passphrase",
     );
-    await user.click(screen.getByRole("button", { name: "Create field account" }));
+    await user.click(screen.getByRole("button", { name: "Create farmer account" }));
 
     expect(await screen.findByText("Account created.")).toBeInTheDocument();
     expect(requestBody).toEqual({

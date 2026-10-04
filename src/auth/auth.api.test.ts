@@ -56,6 +56,7 @@ describe("auth API", () => {
       name: "Review User",
       email: "reviewer@example.test",
       role: "reviewer",
+      capabilities: [],
     });
   });
 

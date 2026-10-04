@@ -21,7 +21,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_accepts_and_persists_a_smut_model_v1_report(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-upload-test', ['report:submit'])->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -65,7 +65,8 @@ class MobileReportUploadV2Test extends TestCase
         $this->assertSame(Report::STATUS_SUBMITTED_UNVERIFIED, $report->review_status);
         Storage::disk('local')->assertExists($report->image_path);
 
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        $this->withoutToken();
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->getJson('/api/v1/reports?'.http_build_query([
             'search' => $report->reference_code,
         ]))
@@ -78,7 +79,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_preserves_rssi_reporter_observation_without_changing_model_v1_evidence(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-rssi-upload-test', ['report:submit'])->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -129,7 +130,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_rejects_rssi_and_legacy_downy_mildew_as_ai_predictions(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-class-boundary-test', ['report:submit'])->plainTextToken;
 
         foreach (['RSSI', 'rssi', 'downy_mildew'] as $unsupportedPrediction) {
@@ -148,13 +149,13 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_retry_omits_reviewer_and_audit_identity(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
-        $reviewer = User::factory()->reviewer()->create([
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'email' => 'reviewer-private@example.test',
             'name' => 'Private reviewer name',
         ]);
         $clientUuid = fake()->uuid();
-        $report = Report::factory()->mobileModelV1()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
             'reporter_id' => $reporter,
             'client_uuid' => $clientUuid,
             'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
@@ -187,7 +188,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_rejects_incomplete_extra_and_malformed_class_scores(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-invalid-test', ['report:submit'])->plainTextToken;
 
         foreach ([
@@ -215,15 +216,14 @@ class MobileReportUploadV2Test extends TestCase
     {
         CarbonImmutable::setTestNow('2026-09-13T10:00:00Z');
         try {
-            $reporter = User::factory()->fieldReporter()->create();
-            $reviewer = User::factory()->reviewer()->create();
-            $report = Report::factory()->mobileModelV1()->create([
+            $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+            $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
                 'reporter_id' => $reporter,
                 'predicted_label' => Report::LABEL_SMUT,
             ]);
 
-            $reviewerToken = $reviewer->createToken('web-review', ['*'])->plainTextToken;
-            $this->withToken($reviewerToken)
+            $this->actingAs($reviewer, 'web')
                 ->patchJson(
                     "/api/v1/reports/{$report->uuid}/review",
                     [
@@ -235,6 +235,7 @@ class MobileReportUploadV2Test extends TestCase
                 )
                 ->assertOk();
 
+            Auth::guard('web')->logout();
             Auth::forgetGuards();
             Auth::shouldUse('web');
             $this->flushHeaders();
@@ -255,8 +256,8 @@ class MobileReportUploadV2Test extends TestCase
     {
         CarbonImmutable::setTestNow('2026-09-13T10:00:00Z');
         try {
-            $reporter = User::factory()->fieldReporter()->create();
-            $report = Report::factory()->create(['reporter_id' => $reporter]);
+            $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $reporter]);
             $token = $reporter->createToken('mobile-v2-status-test', ['report:status'])->plainTextToken;
 
             $this->withToken($token)
@@ -275,7 +276,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_records_explicit_measurement_provenance(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-provenance', ['report:submit'])->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -305,7 +306,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_infers_measurement_provenance_for_a_legacy_payload(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-inferred', ['report:submit'])->plainTextToken;
         $withValue = fake()->uuid();
         $withoutValue = fake()->uuid();
@@ -336,7 +337,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_rejects_incoherent_measurement_provenance(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-invalid', ['report:submit'])->plainTextToken;
 
         $this->withToken($token)
@@ -368,7 +369,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_accepts_a_deliberately_unavailable_location(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-location', ['report:submit'])->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -406,7 +407,7 @@ class MobileReportUploadV2Test extends TestCase
     public function test_v2_rejects_incoherent_location_provenance(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-location-invalid', ['report:submit'])->plainTextToken;
 
         // An unavailable location still has to say why.

@@ -2,13 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
-
 class EnrollMobileDeviceRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === User::ROLE_FIELD_REPORTER
+        return $this->user()?->isMobileUser() === true
             && $this->user()->hasVerifiedEmail();
     }
 

@@ -17,7 +17,7 @@ class ReportAnalyticsPhase2Test extends TestCase
 
     private function getAnalytics(array $query): array
     {
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
 
         return $this->getJson('/api/v1/reports/analytics?'.http_build_query($query))
             ->assertOk()
@@ -26,7 +26,7 @@ class ReportAnalyticsPhase2Test extends TestCase
 
     public function test_lifecycle_distributions_cover_operational_states_without_expert_metrics(): void
     {
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
@@ -54,25 +54,25 @@ class ReportAnalyticsPhase2Test extends TestCase
 
     public function test_area_reports_provenance_split_and_excluded_duplicates(): void
     {
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'affected_area_hectares' => 10.0,
             'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
             'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'affected_area_hectares' => 4.5,
             'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
             'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'affected_area_hectares' => null,
             'submitted_at' => CarbonImmutable::parse('2026-09-03T03:00:00Z'),
         ]);
-        $canonical = Report::factory()->create([
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'affected_area_hectares' => 7.0,
             'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'affected_area_hectares' => 99.0,
             'canonical_report_id' => $canonical->getKey(),
             'submitted_at' => CarbonImmutable::parse('2026-09-04T03:00:00Z'),
@@ -101,11 +101,11 @@ class ReportAnalyticsPhase2Test extends TestCase
 
     public function test_workload_groups_open_validation_by_assignee_with_unassigned_bucket(): void
     {
-        $anna = User::factory()->fieldReporter()->create(['name' => 'Anna Validator']);
-        $ben = User::factory()->fieldReporter()->create(['name' => 'Ben Validator']);
-        $reviewer = User::factory()->reviewer()->create();
+        $anna = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create(['name' => 'Anna Validator']);
+        $ben = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create(['name' => 'Ben Validator']);
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
 
-        $assigned = Report::factory()->create([
+        $assigned = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -116,7 +116,7 @@ class ReportAnalyticsPhase2Test extends TestCase
             'assignee_id' => $ben->getKey(),
             'assigned_by_id' => $reviewer->getKey(),
         ]);
-        $progress = Report::factory()->create([
+        $progress = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -128,14 +128,14 @@ class ReportAnalyticsPhase2Test extends TestCase
             'assigned_by_id' => $reviewer->getKey(),
         ]);
         // Legacy unassigned row routed for field validation: visible work, no assignee.
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
         ]);
         // Closed reports are not open work.
-        $closed = Report::factory()->create([
+        $closed = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_CLOSED,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -166,10 +166,10 @@ class ReportAnalyticsPhase2Test extends TestCase
 
     public function test_schedule_reports_four_buckets_with_unscheduled_visible(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $today = CarbonImmutable::now('Asia/Manila')->toDateString();
 
-        $past = Report::factory()->create([
+        $past = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
@@ -179,7 +179,7 @@ class ReportAnalyticsPhase2Test extends TestCase
             'assigned_by_id' => $reviewer->getKey(),
             'target_visit_date' => '2026-01-05',
         ]);
-        $dueToday = Report::factory()->create([
+        $dueToday = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
             'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
@@ -189,7 +189,7 @@ class ReportAnalyticsPhase2Test extends TestCase
             'assigned_by_id' => $reviewer->getKey(),
             'target_visit_date' => $today,
         ]);
-        $scheduled = Report::factory()->create([
+        $scheduled = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
@@ -200,13 +200,13 @@ class ReportAnalyticsPhase2Test extends TestCase
             'target_visit_date' => '2099-01-05',
         ]);
         // No assignment at all: unscheduled, never past-due.
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
             'submitted_at' => CarbonImmutable::parse('2026-09-05T02:00:00Z'),
         ]);
         // Completed validation is out of the schedule picture.
-        $done = Report::factory()->create([
+        $done = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
             'submitted_at' => CarbonImmutable::parse('2026-09-05T03:00:00Z'),
@@ -233,19 +233,19 @@ class ReportAnalyticsPhase2Test extends TestCase
     public function test_backlog_buckets_waiting_age_and_names_the_oldest_wait(): void
     {
         $oldSubmittedAt = CarbonImmutable::parse('2026-06-15T02:00:00Z');
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             // Long wait: lands in the 30+ bucket and sets the oldest wait.
             'submitted_at' => $oldSubmittedAt,
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             'submitted_at' => CarbonImmutable::parse('2026-09-05T02:00:00Z'),
         ]);
         // Verified reports are not waiting for a first review.
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
             'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
             'submitted_at' => CarbonImmutable::parse('2026-09-05T03:00:00Z'),
@@ -269,8 +269,8 @@ class ReportAnalyticsPhase2Test extends TestCase
 
     public function test_turnaround_reports_measured_durations_and_skips_negative_intervals(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
         ]);
         $assignment = FieldValidationAssignment::factory()->create([
@@ -283,7 +283,7 @@ class ReportAnalyticsPhase2Test extends TestCase
             'visited_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
         ]);
         // Inconsistent clock order: never presented as a duration.
-        $bad = Report::factory()->create([
+        $bad = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'submitted_at' => CarbonImmutable::parse('2026-09-02T03:00:00Z'),
         ]);
         $badAssignment = FieldValidationAssignment::factory()->create([

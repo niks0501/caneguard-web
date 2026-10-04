@@ -30,6 +30,7 @@ class EmptyDatabaseSeederTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
         $this->seed(DatabaseSeeder::class);
+        $this->approveSeededPilotFixtures();
 
         $this->assertDatabaseCount('users', 3);
         $this->assertDatabaseCount('reports', 0);

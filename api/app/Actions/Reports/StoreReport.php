@@ -5,6 +5,7 @@ namespace App\Actions\Reports;
 use App\Actions\Notifications\BroadcastNewCaseSubmitted;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +27,7 @@ class StoreReport
      */
     public function handle(User $reporter, array $data, UploadedFile $image): array
     {
+        abort_unless(app(DistrictAccess::class)->inspector($reporter), 403);
         $existing = $this->findExisting($reporter, $data['client_uuid']);
 
         if ($existing) {
@@ -79,7 +81,7 @@ class StoreReport
 
     private function findExisting(User $reporter, string $clientUuid): ?Report
     {
-        $report = Report::query()
+        $report = Report::query()->visibleTo($reporter)
             ->whereBelongsTo($reporter, 'reporter')
             ->where('client_uuid', $clientUuid)
             ->first();

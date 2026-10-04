@@ -3,6 +3,11 @@
 return [
     'legacy_public_storage_link' => public_path('storage'),
     'self_registration_enabled' => env('CANEGUARD_SELF_REGISTRATION_ENABLED', false),
+    // Both switches remain closed until the office certifies the pilot roster.
+    'pilot_roster_certified' => env('CANEGUARD_PILOT_ROSTER_CERTIFIED', false),
+    // Blank means no live district. Never infer membership from location/name.
+    'pilot_district_code' => env('CANEGUARD_PILOT_DISTRICT_CODE', ''),
+    'weekly_send_enabled' => env('CANEGUARD_WEEKLY_SEND_ENABLED', false),
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',

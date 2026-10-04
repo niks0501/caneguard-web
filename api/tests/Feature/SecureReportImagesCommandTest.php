@@ -23,7 +23,7 @@ class SecureReportImagesCommandTest extends TestCase
         config([
             'caneguard.legacy_public_storage_link' => $link,
         ]);
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'image_path' => 'reports/legacy-image.png',
         ]);
         Storage::disk('public')->put(
@@ -53,10 +53,10 @@ class SecureReportImagesCommandTest extends TestCase
     {
         Storage::fake('local');
         Storage::fake('public');
-        $verified = Report::factory()->create([
+        $verified = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'image_path' => 'reports/verified.png',
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'image_path' => 'reports/missing.png',
         ]);
         Storage::disk('local')->put($verified->image_path, 'verified');
@@ -82,7 +82,7 @@ class SecureReportImagesCommandTest extends TestCase
         }
         symlink($foreign, $link);
         config(['caneguard.legacy_public_storage_link' => $link]);
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'image_path' => 'reports/still-public.png',
         ]);
         Storage::disk('local')->put($report->image_path, 'same-content');
