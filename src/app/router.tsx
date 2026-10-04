@@ -11,6 +11,7 @@ import { MonitoringWorkspacePage } from "../pages/MonitoringWorkspacePage";
 import { NeedsAssessmentPage } from "../pages/NeedsAssessmentPage";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
+import { StaffInvitationPage } from "../pages/StaffInvitationPage";
 import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
@@ -33,6 +34,7 @@ export function AppRouter() {
           path="register"
           element={isPublicRegistrationEnabled() ? <RegisterPage /> : <Navigate replace to={routes.login} />}
         />
+        <Route path="accept-staff-invitation" element={<StaffInvitationPage />} />
         <Route path="verify-email" element={<VerifyEmailPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="reset-password" element={<ResetPasswordPage />} />

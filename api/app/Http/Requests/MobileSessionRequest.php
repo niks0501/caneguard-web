@@ -15,11 +15,11 @@ class MobileSessionRequest extends ApiFormRequest
         }
 
         if ($this->bearerToken() !== null) {
-            return $user->role === User::ROLE_FIELD_REPORTER
+            return ($user->isFieldReporter() || $user->role === User::ROLE_FARMER)
                 && $user->currentAccessToken() instanceof PersonalAccessToken;
         }
 
-        return true;
+        return $user->isCertifiedStaff() || $user->role === User::ROLE_FARMER;
     }
 
     public function rules(): array

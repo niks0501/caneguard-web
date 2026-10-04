@@ -20,6 +20,7 @@ return [
         'login',
         'logout',
         'register',
+        'staff/invitations/accept',
         'email/*',
         'forgot-password',
         'reset-password',

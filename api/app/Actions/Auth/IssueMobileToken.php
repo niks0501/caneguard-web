@@ -39,7 +39,11 @@ final class IssueMobileToken
         $expiresAt = null;
 
         return DB::transaction(function () use ($deviceId, $expiresAt, $tokenName, $user): NewAccessToken {
-            User::query()->whereKey($user->getKey())->lockForUpdate()->first();
+            $user = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            if (! $user->hasVerifiedEmail()
+                || (! $user->isFieldReporter() && $user->role !== User::ROLE_FARMER)) {
+                throw new InvalidArgumentException('This account is not eligible for a mobile session.');
+            }
 
             $user->tokens()
                 ->where(function ($query) use ($deviceId, $tokenName): void {
@@ -55,7 +59,7 @@ final class IssueMobileToken
 
             $token = $user->createToken(
                 $tokenName,
-                self::abilities(),
+                $user->isFieldReporter() ? self::abilities() : [],
                 $expiresAt,
             );
 

@@ -17,6 +17,8 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
+    public const ROLE_FARMER = 'farmer';
+
     public const ROLE_FIELD_REPORTER = 'field_reporter';
 
     public const ROLE_REVIEWER = 'reviewer';
@@ -44,6 +46,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public static function roles(): array
     {
         return [
+            self::ROLE_FARMER,
             self::ROLE_FIELD_REPORTER,
             self::ROLE_REVIEWER,
             self::ROLE_ADMIN,
@@ -75,14 +78,35 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    public function isCertifiedStaff(): bool
+    {
+        return $this->hasVerifiedEmail()
+            && in_array($this->role, [self::ROLE_FIELD_REPORTER, ...self::officeRoles()], true)
+            && $this->staff_certified_at !== null
+            && trim((string) $this->staff_authority_reference) !== '';
+    }
+
+    public function isFieldReporter(): bool
+    {
+        return $this->role === self::ROLE_FIELD_REPORTER && $this->isCertifiedStaff();
+    }
+
     public function isOfficeUser(): bool
     {
-        return in_array($this->role, self::officeRoles(), true);
+        return in_array($this->role, self::officeRoles(), true) && $this->isCertifiedStaff();
     }
 
     public function isWebUser(): bool
     {
-        return in_array($this->role, self::webRoles(), true);
+        return $this->isOfficeUser();
+    }
+
+    public function canManageStaff(): bool
+    {
+        // The configured identity is the explicit phase-1 staff:manage delegation.
+        // Admin/DMO alone confers no staff-management power.
+        return $this->hasVerifiedEmail() && $this->isOfficeUser()
+            && hash_equals((string) config('caneguard.access.approver_identity'), $this->uuid);
     }
 
     /**
@@ -126,6 +150,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'staff_certified_at' => 'immutable_datetime',
             'biometric_enabled' => 'boolean',
             'password' => 'hashed',
         ];

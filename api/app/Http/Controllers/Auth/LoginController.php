@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,7 +35,7 @@ class LoginController extends Controller
             ], 403);
         }
 
-        if (! in_array($user?->role, User::webRoles(), true)) {
+        if (! $user?->isWebUser()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

@@ -10,11 +10,12 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CertifiesDemoRoster;
 use Tests\TestCase;
 
 class AdvisoryTest extends TestCase
 {
-    use RefreshDatabase;
+    use CertifiesDemoRoster, RefreshDatabase;
 
     public function test_advisory_library_requires_provenance_for_validation_and_retirement_is_terminal(): void
     {
@@ -68,6 +69,7 @@ class AdvisoryTest extends TestCase
             'caneguard.demo_users.expert_password' => 'expert-test-password',
         ]);
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
 
         $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
         $reporter = User::factory()->fieldReporter()->create();

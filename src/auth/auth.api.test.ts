@@ -59,7 +59,7 @@ describe("auth API", () => {
     });
   });
 
-  it("rejects a field reporter returned during restoration", async () => {
+  it.each(["field_reporter", "farmer"])("rejects %s returned during restoration", async (role) => {
     server.use(
       http.get(`${baseUrl}/api/v1/me`, () =>
         HttpResponse.json({
@@ -67,7 +67,7 @@ describe("auth API", () => {
             uuid: "user-2",
             name: "Field User",
             email: "field@example.test",
-            role: "field_reporter",
+            role,
           },
         }),
       ),

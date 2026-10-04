@@ -5,6 +5,7 @@ import { routes } from "../app/routes";
 import { registerRequest } from "../auth/auth.api";
 import type { RegistrationCredentials } from "../auth/auth.types";
 import { Button } from "../components/ui/Button";
+import { AccessConfiguration } from "../components/AccessConfiguration";
 import { AuthPageFrame } from "./AuthPageFrame";
 
 export function RegisterPage() {
@@ -38,6 +39,8 @@ export function RegisterPage() {
             error.errors?.password_confirmation?.[0] ??
             "Check the account details and try again.",
         );
+      } else if (error instanceof ApiError && error.code === "REGISTRATION_DISABLED") {
+        setErrorMessage("Registration is disabled. Contact the office for an approved staff invitation.");
       } else if (error instanceof ApiError && error.status === 429) {
         setErrorMessage("Too many registration attempts. Wait a minute and try again.");
       } else {
@@ -53,15 +56,16 @@ export function RegisterPage() {
   return (
     <AuthPageFrame
       headingId="register-heading"
-      eyebrow="Field Inspector registration"
-      title="Create your field account"
-      description="Register with an email address so field reports can be securely connected to you."
+      eyebrow="Account registration"
+      title="Create your account"
+      description="Registration creates a farmer account, not inspector access. Staff access requires an approved office roster and invitation."
       icon={<UserPlus aria-hidden="true" />}
     >
+      <AccessConfiguration />
       {isCreated ? (
         <div className="auth-success" role="status">
           <strong>Account created.</strong>
-          <span>Check your email and verify the address before signing in.</span>
+          <span>Check your email to verify the address. Verification does not grant staff access.</span>
           <a className="button button--primary" href={routes.verifyEmail}>
             Continue to verification
           </a>
@@ -127,7 +131,7 @@ export function RegisterPage() {
             Use 15 to 128 characters. A phrase is fine; no symbol or number pattern is required.
           </p>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating account..." : "Create field account"}
+            {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>
       )}

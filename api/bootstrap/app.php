@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureCertifiedStaff;
 use App\Http\Middleware\EnsureMobileTokenFresh;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
             'mobile.token' => EnsureMobileTokenFresh::class,
+            'staff.certified' => EnsureCertifiedStaff::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -232,6 +232,9 @@ class ReviewReportRequest extends ApiFormRequest
                 && ! User::query()
                     ->where('uuid', $this->input('field_validation_assignee_uuid'))
                     ->where('role', User::ROLE_FIELD_REPORTER)
+                    ->whereNotNull('staff_certified_at')
+                    ->whereNotNull('staff_authority_reference')
+                    ->where('staff_authority_reference', '<>', '')
                     ->exists()
             ) {
                 $validator->errors()->add(

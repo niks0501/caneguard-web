@@ -2210,6 +2210,32 @@ blockquote {
   line-height: 1.5;
 }
 
+.access-configuration {
+  margin-block: var(--space-4);
+  font-size: var(--text-body-sm);
+  overflow-wrap: anywhere;
+}
+
+.access-configuration dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+
+.access-configuration dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.access-configuration dt {
+  font-weight: 600;
+}
+
+.access-configuration dd {
+  margin: 0;
+}
+
 .auth-success,
 .auth-error,
 .auth-loading {

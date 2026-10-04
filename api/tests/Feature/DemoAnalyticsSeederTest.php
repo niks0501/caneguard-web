@@ -14,17 +14,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CertifiesDemoRoster;
 use Tests\TestCase;
 
 class DemoAnalyticsSeederTest extends TestCase
 {
-    use RefreshDatabase;
+    use CertifiesDemoRoster, RefreshDatabase;
 
     public function test_default_seed_does_not_include_opt_in_analytics_reports(): void
     {
         $this->configureDemoPasswords();
 
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
 
         $this->assertDatabaseCount('reports', 0);
         $this->assertDatabaseCount('report_class_scores', 0);
@@ -37,6 +39,7 @@ class DemoAnalyticsSeederTest extends TestCase
         $this->configureDemoPasswords();
 
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
         $this->seed(DemoAnalyticsSeeder::class);
 
         $report = Report::query()
@@ -70,6 +73,7 @@ class DemoAnalyticsSeederTest extends TestCase
 
         try {
             $this->seed(DatabaseSeeder::class);
+            $this->certifyDemoRoster();
             $this->assertDatabaseCount('reports', 0);
 
             $this->seed(DemoAnalyticsSeeder::class);

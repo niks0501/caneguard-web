@@ -3,6 +3,7 @@ import type { FieldValidationQueue, OperationalQueue } from "../domain/operation
 export const routes = {
   login: "/login",
   register: "/register",
+  staffInvitation: "/accept-staff-invitation",
   verifyEmail: "/verify-email",
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",

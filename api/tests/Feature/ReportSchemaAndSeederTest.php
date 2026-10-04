@@ -18,11 +18,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CertifiesDemoRoster;
 use Tests\TestCase;
 
 class ReportSchemaAndSeederTest extends TestCase
 {
-    use RefreshDatabase;
+    use CertifiesDemoRoster, RefreshDatabase;
 
     public function test_report_schema_contains_the_planned_tables_and_columns(): void
     {
@@ -272,6 +273,7 @@ class ReportSchemaAndSeederTest extends TestCase
         ];
 
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
 
         $this->assertSame(
             $originalReport,
@@ -319,6 +321,7 @@ class ReportSchemaAndSeederTest extends TestCase
         DB::table('report_class_scores')->where('report_id', $report->id)->delete();
         DB::table('report_symptoms')->where('report_id', $report->id)->delete();
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
         $this->seed(ReportSeeder::class);
 
         $seededReport = Report::query()->findOrFail($report->id);
@@ -700,6 +703,7 @@ class ReportSchemaAndSeederTest extends TestCase
     private function seedReportDemoDataset(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
         $this->seed(ReportSeeder::class);
         $this->seed(AdvisorDemoSeeder::class);
         $this->seed(DashboardReportSeeder::class);

@@ -20,7 +20,7 @@ class RegisterController extends Controller
             $user = User::query()->create([
                 'name' => $request->validated('name'),
                 'email' => $request->validated('email'),
-                'role' => User::ROLE_FIELD_REPORTER,
+                'role' => User::ROLE_FARMER,
                 'email_verified_at' => null,
                 'password' => $request->validated('password'),
             ]);

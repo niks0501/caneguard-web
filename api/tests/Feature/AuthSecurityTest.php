@@ -39,7 +39,7 @@ class AuthSecurityTest extends TestCase
         $this->assertDatabaseCount('security_audits', 0);
     }
 
-    public function test_registration_creates_only_a_verified_email_gated_field_reporter(): void
+    public function test_registration_creates_only_a_verified_email_gated_farmer(): void
     {
         config(['caneguard.self_registration_enabled' => true]);
         Notification::fake();
@@ -54,7 +54,7 @@ class AuthSecurityTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('code', 'REGISTRATION_CREATED')
-            ->assertJsonPath('user.role', User::ROLE_FIELD_REPORTER)
+            ->assertJsonPath('user.role', User::ROLE_FARMER)
             ->assertJsonPath('user.email_verified', false);
 
         $user = User::query()->where('email', 'new@example.test')->sole();
@@ -514,6 +514,7 @@ class AuthSecurityTest extends TestCase
         $target = User::factory()->reviewer()->create([
             'password' => 'A reviewer passphrase',
         ]);
+        config(['caneguard.access.approver_identity' => $admin->uuid]);
         $this->actingAs($admin);
 
         $this->postJson('/api/v1/auth/password', [
@@ -523,13 +524,14 @@ class AuthSecurityTest extends TestCase
 
         $this->patchJson('/api/v1/admin/users/'.$target->uuid.'/role', [
             'current_password' => 'An administrator passphrase',
-            'role' => User::ROLE_FIELD_REPORTER,
+            'role' => User::ROLE_FARMER,
         ])->assertOk()->assertJsonPath('code', 'ROLE_CHANGED');
-        $this->assertSame(User::ROLE_FIELD_REPORTER, $target->fresh()->role);
+        $this->assertSame(User::ROLE_FARMER, $target->fresh()->role);
+        $this->assertFalse($target->fresh()->isCertifiedStaff());
 
         $this->patchJson('/api/v1/admin/users/'.$admin->uuid.'/role', [
             'current_password' => 'An administrator passphrase',
-            'role' => User::ROLE_FIELD_REPORTER,
+            'role' => User::ROLE_FARMER,
         ])->assertForbidden()->assertJsonPath('code', 'ROLE_CHANGE_FORBIDDEN');
         $this->assertSame(User::ROLE_ADMIN, $admin->fresh()->role);
     }

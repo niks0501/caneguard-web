@@ -13,7 +13,7 @@ const userResponseSchema = z.object({
     uuid: z.string(),
     name: z.string(),
     email: z.email(),
-    role: z.enum(["field_reporter", "reviewer", "admin"]),
+    role: z.enum(["farmer", "field_reporter", "reviewer", "admin"]),
   }),
 });
 
@@ -27,7 +27,7 @@ const registrationResponseSchema = authActionResponseSchema.extend({
     uuid: z.string(),
     name: z.string(),
     email: z.email(),
-    role: z.literal("field_reporter"),
+    role: z.literal("farmer"),
     email_verified: z.boolean(),
   }),
 });
@@ -49,6 +49,29 @@ export async function registerRequest(
   await initializeCsrf();
   const response = await axiosClient.post("/register", credentials);
   return registrationResponseSchema.parse(response.data);
+}
+
+const accessConfigurationSchema = z.object({
+  data: z.object({
+    staff_approver: z.object({ label: z.string(), placeholder: z.boolean() }),
+    pilot_district: z.object({ label: z.string(), placeholder: z.boolean() }),
+    district_enforcement: z.literal(false),
+  }),
+});
+
+export async function getAccessConfiguration() {
+  const response = await axiosClient.get("/api/v1/access-configuration");
+  return accessConfigurationSchema.parse(response.data).data;
+}
+
+export async function acceptStaffInvitation(credentials: {
+  token: string;
+  email: string;
+  current_password: string;
+}) {
+  await initializeCsrf();
+  const response = await axiosClient.post("/staff/invitations/accept", credentials);
+  return authActionResponseSchema.parse(response.data);
 }
 
 export async function resendVerificationRequest(email: string) {

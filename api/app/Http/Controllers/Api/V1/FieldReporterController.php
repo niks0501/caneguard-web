@@ -15,6 +15,9 @@ class FieldReporterController extends Controller
         return FieldReporterResource::collection(
             User::query()
                 ->where('role', User::ROLE_FIELD_REPORTER)
+                ->whereNotNull('staff_certified_at')
+                ->whereNotNull('staff_authority_reference')
+                ->where('staff_authority_reference', '<>', '')
                 ->orderBy('name')
                 ->orderBy('id')
                 ->get(['id', 'uuid', 'name']),

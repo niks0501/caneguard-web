@@ -9,14 +9,14 @@ class ChangeUserRoleRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === User::ROLE_ADMIN;
+        return $this->user()?->canManageStaff() ?? false;
     }
 
     public function rules(): array
     {
         return [
             'current_password' => ['required', 'string', 'max:255'],
-            'role' => ['required', 'string', Rule::in(User::roles())],
+            'role' => ['required', 'string', Rule::in([User::ROLE_FARMER])],
         ];
     }
 }

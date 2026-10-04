@@ -207,9 +207,12 @@ export function LoginPage() {
           </div>
         </form>
 
+        <p className="login-support">
+          <Link to={routes.staffInvitation}>Accept an approved staff invitation</Link>
+        </p>
         {isPublicRegistrationEnabled() ? (
           <p className="login-support">
-            Field inspector? <Link to={routes.register}>Create an account</Link>
+            <Link to={routes.register}>Create an account</Link> — staff access requires office approval.
           </p>
         ) : null}
       </section>

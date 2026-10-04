@@ -9,6 +9,13 @@ const baseUrl = "http://localhost:8000";
 async function renderAuthPage(path: string) {
   vi.stubEnv("VITE_DATA_SOURCE", "api");
   server.use(
+    http.get(`${baseUrl}/api/v1/access-configuration`, () =>
+      HttpResponse.json({ data: {
+        staff_approver: { label: "To be assigned", placeholder: true },
+        pilot_district: { label: "To be assigned", placeholder: true },
+        district_enforcement: false,
+      } }),
+    ),
     http.get(`${baseUrl}/api/v1/me`, () =>
       HttpResponse.json(
         { message: "Unauthenticated.", code: "UNAUTHENTICATED" },
@@ -38,7 +45,7 @@ afterEach(() => {
 });
 
 describe("public authentication pages", () => {
-  it("registers a field reporter without accepting a client role when explicitly enabled", async () => {
+  it("registers a farmer without accepting a client role when explicitly enabled", async () => {
     vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
     let requestBody: Record<string, unknown> | undefined;
     server.use(
@@ -55,7 +62,7 @@ describe("public authentication pages", () => {
               uuid: "user-1",
               name: "Field Reporter",
               email: "field@example.test",
-              role: "field_reporter",
+              role: "farmer",
               email_verified: false,
             },
           },
@@ -72,7 +79,7 @@ describe("public authentication pages", () => {
       screen.getByLabelText("Confirm password"),
       "A field reporter passphrase",
     );
-    await user.click(screen.getByRole("button", { name: "Create field account" }));
+    await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(await screen.findByText("Account created.")).toBeInTheDocument();
     expect(requestBody).toEqual({
@@ -82,6 +89,9 @@ describe("public authentication pages", () => {
       password_confirmation: "A field reporter passphrase",
     });
     expect(requestBody).not.toHaveProperty("role");
+    expect(screen.getByText(/Verification does not grant staff access/)).toBeInTheDocument();
+    expect(screen.getByText("To be assigned (APPROVER_TBD)")).toBeInTheDocument();
+    expect(screen.getByText("To be assigned (DISTRICT_TBD)")).toBeInTheDocument();
   });
 
   it("does not expose registration when public self-registration is disabled", async () => {
@@ -94,6 +104,43 @@ describe("public authentication pages", () => {
     expect(window.location.pathname).toBe("/login");
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
+  });
+
+  it("accepts only the issued invitation with current credentials even when registration is disabled", async () => {
+    vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "false");
+    const token = "a".repeat(64);
+    let requestBody: unknown;
+    server.use(
+      http.get(`${baseUrl}/sanctum/csrf-cookie`, () => new HttpResponse(null, { status: 204 })),
+      http.post(`${baseUrl}/staff/invitations/accept`, async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json({ message: "Certified.", code: "STAFF_CERTIFIED" });
+      }),
+    );
+    const user = await renderAuthPage(`/accept-staff-invitation#${token}`);
+    expect(window.location.hash).toBe("");
+    expect(screen.getByLabelText("Invitation code")).toHaveValue(token);
+    expect(await screen.findByText("To be assigned (APPROVER_TBD)")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Verified email"), "staff@example.test");
+    await user.type(screen.getByLabelText("Current password"), "A verified staff passphrase");
+    await user.click(screen.getByRole("button", { name: "Accept invitation" }));
+    expect(await screen.findByText("Staff account certified. Sign in again to use your approved access.")).toBeInTheDocument();
+    expect(requestBody).toEqual({ token, email: "staff@example.test", current_password: "A verified staff passphrase" });
+  });
+
+  it("keeps invitation denial actionable and preserves entered credentials", async () => {
+    server.use(
+      http.get(`${baseUrl}/sanctum/csrf-cookie`, () => new HttpResponse(null, { status: 204 })),
+      http.post(`${baseUrl}/staff/invitations/accept`, () =>
+        HttpResponse.json({ message: "Denied.", code: "FORBIDDEN" }, { status: 403 })),
+    );
+    const user = await renderAuthPage(`/accept-staff-invitation#${"b".repeat(64)}`);
+    await user.type(screen.getByLabelText("Verified email"), "staff@example.test");
+    await user.type(screen.getByLabelText("Current password"), "wrong");
+    await user.click(screen.getByRole("button", { name: "Accept invitation" }));
+    expect(await screen.findByText(/Invitation not accepted/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Verified email")).toHaveValue("staff@example.test");
+    expect(screen.queryByText(/Staff account certified/)).not.toBeInTheDocument();
   });
 
   it("keeps forgot-password feedback generic", async () => {

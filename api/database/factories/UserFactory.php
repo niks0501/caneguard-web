@@ -29,6 +29,9 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'role' => User::ROLE_FIELD_REPORTER,
             'email_verified_at' => now(),
+            // Existing authorization fixtures represent approved staff, not public signup.
+            'staff_certified_at' => now(),
+            'staff_authority_reference' => 'TEST_ROSTER_APPROVED',
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
@@ -41,6 +44,21 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function uncertified(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'staff_certified_at' => null,
+            'staff_authority_reference' => null,
+        ]);
+    }
+
+    public function farmer(): static
+    {
+        return $this->uncertified()->state(fn (array $attributes) => [
+            'role' => User::ROLE_FARMER,
         ]);
     }
 

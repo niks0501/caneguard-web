@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AcceptStaffInvitationController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -22,6 +23,8 @@ Route::get('/', $serveSpa);
 
 Route::post('/register', RegisterController::class)
     ->middleware(['throttle:register', EnsurePublicRegistrationEnabled::class]);
+Route::post('/staff/invitations/accept', AcceptStaffInvitationController::class)
+    ->middleware('throttle:5,1');
 Route::post('/login', LoginController::class)
     ->middleware('throttle:login');
 Route::post('/logout', LogoutController::class)

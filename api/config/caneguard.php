@@ -3,7 +3,14 @@
 return [
     'legacy_public_storage_link' => public_path('storage'),
     'self_registration_enabled' => env('CANEGUARD_SELF_REGISTRATION_ENABLED', false),
+    'access' => [
+        // Invented placeholders; neither grants authority nor claims office approval.
+        'approver_identity' => env('CANEGUARD_STAFF_APPROVER', 'APPROVER_TBD'),
+        'pilot_district' => env('CANEGUARD_PILOT_DISTRICT', 'DISTRICT_TBD'),
+        'invitation_hours' => 48,
+    ],
     'auth' => [
+        'staff_invitation_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/').'/accept-staff-invitation',
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',
             rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/').'/verify-email',

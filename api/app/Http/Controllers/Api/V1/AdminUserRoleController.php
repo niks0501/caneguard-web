@@ -8,6 +8,7 @@ use App\Actions\Auth\RevokeUserAuthentication;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangeUserRoleRequest;
 use App\Models\SecurityAudit;
+use App\Models\StaffInvitation;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -69,9 +70,22 @@ class AdminUserRoleController extends Controller
             ], 422);
         }
 
-        $oldRole = $user->role;
-        DB::transaction(function () use ($audits, $actor, $newRole, $oldRole, $revoker, $user): void {
-            $user->forceFill(['role' => $newRole])->save();
+        DB::transaction(function () use ($audits, $actor, $newRole, $revoker, $user): void {
+            $users = User::query()->whereKey([$actor->id, $user->id])
+                ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $actor = $users->get($actor->id);
+            $user = $users->get($user->id);
+            abort_unless($actor?->canManageStaff() && $user, 403);
+            $oldRole = $user->role;
+            // Staff promotion requires a roster-approved invitation, never this route.
+            $user->forceFill([
+                'role' => $newRole,
+                'staff_certified_at' => null,
+                'staff_certified_by' => null,
+                'staff_authority_reference' => null,
+            ])->save();
+            StaffInvitation::query()->where('user_id', $user->id)
+                ->whereNull('accepted_at')->whereNull('revoked_at')->update(['revoked_at' => now()]);
             $revoker->handle($user);
             $audits->handle(
                 SecurityAudit::ACTION_ROLE_CHANGE,
@@ -92,7 +106,7 @@ class AdminUserRoleController extends Controller
                 'uuid' => $user->uuid,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'role' => $user->fresh()->role,
             ],
         ]);
     }

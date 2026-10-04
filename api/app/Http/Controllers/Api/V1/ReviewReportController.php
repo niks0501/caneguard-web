@@ -201,6 +201,9 @@ class ReviewReportController extends Controller
                 $assignee = User::query()
                     ->where('uuid', $data['field_validation_assignee_uuid'])
                     ->where('role', User::ROLE_FIELD_REPORTER)
+                    ->whereNotNull('staff_certified_at')
+                    ->whereNotNull('staff_authority_reference')
+                    ->where('staff_authority_reference', '<>', '')
                     ->firstOrFail();
                 $targetVisitDate = array_key_exists('field_validation_target_date', $data)
                     ? $data['field_validation_target_date']

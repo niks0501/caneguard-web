@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\V1\ReportHandoffNoteController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
+use App\Http\Controllers\Api\V1\StaffInvitationController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
 use App\Http\Controllers\Auth\ChangeEmailController;
 use App\Http\Controllers\Auth\ChangePasswordController;
@@ -42,6 +43,22 @@ Route::get('/health', HealthController::class);
 Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
     ->middleware('throttle:login');
 Route::get('/v1/reference/locations', LocationReferenceController::class);
+Route::get('/v1/access-configuration', function () {
+    $approver = (string) config('caneguard.access.approver_identity');
+    $district = (string) config('caneguard.access.pilot_district');
+
+    return response()->json(['data' => [
+        'staff_approver' => [
+            'label' => $approver === 'APPROVER_TBD' || $approver === '' ? 'To be assigned' : 'Assigned',
+            'placeholder' => $approver === 'APPROVER_TBD' || $approver === '',
+        ],
+        'pilot_district' => [
+            'label' => $district === 'DISTRICT_TBD' || $district === '' ? 'To be assigned' : $district,
+            'placeholder' => $district === 'DISTRICT_TBD' || $district === '',
+        ],
+        'district_enforcement' => false,
+    ]])->header('Cache-Control', 'no-store');
+});
 
 Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/me', AuthenticatedUserController::class);
@@ -51,6 +68,26 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.auth.email');
     Route::post('/auth/biometric/disable', DisableBiometricController::class)
         ->name('api.v1.auth.biometric.disable');
+    Route::get('/mobile/auth/me', [MobileAuthController::class, 'me'])
+        ->middleware('mobile.token');
+    Route::get('/mobile/auth/devices', [MobileAuthController::class, 'devices'])
+        ->middleware('mobile.token')
+        ->name('api.v1.mobile.auth.devices');
+    Route::delete('/mobile/auth/devices/{device}', [MobileAuthController::class, 'revokeDevice'])
+        ->middleware('mobile.token')
+        ->name('api.v1.mobile.auth.devices.revoke')
+        ->whereNumber('device');
+    Route::post('/mobile/auth/enroll', [MobileAuthController::class, 'enroll'])
+        ->middleware('mobile.token')
+        ->name('api.v1.mobile.auth.enroll');
+    Route::delete('/mobile/auth/logout', [MobileAuthController::class, 'logout'])
+        ->middleware('mobile.token');
+
+});
+
+Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'staff.certified'])->group(function () {
+    Route::post('/staff/invitations', StaffInvitationController::class)
+        ->middleware('throttle:5,1');
     Route::patch('/admin/users/{user:uuid}/role', AdminUserRoleController::class)
         ->name('api.v1.admin.users.role');
     Route::get('/dashboard/summary', DashboardSummaryController::class);
@@ -108,21 +145,6 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::delete('/reports/{report}/duplicate-link', [LinkDuplicateReportController::class, 'destroy'])
         ->name('api.v1.reports.duplicate-unlink');
 
-    Route::get('/mobile/auth/me', [MobileAuthController::class, 'me'])
-        ->middleware('mobile.token');
-    Route::get('/mobile/auth/devices', [MobileAuthController::class, 'devices'])
-        ->middleware('mobile.token')
-        ->name('api.v1.mobile.auth.devices');
-    Route::delete('/mobile/auth/devices/{device}', [MobileAuthController::class, 'revokeDevice'])
-        ->middleware('mobile.token')
-        ->name('api.v1.mobile.auth.devices.revoke')
-        ->whereNumber('device');
-    Route::post('/mobile/auth/enroll', [MobileAuthController::class, 'enroll'])
-        ->middleware('mobile.token')
-        ->name('api.v1.mobile.auth.enroll');
-    Route::delete('/mobile/auth/logout', [MobileAuthController::class, 'logout'])
-        ->middleware('mobile.token');
-
     Route::get('/mobile/reports/possible-matches', MobilePossibleRecentMatchesController::class)
         ->middleware(['mobile.token', 'abilities:report:submit'])
         ->name('api.v1.mobile.reports.possible-matches');
@@ -151,7 +173,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->middleware(['mobile.token', 'abilities:assignment:complete', 'throttle:30,1']);
 });
 
-Route::prefix('v2')->middleware(['auth:sanctum', 'verified'])->group(function () {
+Route::prefix('v2')->middleware(['auth:sanctum', 'verified', 'staff.certified'])->group(function () {
     Route::post('/mobile/reports', [MobileV2ReportController::class, 'store'])
         ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1'])
         ->name('api.v2.mobile.reports.store');
@@ -160,7 +182,7 @@ Route::prefix('v2')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v2.mobile.reports.statuses');
 });
 
-Route::prefix('v3')->middleware(['auth:sanctum', 'verified'])->group(function () {
+Route::prefix('v3')->middleware(['auth:sanctum', 'verified', 'staff.certified'])->group(function () {
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware(['mobile.token', 'abilities:report:status'])
         ->name('api.v3.mobile.reports.statuses');

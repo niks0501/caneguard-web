@@ -8,7 +8,7 @@ class EnrollMobileDeviceRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === User::ROLE_FIELD_REPORTER
+        return ($this->user()?->isFieldReporter() || $this->user()?->role === User::ROLE_FARMER)
             && $this->user()->hasVerifiedEmail();
     }
 

@@ -52,13 +52,16 @@ class DatabaseSeeder extends Seeder
             $attributes = $user;
             unset($attributes['email_verified_at']);
 
-            $seededUser = User::query()->updateOrCreate(
+            // Seeding is not roster approval and must not overwrite existing identities.
+            $seededUser = User::query()->firstOrCreate(
                 ['email' => $user['email']],
                 $attributes,
             );
-            $seededUser->forceFill([
-                'email_verified_at' => $user['email_verified_at'],
-            ])->save();
+            if ($seededUser->wasRecentlyCreated) {
+                $seededUser->forceFill([
+                    'email_verified_at' => $user['email_verified_at'],
+                ])->save();
+            }
         }
 
         $this->call(OfficeAdvisorySeeder::class);

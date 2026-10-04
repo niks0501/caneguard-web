@@ -59,7 +59,7 @@ class MobileAuthController extends Controller
             ], 403);
         }
 
-        if ($user->role !== User::ROLE_FIELD_REPORTER) {
+        if (! $user->isFieldReporter() && $user->role !== User::ROLE_FARMER) {
             return response()->json([
                 'message' => 'This account cannot submit mobile field reports.',
                 'code' => 'FORBIDDEN',

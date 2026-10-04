@@ -15,11 +15,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\CertifiesDemoRoster;
 use Tests\TestCase;
 
 class AdvisorDemoSeederTest extends TestCase
 {
-    use RefreshDatabase;
+    use CertifiesDemoRoster, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -153,6 +154,7 @@ class AdvisorDemoSeederTest extends TestCase
     private function seedReportDemoDataset(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
         $this->seed(ReportSeeder::class);
         $this->seed(AdvisorDemoSeeder::class);
         $this->seed(DashboardReportSeeder::class);

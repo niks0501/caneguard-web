@@ -9,11 +9,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
+use Tests\Concerns\CertifiesDemoRoster;
 use Tests\TestCase;
 
 class EmptyDatabaseSeederTest extends TestCase
 {
-    use RefreshDatabase;
+    use CertifiesDemoRoster, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -30,6 +31,7 @@ class EmptyDatabaseSeederTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
         $this->seed(DatabaseSeeder::class);
+        $this->certifyDemoRoster();
 
         $this->assertDatabaseCount('users', 3);
         $this->assertDatabaseCount('reports', 0);

@@ -36,12 +36,12 @@ class ReportPolicy
 
     public function create(User $user): bool
     {
-        return $user->role === User::ROLE_FIELD_REPORTER;
+        return $user->isFieldReporter();
     }
 
     public function viewStatuses(User $user): bool
     {
-        return $user->role === User::ROLE_FIELD_REPORTER;
+        return $user->isFieldReporter();
     }
 
     public function review(User $user, Report $report): bool
