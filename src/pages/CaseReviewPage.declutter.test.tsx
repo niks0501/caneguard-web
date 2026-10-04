@@ -195,7 +195,7 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUpdateReportReview>);
   });
 
-  it("retires the two-column split: no review-layout or review-sidebar remains and the flow reads hero, status, photo, condition, field report, office decision, history", () => {
+  it("retires the two-column split and reads evidence first: status, photo, condition, field report, office decision, history", () => {
     renderPage();
 
     expect(document.querySelector(".review-layout")).toBeNull();
@@ -205,23 +205,23 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     const flow = document.querySelector(".review-single-column");
     expect(flow).toBeInTheDocument();
 
-    const hero = screen.getByRole("heading", { name: "What this case needs from me" });
     const chips = screen.getByRole("region", { name: "Case status" });
     const photo = screen.getByRole("heading", { name: "Submitted photo" });
     const condition = screen.getByRole("heading", { name: "Possible Condition" });
     const fieldReport = screen.getByRole("heading", { name: "Field report" });
     const decision = screen.getByRole("heading", { name: "Office decision" });
+    const history = screen.getByRole("heading", { name: "Case history" });
 
     for (const heading of [photo, condition, fieldReport, decision]) {
       expect(flow!.contains(heading)).toBe(true);
     }
-    // Reading order in the DOM matches visual order: hero, status, photo,
-    // condition, field report, office decision.
-    expect(hero.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Reading order in the DOM matches visual order, and the decision comes
+    // after the submitted evidence the reviewer has to acknowledge first.
     expect(chips.compareDocumentPosition(photo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(photo.compareDocumentPosition(condition) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(condition.compareDocumentPosition(fieldReport) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(fieldReport.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(decision.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
 });

@@ -55,21 +55,6 @@
   text-decoration: underline;
 }
 
-/* Unified Single-Column Flow (retired two-column .review-layout split) */
-.review-single-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.review-save-card {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
-}
-
 
 * {
   box-sizing: border-box;
@@ -1200,10 +1185,6 @@ a .mismatch-table-marker {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-.review-card {
-  padding: 21px;
 }
 
 .section-heading {
@@ -6237,15 +6218,6 @@ body {
   margin-bottom: 12px;
 }
 
-.review-save-card {
-  display: grid;
-  gap: 12px;
-}
-
-.review-save-card .button {
-  min-height: 45px;
-}
-
 @media (max-width: 900px) {
   .review-summary.review-summary--status {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6269,33 +6241,14 @@ body {
 }
 
 
-/* Rebuilt case review: Answer hero, Status chip row, Evidence disclosures, Merged history */
+/* Rebuilt case review: decision card, status chip row, evidence disclosures, merged history */
 
-.scan-hero {
-  border-top: 4px solid var(--color-primary);
-  margin-bottom: var(--space-4);
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: 20px 24px;
-  box-shadow: var(--shadow-surface);
-  display: grid;
-  gap: 16px;
-}
-
-.scan-hero__header h2 {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: var(--text-heading-sm, 1.2rem);
-  color: var(--color-primary-dark);
-  letter-spacing: -0.02em;
-}
-
-.scan-hero__answer-block {
+.decision-summary__answer-block {
   display: grid;
   gap: 4px;
 }
 
-.scan-hero__answer {
+.decision-summary__answer {
   margin: 0;
   font-size: var(--text-body);
   font-weight: 700;
@@ -6303,27 +6256,27 @@ body {
   line-height: 1.4;
 }
 
-.scan-hero__consequence {
+.decision-summary__consequence {
   margin: 0;
   font-size: var(--text-body-sm);
   color: var(--color-muted);
   line-height: 1.45;
 }
 
-.scan-hero__actions-row {
+.decision-summary__actions-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
 
-.review-actions--hero {
+.review-actions--decision {
   margin: 0;
   padding: 0;
   border: 0;
 }
 
-.review-actions--hero legend {
+.review-actions--decision legend {
   margin-bottom: 8px;
   font-size: var(--text-body-sm);
   font-weight: 600;
@@ -6377,31 +6330,6 @@ body {
 .review-action-pill.is-disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.scan-hero__subform {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-  padding: 14px;
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.scan-hero__commit-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.scan-hero__commit-row .button {
-  min-height: 42px;
-  padding: 0 24px;
-  font-weight: 600;
 }
 
 .review-status-chips {
@@ -8935,4 +8863,46 @@ body {
   .needs-assessment-row__actions {
     justify-content: start;
   }
+}
+
+/* Floating save confirmation: stays on the case after a decision is saved. */
+.review-toast {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: min(460px, calc(100vw - var(--space-4) * 2));
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-success);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-floating);
+}
+
+.review-toast > svg {
+  flex: none;
+  width: 18px;
+}
+
+.review-toast__dismiss {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--space-1);
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.review-toast__dismiss > svg {
+  width: 15px;
 }

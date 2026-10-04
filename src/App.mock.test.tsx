@@ -62,9 +62,6 @@ describe("mock data mode", () => {
     await user.click(
       screen.getByRole("radio", { name: /Provide advisory/ }),
     );
-    await user.click(
-      screen.getByRole("button", { name: "Record office decision" }),
-    );
     const modal = screen.getByRole("dialog", { name: "Record office decision" });
     await user.click(
       within(modal).getByRole("button", { name: "Save decision" }),
