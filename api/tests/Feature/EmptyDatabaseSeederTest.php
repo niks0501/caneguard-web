@@ -23,7 +23,6 @@ class EmptyDatabaseSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
             'caneguard.demo_users.admin_password' => 'admin-test-password',
-            'caneguard.demo_users.expert_password' => 'expert-test-password',
         ]);
     }
 
@@ -32,7 +31,7 @@ class EmptyDatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseCount('users', 4);
+        $this->assertDatabaseCount('users', 3);
         $this->assertDatabaseCount('reports', 0);
         $this->assertDatabaseCount('advisories', 3);
         $this->assertDatabaseCount('report_class_scores', 0);

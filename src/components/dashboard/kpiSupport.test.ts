@@ -71,10 +71,10 @@ describe("KPI supporting lines", () => {
 
   it("names the status indicator with the count it encodes", () => {
     expect(noActiveWorkGraphicName(1)).toBe(
-      "1 unverified report with no validation or referral underway",
+      "1 unverified report with no validation underway",
     );
     expect(noActiveWorkGraphicName(6)).toBe(
-      "6 unverified reports with no validation or referral underway",
+      "6 unverified reports with no validation underway",
     );
     expect(COMPARISON_UNAVAILABLE).toBe("Previous period unavailable");
   });

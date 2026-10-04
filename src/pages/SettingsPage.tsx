@@ -159,8 +159,6 @@ export function SettingsPage() {
   const roleLabel =
     user?.role === "admin"
       ? "Administrator"
-      : user?.role === "expert"
-        ? "Expert"
         : "Reviewer";
 
   return (

@@ -212,7 +212,6 @@ export class MockDashboardRepository implements DashboardRepository {
     const lifecycleCounts = {
       verificationOutcome: {} as Record<string, number>,
       fieldValidationState: {} as Record<string, number>,
-      referralState: {} as Record<string, number>,
     };
     const caseState = { open: 0, closed: 0 };
     reports.forEach((report) => {
@@ -221,8 +220,6 @@ export class MockDashboardRepository implements DashboardRepository {
         (lifecycleCounts.verificationOutcome[lifecycle.verificationOutcome] ?? 0) + 1;
       lifecycleCounts.fieldValidationState[lifecycle.fieldValidationState] =
         (lifecycleCounts.fieldValidationState[lifecycle.fieldValidationState] ?? 0) + 1;
-      lifecycleCounts.referralState[lifecycle.referralState] =
-        (lifecycleCounts.referralState[lifecycle.referralState] ?? 0) + 1;
       caseState[lifecycle.caseState] += 1;
     });
 

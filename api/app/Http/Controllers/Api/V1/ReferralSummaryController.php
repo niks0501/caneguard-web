@@ -21,14 +21,25 @@ class ReferralSummaryController extends Controller
             'reporter',
             'advisory.validatedBy',
             'referral.officeReviewer',
+            'referrals.officeReviewer',
+            'referrals.expert',
+            'referrals.findingRecordedBy',
+            'referrals.consultReviewedBy',
             'referral.expert',
+            'referral.symptomFindings',
+            'referrals.symptomFindings',
             'referral.findingRecordedBy',
             'referral.consultReviewedBy',
             'symptoms',
+            'reviewer',
+            'handoffNotes',
         ]);
-        abort_unless($report->referral !== null, 404);
 
         $summary = (new ReferralSummaryResource($report))->resolve($request);
+        $summary['current_office_context'] = (new ReferralSummaryResource($report))->historicalRecord($report, null)['office_context'];
+        $summary['historical_referrals'] = $report->referrals->map(function ($referral) use ($report): array {
+            return (new ReferralSummaryResource($report))->historicalRecord($report, $referral);
+        })->all();
         if ($request->expectsJson()) {
             return response()->json(['data' => $summary]);
         }

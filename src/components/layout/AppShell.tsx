@@ -15,9 +15,7 @@ export function AppShell() {
 
   useEffect(() => {
     const path = location.pathname;
-    if (path.startsWith("/expert/queue")) {
-      document.title = "CaneGuard | Assigned Expert Referrals";
-    } else if (path.startsWith("/reports/")) {
+    if (path.startsWith("/reports/")) {
       document.title = "CaneGuard | Case Review";
     } else if (path.startsWith("/reports")) {
       document.title = "CaneGuard | Submitted Reports";

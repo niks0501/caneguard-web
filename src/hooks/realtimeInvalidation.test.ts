@@ -19,7 +19,6 @@ describe("real-time invalidation", () => {
   it("invalidates only the REST query domains named by the signal", async () => {
     const client = queryClient();
     client.setQueryData(reportKeys.list({}), { reports: [] });
-    client.setQueryData(reportKeys.expertList({}), { reports: [] });
     client.setQueryData(dashboardKeys.summary(), { totalSubmitted: 0 });
     client.setQueryData(notificationsKeys.feed(), { notifications: [] });
     client.setQueryData(fieldValidationKeys.queue({}), { items: [] });
@@ -27,9 +26,6 @@ describe("real-time invalidation", () => {
     await invalidateRealtimeQueries(client, ["reports", "notifications"]);
 
     expect(client.getQueryState(reportKeys.list({}))?.isInvalidated).toBe(true);
-    expect(client.getQueryState(reportKeys.expertList({}))?.isInvalidated).toBe(
-      true,
-    );
     expect(
       client.getQueryState(notificationsKeys.feed())?.isInvalidated,
     ).toBe(true);

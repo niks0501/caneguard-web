@@ -65,7 +65,6 @@ export const analyticsResponseSchema = z.object({
     lifecycle: z.object({
       verification_outcome: lifecycleDistributionSchema,
       field_validation_state: lifecycleDistributionSchema,
-      referral_state: lifecycleDistributionSchema,
     }),
     reported_concern: z.array(
       z.object({

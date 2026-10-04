@@ -23,8 +23,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public const ROLE_ADMIN = 'admin';
 
-    public const ROLE_EXPERT = 'expert';
-
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
@@ -49,7 +47,6 @@ class User extends Authenticatable implements MustVerifyEmail
             self::ROLE_FIELD_REPORTER,
             self::ROLE_REVIEWER,
             self::ROLE_ADMIN,
-            self::ROLE_EXPERT,
         ];
     }
 
@@ -75,7 +72,6 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             ...self::officeRoles(),
-            self::ROLE_EXPERT,
         ];
     }
 
@@ -87,11 +83,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isWebUser(): bool
     {
         return in_array($this->role, self::webRoles(), true);
-    }
-
-    public function isExpert(): bool
-    {
-        return $this->role === self::ROLE_EXPERT;
     }
 
     /**

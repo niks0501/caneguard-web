@@ -690,10 +690,7 @@ class ReportSchemaAndSeederTest extends TestCase
                 $response->json("data.monthly_summary.field_validation_counts.{$state}"),
             );
         }
-        $this->assertGreaterThan(
-            0,
-            $response->json('data.monthly_summary.expert_verification.consult_volume.total'),
-        );
+        $response->assertJsonMissingPath('data.monthly_summary.expert_verification');
 
         foreach (Report::operationalQueues() as $queue) {
             $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));

@@ -13,7 +13,6 @@ export function invalidateReportDependentQueries(
 ) {
   const invalidations = [
     queryClient.invalidateQueries({ queryKey: reportKeys.lists() }),
-    queryClient.invalidateQueries({ queryKey: reportKeys.expertLists() }),
     queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
     queryClient.invalidateQueries({ queryKey: fieldValidationKeys.all }),
   ];

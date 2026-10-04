@@ -47,7 +47,6 @@ const analytics: ReportAnalytics = {
   lifecycle: {
     verificationOutcome: { not_determined: 4, verified: 1, unable_to_verify: 0 },
     fieldValidationState: { unassigned: 1, assigned: 2, in_progress: 1, completed: 1 },
-    referralState: { not_referred: 4, referred: 1, expert_response_received: 0 },
   },
   area: {
     estimatedHectares: 14.5,
@@ -158,7 +157,6 @@ const emptyAnalytics: ReportAnalytics = {
   lifecycle: {
     verificationOutcome: {},
     fieldValidationState: {},
-    referralState: {},
   },
   area: {
     estimatedHectares: 0,
@@ -262,7 +260,7 @@ describe("AnalyticsSectionView", () => {
     renderView();
 
     const tables = screen.getAllByRole("table", { hidden: true });
-    expect(tables).toHaveLength(13);
+    expect(tables).toHaveLength(12);
 
     const seriesTable = tables[0];
     expect(within(seriesTable).getByText("2026-09-02")).toBeInTheDocument();
@@ -277,7 +275,7 @@ describe("AnalyticsSectionView", () => {
     renderView();
 
     const images = screen.getAllByRole("img");
-    expect(images).toHaveLength(13);
+    expect(images).toHaveLength(12);
     expect(images[0]).toHaveAttribute("aria-label", expect.stringContaining("2026-09-02: 3"));
     expect(screen.getByText("Up 3 submitted reports on the previous comparable period.")).toBeInTheDocument();
     expect(screen.queryByText(/projection|forecast/i)).not.toBeInTheDocument();

@@ -71,11 +71,4 @@ class ReportReferralFactory extends Factory
             'office_reviewed_at' => null,
         ];
     }
-
-    public function assignedToExpert(?User $expert = null): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'expert_id' => $expert ?? User::factory()->expert(),
-        ]);
-    }
 }

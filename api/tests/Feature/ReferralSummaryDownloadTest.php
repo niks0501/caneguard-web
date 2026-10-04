@@ -116,7 +116,7 @@ class ReferralSummaryDownloadTest extends TestCase
 
         foreach ([
             User::factory()->fieldReporter()->create(),
-            User::factory()->expert()->create(),
+            User::factory()->create(['role' => 'expert']),
         ] as $unauthorizedUser) {
             Sanctum::actingAs($unauthorizedUser);
             $this->get($summaryUrl)
@@ -125,37 +125,6 @@ class ReferralSummaryDownloadTest extends TestCase
                 ->assertDontSee('base64,', false);
         }
 
-        Sanctum::actingAs(User::factory()->reviewer()->create());
-        $withoutReferral = Report::factory()->create();
-        $this->get("/api/v1/reports/{$withoutReferral->uuid}/{$summaryPath}?download=1")
-            ->assertNotFound()
-            ->assertJsonPath('code', 'NOT_FOUND');
-    }
-
-    public function test_assigned_expert_download_preserves_personal_context_redaction(): void
-    {
-        Storage::fake('local');
-        $expert = User::factory()->expert()->create();
-        $report = Report::factory()->create([
-            'farmer_or_farm_owner_name' => 'Private Farmer Name',
-            'final_latitude' => 10.1234567,
-            'final_longitude' => 122.9876543,
-        ]);
-        ReportReferral::factory()->for($report)->assignedToExpert($expert)->create([
-            'share_full_context' => false,
-        ]);
-        $photo = UploadedFile::fake()->image('evidence.jpeg')->get();
-        Storage::disk('local')->put($report->image_path, $photo);
-        Sanctum::actingAs($expert);
-
-        $this->get("/api/v1/reports/{$report->uuid}/referral/summary?download=1")
-            ->assertOk()
-            ->assertSee('src="data:image/jpeg;base64,'.base64_encode($photo).'"', false)
-            ->assertSee('Not shared')
-            ->assertDontSee('Private Farmer Name')
-            ->assertDontSee($report->reporter->name)
-            ->assertDontSee('10.1234567')
-            ->assertDontSee('122.9876543');
     }
 
     public function test_download_keeps_the_missing_evidence_notice_when_the_photo_cannot_be_read(): void

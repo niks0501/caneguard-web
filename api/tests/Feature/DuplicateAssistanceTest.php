@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Report;
-use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -343,17 +342,12 @@ class DuplicateAssistanceTest extends TestCase
         $this->assertDatabaseCount('report_audits', 1);
     }
 
-    public function test_link_rejects_active_consults_completed_evidence_and_closed_cases(): void
+    public function test_link_rejects_completed_evidence_and_closed_cases(): void
     {
         $reviewer = User::factory()->reviewer()->create();
         Sanctum::actingAs($reviewer);
 
         $cases = [
-            [
-                'attributes' => [],
-                'error' => 'referral',
-                'referral' => true,
-            ],
             [
                 'attributes' => [
                     'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
@@ -371,12 +365,6 @@ class DuplicateAssistanceTest extends TestCase
         foreach ($cases as $case) {
             $duplicate = Report::factory()->create($case['attributes']);
             $canonical = Report::factory()->create();
-            if ($case['referral'] ?? false) {
-                ReportReferral::factory()->create([
-                    'report_id' => $duplicate->getKey(),
-                    'referred_by_id' => $reviewer->getKey(),
-                ]);
-            }
 
             $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
                 'canonical_report_uuid' => $canonical->uuid,
@@ -472,7 +460,6 @@ class DuplicateAssistanceTest extends TestCase
     public function test_linked_duplicates_are_excluded_from_operational_views_and_counts(): void
     {
         $reviewer = User::factory()->reviewer()->create();
-        $expert = User::factory()->expert()->create();
         $submittedAt = CarbonImmutable::parse('2026-09-15T10:00:00Z');
         $canonical = Report::factory()->create([
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -486,11 +473,6 @@ class DuplicateAssistanceTest extends TestCase
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'submitted_at' => $submittedAt->addMinute(),
             'observed_at' => $submittedAt->addMinute(),
-        ]);
-        ReportReferral::factory()->create([
-            'report_id' => $duplicate->getKey(),
-            'referred_by_id' => $reviewer->getKey(),
-            'expert_id' => $expert->getKey(),
         ]);
 
         Sanctum::actingAs($reviewer);
@@ -518,11 +500,6 @@ class DuplicateAssistanceTest extends TestCase
         $this->getJson('/api/v1/reports/summary?month=2026-09')
             ->assertOk()
             ->assertJsonPath('data.reported_cases', 1);
-
-        Sanctum::actingAs($expert);
-        $this->getJson('/api/v1/reports/expert-queue')
-            ->assertOk()
-            ->assertJsonPath('meta.total', 0);
 
         Sanctum::actingAs($reviewer);
         $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')

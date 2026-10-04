@@ -4,18 +4,10 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AdminUserRoleController;
 use App\Http\Controllers\Api\V1\AdvisoryController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
-use App\Http\Controllers\Api\V1\ConfirmExpertReferralController;
-use App\Http\Controllers\Api\V1\ConsultInviteController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
-use App\Http\Controllers\Api\V1\ExpertConsultController;
-use App\Http\Controllers\Api\V1\ExpertDirectoryController;
-use App\Http\Controllers\Api\V1\ExpertQueueController;
-use App\Http\Controllers\Api\V1\ExpertReferralFindingController;
-use App\Http\Controllers\Api\V1\ExpertReferralResponseController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldValidationPhotoController;
 use App\Http\Controllers\Api\V1\FieldValidationQueueController;
-use App\Http\Controllers\Api\V1\IssueConsultInviteController;
 use App\Http\Controllers\Api\V1\LinkDuplicateReportController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MapReportController;
@@ -35,11 +27,10 @@ use App\Http\Controllers\Api\V1\ReportAnalyticsController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportDocumentController;
 use App\Http\Controllers\Api\V1\ReportExportController;
+use App\Http\Controllers\Api\V1\ReportHandoffNoteController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
-use App\Http\Controllers\Api\V1\ReportReferralController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
-use App\Http\Controllers\Api\V1\RevokeConsultInviteController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
 use App\Http\Controllers\Auth\ChangeEmailController;
 use App\Http\Controllers\Auth\ChangePasswordController;
@@ -47,13 +38,6 @@ use App\Http\Controllers\Auth\DisableBiometricController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
-
-Route::get('/v1/consult-invites/{token}', ConsultInviteController::class)
-    ->middleware('signed:relative')
-    ->name('api.v1.consult-invites.show');
-Route::get('/v1/consult-invites/{token}/image', [ConsultInviteController::class, 'image'])
-    ->middleware('signed:relative')
-    ->name('api.v1.consult-invites.image');
 
 Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
     ->middleware('throttle:login');
@@ -85,10 +69,6 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::match(['patch', 'post'], '/advisories/{advisory}/status', [AdvisoryController::class, 'setStatus'])
         ->name('api.v1.advisories.status');
     Route::get('/field-reporters', FieldReporterController::class);
-    Route::get('/experts', ExpertDirectoryController::class)
-        ->name('api.v1.experts.index');
-    Route::get('/reports/expert-queue', ExpertQueueController::class)
-        ->name('api.v1.reports.expert-queue');
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
@@ -109,30 +89,20 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
         ->name('api.v1.reports.field-validation-queue');
     Route::get('/reports/{report}/image', ReportImageController::class)
         ->name('api.v1.reports.image');
-    Route::get('/reports/{report}/consult', ExpertConsultController::class)
-        ->name('api.v1.reports.consult');
     Route::get('/reports/{report}/validation-photo', FieldValidationPhotoController::class)
         ->name('api.v1.reports.validation-photo');
     Route::get('/reports/{report}/referral/summary', ReferralSummaryController::class)
         ->name('api.v1.reports.referral.summary');
     Route::get('/reports/{report}/referral-summary', ReferralSummaryController::class)
         ->name('api.v1.reports.referral-summary');
-    Route::post('/reports/{report}/referral', [ReportReferralController::class, 'store']);
-    Route::post('/reports/{report}/referral/invite', IssueConsultInviteController::class)
-        ->name('api.v1.reports.referral.invite');
-    Route::delete('/reports/{report}/referral/invite', RevokeConsultInviteController::class)
-        ->name('api.v1.reports.referral.invite.revoke');
-    Route::post('/reports/{report}/referral/invite/revoke', RevokeConsultInviteController::class)
-        ->name('api.v1.reports.referral.invite.revoke.post');
-    Route::post('/reports/{report}/referral/finding', ExpertReferralFindingController::class)
-        ->name('api.v1.reports.referral.finding');
-    Route::post('/reports/{report}/referral/confirm', ConfirmExpertReferralController::class)
-        ->name('api.v1.reports.referral.confirm');
-    Route::post('/reports/{report}/referral/response', ExpertReferralResponseController::class);
+    // Retired clients cannot create or advance an expert consult.
+    Route::match(['post', 'delete'], '/reports/{report}/referral/{operation?}', fn () => response()->json(['message' => 'The in-system expert workflow was retired.'], 410)
+    )->where('operation', '.*');
     Route::get('/reports/{report}/possible-matches', ReportPossibleMatchesController::class)
         ->name('api.v1.reports.possible-matches');
     Route::get('/reports/{report}', [ReportController::class, 'show']);
     Route::patch('/reports/{report}/review', ReviewReportController::class);
+    Route::post('/reports/{report}/handoff-notes', ReportHandoffNoteController::class);
     Route::post('/reports/{report}/duplicate-link', [LinkDuplicateReportController::class, 'store'])
         ->name('api.v1.reports.duplicate-link');
     Route::delete('/reports/{report}/duplicate-link', [LinkDuplicateReportController::class, 'destroy'])

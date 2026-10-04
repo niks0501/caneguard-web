@@ -40,17 +40,6 @@ class DatabaseSeeder extends Seeder
             ],
         ];
 
-        $expertPassword = config('caneguard.demo_users.expert_password');
-        if (is_string($expertPassword) && $expertPassword !== '') {
-            $users[] = [
-                'name' => 'Josefino Ylagan',
-                'email' => 'expert@caneguard.test',
-                'role' => User::ROLE_EXPERT,
-                'email_verified_at' => now(),
-                'password' => $expertPassword,
-            ];
-        }
-
         foreach ($users as $user) {
             if (! is_string($user['password']) || $user['password'] === '') {
                 throw new LogicException(

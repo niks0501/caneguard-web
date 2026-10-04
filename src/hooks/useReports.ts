@@ -1,22 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import type {
-  ConsultInvite,
-  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
-  ExpertFindingInput,
-  ExpertReferralResponseInput,
-  ReportReferralInput,
   ReportReviewInput,
+  HandoffNoteInput,
 } from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
 import {
   advisoriesQueryOptions,
-  expertDirectoryQueryOptions,
-  expertReportsQueryOptions,
   monthlySummaryQueryOptions,
-  expertConsultQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
   reportQueryOptions,
@@ -32,22 +25,11 @@ export function useAdvisories() {
   return useQuery(advisoriesQueryOptions());
 }
 
-export function useExpertDirectory() {
-  return useQuery(expertDirectoryQueryOptions());
-}
-
 export function useReports(
   filters: ReportFilters = {},
   options: { enabled?: boolean } = {},
 ) {
   return useQuery(reportsQueryOptions(filters, options));
-}
-
-export function useExpertQueue(
-  filters: ReportFilters = {},
-  options: { enabled?: boolean } = {},
-) {
-  return useQuery(expertReportsQueryOptions(filters, options));
 }
 
 export function useExportReports() {
@@ -75,10 +57,6 @@ function useReportMutation<TInput>(
   });
 }
 
-export function useExpertConsult(reportId: string) {
-  return useQuery(expertConsultQueryOptions(reportId));
-}
-
 export function usePossibleRecentMatches(reportId: string) {
   return useQuery(possibleRecentMatchesQueryOptions(reportId));
 }
@@ -90,57 +68,9 @@ export function useUpdateReportReview(reportId: string) {
   );
 }
 
-export function useRecordReportReferral(reportId: string) {
-  return useReportMutation<ReportReferralInput>(
-    reportId,
-    (input) => reportsRepository.recordReferral(reportId, input),
-  );
-}
-
-export function useRecordExpertReferralResponse(reportId: string) {
-  return useReportMutation<ExpertReferralResponseInput>(
-    reportId,
-    (input) => reportsRepository.recordExpertReferralResponse(reportId, input),
-  );
-}
-
-export function useRecordExpertFinding(reportId: string) {
-  return useReportMutation<ExpertFindingInput>(
-    reportId,
-    (input) => reportsRepository.recordExpertFinding(reportId, input),
-  );
-}
-
-export function useConfirmExpertReferral(reportId: string) {
-  return useReportMutation<ConfirmExpertReferralInput>(
-    reportId,
-    (input) => reportsRepository.confirmExpertReferral(reportId, input),
-  );
-}
-
-export function useIssueConsultInvite(reportId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (shareFullContext?: boolean) =>
-      reportsRepository.issueConsultInvite(reportId, shareFullContext),
-    onSuccess: (invite: ConsultInvite) => {
-      void queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) });
-      return invite;
-    },
-  });
-}
-
-export function useRevokeConsultInvite(reportId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => reportsRepository.revokeConsultInvite(reportId),
-    onSuccess: (invite: ConsultInvite) => {
-      void queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) });
-      return invite;
-    },
-  });
+export function useRecordHandoffNote(reportId: string) {
+  return useReportMutation<HandoffNoteInput>(reportId,
+    (input) => reportsRepository.recordHandoffNote(reportId, input));
 }
 
 export function useLinkDuplicateReport(reportId: string) {

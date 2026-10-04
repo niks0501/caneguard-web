@@ -1,13 +1,10 @@
 import type {
   DiseaseReport,
-  ExpertConsultPacket,
-  ExpertConsultSummary,
   IdentificationGap,
   PaginationMeta,
   ReportCaseHistory,
 } from "../../../domain/report.types";
 import type {
-  ExpertConsultResponseDto,
   ReportDetailDto,
   ReportListItemDto,
   ReportListResponseDto,
@@ -79,38 +76,6 @@ function mapIdentificationGap(dto: {
   return dto ?? { state: "identified", reasons: [] };
 }
 
-function mapExpertConsultSummary(dto: {
-  id: number;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
-  reference?: string | null;
-  tracking_code?: string | null;
-  referral_date: string | null;
-  due_date: string | null;
-  expert?: { uuid: string; name: string } | null;
-  expert_name?: string | null;
-  days_until_due: number | null;
-  days_out: number | null;
-  overdue: boolean;
-  age_label: string;
-} | null | undefined): ExpertConsultSummary | null {
-  if (!dto) return null;
-
-  return {
-    id: dto.id,
-    status: dto.status,
-    reference: dto.reference ?? null,
-    trackingCode: dto.tracking_code ?? null,
-    referralDate: dto.referral_date,
-    dueDate: dto.due_date,
-    expert: dto.expert,
-    expertName: dto.expert_name ?? dto.expert?.name ?? null,
-    daysUntilDue: dto.days_until_due,
-    daysOut: dto.days_out,
-    overdue: dto.overdue,
-    ageLabel: dto.age_label,
-  };
-}
-
 function mapMachineFacts(dto: {
   confidence?: number | null;
   checklist_consistency?: string | null;
@@ -130,74 +95,6 @@ function mapMachineFacts(dto: {
     locationSource: dto.location_source ?? null,
     reporterConcern: dto.reporter_concern ?? null,
     reporterMismatch: dto.reporter_mismatch ?? null,
-  };
-}
-
-function mapExpertConsultFinding(dto: ExpertConsultResponseDto["data"]["consult"]) {
-  return {
-    id: dto.id,
-    status: dto.status,
-    reference: dto.reference,
-    trackingCode: dto.tracking_code ?? null,
-    referralDate: dto.referral_date,
-    dueDate: dto.due_date,
-    question: dto.question ?? null,
-    conditionOpinion: dto.condition_opinion ?? null,
-    basis: dto.basis ?? dto.finding_details ?? null,
-    confidence: dto.confidence ?? null,
-    recommendation: dto.recommendation ?? null,
-    symptomVerdicts: Object.fromEntries(
-      Object.entries(dto.symptom_verdicts).map(([key, value]) => [key, {
-        verdict: value.verdict,
-        note: value.note ?? null,
-      }]),
-    ),
-    responseDate: dto.response_date ?? null,
-  };
-}
-
-export function mapExpertConsult(dto: ExpertConsultResponseDto): ExpertConsultPacket {
-  const data = dto.data;
-  const source = data.case;
-  const observations = source.reporter_observations;
-  const consult = mapExpertConsultFinding(data.consult);
-
-  return {
-    referenceCode: data.reference_code,
-    submittedAt: data.submitted_at,
-    photoUrl: resolveApiUrl(data.photo_url, env.apiBaseUrl) ?? data.photo_url,
-    reporterObservations: {
-      symptomKeys: observations.symptom_keys,
-      reporterObservationText: observations.reporter_observation_text ?? null,
-      fieldNotes: observations.field_notes ?? null,
-      reporterSuspectedCondition: observations.reporter_suspected_condition ?? null,
-      checklistConsistency: observations.checklist_consistency ?? null,
-      reportedSeverity: observations.reported_severity ?? null,
-      qualityWarnings: observations.quality_warnings,
-    },
-    reporterSuspectedCondition: data.reporter_suspected_condition ?? null,
-    aiPossibleCondition: {
-      label: data.ai_possible_condition.label,
-      decisionSupportLabel: data.ai_possible_condition.decision_support_label,
-    },
-    location: data.location,
-    affectedArea: data.affected_area,
-    affectedPortion: data.affected_portion,
-    officeContext: {
-      caseState: data.office_context.case_state,
-      verificationOutcome: data.office_context.verification_outcome,
-      fieldValidationState: data.office_context.field_validation_state,
-      actionTaken: data.office_context.action_taken,
-      authorityClassifiedCondition: data.office_context.authority_classified_condition,
-      notes: data.office_context.notes,
-      reviewer: data.office_context.reviewer,
-      reviewedAt: data.office_context.reviewed_at,
-    },
-    consult,
-    priorConsults: data.prior_consults.map((prior) => ({
-      ...mapExpertConsultFinding(prior),
-    })),
-    version: data.version,
   };
 }
 
@@ -232,7 +129,6 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     attentionBand: dto.attention_band ?? null,
     attentionBandReasons: dto.attention_band_reasons ?? [],
     identificationGap: mapIdentificationGap(dto.identification_gap),
-    expertConsult: mapExpertConsultSummary(dto.expert_consult ?? dto.referral),
     reviewVersion: dto.version ?? 0,
     fieldValidationAssignment: dto.field_validation?.assignee && dto.field_validation.assignment_uuid
       ? {
@@ -377,6 +273,7 @@ export function mapReportDetail(
             : undefined,
         }
       : dto.field_validation_assignment,
+    handoffNotes: dto.handoff_notes ?? [],
     referral: dto.referral
       ? {
           id: dto.referral.id,
@@ -435,6 +332,7 @@ export function mapReportDetail(
       reference: consult.reference,
       trackingCode: consult.tracking_code ?? null,
       referralDate: consult.referral_date,
+      note: consult.note,
       dueDate: consult.due_date,
       expertName: consult.expert_name,
       expertContact: consult.expert_contact,

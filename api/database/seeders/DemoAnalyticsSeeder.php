@@ -7,7 +7,6 @@ use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
-use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -37,7 +36,6 @@ class DemoAnalyticsSeeder extends Seeder
         $reporter = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
         $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
         $admin = User::query()->where('email', 'admin@caneguard.test')->firstOrFail();
-        $expert = User::query()->where('email', 'expert@caneguard.test')->first();
         $advisory = Advisory::query()->where('code', 'ADV-OFFICE-OPS-001')->firstOrFail();
 
         $image = file_get_contents(database_path('seeders/assets/synthetic-sugarcane-rust.png'));
@@ -80,11 +78,9 @@ class DemoAnalyticsSeeder extends Seeder
                 $lifecycle['field_validation_state'] = $assignmentState;
             }
 
-            $referralState = $this->referralState($sampleInMonth, $monthOffset);
-            $lifecycle['referral_state'] = $referralState;
+            unset($lifecycle['referral_state']);
             $actionTaken = $this->actionTaken(
                 $status,
-                $referralState,
                 $monthOffset,
                 $sampleInMonth,
             );
@@ -126,9 +122,7 @@ class DemoAnalyticsSeeder extends Seeder
                 $reporter,
                 $reviewer,
                 $admin,
-                $expert,
                 $assignmentState,
-                $referralState,
                 $monthOffset,
                 $followUpOutcomes,
                 $disk,
@@ -158,15 +152,6 @@ class DemoAnalyticsSeeder extends Seeder
                             $followUpOutcomes,
                         );
                     }
-                }
-
-                if ($referralState !== Report::REFERRAL_STATE_NOT_REFERRED) {
-                    $this->seedReferral(
-                        $report,
-                        $referralState,
-                        $expert,
-                        $ordinal % 2 === 0 ? $reviewer : $admin,
-                    );
                 }
 
                 if (! $disk->exists($report->image_path) && ! $disk->put($report->image_path, $image)) {
@@ -231,27 +216,11 @@ class DemoAnalyticsSeeder extends Seeder
         ];
     }
 
-    private function referralState(int $sampleInMonth, int $monthOffset): string
-    {
-        if ($sampleInMonth !== 0 || $monthOffset % 3 === 2) {
-            return Report::REFERRAL_STATE_NOT_REFERRED;
-        }
-
-        return $monthOffset % 3 === 0
-            ? Report::REFERRAL_STATE_REFERRED
-            : Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED;
-    }
-
     private function actionTaken(
         string $status,
-        string $referralState,
         int $monthOffset,
         int $sampleInMonth,
     ): ?string {
-        if ($referralState !== Report::REFERRAL_STATE_NOT_REFERRED) {
-            return Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION;
-        }
-
         return match ($status) {
             Report::STATUS_FOR_FIELD_VALIDATION => $sampleInMonth === 1
                 ? Report::ACTION_ADVISORY_PROVIDED
@@ -473,64 +442,6 @@ class DemoAnalyticsSeeder extends Seeder
                 'fresh_photo_mime_type' => null,
                 'fresh_photo_size_bytes' => null,
             ],
-        );
-    }
-
-    private function seedReferral(
-        Report $report,
-        string $referralState,
-        ?User $expert,
-        User $reviewer,
-    ): void {
-        $completed = $referralState === Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED;
-        $recordedAt = $report->submitted_at->addDays(2);
-        $attributes = [
-            'referred_by_id' => $reviewer->getKey(),
-            'expert_id' => $expert?->getKey(),
-            'consult_status' => $completed
-                ? ReportReferral::STATUS_COMPLETED
-                : ReportReferral::STATUS_PENDING,
-            'destination' => 'Synthetic regional agronomy desk',
-            'reference' => 'DA50-CONSULT-'.substr($report->reference_code, -4),
-            'referral_date' => $report->submitted_at->timezone('Asia/Manila')->addDay()->toDateString(),
-            'due_date' => $report->submitted_at->timezone('Asia/Manila')->addDays(8)->toDateString(),
-            'expert_name' => $expert?->name ?? 'Demo Agronomy Reviewer',
-            'expert_contact' => $expert?->email ?? 'agronomy-demo@caneguard.test',
-            'share_full_context' => false,
-            'note' => 'Synthetic demo handoff for exercising the report analytics workflow.',
-            'response_date' => $completed ? $recordedAt->timezone('Asia/Manila')->toDateString() : null,
-            'response_note' => $completed ? 'Synthetic desk review recorded for this demo case.' : null,
-            'response_finding' => $completed ? 'The submitted synthetic evidence was reviewed by the demo desk.' : null,
-            'response_recorded_by_id' => $completed ? $reviewer->getKey() : null,
-            'response_recorded_at' => $completed ? $recordedAt : null,
-            'finding_summary' => $completed ? 'Synthetic desk finding recorded for the demo case.' : null,
-            'condition_opinion' => $completed
-                ? ($report->predicted_label === Report::LABEL_HEALTHY
-                    ? Report::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY
-                    : $report->predicted_label)
-                : null,
-            'symptom_verdicts' => $completed
-                ? [$report->predicted_label => ['verdict' => 'present', 'note' => 'Synthetic demo finding.']]
-                : null,
-            'finding_details' => $completed ? 'Synthetic evidence was compared with the submitted observations.' : null,
-            'finding_confidence' => $completed ? 'medium' : null,
-            'finding_recommendation' => $completed ? 'Continue monitoring the synthetic demo block.' : null,
-            'finding_source' => $completed ? ReportReferral::FINDING_SOURCE_IN_SYSTEM : null,
-            'finding_recorded_by_id' => $completed ? $reviewer->getKey() : null,
-            'finding_recorded_at' => $completed ? $recordedAt : null,
-            'office_case_state' => $report->case_state,
-            'office_verification_outcome' => $report->verification_outcome,
-            'office_field_validation_state' => $report->field_validation_state,
-            'office_action_taken' => $report->action_taken,
-            'office_authority_classified_condition' => $report->authority_classified_condition,
-            'office_review_notes' => $report->review_notes,
-            'office_reviewer_id' => $report->reviewer_id,
-            'office_reviewed_at' => $report->reviewed_at,
-        ];
-
-        ReportReferral::query()->updateOrCreate(
-            ['report_id' => $report->getKey()],
-            $attributes,
         );
     }
 }

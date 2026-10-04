@@ -6,28 +6,19 @@ import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type {
   Advisory,
   DiseaseReport,
-  ExpertConsultPacket,
   PaginatedReports,
   PossibleRecentMatches,
   ReportFilters,
 } from "../../domain/report.types";
 import type {
-  ConsultInvite,
-  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
-  ExpertDirectoryEntry,
-  ExpertFindingInput,
-  ExpertReferralResponseInput,
-  ReportReferralInput,
   ReportReviewInput,
+  HandoffNoteInput,
 } from "../../domain/review.types";
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
-import { env } from "../../config/env";
 import {
-  mapExpertConsult,
   mapPaginationMeta,
-  resolveApiUrl,
   mapReportDetail,
   mapReportListItem,
 } from "./mappers/report.mapper";
@@ -35,8 +26,6 @@ import { mapMonthlyReportSummary } from "./mappers/reporting.mapper";
 import {
   advisoriesResponseSchema,
   possibleRecentMatchesResponseSchema,
-  expertDirectoryResponseSchema,
-  expertConsultResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
   reviewResponseSchema,
@@ -57,7 +46,6 @@ function toQueryParams(
     page: includePagination ? filters.page : undefined,
     per_page: includePagination ? filters.perPage : undefined,
     queue: filters.queue,
-    referral: filters.referral,
     search: filters.search?.trim() || undefined,
     status:
       filters.status && filters.status !== "all" ? filters.status : undefined,
@@ -120,25 +108,8 @@ export class ApiReportsRepository implements ReportsRepository {
     }));
   }
 
-  async listExperts(): Promise<ExpertDirectoryEntry[]> {
-    const response = await this.client.get('/api/v1/experts');
-    return expertDirectoryResponseSchema.parse(response.data).data;
-  }
-
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {
     const response = await this.client.get("/api/v1/reports", {
-      params: toQueryParams(filters),
-    });
-    const dto = reportListResponseSchema.parse(response.data);
-
-    return {
-      reports: dto.data.map(mapReportListItem),
-      meta: mapPaginationMeta(dto.meta),
-    };
-  }
-
-  async listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports> {
-    const response = await this.client.get("/api/v1/reports/expert-queue", {
       params: toQueryParams(filters),
     });
     const dto = reportListResponseSchema.parse(response.data);
@@ -182,13 +153,6 @@ export class ApiReportsRepository implements ReportsRepository {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;
     }
-  }
-
-  async getExpertConsult(reportId: string): Promise<ExpertConsultPacket> {
-    const response = await this.client.get(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/consult`,
-    );
-    return mapExpertConsult(expertConsultResponseSchema.parse(response.data));
   }
 
   async getPossibleRecentMatches(
@@ -265,164 +229,16 @@ export class ApiReportsRepository implements ReportsRepository {
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);
   }
 
-  async recordReferral(
-    reportId: string,
-    input: ReportReferralInput,
-  ): Promise<DiseaseReport> {
-    const payload: Record<string, unknown> = {
+  async recordHandoffNote(reportId: string, input: HandoffNoteInput): Promise<DiseaseReport> {
+    const response = await this.client.post(`/api/v1/reports/${encodeURIComponent(reportId)}/handoff-notes`, {
       destination: input.destination.trim(),
-      referral_date: input.referralDate,
+      reference: input.reference?.trim() || null,
+      sent_date: input.sentDate,
       note: input.note?.trim() || null,
+      advice_received_note: input.adviceReceivedNote?.trim() || null,
       expected_version: input.expectedVersion,
-    };
-
-    if (input.reference !== undefined) {
-      payload.reference = input.reference?.trim() || null;
-    }
-    if (input.dueDate !== undefined) {
-      payload.due_date = input.dueDate || null;
-    }
-    if (input.expertUuid !== undefined) {
-      payload.expert_uuid = input.expertUuid;
-    }
-    if (input.expertName !== undefined) {
-      payload.expert_name = input.expertName?.trim() || null;
-    }
-    if (input.expertContact !== undefined) {
-      payload.expert_contact = input.expertContact?.trim() || null;
-    }
-    if (input.shareFullContext !== undefined) {
-      payload.share_full_context = input.shareFullContext;
-    }
-    if (input.authorityClassifiedCondition !== undefined) {
-      payload.authority_classified_condition = input.authorityClassifiedCondition;
-    }
-    if (input.verificationOutcome !== undefined) {
-      payload.verification_outcome = input.verificationOutcome;
-    }
-    if (input.officeNotes !== undefined) {
-      payload.office_notes = input.officeNotes?.trim() || null;
-    }
-
-    const response = await this.client.post(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/referral`,
-      payload,
-    );
-
+    });
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);
-  }
-
-  async recordExpertReferralResponse(
-    reportId: string,
-    input: ExpertReferralResponseInput,
-  ): Promise<DiseaseReport> {
-    const payload: Record<string, unknown> = {
-      response_date: input.responseDate,
-      response_note: input.responseNote?.trim() || null,
-      response_finding: input.responseFinding?.trim() || null,
-      expected_version: input.expectedVersion,
-    };
-
-    if (input.reference !== undefined) {
-      payload.reference = input.reference?.trim() || null;
-    }
-    if (input.findingRecommendation !== undefined) {
-      payload.finding_recommendation = input.findingRecommendation?.trim() || null;
-    }
-    if (input.findingSource !== undefined) {
-      payload.finding_source = input.findingSource;
-    }
-    if (input.authorityClassifiedCondition !== undefined) {
-      payload.authority_classified_condition = input.authorityClassifiedCondition;
-    }
-    if (input.verificationOutcome !== undefined) {
-      payload.verification_outcome = input.verificationOutcome;
-    }
-
-    const response = await this.client.post(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/response`,
-      payload,
-    );
-
-    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
-  }
-
-  async recordExpertFinding(
-    reportId: string,
-    input: ExpertFindingInput,
-  ): Promise<DiseaseReport> {
-    const response = await this.client.post(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/finding`,
-      {
-        ...(input.reference !== undefined
-          ? { reference: input.reference?.trim() || null }
-          : {}),
-        condition_opinion: input.conditionOpinion,
-        symptom_verdicts: input.symptomVerdicts,
-        basis: input.basis?.trim() || null,
-        confidence: input.confidence,
-        recommendation: input.recommendation?.trim() || null,
-        consult_status: input.consultStatus,
-        response_date: input.responseDate,
-        expected_version: input.expectedVersion,
-      },
-    );
-
-    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
-  }
-
-  async confirmExpertReferral(
-    reportId: string,
-    input: ConfirmExpertReferralInput,
-  ): Promise<DiseaseReport> {
-    const response = await this.client.post(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/confirm`,
-      {
-        consult_review_outcome: input.consultReviewOutcome,
-        consult_review_note: input.consultReviewNote?.trim() || null,
-        expected_version: input.expectedVersion,
-      },
-    );
-
-    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
-  }
-
-  async issueConsultInvite(
-    reportId: string,
-    shareFullContext?: boolean,
-  ): Promise<ConsultInvite> {
-    const response = await this.client.post(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/invite`,
-      shareFullContext === undefined ? undefined : { share_full_context: shareFullContext },
-    );
-    const data = response.data?.data;
-    const apiBaseUrl = this.client.defaults.baseURL ?? env.apiBaseUrl;
-    return {
-      url: resolveApiUrl(data.url, apiBaseUrl) ?? data.url,
-      photoUrl: resolveApiUrl(data.photo_url, apiBaseUrl) ?? data.photo_url,
-      consultId: data.consult_id,
-      issuedAt: data.issued_at ?? null,
-      expiresAt: data.expires_at ?? null,
-      revokedAt: data.revoked_at ?? null,
-      accessCount: data.access_count ?? 0,
-      shareFullContext: data.share_full_context ?? false,
-    };
-  }
-
-  async revokeConsultInvite(reportId: string): Promise<ConsultInvite> {
-    const response = await this.client.delete(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/referral/invite`,
-    );
-    const data = response.data?.data;
-    return {
-      url: "",
-      consultId: data.consult_id,
-      issuedAt: data.issued_at ?? null,
-      expiresAt: data.expires_at ?? null,
-      revokedAt: data.revoked_at ?? null,
-      accessCount: data.access_count ?? 0,
-      shareFullContext: data.share_full_context ?? false,
-    };
   }
 
   async linkDuplicate(

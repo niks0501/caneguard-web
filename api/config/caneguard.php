@@ -35,14 +35,6 @@ return [
     'security_audit' => [
         'retention_days' => (int) env('CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS', 2555),
     ],
-    'expert_consult_access_days' => max(
-        0,
-        (int) env('CANEGUARD_EXPERT_CONSULT_ACCESS_DAYS', 14),
-    ),
-    'expert_consult_invite_days' => max(
-        1,
-        (int) env('CANEGUARD_EXPERT_CONSULT_INVITE_DAYS', 7),
-    ),
     'reports' => [
         // Report documents are embedded only by the authenticated web app.
         'embed_origins' => array_values(array_filter(array_map(
@@ -101,7 +93,6 @@ return [
         'field_reporter_password' => env('CANEGUARD_FIELD_PASSWORD'),
         'reviewer_password' => env('CANEGUARD_REVIEWER_PASSWORD'),
         'admin_password' => env('CANEGUARD_ADMIN_PASSWORD'),
-        'expert_password' => env('CANEGUARD_EXPERT_PASSWORD'),
     ],
     'map' => [
         'default_limit' => min(

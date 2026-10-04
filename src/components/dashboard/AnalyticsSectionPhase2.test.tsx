@@ -30,7 +30,6 @@ const analytics: ReportAnalytics = {
   lifecycle: {
     verificationOutcome: { not_determined: 3, verified: 1, unable_to_verify: 0 },
     fieldValidationState: { unassigned: 1, assigned: 1, in_progress: 1, completed: 1 },
-    referralState: { not_referred: 3, referred: 1, expert_response_received: 0 },
   },
   area: {
     estimatedHectares: 14.5,

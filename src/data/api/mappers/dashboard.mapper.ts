@@ -49,7 +49,6 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
     lifecycle: {
       verificationOutcome: { ...data.lifecycle.verification_outcome },
       fieldValidationState: { ...data.lifecycle.field_validation_state },
-      referralState: { ...data.lifecycle.referral_state },
     },
     reportedConcern: data.reported_concern.map((item) => ({ ...item })),
     possibleCondition: data.possible_condition.map((item) => ({ ...item })),

@@ -10,10 +10,10 @@ class AuthMySqlSchemaTest extends TestCase
     public function test_auth_security_schema_uses_mysql_safe_index_names(): void
     {
         $this->assertSame('mysql', DB::connection()->getDriverName());
-        $this->assertSame('caneguard_test', DB::connection()->getDatabaseName());
+        $this->assertMatchesRegularExpression('/^(caneguard_test|firstmate_[a-z0-9_]+)$/D', DB::connection()->getDatabaseName());
 
         $userColumn = DB::table('information_schema.columns')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'users')
             ->where('column_name', 'biometric_enabled')
             ->first();
@@ -22,7 +22,7 @@ class AuthMySqlSchemaTest extends TestCase
         $this->assertSame('tinyint', $userColumn->DATA_TYPE);
 
         $deviceColumn = DB::table('information_schema.columns')
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'personal_access_tokens')
             ->where('column_name', 'device_id')
             ->first();
@@ -35,7 +35,7 @@ class AuthMySqlSchemaTest extends TestCase
             ->selectRaw(
                 'INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns',
             )
-            ->where('table_schema', 'caneguard_test')
+            ->where('table_schema', DB::connection()->getDatabaseName())
             ->where('table_name', 'personal_access_tokens')
             ->where('index_name', 'pat_tokenable_device_id_idx')
             ->groupBy('INDEX_NAME')

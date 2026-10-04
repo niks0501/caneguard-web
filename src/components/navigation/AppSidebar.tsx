@@ -30,59 +30,44 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="sidebar__nav">
         <p>Monitoring</p>
-        {auth.user?.role === "expert" ? (
+        <NavLink
+          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+          to={routes.dashboard}
+          onClick={onNavigate}
+        >
+          <LayoutDashboard aria-hidden="true" />
+          <span>Overview</span>
+          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+        </NavLink>
+        <NavLink
+          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+          to={routes.needsAssessment}
+          onClick={onNavigate}
+        >
+          <SquareCheck aria-hidden="true" />
+          <span>Needs assessment</span>
+          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+        </NavLink>
+        <NavLink
+          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+          to={routes.reports}
+          onClick={onNavigate}
+        >
+          <ShieldCheck aria-hidden="true" />
+          <span>Submitted reports</span>
+          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+        </NavLink>
+        {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
           <NavLink
             className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-            to={routes.expertQueue}
+            to={routes.monitoring}
             onClick={onNavigate}
           >
-            <ShieldCheck aria-hidden="true" />
-            <span>Assigned referrals</span>
+            <CalendarDays aria-hidden="true" />
+            <span>Monitoring</span>
             <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
           </NavLink>
-        ) : (
-          <>
-            <NavLink
-              className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-              to={routes.dashboard}
-              onClick={onNavigate}
-            >
-              <LayoutDashboard aria-hidden="true" />
-              <span>Overview</span>
-              <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-            </NavLink>
-            <NavLink
-              className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-              to={routes.needsAssessment}
-              onClick={onNavigate}
-            >
-              <SquareCheck aria-hidden="true" />
-              <span>Needs assessment</span>
-              <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-            </NavLink>
-            <NavLink
-              className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-              to={routes.reports}
-              onClick={onNavigate}
-            >
-              <ShieldCheck aria-hidden="true" />
-              <span>Submitted reports</span>
-              <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-            </NavLink>
-            {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
-              <NavLink
-                className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-                to={routes.monitoring}
-                onClick={onNavigate}
-              >
-                <CalendarDays aria-hidden="true" />
-                <span>Monitoring</span>
-                <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-              </NavLink>
-            ) : null}
-          </>
-        )}
-
+        ) : null}
         <p>Account</p>
         <NavLink
           className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
@@ -107,7 +92,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           </span>
           <div>
             <strong>{auth.user?.name}</strong>
-            <span>{auth.user?.role === "admin" ? "Administrator" : auth.user?.role === "expert" ? "Expert" : "Reviewer"}</span>
+            <span>{auth.user?.role === "admin" ? "Administrator" : "Reviewer"}</span>
           </div>
           <LogOut aria-hidden="true" />
           <span className="sr-only">Sign out</span>

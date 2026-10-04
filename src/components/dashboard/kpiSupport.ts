@@ -14,7 +14,7 @@ import { formatWindow } from "./dashboardScope";
  * finished month.
  */
 
-export const UNVERIFIED_SUPPORT_LINE = "No validation or referral underway";
+export const UNVERIFIED_SUPPORT_LINE = "No validation underway";
 export const COMPARISON_UNAVAILABLE = "Previous period unavailable";
 export const WAITING_AGE_UNAVAILABLE = "Waiting age unavailable";
 export const OLDEST_WAIT_UNAVAILABLE = "Oldest waiting age unavailable";
@@ -64,5 +64,5 @@ export function pastTargetDateSupportLine(count: number): string {
 
 /** Accessible name for KPI 4's status indicator, carrying its counted state. */
 export function noActiveWorkGraphicName(count: number): string {
-  return `${count} unverified ${count === 1 ? "report" : "reports"} with no validation or referral underway`;
+  return `${count} unverified ${count === 1 ? "report" : "reports"} with no validation underway`;
 }

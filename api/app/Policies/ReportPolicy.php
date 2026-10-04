@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\Report;
-use App\Models\ReportReferral;
 use App\Models\User;
 
 class ReportPolicy
@@ -27,21 +26,12 @@ class ReportPolicy
 
     public function view(User $user, Report $report): bool
     {
-        if ($user->isOfficeUser()) {
-            return true;
-        }
-
-        return $this->hasAssignedConsult($user, $report);
+        return $user->isOfficeUser();
     }
 
     public function viewPossibleMatches(User $user, Report $report): bool
     {
         return $user->isOfficeUser();
-    }
-
-    public function viewExpertQueue(User $user): bool
-    {
-        return $user->isExpert();
     }
 
     public function create(User $user): bool
@@ -59,49 +49,8 @@ class ReportPolicy
         return $user->isOfficeUser();
     }
 
-    public function respondToReferral(User $user, Report $report): bool
-    {
-        if ($user->isOfficeUser()) {
-            return true;
-        }
-
-        if (! $user->isExpert()) {
-            return false;
-        }
-
-        return $report->referrals()
-            ->where('expert_id', $user->getKey())
-            ->whereIn('consult_status', ReportReferral::activeStatuses())
-            ->exists();
-    }
-
     public function linkDuplicate(User $user, Report $report): bool
     {
         return $user->isOfficeUser();
-    }
-
-    private function hasAssignedConsult(User $user, Report $report): bool
-    {
-        if (! $user->isExpert()) {
-            return false;
-        }
-
-        $accessCutoff = now()->subDays(
-            (int) config('caneguard.expert_consult_access_days', 14),
-        );
-
-        return $report->referrals()
-            ->where('expert_id', $user->getKey())
-            ->where(function ($query) use ($accessCutoff): void {
-                $query
-                    ->whereIn('consult_status', ReportReferral::activeStatuses())
-                    ->orWhere(function ($completed) use ($accessCutoff): void {
-                        $completed
-                            ->where('consult_status', ReportReferral::STATUS_COMPLETED)
-                            ->whereNotNull('finding_recorded_at')
-                            ->where('finding_recorded_at', '>=', $accessCutoff);
-                    });
-            })
-            ->exists();
     }
 }

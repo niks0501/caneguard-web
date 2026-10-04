@@ -24,7 +24,7 @@ class ReportAnalyticsPhase2Test extends TestCase
             ->json('data');
     }
 
-    public function test_lifecycle_distributions_cover_every_known_state(): void
+    public function test_lifecycle_distributions_cover_operational_states_without_expert_metrics(): void
     {
         Report::factory()->create([
             'case_state' => Report::CASE_STATE_OPEN,
@@ -48,10 +48,8 @@ class ReportAnalyticsPhase2Test extends TestCase
             ['unassigned' => 0, 'assigned' => 1, 'in_progress' => 0, 'completed' => 0],
             $data['lifecycle']['field_validation_state'],
         );
-        $this->assertSame(
-            ['not_referred' => 0, 'referred' => 1, 'expert_response_received' => 0],
-            $data['lifecycle']['referral_state'],
-        );
+        $this->assertArrayNotHasKey('referral_state', $data['lifecycle']);
+        $this->assertArrayNotHasKey('expert_verification', $data);
     }
 
     public function test_area_reports_provenance_split_and_excluded_duplicates(): void
