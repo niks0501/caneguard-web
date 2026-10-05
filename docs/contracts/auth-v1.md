@@ -118,7 +118,7 @@ These endpoints use the existing `auth:sanctum` cookie or bearer boundary and re
 
 Wrong step-up credentials return `422 STEP_UP_REQUIRED`.
 
-Role changes require a named `staff:manage` grant in the pilot district, a verified office-cookie session, and password step-up; they cannot target the acting administrator. An `admin` role alone confers no management, approval or send grant.
+Role changes require a named `staff:manage` grant in the pilot district, a verified office-cookie session, and password step-up; they cannot target the acting administrator. An `admin` role alone confers no management, approval or send grant. The gated [accounts-access-v1](accounts-access-v1.md) v2 contract adds scoped signup discovery and documented admission/triage/transfer without changing farmer authentication or verification. V1 roles/access and the console share its singleton, revision and durable-history reconciliation path; v1 responses remain compatible and v1 still cannot admit unassigned identities. `/api/v1/me` exposes optional `accounts_enabled: true` only when the new gate is enabled; old gate-off auth fixtures are unchanged.
 
 A role change revokes the target user's sessions, bearer tokens and named grants. District membership/grant changes also revoke credentials and invalidate pending weekly authority.
 
@@ -192,7 +192,7 @@ The `auth:prune-security-audits` command removes records older than that configu
 
 ## Admin-assisted recovery boundary
 
-The current Web admin surface has no safe user-management handoff workflow.
+The Web accounts surface manages district authority only; it has no credential-recovery handoff workflow.
 
 v1 therefore does not expose an admin password setter, plaintext credential handoff, email-verification bypass, or reset-token display.
 

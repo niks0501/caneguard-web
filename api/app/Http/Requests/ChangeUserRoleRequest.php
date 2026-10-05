@@ -26,6 +26,7 @@ class ChangeUserRoleRequest extends ApiFormRequest
         return [
             'current_password' => ['required', 'string', 'max:255'],
             'role' => ['required', 'string', Rule::in(User::roles())],
+            'office_reference' => ['sometimes', 'string', 'max:160', 'regex:/\\S/'],
         ];
     }
 }

@@ -35,13 +35,27 @@ use App\Http\Controllers\Api\V1\ReportHandoffNoteController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
+use App\Http\Controllers\Api\V2\AccountsController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
 use App\Http\Controllers\Auth\ChangeEmailController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\DisableBiometricController;
+use App\Http\Middleware\EnsureAccountsAccess;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
+
+Route::prefix('v2/admin/accounts')->middleware([
+    'auth:sanctum', 'verified', 'access.identity',
+    EnsureAccountsAccess::class, 'office.access',
+])->group(function () {
+    Route::get('/', [AccountsController::class, 'index']);
+    Route::post('/approval-transfer', [AccountsController::class, 'transfer'])->middleware('throttle:10,1');
+    Route::get('/{uuid}', [AccountsController::class, 'show'])->whereUuid('uuid');
+    Route::get('/{uuid}/events', [AccountsController::class, 'events'])->whereUuid('uuid');
+    Route::put('/{uuid}/review', [AccountsController::class, 'review'])->whereUuid('uuid')->middleware('throttle:10,1');
+    Route::put('/{uuid}/access', [DistrictAccessController::class, 'accounts'])->whereUuid('uuid')->middleware('throttle:10,1');
+});
 
 Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
     ->middleware('throttle:login');

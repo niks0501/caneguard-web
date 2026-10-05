@@ -18,13 +18,13 @@ final class DistrictAccess
         return $code === '' ? null : District::query()->where('code', $code)->value('id');
     }
 
-    public function allows(?User $user, ?int $districtId): bool
+    public function allows(?User $user, ?int $districtId, bool $lock = false): bool
     {
         return $user !== null && $user->hasVerifiedEmail()
             && in_array($user->role, [User::ROLE_FIELD_REPORTER, ...User::officeRoles()], true)
             && $districtId !== null && $districtId === $this->pilotId()
             && DistrictMembership::query()->where('user_id', $user->getKey())
-                ->where('district_id', $districtId)->whereNull('revoked_at')->exists();
+                ->where('district_id', $districtId)->whereNull('revoked_at')->when($lock, fn ($q) => $q->lockForUpdate())->first() !== null;
     }
 
     public function office(?User $user): bool
@@ -37,16 +37,16 @@ final class DistrictAccess
         return $user?->role === User::ROLE_FIELD_REPORTER && $this->allows($user, $this->pilotId());
     }
 
-    public function grant(?User $user, string $ability, ?int $districtId): ?DistrictGrant
+    public function grant(?User $user, string $ability, ?int $districtId, bool $lock = false): ?DistrictGrant
     {
-        if ($user?->role !== User::ROLE_ADMIN || ! $this->allows($user, $districtId)
+        if ($user?->role !== User::ROLE_ADMIN || ! $this->allows($user, $districtId, $lock)
             || ! in_array($ability, DistrictGrant::ABILITIES, true)) {
             return null;
         }
 
         return DistrictGrant::query()->where('user_id', $user->getKey())
             ->where('district_id', $districtId)->where('ability', $ability)
-            ->whereNull('revoked_at')->first();
+            ->whereNull('revoked_at')->when($lock, fn ($q) => $q->lockForUpdate())->first();
     }
 
     /** Shared district ceiling; personal report reads further require ownership. */

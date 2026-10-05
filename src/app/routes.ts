@@ -16,5 +16,7 @@ export const routes = {
   reportQueue: (queue: OperationalQueue) => `/reports?queue=${queue}`,
   fieldValidationQueue: (queue: FieldValidationQueue) => `/map?queue=${queue}`,
   reportDetail: (reportId: string) => `/reports/${reportId}`,
+  accounts: "/accounts",
+  accountDetail: (uuid: string) => `/accounts/${encodeURIComponent(uuid)}`,
   settings: "/settings",
 } as const;

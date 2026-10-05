@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Auth\CheckStepUpPassword;
+use App\Actions\Auth\ManageAccounts;
 use App\Actions\Auth\ReconcileDistrictAccess;
 use App\Http\Controllers\Controller;
 use App\Models\District;
@@ -16,6 +17,11 @@ use Illuminate\Validation\Rule;
 
 final class DistrictAccessController extends Controller
 {
+    public function accounts(Request $request, string $uuid, ManageAccounts $accounts): JsonResponse
+    {
+        return response()->json($accounts->handle($request, 'access', $uuid));
+    }
+
     public function __invoke(Request $request, User $user, DistrictAccess $access, ReconcileDistrictAccess $reconcile, CheckStepUpPassword $stepUp): JsonResponse
     {
         $actor = $request->user();
@@ -33,9 +39,10 @@ final class DistrictAccessController extends Controller
             'office_reference' => ['required', 'string', 'max:160'],
         ]);
         abort_unless($stepUp->handle($actor, $input['current_password'], 'district_access_changed', $user), 403);
+        abort_unless(! $input['revoke'] || $input['grants'] === [], 422);
         abort_unless($input['grants'] === [] || ($input['role'] === User::ROLE_ADMIN && $user->hasVerifiedEmail()), 403);
-        $reconcile->handle($user, District::findOrFail($access->pilotId()), $input['role'], $input['grants'], $input['revoke'], $input['office_reference'], $actor);
+        $event = $reconcile->handle($user, District::findOrFail($access->pilotId()), $input['role'], $input['grants'], $input['revoke'], $input['office_reference'], $actor);
 
-        return response()->json(['message' => 'District access updated; prior credentials revoked.']);
+        return response()->json(['message' => $event === null ? 'District access unchanged; prior credentials retained.' : 'District access updated; prior credentials revoked.']);
     }
 }

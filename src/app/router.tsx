@@ -1,6 +1,9 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { RequireAuth } from "../auth/RequireAuth";
+import { RequireAccountsAccess } from "../auth/RequireAccountsAccess";
+import { AccountsPage } from "../pages/AccountsPage";
+import { AccountDetailPage } from "../pages/AccountDetailPage";
 import { AppShell } from "../components/layout/AppShell";
 import { CaseReviewPage } from "../pages/CaseReviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
@@ -53,6 +56,10 @@ export function AppRouter() {
             <Route path="needs-assessment" element={<NeedsAssessmentPage />} />
             <Route path="reports/:reportId" element={<CaseReviewPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route element={<RequireAccountsAccess />}>
+              <Route path="accounts" element={<AccountsPage />} />
+              <Route path="accounts/:uuid" element={<AccountDetailPage />} />
+            </Route>
           </Route>
         </Route>
         <Route path="*" element={<NotFoundPage />} />
