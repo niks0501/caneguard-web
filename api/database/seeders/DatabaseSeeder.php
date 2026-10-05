@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\District;
+use App\Models\DistrictMembership;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -48,6 +50,12 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        $pilotCode = trim((string) config('caneguard.pilot_district_code'));
+        $pilotDistrict = $pilotCode === '' ? null : District::query()->firstOrCreate(
+            ['code' => $pilotCode],
+            ['name' => $pilotCode],
+        );
+
         foreach ($users as $user) {
             $attributes = $user;
             unset($attributes['email_verified_at']);
@@ -59,6 +67,13 @@ class DatabaseSeeder extends Seeder
             $seededUser->forceFill([
                 'email_verified_at' => $user['email_verified_at'],
             ])->save();
+
+            if ($pilotDistrict !== null && $seededUser->isOfficeUser()) {
+                DistrictMembership::query()->firstOrCreate([
+                    'user_id' => $seededUser->id,
+                    'district_id' => $pilotDistrict->id,
+                ]);
+            }
         }
 
         $this->call(OfficeAdvisorySeeder::class);
