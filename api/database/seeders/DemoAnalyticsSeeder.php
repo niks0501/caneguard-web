@@ -8,6 +8,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,8 @@ class DemoAnalyticsSeeder extends Seeder
      */
     public function run(): void
     {
+        $districtId = app(DistrictAccess::class)->pilotId()
+            ?? throw new \LogicException('Seed the configured pilot district before seeding reports.');
         $reporter = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
         $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
         $admin = User::query()->where('email', 'admin@caneguard.test')->firstOrFail();
@@ -112,6 +115,8 @@ class DemoAnalyticsSeeder extends Seeder
                 strlen($image),
                 $dimensions,
             );
+
+            $attributes['district_id'] = $districtId;
 
             DB::transaction(function () use (
                 $referenceCode,
