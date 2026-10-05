@@ -13,12 +13,19 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DistrictReportWorkflowTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Queue::fake();
+    }
 
     public function test_reviewer_never_approves_or_sends_even_with_named_grants_and_ungranted_officer_denies(): void
     {
@@ -100,6 +107,7 @@ class DistrictReportWorkflowTest extends TestCase
         $payload = ['content_hash' => $version['content_hash'], 'idempotency_key' => (string) Str::uuid()];
         $path = '/api/v1/district-reports/'.$version['uuid'];
         $this->postJson($path.'/approve', $payload)->assertOk();
+        Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-29 10:00:00']);
         $this->prepare();
         $this->postJson($path.'/send', $payload)->assertConflict();
         $foreign = District::query()->create(['code' => 'foreign', 'name' => 'Foreign district']);
@@ -184,8 +192,8 @@ class DistrictReportWorkflowTest extends TestCase
         Report::factory()->create(['submitted_at' => '2026-09-29 10:00:00']);
         $version = app(DistrictReportWorkflow::class)->prepare($officer, '2026-W40');
         $this->assertSame([$pilot->uuid], array_column($version->source_refs, 'uuid'));
-        $this->assertSame(1, $version->content['metrics']['reported_cases']);
-        $this->assertSame($officer->name, $version->content['generated_by']);
+        $this->assertSame(1, $version->content['case_universe']['cases']);
+        $this->assertSame($officer->name, $version->prepared_name);
     }
 
     public function test_retired_recipient_contracts_cannot_be_resurrected(): void

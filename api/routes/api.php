@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\DistrictAccessController;
 use App\Http\Controllers\Api\V1\DistrictReportController;
+use App\Http\Controllers\Api\V1\DistrictReportingSettingsController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldValidationPhotoController;
 use App\Http\Controllers\Api\V1\FieldValidationQueueController;
@@ -65,6 +66,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'access.identity'])
         Route::post('/district-reports', [DistrictReportController::class, 'prepare']);
         Route::get('/district-reports/{version}/document', [DistrictReportController::class, 'document'])
             ->name('api.v1.reports.documents.district-version');
+        Route::get('/district-reports/{version}/pdf', [DistrictReportController::class, 'pdf']);
+        Route::get('/district-reporting-settings', [DistrictReportingSettingsController::class, 'show']);
+        Route::put('/district-reporting-settings', [DistrictReportingSettingsController::class, 'update']);
         Route::post('/district-reports/{version}/approve', [DistrictReportController::class, 'approve']);
         Route::post('/district-reports/{version}/send', [DistrictReportController::class, 'send']);
         Route::get('/dashboard/summary', DashboardSummaryController::class);

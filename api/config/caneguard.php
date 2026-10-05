@@ -8,6 +8,7 @@ return [
     // Blank means no live district. Never infer membership from location/name.
     'pilot_district_code' => env('CANEGUARD_PILOT_DISTRICT_CODE', ''),
     'weekly_send_enabled' => env('CANEGUARD_WEEKLY_SEND_ENABLED', false),
+    'weekly_appendix_enabled' => env('CANEGUARD_WEEKLY_APPENDIX_ENABLED', false),
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',
