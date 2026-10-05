@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\Report;
+use App\Models\ReportClassScore;
+use App\Models\ReportQualityWarning;
+use App\Models\ReportSymptom;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -210,46 +213,27 @@ class ReportSeeder extends Seeder
                     ? Report::v2Labels()
                     : Report::labels();
                 $reportConfidence = (float) $report->confidence;
-                $existingScoreLabels = DB::table('report_class_scores')
-                    ->where('report_id', $report->getKey())
-                    ->pluck('label')
-                    ->all();
-
                 foreach ($reportLabels as $scoreLabel) {
-                    if (in_array($scoreLabel, $existingScoreLabels, true)) {
-                        continue;
-                    }
-
                     $score = $scoreLabel === $report->predicted_label
                         ? $reportConfidence
                         : round((1 - $reportConfidence) / (count($reportLabels) - 1), 7);
 
-                    DB::table('report_class_scores')->insert([
-                        'report_id' => $report->getKey(),
-                        'label' => $scoreLabel,
-                        'score' => $score,
-                    ]);
+                    ReportClassScore::query()->firstOrCreate(
+                        ['report_id' => $report->getKey(), 'label' => $scoreLabel],
+                        ['score' => $score],
+                    );
                 }
 
                 $symptomKey = $report->predicted_label === Report::LABEL_HEALTHY
                     ? 'none'
                     : $report->predicted_label;
-                if (! DB::table('report_symptoms')
-                    ->where('report_id', $report->getKey())
-                    ->where('symptom_key', $symptomKey)
-                    ->exists()) {
-                    DB::table('report_symptoms')->insert([
-                        'report_id' => $report->getKey(),
-                        'symptom_key' => $symptomKey,
-                    ]);
-                }
+                ReportSymptom::query()->firstOrCreate([
+                    'report_id' => $report->getKey(),
+                    'symptom_key' => $symptomKey,
+                ]);
 
-                if ($number % 3 === 0
-                    && ! DB::table('report_quality_warnings')
-                        ->where('report_id', $report->getKey())
-                        ->where('warning_key', 'low-resolution')
-                        ->exists()) {
-                    DB::table('report_quality_warnings')->insert([
+                if ($number % 3 === 0) {
+                    ReportQualityWarning::query()->firstOrCreate([
                         'report_id' => $report->getKey(),
                         'warning_key' => 'low-resolution',
                     ]);

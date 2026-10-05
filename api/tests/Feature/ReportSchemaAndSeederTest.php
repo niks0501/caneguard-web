@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\AdvisorDemoSeeder;
 use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoAnalyticsSeeder;
 use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -338,7 +339,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'symptom_key' => $seededSymptom,
         ]);
         $this->assertTrue(Storage::disk('local')->exists('reports/2026-07/bgo-20260702-0915.png'));
-        $this->assertSame(12, Report::query()->count());
+        $this->assertSame(12 + count(AdvisorDemoSeeder::reportReferences()) + count(DashboardReportSeeder::reportReferences()) + DemoAnalyticsSeeder::REPORT_COUNT, Report::query()->count());
     }
 
     public function test_seeder_creates_baseline_and_feature_demo_reports_with_valid_images(): void
@@ -493,7 +494,8 @@ class ReportSchemaAndSeederTest extends TestCase
             'reports',
             12
                 + count(AdvisorDemoSeeder::reportReferences())
-                + count(DashboardReportSeeder::reportReferences()),
+                + count(DashboardReportSeeder::reportReferences())
+                + DemoAnalyticsSeeder::REPORT_COUNT,
         );
         $this->assertGreaterThan(500, Report::query()
             ->whereNotNull('final_latitude')
@@ -575,7 +577,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertNull($manualDemoReport->gps_accuracy);
         $this->assertDatabaseCount(
             'report_class_scores',
-            4 * (12 + count(AdvisorDemoSeeder::reportReferences()) + count(DashboardReportSeeder::reportReferences())),
+            4 * (12 + count(AdvisorDemoSeeder::reportReferences()) + count(DashboardReportSeeder::reportReferences()) + DemoAnalyticsSeeder::REPORT_COUNT),
         );
         $this->assertSame(Report::v2Labels(), Report::query()
             ->distinct()
@@ -626,7 +628,8 @@ class ReportSchemaAndSeederTest extends TestCase
             12
                 + count(AdvisorDemoSeeder::reportReferences())
                 + count(DashboardReportSeeder::REPORT_REFERENCES)
-                + DashboardReportSeeder::volumeConfiguration()['months_back'],
+                + DashboardReportSeeder::volumeConfiguration()['months_back']
+                + 1,
             $files,
         );
         $seededImage = Storage::disk('local')->get($files[0]);
@@ -657,7 +660,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $monthCounts = Report::query()
             ->get(['submitted_at'])
-            ->groupBy(fn (Report $report): string => $report->submitted_at->format('Y-m'))
+            ->groupBy(fn (Report $report): string => $report->submitted_at->timezone('Asia/Manila')->format('Y-m'))
             ->map(fn ($reports): int => $reports->count())
             ->all();
 
@@ -677,7 +680,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame(2, DashboardReportSeeder::volumeConfiguration()['reports_per_barangay_per_condition']);
 
         Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
-        $month = CarbonImmutable::now('UTC')->format('Y-m');
+        $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
         $expectedMonthCount = $monthCounts[$month];
 
         $response = $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,queues,recent,monthly')
@@ -702,8 +705,5 @@ class ReportSchemaAndSeederTest extends TestCase
     private function seedReportDemoDataset(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $this->seed(ReportSeeder::class);
-        $this->seed(AdvisorDemoSeeder::class);
-        $this->seed(DashboardReportSeeder::class);
     }
 }

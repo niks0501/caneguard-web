@@ -10,7 +10,7 @@ use App\Models\User;
 use Database\Seeders\AdvisorDemoSeeder;
 use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
-use Database\Seeders\ReportSeeder;
+use Database\Seeders\DemoAnalyticsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -43,7 +43,8 @@ class AdvisorDemoSeederTest extends TestCase
             'reports',
             12
                 + count(AdvisorDemoSeeder::reportReferences())
-                + count(DashboardReportSeeder::reportReferences()),
+                + count(DashboardReportSeeder::reportReferences())
+                + DemoAnalyticsSeeder::REPORT_COUNT,
         );
         $this->assertDatabaseCount('advisories', 4);
         $this->assertDatabaseCount('report_referrals', 0);
@@ -137,9 +138,9 @@ class AdvisorDemoSeederTest extends TestCase
 
         $this->assertDatabaseCount(
             'reports',
-            12 + count(DashboardReportSeeder::reportReferences()),
+            12 + count(DashboardReportSeeder::reportReferences()) + DemoAnalyticsSeeder::REPORT_COUNT,
         );
-        $this->assertDatabaseCount('advisories', 3);
+        $this->assertDatabaseCount('advisories', 4);
         $this->assertDatabaseCount('report_referrals', 0);
         $this->assertGreaterThan(0, DB::table('field_validation_assignments')->count());
         $this->assertGreaterThan(0, DB::table('field_validation_completions')->count());
@@ -151,11 +152,26 @@ class AdvisorDemoSeederTest extends TestCase
         Storage::disk('local')->assertMissing('field-validation/2026-09-18-balaytigui.png');
     }
 
+    public function test_cleanup_preserves_shared_advisory_and_files_referenced_by_other_reports(): void
+    {
+        $this->seedReportDemoDataset();
+        $demo = Report::query()->where('reference_code', 'BGO-20260916-0745')->firstOrFail();
+        $other = Report::factory()->create([
+            'advisory_id' => Advisory::query()->where('code', AdvisorDemoSeeder::ADVISORY_CODE)->value('id'),
+            'image_path' => $demo->image_path,
+        ]);
+        $before = $other->fresh()->getRawOriginal();
+        $image = Storage::disk('local')->get($other->image_path);
+
+        AdvisorDemoSeeder::cleanup();
+
+        $this->assertSame($before, $other->fresh()->getRawOriginal());
+        $this->assertDatabaseHas('advisories', ['id' => $other->advisory_id]);
+        $this->assertSame($image, Storage::disk('local')->get($other->image_path));
+    }
+
     private function seedReportDemoDataset(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $this->seed(ReportSeeder::class);
-        $this->seed(AdvisorDemoSeeder::class);
-        $this->seed(DashboardReportSeeder::class);
     }
 }

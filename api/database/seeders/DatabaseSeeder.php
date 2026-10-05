@@ -50,12 +50,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $pilotCode = trim((string) config('caneguard.pilot_district_code'));
-        $pilotDistrict = $pilotCode === '' ? null : District::query()->firstOrCreate(
-            ['code' => $pilotCode],
-            ['name' => $pilotCode],
-        );
-
+        $seededUsers = [];
         foreach ($users as $user) {
             $attributes = $user;
             unset($attributes['email_verified_at']);
@@ -68,6 +63,16 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => $user['email_verified_at'],
             ])->save();
 
+            $seededUsers[] = $seededUser;
+        }
+
+        $pilotCode = trim((string) config('caneguard.pilot_district_code'));
+        $pilotDistrict = $pilotCode === '' ? null : District::query()->firstOrCreate(
+            ['code' => $pilotCode],
+            ['name' => $pilotCode],
+        );
+
+        foreach ($seededUsers as $seededUser) {
             if ($pilotDistrict !== null && $seededUser->isOfficeUser()) {
                 DistrictMembership::query()->firstOrCreate([
                     'user_id' => $seededUser->id,
@@ -76,6 +81,14 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $this->call(OfficeAdvisorySeeder::class);
+        // Advisory catalogs must exist before the dashboard and analytics
+        // fixtures select them; AdvisorDemoSeeder also seeds its report examples.
+        $this->call([
+            OfficeAdvisorySeeder::class,
+            ReportSeeder::class,
+            AdvisorDemoSeeder::class,
+            DashboardReportSeeder::class,
+            DemoAnalyticsSeeder::class,
+        ]);
     }
 }

@@ -50,7 +50,7 @@ class DemoUserSeederTest extends TestCase
 
         $this->assertSame($expectedRoles, User::query()->pluck('role')->sort()->values()->all());
         $this->assertSame(3, User::query()->whereNotNull('uuid')->count());
-        $this->assertDatabaseCount('reports', 0);
+        $this->assertDatabaseHas('reports', ['reference_code' => 'BGO-20260702-0915']);
     }
 
     public function test_fresh_demo_seed_restores_office_login_without_admitting_the_field_reporter(): void

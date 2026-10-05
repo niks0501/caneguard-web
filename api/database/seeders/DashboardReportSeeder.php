@@ -6,6 +6,9 @@ use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
+use App\Models\ReportClassScore;
+use App\Models\ReportQualityWarning;
+use App\Models\ReportSymptom;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -413,55 +416,31 @@ class DashboardReportSeeder extends Seeder
         }
 
         $labels = Report::v2Labels();
-        $existingScores = DB::table('report_class_scores')
-            ->whereIn('report_id', array_values($reportIds))
-            ->get(['report_id', 'label'])
-            ->mapWithKeys(fn (object $score): array => [
-                $score->report_id.'|'.$score->label => true,
-            ])
-            ->all();
-        $scoreRows = [];
-        $symptomRows = [];
-        $warningRows = [];
-
         foreach ($plan as $referenceCode => $definition) {
-            $reportId = $reportIds[$referenceCode] ?? null;
-            if ($reportId === null) {
-                continue;
-            }
-
+            $reportId = $reportIds[$referenceCode];
             $confidence = (float) $definition['report']['confidence'];
             foreach ($labels as $label) {
-                if (isset($existingScores[$reportId.'|'.$label])) {
-                    continue;
-                }
-
-                $scoreRows[] = [
-                    'report_id' => $reportId,
-                    'label' => $label,
-                    'score' => $label === $definition['report']['predicted_label']
+                ReportClassScore::query()->firstOrCreate(
+                    ['report_id' => $reportId, 'label' => $label],
+                    ['score' => $label === $definition['report']['predicted_label']
                         ? $confidence
-                        : round((1 - $confidence) / (count($labels) - 1), 7),
-                ];
+                        : round((1 - $confidence) / (count($labels) - 1), 7)],
+                );
             }
 
-            $symptomRows[] = [
+            ReportSymptom::query()->firstOrCreate([
                 'report_id' => $reportId,
                 'symptom_key' => $definition['report']['predicted_label'] === Report::LABEL_HEALTHY
                     ? 'none'
                     : $definition['report']['predicted_label'],
-            ];
+            ]);
             if ($definition['quality_warning']) {
-                $warningRows[] = [
+                ReportQualityWarning::query()->firstOrCreate([
                     'report_id' => $reportId,
                     'warning_key' => 'low-resolution',
-                ];
+                ]);
             }
         }
-
-        self::insertInChunks('report_class_scores', $scoreRows);
-        self::insertInChunks('report_symptoms', $symptomRows);
-        self::insertInChunks('report_quality_warnings', $warningRows);
 
         $assignmentDefinitions = [];
         foreach ($plan as $referenceCode => $definition) {
@@ -562,16 +541,6 @@ class DashboardReportSeeder extends Seeder
             }
         }
 
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $rows
-     */
-    private static function insertInChunks(string $table, array $rows): void
-    {
-        foreach (array_chunk($rows, 400) as $chunk) {
-            DB::table($table)->insertOrIgnore($chunk);
-        }
     }
 
     /**
@@ -1000,36 +969,22 @@ class DashboardReportSeeder extends Seeder
         }
 
         $labels = Report::v2Labels();
-        $existingScoreLabels = DB::table('report_class_scores')
-            ->where('report_id', $report->getKey())
-            ->pluck('label')
-            ->all();
         foreach ($labels as $label) {
-            if (in_array($label, $existingScoreLabels, true)) {
-                continue;
-            }
-
-            DB::table('report_class_scores')->insert([
-                'report_id' => $report->getKey(),
-                'label' => $label,
-                'score' => $label === $report->predicted_label
+            ReportClassScore::query()->firstOrCreate(
+                ['report_id' => $report->getKey(), 'label' => $label],
+                ['score' => $label === $report->predicted_label
                     ? $report->confidence
-                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7),
-            ]);
+                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7)],
+            );
         }
 
         $symptomKey = $report->predicted_label === Report::LABEL_HEALTHY
             ? 'none'
             : $report->predicted_label;
-        if (! DB::table('report_symptoms')
-            ->where('report_id', $report->getKey())
-            ->where('symptom_key', $symptomKey)
-            ->exists()) {
-            DB::table('report_symptoms')->insert([
-                'report_id' => $report->getKey(),
-                'symptom_key' => $symptomKey,
-            ]);
-        }
+        ReportSymptom::query()->firstOrCreate([
+            'report_id' => $report->getKey(),
+            'symptom_key' => $symptomKey,
+        ]);
 
         return $report;
     }

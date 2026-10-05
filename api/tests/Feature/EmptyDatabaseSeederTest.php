@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Report;
 use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\OfficeAdvisorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\LaravelPdf\Facades\Pdf;
@@ -26,10 +26,16 @@ class EmptyDatabaseSeederTest extends TestCase
         ]);
     }
 
-    public function test_default_seed_keeps_demo_accounts_and_all_report_surfaces_work_empty(): void
+    public function test_all_report_surfaces_work_with_accounts_and_advisories_but_no_reports(): void
     {
-        $this->seed(DatabaseSeeder::class);
-        $this->seed(DatabaseSeeder::class);
+        foreach ([
+            'field@caneguard.test' => User::ROLE_FIELD_REPORTER,
+            'mao@caneguard.test' => User::ROLE_REVIEWER,
+            'admin@caneguard.test' => User::ROLE_ADMIN,
+        ] as $email => $role) {
+            User::factory()->create(['email' => $email, 'role' => $role]);
+        }
+        $this->seed(OfficeAdvisorySeeder::class);
         $this->approveSeededPilotFixtures();
 
         $this->assertDatabaseCount('users', 3);
