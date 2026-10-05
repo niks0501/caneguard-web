@@ -172,7 +172,6 @@ export function AnalyticsSectionView({
           <h2 id="report-analytics-heading">Report analytics</h2>
           <p>
             Charts of submitted reports for any week, month or custom range.
-            The monthly summary panel below uses the same Philippine calendar month.
           </p>
         </div>
       </div>
@@ -620,11 +619,6 @@ function LifecycleCard({
       key: "field_validation_state",
       title: analyticsCopy.lifecycle.fieldValidationState,
       entries: Object.entries(analytics.lifecycle.fieldValidationState),
-    },
-    {
-      key: "referral_state",
-      title: analyticsCopy.lifecycle.referralState,
-      entries: Object.entries(analytics.lifecycle.referralState),
     },
   ];
 

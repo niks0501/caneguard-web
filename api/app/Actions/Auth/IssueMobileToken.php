@@ -3,6 +3,7 @@
 namespace App\Actions\Auth;
 
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Laravel\Sanctum\NewAccessToken;
@@ -14,8 +15,12 @@ final class IssueMobileToken
     /**
      * @return array<int, string>
      */
-    public static function abilities(): array
+    public static function abilities(?User $user = null): array
     {
+        if ($user !== null && ! app(DistrictAccess::class)->inspector($user)) {
+            return ['account:security'];
+        }
+
         return [
             'report:submit',
             'report:status',
@@ -34,9 +39,12 @@ final class IssueMobileToken
             throw new InvalidArgumentException('A mobile device name and identity are required.');
         }
 
+        if (! $user->isMobileUser()) {
+            throw new InvalidArgumentException('Only verified farmer and inspector identities may receive Mobile tokens.');
+        }
+
         $tokenName = self::TOKEN_NAME_PREFIX.$deviceName;
-        // Mobile sessions are revoked explicitly, not by a fixed time window.
-        $expiresAt = null;
+        $expiresAt = now()->addDays(30);
 
         return DB::transaction(function () use ($deviceId, $expiresAt, $tokenName, $user): NewAccessToken {
             User::query()->whereKey($user->getKey())->lockForUpdate()->first();
@@ -55,7 +63,7 @@ final class IssueMobileToken
 
             $token = $user->createToken(
                 $tokenName,
-                self::abilities(),
+                self::abilities($user),
                 $expiresAt,
             );
 

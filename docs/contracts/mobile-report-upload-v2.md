@@ -14,7 +14,9 @@ The request must use a Sanctum bearer token with the `report:submit` ability.
 
 Laravel remains the authority for authentication, the field-reporter role, the `Report::create` policy, persistence, and review state.
 
-Unknown multipart fields are ignored for backward compatibility and cannot set server-owned identity, reviewer, authority-classification, review-status, or submission-timestamp fields.
+Unknown multipart fields are ignored for backward compatibility and cannot set server-owned identity, reviewer, authority-classification, review-status, or submission-timestamp fields. The artifact's `authority` block partitions the write envelope into client-owned inputs and disjoint, **undeclared** server-derived/read-only names. Only client-owned names belong in `fields`; the artifact gate and Laravel tests enforce that boundary. District is strictly derived from the authenticated pilot access model, never coordinates, barangay, or a phone-supplied district field.
+
+A retry with the same reporter and `client_uuid` returns the original report without writing any submitted evidence, review snapshot, lifecycle, or lock version. After rejection, a corrected submission requires a new UUID; retries cannot reopen or reset the office decision. Review mutations remain role-gated and optimistic-version locked on the separate review endpoint.
 
 The accepted declared fields, their requiredness, wire encodings, types, bounds, conditions, and enums are defined only in the JSON artifact.
 
@@ -26,9 +28,17 @@ Nullable text fields accept an empty multipart text part as `null` where the JSO
 
 The boolean `mismatch_reported` field accepts the JSON-declared boolean, numeric, and string representations.
 
-`reporter_suspected_condition` remains a bounded free-text reporter-observation field. Mobile's RSSI quick choice sends the stable value `RSSI` here; it is preserved as field evidence and is not a Model V1 label or class score. The model contract remains exactly `healthy`, `mosaic`, `rust`, and `smut`.
+`reporter_suspected_condition` remains a bounded free-text reporter-observation field. Mobile's RSSI quick choice sends the stable value `RSSI` here; it is preserved as field evidence and is not a Model V1 label or class score. Model V1 meanings and `predicted_label` remain exactly `healthy`, `mosaic`, `rust`, and `smut`.
 
 `captured_at` and `observed_at` use ISO-8601 date-time values with an explicit timezone, and date-only values are outside v2.
+
+## Server-first model evidence widening
+
+`model_version` accepts any non-empty string up to 100 characters. `caneguard.accepted_model_versions` (environment: `CANEGUARD_ACCEPTED_MODEL_VERSIONS`, comma-separated, defaults to `v1.0-mobilenetv2`) controls **recognition, not admission**. Unknown versions persist as submitted; report detail exposes `model_version_recognised` and the office review shows the unrecognised-version warning and every submitted score.
+
+`class_scores` requires at least four numeric scores in [0,1]. For `v1.0-mobilenetv2`, the `model_class_keys` condition keeps exactly the four Model V1 keys and forbids extras. Other versions accept additional/different keys matching `^[a-z][a-z0-9_-]{0,31}$`, consistent with the existing 32-character persistence column. Unknown labels are retained and rendered as unrecognised classes, never dropped. This does not declare new disease classes or change prediction meanings.
+
+Land changes server-first: artifact and gate, Laravel consumer/persistence, web read surfaces, mobile mirror/producer tests, then pin `ci/mobile-report-upload-gate.json:mobile_ref` to that exact mobile revision. M3 (the phone mapper never emits cached authority review) is proven in the mobile producer contract suite.
 
 ## Deliberately unavailable location
 
@@ -91,7 +101,7 @@ The existing mobile upload feature tests continue to cover idempotency, review p
 
 ## Versioning rules
 
-The v2 contract is intentionally breaking relative to v1: the class-score object is exactly four classes and the accepted model version is the bundled Model V1 version. It preserves the existing field names, wire encodings, persistence fields, and review semantics wherever the new evidence shape permits.
+The original v2 contract was intentionally breaking relative to v1: Model V1 requires exactly four class scores. The approved compatible widening now accepts bounded future model versions and conditional score keys without adding a v3 write endpoint. It preserves the existing field names, wire encodings, persistence fields, and review semantics wherever the new evidence shape permits.
 
 Future v2 widenings may add an optional field while preserving the undeclared-field policy, accept an additional enum value without changing existing meanings, increase a text or numeric maximum, lower a numeric minimum, or add an image format.
 
@@ -103,4 +113,4 @@ A new major version is also required for changes to enum meaning, disease classe
 
 The v2 artifact's `versioning` object is the machine-readable record of these compatibility rules.
 
-This contract does not change report-review semantics, authentication authority, persistence behavior, map behavior, or synchronization behavior. It is the mobile transport contract for the four Model V1 classes: `healthy`, `mosaic`, `rust`, and `smut`.
+This contract does not change report-review semantics, authentication authority, or idempotent synchronization behavior. The four Model V1 class meanings remain `healthy`, `mosaic`, `rust`, and `smut`; new score identifiers are submitted evidence, not new office classifications.

@@ -5,6 +5,7 @@ namespace App\Actions\Reports;
 use App\Actions\Notifications\CreateNewCaseNotifications;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,7 @@ class PersistReport
                 'uuid' => $uuid,
                 'reference_code' => $referenceCode,
                 'reporter_id' => $reporter->getKey(),
+                'district_id' => app(DistrictAccess::class)->pilotId(),
                 'client_uuid' => $data['client_uuid'],
                 'scan_record_client_uuid' => $data['scan_record_client_uuid'] ?? null,
                 'barangay' => $data['barangay'],

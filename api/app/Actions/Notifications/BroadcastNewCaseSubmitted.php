@@ -5,6 +5,7 @@ namespace App\Actions\Notifications;
 use App\Events\NewCaseSubmitted;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -14,8 +15,11 @@ class BroadcastNewCaseSubmitted
     {
         User::query()
             ->whereIn('role', User::officeRoles())
-            ->get(['uuid'])
+            ->get()
             ->each(function (User $recipient) use ($report): void {
+                if (! app(DistrictAccess::class)->report($recipient, $report)) {
+                    return;
+                }
                 try {
                     event(new NewCaseSubmitted(
                         $recipient->uuid,

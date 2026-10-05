@@ -151,7 +151,8 @@ final class BuildReportCaseHistory
                     $consult->referredBy?->name ?? 'Authorized reviewer',
                     [
                         ['label' => 'Destination', 'value' => $consult->destination],
-                        ['label' => 'Reference', 'value' => $consult->reference],
+                        ['label' => 'Tracking code', 'value' => $consult->tracking_code ?? 'Not available'],
+                        ['label' => 'Reference', 'value' => $consult->reference ?? 'Not provided yet'],
                         ...($consult->due_date ? [
                             ['label' => 'Due date', 'value' => $consult->due_date->format('Y-m-d')],
                         ] : []),
@@ -243,6 +244,12 @@ final class BuildReportCaseHistory
 
         if (is_bool($value)) {
             return $value ? 'Yes' : 'No';
+        }
+
+        // Invite issuance audits store structured before/after metadata. Keep
+        // their history readable instead of failing the case detail response.
+        if (is_array($value)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         }
 
         return (string) $value;

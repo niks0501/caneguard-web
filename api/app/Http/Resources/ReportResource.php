@@ -7,6 +7,7 @@ use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\CalibrateReportTriage;
 use App\Models\Report;
 use App\Models\ReportAudit;
+use App\Security\DistrictAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -41,6 +42,7 @@ class ReportResource extends JsonResource
                 'url' => route(
                     'api.v1.reports.image',
                     ['report' => $this->uuid],
+                    false,
                 ),
                 'mime_type' => $this->image_mime_type,
                 'size_bytes' => $this->image_size_bytes,
@@ -58,6 +60,7 @@ class ReportResource extends JsonResource
                     ])
                     ->values(),
                 'model_version' => $this->model_version,
+                'model_version_recognised' => in_array($this->model_version, config('caneguard.accepted_model_versions', ['v1.0-mobilenetv2']), true),
                 'timings_ms' => [
                     'preprocess' => (float) $this->preprocess_ms,
                     'inference' => (float) $this->inference_ms,
@@ -146,6 +149,9 @@ class ReportResource extends JsonResource
                     'consult_status' => $this->referral->consult_status,
                     'destination' => $this->referral->destination,
                     'reference' => $this->referral->reference,
+                    'tracking_code' => $request->user()?->can('review', $this->resource)
+                        ? $this->referral->tracking_code
+                        : null,
                     'referral_date' => $this->referral->referral_date?->format('Y-m-d'),
                     'due_date' => $this->referral->due_date?->format('Y-m-d'),
                     'expert' => $this->referral->expert ? [
@@ -167,7 +173,7 @@ class ReportResource extends JsonResource
                     'response_finding' => $this->referral->response_finding,
                     'finding_summary' => $this->referral->finding_summary ?? $this->referral->response_note,
                     'condition_opinion' => $this->referral->condition_opinion,
-                    'symptom_verdicts' => $this->referral->symptom_verdicts,
+                    'symptom_verdicts' => $this->referral->symptom_verdicts ?? $this->referral->symptomFindings->mapWithKeys(fn ($finding) => [$finding->symptom_key => ['verdict' => $finding->verdict, 'note' => $finding->note]])->all(),
                     'finding_details' => $this->referral->finding_details ?? $this->referral->response_finding,
                     'finding_confidence' => $this->referral->finding_confidence,
                     'finding_recommendation' => $this->referral->finding_recommendation,
@@ -219,6 +225,9 @@ class ReportResource extends JsonResource
                     'consult_status' => $consult->consult_status,
                     'destination' => $consult->destination,
                     'reference' => $consult->reference,
+                    'tracking_code' => $request->user()?->can('review', $this->resource)
+                        ? $consult->tracking_code
+                        : null,
                     'referral_date' => $consult->referral_date?->format('Y-m-d'),
                     'due_date' => $consult->due_date?->format('Y-m-d'),
                     'expert' => $consult->expert ? [
@@ -236,7 +245,7 @@ class ReportResource extends JsonResource
                     'invite_last_accessed_at' => $consult->invite_last_accessed_at?->utc()->toISOString(),
                     'finding_summary' => $consult->finding_summary ?? $consult->response_note,
                     'condition_opinion' => $consult->condition_opinion,
-                    'symptom_verdicts' => $consult->symptom_verdicts,
+                    'symptom_verdicts' => $consult->symptom_verdicts ?? $consult->symptomFindings->mapWithKeys(fn ($finding) => [$finding->symptom_key => ['verdict' => $finding->verdict, 'note' => $finding->note]])->all(),
                     'finding_details' => $consult->finding_details ?? $consult->response_finding,
                     'finding_confidence' => $consult->finding_confidence,
                     'finding_recommendation' => $consult->finding_recommendation,
@@ -245,6 +254,7 @@ class ReportResource extends JsonResource
                     'finding_source' => $consult->finding_source,
                     'source' => $consult->finding_source,
                     'finding_recorded_at' => $consult->finding_recorded_at?->utc()->toISOString(),
+                    'note' => $consult->note,
                     'response_date' => $consult->response_date?->format('Y-m-d'),
                     'consult_review_outcome' => $consult->consult_review_outcome,
                     'consult_review_note' => $consult->consult_review_note,
@@ -264,8 +274,8 @@ class ReportResource extends JsonResource
                         'original_value' => $audit->original_value,
                         'corrected_value' => $audit->corrected_value,
                         'actor' => [
-                            'uuid' => $audit->actor->uuid,
-                            'name' => $audit->actor->name,
+                            'uuid' => $audit->actor?->uuid,
+                            'name' => $audit->actor?->name,
                         ],
                         'created_at' => $audit->created_at->utc()->toISOString(),
                         'reason' => $audit->reason,
@@ -286,6 +296,7 @@ class ReportResource extends JsonResource
                     ])
                     ->values(),
             ],
+            'handoff_notes' => $this->handoffNotes,
             'first_reviewed_at' => $this->first_reviewed_at?->utc()->toISOString(),
             'attention_band' => $riskBand['band'],
             'attention_band_reasons' => $riskBand['reasons'],
@@ -347,6 +358,9 @@ class ReportResource extends JsonResource
         $canonical = $this->relationLoaded('canonicalReport')
             ? $this->canonicalReport
             : null;
+        if ($canonical !== null && ! app(DistrictAccess::class)->report(request()->user(), $canonical)) {
+            $canonical = null;
+        }
 
         $isDuplicate = $this->canonical_report_id !== null;
 

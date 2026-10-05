@@ -3,9 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\Advisory;
+use App\Models\DistrictMembership;
 use App\Models\Report;
-use App\Models\ReportReferral;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
@@ -94,56 +95,6 @@ class ReviewReportRequest extends ApiFormRequest
                 'integer',
                 Rule::exists('advisories', 'id'),
             ],
-            'referral_destination' => [
-                'sometimes',
-                'string',
-                'max:160',
-                'not_regex:/^\\s*$/',
-            ],
-            'referral_reference' => [
-                'sometimes',
-                'string',
-                'max:160',
-                'not_regex:/^\\s*$/',
-            ],
-            'referral_date' => [
-                'sometimes',
-                'date',
-            ],
-            'referral_note' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:1000',
-            ],
-            'referral_due_date' => [
-                'sometimes',
-                'nullable',
-                'date',
-            ],
-            'expert_name' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:160',
-            ],
-            'expert_uuid' => [
-                'sometimes',
-                'nullable',
-                'uuid',
-                Rule::exists('users', 'uuid'),
-            ],
-            'expert_contact' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:320',
-            ],
-            'share_full_context' => ['sometimes', 'boolean'],
-            'consult_status' => [
-                'sometimes',
-                Rule::in(ReportReferral::statuses()),
-            ],
             'case_state' => [
                 'sometimes',
                 Rule::in(Report::caseStates()),
@@ -227,19 +178,6 @@ class ReviewReportRequest extends ApiFormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if (
-                filled($this->input('expert_uuid'))
-                && ! User::query()
-                    ->where('uuid', $this->input('expert_uuid'))
-                    ->where('role', User::ROLE_EXPERT)
-                    ->exists()
-            ) {
-                $validator->errors()->add(
-                    'expert_uuid',
-                    'The selected expert must be an in-system expert.',
-                );
-            }
-
             $report = $this->route('report');
             if (
                 $report instanceof Report
@@ -265,15 +203,6 @@ class ReviewReportRequest extends ApiFormRequest
                 'action_taken',
                 'advisory_uuid',
                 'advisory_id',
-                'referral_destination',
-                'referral_reference',
-                'referral_date',
-                'referral_note',
-                'referral_due_date',
-                'expert_name',
-                'expert_uuid',
-                'expert_contact',
-                'consult_status',
                 'case_state',
                 'metadata_corrections',
             ];
@@ -305,6 +234,10 @@ class ReviewReportRequest extends ApiFormRequest
                 && ! User::query()
                     ->where('uuid', $this->input('field_validation_assignee_uuid'))
                     ->where('role', User::ROLE_FIELD_REPORTER)
+                    ->whereNotNull('email_verified_at')
+                    ->whereIn('id', DistrictMembership::query()
+                        ->where('district_id', app(DistrictAccess::class)->pilotId())
+                        ->whereNull('revoked_at')->select('user_id'))
                     ->exists()
             ) {
                 $validator->errors()->add(
@@ -353,84 +286,15 @@ class ReviewReportRequest extends ApiFormRequest
                 );
             }
 
-            $referralFields = [
-                'referral_destination',
-                'referral_reference',
-                'referral_date',
-                'referral_note',
-                'referral_due_date',
-                'expert_name',
-                'expert_uuid',
-                'expert_contact',
-                'consult_status',
-            ];
-            $hasReferralFields = collect($referralFields)
-                ->contains(fn (string $key): bool => array_key_exists($key, $this->all()));
-            $report = $this->route('report');
-            $referralState = $report instanceof Report
-                ? $report->lifecycleSnapshot()['referral_state']
-                : Report::REFERRAL_STATE_NOT_REFERRED;
-            $hasActiveConsult = $report instanceof Report
-                && $report->referrals()
-                    ->whereIn('consult_status', ReportReferral::activeStatuses())
-                    ->exists();
-            $selectingReferral = $this->input('action_taken') === Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION;
-
-            if (! $hasActiveConsult
-                && $selectingReferral
-                && $this->input('case_state') === Report::CASE_STATE_CLOSED
-            ) {
-                $validator->errors()->add(
-                    'case_state',
-                    'A referral must remain open while expert input is pending.',
-                );
-            }
-
-            if (! $hasActiveConsult
-                && ($selectingReferral || $hasReferralFields)
-            ) {
-                if (! $selectingReferral) {
-                    $validator->errors()->add(
-                        'action_taken',
-                        'Select referred for expert validation when recording referral details.',
-                    );
-                }
-                foreach ([
-                    'referral_destination' => 'A referral destination is required.',
-                    'referral_reference' => 'A referral reference is required.',
-                    'referral_date' => 'A referral date is required.',
-                ] as $field => $message) {
-                    if (blank($this->input($field))) {
-                        $validator->errors()->add($field, trim($message));
-                    }
-                }
-                if (blank($this->input('expert_uuid')) && blank($this->input('expert_name'))) {
-                    $validator->errors()->add(
-                        'expert_uuid',
-                        'Choose an in-system expert or provide an external expert name.',
-                    );
-                    $validator->errors()->add(
-                        'expert_name',
-                        'Choose an in-system expert or provide an external expert name.',
-                    );
+            foreach (['referral_state', 'referral_destination', 'referral_reference', 'referral_date',
+                'referral_note', 'referral_due_date', 'expert_name', 'expert_uuid', 'expert_contact',
+                'consult_status', 'share_full_context'] as $field) {
+                if ($this->has($field)) {
+                    $validator->errors()->add($field, 'The in-system expert workflow was retired.');
                 }
             }
-
-            if ($referralState === Report::REFERRAL_STATE_REFERRED
-                && array_key_exists('action_taken', $this->all())
-                && $this->input('action_taken') !== Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION
-            ) {
-                $validator->errors()->add(
-                    'action_taken',
-                    'The referral action remains active until an expert response is recorded.',
-                );
-            }
-
-            if ($hasActiveConsult && $hasReferralFields) {
-                $validator->errors()->add(
-                    'referral',
-                    'Referral details cannot be replaced after the handoff is recorded.',
-                );
+            if ($this->input('action_taken') === Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION) {
+                $validator->errors()->add('action_taken', 'The in-system expert workflow was retired.');
             }
         });
     }

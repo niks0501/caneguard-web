@@ -21,6 +21,12 @@ class ReportApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_reports_are_searchable_filterable_sorted_and_paginated(): void
     {
         $reporter = User::factory()->fieldReporter()->create([
@@ -90,6 +96,7 @@ class ReportApiTest extends TestCase
                 route(
                     'api.v1.reports.image',
                     ['report' => $newestSubmission->uuid],
+                    false,
                 ),
             )
             ->assertJsonPath('data.0.province', 'Negros Occidental')
@@ -192,10 +199,10 @@ class ReportApiTest extends TestCase
 
         $this->getJson('/api/v1/reports?queue='.Report::QUEUE_UNVERIFIED_NO_ACTIVE_WORK)
             ->assertOk()
-            ->assertJsonCount(3, 'data')
+            ->assertJsonCount(2, 'data')
             ->assertJsonFragment(['uuid' => $unqueued->uuid])
             ->assertJsonFragment(['uuid' => $technicalAssistance->uuid])
-            ->assertJsonFragment(['uuid' => $cancelledReferral->uuid])
+            ->assertJsonMissing(['uuid' => $cancelledReferral->uuid])
             ->assertJsonMissing(['uuid' => $activeReferral->uuid])
             ->assertJsonMissing(['uuid' => $closed->uuid]);
     }
@@ -835,7 +842,7 @@ class ReportApiTest extends TestCase
         $this->assertSame([], config('filesystems.links'));
     }
 
-    public function test_dashboard_returns_all_status_counts_and_five_recent_reports(): void
+    public function test_dashboard_returns_all_status_counts_and_ten_recent_reports_by_default(): void
     {
         $reviewer = User::factory()->reviewer()->create();
 
@@ -864,7 +871,94 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.queues.needs_visit', 1)
             ->assertJsonPath('data.queues.follow_up_due', 0)
             ->assertJsonPath('data.queues.unverified_no_active_work', 0)
-            ->assertJsonCount(5, 'data.recent_reports');
+            ->assertJsonCount(7, 'data.recent_reports');
+    }
+
+    public function test_dashboard_summary_payload_split_serves_first_paint_slices_by_default(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->count(3)->create([
+            'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'action_taken' => null,
+            // The factory scatters submitted_at over the last 30 days, which
+            // straddles the month boundary; pin it so all three reports stay
+            // inside the month that monthly_summary counts.
+            'submitted_at' => now(),
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        // Default: counts + queues + recent only. The expensive monthly
+        // aggregates and the triage calibration leave the first paint.
+        $this->getJson('/api/v1/dashboard/summary')
+            ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', 3)
+            ->assertJsonPath('data.queues.needs_review', 3)
+            ->assertJsonCount(3, 'data.recent_reports')
+            ->assertJsonMissingPath('data.monthly_summary')
+            ->assertJsonMissingPath('data.risk_triage');
+
+        $this->getJson('/api/v1/dashboard/summary?include=counts,queues,recent,monthly')
+            ->assertOk()
+            ->assertJsonPath('data.monthly_summary.reported_cases', 3)
+            ->assertJsonMissingPath('data.risk_triage');
+
+        $this->getJson('/api/v1/dashboard/summary?include=monthly,risk')
+            ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', 3)
+            ->assertJsonPath('data.monthly_summary.reported_cases', 3)
+            ->assertJsonPath('data.risk_triage.enabled', false)
+            ->assertJsonMissingPath('data.queues')
+            ->assertJsonMissingPath('data.recent_reports');
+
+        // Unknown slices are ignored, never fatal.
+        $this->getJson('/api/v1/dashboard/summary?include=queues,nonsense')
+            ->assertOk()
+            ->assertJsonPath('data.queues.needs_review', 3)
+            ->assertJsonMissingPath('data.monthly_summary');
+    }
+
+    public function test_dashboard_summary_recent_limit_is_bounded(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Report::factory()->count(4)->create([
+            'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $this->getJson('/api/v1/dashboard/summary?recent_limit=2')
+            ->assertOk()
+            ->assertJsonCount(2, 'data.recent_reports');
+
+        $this->getJson('/api/v1/dashboard/summary?recent_limit=0')->assertStatus(422);
+        $this->getJson('/api/v1/dashboard/summary?recent_limit=26')->assertStatus(422);
+    }
+
+    public function test_dashboard_summary_calibration_is_cached_on_a_short_ttl(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reviewed = Report::factory()->create([
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'first_reviewed_at' => now()->subDay(),
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+        ]);
+        $reviewed->update([
+            'authority_classified_condition' => $reviewed->predicted_label,
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $first = $this->getJson('/api/v1/dashboard/summary?include=risk')
+            ->assertOk()
+            ->assertJsonPath('data.risk_triage.enabled', true)
+            ->assertJsonPath('data.risk_triage.reviewed_cases', 1)
+            ->json('data.risk_triage');
+
+        // An immediate repeat is served from the calibration cache.
+        $second = $this->getJson('/api/v1/dashboard/summary?include=risk')
+            ->assertOk()
+            ->json('data.risk_triage');
+        $this->assertSame($first['measured_at'], $second['measured_at']);
     }
 
     public function test_operational_report_queues_share_lifecycle_and_target_date_semantics(): void

@@ -27,9 +27,8 @@ class EnsureMobileTokenFresh
 
         $expiresAt = $token->expires_at;
 
-        // A null expiry is the deliberate non-expiring mobile-session contract.
-        // Sanctum still rejects tokens with an explicit expired timestamp.
-        if ($expiresAt !== null && (! $expiresAt instanceof CarbonInterface || $expiresAt->isPast())) {
+        // No indefinite Mobile credential is eligible, including legacy tokens.
+        if (! $expiresAt instanceof CarbonInterface || $expiresAt->isPast()) {
             return response()->json([
                 'message' => 'Unauthenticated.',
                 'code' => 'UNAUTHENTICATED',

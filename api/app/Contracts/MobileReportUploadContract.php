@@ -233,7 +233,7 @@ class MobileReportUploadContract
                 break;
             case 'object':
                 $rules[] = 'array';
-                self::appendObjectRules($rules, $definition);
+                self::appendObjectRules($rules, $definition, $request);
                 break;
             case 'image':
                 $rules[] = self::imageRule($definition);
@@ -292,6 +292,9 @@ class MobileReportUploadContract
                     fn (): bool => $request->input($condition['field'])
                         === $condition['value'],
                 );
+            } elseif ($rule === 'model_class_keys') {
+                // Applied by appendObjectRules before compiling the object shape.
+                continue;
             } elseif ($rule === 'measurement_pairing') {
                 $valueField = $condition['value_field'] ?? null;
                 if (! is_string($valueField) || $valueField === '') {
@@ -406,8 +409,35 @@ class MobileReportUploadContract
      * @param  array<int, mixed>  $rules
      * @param  array<string, mixed>  $definition
      */
-    private static function appendObjectRules(array &$rules, array $definition): void
+    private static function appendObjectRules(array &$rules, array $definition, Request $request): void
     {
+        foreach ($definition['conditions'] ?? [] as $condition) {
+            if (($condition['rule'] ?? null) === 'model_class_keys'
+                && $request->input($condition['field']) === $condition['value']) {
+                $definition['required_keys'] = $condition['required_keys'];
+                $definition['additional_properties'] = $condition['additional_properties'];
+            }
+        }
+
+        if (($definition['additional_properties'] ?? true) === false) {
+            $rules[] = 'array:'.implode(',', $definition['required_keys'] ?? []);
+        }
+
+        if (isset($definition['key_pattern'])) {
+            $pattern = '/'.$definition['key_pattern'].'/D';
+            $rules[] = static function (string $attribute, mixed $value, Closure $fail) use ($pattern): void {
+                if (! is_array($value)) {
+                    return;
+                }
+                foreach (array_keys($value) as $key) {
+                    if (! is_string($key) || preg_match($pattern, $key) !== 1) {
+                        $fail("The {$attribute} keys must be class identifiers of at most 32 characters.");
+                        break;
+                    }
+                }
+            };
+        }
+
         $minProperties = $definition['min_properties'] ?? null;
         $maxProperties = $definition['max_properties'] ?? null;
 

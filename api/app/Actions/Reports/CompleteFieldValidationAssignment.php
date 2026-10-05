@@ -7,6 +7,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +55,8 @@ class CompleteFieldValidationAssignment
                 $locked = FieldValidationAssignment::query()
                     ->lockForUpdate()
                     ->findOrFail($assignment->getKey());
+                abort_unless(app(DistrictAccess::class)->inspector($user)
+                    && app(DistrictAccess::class)->allows($user, $report->district_id), 403);
                 $locked->setRelation('report', $report);
                 if ($locked->assignee_id !== $user->getKey()) {
                     throw new FieldValidationCompletionConflict(

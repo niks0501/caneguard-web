@@ -1,17 +1,22 @@
 /**
  * Single copy contract for the analytics charts (plan section 6, Phase 1).
  *
- * Every chart prints its period, boundary rule and timezone; counts are
- * always "submitted reports", never bare "cases"; the comparison is a delta
- * between two counts with no projection. The FORBIDDEN_WORDS list mirrors
- * plan section 5 — if any of those claims ever appears in chart copy, the
- * chart-copy test fails the build.
+ * Counts are always "submitted reports", never bare "cases"; the comparison
+ * is a delta between two counts with no projection. The FORBIDDEN_WORDS list
+ * mirrors plan section 5 — if any of those claims ever appears in chart copy,
+ * the chart-copy test fails the build.
  */
 
-export const ANALYTICS_TIMEZONE_LINE = "Period boundaries use PHT (UTC+8).";
+/**
+ * The dashboard names its timezone exactly once, through this constant (the
+ * page description). Cards print plain times and must never repeat it.
+ */
+export const DASHBOARD_TIMEZONE_LABEL = "PHT (UTC+8)";
 
-export const ANALYTICS_EMPTY_STATE =
-  "No submitted reports in this period.";
+/** Legacy analytics section only; the dashboard carries no boundary prose. */
+export const ANALYTICS_TIMEZONE_LINE = `Period boundaries use ${DASHBOARD_TIMEZONE_LABEL}.`;
+
+export const ANALYTICS_EMPTY_STATE = "No submitted reports in this period.";
 
 export const analyticsCopy = {
   series: {
@@ -43,10 +48,9 @@ export const analyticsCopy = {
   lifecycle: {
     title: "Where work sits in the lifecycle",
     description:
-      "Submitted reports split by verification outcome, field-validation state and referral state. Referral is a supporting state here, not a separate process.",
+      "Submitted reports split by verification outcome and field-validation state.",
     verificationOutcome: "Verification outcome",
     fieldValidationState: "Field-validation state",
-    referralState: "Referral state",
   },
   area: {
     title: "Estimated affected area",

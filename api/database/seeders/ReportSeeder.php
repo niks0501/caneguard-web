@@ -3,7 +3,11 @@
 namespace Database\Seeders;
 
 use App\Models\Report;
+use App\Models\ReportClassScore;
+use App\Models\ReportQualityWarning;
+use App\Models\ReportSymptom;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +18,8 @@ class ReportSeeder extends Seeder
 {
     public function run(): void
     {
+        $districtId = app(DistrictAccess::class)->pilotId()
+            ?? throw new \LogicException('Seed the configured pilot district before seeding reports.');
         $reporter = User::query()
             ->where('email', 'field@caneguard.test')
             ->firstOrFail();
@@ -127,12 +133,14 @@ class ReportSeeder extends Seeder
             $reportUuid = $reportUuids[$number - 1];
             $farmerOrFarmOwnerName = $farmOwners[$number - 1];
             $confidence = round(0.62 + ($number * 0.025), 7);
+            $capturedAt = $submittedAt->subMinutes(20 + $number);
 
             DB::transaction(function () use (
                 $referenceCode,
                 $clientUuid,
                 $reportUuid,
                 $reporter,
+                $districtId,
                 $reviewer,
                 $location,
                 $barangays,
@@ -143,6 +151,7 @@ class ReportSeeder extends Seeder
                 $label,
                 $confidence,
                 $submittedAt,
+                $capturedAt,
                 $image,
             ): void {
                 $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
@@ -150,6 +159,7 @@ class ReportSeeder extends Seeder
                     [
                         'uuid' => $reportUuid,
                         'reporter_id' => $reporter->getKey(),
+                        'district_id' => $districtId,
                         'client_uuid' => $clientUuid,
                         'barangay' => $barangays[($number - 1) % count($barangays)],
                         'farmer_or_farm_owner_name' => $farmerOrFarmOwnerName,
@@ -157,7 +167,11 @@ class ReportSeeder extends Seeder
                         'municipality' => 'Nasugbu',
                         'final_latitude' => $location['latitude'] ?? null,
                         'final_longitude' => $location['longitude'] ?? null,
-                        'location_source' => $location['source'] ?? null,
+                        'location_source' => $location['source']
+                            ?? Report::LOCATION_SOURCE_UNAVAILABLE,
+                        'location_unavailable_reason' => $location === null
+                            ? Report::LOCATION_UNAVAILABLE_REASON_OTHER
+                            : null,
                         'gps_accuracy' => $location['accuracy'] ?? null,
                         'image_path' => $path,
                         'image_mime_type' => 'image/png',
@@ -170,12 +184,15 @@ class ReportSeeder extends Seeder
                         'checklist_consistency' => $number % 4 === 0
                             ? 'inconclusive'
                             : 'consistent',
-                        'reported_severity' => ['low', 'moderate', 'high'][($number - 1) % 3],
+                        'reported_severity' => ['Mild', 'Moderate', 'Severe'][($number - 1) % 3],
+                        'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
+                        'affected_portion_measurement' => Report::MEASUREMENT_NOT_MEASURED,
                         'model_version' => 'v1.0-mobilenetv2',
                         'preprocess_ms' => 10 + $number,
                         'inference_ms' => 90 + ($number * 3),
                         'total_ms' => 120 + ($number * 4),
-                        'captured_at' => $submittedAt->subMinutes(20 + $number),
+                        'captured_at' => $capturedAt,
+                        'observed_at' => $capturedAt,
                         'submitted_at' => $submittedAt,
                         'review_status' => $status,
                         ...Report::lifecycleForReviewStatus($status),
@@ -201,46 +218,27 @@ class ReportSeeder extends Seeder
                     ? Report::v2Labels()
                     : Report::labels();
                 $reportConfidence = (float) $report->confidence;
-                $existingScoreLabels = DB::table('report_class_scores')
-                    ->where('report_id', $report->getKey())
-                    ->pluck('label')
-                    ->all();
-
                 foreach ($reportLabels as $scoreLabel) {
-                    if (in_array($scoreLabel, $existingScoreLabels, true)) {
-                        continue;
-                    }
-
                     $score = $scoreLabel === $report->predicted_label
                         ? $reportConfidence
                         : round((1 - $reportConfidence) / (count($reportLabels) - 1), 7);
 
-                    DB::table('report_class_scores')->insert([
-                        'report_id' => $report->getKey(),
-                        'label' => $scoreLabel,
-                        'score' => $score,
-                    ]);
+                    ReportClassScore::query()->firstOrCreate(
+                        ['report_id' => $report->getKey(), 'label' => $scoreLabel],
+                        ['score' => $score],
+                    );
                 }
 
                 $symptomKey = $report->predicted_label === Report::LABEL_HEALTHY
                     ? 'none'
                     : $report->predicted_label;
-                if (! DB::table('report_symptoms')
-                    ->where('report_id', $report->getKey())
-                    ->where('symptom_key', $symptomKey)
-                    ->exists()) {
-                    DB::table('report_symptoms')->insert([
-                        'report_id' => $report->getKey(),
-                        'symptom_key' => $symptomKey,
-                    ]);
-                }
+                ReportSymptom::query()->firstOrCreate([
+                    'report_id' => $report->getKey(),
+                    'symptom_key' => $symptomKey,
+                ]);
 
-                if ($number % 3 === 0
-                    && ! DB::table('report_quality_warnings')
-                        ->where('report_id', $report->getKey())
-                        ->where('warning_key', 'low-resolution')
-                        ->exists()) {
-                    DB::table('report_quality_warnings')->insert([
+                if ($number % 3 === 0) {
+                    ReportQualityWarning::query()->firstOrCreate([
                         'report_id' => $report->getKey(),
                         'warning_key' => 'low-resolution',
                     ]);

@@ -30,7 +30,6 @@ const analytics: ReportAnalytics = {
   lifecycle: {
     verificationOutcome: { not_determined: 3, verified: 1, unable_to_verify: 0 },
     fieldValidationState: { unassigned: 1, assigned: 1, in_progress: 1, completed: 1 },
-    referralState: { not_referred: 3, referred: 1, expert_response_received: 0 },
   },
   area: {
     estimatedHectares: 14.5,
@@ -80,6 +79,39 @@ const analytics: ReportAnalytics = {
       { label: "3–7 days", count: 0 },
       { label: "Over 7 days", count: 0 },
     ],
+  },
+  reportedConcern: [
+    { concern: "RSSI", label: "RSSI", count: 1, share: 0.25 },
+    { concern: "smut", label: "Smut", count: 0, share: 0 },
+    { concern: "mosaic", label: "Mosaic", count: 1, share: 0.25 },
+    { concern: "rust", label: "Rust", count: 2, share: 0.5 },
+    { concern: "other", label: "Other reported", count: 0, share: 0 },
+    { concern: "not_stated", label: "Not stated", count: 0, share: 0 },
+  ],
+  possibleCondition: [
+    { condition: "healthy", count: 0 },
+    { condition: "mosaic", count: 0 },
+    { condition: "rust", count: 4 },
+  ],
+  verificationOutcome: {
+    not_determined: 3,
+    verified: 1,
+    unable_to_verify: 0,
+  },
+  validationByBarangay: [
+    {
+      barangay: "Mabini",
+      submitted: 4,
+      open: 3,
+      pastTargetDate: 1,
+      scheduled: 1,
+      unscheduled: 1,
+    },
+  ],
+  barangayScope: {
+    municipality: "Nasugbu",
+    province: "Batangas",
+    barangays: ["Mabini"],
   },
 };
 

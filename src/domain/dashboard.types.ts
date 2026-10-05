@@ -15,44 +15,6 @@ export interface RiskTriageSummary {
   bands: { green: number; amber: number; red: number };
 }
 
-export interface ExpertVerificationMetricRate {
-  count: number;
-  denominator: number;
-  rate: number | null;
-  percentage: number | null;
-}
-
-export interface ExpertVerificationConsultVolume {
-  total: number;
-  consultedCases: number;
-  pending: number;
-  inProgress: number;
-  completed: number;
-  cancelled: number;
-}
-
-export interface ExpertVerificationSummary {
-  consultVolume: ExpertVerificationConsultVolume;
-  expertAgreement: ExpertVerificationMetricRate;
-  unableToClassifyRate: ExpertVerificationMetricRate;
-  symptomVerificationDisagreement: ExpertVerificationMetricRate;
-  advisoryCoverage?: {
-    consultCases: number;
-    casesWithAdvisory: number;
-    coverageRate: number | null;
-    deliveredCases: number;
-    acknowledgedCases: number;
-  };
-  timeToFinding?: {
-    source: string;
-    findings: number;
-    averageHours: number | null;
-    medianHours: number | null;
-    minHours: number | null;
-    maxHours: number | null;
-  };
-}
-
 export interface MonthlyCaseSummary {
   month: string;
   period: {
@@ -86,7 +48,6 @@ export interface MonthlyCaseSummary {
     minHours: number | null;
     maxHours: number | null;
   };
-  expertVerification?: ExpertVerificationSummary;
 }
 
 export interface ReportAnalyticsPeriod {
@@ -125,10 +86,17 @@ export interface ReportAnalytics {
     previousFrom: string;
     previousTo: string;
     previousTotal: number;
+    previousSeries?: ReportAnalyticsSeriesPoint[];
+    currentSeries?: ReportAnalyticsSeriesPoint[];
     currentTotal: number;
     delta: number;
   };
   lifecycle: LifecycleDistributions;
+  reportedConcern: ReportedConcernCount[];
+  possibleCondition: PossibleConditionCount[];
+  verificationOutcome: VerificationOutcomeSplit;
+  validationByBarangay: BarangayValidationRow[];
+  barangayScope: BarangayScope;
   area: AreaEstimate;
   validationWorkload: ValidationWorkload;
   validationSchedule: ValidationSchedule;
@@ -140,12 +108,12 @@ export interface ReportAnalyticsParams {
   from: string;
   to: string;
   granularity?: "day" | "week";
+  comparison?: "previous_month";
 }
 
 export interface LifecycleDistributions {
   verificationOutcome: Record<string, number>;
   fieldValidationState: Record<string, number>;
-  referralState: Record<string, number>;
 }
 
 export interface AreaEstimate {
@@ -182,6 +150,39 @@ export interface ReviewBacklog {
   oldestWaitingDays: number | null;
 }
 
+export interface ReportedConcernCount {
+  concern: string;
+  label: string;
+  count: number;
+  share: number;
+}
+
+export interface PossibleConditionCount {
+  condition: string;
+  count: number;
+}
+
+export interface VerificationOutcomeSplit {
+  not_determined: number;
+  verified: number;
+  unable_to_verify: number;
+}
+
+export interface BarangayValidationRow {
+  barangay: string;
+  submitted: number;
+  open: number;
+  pastTargetDate: number;
+  scheduled: number;
+  unscheduled: number;
+}
+
+export interface BarangayScope {
+  municipality: string;
+  province: string;
+  barangays: string[];
+}
+
 export interface ValidationTurnaround {
   source: string;
   completed: number;
@@ -199,7 +200,6 @@ export interface MonthlyReportSummary {
     to: string;
   };
   reportedCases: number;
-  expertVerification?: ExpertVerificationSummary;
 }
 
 export interface DashboardSummary {

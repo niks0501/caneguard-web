@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MobileFieldValidationAssignmentContract;
+use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\Report;
 use App\Models\ReportClassScore;
 use App\Models\ReportReferral;
@@ -10,6 +12,8 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\AdvisorDemoSeeder;
 use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoAnalyticsSeeder;
+use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -86,7 +90,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     public function test_report_referrals_cascade_when_their_report_is_deleted(): void
     {
-        $report = Report::factory()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         $referral = ReportReferral::factory()->create([
             'report_id' => $report->getKey(),
         ]);
@@ -102,7 +106,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     public function test_report_factory_supports_smart_field_values_and_casts_them(): void
     {
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'sugarcane_variety' => 'PSR 86',
             'crop_age' => '6 months',
             'cane_class' => 'Class A',
@@ -165,7 +169,7 @@ class ReportSchemaAndSeederTest extends TestCase
     public function test_report_factory_supports_every_active_and_legacy_classification_value(): void
     {
         foreach (Report::authorityClassifiedConditions() as $condition) {
-            $report = Report::factory()->create([
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'authority_classified_condition' => $condition,
             ]);
 
@@ -195,7 +199,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     public function test_legacy_report_values_can_leave_new_contract_fields_null(): void
     {
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'farmer_or_farm_owner_name' => null,
             'province' => null,
             'municipality' => null,
@@ -235,8 +239,8 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CUSTOM-REPORT-001',
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.7312345,
@@ -303,7 +307,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'BGO-20260702-0915',
             'client_uuid' => 'c93939fc-601e-42b3-8d30-c786b2402f78',
             'image_path' => 'reports/2026-07/bgo-20260702-0915.png',
@@ -316,6 +320,7 @@ class ReportSchemaAndSeederTest extends TestCase
         DB::table('report_class_scores')->where('report_id', $report->id)->delete();
         DB::table('report_symptoms')->where('report_id', $report->id)->delete();
         $this->seed(DatabaseSeeder::class);
+        $this->seed(ReportSeeder::class);
 
         $seededReport = Report::query()->findOrFail($report->id);
         $this->assertSame('Aga', $seededReport->barangay);
@@ -334,12 +339,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'symptom_key' => $seededSymptom,
         ]);
         $this->assertTrue(Storage::disk('local')->exists('reports/2026-07/bgo-20260702-0915.png'));
-        $this->assertSame(
-            12
-                + count(AdvisorDemoSeeder::reportReferences())
-                + count(DashboardReportSeeder::reportReferences()),
-            Report::query()->count(),
-        );
+        $this->assertSame(12 + count(AdvisorDemoSeeder::reportReferences()) + count(DashboardReportSeeder::reportReferences()) + DemoAnalyticsSeeder::REPORT_COUNT, Report::query()->count());
     }
 
     public function test_seeder_creates_baseline_and_feature_demo_reports_with_valid_images(): void
@@ -351,7 +351,118 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
+        $this->approveSeededPilotFixtures();
+        $mobileReportedSeverities = ['Mild', 'Moderate', 'Severe'];
+        foreach (Report::query()->get() as $seededReport) {
+            $this->assertContains(
+                $seededReport->reported_severity,
+                $mobileReportedSeverities,
+                $seededReport->reference_code.' must use a Mobile-supported severity value.',
+            );
+            $this->assertNotNull(
+                $seededReport->observed_at,
+                $seededReport->reference_code.' must preserve its Mobile observation timestamp.',
+            );
+            $this->assertContains(
+                $seededReport->location_source,
+                [
+                    Report::LOCATION_SOURCE_GPS,
+                    Report::LOCATION_SOURCE_MANUAL_MAP,
+                    Report::LOCATION_SOURCE_UNAVAILABLE,
+                ],
+                $seededReport->reference_code.' must preserve Mobile location provenance.',
+            );
+            $this->assertSame(
+                $seededReport->affected_area_hectares === null
+                    ? Report::MEASUREMENT_NOT_MEASURED
+                    : Report::MEASUREMENT_MEASURED,
+                $seededReport->affected_area_measurement,
+                $seededReport->reference_code.' must match affected-area provenance to its value.',
+            );
+            $this->assertSame(
+                $seededReport->affected_portion_percent === null
+                    ? Report::MEASUREMENT_NOT_MEASURED
+                    : Report::MEASUREMENT_MEASURED,
+                $seededReport->affected_portion_measurement,
+                $seededReport->reference_code.' must match affected-portion provenance to its value.',
+            );
+            if ($seededReport->location_source === Report::LOCATION_SOURCE_UNAVAILABLE) {
+                $this->assertContains($seededReport->location_unavailable_reason, [
+                    Report::LOCATION_UNAVAILABLE_REASON_PERMISSION_DENIED,
+                    Report::LOCATION_UNAVAILABLE_REASON_SERVICES_UNAVAILABLE,
+                    Report::LOCATION_UNAVAILABLE_REASON_LOW_ACCURACY,
+                    Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP,
+                    Report::LOCATION_UNAVAILABLE_REASON_OTHER,
+                ]);
+                $this->assertNull($seededReport->final_latitude);
+                $this->assertNull($seededReport->final_longitude);
+                $this->assertNull($seededReport->gps_accuracy);
+            } elseif ($seededReport->location_source === Report::LOCATION_SOURCE_GPS) {
+                $this->assertNotNull($seededReport->final_latitude);
+                $this->assertNotNull($seededReport->final_longitude);
+                $this->assertNotNull($seededReport->gps_accuracy);
+            } else {
+                $this->assertNotNull($seededReport->final_latitude);
+                $this->assertNotNull($seededReport->final_longitude);
+                $this->assertNull($seededReport->gps_accuracy);
+            }
+        }
+
+        $seededAssignee = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
+        Sanctum::actingAs($seededAssignee, ['assignment:read']);
+        $seededAssignmentFeed = $this->getJson('/api/v1/mobile/assignments')->assertOk();
+        $this->assertNotEmpty($seededAssignmentFeed->json('data'));
+        $assignmentContract = MobileFieldValidationAssignmentContract::definition();
+        foreach ($seededAssignmentFeed->json('data') as $seededAssignment) {
+            $this->assertSame(array_keys($assignmentContract['fields']), array_keys($seededAssignment));
+            $this->assertSame(
+                $assignmentContract['fields']['case']['required_keys'],
+                array_keys($seededAssignment['case']),
+            );
+        }
+
+        $unlocatedSeed = Report::query()
+            ->where('reference_code', 'BGO-20260702-0915')
+            ->firstOrFail();
+        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+        $this->getJson('/api/v1/reports?search='.urlencode($unlocatedSeed->farmer_or_farm_owner_name))
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $unlocatedSeed->uuid)
+            ->assertJsonPath('data.0.location_unavailable', true)
+            ->assertJsonPath(
+                'data.0.location_unavailable_reason',
+                Report::LOCATION_UNAVAILABLE_REASON_OTHER,
+            )
+            ->assertJsonPath('data.0.affected_area_measurement', Report::MEASUREMENT_NOT_MEASURED)
+            ->assertJsonPath('data.0.affected_portion_measurement', Report::MEASUREMENT_NOT_MEASURED);
+        $this->getJson("/api/v1/reports/{$unlocatedSeed->uuid}")
+            ->assertOk()
+            ->assertJsonPath(
+                'data.observations.location_source',
+                Report::LOCATION_SOURCE_UNAVAILABLE,
+            )
+            ->assertJsonPath('data.observations.reported_severity', 'Mild')
+            ->assertJsonPath(
+                'data.timestamps.observed_at',
+                $unlocatedSeed->observed_at?->utc()->toISOString(),
+            );
+
+        $allowedFollowUpOutcomes = MobileFieldValidationCompletionContract::field(
+            'follow_up_outcome',
+        )['enum'];
+        $unsupportedFollowUpOutcomes = DB::table('field_validation_completions')
+            ->whereNotNull('follow_up_outcome')
+            ->whereNotIn('follow_up_outcome', $allowedFollowUpOutcomes)
+            ->distinct()
+            ->pluck('follow_up_outcome')
+            ->all();
+        $this->assertSame(
+            [],
+            $unsupportedFollowUpOutcomes,
+            'Seeded outcomes must match the client contract.',
+        );
+
         $locatedReport = Report::query()
             ->where('reference_code', 'BGO-20260703-1015')
             ->firstOrFail();
@@ -369,7 +480,7 @@ class ReportSchemaAndSeederTest extends TestCase
             'gps_latitude' => 0,
             'gps_longitude' => 0,
         ]);
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
 
         $this->assertSame(
             $locatedReport->getKey(),
@@ -383,7 +494,8 @@ class ReportSchemaAndSeederTest extends TestCase
             'reports',
             12
                 + count(AdvisorDemoSeeder::reportReferences())
-                + count(DashboardReportSeeder::reportReferences()),
+                + count(DashboardReportSeeder::reportReferences())
+                + DemoAnalyticsSeeder::REPORT_COUNT,
         );
         $this->assertGreaterThan(500, Report::query()
             ->whereNotNull('final_latitude')
@@ -465,7 +577,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertNull($manualDemoReport->gps_accuracy);
         $this->assertDatabaseCount(
             'report_class_scores',
-            4 * (12 + count(AdvisorDemoSeeder::reportReferences()) + count(DashboardReportSeeder::reportReferences())),
+            4 * (12 + count(AdvisorDemoSeeder::reportReferences()) + count(DashboardReportSeeder::reportReferences()) + DemoAnalyticsSeeder::REPORT_COUNT),
         );
         $this->assertSame(Report::v2Labels(), Report::query()
             ->distinct()
@@ -516,7 +628,8 @@ class ReportSchemaAndSeederTest extends TestCase
             12
                 + count(AdvisorDemoSeeder::reportReferences())
                 + count(DashboardReportSeeder::REPORT_REFERENCES)
-                + DashboardReportSeeder::volumeConfiguration()['months_back'],
+                + DashboardReportSeeder::volumeConfiguration()['months_back']
+                + 1,
             $files,
         );
         $seededImage = Storage::disk('local')->get($files[0]);
@@ -542,11 +655,12 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $this->seed(DatabaseSeeder::class);
+        $this->seedReportDemoDataset();
+        $this->approveSeededPilotFixtures();
 
         $monthCounts = Report::query()
             ->get(['submitted_at'])
-            ->groupBy(fn (Report $report): string => $report->submitted_at->format('Y-m'))
+            ->groupBy(fn (Report $report): string => $report->submitted_at->timezone('Asia/Manila')->format('Y-m'))
             ->map(fn ($reports): int => $reports->count())
             ->all();
 
@@ -566,10 +680,10 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame(2, DashboardReportSeeder::volumeConfiguration()['reports_per_barangay_per_condition']);
 
         Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
-        $month = CarbonImmutable::now('UTC')->format('Y-m');
+        $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
         $expectedMonthCount = $monthCounts[$month];
 
-        $response = $this->getJson('/api/v1/dashboard/summary?month='.$month)
+        $response = $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.monthly_summary.month', $month)
             ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount)
@@ -581,13 +695,16 @@ class ReportSchemaAndSeederTest extends TestCase
                 $response->json("data.monthly_summary.field_validation_counts.{$state}"),
             );
         }
-        $this->assertGreaterThan(
-            0,
-            $response->json('data.monthly_summary.expert_verification.consult_volume.total'),
-        );
+        $response->assertJsonMissingPath('data.monthly_summary.expert_verification');
 
         foreach (Report::operationalQueues() as $queue) {
             $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));
         }
+    }
+
+    private function seedReportDemoDataset(): void
+    {
+        config(['caneguard.pilot_district_code' => 'test-pilot']);
+        $this->seed(DatabaseSeeder::class);
     }
 }

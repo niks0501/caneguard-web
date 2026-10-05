@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Report;
-use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,26 +22,27 @@ class DuplicateAssistanceTest extends TestCase
         CarbonImmutable::setTestNow($now);
 
         try {
-            $reporter = User::factory()->fieldReporter()->create();
-            $nearbySameCondition = Report::factory()->create([
+            $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+            $nearbySameCondition = Report::factory()->inDistrict($this->pilotDistrict())->create([
+                'reporter_id' => $reporter->id,
                 'predicted_label' => Report::LABEL_RUST,
                 'final_latitude' => 14.0667000,
                 'final_longitude' => 120.6319000,
                 'submitted_at' => $now->subHours(2),
             ]);
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'predicted_label' => Report::LABEL_MOSAIC,
                 'final_latitude' => 14.0667000,
                 'final_longitude' => 120.6319000,
                 'submitted_at' => $now->subHours(1),
             ]);
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'predicted_label' => Report::LABEL_RUST,
                 'final_latitude' => 14.1000000,
                 'final_longitude' => 120.6319000,
                 'submitted_at' => $now->subHours(1),
             ]);
-            Report::factory()->create([
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'predicted_label' => Report::LABEL_RUST,
                 'final_latitude' => 14.0667000,
                 'final_longitude' => 120.6319000,
@@ -87,8 +87,9 @@ class DuplicateAssistanceTest extends TestCase
         CarbonImmutable::setTestNow($now);
 
         try {
-            $reporter = User::factory()->fieldReporter()->create();
-            $match = Report::factory()->mobileModelV1()->create([
+            $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+            $match = Report::factory()->inDistrict($this->pilotDistrict())->mobileModelV1()->create([
+                'reporter_id' => $reporter->id,
                 'predicted_label' => Report::LABEL_SMUT,
                 'final_latitude' => 14.0667000,
                 'final_longitude' => 120.6319000,
@@ -115,7 +116,7 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_missing_location_returns_safe_no_match_assistance_without_blocking_submission_contract(): void
     {
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('missing-location-match-test', ['report:submit'])
             ->plainTextToken;
 
@@ -137,7 +138,7 @@ class DuplicateAssistanceTest extends TestCase
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');
 
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         Sanctum::actingAs($reviewer, ['report:submit']);
 
         $this->getJson('/api/v1/mobile/reports/possible-matches?predicted_label=rust')
@@ -147,37 +148,37 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_web_possible_matches_are_visible_to_reviewer_and_admin_but_not_field_reporters(): void
     {
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'predicted_label' => Report::LABEL_RUST,
             'final_latitude' => 14.0667000,
             'final_longitude' => 120.6319000,
         ]);
 
-        Sanctum::actingAs(User::factory()->fieldReporter()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create());
         $this->getJson("/api/v1/reports/{$report->uuid}/possible-matches")
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
 
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->getJson("/api/v1/reports/{$report->uuid}/possible-matches")
             ->assertOk()
             ->assertJsonPath('meta.possible_match', false)
             ->assertJsonPath('meta.can_submit', true);
 
-        Sanctum::actingAs(User::factory()->admin()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->admin()->create());
         $this->getJson("/api/v1/reports/{$report->uuid}/possible-matches")
             ->assertOk();
     }
 
     public function test_reviewer_can_link_a_duplicate_without_changing_evidence_or_lifecycle(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $canonical = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.91,
             'image_path' => 'reports/canonical-evidence.jpg',
         ]);
-        $duplicate = Report::factory()->create([
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'predicted_label' => Report::LABEL_RUST,
             'confidence' => 0.73,
             'image_path' => 'reports/duplicate-evidence.jpg',
@@ -242,8 +243,8 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_only_reviewer_or_admin_can_link_and_invalid_targets_are_rejected(): void
     {
-        $canonical = Report::factory()->create();
-        $duplicate = Report::factory()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
@@ -252,7 +253,7 @@ class DuplicateAssistanceTest extends TestCase
             ->assertUnauthorized()
             ->assertJsonPath('code', 'UNAUTHENTICATED');
 
-        Sanctum::actingAs(User::factory()->fieldReporter()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create());
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
             'expected_version' => 0,
@@ -260,7 +261,7 @@ class DuplicateAssistanceTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
 
-        Sanctum::actingAs(User::factory()->reviewer()->create());
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $duplicate->uuid,
             'expected_version' => 0,
@@ -268,7 +269,7 @@ class DuplicateAssistanceTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canonical_report_uuid');
 
-        $alreadyDuplicate = Report::factory()->create([
+        $alreadyDuplicate = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'canonical_report_id' => $canonical->id,
         ]);
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
@@ -278,8 +279,8 @@ class DuplicateAssistanceTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('canonical_report_uuid');
 
-        $admin = User::factory()->admin()->create();
-        $adminDuplicate = Report::factory()->create();
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
+        $adminDuplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs($admin);
         $this->postJson("/api/v1/reports/{$adminDuplicate->uuid}/duplicate-link", [
             'canonical_report_uuid' => $canonical->uuid,
@@ -292,8 +293,8 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_closing_a_linked_duplicate_preserves_the_canonical_submitted_evidence(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $canonical = Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'predicted_label' => Report::LABEL_MOSAIC,
             'confidence' => 0.88,
             'field_notes' => 'Canonical submitted observation.',
@@ -310,7 +311,7 @@ class DuplicateAssistanceTest extends TestCase
             'case_state',
             'lock_version',
         ]);
-        $duplicate = Report::factory()->create([
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'predicted_label' => Report::LABEL_MOSAIC,
             'image_path' => 'reports/duplicate.png',
         ]);
@@ -343,17 +344,12 @@ class DuplicateAssistanceTest extends TestCase
         $this->assertDatabaseCount('report_audits', 1);
     }
 
-    public function test_link_rejects_active_consults_completed_evidence_and_closed_cases(): void
+    public function test_link_rejects_completed_evidence_and_closed_cases(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         Sanctum::actingAs($reviewer);
 
         $cases = [
-            [
-                'attributes' => [],
-                'error' => 'referral',
-                'referral' => true,
-            ],
             [
                 'attributes' => [
                     'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
@@ -369,14 +365,8 @@ class DuplicateAssistanceTest extends TestCase
         ];
 
         foreach ($cases as $case) {
-            $duplicate = Report::factory()->create($case['attributes']);
-            $canonical = Report::factory()->create();
-            if ($case['referral'] ?? false) {
-                ReportReferral::factory()->create([
-                    'report_id' => $duplicate->getKey(),
-                    'referred_by_id' => $reviewer->getKey(),
-                ]);
-            }
+            $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create($case['attributes']);
+            $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
             $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
                 'canonical_report_uuid' => $canonical->uuid,
@@ -395,9 +385,9 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_link_rejects_a_stale_version(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $canonical = Report::factory()->create();
-        $duplicate = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
         $duplicate->update(['lock_version' => 1]);
 
         Sanctum::actingAs($reviewer);
@@ -418,9 +408,9 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_link_requires_an_expected_version(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $canonical = Report::factory()->create();
-        $duplicate = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($reviewer);
 
@@ -433,9 +423,9 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_reviewer_can_unlink_a_duplicate_with_a_current_version(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $canonical = Report::factory()->create();
-        $duplicate = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
 
         Sanctum::actingAs($reviewer);
         $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
@@ -471,26 +461,20 @@ class DuplicateAssistanceTest extends TestCase
 
     public function test_linked_duplicates_are_excluded_from_operational_views_and_counts(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $expert = User::factory()->expert()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $submittedAt = CarbonImmutable::parse('2026-09-15T10:00:00Z');
-        $canonical = Report::factory()->create([
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'submitted_at' => $submittedAt,
             'observed_at' => $submittedAt,
         ]);
-        $duplicate = Report::factory()->create([
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'canonical_report_id' => $canonical->getKey(),
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
             'submitted_at' => $submittedAt->addMinute(),
             'observed_at' => $submittedAt->addMinute(),
-        ]);
-        ReportReferral::factory()->create([
-            'report_id' => $duplicate->getKey(),
-            'referred_by_id' => $reviewer->getKey(),
-            'expert_id' => $expert->getKey(),
         ]);
 
         Sanctum::actingAs($reviewer);
@@ -519,13 +503,8 @@ class DuplicateAssistanceTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.reported_cases', 1);
 
-        Sanctum::actingAs($expert);
-        $this->getJson('/api/v1/reports/expert-queue')
-            ->assertOk()
-            ->assertJsonPath('meta.total', 0);
-
         Sanctum::actingAs($reviewer);
-        $this->getJson('/api/v1/dashboard/summary?month=2026-09')
+        $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.counts.total_submitted', 1)
             ->assertJsonPath('data.monthly_summary.reported_cases', 1);

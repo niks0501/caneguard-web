@@ -12,7 +12,7 @@ class SanctumInstallationTest extends TestCase
 
     public function test_users_can_issue_sanctum_personal_access_tokens(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->inDistrict($this->pilotDistrict())->create();
 
         $token = $user->createToken('test-client');
 

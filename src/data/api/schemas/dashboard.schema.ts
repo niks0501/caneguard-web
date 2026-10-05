@@ -72,7 +72,8 @@ export const dashboardResponseSchema = z.object({
     }),
     queues: dashboardQueueCountsSchema.optional(),
     risk_triage: riskTriageSchema.optional(),
-    recent_reports: z.array(reportListItemSchema),
+    // Payload split (overhaul P1): slices without `recent` omit the key.
+    recent_reports: z.array(reportListItemSchema).optional().default([]),
     monthly_summary: monthlyCaseSummarySchema.optional(),
   }),
 });

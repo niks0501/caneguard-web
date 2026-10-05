@@ -6,19 +6,15 @@ use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
-use App\Models\ReportReferral;
 use App\Models\User;
 use App\Notifications\AdvisoryAvailableNotification;
 use App\Notifications\CaseAttentionNotification;
-use App\Notifications\ExpertReferralAssignedNotification;
-use App\Notifications\ExpertReferralDueSoonNotification;
-use App\Notifications\ExpertReferralOverdueNotification;
-use App\Notifications\ExpertReferralResponseReceivedNotification;
 use App\Notifications\FieldValidationAssignedNotification;
 use App\Notifications\FieldValidationAssignmentChangedNotification;
 use App\Notifications\FieldValidationCompletedNotification;
 use App\Notifications\FollowUpDueNotification;
 use App\Notifications\OfficeReviewCompletedNotification;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Notifications\DatabaseNotification;
@@ -91,134 +87,6 @@ class CreateLifecycleNotifications
                 );
                 $this->broadcast->handle($recipient, FieldValidationCompletedNotification::EVENT_TYPE);
             });
-    }
-
-    public function expertReferralAssigned(ReportReferral $referral): void
-    {
-        $referral->loadMissing(['report', 'expert']);
-        $report = $referral->report;
-        $expert = $referral->expert;
-
-        if ($report === null || $expert === null || ! $expert->isExpert()) {
-            return;
-        }
-
-        $this->send(
-            $expert,
-            new ExpertReferralAssignedNotification(
-                $expert->uuid,
-                $report->uuid,
-                $report->reference_code,
-                $referral,
-            ),
-        );
-    }
-
-    public function expertReferralResponseReceived(
-        Report $report,
-        ?ReportReferral $referral = null,
-    ): void {
-        if ($referral === null) {
-            $report->loadMissing(['referral']);
-            $referral = $report->referral;
-        }
-        $responseDate = $referral?->response_date?->format('Y-m-d');
-        if ($responseDate === null) {
-            return;
-        }
-
-        User::query()
-            ->whereIn('role', User::officeRoles())
-            ->get()
-            ->each(function (User $recipient) use ($report, $responseDate): void {
-                $notification = new ExpertReferralResponseReceivedNotification(
-                    $recipient->uuid,
-                    $report->uuid,
-                    $report->reference_code,
-                    $responseDate,
-                    (string) $report->lock_version,
-                );
-                $this->send($recipient, $notification);
-                $this->broadcast->handle($recipient, ExpertReferralResponseReceivedNotification::EVENT_TYPE);
-            });
-    }
-
-    /**
-     * Create one database reminder for each active consult and reminder state.
-     * Dates are compared in the configured application timezone.
-     */
-    public function ensureExpertReferralReminderNotifications(): int
-    {
-        $today = CarbonImmutable::now()->startOfDay();
-        $created = 0;
-
-        ReportReferral::query()
-            ->whereIn('consult_status', ReportReferral::activeStatuses())
-            ->whereNotNull('due_date')
-            ->whereDate('due_date', $today->addDay()->toDateString())
-            ->with(['report', 'expert'])
-            ->each(function (ReportReferral $referral) use (&$created): void {
-                $report = $referral->report;
-                $expert = $referral->expert;
-                if ($report === null || $expert === null || ! $expert->isExpert()) {
-                    return;
-                }
-
-                $notification = new ExpertReferralDueSoonNotification(
-                    $expert->uuid,
-                    $report->uuid,
-                    $report->reference_code,
-                    $referral,
-                );
-                if (! DatabaseNotification::query()->whereKey($notification->id)->exists()) {
-                    $this->send($expert, $notification);
-                    $created++;
-                }
-            });
-
-        ReportReferral::query()
-            ->whereIn('consult_status', ReportReferral::activeStatuses())
-            ->whereNotNull('due_date')
-            ->whereDate('due_date', '<', $today->toDateString())
-            ->with(['report', 'expert'])
-            ->each(function (ReportReferral $referral) use (&$created): void {
-                $report = $referral->report;
-                if ($report === null) {
-                    return;
-                }
-
-                if ($referral->expert?->isExpert()) {
-                    $notification = new ExpertReferralOverdueNotification(
-                        $referral->expert->uuid,
-                        $report->uuid,
-                        $report->reference_code,
-                        $referral,
-                    );
-                    if (! DatabaseNotification::query()->whereKey($notification->id)->exists()) {
-                        $this->send($referral->expert, $notification);
-                        $created++;
-                    }
-                }
-
-                User::query()
-                    ->whereIn('role', User::officeRoles())
-                    ->get()
-                    ->each(function (User $recipient) use ($referral, $report, &$created): void {
-                        $notification = new ExpertReferralOverdueNotification(
-                            $recipient->uuid,
-                            $report->uuid,
-                            $report->reference_code,
-                            $referral,
-                            officeRecipient: true,
-                        );
-                        if (! DatabaseNotification::query()->whereKey($notification->id)->exists()) {
-                            $this->send($recipient, $notification);
-                            $created++;
-                        }
-                    });
-            });
-
-        return $created;
     }
 
     public function advisorySelected(Report $report, Advisory $advisory): void
@@ -335,6 +203,12 @@ class CreateLifecycleNotifications
 
     private function send(User $recipient, CaseAttentionNotification $notification): void
     {
+        $data = $notification->toDatabase($recipient);
+        $report = Report::query()->where('uuid', $data['report_uuid'] ?? '')->first();
+        if ($report === null || ! app(DistrictAccess::class)->report($recipient, $report, true)) {
+            return;
+        }
+
         if (DatabaseNotification::query()->whereKey($notification->id)->exists()) {
             return;
         }

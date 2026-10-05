@@ -69,10 +69,10 @@ function coverageMessage({
   const counts = `${locatedCount} located, ${unlocatedCount} unlocated.${truncation}`;
   if (unlocatedCount > 0) {
     const reportLabel = unlocatedCount === 1 ? "report has" : "reports have";
-    return `${counts} ${unlocatedCount} filtered ${reportLabel} no valid Nasugbu coordinate pair. Continue in the queue or open the submitted report table to review every report.`;
+    return `${counts} ${unlocatedCount} filtered ${reportLabel} no valid coordinate pair. Continue in the queue or open the submitted report table to review every report.`;
   }
 
-  return `${counts} All filtered reports with location data have a valid Nasugbu coordinate pair.`;
+  return `${counts} All filtered reports with location data have a valid coordinate pair.`;
 }
 
 function WorkspaceAreaError({

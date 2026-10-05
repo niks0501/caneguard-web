@@ -24,18 +24,15 @@ class MobileReportSecurityContractMySqlTest extends TestCase
         parent::setUp();
 
         $this->assertSame('mysql', DB::connection()->getDriverName());
-        $this->assertSame('caneguard_test', DB::connection()->getDatabaseName());
+        $this->assertMatchesRegularExpression('/^(caneguard_test|firstmate_[a-z0-9_]+)$/D', DB::connection()->getDatabaseName());
     }
 
     public function test_mysql_review_snapshot_survives_reload_and_mobile_serialization(): void
     {
-        $reporter = User::factory()->fieldReporter()->create();
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create(['reporter_id' => $reporter]);
-        $reviewerToken = $reviewer->createToken('mysql-review-persistence')->plainTextToken;
-
-        Auth::forgetGuards();
-        $this->withToken($reviewerToken)
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $reporter]);
+        $this->actingAs($reviewer, 'web')
             ->patchJson("/api/v1/reports/{$report->uuid}/review", [
                 'status' => Report::STATUS_FOR_FIELD_VALIDATION,
                 'field_validation_assignee_uuid' => $reporter->uuid,
@@ -60,6 +57,7 @@ class MobileReportSecurityContractMySqlTest extends TestCase
             ->addSecond()
             ->toISOString();
 
+        Auth::guard('web')->logout();
         Auth::forgetGuards();
         $response = $this->withToken($statusToken)
             ->getJson('/api/v1/mobile/reports/statuses?sync_before='.urlencode($syncBefore))
@@ -80,12 +78,12 @@ class MobileReportSecurityContractMySqlTest extends TestCase
 
     public function test_mysql_cursor_checkpoint_is_owner_bound_and_complete_after_mid_sync_update(): void
     {
-        $reporter = User::factory()->fieldReporter()->create();
-        $otherReporter = User::factory()->fieldReporter()->create();
-        $ownedReports = Report::factory()->count(5)->create([
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $otherReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $ownedReports = Report::factory()->inDistrict($this->pilotDistrict())->count(5)->create([
             'reporter_id' => $reporter,
         ]);
-        $otherReport = Report::factory()->create(['reporter_id' => $otherReporter]);
+        $otherReport = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $otherReporter]);
         $tiedTimestamp = CarbonImmutable::now()->subMinute()->startOfSecond();
 
         DB::table('reports')
@@ -154,11 +152,11 @@ class MobileReportSecurityContractMySqlTest extends TestCase
 
     public function test_mysql_middleware_policy_and_optimistic_review_boundaries_are_enforced(): void
     {
-        $reporter = User::factory()->fieldReporter()->create();
-        $otherReporter = User::factory()->fieldReporter()->create();
-        $reviewer = User::factory()->reviewer()->create();
-        $admin = User::factory()->admin()->create();
-        $report = Report::factory()->create(['reporter_id' => $otherReporter]);
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $otherReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $otherReporter]);
 
         $this->getJson('/api/v1/mobile/reports/statuses')
             ->assertUnauthorized()
@@ -193,6 +191,7 @@ class MobileReportSecurityContractMySqlTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
 
+        $this->withoutToken();
         Sanctum::actingAs($reviewer);
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -223,11 +222,11 @@ class MobileReportSecurityContractMySqlTest extends TestCase
     public function test_mysql_idempotent_resubmission_preserves_review_and_owner_scoped_identity(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
-        $otherReporter = User::factory()->fieldReporter()->create();
-        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $otherReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $clientUuid = (string) Str::uuid();
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reporter_id' => $reporter,
             'client_uuid' => $clientUuid,
             'review_status' => Report::STATUS_VERIFIED_BY_STAFF,

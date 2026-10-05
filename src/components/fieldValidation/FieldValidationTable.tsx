@@ -45,6 +45,7 @@ export function FieldValidationTable({
                     <td>
                       <strong className="table-primary">{properties.barangay}</strong>
                       <span className="table-secondary machine-text">{lat}, {lng}</span>
+                      {(properties.locationGroupSize ?? 1) > 1 ? <span className="table-secondary">{properties.locationGroupSize} at this location</span> : null}
                     </td>
                     <td>
                       <span className="table-primary">{diseaseLabels[properties.predictedDisease]}</span>

@@ -5,6 +5,7 @@ export const analyticsParamsSchema = z.object({
   from: z.iso.date(),
   to: z.iso.date(),
   granularity: z.enum(["day", "week"]).optional(),
+  comparison: z.enum(["previous_month"]).optional(),
 });
 
 export type AnalyticsParams = z.infer<typeof analyticsParamsSchema>;
@@ -56,13 +57,48 @@ export const analyticsResponseSchema = z.object({
       previous_from: z.iso.date(),
       previous_to: z.iso.date(),
       previous_total: z.number().int().nonnegative(),
+      previous_series: z.array(analyticsSeriesPointSchema).optional(),
+      current_series: z.array(analyticsSeriesPointSchema).optional(),
       current_total: z.number().int().nonnegative(),
       delta: z.number().int(),
     }),
     lifecycle: z.object({
       verification_outcome: lifecycleDistributionSchema,
       field_validation_state: lifecycleDistributionSchema,
-      referral_state: lifecycleDistributionSchema,
+    }),
+    reported_concern: z.array(
+      z.object({
+        concern: z.string(),
+        label: z.string(),
+        count: z.number().int().nonnegative(),
+        share: z.number().nonnegative(),
+      }),
+    ),
+    possible_condition: z.array(
+      z.object({
+        condition: z.string(),
+        count: z.number().int().nonnegative(),
+      }),
+    ),
+    verification_outcome: z.object({
+      not_determined: z.number().int().nonnegative(),
+      verified: z.number().int().nonnegative(),
+      unable_to_verify: z.number().int().nonnegative(),
+    }),
+    validation_by_barangay: z.array(
+      z.object({
+        barangay: z.string(),
+        submitted: z.number().int().nonnegative(),
+        open: z.number().int().nonnegative(),
+        past_target_date: z.number().int().nonnegative(),
+        scheduled: z.number().int().nonnegative(),
+        unscheduled: z.number().int().nonnegative(),
+      }),
+    ),
+    barangay_scope: z.object({
+      municipality: z.string(),
+      province: z.string(),
+      barangays: z.array(z.string()),
     }),
     area: z.object({
       estimated_hectares: z.number().nonnegative(),

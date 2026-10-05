@@ -195,19 +195,12 @@ export const referralOfficeContextSchema = z.object({
   reviewer: referralPersonSchema.nullable(),
   reviewed_at: z.iso.datetime({ offset: true }).nullable(),
 });
-export const expertDirectoryResponseSchema = z.object({
-  data: z.array(z.object({
-    uuid: z.string(),
-    name: z.string(),
-    email: z.email(),
-  })),
-});
-
 export const reportReferralSchema = z.object({
   id: z.number().int().positive().optional(),
   status: consultStatusSchema.optional(),
   destination: z.string(),
-  reference: z.string(),
+  reference: z.string().nullable(),
+  tracking_code: z.string().nullable().optional(),
   referral_date: z.string(),
   due_date: z.string().nullable().optional(),
   expert: referralPersonSchema.nullable().optional(),
@@ -246,10 +239,12 @@ export const reportReferralSchema = z.object({
   office_context: referralOfficeContextSchema,
 });
 export const reportConsultSchema = z.object({
+  note: z.string().nullable().optional(),
   id: z.number().int().positive(),
   status: consultStatusSchema.optional(),
   destination: z.string(),
-  reference: z.string(),
+  reference: z.string().nullable(),
+  tracking_code: z.string().nullable().optional(),
   referral_date: z.string(),
   due_date: z.string().nullable().optional(),
   expert: referralPersonSchema.nullable().optional(),
@@ -285,113 +280,6 @@ export const identificationGapSchema = z.object({
   state: z.enum(["identified", "provisional", "unidentified"]),
   reasons: z.array(z.string()),
 });
-export const expertConsultSummarySchema = z.object({
-  id: z.number().int().positive(),
-  status: consultStatusSchema,
-  referral_date: z.string().nullable(),
-  due_date: z.string().nullable(),
-  expert: referralPersonSchema.nullable(),
-  expert_name: z.string().nullable().optional(),
-  days_until_due: z.number().int().nullable(),
-  days_out: z.number().int().nullable(),
-  overdue: z.boolean(),
-  age_label: z.string(),
-});
-
-const expertConsultFindingSchema = z.object({
-  id: z.number().int().positive(),
-  status: consultStatusSchema,
-  reference: z.string(),
-  referral_date: z.string().nullable(),
-  due_date: z.string().nullable(),
-  question: z.string().nullable().optional(),
-  expert: referralPersonSchema.nullable().optional(),
-  share_full_context: z.boolean().optional(),
-  condition_opinion: authorityClassifiedConditionSchema.nullable().optional(),
-  basis: z.string().nullable().optional(),
-  finding_details: z.string().nullable().optional(),
-  confidence: z.enum(["low", "medium", "high"]).nullable().optional(),
-  recommendation: z.string().nullable().optional(),
-  symptom_verdicts: symptomVerdictsSchema,
-  response_date: z.string().nullable().optional(),
-  finding_source: findingSourceSchema.nullable().optional(),
-  finding_recorded_at: z.iso.datetime({ offset: true }).nullable().optional(),
-});
-export const expertConsultResponseSchema = z.object({
-  data: z.object({
-    case: z.object({
-      uuid: z.string(),
-      reference_code: z.string(),
-      submitted_at: z.iso.datetime({ offset: true }),
-      photo_url: z.string(),
-      reporter_observations: z.object({
-        symptom_keys: z.array(z.string()),
-        reporter_observation_text: z.string().nullable().optional(),
-        field_notes: z.string().nullable().optional(),
-        reporter_suspected_condition: z.string().nullable().optional(),
-        checklist_consistency: z.string().nullable().optional(),
-        reported_severity: z.string().nullable().optional(),
-        quality_warnings: z.array(z.string()),
-      }),
-      reporter_suspected_condition: z.string().nullable().optional(),
-      ai_possible_condition: z.object({
-        label: z.string(),
-        predicted_label: z.string(),
-        decision_support_label: z.string(),
-      }),
-      location: z.object({
-        barangay: z.string(),
-        municipality: z.string().nullable().optional(),
-        province: z.string().nullable().optional(),
-        latitude: z.number().nullable().optional(),
-        longitude: z.number().nullable().optional(),
-      }),
-      measurements: z.object({
-        affected_area_hectares: z.number().nullable(),
-        affected_area_measurement: z.string(),
-        affected_portion_percent: z.number().nullable(),
-        affected_portion_measurement: z.string(),
-      }),
-    }),
-    reference_code: z.string(),
-    submitted_at: z.iso.datetime({ offset: true }),
-    photo_url: z.string(),
-    reporter_observations: z.object({
-      symptom_keys: z.array(z.string()),
-      reporter_observation_text: z.string().nullable().optional(),
-      field_notes: z.string().nullable().optional(),
-      reporter_suspected_condition: z.string().nullable().optional(),
-      checklist_consistency: z.string().nullable().optional(),
-      reported_severity: z.string().nullable().optional(),
-      quality_warnings: z.array(z.string()),
-    }),
-    reporter_suspected_condition: z.string().nullable().optional(),
-    symptom_keys: z.array(z.string()),
-    ai_possible_condition: z.object({
-      label: z.string(),
-      predicted_label: z.string(),
-      decision_support_label: z.string(),
-    }),
-    location: z.object({
-      barangay: z.string(),
-      municipality: z.string().nullable().optional(),
-      province: z.string().nullable().optional(),
-      latitude: z.number().nullable().optional(),
-      longitude: z.number().nullable().optional(),
-    }),
-    affected_area: z.object({ value: z.number().nullable(), unit: z.string(), measurement: z.string() }),
-    affected_portion: z.object({ value: z.number().nullable(), unit: z.string(), measurement: z.string() }),
-    office_context: referralOfficeContextSchema,
-    consult: expertConsultFindingSchema,
-    due_date: z.string().nullable(),
-    question: z.string().nullable(),
-    prior_consults: z.array(expertConsultFindingSchema),
-    version: z.number().int().nonnegative(),
-    share_full_context: z.boolean().optional(),
-    farmer_or_farm_owner_name: z.string().nullable().optional(),
-  }),
-});
-
 export const reportMachineFactsSchema = z.object({
   confidence: z.number().min(0).max(1).nullable().optional(),
   checklist_consistency: z.string().nullable().optional(),
@@ -491,8 +379,6 @@ export const reportListItemSchema = z.object({
   attention_band: attentionBandSchema.nullable().optional(),
   attention_band_reasons: z.array(z.string()).optional(),
   identification_gap: identificationGapSchema.optional(),
-  expert_consult: expertConsultSummarySchema.nullable().optional(),
-  referral: expertConsultSummarySchema.nullable().optional(),
   version: z.number().int().nonnegative().optional(),
   image_url: z.string(),
 });
@@ -503,6 +389,14 @@ export const reportListResponseSchema = z.object({
   meta: paginationMetaSchema,
 });
 
+export const handoffNoteSchema = z.object({
+  id: z.number(),
+  destination: z.string(),
+  reference: z.string().nullable(),
+  sent_date: z.string(),
+  note: z.string().nullable(),
+  advice_received_note: z.string().nullable(),
+});
 export const reportDetailSchema = z.object({
   identity: z.object({
     uuid: z.string(),
@@ -530,11 +424,12 @@ export const reportDetailSchema = z.object({
     confidence: z.number().min(0).max(1),
     class_scores: z.array(
       z.object({
-        label: diseaseKeySchema,
+        label: z.string().min(1).max(32),
         score: z.number().min(0).max(1),
       }),
     ),
     model_version: z.string(),
+    model_version_recognised: z.boolean().optional(),
     timings_ms: z.object({
       preprocess: z.number().nonnegative(),
       inference: z.number().nonnegative(),
@@ -609,6 +504,7 @@ export const reportDetailSchema = z.object({
   advisory: advisorySchema.nullable().optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   referral: reportReferralSchema.nullable().optional(),
+  handoff_notes: z.array(handoffNoteSchema).optional(),
   consults: z.array(reportConsultSchema).optional(),
   review_events: z.array(reportReviewEventSchema).optional(),
   version: z.number().int().nonnegative(),
@@ -625,7 +521,6 @@ export const reportDetailResponseSchema = z.object({
 
 export const reviewResponseSchema = reportDetailResponseSchema;
 
-export type ExpertConsultResponseDto = z.infer<typeof expertConsultResponseSchema>;
 export type ReportLifecycleDto = z.infer<typeof reportLifecycleSchema>;
 export type ReportListItemDto = z.infer<typeof reportListItemSchema>;
 export type ReportListResponseDto = z.infer<typeof reportListResponseSchema>;

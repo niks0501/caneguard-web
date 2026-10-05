@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\District;
+use App\Models\DistrictMembership;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -44,6 +46,19 @@ class UserFactory extends Factory
         ]);
     }
 
+    /** Explicit test/demo fixture, never inferred for real accounts. */
+    public function inDistrict(District $district): static
+    {
+        return $this->afterCreating(function (User $user) use ($district): void {
+            DistrictMembership::query()->firstOrCreate(['user_id' => $user->id, 'district_id' => $district->id]);
+        });
+    }
+
+    public function farmer(): static
+    {
+        return $this->state(['role' => User::ROLE_FARMER]);
+    }
+
     public function fieldReporter(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -62,13 +77,6 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => User::ROLE_ADMIN,
-        ]);
-    }
-
-    public function expert(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => User::ROLE_EXPERT,
         ]);
     }
 }

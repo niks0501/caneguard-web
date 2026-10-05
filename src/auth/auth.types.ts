@@ -1,10 +1,13 @@
-export type WebRole = "reviewer" | "admin" | "expert";
+export type WebRole = "reviewer" | "admin";
 
 export interface AppUser {
   uuid: string;
   name: string;
   email: string;
   role: WebRole;
+  capabilities?: string[];
+  accounts_enabled?: boolean;
+  district_id?: number | null;
 }
 
 export interface LoginCredentials {

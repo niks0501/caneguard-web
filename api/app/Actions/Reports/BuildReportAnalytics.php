@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Models\Report;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -76,6 +77,15 @@ final class BuildReportAnalytics
         $closed = (int) $metrics['closed_cases'];
 
         [$previousStart, $previousEnd] = [$start->subDays($days), $start];
+        // A current-month-to-date window compares the same calendar days in
+        // the preceding month when that month contains enough days. Other
+        // windows retain the immediately preceding equal-length interval.
+        if (($input['comparison'] ?? null) === 'previous_month' && $start->day === 1) {
+            $monthStart = $start->subMonthNoOverflow()->startOfMonth();
+            if ($monthStart->daysInMonth >= $days) {
+                [$previousStart, $previousEnd] = [$monthStart, $monthStart->addDays($days)];
+            }
+        }
         $previousTotal = $this->scopedQuery($previousStart, $previousEnd, $filters)
             ->count('reports.id');
 
@@ -90,7 +100,7 @@ final class BuildReportAnalytics
                 'days' => $days,
                 'partial' => $this->isPartial($end),
             ],
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'total_submitted' => $total,
             'series' => $this->buckets(clone $base, $start, $end, $granularity),
             'cases_by_barangay' => $metrics['cases_by_barangay'],
@@ -103,10 +113,27 @@ final class BuildReportAnalytics
                 'previous_from' => $previousStart->toDateString(),
                 'previous_to' => $previousEnd->subDay()->toDateString(),
                 'previous_total' => $previousTotal,
+                'current_series' => $this->buckets(clone $base, $start, $end, $granularity, true),
+                'previous_series' => $this->buckets(
+                    $this->scopedQuery($previousStart, $previousEnd, $filters),
+                    $previousStart,
+                    $previousEnd,
+                    $granularity,
+                    true,
+                ),
                 'current_total' => $total,
                 'delta' => $total - $previousTotal,
             ],
             'lifecycle' => $this->lifecycle(clone $base),
+            'reported_concern' => $this->reportedConcern(clone $base, $total),
+            'possible_condition' => $this->possibleCondition(clone $base),
+            'verification_outcome' => $this->verificationOutcome(clone $base),
+            'validation_by_barangay' => $this->validationByBarangay(clone $base),
+            'barangay_scope' => [
+                'municipality' => LocationReferenceController::SCOPE_MUNICIPALITY,
+                'province' => LocationReferenceController::SCOPE_PROVINCE,
+                'barangays' => LocationReferenceController::barangayScope(),
+            ],
             'area' => $this->area(clone $base, $start, $end, $filters),
             'validation_workload' => $this->validationWorkload(clone $base),
             'validation_schedule' => $this->validationSchedule(clone $base),
@@ -171,7 +198,7 @@ final class BuildReportAnalytics
         CarbonImmutable $end,
         array $filters,
     ): Builder {
-        $query = Report::query()
+        $query = Report::query()->visibleTo(request()->user())
             ->whereNull('canonical_report_id')
             ->where('submitted_at', '>=', $start->utc())
             ->where('submitted_at', '<', $end->utc());
@@ -186,7 +213,8 @@ final class BuildReportAnalytics
 
     /**
      * Bucket submitted reports per PHT calendar day, or per ISO week starting
-     * Monday. Every bucket in the window is present, including empty ones, so
+     * Monday (comparison weeks instead start at each window boundary so equal
+     * positions cover equal elapsed days). Every bucket is present, so
      * a quiet stretch renders as zero rather than disappearing.
      *
      * @return array<int, array{label: string, count: int}>
@@ -196,6 +224,7 @@ final class BuildReportAnalytics
         CarbonImmutable $start,
         CarbonImmutable $end,
         string $granularity,
+        bool $relative = false,
     ): array {
         $counts = [];
         foreach ($query->get(['submitted_at']) as $report) {
@@ -204,13 +233,15 @@ final class BuildReportAnalytics
             }
             $date = $report->submitted_at->timezone(self::TIMEZONE);
             $key = $granularity === 'week'
-                ? $date->startOfWeek(CarbonImmutable::MONDAY)->toDateString()
+                ? ($relative
+                    ? $start->addWeeks((int) floor($start->diffInDays($date->startOfDay()) / 7))->toDateString()
+                    : $date->startOfWeek(CarbonImmutable::MONDAY)->toDateString())
                 : $date->toDateString();
             $counts[$key] = ($counts[$key] ?? 0) + 1;
         }
 
         $buckets = [];
-        $cursor = $granularity === 'week'
+        $cursor = $granularity === 'week' && ! $relative
             ? $start->startOfWeek(CarbonImmutable::MONDAY)
             : $start;
         $step = $granularity === 'week' ? 'addWeek' : 'addDay';
@@ -225,8 +256,7 @@ final class BuildReportAnalytics
 
     /**
      * Where submitted reports sit in the lifecycle (C5). Every known state
-     * is present, including empty ones. Referral stays a supporting state
-     * split here, never an independent process stream.
+     * is present, including empty ones.
      *
      * @return array<string, array<string, int>>
      */
@@ -235,7 +265,6 @@ final class BuildReportAnalytics
         $dimensions = [
             'verification_outcome' => Report::verificationOutcomes(),
             'field_validation_state' => Report::fieldValidationStates(),
-            'referral_state' => Report::referralStates(),
         ];
         $result = [];
         foreach ($dimensions as $column => $states) {
@@ -255,6 +284,193 @@ final class BuildReportAnalytics
         }
 
         return $result;
+    }
+
+    /**
+     * Reported concern (C2, reporter vocabulary) in a fixed declared order.
+     * The field is free text, so values are normalised case-insensitively
+     * against the declared list; the tail folds into `other` and blanks
+     * into `not_stated`. Totals always reconcile with the scoped count.
+     *
+     * @return array<int, array{concern: string, label: string, count: int, share: float}>
+     */
+    private function reportedConcern(Builder $base, int $total): array
+    {
+        $declared = [
+            ['concern' => Report::REPORTER_CONCERN_RSSI, 'label' => 'RSSI'],
+            ['concern' => Report::LABEL_SMUT, 'label' => 'Smut'],
+            ['concern' => Report::LABEL_MOSAIC, 'label' => 'Mosaic'],
+            ['concern' => Report::LABEL_RUST, 'label' => 'Rust'],
+        ];
+        $counts = [
+            Report::REPORTER_CONCERN_RSSI => 0,
+            Report::LABEL_SMUT => 0,
+            Report::LABEL_MOSAIC => 0,
+            Report::LABEL_RUST => 0,
+            'other' => 0,
+            'not_stated' => 0,
+        ];
+        (clone $base)
+            ->select('reporter_suspected_condition')
+            ->selectRaw('COUNT(*) AS concern_count')
+            ->groupBy('reporter_suspected_condition')
+            ->get()
+            ->each(function (Report $report) use (&$counts): void {
+                $raw = $report->getAttribute('reporter_suspected_condition');
+                $bucket = 'other';
+                if ($raw === null || trim((string) $raw) === '') {
+                    $bucket = 'not_stated';
+                } else {
+                    $normalised = strtolower(trim((string) $raw));
+                    foreach ([Report::REPORTER_CONCERN_RSSI, Report::LABEL_SMUT, Report::LABEL_MOSAIC, Report::LABEL_RUST] as $canonical) {
+                        if ($normalised === strtolower($canonical)) {
+                            $bucket = $canonical;
+                            break;
+                        }
+                    }
+                }
+                $counts[$bucket] += (int) $report->getAttribute('concern_count');
+            });
+
+        $rows = [];
+        foreach ($declared as $item) {
+            $count = $counts[$item['concern']];
+            $rows[] = [
+                'concern' => $item['concern'],
+                'label' => $item['label'],
+                'count' => $count,
+                'share' => $total > 0 ? round($count / $total, 4) : 0.0,
+            ];
+        }
+        foreach (['other' => 'Other reported', 'not_stated' => 'Not stated'] as $concern => $label) {
+            $count = $counts[$concern];
+            $rows[] = [
+                'concern' => $concern,
+                'label' => $label,
+                'count' => $count,
+                'share' => $total > 0 ? round($count / $total, 4) : 0.0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Possible Condition (C2, AI vocabulary): decision support only. The
+     * series enumerates the deployed four-class Model V1 contract;
+     * reporter-only RSSI never enters it.
+     *
+     * @return array<int, array{condition: string, count: int}>
+     */
+    private function possibleCondition(Builder $base): array
+    {
+        $declared = Report::v2Labels();
+        $counts = array_fill_keys($declared, 0);
+        (clone $base)
+            ->select('predicted_label')
+            ->selectRaw('COUNT(*) AS condition_count')
+            ->groupBy('predicted_label')
+            ->get()
+            ->each(function (Report $report) use (&$counts): void {
+                $condition = (string) $report->getAttribute('predicted_label');
+                if (array_key_exists($condition, $counts)) {
+                    $counts[$condition] = (int) $report->getAttribute('condition_count');
+                }
+            });
+
+        $rows = [];
+        foreach ($declared as $condition) {
+            $rows[] = ['condition' => $condition, 'count' => $counts[$condition]];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Staff verification outcome split (C2 strip): every lifecycle outcome
+     * is present, including empty ones.
+     *
+     * @return array<string, int>
+     */
+    private function verificationOutcome(Builder $base): array
+    {
+        $counts = array_fill_keys(Report::verificationOutcomes(), 0);
+        (clone $base)
+            ->select('verification_outcome')
+            ->selectRaw('COUNT(*) AS outcome_count')
+            ->groupBy('verification_outcome')
+            ->get()
+            ->each(function (Report $report) use (&$counts): void {
+                $outcome = (string) $report->getAttribute('verification_outcome');
+                if (array_key_exists($outcome, $counts)) {
+                    $counts[$outcome] = (int) $report->getAttribute('outcome_count');
+                }
+            });
+
+        return $counts;
+    }
+
+    /**
+     * Per-barangay validation attention (C3). Submitted reports in the
+     * window are the baseline; open validation work splits into past
+     * target date / scheduled ahead / unscheduled using the same queue
+     * predicates the dashboard counts open, so the chart and the KPI
+     * segments can never disagree. Every scope barangay is present
+     * (zero-filled); observed out-of-scope barangays are appended, never
+     * dropped.
+     *
+     * @return array<int, array{barangay: string, submitted: int, open: int, past_target_date: int, scheduled: int, unscheduled: int}>
+     */
+    private function validationByBarangay(Builder $base): array
+    {
+        $grouped = static function (Builder $query): array {
+            return $query
+                ->select('barangay')
+                ->selectRaw('COUNT(*) AS place_count')
+                ->groupBy('barangay')
+                ->get()
+                ->mapWithKeys(static fn (Report $report): array => [
+                    (string) $report->getAttribute('barangay') => (int) $report->getAttribute('place_count'),
+                ])
+                ->all();
+        };
+        $submitted = $grouped(clone $base);
+        $open = $grouped($this->applyOperationalQueueFilter->handle(
+            clone $base,
+            Report::QUEUE_NEEDS_VISIT,
+        ));
+        $past = $grouped($this->applyOperationalQueueFilter->handle(
+            clone $base,
+            Report::QUEUE_FOLLOW_UP_DUE,
+        ));
+        $scheduled = $grouped($this->applyOperationalQueueFilter->handle(
+            clone $base,
+            Report::QUEUE_UPCOMING,
+        ));
+
+        $names = array_unique(array_merge(
+            LocationReferenceController::barangayScope(),
+            array_keys($submitted),
+        ));
+        sort($names);
+        $rows = [];
+        foreach ($names as $barangay) {
+            $openCount = $open[$barangay] ?? 0;
+            $pastCount = $past[$barangay] ?? 0;
+            $scheduledCount = $scheduled[$barangay] ?? 0;
+            $rows[] = [
+                'barangay' => $barangay,
+                'submitted' => $submitted[$barangay] ?? 0,
+                'open' => $openCount,
+                'past_target_date' => $pastCount,
+                'scheduled' => $scheduledCount,
+                'unscheduled' => max(0, $openCount - $pastCount - $scheduledCount),
+            ];
+        }
+        usort($rows, static fn (array $a, array $b): int => $b['submitted'] <=> $a['submitted']
+            ?: $a['barangay'] <=> $b['barangay']);
+
+        return $rows;
     }
 
     /**
@@ -295,7 +511,7 @@ final class BuildReportAnalytics
             }
         }
 
-        $duplicates = Report::query()
+        $duplicates = Report::query()->visibleTo(request()->user())
             ->whereNotNull('canonical_report_id')
             ->where('submitted_at', '>=', $start->utc())
             ->where('submitted_at', '<', $end->utc())
@@ -410,9 +626,8 @@ final class BuildReportAnalytics
             ['label' => '30+ days waiting', 'min' => 30, 'max' => null, 'count' => 0],
         ];
 
-        $reports = (clone $base)
-            ->where('case_state', Report::CASE_STATE_OPEN)
-            ->where('verification_outcome', Report::VERIFICATION_OUTCOME_NOT_DETERMINED)
+        $reports = $this->applyOperationalQueueFilter
+            ->handle(clone $base, Report::QUEUE_NEEDS_REVIEW)
             ->get(['submitted_at']);
 
         $oldest = null;

@@ -6,6 +6,7 @@ import {
 import {
   paginatedReportsDto,
   reportDetailDto,
+  reportReferralDto,
   staffClassifiedReportDetailDto,
 } from "../../../test/fixtures";
 import {
@@ -106,6 +107,22 @@ describe("report API schemas", () => {
       reportDetailResponseSchema.parse({ data: nullableMetadata }).data.image
         .source_width,
     ).toBeNull();
+  });
+
+  it("accepts an absent expert reference alongside the generated tracking code", () => {
+    const response = reportDetailResponseSchema.parse({
+      data: {
+        ...reportDetailDto,
+        referral: {
+          ...reportReferralDto,
+          reference: null,
+          tracking_code: "CG-20260924-00000001",
+        },
+      },
+    });
+
+    expect(response.data.referral?.reference).toBeNull();
+    expect(response.data.referral?.tracking_code).toBe("CG-20260924-00000001");
   });
 
   it("accepts the V2 smut model label", () => {

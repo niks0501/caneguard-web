@@ -15,25 +15,11 @@ import {
 } from "./mockOperationalQueues";
 import { mockReports } from "./mockReports";
 
-const NASUGBU_BOUNDS = {
-  south: 14.043883,
-  west: 120.567055,
-  north: 14.221364,
-  east: 120.84818,
-};
-
-function isNasugbuReport(report: DiseaseReport) {
-  return report.province === "Batangas" && report.municipality === "Nasugbu";
-}
-
-function hasNasugbuLocation(report: DiseaseReport) {
-  return isNasugbuReport(report) &&
-    report.finalLatitude !== undefined &&
-    report.finalLongitude !== undefined &&
-    report.finalLatitude >= NASUGBU_BOUNDS.south &&
-    report.finalLatitude <= NASUGBU_BOUNDS.north &&
-    report.finalLongitude >= NASUGBU_BOUNDS.west &&
-    report.finalLongitude <= NASUGBU_BOUNDS.east;
+function hasValidCoordinates(report: DiseaseReport) {
+  const latitude = report.finalLatitude;
+  const longitude = report.finalLongitude;
+  return typeof latitude === "number" && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
+    typeof longitude === "number" && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
 }
 
 function matchesFilters(report: DiseaseReport, filters: FieldValidationFilters) {
@@ -77,7 +63,6 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
     const today = manilaDateAt();
     const reports = mockReports
       .filter(isCanonicalWorkReport)
-      .filter(isNasugbuReport)
       .filter(
         (report) =>
           (filters.status
@@ -86,7 +71,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           (!filters.queue || isInOperationalQueue(report, filters.queue, today)) &&
           matchesFilters(report, filters),
       );
-    const located = reports.filter(hasNasugbuLocation);
+    const located = reports.filter(hasValidCoordinates);
 
     return {
       type: "FeatureCollection",

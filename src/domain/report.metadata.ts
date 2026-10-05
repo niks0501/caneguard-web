@@ -119,7 +119,7 @@ export const measurementProvenanceLabels: Record<
 export const actionTakenLabels: Record<ActionTaken, string> = {
   advisory_provided: "Advisory provided",
   technical_assistance_provided: "Technical assistance provided",
-  referred_for_expert_validation: "Referred for expert validation",
+  referred_for_expert_validation: "Expert referral (historical)",
   no_further_action_required: "No further action required",
 };
 

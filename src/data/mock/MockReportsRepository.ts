@@ -3,22 +3,16 @@ import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type {
   Advisory,
   DiseaseReport,
-  ExpertConsultPacket,
   PaginatedReports,
   PossibleRecentMatches,
   ReportFilters,
   ReportReviewEvent,
 } from "../../domain/report.types";
 import type {
-  ConsultInvite,
-  ConfirmExpertReferralInput,
   DuplicateLinkInput,
   DuplicateUnlinkInput,
-  ExpertDirectoryEntry,
-  ExpertFindingInput,
-  ExpertReferralResponseInput,
-  ReportReferralInput,
   ReportReviewInput,
+  HandoffNoteInput,
 } from "../../domain/review.types";
 import { diseaseLabels } from "../../domain/report.metadata";
 import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
@@ -88,10 +82,6 @@ export class MockReportsRepository implements ReportsRepository {
   private reports = mockReports.map(cloneReport);
 
   async listAdvisories(): Promise<Advisory[]> {
-    return [];
-  }
-
-  async listExperts(): Promise<ExpertDirectoryEntry[]> {
     return [];
   }
 
@@ -180,10 +170,6 @@ export class MockReportsRepository implements ReportsRepository {
     };
   }
 
-  async listExpertQueue(filters?: ReportFilters): Promise<PaginatedReports> {
-    return this.listReports(filters);
-  }
-
   async exportReports(filters?: ReportFilters): Promise<Blob> {
     const result = await this.listReports({
       ...filters,
@@ -229,7 +215,6 @@ export class MockReportsRepository implements ReportsRepository {
 
     const [year, monthNumber] = selectedMonth.split("-").map(Number);
     const lastDay = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
-    const hasReports = monthlyReports.length > 0;
 
     return {
       month: selectedMonth,
@@ -238,110 +223,12 @@ export class MockReportsRepository implements ReportsRepository {
         to: lastDay,
       },
       reportedCases: monthlyReports.length,
-      expertVerification: hasReports
-        ? {
-            consultVolume: {
-              total: 3,
-              consultedCases: 3,
-              pending: 1,
-              inProgress: 0,
-              completed: 2,
-              cancelled: 0,
-            },
-            expertAgreement: {
-              count: 2,
-              denominator: 2,
-              rate: 1.0,
-              percentage: 100,
-            },
-            unableToClassifyRate: {
-              count: 0,
-              denominator: 2,
-              rate: 0,
-              percentage: 0,
-            },
-            symptomVerificationDisagreement: {
-              count: 0,
-              denominator: 2,
-              rate: 0,
-              percentage: 0,
-            },
-          }
-        : {
-            consultVolume: {
-              total: 0,
-              consultedCases: 0,
-              pending: 0,
-              inProgress: 0,
-              completed: 0,
-              cancelled: 0,
-            },
-            expertAgreement: {
-              count: 0,
-              denominator: 0,
-              rate: null,
-              percentage: null,
-            },
-            unableToClassifyRate: {
-              count: 0,
-              denominator: 0,
-              rate: null,
-              percentage: null,
-            },
-            symptomVerificationDisagreement: {
-              count: 0,
-              denominator: 0,
-              rate: null,
-              percentage: null,
-            },
-          },
     };
   }
 
   async getReportById(reportId: string): Promise<DiseaseReport | null> {
     const report = this.reports.find((item) => item.uuid === reportId);
     return report ? cloneReport(report) : null;
-  }
-
-  async getExpertConsult(reportId: string): Promise<ExpertConsultPacket> {
-    const report = await this.getReportById(reportId);
-    if (!report?.referral) throw new Error("No expert consult");
-    return {
-      referenceCode: report.referenceCode,
-      submittedAt: report.submittedAt,
-      photoUrl: report.imageUrl ?? "",
-      reporterObservations: {
-        symptomKeys: report.symptoms.map((symptom) => symptom.id),
-        reporterObservationText: report.reporterObservationText,
-        fieldNotes: report.fieldNotes,
-        reporterSuspectedCondition: report.reporterSuspectedCondition,
-        checklistConsistency: report.checklistConsistency,
-        reportedSeverity: report.reportedSeverity,
-        qualityWarnings: report.qualityWarnings ?? [],
-      },
-      reporterSuspectedCondition: report.reporterSuspectedCondition,
-      aiPossibleCondition: { label: report.predictedDisease, decisionSupportLabel: "Decision-support only. This is not a diagnosis." },
-      location: { barangay: report.barangay, municipality: report.municipality, province: report.province },
-      affectedArea: { value: report.affectedAreaHectares ?? null, unit: "hectares", measurement: report.affectedAreaMeasurement ?? "not_measured" },
-      affectedPortion: { value: report.affectedPortionPercent ?? null, unit: "percent", measurement: report.affectedPortionMeasurement ?? "not_measured" },
-      officeContext: report.referral.officeContext,
-      consult: {
-        id: report.referral.id ?? 1,
-        status: report.referral.status ?? "pending",
-        reference: report.referral.reference,
-        referralDate: report.referral.referralDate,
-        dueDate: report.referral.dueDate ?? null,
-        question: report.referral.note,
-        conditionOpinion: report.referral.conditionOpinion,
-        basis: report.referral.findingDetails,
-        confidence: report.referral.findingConfidence,
-        recommendation: report.referral.findingRecommendation,
-        symptomVerdicts: report.referral.symptomVerdicts ?? {},
-        responseDate: report.referral.responseDate,
-      },
-      priorConsults: [],
-      version: report.reviewVersion ?? 0,
-    };
   }
 
   async getPossibleRecentMatches(): Promise<PossibleRecentMatches> {
@@ -456,199 +343,19 @@ export class MockReportsRepository implements ReportsRepository {
     return cloneReport(updated);
   }
 
-  async recordReferral(
-    reportId: string,
-    input: ReportReferralInput,
-  ): Promise<DiseaseReport> {
-    const index = this.reports.findIndex((report) => report.uuid === reportId);
-    if (index === -1) throw new Error(`Report ${reportId} was not found.`);
-
-    const current = this.reports[index];
-    const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
-    const now = new Date().toISOString();
-    const nextLifecycle = { ...lifecycle, referralState: "referred" as const };
-    const newEvent: ReportReviewEvent = {
-      id: (current.reviewEvents?.length ?? 0) + 1,
-      actor: {
-        uuid: "00000000-0000-4000-8000-000000000100",
-        name: "Maria Santos",
-      },
-      actionTaken: "referred_for_expert_validation",
-      authorityClassifiedCondition:
-        input.authorityClassifiedCondition === undefined
-          ? current.authorityClassifiedCondition ?? null
-          : input.authorityClassifiedCondition,
-      verificationOutcome:
-        input.verificationOutcome ?? lifecycle.verificationOutcome ?? null,
-      notes:
-        input.officeNotes === undefined
-          ? current.reviewNotes ?? null
-          : input.officeNotes?.trim() || null,
-      caseState: lifecycle.caseState ?? null,
-      createdAt: now,
-    };
-    const updated: DiseaseReport = {
-      ...current,
-      actionTaken: "referred_for_expert_validation",
-      authorityClassifiedCondition:
-        input.authorityClassifiedCondition === undefined
-          ? current.authorityClassifiedCondition
-          : input.authorityClassifiedCondition,
-      reviewNotes:
-        input.officeNotes === undefined
-          ? current.reviewNotes
-          : input.officeNotes?.trim() || undefined,
-      reviewStatus: legacyReviewStatusForLifecycle(nextLifecycle),
-      lifecycle: nextLifecycle,
-      referral: {
-        destination: input.destination.trim(),
-        reference: input.reference.trim(),
-        referralDate: input.referralDate,
-        note: input.note?.trim() || null,
-        officeContext: {
-          caseState: lifecycle.caseState,
-          verificationOutcome:
-            input.verificationOutcome ?? lifecycle.verificationOutcome,
-          fieldValidationState: lifecycle.fieldValidationState,
-          actionTaken: "referred_for_expert_validation",
-          authorityClassifiedCondition:
-            input.authorityClassifiedCondition === undefined
-              ? current.authorityClassifiedCondition
-              : input.authorityClassifiedCondition,
-          notes:
-            input.officeNotes === undefined
-              ? current.reviewNotes ?? null
-              : input.officeNotes?.trim() || null,
-          reviewer: null,
-          reviewedAt: now,
-        },
-      },
-      reviewVersion: (current.reviewVersion ?? 0) + 1,
-      reviewedAt: now,
-      updatedAt: now,
-      reviewEvents: [newEvent, ...(current.reviewEvents ?? [])],
-    };
-    updated.lifecycle = {
-      ...nextLifecycle,
-      verificationOutcome:
-        input.verificationOutcome ?? lifecycle.verificationOutcome,
-    };
-    this.reports[index] = updated;
-    return cloneReport(updated);
-  }
-
-  async recordExpertReferralResponse(
-    reportId: string,
-    input: ExpertReferralResponseInput,
-  ): Promise<DiseaseReport> {
-    const index = this.reports.findIndex((report) => report.uuid === reportId);
-    if (index === -1) throw new Error(`Report ${reportId} was not found.`);
-
-    const current = this.reports[index];
-    if (!current.referral) throw new Error("The report has no referral.");
-    const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
-    const now = new Date().toISOString();
-    const newEvent: ReportReviewEvent = {
-      id: (current.reviewEvents?.length ?? 0) + 1,
-      actor: {
-        uuid: "00000000-0000-4000-8000-000000000100",
-        name: "Maria Santos",
-      },
-      actionTaken: current.actionTaken ?? null,
-      authorityClassifiedCondition:
-        input.authorityClassifiedCondition === undefined
-          ? current.authorityClassifiedCondition ?? null
-          : input.authorityClassifiedCondition,
-      verificationOutcome:
-        input.verificationOutcome ?? lifecycle.verificationOutcome ?? null,
-      notes: input.responseNote?.trim() || null,
-      caseState: lifecycle.caseState ?? null,
-      createdAt: now,
-    };
-    const updated: DiseaseReport = {
-      ...current,
-      authorityClassifiedCondition:
-        input.authorityClassifiedCondition === undefined
-          ? current.authorityClassifiedCondition
-          : input.authorityClassifiedCondition,
-      reviewStatus: legacyReviewStatusForLifecycle({
-        ...lifecycle,
-        verificationOutcome:
-          input.verificationOutcome ?? lifecycle.verificationOutcome,
-      }),
-      lifecycle: {
-        ...lifecycle,
-        verificationOutcome:
-          input.verificationOutcome ?? lifecycle.verificationOutcome,
-        referralState: "expert_response_received",
-      },
-      referral: {
-        ...current.referral,
-        responseDate: input.responseDate,
-        responseNote: input.responseNote?.trim() || null,
-        responseFinding: input.responseFinding?.trim() || null,
-        responseRecordedAt: now,
-      },
-      reviewVersion: (current.reviewVersion ?? 0) + 1,
-      reviewedAt: now,
-      updatedAt: now,
-      reviewEvents: [newEvent, ...(current.reviewEvents ?? [])],
-    };
-    this.reports[index] = updated;
-    return cloneReport(updated);
-  }
-
-  async recordExpertFinding(
-    reportId: string,
-    input: ExpertFindingInput,
-  ): Promise<DiseaseReport> {
-    void input;
-    return this.getReportById(reportId).then((report) => {
-      if (!report) throw new Error(`Report ${reportId} was not found.`);
-      return cloneReport(report);
-    });
-  }
-
-  async confirmExpertReferral(
-    reportId: string,
-    input: ConfirmExpertReferralInput,
-  ): Promise<DiseaseReport> {
-    void input;
-    return this.getReportById(reportId).then((report) => {
-      if (!report) throw new Error(`Report ${reportId} was not found.`);
-      return cloneReport(report);
-    });
-  }
-
-  async issueConsultInvite(
-    reportId: string,
-    shareFullContext = false,
-  ): Promise<ConsultInvite> {
-    const report = await this.getReportById(reportId);
-    if (!report?.referral) throw new Error(`Report ${reportId} was not found.`);
-    return {
-      url: `https://example.test/consult/${reportId}`,
-      consultId: report.referral.id ?? 1,
-      issuedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
-      revokedAt: null,
-      accessCount: 0,
-      shareFullContext,
-    };
-  }
-
-  async revokeConsultInvite(reportId: string): Promise<ConsultInvite> {
-    const report = await this.getReportById(reportId);
-    if (!report?.referral) throw new Error(`Report ${reportId} was not found.`);
-    return {
-      url: "",
-      consultId: report.referral.id ?? 1,
-      issuedAt: report.referral.inviteIssuedAt ?? null,
-      expiresAt: report.referral.inviteExpiresAt ?? null,
-      revokedAt: new Date().toISOString(),
-      accessCount: report.referral.inviteAccessCount ?? 0,
-      shareFullContext: report.referral.shareFullContext ?? false,
-    };
+  async recordHandoffNote(reportId: string, input: HandoffNoteInput): Promise<DiseaseReport> {
+    const report = this.reports.find((item) => item.uuid === reportId);
+    if (!report || report.reviewVersion !== input.expectedVersion) throw new Error("Refresh the case before saving.");
+    report.handoffNotes = [{
+      id: (report.handoffNotes?.length ?? 0) + 1,
+      destination: input.destination.trim(),
+      reference: input.reference?.trim() || null,
+      sent_date: input.sentDate,
+      note: input.note?.trim() || null,
+      advice_received_note: input.adviceReceivedNote?.trim() || null,
+    }, ...(report.handoffNotes ?? [])];
+    report.reviewVersion = input.expectedVersion + 1;
+    return cloneReport(report);
   }
 
   async linkDuplicate(

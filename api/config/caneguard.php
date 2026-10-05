@@ -2,7 +2,19 @@
 
 return [
     'legacy_public_storage_link' => public_path('storage'),
+    'accounts_enabled' => env('CANEGUARD_ACCOUNTS_ENABLED', false),
     'self_registration_enabled' => env('CANEGUARD_SELF_REGISTRATION_ENABLED', false),
+    // Both switches remain closed until the office certifies the pilot roster.
+    'pilot_roster_certified' => env('CANEGUARD_PILOT_ROSTER_CERTIFIED', false),
+    // Blank means no live district. Never infer membership from location/name.
+    'pilot_district_code' => env('CANEGUARD_PILOT_DISTRICT_CODE', ''),
+    // Recognition only: unknown bounded versions remain valid submitted evidence.
+    'accepted_model_versions' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('CANEGUARD_ACCEPTED_MODEL_VERSIONS', 'v1.0-mobilenetv2')),
+    ))),
+    'weekly_send_enabled' => env('CANEGUARD_WEEKLY_SEND_ENABLED', false),
+    'weekly_appendix_enabled' => env('CANEGUARD_WEEKLY_APPENDIX_ENABLED', false),
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',
@@ -35,14 +47,6 @@ return [
     'security_audit' => [
         'retention_days' => (int) env('CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS', 2555),
     ],
-    'expert_consult_access_days' => max(
-        0,
-        (int) env('CANEGUARD_EXPERT_CONSULT_ACCESS_DAYS', 14),
-    ),
-    'expert_consult_invite_days' => max(
-        1,
-        (int) env('CANEGUARD_EXPERT_CONSULT_INVITE_DAYS', 7),
-    ),
     'reports' => [
         // Report documents are embedded only by the authenticated web app.
         'embed_origins' => array_values(array_filter(array_map(
@@ -101,7 +105,6 @@ return [
         'field_reporter_password' => env('CANEGUARD_FIELD_PASSWORD'),
         'reviewer_password' => env('CANEGUARD_REVIEWER_PASSWORD'),
         'admin_password' => env('CANEGUARD_ADMIN_PASSWORD'),
-        'expert_password' => env('CANEGUARD_EXPERT_PASSWORD'),
     ],
     'map' => [
         'default_limit' => min(
@@ -109,13 +112,7 @@ return [
             max(1, (int) env('CANEGUARD_MAP_DEFAULT_LIMIT', 1000)),
         ),
         'max_limit' => 1000,
-        // Nasugbu municipality bounding box (WGS84), OSM relation 7340421.
-        'bounds' => [
-            'south' => 14.043883,
-            'west' => 120.567055,
-            'north' => 14.221364,
-            'east' => 120.848180,
-        ],
+        'location_group_radius_meters' => max(1, (float) env('CANEGUARD_MAP_LOCATION_GROUP_RADIUS_METERS', 25)),
     ],
     'duplicate_assistance' => [
         'recent_window_hours' => 72,

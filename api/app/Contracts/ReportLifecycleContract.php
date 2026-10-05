@@ -8,7 +8,7 @@ use UnexpectedValueException;
 
 final class ReportLifecycleContract
 {
-    private const CONTRACT_PATH = '../docs/contracts/report-lifecycle-v1.json';
+    private const CONTRACT_PATH = 'docs/contracts/report-lifecycle-v1.json';
 
     private const DIMENSION_NAMES = [
         'case_state',

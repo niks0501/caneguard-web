@@ -16,7 +16,7 @@ export function isInOperationalQueue(
 
   const lifecycle: ReportLifecycle = report.lifecycle
     ?? legacyLifecycleForReviewStatus(report.reviewStatus);
-  const { caseState, verificationOutcome, fieldValidationState, referralState } = lifecycle;
+  const { caseState, verificationOutcome, fieldValidationState } = lifecycle;
   const targetVisitDate = report.fieldValidationAssignment?.targetVisitDate;
 
   switch (queue) {
@@ -24,8 +24,7 @@ export function isInOperationalQueue(
       return caseState === "open"
         && verificationOutcome === "not_determined"
         && (report.actionTaken == null
-          || (report.actionTaken === "referred_for_expert_validation"
-            && (referralState === "referred" || referralState === "expert_response_received")))
+          || report.actionTaken === "referred_for_expert_validation")
         && (fieldValidationState === "completed"
           || (fieldValidationState === "unassigned"
             && report.reviewStatus !== "for_field_validation"));
@@ -48,8 +47,7 @@ export function isInOperationalQueue(
       return caseState === "open"
         && verificationOutcome === "not_determined"
         && fieldValidationState === "unassigned"
-        && referralState !== "referred"
-        && referralState !== "expert_response_received"
+        && report.actionTaken !== "referred_for_expert_validation"
         && report.actionTaken != null;
   }
 }

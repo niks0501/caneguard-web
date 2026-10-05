@@ -14,14 +14,29 @@ class ReportPeriodBoundaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_dashboard_monthly_summary_returns_zero_counts_when_database_has_no_reports(): void
+    {
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+
+        $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')
+            ->assertOk()
+            ->assertJsonPath('data.monthly_summary.month', '2026-09')
+            ->assertJsonPath('data.monthly_summary.reported_cases', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.unassigned', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.assigned', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.in_progress', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.completed', 0)
+            ->assertJsonPath('data.monthly_summary.field_validation_counts.requiring_validation', 0);
+    }
+
     public function test_monthly_summaries_analytics_and_documents_share_manila_month_boundaries(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        Report::factory()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CG-MANILA-SEP-BOUNDARY',
             'submitted_at' => CarbonImmutable::parse('2026-09-30 15:59:59', 'UTC'),
         ]);
-        Report::factory()->create([
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reference_code' => 'CG-MANILA-OCT-BOUNDARY',
             'submitted_at' => CarbonImmutable::parse('2026-09-30 16:00:00', 'UTC'),
         ]);
@@ -50,7 +65,7 @@ class ReportPeriodBoundaryTest extends TestCase
                 ->assertJsonPath('data.reported_cases', 1)
                 ->json('data');
 
-            $dashboard = $this->getJson('/api/v1/dashboard/summary?month='.$period['month'])
+            $dashboard = $this->getJson('/api/v1/dashboard/summary?month='.$period['month'].'&include=counts,queues,recent,monthly')
                 ->assertOk()
                 ->assertJsonPath('data.monthly_summary.month', $period['month'])
                 ->assertJsonPath('data.monthly_summary.reported_cases', 1)

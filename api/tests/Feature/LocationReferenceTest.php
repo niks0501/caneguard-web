@@ -2,10 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class LocationReferenceTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->actingAs(User::factory()->farmer()->create(), 'web');
+    }
+
     private const ETAG = '"locations-2026-08-13"';
 
     public function test_location_reference_returns_the_batangas_nasugbu_seed_data(): void
@@ -92,17 +103,10 @@ class LocationReferenceTest extends TestCase
             ->assertJsonCount(42, 'barangays');
     }
 
-    public function test_location_reference_is_public(): void
+    public function test_location_reference_requires_sign_in(): void
     {
-        $this->getJson('/api/v1/reference/locations')
-            ->assertOk()
-            ->assertJsonStructure([
-                'version',
-                'etag',
-                'regions' => [
-                    '*' => ['province', 'municipalities'],
-                ],
-                'barangays',
-            ]);
+        Auth::guard('web')->logout();
+        Auth::forgetGuards();
+        $this->getJson('/api/v1/reference/locations')->assertUnauthorized();
     }
 }

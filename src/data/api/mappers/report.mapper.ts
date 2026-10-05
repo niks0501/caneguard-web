@@ -1,17 +1,15 @@
 import type {
   DiseaseReport,
-  ExpertConsultPacket,
-  ExpertConsultSummary,
   IdentificationGap,
   PaginationMeta,
   ReportCaseHistory,
 } from "../../../domain/report.types";
 import type {
-  ExpertConsultResponseDto,
   ReportDetailDto,
   ReportListItemDto,
   ReportListResponseDto,
 } from "../schemas/report.schema";
+import { env } from "../../../config/env";
 import { mapReportLifecycle } from "./lifecycle.mapper";
 
 const humanize = (value: string) =>
@@ -19,6 +17,34 @@ const humanize = (value: string) =>
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+
+/** Resolve app-relative API links and rebase legacy host-local URLs onto the API host. */
+export function resolveApiUrl(
+  apiUrl: string | null | undefined,
+  apiBaseUrl: string,
+): string | undefined {
+  if (!apiUrl) return undefined;
+
+  try {
+    const url = new URL(apiUrl, apiBaseUrl);
+    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname)) {
+      const apiOrigin = new URL(apiBaseUrl);
+      url.protocol = apiOrigin.protocol;
+      url.hostname = apiOrigin.hostname;
+      url.port = apiOrigin.port;
+    }
+    return url.href;
+  } catch {
+    return apiUrl;
+  }
+}
+
+export function resolveReportImageUrl(
+  imageUrl: string | null | undefined,
+  apiBaseUrl: string,
+): string | undefined {
+  return resolveApiUrl(imageUrl, apiBaseUrl);
+}
 
 function mapCaseHistory(dto: ReportDetailDto["case_history"]): ReportCaseHistory | undefined {
   if (!dto) return undefined;
@@ -50,34 +76,6 @@ function mapIdentificationGap(dto: {
   return dto ?? { state: "identified", reasons: [] };
 }
 
-function mapExpertConsultSummary(dto: {
-  id: number;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
-  referral_date: string | null;
-  due_date: string | null;
-  expert?: { uuid: string; name: string } | null;
-  expert_name?: string | null;
-  days_until_due: number | null;
-  days_out: number | null;
-  overdue: boolean;
-  age_label: string;
-} | null | undefined): ExpertConsultSummary | null {
-  if (!dto) return null;
-
-  return {
-    id: dto.id,
-    status: dto.status,
-    referralDate: dto.referral_date,
-    dueDate: dto.due_date,
-    expert: dto.expert,
-    expertName: dto.expert_name ?? dto.expert?.name ?? null,
-    daysUntilDue: dto.days_until_due,
-    daysOut: dto.days_out,
-    overdue: dto.overdue,
-    ageLabel: dto.age_label,
-  };
-}
-
 function mapMachineFacts(dto: {
   confidence?: number | null;
   checklist_consistency?: string | null;
@@ -100,73 +98,6 @@ function mapMachineFacts(dto: {
   };
 }
 
-function mapExpertConsultFinding(dto: ExpertConsultResponseDto["data"]["consult"]) {
-  return {
-    id: dto.id,
-    status: dto.status,
-    reference: dto.reference,
-    referralDate: dto.referral_date,
-    dueDate: dto.due_date,
-    question: dto.question ?? null,
-    conditionOpinion: dto.condition_opinion ?? null,
-    basis: dto.basis ?? dto.finding_details ?? null,
-    confidence: dto.confidence ?? null,
-    recommendation: dto.recommendation ?? null,
-    symptomVerdicts: Object.fromEntries(
-      Object.entries(dto.symptom_verdicts).map(([key, value]) => [key, {
-        verdict: value.verdict,
-        note: value.note ?? null,
-      }]),
-    ),
-    responseDate: dto.response_date ?? null,
-  };
-}
-
-export function mapExpertConsult(dto: ExpertConsultResponseDto): ExpertConsultPacket {
-  const data = dto.data;
-  const source = data.case;
-  const observations = source.reporter_observations;
-  const consult = mapExpertConsultFinding(data.consult);
-
-  return {
-    referenceCode: data.reference_code,
-    submittedAt: data.submitted_at,
-    photoUrl: data.photo_url,
-    reporterObservations: {
-      symptomKeys: observations.symptom_keys,
-      reporterObservationText: observations.reporter_observation_text ?? null,
-      fieldNotes: observations.field_notes ?? null,
-      reporterSuspectedCondition: observations.reporter_suspected_condition ?? null,
-      checklistConsistency: observations.checklist_consistency ?? null,
-      reportedSeverity: observations.reported_severity ?? null,
-      qualityWarnings: observations.quality_warnings,
-    },
-    reporterSuspectedCondition: data.reporter_suspected_condition ?? null,
-    aiPossibleCondition: {
-      label: data.ai_possible_condition.label,
-      decisionSupportLabel: data.ai_possible_condition.decision_support_label,
-    },
-    location: data.location,
-    affectedArea: data.affected_area,
-    affectedPortion: data.affected_portion,
-    officeContext: {
-      caseState: data.office_context.case_state,
-      verificationOutcome: data.office_context.verification_outcome,
-      fieldValidationState: data.office_context.field_validation_state,
-      actionTaken: data.office_context.action_taken,
-      authorityClassifiedCondition: data.office_context.authority_classified_condition,
-      notes: data.office_context.notes,
-      reviewer: data.office_context.reviewer,
-      reviewedAt: data.office_context.reviewed_at,
-    },
-    consult,
-    priorConsults: data.prior_consults.map((prior) => ({
-      ...mapExpertConsultFinding(prior),
-    })),
-    version: data.version,
-  };
-}
-
 export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
   return {
     uuid: dto.uuid,
@@ -185,7 +116,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     firstReviewedAt: dto.first_reviewed_at ?? undefined,
     predictedDisease: dto.predicted_label,
     mismatchReported: dto.mismatch_reported,
-    imageUrl: dto.image_url,
+    imageUrl: resolveReportImageUrl(dto.image_url, env.apiBaseUrl),
     imageStatus: dto.image_url ? "available" : "unavailable",
     symptoms: [],
     reviewStatus: dto.review_status,
@@ -198,7 +129,6 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     attentionBand: dto.attention_band ?? null,
     attentionBandReasons: dto.attention_band_reasons ?? [],
     identificationGap: mapIdentificationGap(dto.identification_gap),
-    expertConsult: mapExpertConsultSummary(dto.expert_consult ?? dto.referral),
     reviewVersion: dto.version ?? 0,
     fieldValidationAssignment: dto.field_validation?.assignee && dto.field_validation.assignment_uuid
       ? {
@@ -218,7 +148,12 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
           actionTaken: dto.latest_validation.action_taken,
           followUpOutcome: dto.latest_validation.follow_up_outcome,
           assignee: dto.latest_validation.assignee,
-          freshPhoto: dto.latest_validation.fresh_photo,
+          freshPhoto: {
+            ...dto.latest_validation.fresh_photo,
+            url:
+              resolveApiUrl(dto.latest_validation.fresh_photo.url, env.apiBaseUrl) ??
+              dto.latest_validation.fresh_photo.url,
+          },
         }
       : null,
     locationUnavailable: dto.location_unavailable ?? false,
@@ -231,7 +166,10 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
   };
 }
 
-export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
+export function mapReportDetail(
+  dto: ReportDetailDto,
+  apiBaseUrl = env.apiBaseUrl,
+): DiseaseReport {
   return {
     uuid: dto.identity.uuid,
     referenceCode: dto.identity.reference_code,
@@ -255,7 +193,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     scanRecordClientUuid: dto.identity.scan_record_client_uuid ?? undefined,
     predictedDisease: dto.model.predicted_label,
     confidence: dto.model.confidence,
-    imageUrl: dto.image.url,
+    imageUrl: resolveReportImageUrl(dto.image.url, apiBaseUrl),
     imageStatus: dto.image.url ? "available" : "unavailable",
     imageMimeType: dto.image.mime_type,
     imageSizeBytes: dto.image.size_bytes,
@@ -269,6 +207,7 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
     })),
     classScores: dto.model.class_scores,
     modelVersion: dto.model.model_version,
+    modelVersionRecognised: dto.model.model_version_recognised,
     processingTimingsMs: dto.model.timings_ms,
     checklistConsistency: dto.observations.checklist_consistency,
     reportedSeverity: dto.observations.reported_severity ?? undefined,
@@ -325,18 +264,24 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
                 visitedAt: dto.field_validation_assignment.completion.visited_at,
                 freshPhoto: {
                   available: dto.field_validation_assignment.completion.fresh_photo.available,
-                  url: dto.field_validation_assignment.completion.fresh_photo.url,
+                  url:
+                    resolveApiUrl(
+                      dto.field_validation_assignment.completion.fresh_photo.url,
+                      apiBaseUrl,
+                    ) ?? dto.field_validation_assignment.completion.fresh_photo.url,
                 },
               }
             : undefined,
         }
       : dto.field_validation_assignment,
+    handoffNotes: dto.handoff_notes ?? [],
     referral: dto.referral
       ? {
           id: dto.referral.id,
           status: dto.referral.status,
           destination: dto.referral.destination,
           reference: dto.referral.reference,
+          trackingCode: dto.referral.tracking_code ?? null,
           referralDate: dto.referral.referral_date,
           dueDate: dto.referral.due_date,
           expertName: dto.referral.expert_name,
@@ -386,7 +331,9 @@ export function mapReportDetail(dto: ReportDetailDto): DiseaseReport {
       status: consult.status,
       destination: consult.destination,
       reference: consult.reference,
+      trackingCode: consult.tracking_code ?? null,
       referralDate: consult.referral_date,
+      note: consult.note,
       dueDate: consult.due_date,
       expertName: consult.expert_name,
       expertContact: consult.expert_contact,

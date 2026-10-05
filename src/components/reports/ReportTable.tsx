@@ -16,7 +16,6 @@ import {
   formatDueState,
 } from "../../lib/formatters";
 import { EvidenceThumbnail } from "./EvidenceThumbnail";
-import { MachineFactsChips } from "./MachineFactsChips";
 import {
   DiseaseBadge,
   IdentificationGapBadge,
@@ -34,15 +33,11 @@ export function ReportTable({
   variant = "default",
 }: {
   reports: DiseaseReport[];
-  variant?: "default" | "monitoring" | "expert" | "out-with-experts";
+  variant?: "default" | "monitoring";
 }) {
   const navigate = useNavigate();
   const isMonitoring = variant === "monitoring";
-  const isOutWithExperts = variant === "out-with-experts";
-  const isExpert = variant === "expert";
-  const detailRoute = (uuid: string) => isExpert
-    ? routes.expertReportDetail(uuid)
-    : routes.reportDetail(uuid);
+  const detailRoute = routes.reportDetail;
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggleRow = (uuid: string) => {
@@ -92,13 +87,6 @@ export function ReportTable({
                 <th scope="col">Action taken</th>
                 <th scope="col">Next follow-up</th>
               </>
-            ) : isOutWithExperts ? (
-              <>
-                <th scope="col">Expert</th>
-                <th scope="col">Referral date</th>
-                <th scope="col">Due date</th>
-                <th scope="col">Days out</th>
-              </>
             ) : (
               <>
                 <th scope="col">Possible Condition</th>
@@ -113,24 +101,10 @@ export function ReportTable({
         <tbody>
           {reports.map((report) => {
             const due = formatDueState(report.followUp);
-            const machineFacts = report.machineFacts ?? {
-              confidence: report.confidence ?? null,
-              checklistConsistency: report.checklistConsistency ?? null,
-              qualityWarnings: report.qualityWarnings ?? [],
-              gpsAccuracy: report.gpsAccuracy ?? null,
-              locationSource: report.locationSource ?? null,
-              reporterConcern: report.reporterSuspectedCondition ?? null,
-              reporterMismatch: report.mismatchReported ?? null,
-            };
             const isExpanded = Boolean(expandedRows[report.uuid]);
-            const expertName = report.expertConsult?.expertName
-              ?? report.expertConsult?.expert?.name
-              ?? (report.expertConsult?.status === "pending" ? "Unassigned" : "Unknown expert");
             return (
               <tr
-                className={`report-row report-row--${report.reviewStatus}${
-                  report.mismatchReported ? " report-row--mismatch" : ""
-                }`}
+                className={`report-row report-row--${report.reviewStatus}`}
                 data-review-status={report.reviewStatus}
                 key={report.uuid}
                 tabIndex={0}
@@ -141,7 +115,7 @@ export function ReportTable({
                   <div className="report-identity">
                     <EvidenceThumbnail
                       status={report.imageStatus}
-                      label={`Submitted evidence for ${report.referenceCode}`}
+                      label={`Submitted photo for ${report.referenceCode}`}
                       src={report.imageUrl}
                     />
                     <div>
@@ -161,7 +135,7 @@ export function ReportTable({
                       ) : null}
                       {report.mismatchReported === true ? (
                         <span className="mismatch-table-marker">
-                          AI mismatch flagged
+                          Reporter concern needs review
                         </span>
                       ) : null}
                     </div>
@@ -206,7 +180,7 @@ export function ReportTable({
                       ) : (
                         <span className="table-secondary">
                           {report.fieldValidationAssignment?.targetVisitDate
-                            ? "Visit assigned; evidence pending"
+                            ? "Field visit assigned; report pending"
                             : "No visit completed"}
                         </span>
                       )}
@@ -238,24 +212,6 @@ export function ReportTable({
                       ) : (
                         <span className="table-secondary">Not scheduled</span>
                       )}
-                    </td>
-                  </>
-                ) : isOutWithExperts ? (
-                  <>
-                    <td>
-                      <strong className="table-primary">{expertName}</strong>
-                    </td>
-                    <td>
-                      <strong className="table-primary">{report.expertConsult?.referralDate ?? "Not set"}</strong>
-                    </td>
-                    <td>
-                      <strong className={`table-primary${report.expertConsult?.overdue ? " table-overdue" : ""}`}>
-                        {report.expertConsult?.dueDate ?? "No due date"}
-                      </strong>
-                      {report.expertConsult?.overdue ? <span className="table-secondary">Overdue</span> : null}
-                    </td>
-                    <td>
-                      <strong className="table-primary">{report.expertConsult?.daysOut === null || report.expertConsult?.daysOut === undefined ? "Not available" : `${report.expertConsult.daysOut} ${report.expertConsult.daysOut === 1 ? "day" : "days"}`}</strong>
                     </td>
                   </>
                 ) : (
@@ -314,21 +270,7 @@ export function ReportTable({
                 <td className="report-status-cell">
                   <div className="report-status-cell__wrapper">
                     <ReviewStatusBadge status={report.reviewStatus} />
-                    {report.attentionBand ? (
-                      <span
-                        className={`attention-band attention-band--${report.attentionBand}`}
-                        title={report.attentionBandReasons?.join(" ")}
-                      >
-                        {report.attentionBand}
-                      </span>
-                    ) : null}
                     <IdentificationGapBadge state={report.identificationGap?.state} />
-                    {report.expertConsult ? (
-                      <span className={`expert-consult-age${report.expertConsult.overdue ? " expert-consult-age--overdue" : ""}`}>
-                        {report.expertConsult.ageLabel}
-                      </span>
-                    ) : null}
-                    <MachineFactsChips facts={machineFacts} compact />
                     <button
                       type="button"
                       className="row-expand-btn"

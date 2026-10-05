@@ -24,8 +24,8 @@ return new class extends Migration
             $table->string('verdict', 16);
             $table->text('note')->nullable();
             $table->timestamps();
-            $table->unique(['report_referral_id', 'symptom_key']);
-            $table->index(['symptom_key', 'verdict']);
+            $table->unique(['report_referral_id', 'symptom_key'], 'rrsf_referral_symptom_unique');
+            $table->index(['symptom_key', 'verdict'], 'rrsf_symptom_verdict_index');
         });
     }
 

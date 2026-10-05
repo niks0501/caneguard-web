@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Download, Printer, X } from "lucide-react";
+import { Download, House, Printer, X } from "lucide-react";
+import { useNavigate } from "react-router";
 import { env } from "../../config/env";
 import { axiosClient } from "../../api/axiosClient";
+import { routes } from "../../app/routes";
 import { ApiError, isApiConnectionError, toApiError } from "../../api/ApiError";
 import { checkApiHealth } from "../../api/apiHealth";
 import { Button } from "../ui/Button";
+import { WeeklyReportApproval } from "./WeeklyReportApproval";
 import { previousManilaIsoWeekAt } from "../../domain/reportingTime";
 import {
   authorityClassifiedConditionLabels,
@@ -120,6 +123,7 @@ export function ReportDocumentBuilder({
   open: boolean;
   onClose: () => void;
 }) {
+  const navigate = useNavigate();
   const [state, setState] = useState<BuilderState>(initialState);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [apiAvailability, setApiAvailability] = useState<"checking" | "available" | "unavailable">("checking");
@@ -205,7 +209,7 @@ export function ReportDocumentBuilder({
         const apiError = toApiError(error);
         const errorCode = apiError.code ?? await readPdfErrorCode(error);
         setPdfError(errorCode === "PDF_RENDER_FAILED"
-          ? "The API is reachable, but its server-side PDF renderer is unavailable. Ask an administrator to check the configured Chromium or Brave binary and its runtime permissions. The HTML preview remains available."
+          ? "The API is reachable, but its server-side PDF renderer is unavailable. Ask an administrator to check the Dompdf installation and server logs. The HTML preview remains available."
           : "The PDF could not be generated. Your live preview is still available; use Print or try Download PDF again.");
       }
     } finally {
@@ -222,6 +226,11 @@ export function ReportDocumentBuilder({
 
   function printPreview() {
     document.querySelector<HTMLIFrameElement>(".report-builder__preview iframe")?.contentWindow?.print();
+  }
+
+  function goHome() {
+    onClose();
+    navigate(routes.dashboard);
   }
 
   if (!open) return null;
@@ -254,8 +263,9 @@ export function ReportDocumentBuilder({
             <Button type="button" variant="secondary" onClick={retryApiConnection}>Retry API connection</Button>
           </div>
         ) : null}
-        <div className="report-builder__actions"><Button type="button" variant="secondary" icon={<Printer aria-hidden="true" />} disabled={!previewUrl} onClick={printPreview}>Print</Button><Button type="button" icon={<Download aria-hidden="true" />} disabled={pdfPending || apiAvailability !== "available"} onClick={() => void downloadPdf()}>{pdfPending ? "Preparing PDF..." : "Download PDF"}</Button></div>
+        <div className="report-builder__actions"><Button type="button" variant="secondary" icon={<House aria-hidden="true" />} onClick={goHome}>Back to home</Button><Button type="button" variant="secondary" icon={<Printer aria-hidden="true" />} disabled={!previewUrl} onClick={printPreview}>Print</Button><Button type="button" icon={<Download aria-hidden="true" />} disabled={pdfPending || apiAvailability !== "available"} onClick={() => void downloadPdf()}>{pdfPending ? "Preparing PDF..." : "Download PDF"}</Button></div>
         {pdfError ? <div className="report-builder__error" role="alert">{pdfError}</div> : null}
+        {state.periodType === "weekly" ? <WeeklyReportApproval key={state.week} week={state.week} /> : null}
         <div className="report-builder__preview" aria-label="Live report preview">
           {apiAvailability === "checking" ? <p>Checking the CaneGuard API connection...</p> : previewUrl ? <iframe title="Live report preview" src={previewUrl} /> : apiAvailability === "available" ? <p>Preparing the report preview...</p> : null}
         </div>

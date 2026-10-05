@@ -1,0 +1,5 @@
+# Repository owner
+* @niks0501
+
+# Protect the CODEOWNERS configuration
+/.github/CODEOWNERS @niks0501

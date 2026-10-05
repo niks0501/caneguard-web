@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\Reports\PersistReport;
 use App\Actions\Reports\StoreReport;
+use App\Contracts\MobileReportUploadV2Contract;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -29,7 +30,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_is_transactional_and_idempotent_by_reporter_and_client_uuid(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-upload-test')->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -74,7 +75,7 @@ class MobileReportUploadTest extends TestCase
     public function test_mobile_report_conflict_echoes_the_submitted_client_uuid(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-upload-conflict-test')->plainTextToken;
         $clientUuid = fake()->uuid();
         $storeReport = Mockery::mock(StoreReport::class);
@@ -94,7 +95,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_persists_and_returns_all_smart_field_report_fields(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('smart-fields-upload-test')->plainTextToken;
         $clientUuid = fake()->uuid();
         $payload = array_merge($this->payload($clientUuid), [
@@ -151,7 +152,8 @@ class MobileReportUploadTest extends TestCase
             $report->reporter_observation_text,
         );
 
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $this->withoutToken();
         Sanctum::actingAs($reviewer);
         $this->getJson("/api/v1/reports/{$report->uuid}")
             ->assertOk()
@@ -163,7 +165,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_persists_an_explicit_no_mismatch_without_reporter_text(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('no-mismatch-upload-test')->plainTextToken;
 
         $this->withToken($token)
@@ -187,7 +189,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_allows_a_mismatch_without_a_description(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mismatch-without-text-test')->plainTextToken;
 
         $this->withToken($token)
@@ -206,7 +208,7 @@ class MobileReportUploadTest extends TestCase
         Storage::fake('local');
         $serverNow = CarbonImmutable::parse('2026-07-20T06:30:00.123Z');
         CarbonImmutable::setTestNow($serverNow);
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('field-report-contract-test')->plainTextToken;
         $clientUuid = fake()->uuid();
         $scanRecordClientUuid = fake()->uuid();
@@ -275,7 +277,8 @@ class MobileReportUploadTest extends TestCase
                 $report->submitted_at->toISOString(),
             );
 
-            Sanctum::actingAs(User::factory()->reviewer()->create());
+            $this->withoutToken();
+            Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
             $this->getJson("/api/v1/reports/{$report->uuid}")
                 ->assertOk()
                 ->assertJsonPath(
@@ -294,7 +297,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_without_smart_fields_remains_backward_compatible(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('legacy-upload-test')->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -347,7 +350,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_accepts_zero_and_one_hundred_percent_boundaries(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('portion-boundaries-test')->plainTextToken;
 
         foreach ([0, 100] as $portion) {
@@ -370,7 +373,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_rejects_invalid_smart_field_numeric_ranges_and_types(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('smart-fields-validation-test')->plainTextToken;
 
         foreach ([0, -1] as $area) {
@@ -413,7 +416,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_rejects_smart_field_strings_over_their_limits(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('smart-fields-length-test')->plainTextToken;
 
         foreach ([
@@ -440,7 +443,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_rejects_invalid_mismatch_and_model_taxonomy_values(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mismatch-validation-test')->plainTextToken;
 
         foreach ([
@@ -472,7 +475,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_normalizes_absent_null_and_empty_smart_fields_to_null(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('smart-fields-null-test')->plainTextToken;
         $fields = [
             'sugarcane_variety',
@@ -512,7 +515,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_validates_mobile_location_boundaries_and_cross_field_rules(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('location-validation-test')->plainTextToken;
 
         foreach ([
@@ -581,7 +584,7 @@ class MobileReportUploadTest extends TestCase
     public function test_original_required_upload_fields_remain_required(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('required-fields-test')->plainTextToken;
         $requiredFields = [
             'client_uuid',
@@ -617,8 +620,8 @@ class MobileReportUploadTest extends TestCase
     public function test_same_client_uuid_is_scoped_to_the_reporter(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
-        $otherReporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $otherReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $clientUuid = fake()->uuid();
         $firstToken = $reporter->createToken('owner-one')->plainTextToken;
         $secondToken = $otherReporter->createToken('owner-two')->plainTextToken;
@@ -650,13 +653,13 @@ class MobileReportUploadTest extends TestCase
     public function test_idempotent_resubmission_preserves_existing_review_snapshot_and_version(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('review-preservation-test')->plainTextToken;
         $clientUuid = fake()->uuid();
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $reviewedAt = now()->subMinute()->setMicrosecond(123000);
         $imagePath = 'reports/existing-review.png';
-        $report = Report::factory()->create([
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reporter_id' => $reporter,
             'client_uuid' => $clientUuid,
             'image_path' => $imagePath,
@@ -697,9 +700,9 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_ignores_spoofed_reporter_and_reviewer_fields(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
-        $spoofedReporter = User::factory()->fieldReporter()->create();
-        $spoofedReviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $spoofedReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $spoofedReviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $token = $reporter->createToken('spoofed-identity-test')->plainTextToken;
         $clientUuid = fake()->uuid();
 
@@ -707,11 +710,18 @@ class MobileReportUploadTest extends TestCase
             ->withHeader('Accept', 'application/json')
             ->post('/api/v1/mobile/reports', array_merge(
                 $this->payload($clientUuid),
-                [
+                array_replace(array_fill_keys(array_merge(
+                    MobileReportUploadV2Contract::definition()['authority']['server_derived'],
+                    MobileReportUploadV2Contract::definition()['authority']['server_owned_read_only'],
+                ), 'spoofed'), [
+                    'lock_version' => 9999,
+                    'district_id' => 9999,
+                    'district_code' => 'spoofed',
+                    'review_status' => Report::STATUS_RESOLVED,
                     'reporter_id' => $spoofedReporter->getKey(),
                     'reviewer_id' => $spoofedReviewer->getKey(),
                     'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
-                ],
+                ]),
             ))
             ->assertCreated()
             ->assertJsonPath('data.reporter.uuid', $reporter->uuid);
@@ -719,7 +729,15 @@ class MobileReportUploadTest extends TestCase
         $this->assertDatabaseHas('reports', [
             'client_uuid' => $clientUuid,
             'reporter_id' => $reporter->getKey(),
+            'district_id' => $this->pilotDistrict()->id,
             'reviewer_id' => null,
+            'review_notes' => null,
+            'reviewed_at' => null,
+            'lock_version' => 0,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
             'authority_classified_condition' => null,
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
         ]);
@@ -732,7 +750,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_rejects_reviewer_role(): void
     {
         Storage::fake('local');
-        $reviewer = User::factory()->reviewer()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $token = $reviewer
             ->createToken('reviewer-upload-test')
             ->plainTextToken;
@@ -750,7 +768,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_rejects_admin_role(): void
     {
         Storage::fake('local');
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create();
         $token = $admin->createToken('admin-upload-test')->plainTextToken;
 
         $this->withToken($token)
@@ -765,8 +783,8 @@ class MobileReportUploadTest extends TestCase
 
     public function test_status_feed_rejects_a_submit_only_token_even_for_an_owner(): void
     {
-        $reporter = User::factory()->fieldReporter()->create();
-        Report::factory()->create(['reporter_id' => $reporter]);
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $reporter]);
         $token = $reporter
             ->createToken('submit-only-status-audit', ['report:submit'])
             ->plainTextToken;
@@ -780,7 +798,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_requires_report_submit_token_ability(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter
             ->createToken('status-only', ['report:status'])
             ->plainTextToken;
@@ -798,7 +816,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_rejects_invalid_payloads(): void
     {
         Storage::fake('local');
-        $fieldReporter = User::factory()->fieldReporter()->create();
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $fieldToken = $fieldReporter
             ->createToken('invalid-upload-test')
             ->plainTextToken;
@@ -819,7 +837,7 @@ class MobileReportUploadTest extends TestCase
     public function test_upload_accepts_an_omitted_empty_quality_warnings_array(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter
             ->createToken('empty-quality-warnings-test')
             ->plainTextToken;
@@ -838,7 +856,7 @@ class MobileReportUploadTest extends TestCase
     public function test_image_is_deleted_when_database_creation_fails(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('rollback-test')->plainTextToken;
         Event::listen(
             'eloquent.created: '.Report::class,
@@ -867,7 +885,7 @@ class MobileReportUploadTest extends TestCase
     public function test_competing_insert_returns_the_winning_idempotent_report(): void
     {
         Storage::fake('local');
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('race-recovery-test')->plainTextToken;
         $clientUuid = fake()->uuid();
         $winningReport = null;
@@ -878,7 +896,7 @@ class MobileReportUploadTest extends TestCase
                 User $persistedReporter,
                 array $data,
             ) use (&$winningReport): never {
-                $winningReport = Report::factory()->create([
+                $winningReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
                     'reporter_id' => $persistedReporter,
                     'client_uuid' => $data['client_uuid'],
                 ]);
@@ -905,7 +923,7 @@ class MobileReportUploadTest extends TestCase
 
     public function test_cleanup_failure_is_logged_without_masking_database_failure(): void
     {
-        $reporter = User::factory()->fieldReporter()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('cleanup-failure-test')->plainTextToken;
         $disk = Mockery::mock(FilesystemAdapter::class);
         $disk->shouldReceive('putFileAs')

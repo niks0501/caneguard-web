@@ -11,9 +11,43 @@ import {
   mapPaginationMeta,
   mapReportDetail,
   mapReportListItem,
+  resolveReportImageUrl,
 } from "./report.mapper";
 
 describe("report mappers", () => {
+  it("rebases host-local image URLs onto the configured API host", () => {
+    expect(
+      resolveReportImageUrl(
+        "http://localhost/storage/reports/photo.jpg",
+        "https://api.caneguard.test/api/v1",
+      ),
+    ).toBe("https://api.caneguard.test/storage/reports/photo.jpg");
+    expect(
+      resolveReportImageUrl(
+        "http://127.0.0.1:8000/storage/reports/photo.jpg",
+        "https://api.caneguard.test/api/v1",
+      ),
+    ).toBe("https://api.caneguard.test/storage/reports/photo.jpg");
+    expect(
+      resolveReportImageUrl(
+        "https://cdn.caneguard.test/storage/reports/photo.jpg",
+        "https://api.caneguard.test/api/v1",
+      ),
+    ).toBe("https://cdn.caneguard.test/storage/reports/photo.jpg");
+  });
+
+  it("resolves app-relative image links against localhost and LAN API bases", () => {
+    const imagePath = "/api/v1/reports/report-uuid/image";
+
+    expect(imagePath.startsWith("/")).toBe(true);
+    expect(resolveReportImageUrl(imagePath, "http://localhost:8000")).toBe(
+      "http://localhost:8000/api/v1/reports/report-uuid/image",
+    );
+    expect(resolveReportImageUrl(imagePath, "http://192.168.1.42:8000")).toBe(
+      "http://192.168.1.42:8000/api/v1/reports/report-uuid/image",
+    );
+  });
+
   it("maps snake_case list fields into the domain model", () => {
     const report = mapReportListItem(paginatedReportsDto.data[0]);
 
@@ -35,6 +69,32 @@ describe("report mappers", () => {
       mismatchReported: true,
     });
     expect(report.confidence).toBeUndefined();
+  });
+
+  it("resolves relative detail image URLs against the configured API base", () => {
+    const relativePath = "/storage/reports/detail-photo.jpg";
+    const relativeReport = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: { ...reportDetailDto, image: { ...reportDetailDto.image, url: relativePath } },
+      }).data,
+    );
+    const lanReport = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: { ...reportDetailDto, image: { ...reportDetailDto.image, url: relativePath } },
+      }).data,
+      "http://192.168.1.42:8000",
+    );
+    const absoluteReport = mapReportDetail(
+      reportDetailResponseSchema.parse({ data: reportDetailDto }).data,
+    );
+
+    expect(relativeReport.imageUrl).toBe(
+      "http://localhost:8000/storage/reports/detail-photo.jpg",
+    );
+    expect(lanReport.imageUrl).toBe(
+      "http://192.168.1.42:8000/storage/reports/detail-photo.jpg",
+    );
+    expect(absoluteReport.imageUrl).toBe(reportDetailDto.image.url);
   });
 
   it("maps detail observations and review data", () => {

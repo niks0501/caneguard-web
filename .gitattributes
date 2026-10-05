@@ -9,6 +9,7 @@ graphify-out/graph.json merge=graphify
 
 
 
+
 # >>> AkiDev line endings >>>
 /AGENTS.md text eol=lf
 /.agents/** text eol=lf
@@ -18,6 +19,4 @@ graphify-out/graph.json merge=graphify
 /.akidev/config text eol=lf
 /.akidev/managed.tsv text eol=lf
 /opencode.jsonc text eol=lf
-/.pre-commit-config.yaml text eol=lf
-/.gitleaks.toml text eol=lf
 # <<< AkiDev line endings <<<

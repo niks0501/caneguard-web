@@ -23,14 +23,14 @@ class ReleaseDemoFlowMySqlTest extends TestCase
     public function test_release_demo_flow_persists_a_review_across_requests(): void
     {
         $this->assertSame('mysql', DB::connection()->getDriverName());
-        $this->assertSame('caneguard_test', DB::connection()->getDatabaseName());
+        $this->assertMatchesRegularExpression('/^(caneguard_test|firstmate_[a-z0-9_]+)$/D', DB::connection()->getDatabaseName());
 
         $reviewerPassword = Str::random(40);
-        $reviewer = User::factory()->reviewer()->create([
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'name' => 'Release Test Reviewer',
             'password' => $reviewerPassword,
         ]);
-        $fieldReporter = User::factory()->fieldReporter()->create([
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create([
             'name' => 'Release Test Field Reporter',
         ]);
 

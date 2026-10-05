@@ -14,6 +14,12 @@ class MobileAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPilotFixtures();
+    }
+
     public function test_field_reporter_can_login_and_restore_mobile_session(): void
     {
         $reporter = User::factory()->fieldReporter()->create([
@@ -33,7 +39,7 @@ class MobileAuthenticationTest extends TestCase
             ->assertJsonPath('user.email', $reporter->email)
             ->assertJsonPath('user.role', User::ROLE_FIELD_REPORTER);
 
-        $this->assertNull($response->json('expires_at'));
+        $this->assertNotNull($response->json('expires_at'));
         $plainTextToken = $response->json('token');
         $accessToken = PersonalAccessToken::findToken($plainTextToken);
 
@@ -43,7 +49,7 @@ class MobileAuthenticationTest extends TestCase
             ['report:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read'],
             $accessToken->abilities,
         );
-        $this->assertNull($accessToken->expires_at);
+        $this->assertTrue($accessToken->expires_at->equalTo($accessToken->created_at->copy()->addDays(30)));
 
         $this->withToken($plainTextToken)
             ->getJson('/api/v1/mobile/auth/me')
@@ -54,6 +60,8 @@ class MobileAuthenticationTest extends TestCase
                     'name' => $reporter->name,
                     'email' => $reporter->email,
                     'role' => User::ROLE_FIELD_REPORTER,
+                    'capabilities' => IssueMobileToken::abilities(),
+                    'district_id' => $this->pilotDistrict()->id,
                 ],
             ]);
     }
@@ -191,14 +199,14 @@ class MobileAuthenticationTest extends TestCase
                 'id' => $current->accessToken->getKey(),
                 'device_id' => 'current-device',
                 'device_name' => 'Current Android',
-                'expires_at' => null,
+                'expires_at' => $current->accessToken->expires_at->toISOString(),
                 'is_current' => true,
             ])
             ->assertJsonFragment([
                 'id' => $other->accessToken->getKey(),
                 'device_id' => 'backup-device',
                 'device_name' => 'Backup Android',
-                'expires_at' => null,
+                'expires_at' => $other->accessToken->expires_at->toISOString(),
                 'is_current' => false,
             ])
             ->assertJsonMissing(['token' => $current->plainTextToken])
@@ -286,7 +294,7 @@ class MobileAuthenticationTest extends TestCase
         );
     }
 
-    public function test_web_authenticated_user_can_list_and_revoke_their_mobile_devices(): void
+    public function test_office_users_cannot_enter_mobile_device_routes(): void
     {
         $user = User::factory()->reviewer()->create();
         $deviceToken = $user->createToken(
@@ -297,19 +305,12 @@ class MobileAuthenticationTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/v1/mobile/auth/devices')
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.device_name', 'Reviewer Tablet')
-            ->assertJsonPath('data.0.is_current', false);
+        $this->getJson('/api/v1/mobile/auth/devices')->assertForbidden();
+        $this->deleteJson('/api/v1/mobile/auth/devices/'.$deviceToken->accessToken->getKey())->assertForbidden();
 
-        $this->deleteJson('/api/v1/mobile/auth/devices/'.$deviceToken->accessToken->getKey())
-            ->assertNoContent();
-
-        $this->assertNull(PersonalAccessToken::findToken($deviceToken->plainTextToken));
-        $this->assertDatabaseHas('security_audits', [
+        $this->assertNotNull(PersonalAccessToken::findToken($deviceToken->plainTextToken));
+        $this->assertDatabaseMissing('security_audits', [
             'action' => SecurityAudit::ACTION_MOBILE_DEVICE_REVOCATION,
-            'outcome' => SecurityAudit::OUTCOME_SUCCESS,
             'target_user_id' => $user->getKey(),
         ]);
     }
