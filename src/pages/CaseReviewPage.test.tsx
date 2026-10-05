@@ -302,6 +302,17 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText("Loading report...")).toBeInTheDocument();
   });
 
+  it("renders future model evidence without dropping unknown class labels", () => {
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: {
+      ...report, modelVersion: "v2-future", modelVersionRecognised: false,
+      classScores: [{ label: "healthy", score: 0.2 }, { label: "new_class", score: 0.8 }],
+    } }));
+    renderPage();
+    expect(screen.getByText(/Model version not recognised — evidence shown as submitted: v2-future/)).toBeInTheDocument();
+    expect(screen.getByText("new_class (unrecognised class)")).toBeInTheDocument();
+    expect(screen.getByText("80%")).toBeInTheDocument();
+  });
+
   it("renders the submitted photo, Possible Condition, observations, and review detail", async () => {
     const user = userEvent.setup();
     renderPage();

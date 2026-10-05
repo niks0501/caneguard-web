@@ -358,8 +358,9 @@ export interface DiseaseReport {
   sourceHeight?: number;
   symptoms: SymptomResponse[];
   fieldNotes?: string;
-  classScores?: Array<{ label: DiseaseKey; score: number }>;
+  classScores?: Array<{ label: string; score: number }>;
   modelVersion?: string;
+  modelVersionRecognised?: boolean;
   processingTimingsMs?: {
     preprocess: number;
     inference: number;

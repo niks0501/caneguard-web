@@ -12,7 +12,7 @@ class MobileReportUploadV2ContractTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_v2_artifact_compiles_to_the_four_class_request_boundary(): void
+    public function test_v2_artifact_compiles_conditional_model_keys_and_client_only_write_boundary(): void
     {
         $contract = MobileReportUploadV2Contract::definition();
 
@@ -27,23 +27,21 @@ class MobileReportUploadV2ContractTest extends TestCase
         );
         $this->assertSame(
             ['healthy', 'mosaic', 'rust', 'smut'],
-            $contract['fields']['class_scores']['required_keys'],
+            $contract['fields']['class_scores']['conditions'][0]['required_keys'],
         );
         $this->assertSame(
             4,
             $contract['fields']['class_scores']['min_properties'],
         );
-        $this->assertSame(
-            4,
-            $contract['fields']['class_scores']['max_properties'],
-        );
+        $this->assertArrayNotHasKey('max_properties', $contract['fields']['class_scores']);
+        $this->assertTrue($contract['fields']['class_scores']['additional_properties']);
         $this->assertContains(
             'smut',
             $contract['fields']['symptom_keys']['items']['enum'],
         );
         $this->assertSame(
             ['v1.0-mobilenetv2'],
-            $contract['fields']['model_version']['enum'],
+            $contract['fields']['model_version']['known_values'],
         );
 
         $request = StoreMobileReportV2Request::create(
@@ -55,6 +53,14 @@ class MobileReportUploadV2ContractTest extends TestCase
             fn (string $name): bool => ! str_contains($name, '.'),
         ));
         $this->assertSame(array_keys($contract['fields']), $compiledFields);
+        $clientFields = $contract['authority']['client_owned'];
+        sort($clientFields);
+        $acceptedFields = $compiledFields;
+        sort($acceptedFields);
+        $this->assertSame($acceptedFields, $clientFields);
+        foreach (array_merge($contract['authority']['server_derived'], $contract['authority']['server_owned_read_only']) as $field) {
+            $this->assertNotContains($field, $compiledFields);
+        }
 
         $route = app('router')->getRoutes()->match(
             Request::create($contract['wire']['path'], $contract['wire']['method']),

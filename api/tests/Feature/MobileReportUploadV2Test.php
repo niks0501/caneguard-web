@@ -209,7 +209,7 @@ class MobileReportUploadV2Test extends TestCase
         }
 
         $this->assertDatabaseCount('reports', 0);
-        $this->assertSame(4, count(MobileReportUploadV2Contract::field('class_scores')['required_keys']));
+        $this->assertSame(4, count(MobileReportUploadV2Contract::field('class_scores')['conditions'][0]['required_keys']));
     }
 
     public function test_v2_status_feed_exposes_a_completed_authority_review_to_mobile(): void
@@ -402,6 +402,15 @@ class MobileReportUploadV2Test extends TestCase
             $report->location_unavailable_reason,
         );
         $this->assertSame('Mabini', $report->barangay);
+        Auth::forgetGuards();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $this->withoutToken()->actingAs($reviewer, 'web');
+        $this->getJson('/api/v1/reports/map')->assertOk()->assertJsonCount(0, 'features')
+            ->assertJsonPath('metadata.unlocated_count', 1);
+        $this->getJson('/api/v1/reports/field-validation-queue')->assertOk()->assertJsonPath('data.count', 0);
+        // Newly submitted reports enter needs-review, not needs-visit.
+        $this->getJson('/api/v1/reports?queue=needs_review')->assertOk()->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.uuid', $report->uuid);
     }
 
     public function test_v2_rejects_incoherent_location_provenance(): void
@@ -453,6 +462,113 @@ class MobileReportUploadV2Test extends TestCase
             ]))
             ->assertStatus(422)
             ->assertJsonPath('code', 'VALIDATION_ERROR');
+    }
+
+    public function test_v2_persists_future_model_evidence_and_exposes_recognition_without_rejecting_it(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('future-model', ['report:submit'])->plainTextToken;
+        $clientUuid = fake()->uuid();
+        $scores = ['alpha' => 0.1, 'beta' => 0.2, 'gamma' => 0.3, 'delta' => 0.4, 'new_class' => 0.5];
+
+        $this->withToken($token)->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, [
+                'model_version' => 'v2-future',
+                'class_scores' => $scores,
+            ]))->assertCreated()->assertJsonPath('data.model.model_version', 'v2-future')
+            ->assertJsonCount(5, 'data.model.class_scores');
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        ksort($scores);
+        $this->assertSame($scores, $report->classScores()->pluck('score', 'label')->map(fn ($value) => (float) $value)->all());
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Auth::forgetGuards();
+        $this->withoutToken()->actingAs($reviewer, 'web')
+            ->getJson("/api/v1/reports/{$report->uuid}")->assertOk()
+            ->assertJsonPath('data.model.model_version_recognised', false)
+            ->assertJsonCount(5, 'data.model.class_scores');
+        config(['caneguard.accepted_model_versions' => ['v2-future']]);
+        $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()
+            ->assertJsonPath('data.model.model_version_recognised', true);
+    }
+
+    public function test_v2_future_evidence_still_rejects_malformed_versions_keys_and_scores(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('future-model-invalid', ['report:submit'])->plainTextToken;
+        foreach ([
+            ['model_version' => ''],
+            ['model_version' => str_repeat('x', 101)],
+            ['class_scores' => ['a' => 0, 'b' => 0, 'c' => 0]],
+            ['class_scores' => ['a' => 0, 'b' => 0, 'c' => 0, 'd' => 1.1]],
+            ['class_scores' => ['a' => 0, 'b' => 0, 'c' => 0, 'd' => 'bad']],
+            ['class_scores' => ['a' => 0, 'b' => 0, 'c' => 0, 'nested' => ['x' => 1]]],
+            ['class_scores' => ['a' => 0, 'b' => 0, 'c' => 0, 'bad.key' => 1]],
+            ['class_scores' => ['a' => 0, 'b' => 0, 'c' => 0, str_repeat('x', 33) => 1]],
+        ] as $overrides) {
+            $this->withToken($token)->withHeader('Accept', 'application/json')
+                ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), array_replace([
+                    'model_version' => 'future',
+                ], $overrides)))->assertUnprocessable();
+        }
+        $this->assertDatabaseCount('reports', 0);
+    }
+
+    public function test_v2_every_server_authority_field_is_ignored_on_create_and_reviewed_replay(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('all-authority-spoofs', ['report:submit'])->plainTextToken;
+        $definition = MobileReportUploadV2Contract::definition();
+        $spoofs = array_fill_keys(array_merge(
+            $definition['authority']['server_derived'],
+            $definition['authority']['server_owned_read_only'],
+            ['district_code', 'location_group_key', 'location_group_size'],
+        ), 'spoofed');
+        $spoofs['lock_version'] = 9999;
+        $spoofs['review_status'] = Report::STATUS_RESOLVED;
+        $spoofs['district_id'] = 9999;
+        $spoofs['reporter_id'] = 9999;
+        $clientUuid = fake()->uuid();
+        $this->withToken($token)->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, $spoofs))
+            ->assertCreated()->assertJsonPath('data.review.status', Report::STATUS_SUBMITTED_UNVERIFIED);
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertSame($reporter->id, $report->reporter_id);
+        $this->assertSame($this->pilotDistrict()->id, $report->district_id);
+        $this->assertSame(0, $report->lock_version);
+        $this->assertNull($report->reviewer_id);
+        $this->assertNull($report->review_notes);
+        $this->assertNull($report->reviewed_at);
+        $this->assertNull($report->authority_classified_condition);
+        $this->assertSame(Report::CASE_STATE_OPEN, $report->case_state);
+        $this->assertSame(Report::VERIFICATION_OUTCOME_NOT_DETERMINED, $report->verification_outcome);
+        $this->assertSame(Report::FIELD_VALIDATION_STATE_UNASSIGNED, $report->field_validation_state);
+        $this->assertSame(Report::REFERRAL_STATE_NOT_REFERRED, $report->referral_state);
+        $this->assertNotSame('spoofed', $report->uuid);
+        $this->assertNotSame('spoofed', $report->reference_code);
+        $this->assertSame('image/png', $report->image_mime_type);
+        $this->assertGreaterThan(0, $report->image_size_bytes);
+        foreach (['submitted_at', 'created_at', 'updated_at'] as $field) {
+            $this->assertNotNull($report->{$field});
+        }
+
+        $report->update([
+            'review_status' => Report::STATUS_UNABLE_TO_VERIFY,
+            'review_notes' => 'Rejected evidence; new UUID required for a new submission.',
+            'reviewed_at' => now(),
+            'lock_version' => 7,
+        ]);
+        $before = $report->fresh()->getAttributes();
+        $this->withToken($token)->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, $spoofs))
+            ->assertOk()->assertJsonPath('data.identity.uuid', $report->uuid)
+            ->assertJsonPath('data.review.status', Report::STATUS_UNABLE_TO_VERIFY);
+        $this->assertSame($before, $report->fresh()->getAttributes());
+        $this->assertDatabaseCount('reports', 1);
+        $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
     }
 
     private function payload(string $clientUuid, array $overrides = []): array

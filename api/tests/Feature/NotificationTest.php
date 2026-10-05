@@ -73,7 +73,7 @@ class NotificationTest extends TestCase
                 && $event->broadcastAs() === 'case.submitted'
                 && $event->broadcastWith() === [
                     'event_type' => 'new_case_submitted',
-                    'domains' => ['reports', 'dashboard', 'notifications'],
+                    'domains' => ['reports', 'dashboard', 'field-validation', 'notifications'],
                 ];
         });
     }

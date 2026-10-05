@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\Reports\PersistReport;
 use App\Actions\Reports\StoreReport;
+use App\Contracts\MobileReportUploadV2Contract;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -709,11 +710,18 @@ class MobileReportUploadTest extends TestCase
             ->withHeader('Accept', 'application/json')
             ->post('/api/v1/mobile/reports', array_merge(
                 $this->payload($clientUuid),
-                [
+                array_replace(array_fill_keys(array_merge(
+                    MobileReportUploadV2Contract::definition()['authority']['server_derived'],
+                    MobileReportUploadV2Contract::definition()['authority']['server_owned_read_only'],
+                ), 'spoofed'), [
+                    'lock_version' => 9999,
+                    'district_id' => 9999,
+                    'district_code' => 'spoofed',
+                    'review_status' => Report::STATUS_RESOLVED,
                     'reporter_id' => $spoofedReporter->getKey(),
                     'reviewer_id' => $spoofedReviewer->getKey(),
                     'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
-                ],
+                ]),
             ))
             ->assertCreated()
             ->assertJsonPath('data.reporter.uuid', $reporter->uuid);
@@ -721,7 +729,15 @@ class MobileReportUploadTest extends TestCase
         $this->assertDatabaseHas('reports', [
             'client_uuid' => $clientUuid,
             'reporter_id' => $reporter->getKey(),
+            'district_id' => $this->pilotDistrict()->id,
             'reviewer_id' => null,
+            'review_notes' => null,
+            'reviewed_at' => null,
+            'lock_version' => 0,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
+            'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
             'authority_classified_condition' => null,
             'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
         ]);

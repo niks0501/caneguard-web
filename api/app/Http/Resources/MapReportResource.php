@@ -21,6 +21,9 @@ class MapReportResource extends JsonResource
             ],
             'properties' => [
                 'uuid' => $this->uuid,
+                'location_group_key' => $this->location_group_key,
+                'location_group_size' => $this->location_group_size,
+                'location_group_coordinates' => $this->location_group_coordinates,
                 'reference_code' => $this->reference_code,
                 'barangay' => $this->barangay,
                 'province' => $this->province,

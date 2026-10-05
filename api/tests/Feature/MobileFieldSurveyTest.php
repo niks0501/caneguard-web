@@ -37,6 +37,12 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertSame($inspector->id, $survey->inspector_id);
         $this->assertSame($district->id, $survey->district_id);
         $this->assertDatabaseCount('reports', 0);
+        Auth::forgetGuards();
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->withoutToken()->actingAs($reviewer, 'web');
+        $this->getJson('/api/v1/reports/map')->assertOk()->assertJsonCount(0, 'features')
+            ->assertJsonPath('metadata.total_count', 0);
+        $this->getJson('/api/v1/reports/field-validation-queue')->assertOk()->assertJsonPath('data.count', 0);
     }
 
     public function test_closed_rings_accept_numeric_equivalence_precise_points_and_holes(): void
