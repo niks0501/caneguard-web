@@ -23,6 +23,7 @@ class EmptyDatabaseSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
             'caneguard.demo_users.admin_password' => 'admin-test-password',
+            'caneguard.pilot_district_code' => 'test-pilot',
         ]);
     }
 
