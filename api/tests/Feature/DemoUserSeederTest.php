@@ -25,6 +25,7 @@ class DemoUserSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
             'caneguard.demo_users.admin_password' => 'admin-test-password',
+            'caneguard.pilot_district_code' => 'demo-pilot',
         ]);
 
         $this->seed(DatabaseSeeder::class);
@@ -59,14 +60,14 @@ class DemoUserSeederTest extends TestCase
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
             'caneguard.demo_users.admin_password' => 'admin-test-password',
-            'caneguard.pilot_district_code' => ' demo-pilot ',
+            'caneguard.pilot_district_code' => ' nasugbu-issuing ',
         ]);
         $this->assertDatabaseCount('districts', 0);
         $this->assertDatabaseCount('district_memberships', 0);
 
         $this->seed(DatabaseSeeder::class);
 
-        $district = District::query()->where('code', 'demo-pilot')->sole();
+        $district = District::query()->where('code', 'nasugbu-issuing')->sole();
         $access = app(DistrictAccess::class);
         foreach (['mao@caneguard.test' => 'reviewer-test-password', 'admin@caneguard.test' => 'admin-test-password'] as $email => $password) {
             $user = User::query()->where('email', $email)->sole();
@@ -139,7 +140,7 @@ class DemoUserSeederTest extends TestCase
         }
     }
 
-    public function test_blank_pilot_configuration_does_not_manufacture_district_access(): void
+    public function test_blank_pilot_configuration_aborts_seeding_with_the_missing_environment_key(): void
     {
         config([
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
@@ -148,13 +149,19 @@ class DemoUserSeederTest extends TestCase
             'caneguard.pilot_district_code' => ' ',
         ]);
 
-        $this->seed(DatabaseSeeder::class);
+        try {
+            $this->seed(DatabaseSeeder::class);
+            $this->fail('The seeder should reject a blank pilot district code.');
+        } catch (LogicException $exception) {
+            $this->assertSame(
+                'Set CANEGUARD_PILOT_DISTRICT_CODE before seeding demo users.',
+                $exception->getMessage(),
+            );
+        }
 
+        $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('districts', 0);
         $this->assertDatabaseCount('district_memberships', 0);
-        foreach (User::query()->whereIn('role', User::officeRoles())->get() as $user) {
-            $this->assertFalse(app(DistrictAccess::class)->office($user));
-        }
     }
 
     public function test_demo_users_require_local_password_configuration(): void

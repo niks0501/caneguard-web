@@ -50,6 +50,13 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        $pilotCode = trim((string) config('caneguard.pilot_district_code'));
+        if ($pilotCode === '') {
+            throw new LogicException(
+                'Set CANEGUARD_PILOT_DISTRICT_CODE before seeding demo users.',
+            );
+        }
+
         $seededUsers = [];
         foreach ($users as $user) {
             $attributes = $user;
@@ -66,14 +73,13 @@ class DatabaseSeeder extends Seeder
             $seededUsers[] = $seededUser;
         }
 
-        $pilotCode = trim((string) config('caneguard.pilot_district_code'));
-        $pilotDistrict = $pilotCode === '' ? null : District::query()->firstOrCreate(
+        $pilotDistrict = District::query()->firstOrCreate(
             ['code' => $pilotCode],
             ['name' => $pilotCode],
         );
 
         foreach ($seededUsers as $seededUser) {
-            if ($pilotDistrict !== null && $seededUser->isOfficeUser()) {
+            if ($seededUser->isOfficeUser()) {
                 DistrictMembership::query()->firstOrCreate([
                     'user_id' => $seededUser->id,
                     'district_id' => $pilotDistrict->id,

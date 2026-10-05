@@ -704,6 +704,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
     private function seedReportDemoDataset(): void
     {
+        config(['caneguard.pilot_district_code' => 'test-pilot']);
         $this->seed(DatabaseSeeder::class);
     }
 }
