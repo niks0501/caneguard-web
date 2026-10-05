@@ -424,11 +424,12 @@ export const reportDetailSchema = z.object({
     confidence: z.number().min(0).max(1),
     class_scores: z.array(
       z.object({
-        label: diseaseKeySchema,
+        label: z.string().min(1).max(32),
         score: z.number().min(0).max(1),
       }),
     ),
     model_version: z.string(),
+    model_version_recognised: z.boolean().optional(),
     timings_ms: z.object({
       preprocess: z.number().nonnegative(),
       inference: z.number().nonnegative(),

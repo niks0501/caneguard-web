@@ -230,6 +230,27 @@ beforeEach(() => {
 });
 
 describe("ReportLocationMap layer toggle", () => {
+  it("plots one counted server-group marker and links every member on click", async () => {
+    const data = gpsData();
+    data.features.forEach((feature) => Object.assign(feature.properties, {
+      locationGroupKey: "server-group", locationGroupSize: 2, locationGroupCoordinates: [120.6, 14.07],
+    }));
+    data.metadata.truncated = true;
+    vi.mocked(useFieldValidationMap).mockReturnValue({ data, isPending: false, isError: false } as unknown as ReturnType<typeof useFieldValidationMap>);
+    const user = userEvent.setup();
+    renderMap();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    expect(mapState.sources.at(-1)).toEqual({ id: "dashboard-gps-points", features: 1 });
+    mapState.mapClickEvent = {
+      features: [{ layer: { id: "dashboard-gps-point" }, properties: { groupKey: "server-group" } }],
+      lngLat: { lng: 120.6, lat: 14.07 },
+    };
+    await user.click(screen.getByTestId("map-click"));
+    expect(screen.getByText("2 reports at this point")).toBeInTheDocument();
+    expect(screen.getByText("Within the returned map slice.")).toBeInTheDocument();
+    for (const feature of data.features) expect(screen.getByRole("link", { name: `Open ${feature.properties.referenceCode}` })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
+  });
+
   it("registers an image fallback when the map style requests an absent sprite", async () => {
     renderMap();
 
@@ -380,7 +401,7 @@ describe("ReportLocationMap layer toggle", () => {
         {
           layer: { id: "dashboard-gps-point" },
           properties: {
-            uuid: "00000000-0000-4000-8000-000000000001",
+            groupKey: "00000000-0000-4000-8000-000000000001",
             referenceCode: "CG-2026-0718",
             barangay: "Balaytigui",
           },
@@ -390,7 +411,7 @@ describe("ReportLocationMap layer toggle", () => {
     };
     await user.click(screen.getByTestId("map-click"));
     const gpsPopup = screen.getByRole("group", {
-      name: "Report CG-2026-0718 summary",
+      name: "Reports at this location",
     });
     expect(gpsPopup).toHaveTextContent("CG-2026-0718");
     expect(

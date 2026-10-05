@@ -7,6 +7,11 @@ return [
     'pilot_roster_certified' => env('CANEGUARD_PILOT_ROSTER_CERTIFIED', false),
     // Blank means no live district. Never infer membership from location/name.
     'pilot_district_code' => env('CANEGUARD_PILOT_DISTRICT_CODE', ''),
+    // Recognition only: unknown bounded versions remain valid submitted evidence.
+    'accepted_model_versions' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('CANEGUARD_ACCEPTED_MODEL_VERSIONS', 'v1.0-mobilenetv2')),
+    ))),
     'weekly_send_enabled' => env('CANEGUARD_WEEKLY_SEND_ENABLED', false),
     'auth' => [
         'verification_url' => env(
@@ -105,6 +110,7 @@ return [
             max(1, (int) env('CANEGUARD_MAP_DEFAULT_LIMIT', 1000)),
         ),
         'max_limit' => 1000,
+        'location_group_radius_meters' => max(1, (float) env('CANEGUARD_MAP_LOCATION_GROUP_RADIUS_METERS', 25)),
     ],
     'duplicate_assistance' => [
         'recent_window_hours' => 72,

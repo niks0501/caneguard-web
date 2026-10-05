@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\District;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -12,6 +13,60 @@ use Tests\TestCase;
 class ReportMapAndQueueTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_map_groups_visible_reports_within_25_meters_without_changing_evidence_or_queue_rows(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $anchor = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'final_latitude' => 14.1, 'final_longitude' => 120.6,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $near = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'final_latitude' => 14.10018, 'final_longitude' => 120.6,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $far = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'final_latitude' => 14.1005, 'final_longitude' => 120.6,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        Sanctum::actingAs($reviewer);
+        $response = $this->getJson('/api/v1/reports/map')->assertOk()
+            ->assertJsonPath('features.0.properties.location_group_key', $anchor->uuid)
+            ->assertJsonPath('features.1.properties.location_group_key', $anchor->uuid)
+            ->assertJsonPath('features.0.properties.location_group_size', 2)
+            ->assertJsonPath('features.1.properties.location_group_size', 2)
+            ->assertJsonPath('features.1.properties.location_group_coordinates', [120.6, 14.1])
+            ->assertJsonPath('features.1.geometry.coordinates', [120.6, 14.10018])
+            ->assertJsonPath('features.2.properties.location_group_key', $far->uuid)
+            ->assertJsonPath('features.2.properties.location_group_size', 1);
+        $this->assertSame($response->json(), $this->getJson('/api/v1/reports/map')->json());
+        $this->assertSame(14.10018, (float) $near->fresh()->final_latitude);
+        $this->getJson('/api/v1/reports/field-validation-queue')->assertOk()
+            ->assertJsonPath('data.count', 3)->assertJsonCount(3, 'data.items');
+        $this->getJson('/api/v1/reports/map?limit=1')->assertOk()
+            ->assertJsonPath('metadata.truncated', true)
+            ->assertJsonPath('features.0.properties.location_group_size', 1);
+    }
+
+    public function test_location_groups_never_count_or_name_hidden_or_filtered_members(): void
+    {
+        $other = District::query()->create(['code' => 'other-test', 'name' => 'Other']);
+        $hidden = Report::factory()->inDistrict($other)->create([
+            'final_latitude' => 14.1, 'final_longitude' => 120.6,
+        ]);
+        $visible = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'barangay' => 'Visible', 'final_latitude' => 14.1, 'final_longitude' => 120.6,
+        ]);
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'barangay' => 'Filtered', 'final_latitude' => 14.1, 'final_longitude' => 120.6,
+        ]);
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+        $this->getJson('/api/v1/reports/map?barangay=Visible')->assertOk()
+            ->assertJsonCount(1, 'features')
+            ->assertJsonPath('features.0.properties.location_group_key', $visible->uuid)
+            ->assertJsonPath('features.0.properties.location_group_size', 1)
+            ->assertJsonMissing(['location_group_key' => $hidden->uuid]);
+    }
 
     public function test_map_returns_private_geojson_with_filters_and_coverage_metadata(): void
     {

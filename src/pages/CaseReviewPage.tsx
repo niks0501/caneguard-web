@@ -33,6 +33,7 @@ import {
   activeAuthorityClassifiedConditions,
   authorityClassifiedConditionLabels,
   caseStateLabels,
+  diseaseLabels,
   fieldValidationStateLabels,
   followUpOutcomeLabels,
   isLegacyAuthorityClassifiedCondition,
@@ -1156,6 +1157,16 @@ export function CaseReviewPage() {
             <DiseaseBadge disease={report.predictedDisease} />
           </div>
           <p><strong>AI-assisted result.</strong> Compare it with the submitted photo and field observations before deciding. It is not a diagnosis.</p>
+          {report.modelVersionRecognised === false || report.classScores?.some(({ label }) => !Object.hasOwn(diseaseLabels, label)) ? (
+            <div role="status">
+              {report.modelVersionRecognised === false ? <p>Model version not recognised — evidence shown as submitted: {report.modelVersion}</p> : null}
+              <dl>
+                {report.classScores?.map(({ label, score }) => (
+                  <div key={label}><dt>{Object.hasOwn(diseaseLabels, label) ? diseaseLabels[label as keyof typeof diseaseLabels] : `${label} (unrecognised class)`}</dt><dd>{Math.round(score * 100)}%</dd></div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
         </section>
 
         <section className="review-card" aria-labelledby="field-report-heading">

@@ -9,6 +9,9 @@ import {
 } from "react-map-gl/maplibre";
 import type { MapLayerMouseEvent } from "react-map-gl/maplibre";
 import { routes } from "../../app/routes";
+import { locationGroupKey, locationGroupMembers } from "../fieldValidation/locationGroups";
+import { formatValidationDate } from "../fieldValidation/fieldValidation.format";
+import { reviewStatusLabels } from "../../domain/report.metadata";
 import { env } from "../../config/env";
 import type { BarangayValidationRow } from "../../domain/dashboard.types";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
@@ -51,9 +54,7 @@ type SelectedDot =
       layer: "gps";
       longitude: number;
       latitude: number;
-      uuid: string;
-      referenceCode: string;
-      barangay: string;
+      groupKey: string;
     };
 
 function readString(properties: unknown, key: string): string {
@@ -162,15 +163,24 @@ export function ReportLocationMap({
   // invalid expression ("strictly ascending order"), leaving a blank canvas.
   const maxRadiusStop = Math.max(2, Math.sqrt(maxSubmitted));
 
-  const gpsFeatures = (gps.data?.features ?? []).map((feature) => ({
-    type: "Feature" as const,
-    properties: {
-      uuid: feature.properties.uuid,
-      referenceCode: feature.properties.referenceCode,
-      barangay: feature.properties.barangay,
-    },
-    geometry: feature.geometry,
-  }));
+  const gpsGroups = [...new Set((gps.data?.features ?? []).map(locationGroupKey))];
+  const gpsFeatures = gpsGroups.map((key) => {
+    const feature = locationGroupMembers(gps.data?.features ?? [], key)[0];
+    return {
+      type: "Feature" as const,
+      properties: {
+        groupKey: key,
+        count: feature.properties.locationGroupSize ?? 1,
+      },
+      geometry: {
+        ...feature.geometry,
+        coordinates: feature.properties.locationGroupCoordinates ?? feature.geometry.coordinates,
+      },
+    };
+  });
+  const selectedReports = selected?.layer === "gps"
+    ? locationGroupMembers(gps.data?.features ?? [], selected.groupKey)
+    : [];
 
   const showCursor = (pointer: boolean) => (event: MapLayerMouseEvent) => {
     event.target.getCanvas().style.cursor = pointer ? "pointer" : "";
@@ -192,9 +202,7 @@ export function ReportLocationMap({
         layer: "gps",
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
-        uuid: readString(properties, "uuid"),
-        referenceCode: readString(properties, "referenceCode"),
-        barangay: readString(properties, "barangay"),
+        groupKey: readString(properties, "groupKey"),
       });
       return;
     }
@@ -331,14 +339,19 @@ export function ReportLocationMap({
                     paint={{
                       "circle-color": chartTheme.primaryDark || "#2d6b40",
                       "circle-opacity": 0.85,
-                      "circle-radius": 6,
+                      "circle-radius": ["case", [">", ["get", "count"], 1], 14, 6],
                       "circle-stroke-color": chartTheme.surface || "#ffffff",
                       "circle-stroke-width": 2,
                     }}
                   />
+                  <Layer id="dashboard-gps-count" type="symbol" filter={[">", ["get", "count"], 1]} layout={{
+                    "text-field": ["get", "count"],
+                    "text-size": 12,
+                    "text-allow-overlap": true,
+                  }} paint={{ "text-color": chartTheme.surface }} />
                 </Source>
               )}
-              {selected ? (
+              {selected && (selected.layer === "barangay" || selectedReports.length > 0) ? (
                 <Popup
                   longitude={selected.longitude}
                   latitude={selected.latitude}
@@ -353,7 +366,7 @@ export function ReportLocationMap({
                     aria-label={
                       selected.layer === "barangay"
                         ? `${selected.barangay} report summary`
-                        : `Report ${selected.referenceCode} summary`
+                        : "Reports at this location"
                     }
                   >
                     {selected.layer === "barangay" ? (
@@ -376,18 +389,18 @@ export function ReportLocationMap({
                     ) : (
                       <>
                         <strong className="decision-map__popup-title">
-                          {selected.referenceCode}
+                          {selectedReports.length} reports at this point
                         </strong>
-                        <p className="decision-map__popup-counts">
-                          {selected.barangay} · GPS point
-                        </p>
-                        <Link
-                          className="decision-map__popup-link"
-                          to={routes.reportDetail(selected.uuid)}
-                          aria-label={`Open ${selected.referenceCode}`}
-                        >
-                          Open report →
-                        </Link>
+                        {gps.data?.metadata.truncated ? <p>Within the returned map slice.</p> : null}
+                        <ul className="location-group-reports">
+                          {selectedReports.map(({ properties }) => (
+                            <li key={properties.uuid}>
+                              <Link className="decision-map__popup-link" to={routes.reportDetail(properties.uuid)} aria-label={`Open ${properties.referenceCode}`}>{properties.referenceCode}</Link>
+                              <span>{reviewStatusLabels[properties.reviewStatus]}</span>
+                              <time>{formatValidationDate(properties.observedAt)}</time>
+                            </li>
+                          ))}
+                        </ul>
                       </>
                     )}
                   </div>

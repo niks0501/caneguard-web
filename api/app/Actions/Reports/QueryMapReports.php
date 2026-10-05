@@ -10,6 +10,7 @@ class QueryMapReports
     public function __construct(
         private readonly ApplyReportFilters $applyReportFilters,
         private readonly ApplyOperationalQueueFilter $applyOperationalQueueFilter,
+        private readonly GroupReportLocations $groupReportLocations,
     ) {}
 
     /**
@@ -72,6 +73,8 @@ class QueryMapReports
         if ($truncated) {
             $reports->pop();
         }
+
+        $this->groupReportLocations->handle($reports);
 
         return [
             'reports' => $reports,

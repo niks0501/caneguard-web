@@ -42,6 +42,9 @@ const sharedItemFields = {
 
 export const mapFeaturePropertiesSchema = z.object({
   uuid: z.string(),
+  location_group_key: z.string().min(1).optional(),
+  location_group_size: z.number().int().positive().optional(),
+  location_group_coordinates: z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]).optional(),
   reference_code: z.string(),
   barangay: z.string(),
   province: z.string().nullable(),

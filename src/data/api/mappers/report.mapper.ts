@@ -207,6 +207,7 @@ export function mapReportDetail(
     })),
     classScores: dto.model.class_scores,
     modelVersion: dto.model.model_version,
+    modelVersionRecognised: dto.model.model_version_recognised,
     processingTimingsMs: dto.model.timings_ms,
     checklistConsistency: dto.observations.checklist_consistency,
     reportedSeverity: dto.observations.reported_severity ?? undefined,
