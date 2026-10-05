@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoAnalyticsSeeder;
+use Database\Seeders\OfficeAdvisorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,23 +21,23 @@ class DemoAnalyticsSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_default_seed_does_not_include_opt_in_analytics_reports(): void
-    {
-        $this->configureDemoPasswords();
-
-        $this->seed(DatabaseSeeder::class);
-
-        $this->assertDatabaseCount('reports', 0);
-        $this->assertDatabaseCount('report_class_scores', 0);
-        $this->assertDatabaseCount('field_validation_assignments', 0);
-    }
-
-    public function test_opt_in_seeder_restores_missing_dashboard_image_from_tracked_asset(): void
+    public function test_default_seed_includes_the_analytics_reports(): void
     {
         Storage::fake('local');
         $this->configureDemoPasswords();
 
         $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(DemoAnalyticsSeeder::REPORT_COUNT, Report::query()
+            ->where('reference_code', 'like', DemoAnalyticsSeeder::REFERENCE_PREFIX.'%')->count());
+    }
+
+    public function test_analytics_seeder_restores_missing_dashboard_image_from_tracked_asset(): void
+    {
+        Storage::fake('local');
+        $this->configureDemoPasswords();
+
+        $this->seedAnalyticsPrerequisites();
         $this->seed(DemoAnalyticsSeeder::class);
 
         $report = Report::query()
@@ -63,14 +64,14 @@ class DemoAnalyticsSeederTest extends TestCase
         $this->assertSame($sourceImage, $response->streamedContent());
     }
 
-    public function test_opt_in_dataset_matches_mobile_contract_and_feeds_report_surfaces(): void
+    public function test_analytics_dataset_matches_mobile_contract_and_feeds_report_surfaces(): void
     {
         CarbonImmutable::setTestNow('2026-09-24T12:00:00Z');
         Storage::fake('local');
         $this->configureDemoPasswords();
 
         try {
-            $this->seed(DatabaseSeeder::class);
+            $this->seedAnalyticsPrerequisites();
             $this->assertDatabaseCount('reports', 0);
 
             $this->seed(DemoAnalyticsSeeder::class);
@@ -284,6 +285,19 @@ class DemoAnalyticsSeederTest extends TestCase
         } finally {
             CarbonImmutable::setTestNow();
         }
+    }
+
+    private function seedAnalyticsPrerequisites(): void
+    {
+        // Isolate this seeder's contract from the other default demo datasets.
+        foreach ([
+            'field@caneguard.test' => User::ROLE_FIELD_REPORTER,
+            'mao@caneguard.test' => User::ROLE_REVIEWER,
+            'admin@caneguard.test' => User::ROLE_ADMIN,
+        ] as $email => $role) {
+            User::factory()->create(['email' => $email, 'role' => $role]);
+        }
+        $this->seed(OfficeAdvisorySeeder::class);
     }
 
     private function configureDemoPasswords(): void

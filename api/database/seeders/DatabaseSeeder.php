@@ -57,11 +57,7 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $pilotDistrict = District::query()->firstOrCreate(
-            ['code' => $pilotCode],
-            ['name' => $pilotCode],
-        );
-
+        $seededUsers = [];
         foreach ($users as $user) {
             $attributes = $user;
             unset($attributes['email_verified_at']);
@@ -74,7 +70,16 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => $user['email_verified_at'],
             ])->save();
 
-            if ($pilotDistrict !== null && $seededUser->isOfficeUser()) {
+            $seededUsers[] = $seededUser;
+        }
+
+        $pilotDistrict = District::query()->firstOrCreate(
+            ['code' => $pilotCode],
+            ['name' => $pilotCode],
+        );
+
+        foreach ($seededUsers as $seededUser) {
+            if ($seededUser->isOfficeUser()) {
                 DistrictMembership::query()->firstOrCreate([
                     'user_id' => $seededUser->id,
                     'district_id' => $pilotDistrict->id,
@@ -82,6 +87,14 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $this->call(OfficeAdvisorySeeder::class);
+        // Advisory catalogs must exist before the dashboard and analytics
+        // fixtures select them; AdvisorDemoSeeder also seeds its report examples.
+        $this->call([
+            OfficeAdvisorySeeder::class,
+            ReportSeeder::class,
+            AdvisorDemoSeeder::class,
+            DashboardReportSeeder::class,
+            DemoAnalyticsSeeder::class,
+        ]);
     }
 }

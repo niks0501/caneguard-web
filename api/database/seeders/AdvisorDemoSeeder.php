@@ -6,7 +6,9 @@ use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
+use App\Models\ReportClassScore;
 use App\Models\ReportReviewEvent;
+use App\Models\ReportSymptom;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -138,13 +140,17 @@ class AdvisorDemoSeeder extends Seeder
                 ->delete();
             Advisory::query()
                 ->where('code', self::ADVISORY_CODE)
+                ->whereNotIn('id', Report::query()->whereNotNull('advisory_id')->select('advisory_id'))
                 ->delete();
         });
 
-        Storage::disk('local')->delete([
-            ...$photoPaths,
-            ...$reportImagePaths,
-        ]);
+        $paths = array_unique([...$photoPaths, ...$reportImagePaths]);
+        foreach ($paths as $path) {
+            if (! Report::query()->where('image_path', $path)->exists()
+                && ! FieldValidationCompletion::query()->where('fresh_photo_path', $path)->exists()) {
+                Storage::disk('local')->delete($path);
+            }
+        }
     }
 
     /**
@@ -446,36 +452,22 @@ class AdvisorDemoSeeder extends Seeder
         }
 
         $labels = Report::v2Labels();
-        $existingScoreLabels = DB::table('report_class_scores')
-            ->where('report_id', $report->getKey())
-            ->pluck('label')
-            ->all();
         foreach ($labels as $label) {
-            if (in_array($label, $existingScoreLabels, true)) {
-                continue;
-            }
-
-            DB::table('report_class_scores')->insert([
-                'report_id' => $report->getKey(),
-                'label' => $label,
-                'score' => $label === $report->predicted_label
+            ReportClassScore::query()->firstOrCreate(
+                ['report_id' => $report->getKey(), 'label' => $label],
+                ['score' => $label === $report->predicted_label
                     ? $report->confidence
-                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7),
-            ]);
+                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7)],
+            );
         }
 
         $symptomKey = $report->predicted_label === Report::LABEL_HEALTHY
             ? 'none'
             : $report->predicted_label;
-        if (! DB::table('report_symptoms')
-            ->where('report_id', $report->getKey())
-            ->where('symptom_key', $symptomKey)
-            ->exists()) {
-            DB::table('report_symptoms')->insert([
-                'report_id' => $report->getKey(),
-                'symptom_key' => $symptomKey,
-            ]);
-        }
+        ReportSymptom::query()->firstOrCreate([
+            'report_id' => $report->getKey(),
+            'symptom_key' => $symptomKey,
+        ]);
 
         return $report;
     }

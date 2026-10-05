@@ -83,7 +83,7 @@ class AdvisoryTest extends TestCase
 
         $advisory = $this->getJson('/api/v1/advisories')
             ->assertOk()
-            ->assertJsonCount(3, 'data')
+            ->assertJsonCount(4, 'data')
             ->json('data.0');
         $this->assertSame(Advisory::STATUS_VALIDATED, $advisory['status']);
 

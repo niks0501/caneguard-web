@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Seed a small, opt-in dataset for exercising the report analytics surfaces.
+ * Seed a small analytics dataset for exercising the report analytics surfaces.
  * All report evidence uses the mobile-report-upload-v2 shape.
  */
 class DemoAnalyticsSeeder extends Seeder
@@ -28,8 +28,8 @@ class DemoAnalyticsSeeder extends Seeder
     private const REPORTS_PER_MONTH = 10;
 
     /**
-     * Seed the accounts first with DatabaseSeeder, then invoke this seeder
-     * explicitly when a populated analytics demo is wanted.
+     * DatabaseSeeder provides the accounts and office advisory catalog before
+     * invoking this seeder as part of the complete demo dataset.
      */
     public function run(): void
     {
