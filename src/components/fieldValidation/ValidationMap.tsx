@@ -9,7 +9,8 @@ import {
   type MapLayerMouseEvent,
   type MapRef,
 } from "react-map-gl/maplibre";
-import type { ExpressionSpecification, FilterSpecification } from "maplibre-gl";
+import type { ExpressionSpecification, FilterSpecification, GeoJSONSource } from "maplibre-gl";
+import { LOCATION_MAP_MAX_ZOOM, locationGroupKey, locationGroupMembers, radialLocationOffsets } from "./locationGroups";
 import type { FieldValidationMapData, FieldValidationMapFeature } from "../../domain/fieldValidation.types";
 import { diseaseLabels, reviewStatusLabels } from "../../domain/report.metadata";
 import type { ReviewStatus } from "../../domain/report.types";
@@ -17,23 +18,18 @@ import { routes } from "../../app/routes";
 import { formatValidationDate } from "./fieldValidation.format";
 import { env } from "../../config/env";
 
+import "../../config/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const mapTilerStyle = env.mapTilerKey
   ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(env.mapTilerKey)}`
   : undefined;
 
-const NASUGBU_VIEW = {
-  longitude: 120.63,
-  latitude: 14.07,
-  zoom: 10,
+const WORLD_VIEW = {
+  longitude: 0,
+  latitude: 20,
+  zoom: 1,
 } as const;
-const NASUGBU_BOUNDS: [number, number, number, number] = [
-  120.567055,
-  14.043883,
-  120.84818,
-  14.221364,
-];
 
 type MapProviderState = "loading" | "ready" | "error";
 
@@ -92,15 +88,16 @@ function MapLegend() {
 }
 
 function PointPopup({
-  feature,
+  features,
   coordinates,
+  truncated,
   onClose,
 }: {
-  feature: FieldValidationMapFeature;
+  features: FieldValidationMapFeature[];
   coordinates: [number, number];
+  truncated: boolean;
   onClose: () => void;
 }) {
-  const properties = feature.properties;
   return (
     <Popup
       longitude={coordinates[0]}
@@ -112,18 +109,18 @@ function PointPopup({
       maxWidth="320px"
     >
       <div className="validation-map__popup">
-        <p className="popup-subtitle">Submitted observation</p>
-        <h3>{properties.referenceCode}</h3>
-        <dl>
-          <div><dt>Review state</dt><dd>{statusLabel(properties.reviewStatus)}</dd></div>
-          <div><dt>Possible Condition</dt><dd>{diseaseLabels[properties.predictedDisease]}</dd></div>
-          <div><dt>Barangay</dt><dd>{properties.barangay}</dd></div>
-          <div><dt>Observed</dt><dd>{formatValidationDate(properties.observedAt)}</dd></div>
-          <div><dt>Location</dt><dd>{properties.locationSource === "gps" ? "GPS" : properties.locationSource === "manual_map" ? "Manual map" : "Not provided"}</dd></div>
-        </dl>
-        <Link className="button button--primary" to={routes.reportDetail(properties.uuid)}>
-          Open Report
-        </Link>
+        <h3>{features.length === 1 ? features[0].properties.referenceCode : `${features.length} reports at this location`}</h3>
+        {truncated ? <p role="status">Within the returned map slice.</p> : null}
+        <ul className="location-group-reports">
+          {features.map(({ properties }) => (
+            <li key={properties.uuid}>
+              <Link to={routes.reportDetail(properties.uuid)}>{properties.referenceCode}</Link>
+              <span>{statusLabel(properties.reviewStatus)}</span>
+              <span>{diseaseLabels[properties.predictedDisease]} · {properties.barangay}</span>
+              <time>{formatValidationDate(properties.observedAt)}</time>
+            </li>
+          ))}
+        </ul>
       </div>
     </Popup>
   );
@@ -163,7 +160,7 @@ function MapProviderStatus({
       <strong>{hasMatchingReports ? "No located reports to plot." : "No reports match these filters."}</strong>
       <p>
         {hasMatchingReports
-          ? "Reports exist, but none have a valid Nasugbu coordinate pair. They remain available in the report table and validation queue."
+          ? "Reports exist, but none have a valid coordinate pair. They remain available in the report table and validation queue."
           : "Try changing or clearing the applied filters."}
       </p>
     </div>
@@ -180,16 +177,26 @@ export function ValidationMap({
   isPlaceholderData?: boolean;
 }) {
   const [selected, setSelected] = useState<{
-    feature: FieldValidationMapFeature;
+    keys: string[];
     coordinates: [number, number];
   } | null>(null);
+  const [expanded, setExpanded] = useState<{ input: FieldValidationMapFeature[]; features: FieldValidationMapFeature[] } | null>(null);
+  const [clickError, setClickError] = useState(false);
+  const clickSequence = useRef(0);
   const [providerState, setProviderState] = useState<MapProviderState>("loading");
   const mapRef = useRef<MapRef | null>(null);
   const fittedFrameKey = useRef<string | null>(null);
+  useEffect(() => {
+    const requests = clickSequence;
+    requests.current++;
+    return () => { requests.current++; };
+  }, [data.features]);
+
   const sourceData = {
     ...data,
     features: data.features.map((feature) => ({
       ...feature,
+      geometry: { ...feature.geometry, coordinates: feature.properties.locationGroupCoordinates ?? feature.geometry.coordinates },
       properties: {
         uuid: feature.properties.uuid,
         review_status: feature.properties.reviewStatus,
@@ -210,8 +217,8 @@ export function ValidationMap({
 
     if (data.features.length === 0) {
       map.easeTo({
-        center: [NASUGBU_VIEW.longitude, NASUGBU_VIEW.latitude],
-        zoom: NASUGBU_VIEW.zoom,
+        center: [WORLD_VIEW.longitude, WORLD_VIEW.latitude],
+        zoom: WORLD_VIEW.zoom,
       });
     } else if (data.features.length === 1) {
       const [longitude, latitude] = data.features[0].geometry.coordinates;
@@ -247,23 +254,45 @@ export function ValidationMap({
     setProviderState("ready");
   };
 
-  const handleClick = (event: MapLayerMouseEvent) => {
+  const handleClick = async (event: MapLayerMouseEvent) => {
     const feature = event.features?.[0];
     if (!feature) return;
+    const sequence = ++clickSequence.current;
+    setClickError(false);
 
     if (feature.properties?.point_count) {
-      const clusterId = Number(feature.properties.cluster_id);
       const map = event.target as unknown as MapRef;
-      const source = map.getSource("validation-reports") as {
-        getClusterExpansionZoom?: (
-          id: number,
-          callback: (error: Error | null, zoom?: number) => void,
-        ) => void;
-      } | undefined;
-      source?.getClusterExpansionZoom?.(clusterId, (error, zoom) => {
-        if (error || zoom === undefined) return;
-        map.easeTo({ center: event.lngLat, zoom });
-      });
+      const source = map.getSource("validation-reports") as GeoJSONSource | undefined;
+      if (!source) return;
+      try {
+        const clusterId = Number(feature.properties.cluster_id);
+        const zoom = await source.getClusterExpansionZoom(clusterId);
+        if (sequence !== clickSequence.current) return;
+        if (zoom > map.getZoom() && zoom < LOCATION_MAP_MAX_ZOOM) {
+          setSelected(null);
+          setExpanded(null);
+          map.easeTo({ center: event.lngLat, zoom });
+          return;
+        }
+        const leaves = await source.getClusterLeaves(clusterId, data.features.length, 0);
+        if (sequence !== clickSequence.current) return;
+        const uuids = new Set(leaves.map((leaf) => leaf.properties?.uuid));
+        const keys = [...new Set(data.features.filter((item) => uuids.has(item.properties.uuid)).map(locationGroupKey))].sort();
+        const members = keys.flatMap((key) => locationGroupMembers(data.features, key));
+        if (!members.length) return;
+        const center = map.project(event.lngLat);
+        const offsets = radialLocationOffsets(members.length);
+        setExpanded({
+          input: data.features,
+          features: members.map((item, index) => {
+            const point = map.unproject([center.x + offsets[index][0], center.y + offsets[index][1]]);
+            return { ...item, geometry: { type: "Point", coordinates: [point.lng, point.lat] } };
+          }),
+        });
+        setSelected({ keys, coordinates: [event.lngLat.lng, event.lngLat.lat] });
+      } catch {
+        if (sequence === clickSequence.current) setClickError(true);
+      }
       return;
     }
 
@@ -272,11 +301,14 @@ export function ValidationMap({
     );
     if (matchingFeature) {
       setSelected({
-        feature: matchingFeature,
-        coordinates: [event.lngLat.lng, event.lngLat.lat],
+        keys: [locationGroupKey(matchingFeature)],
+        coordinates: matchingFeature.properties.locationGroupCoordinates ?? matchingFeature.geometry.coordinates,
       });
     }
   };
+
+  const selectedMembers = selected ? selected.keys.flatMap((key) => locationGroupMembers(data.features, key)) : [];
+  const expandedFeatures = expanded?.input === data.features ? expanded.features : [];
 
   return (
     <div className="validation-map-card">
@@ -291,10 +323,10 @@ export function ValidationMap({
           <>
             <Map
             ref={mapRef}
-            initialViewState={NASUGBU_VIEW}
-            maxBounds={NASUGBU_BOUNDS}
+            initialViewState={WORLD_VIEW}
             mapStyle={mapTilerStyle}
-            interactiveLayerIds={["validation-clusters", "validation-points"]}
+            maxZoom={LOCATION_MAP_MAX_ZOOM}
+            interactiveLayerIds={["validation-clusters", "validation-points", "validation-expanded-points"]}
             onClick={handleClick}
             onLoad={handleMapLoad}
             onError={() => setProviderState("error")}
@@ -306,7 +338,8 @@ export function ValidationMap({
               type="geojson"
               data={sourceData}
               cluster
-              clusterMaxZoom={14}
+              maxzoom={24}
+              clusterMaxZoom={LOCATION_MAP_MAX_ZOOM}
               clusterRadius={48}
             >
               <Layer
@@ -373,11 +406,26 @@ export function ValidationMap({
                 paint={{ "text-color": statusColorExpression }}
               />
             </Source>
-            {selected ? (
+            <Source id="validation-expanded" type="geojson" data={{
+              type: "FeatureCollection",
+              features: expandedFeatures.map((item) => ({
+                ...item,
+                properties: { uuid: item.properties.uuid, review_status: item.properties.reviewStatus },
+              })),
+            }}>
+              <Layer id="validation-expanded-points" type="circle" paint={{
+                "circle-color": statusColorExpression,
+                "circle-radius": 7,
+                "circle-stroke-color": "#ffffff",
+                "circle-stroke-width": 2,
+              }} />
+            </Source>
+            {selected && selectedMembers.length > 0 ? (
               <PointPopup
-                feature={selected.feature}
+                features={selectedMembers}
                 coordinates={selected.coordinates}
-                onClose={() => setSelected(null)}
+                truncated={data.metadata.truncated}
+                onClose={() => { clickSequence.current++; setSelected(null); setExpanded(null); }}
               />
             ) : null}
             </Map>
@@ -394,6 +442,7 @@ export function ValidationMap({
           </div>
         )}
       </div>
+      {clickError ? <p role="status">Location could not be expanded. Open reports from the table below.</p> : null}
       <MapLegend />
     </div>
   );

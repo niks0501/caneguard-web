@@ -1,0 +1,28 @@
+{
+  "id": 1,
+  "contract_version": "account-access-event-v1",
+  "operation_id": "00000000-0000-4000-8000-000000000301",
+  "target_uuid": "00000000-0000-4000-8000-000000000201",
+  "actor": {
+    "uuid": "00000000-0000-4000-8000-000000000101",
+    "name": "Office Sample",
+    "role": "admin"
+  },
+  "action": "keep_farmer",
+  "office_reference": "SYNTHETIC-OFFICE-DECISION",
+  "before": {
+    "role": "farmer",
+    "membership_state": "not_issued",
+    "membership_id": null,
+    "grants": [],
+    "review_state": "new"
+  },
+  "after": {
+    "role": "farmer",
+    "membership_state": "not_issued",
+    "membership_id": null,
+    "grants": [],
+    "review_state": "keep_farmer"
+  },
+  "occurred_at": "2026-10-05T03:00:00.000Z"
+}

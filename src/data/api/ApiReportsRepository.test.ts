@@ -4,7 +4,6 @@ import { createAxiosClient } from "../../api/axiosClient";
 import {
   paginatedReportsDto,
   reportDetailDto,
-  reportReferralDto,
 } from "../../test/fixtures";
 import { server } from "../../test/server";
 import { ApiReportsRepository } from "./ApiReportsRepository";
@@ -12,6 +11,22 @@ import { ApiReportsRepository } from "./ApiReportsRepository";
 const baseUrl = "https://api.caneguard.test";
 
 describe("ApiReportsRepository", () => {
+  it("records only a versioned plain handoff note and maps saved records", async () => {
+    const handoff = { id: 1, destination: "Offline validator", reference: null, sent_date: "2026-10-04", note: "Please advise", advice_received_note: null };
+    server.use(http.post(`${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/handoff-notes`, async ({ request }) => {
+      expect(await request.json()).toEqual({
+        destination: handoff.destination, reference: null, sent_date: handoff.sent_date,
+        note: handoff.note, advice_received_note: null, expected_version: reportDetailDto.version,
+      });
+      return HttpResponse.json({ data: { ...reportDetailDto, handoff_notes: [handoff], version: reportDetailDto.version + 1 } });
+    }));
+    const repository = new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
+    await expect(repository.recordHandoffNote(reportDetailDto.identity.uuid, {
+      destination: " Offline validator ", reference: " ", sentDate: handoff.sent_date,
+      note: " Please advise ", expectedVersion: reportDetailDto.version,
+    })).resolves.toMatchObject({ handoffNotes: [handoff], reviewVersion: reportDetailDto.version + 1 });
+  });
+
   it("maps filters and Laravel pagination", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports`, ({ request }) => {
@@ -51,6 +66,7 @@ describe("ApiReportsRepository", () => {
     expect(result.meta.total).toBe(1);
     expect(result.reports[0].referenceCode).toBe("CG-2026-0001");
   });
+
 
   it("requests a filter-scoped CSV without pagination parameters", async () => {
     server.use(
@@ -334,123 +350,7 @@ describe("ApiReportsRepository", () => {
     });
   });
 
-  it("records referrals and expert responses with their lifecycle fields", async () => {
-    server.use(
-      http.post(
-        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/referral`,
-        async ({ request }) => {
-          expect(await request.json()).toEqual({
-            destination: "Regional crop protection office",
-            reference: "SRA-2026-0042",
-            referral_date: "2026-09-04",
-            note: "Please review the mismatch.",
-            authority_classified_condition: "unable_to_classify",
-            verification_outcome: "unable_to_verify",
-            office_notes: "The office is awaiting expert input.",
-            expected_version: reportDetailDto.version,
-          });
-          return HttpResponse.json({
-            data: {
-              ...reportDetailDto,
-              review: {
-                ...reportDetailDto.review,
-                action_taken: "referred_for_expert_validation",
-              },
-              lifecycle: {
-                ...reportDetailDto.lifecycle,
-                verification_outcome: "unable_to_verify",
-                referral_state: "referred",
-              },
-              referral: reportReferralDto,
-            },
-          }, { status: 201 });
-        },
-      ),
-      http.post(
-        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/referral/response`,
-        async ({ request }) => {
-          expect(await request.json()).toEqual({
-            response_date: "2026-09-08",
-            response_note: "The specialist reviewed the image.",
-            response_finding: "The finding is consistent with the office record.",
-            authority_classified_condition: "smut",
-            verification_outcome: "verified",
-            expected_version: reportDetailDto.version + 1,
-          });
-          return HttpResponse.json({
-            data: {
-              ...reportDetailDto,
-              review: {
-                ...reportDetailDto.review,
-                authority_classified_condition: "smut",
-                action_taken: "referred_for_expert_validation",
-              },
-              lifecycle: {
-                ...reportDetailDto.lifecycle,
-                verification_outcome: "verified",
-                referral_state: "expert_response_received",
-              },
-              referral: {
-                ...reportReferralDto,
-                response_date: "2026-09-08",
-                response_note: "The specialist reviewed the image.",
-                response_finding: "The finding is consistent with the office record.",
-                response_recorded_by: {
-                  uuid: "a7c6e31a-e1d6-443f-a2f2-cf73541e7a0f",
-                  name: "Maria Reviewer",
-                },
-                response_recorded_at: "2026-09-08T12:00:00.000Z",
-              },
-              version: reportDetailDto.version + 2,
-            },
-          });
-        },
-      ),
-    );
-    const repository = new ApiReportsRepository(
-      createAxiosClient({ apiBaseUrl: baseUrl }),
-    );
 
-    await expect(repository.recordReferral(reportDetailDto.identity.uuid, {
-      destination: " Regional crop protection office ",
-      reference: " SRA-2026-0042 ",
-      referralDate: "2026-09-04",
-      note: " Please review the mismatch. ",
-      authorityClassifiedCondition: "unable_to_classify",
-      verificationOutcome: "unable_to_verify",
-      officeNotes: " The office is awaiting expert input. ",
-      expectedVersion: reportDetailDto.version,
-    })).resolves.toMatchObject({
-      actionTaken: "referred_for_expert_validation",
-      lifecycle: {
-        verificationOutcome: "unable_to_verify",
-        referralState: "referred",
-      },
-      referral: {
-        reference: "SRA-2026-0042",
-        officeContext: { notes: "The office is awaiting expert input." },
-      },
-    });
-
-    await expect(repository.recordExpertReferralResponse(reportDetailDto.identity.uuid, {
-      responseDate: "2026-09-08",
-      responseNote: " The specialist reviewed the image. ",
-      responseFinding: " The finding is consistent with the office record. ",
-      authorityClassifiedCondition: "smut",
-      verificationOutcome: "verified",
-      expectedVersion: reportDetailDto.version + 1,
-    })).resolves.toMatchObject({
-      authorityClassifiedCondition: "smut",
-      lifecycle: {
-        verificationOutcome: "verified",
-        referralState: "expert_response_received",
-      },
-      referral: {
-        responseDate: "2026-09-08",
-        responseFinding: "The finding is consistent with the office record.",
-      },
-    });
-  });
 
   it("loads detail, writes legacy reviews, and treats 404 as missing", async () => {
     server.use(
@@ -503,7 +403,7 @@ describe("ApiReportsRepository", () => {
     await expect(repository.getReportById("missing")).resolves.toBeNull();
   });
 
-  it("fetches and maps monthly report summary with expert verification metrics", async () => {
+  it("fetches and maps monthly report summary without retired expert metrics", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports/summary`, ({ request }) => {
         const query = new URL(request.url).searchParams;
@@ -532,49 +432,6 @@ describe("ApiReportsRepository", () => {
               min_hours: 6,
               max_hours: 24,
             },
-            expert_verification: {
-              unable_to_classify_rate: {
-                count: 1,
-                denominator: 3,
-                rate: 0.3333,
-                percentage: 33.33,
-              },
-              consult_volume: {
-                total: 3,
-                consulted_cases: 3,
-                pending: 0,
-                in_progress: 0,
-                completed: 3,
-                cancelled: 0,
-              },
-              time_to_finding: {
-                source: "referral_date_to_finding_recorded_at",
-                findings: 3,
-                average_hours: 40,
-                median_hours: 32,
-                min_hours: 24,
-                max_hours: 48,
-              },
-              advisory_coverage: {
-                consult_cases: 3,
-                cases_with_advisory: 2,
-                coverage_rate: 0.6667,
-                delivered_cases: 1,
-                acknowledged_cases: 0,
-              },
-              expert_agreement: {
-                count: 1,
-                denominator: 2,
-                rate: 0.5,
-                percentage: 50,
-              },
-              symptom_verification_disagreement: {
-                count: 1,
-                denominator: 3,
-                rate: 0.3333,
-                percentage: 33.33,
-              },
-            },
           },
         });
       }),
@@ -588,12 +445,7 @@ describe("ApiReportsRepository", () => {
 
     expect(summary.month).toBe("2026-07");
     expect(summary.reportedCases).toBe(3);
-    expect(summary.expertVerification).toBeDefined();
-    expect(summary.expertVerification?.consultVolume.total).toBe(3);
-    expect(summary.expertVerification?.consultVolume.completed).toBe(3);
-    expect(summary.expertVerification?.expertAgreement.count).toBe(1);
-    expect(summary.expertVerification?.unableToClassifyRate.count).toBe(1);
-    expect(summary.expertVerification?.symptomVerificationDisagreement.count).toBe(1);
+    expect(summary).not.toHaveProperty("expertVerification");
   });
 });
 

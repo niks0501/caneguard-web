@@ -33,7 +33,7 @@ class FindPossibleRecentMatches
         $now = CarbonImmutable::now()->utc();
         $minimumSubmittedAt = $now->subHours($this->windowHours());
 
-        $candidates = Report::query()
+        $candidates = Report::query()->visibleTo(request()->user())
             ->where('predicted_label', $predictedLabel)
             ->whereBetween('submitted_at', [$minimumSubmittedAt, $now])
             ->whereNotNull('final_latitude')

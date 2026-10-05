@@ -1,3 +1,4 @@
+@php($isPdfDocument = request()->routeIs('api.v1.reports.documents.pdf') || request()->input('format') === 'pdf')
 <!doctype html>
 <html lang="en">
 <head>
@@ -5,60 +6,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CaneGuard report · {{ $period['label'] }}</title>
     <style nonce="{{ request()->attributes->get('csp_nonce') }}">
-        @font-face { font-family: Poppins; font-style: normal; font-weight: 400; src: url('/fonts/Poppins-Regular.ttf') format('truetype'); font-display: swap; }
-        @font-face { font-family: Poppins; font-style: normal; font-weight: 600; src: url('/fonts/Poppins-SemiBold.ttf') format('truetype'); font-display: swap; }
-        @font-face { font-family: Poppins; font-style: normal; font-weight: 700; src: url('/fonts/Poppins-Bold.ttf') format('truetype'); font-display: swap; }
-        :root { color-scheme: light; --green: #2d6b40; --deep-green: #1e452a; --ink: #1f3025; --muted: #657568; --line: #d8e1d7; --soft: #f3f7f1; --tint: #eaf3e9; --warn: #f7f1d8; --danger: #a34837; font-family: Poppins, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: #f4f6f2; }
+        @font-face { font-family: Poppins; font-style: normal; font-weight: 400; src: url('/fonts/Poppins-Regular.ttf') format('truetype'); }
+        @font-face { font-family: Poppins; font-style: normal; font-weight: 600; src: url('/fonts/Poppins-SemiBold.ttf') format('truetype'); }
+        @font-face { font-family: Poppins; font-style: normal; font-weight: 700; src: url('/fonts/Poppins-Bold.ttf') format('truetype'); }
+        html { font-family: Poppins, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1f3025; background: #f4f6f2; }
         * { box-sizing: border-box; }
-        @page { size: A4; margin: 18mm 15mm; @bottom-left { content: "CaneGuard · {{ $period['label'] }} · generated {{ $generated_at }}"; color: #657568; font-size: 8pt; } @bottom-right { content: "Page " counter(page) " of " counter(pages); color: #657568; font-size: 8pt; } }
+        @page { size: A4; margin: 18mm 15mm; }
+        @if (! $isPdfDocument)
+        @page { @bottom-left { content: "CaneGuard · {{ $period['label'] }} · generated {{ $generated_at }}"; color: #657568; font-size: 8pt; } @bottom-right { content: "Page " counter(page) " of " counter(pages); color: #657568; font-size: 8pt; } }
+        @endif
         body { margin: 0; padding: 30px 18px 50px; font-size: 14px; line-height: 1.5; }
-        .document { width: min(100%, 980px); margin: 0 auto; padding: 34px; background: #fff; border: 1px solid var(--line); }
-        .print-actions { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 18px; }
-        .print-actions button { border: 0; border-radius: 7px; padding: 10px 14px; color: #fff; background: var(--green); font: inherit; font-weight: 600; cursor: pointer; }
-        .print-actions button.secondary { color: var(--deep-green); background: var(--tint); }
-        .masthead { display: flex; gap: 24px; align-items: flex-start; padding-bottom: 24px; border-bottom: 2px solid var(--green); }
-        .lockup { display: flex; align-items: center; gap: 10px; min-width: 190px; color: var(--deep-green); font-size: 18px; font-weight: 700; }
-        .lockup img { width: 44px; height: 44px; object-fit: contain; }
-        .eyebrow { margin: 0 0 5px; color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-        h1, h2 { margin: 0; color: var(--deep-green); }
+        body.pdf-render { padding: 0; font-family: Poppins, sans-serif; font-size: 10pt; }
+        .document { width: 100%; max-width: 980px; margin: 0 auto; padding: 34px; background: #fff; border: 1px solid #d8e1d7; }
+        body.pdf-render .document { padding: 0; border: 0; }
+        .print-actions { margin-bottom: 18px; text-align: right; }
+        .print-actions button { margin-left: 10px; border: 0; border-radius: 7px; padding: 10px 14px; color: #fff; background: #2d6b40; font: inherit; font-weight: 600; cursor: pointer; }
+        .print-actions button.secondary { color: #1e452a; background: #eaf3e9; }
+        .masthead { display: table; width: 100%; padding-bottom: 24px; border-bottom: 2px solid #2d6b40; }
+        .masthead > div { display: table-cell; vertical-align: top; }
+        .lockup { width: 225px; padding-right: 12px; color: #1e452a; font-size: 18px; font-weight: 700; }
+        .lockup img { width: 44px; height: 44px; vertical-align: middle; }
+        .lockup span { display: inline-block; vertical-align: middle; }
+        .eyebrow { margin: 0 0 5px; color: #2d6b40; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+        h1, h2 { margin: 0; color: #1e452a; }
         h1 { font-size: 26px; line-height: 1.2; }
         h2 { margin-bottom: 12px; font-size: 16px; }
-        h3 { margin: 0 0 6px; color: var(--deep-green); font-size: 13px; }
-        .intro { margin: 8px 0 0; color: var(--muted); }
-        .meta { margin: 9px 0 0; color: var(--muted); font-size: 11px; }
-        .notice { margin: 18px 0 0; padding: 11px 13px; color: #5e5426; background: var(--warn); border: 1px solid #e5dcad; border-radius: 7px; }
+        h3 { margin: 0 0 6px; color: #1e452a; font-size: 13px; }
+        .intro { margin: 8px 0 0; color: #657568; }
+        .meta { margin: 9px 0 0; color: #657568; font-size: 11px; }
+        .notice { margin: 18px 0 0; padding: 11px 13px; color: #5e5426; background: #f7f1d8; border: 1px solid #e5dcad; border-radius: 7px; }
         .partial { color: #7c5919; background: #fff7df; border-color: #e5c778; }
-        section { padding: 24px 0; border-bottom: 1px solid var(--line); }
-        .section-band { margin: -24px 0 18px; padding: 8px 10px; color: var(--deep-green); background: var(--soft); border-left: 4px solid var(--green); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-        .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; margin: 0; }
-        .metric { display: block; padding: 14px; background: var(--tint); border: 1px solid #d5e5d3; vertical-align: top; break-inside: avoid; }
-        .metric-label { display: block; color: var(--muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-        .metric-value { display: block; margin-top: 4px; color: var(--deep-green); font-size: 24px; font-weight: 700; }
-        .metric-unit { color: var(--muted); font-size: 11px; }
+        section { padding: 24px 0; border-bottom: 1px solid #d8e1d7; }
+        .section-band { margin: -24px 0 18px; padding: 8px 10px; color: #1e452a; background: #f3f7f1; border-left: 4px solid #2d6b40; font-family: Helvetica, Arial, sans-serif; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .metrics { width: 100%; margin: 0 0 10px; border-collapse: separate; border-spacing: 10px 0; table-layout: fixed; }
+        .metrics td.metric { width: 33.333%; padding: 14px; background: #eaf3e9; border: 1px solid #d5e5d3; vertical-align: top; page-break-inside: avoid; }
+        .metric-label { display: block; color: #657568; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+        .metric-value { display: block; margin-top: 4px; color: #1e452a; font-size: 24px; font-weight: 700; }
+        .metric-unit { color: #657568; font-size: 11px; }
         .columns { display: table; width: 100%; table-layout: fixed; border-spacing: 20px 0; margin: 0 -20px; }
         .column { display: table-cell; width: 50%; vertical-align: top; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th { padding: 8px 7px; color: var(--muted); background: var(--soft); font-size: 10px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
+        th { padding: 8px 7px; color: #657568; background: #f3f7f1; font-size: 10px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
         td { padding: 8px 7px; border-bottom: 1px solid #e8eee6; vertical-align: top; }
         thead { display: table-header-group; }
-        tr { break-inside: avoid; }
-        .bar-chart { display: block; width: 100%; height: 180px; border-bottom: 1px solid var(--line); }
-        .bar-chart rect { fill: var(--green); }
-        .bar-chart text { fill: var(--muted); font-family: inherit; font-size: 9px; }
-        .muted { color: var(--muted); }
-        .danger { color: var(--danger); }
+        tr { page-break-inside: avoid; }
+        .bar-chart { display: block; width: 100%; height: 180px; border-bottom: 1px solid #d8e1d7; }
+        .bar-chart rect { fill: #2d6b40; }
+        .bar-chart text { fill: #657568; font-family: Helvetica, Arial, sans-serif; font-size: 9px; }
+        .muted { color: #657568; }
+        .danger { color: #a34837; }
         .appendix-warning { margin-bottom: 14px; padding: 10px 12px; color: #714c1a; background: #fff5da; border: 1px solid #e5cf99; }
         .appendix-reference { color: #714c1a; font-size: 10px; font-style: italic; }
-        .empty { padding: 20px; color: var(--muted); background: var(--soft); text-align: center; }
-        .document-footer { padding-top: 18px; color: var(--muted); font-size: 11px; }
-        .supplementary-metrics { padding: 18px 0; border-bottom: 1px solid var(--line); }
-        .supplementary-metrics summary { color: var(--deep-green); font-weight: 600; cursor: pointer; }
+        .empty { padding: 20px; color: #657568; background: #f3f7f1; text-align: center; }
+        .document-footer { padding-top: 18px; color: #657568; font-size: 11px; }
+        body.pdf-render .document-footer { position: fixed; right: 0; bottom: -12mm; left: 0; padding-top: 4px; border-top: 1px solid #d8e1d7; background: #fff; font-size: 8pt; }
+        body.pdf-render .document-footer::after { float: right; content: "Page " counter(page); }
+        .supplementary-metrics { padding: 18px 0; border-bottom: 1px solid #d8e1d7; }
+        .supplementary-metrics summary { color: #1e452a; font-weight: 600; cursor: pointer; }
         .supplementary-metrics > section { padding: 18px 0 0; }
-        @media (max-width: 700px) { body { padding: 0; } .document { width: 100%; padding: 22px 18px; border: 0; } .masthead, .columns { display: block; } .lockup { margin-bottom: 18px; } .column { display: block; width: 100%; margin-bottom: 22px; } .metrics { display: block; margin: 0; } .metric { display: block; margin-bottom: 8px; } }
-        @media print { :root { background: #fff; } body { padding: 0; font-size: 10pt; } .document { width: 100%; padding: 0; border: 0; } .print-actions { display: none; } .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; } section { break-inside: avoid; } .section-band { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .metric { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        body.pdf-render .print-actions { display: none; }
+        @media (max-width: 700px) { body { padding: 0; } .document { width: 100%; padding: 22px 18px; border: 0; } .masthead, .columns { display: block; } .masthead > div, .column { display: block; width: 100%; } .lockup { margin-bottom: 18px; } .column { margin-bottom: 22px; } .metrics, .metrics tbody, .metrics tr { display: block; } .metrics td.metric { display: block; width: 100%; margin-bottom: 8px; } }
+        body.pdf-render .masthead, body.pdf-render .metrics { display: table; }
+        body.pdf-render .masthead > div, body.pdf-render .metrics td.metric { display: table-cell; }
+        body.pdf-render .columns { display: table; }
+        body.pdf-render .column { display: table-cell; width: 50%; margin-bottom: 0; }
+        body.pdf-render .metrics tbody { display: table-row-group; }
+        body.pdf-render .metrics tr { display: table-row; }
+        body.pdf-render .metrics td.metric { width: 33.333%; }
+        @media print { body { padding: 0; font-size: 10pt; } .document { width: 100%; padding: 0; border: 0; } .print-actions { display: none; } .document-footer { page-break-inside: avoid; } }
     </style>
 </head>
-<body>
+<body class="{{ $isPdfDocument ? 'pdf-render' : '' }}">
 <main class="document">
     <div class="print-actions" aria-label="Document actions">
         <button type="button" id="print-report">Print</button>
@@ -77,43 +95,41 @@
     @if ($period['partial']) <p class="notice partial">This report includes a period that is still in progress. Treat the counts as partial.</p> @endif
 
     <section aria-labelledby="key-figures"><div class="section-band" id="key-figures">Operational summary</div>
-        <div class="metrics">
-            <div class="metric"><span class="metric-label">Submitted reports</span><span class="metric-value">{{ number_format($metrics['reported_cases']) }}</span><span class="metric-unit">submitted case records</span></div>
-            <div class="metric"><span class="metric-label">Estimated affected area</span><span class="metric-value">{{ number_format($metrics['estimated_affected_hectares'], 2) }}</span><span class="metric-unit">hectares</span></div>
-            <div class="metric"><span class="metric-label">Reports with farmer/farm information</span><span class="metric-value">{{ number_format($metrics['reports_containing_farmer_farm_information']) }}</span><span class="metric-unit">submitted case records</span></div>
-            <div class="metric"><span class="metric-label">Cases requiring field validation</span><span class="metric-value">{{ number_format($operational_queues['needs_visit']) }}</span><span class="metric-unit">open visits, including unassigned legacy work</span></div>
-            <div class="metric"><span class="metric-label">Open cases</span><span class="metric-value">{{ number_format($metrics['reported_cases'] - $metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></div>
-            <div class="metric"><span class="metric-label">Closed cases</span><span class="metric-value">{{ number_format($metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></div>
-        </div>
+        <table class="metrics"><tbody>
+            <tr><td class="metric"><span class="metric-label">Submitted reports</span><span class="metric-value">{{ number_format($metrics['reported_cases']) }}</span><span class="metric-unit">submitted case records</span></td>
+                <td class="metric"><span class="metric-label">Estimated affected area</span><span class="metric-value">{{ number_format($metrics['estimated_affected_hectares'], 2) }}</span><span class="metric-unit">hectares</span></td>
+                <td class="metric"><span class="metric-label">Reports with farmer/farm information</span><span class="metric-value">{{ number_format($metrics['reports_containing_farmer_farm_information']) }}</span><span class="metric-unit">submitted case records</span></td></tr>
+            <tr><td class="metric"><span class="metric-label">Reports requiring field validation</span><span class="metric-value">{{ number_format($operational_queues['needs_visit']) }}</span><span class="metric-unit">open visits, including unassigned legacy work</span></td>
+                <td class="metric"><span class="metric-label">Open submitted reports</span><span class="metric-value">{{ number_format($metrics['reported_cases'] - $metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></td>
+                <td class="metric"><span class="metric-label">Closed submitted reports</span><span class="metric-value">{{ number_format($metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></td></tr>
+        </tbody></table>
         <p class="muted">The farmer/farm-information value counts submitted case records containing that information; it is not an estimate of total affected farmers in Nasugbu. Estimated affected hectares is a separate reported-area metric, and reports may describe overlapping ground.</p>
     </section>
 
-    <section aria-labelledby="submissions"><div class="section-band" id="submissions">Submissions over the period</div>
-        @if (count($trend))
-            @php($maxTrend = max(array_column($trend, 'count')))
-            <svg class="bar-chart" viewBox="0 0 900 180" role="img" aria-label="Submissions trend">
-                @foreach ($trend as $index => $point)
-                    @php($barHeight = max(2, round(($point['count'] / $maxTrend) * 125)))
-                    @php($barX = 12 + ($index * (876 / max(1, count($trend)))) + 4)
-                    @php($barWidth = max(5, (876 / max(1, count($trend))) - 8))
-                    <rect x="{{ $barX }}" y="{{ 140 - $barHeight }}" width="{{ $barWidth }}" height="{{ $barHeight }}" rx="2"></rect>
-                    <text x="{{ $barX + ($barWidth / 2) }}" y="160" text-anchor="middle">{{ $point['label'] }}</text>
-                @endforeach
-            </svg>
-        @else <div class="empty">No submitted reports in this period.</div> @endif
-    </section>
-
-    <section aria-labelledby="distribution"><div class="section-band" id="distribution">Distribution</div><div class="columns"><div class="column"><h3>By barangay</h3><table><thead><tr><th>Barangay</th><th>Cases</th></tr></thead><tbody>@forelse ($metrics['cases_by_barangay'] as $row)<tr><td>{{ $row['barangay'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div><div class="column"><h3>By Possible Condition</h3><table><thead><tr><th>Possible condition</th><th>Cases</th></tr></thead><tbody>@forelse ($metrics['cases_by_possible_condition'] as $row)<tr><td>{{ $row['possible_condition'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div></div></section>
+    <section aria-labelledby="distribution"><div class="section-band" id="distribution">Distribution</div><div class="columns"><div class="column"><h3>By barangay</h3><table><thead><tr><th>Barangay</th><th>Submitted reports</th></tr></thead><tbody>@forelse ($metrics['cases_by_barangay'] as $row)<tr><td>{{ $row['barangay'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div><div class="column"><h3>By Possible Condition</h3><table><thead><tr><th>Possible condition</th><th>Submitted reports</th></tr></thead><tbody>@forelse ($metrics['cases_by_possible_condition'] as $row)<tr><td>{{ $row['possible_condition'] ?: 'Not provided' }}</td><td>{{ $row['reported_cases'] }}</td></tr>@empty<tr><td colspan="2" class="muted">No submitted reports in this period.</td></tr>@endforelse</tbody></table></div></div></section>
 
     <section aria-labelledby="lifecycle"><div class="section-band" id="lifecycle">Field-validation workload</div><table><thead><tr><th>Validation state</th><th>Submitted reports</th></tr></thead><tbody>@foreach ($metrics['field_validation_counts'] as $state => $count)<tr><td>{{ str_replace('_', ' ', ucfirst($state)) }}</td><td>{{ $count }}</td></tr>@endforeach</tbody></table></section>
 
     @php($queueLabels = ['needs_review' => 'Needs Review', 'needs_visit' => 'Needs Visit', 'follow_up_due' => 'Follow-up Due', 'upcoming' => 'Upcoming Visits', 'unverified_no_active_work' => 'Unverified, no active work'])
-    <section aria-labelledby="queues"><div class="section-band" id="queues">Operational queue status</div><p class="muted">These counts show submitted cases by current work queue. Follow-up Due reflects open validation work past its target date; Upcoming Visits includes target dates today or later.</p><table><thead><tr><th>Queue</th><th>Cases</th></tr></thead><tbody>@foreach ($operational_queues as $queue => $count)<tr><td>{{ $queueLabels[$queue] ?? str_replace('_', ' ', ucfirst($queue)) }}</td><td class="{{ in_array($queue, ['follow_up_due', 'needs_visit'], true) && $count ? 'danger' : '' }}">{{ $count }}</td></tr>@endforeach</tbody></table></section>
+    <section aria-labelledby="queues"><div class="section-band" id="queues">Operational queue status</div><p class="muted">These counts show submitted reports by current work queue. Follow-up Due reflects open validation work past its target date; Upcoming Visits includes target dates today or later.</p><table><thead><tr><th>Queue</th><th>Submitted reports</th></tr></thead><tbody>@foreach ($operational_queues as $queue => $count)<tr><td>{{ $queueLabels[$queue] ?? str_replace('_', ' ', ucfirst($queue)) }}</td><td class="{{ in_array($queue, ['follow_up_due', 'needs_visit'], true) && $count ? 'danger' : '' }}">{{ $count }}</td></tr>@endforeach</tbody></table></section>
 
     <details class="supplementary-metrics">
-        <summary>Supplementary review and expert-consult indicators</summary>
+        <summary>Supplementary trend and review information</summary>
+        <section aria-labelledby="submissions"><div class="section-band" id="submissions">Submissions over the period</div>
+            @if (count($trend))
+                @php($maxTrend = max(array_column($trend, 'count')))
+                <svg class="bar-chart" viewBox="0 0 900 180" role="img" aria-label="Submissions trend">
+                    @foreach ($trend as $index => $point)
+                        @php($barHeight = max(2, round(($point['count'] / $maxTrend) * 125)))
+                        @php($barX = 12 + ($index * (876 / max(1, count($trend)))) + 4)
+                        @php($barWidth = max(5, (876 / max(1, count($trend))) - 8))
+                        <rect x="{{ $barX }}" y="{{ 140 - $barHeight }}" width="{{ $barWidth }}" height="{{ $barHeight }}" rx="2"></rect>
+                        <text x="{{ $barX + ($barWidth / 2) }}" y="160" text-anchor="middle">{{ $point['label'] }}</text>
+                    @endforeach
+                </svg>
+            @else <div class="empty">No submitted reports in this period.</div> @endif
+        </section>
         <section aria-labelledby="review-time"><h2 id="review-time">Review duration</h2><table><tbody><tr><td>Reviewed cases</td><td>{{ $metrics['review_time']['reviewed_cases'] }}</td></tr><tr><td>Average</td><td>{{ $metrics['review_time']['average_hours'] !== null ? $metrics['review_time']['average_hours'].' hours' : 'Not available' }}</td></tr><tr><td>Median</td><td>{{ $metrics['review_time']['median_hours'] !== null ? $metrics['review_time']['median_hours'].' hours' : 'Not available' }}</td></tr></tbody></table></section>
-        <section aria-labelledby="expert"><h2 id="expert">Expert consultation</h2><p class="muted">Possible Condition and staff-classification agreement is descriptive and is not model accuracy.</p><table><tbody><tr><td>Consult volume</td><td>{{ $metrics['expert_verification']['consult_volume']['total'] }}</td></tr><tr><td>Possible Condition/staff-classification agreement</td><td>{{ $metrics['expert_verification']['expert_agreement']['percentage'] !== null ? $metrics['expert_verification']['expert_agreement']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Unable-to-classify rate</td><td>{{ $metrics['expert_verification']['unable_to_classify_rate']['percentage'] !== null ? $metrics['expert_verification']['unable_to_classify_rate']['percentage'].'%' : 'Not available' }}</td></tr><tr><td>Advisory coverage</td><td>{{ $metrics['expert_verification']['advisory_coverage']['coverage_rate'] !== null ? ($metrics['expert_verification']['advisory_coverage']['coverage_rate'] * 100).'%' : 'Not available' }}</td></tr></tbody></table></section>
     </details>
 
     @if ($appendix_enabled)

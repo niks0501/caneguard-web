@@ -128,7 +128,8 @@ describe("SubmittedReportsPage", () => {
       screen.queryByRole("columnheader", { name: "Observed" }),
     ).not.toBeInTheDocument();
     expect(screen.getAllByText("Nasugbu, Batangas").length).toBeGreaterThan(0);
-    expect(screen.getByText("AI mismatch flagged")).toBeInTheDocument();
+    expect(screen.getByText("Reporter concern needs review")).toBeInTheDocument();
+    expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
     expect(screen.getAllByText("Possible Condition: Smut").length).toBeGreaterThanOrEqual(1);
     const statusCell = screen.getByRole("cell", { name: "Needs field validation" });
     const longStatusLabel = statusCell.querySelector(".status-badge__label");
@@ -149,6 +150,7 @@ describe("SubmittedReportsPage", () => {
     );
     expect(screen.getByRole("columnheader", { name: "Reported concern" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Latest validation" })).toBeInTheDocument();
+    expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Visit calendar" })).toBeInTheDocument();
     expect(useReports).toHaveBeenCalledWith(
       expect.objectContaining({ reportedConcern: "rssi" }),

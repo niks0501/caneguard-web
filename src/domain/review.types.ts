@@ -2,9 +2,7 @@ import type {
   ActionTaken,
   AuthorityClassifiedCondition,
   CaseState,
-  ConsultReviewOutcome,
   FieldValidationState,
-  FindingSource,
   ReviewStatus,
   VerificationOutcome,
 } from "./report.types";
@@ -22,67 +20,6 @@ export interface OperationalMetadataCorrections {
   gpsAccuracy?: number | null;
 }
 
-export interface ExpertDirectoryEntry {
-  uuid: string;
-  name: string;
-  email: string;
-}
-
-export interface ReportReferralInput {
-  destination: string;
-  reference: string;
-  referralDate: string;
-  dueDate?: string | null;
-  expertUuid?: string | null;
-  expertName?: string | null;
-  expertContact?: string | null;
-  shareFullContext?: boolean;
-  note?: string | null;
-  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
-  verificationOutcome?: VerificationOutcome;
-  officeNotes?: string | null;
-  expectedVersion: number;
-}
-
-export interface ExpertReferralResponseInput {
-  responseDate: string;
-  responseNote?: string | null;
-  responseFinding?: string | null;
-  findingRecommendation?: string | null;
-  findingSource?: FindingSource | null;
-  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
-  verificationOutcome?: VerificationOutcome;
-  expectedVersion: number;
-}
-
-export interface ExpertFindingInput {
-  conditionOpinion?: AuthorityClassifiedCondition | null;
-  symptomVerdicts?: Record<string, { verdict: "present" | "absent" | "unsure"; note?: string | null }>;
-  basis?: string | null;
-  confidence?: "low" | "medium" | "high" | null;
-  recommendation?: string | null;
-  consultStatus?: "in_progress" | "completed" | "cancelled";
-  responseDate?: string | null;
-  expectedVersion: number;
-}
-
-export interface ConsultInvite {
-  url: string;
-  photoUrl?: string;
-  consultId: number;
-  issuedAt: string | null;
-  expiresAt: string | null;
-  revokedAt: string | null;
-  accessCount: number;
-  shareFullContext: boolean;
-}
-
-export interface ConfirmExpertReferralInput {
-  consultReviewOutcome: ConsultReviewOutcome;
-  consultReviewNote?: string | null;
-  expectedVersion: number;
-}
-
 export interface DuplicateLinkInput {
   canonicalReportUuid: string;
   reason?: string;
@@ -91,6 +28,15 @@ export interface DuplicateLinkInput {
 
 export interface DuplicateUnlinkInput {
   reason?: string;
+  expectedVersion: number;
+}
+
+export interface HandoffNoteInput {
+  destination: string;
+  reference?: string | null;
+  sentDate: string;
+  note?: string | null;
+  adviceReceivedNote?: string | null;
   expectedVersion: number;
 }
 

@@ -29,6 +29,15 @@ function stepNamed(name) {
   return matches[0];
 }
 
+test("quality gate uses explicit safe production build inputs", () => {
+  const env = stepNamed("Run Web checks (lint, typecheck, tests, build)").env;
+  assert.deepEqual(env, {
+    VITE_API_BASE_URL: "https://caneguard.example.test",
+    VITE_DATA_SOURCE: "api",
+    VITE_REALTIME_ENABLED: "false",
+  });
+});
+
 const expectedCommands = {
   "Install Web dependencies": "npm ci --no-audit --no-fund",
   "Install Laravel dependencies":

@@ -1,9 +1,5 @@
 import type { MonthlyCaseSummary as MonthlyCaseSummaryData } from "../../domain/dashboard.types";
 
-function metricValue(value: number | null, suffix = "") {
-  return value === null ? "Not available" : `${value}${suffix}`;
-}
-
 export function MonthlyCaseSummary({
   summary,
   month,
@@ -36,8 +32,7 @@ export function MonthlyCaseSummary({
       </div>
 
       <p className="dashboard-monthly-summary__notice">
-        Submitted reports and estimated affected area from submitted reports for {summary.month}.
-        These are operational report counts, not population-level disease statistics.
+        Counts describe reports submitted during {summary.month}, not population-level disease statistics.
       </p>
 
       <div className="dashboard-monthly-summary__metrics">
@@ -59,15 +54,6 @@ export function MonthlyCaseSummary({
         </div>
       </div>
 
-      <p className="dashboard-monthly-summary__notice">
-        Reports containing farmer/farm information: {summary.reportsContainingFarmerFarmInformation}. This describes submitted case records, not an estimate of total affected farmers in Nasugbu.
-      </p>
-
-      <p className="dashboard-monthly-summary__notice">
-        Barangay and Possible Condition breakdowns now render as charts in the Report analytics section above,
-        using PHT (UTC+8) period boundaries. This panel uses the same Philippine calendar month.
-      </p>
-
       <div className="dashboard-monthly-summary__grid">
         <section aria-labelledby="monthly-validation-heading" className="monthly-summary-card">
           <div className="monthly-summary-subheading">
@@ -78,34 +64,6 @@ export function MonthlyCaseSummary({
             <div><dt>Assigned</dt><dd>{summary.fieldValidationCounts.assigned}</dd></div>
             <div><dt>In progress</dt><dd>{summary.fieldValidationCounts.inProgress}</dd></div>
             <div><dt>Completed</dt><dd>{summary.fieldValidationCounts.completed}</dd></div>
-          </dl>
-        </section>
-
-        <section aria-labelledby="monthly-review-time-heading" className="monthly-summary-card">
-          <div className="monthly-summary-subheading">
-            <h3 id="monthly-review-time-heading">Review time</h3>
-          </div>
-          <dl className="monthly-summary-definition-list">
-            <div>
-              <dt>Submitted reports with supported timing</dt>
-              <dd>{summary.reviewTime.reviewedCases}</dd>
-            </div>
-            <div>
-              <dt>Average</dt>
-              <dd>{metricValue(summary.reviewTime.averageHours, " hours")}</dd>
-            </div>
-            <div>
-              <dt>Median</dt>
-              <dd>{metricValue(summary.reviewTime.medianHours, " hours")}</dd>
-            </div>
-            <div>
-              <dt>Range</dt>
-              <dd>
-                {summary.reviewTime.minHours === null || summary.reviewTime.maxHours === null
-                  ? "Not available"
-                  : `${summary.reviewTime.minHours}-${summary.reviewTime.maxHours} hours`}
-              </dd>
-            </div>
           </dl>
         </section>
       </div>

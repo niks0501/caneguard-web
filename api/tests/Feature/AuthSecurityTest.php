@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DistrictGrant;
 use App\Models\Report;
 use App\Models\SecurityAudit;
 use App\Models\User;
@@ -39,9 +40,9 @@ class AuthSecurityTest extends TestCase
         $this->assertDatabaseCount('security_audits', 0);
     }
 
-    public function test_registration_creates_only_a_verified_email_gated_field_reporter(): void
+    public function test_registration_creates_only_a_verified_email_gated_farmer(): void
     {
-        config(['caneguard.self_registration_enabled' => true]);
+        config(['caneguard.self_registration_enabled' => true, 'caneguard.pilot_roster_certified' => true]);
         Notification::fake();
 
         $response = $this->postJson('/register', [
@@ -54,7 +55,7 @@ class AuthSecurityTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('code', 'REGISTRATION_CREATED')
-            ->assertJsonPath('user.role', User::ROLE_FIELD_REPORTER)
+            ->assertJsonPath('user.role', User::ROLE_FARMER)
             ->assertJsonPath('user.email_verified', false);
 
         $user = User::query()->where('email', 'new@example.test')->sole();
@@ -71,7 +72,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_unverified_users_cannot_use_web_or_mobile_authentication(): void
     {
-        $user = User::factory()->unverified()->fieldReporter()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->unverified()->fieldReporter()->create([
             'password' => 'A safe field reporter passphrase',
         ]);
 
@@ -98,7 +99,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_signed_email_verification_is_idempotent_and_enables_authentication(): void
     {
-        $user = User::factory()->unverified()->reviewer()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->unverified()->reviewer()->create([
             'password' => 'A safe reviewer passphrase',
         ]);
         $url = URL::temporarySignedRoute(
@@ -122,26 +123,31 @@ class AuthSecurityTest extends TestCase
             ->assertJsonPath('code', 'EMAIL_VERIFIED');
     }
 
-    public function test_spoofed_host_cannot_change_generated_api_urls(): void
+    public function test_generated_api_asset_urls_are_host_independent_and_app_relative(): void
     {
-        $reviewer = User::factory()->reviewer()->create();
-        $report = Report::factory()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs($reviewer);
 
-        $this->withHeader('Host', 'attacker.example.test')
+        $localhostResponse = $this->withHeader('Host', 'localhost:8000')
             ->getJson('/api/v1/reports?per_page=1')
-            ->assertOk()
-            ->assertJsonPath(
-                'data.0.image_url',
-                route('api.v1.reports.image', ['report' => $report->uuid]),
-            )
-            ->assertDontSee('attacker.example.test');
+            ->assertOk();
+        $lanResponse = $this->withHeader('Host', '192.168.1.42:8000')
+            ->getJson('/api/v1/reports?per_page=1')
+            ->assertOk();
+
+        $imagePath = '/api/v1/reports/'.$report->uuid.'/image';
+        $this->assertSame($imagePath, $localhostResponse->json('data.0.image_url'));
+        $this->assertSame(
+            $localhostResponse->json('data.0.image_url'),
+            $lanResponse->json('data.0.image_url'),
+        );
     }
 
     public function test_spoofed_host_cannot_change_signed_verification_links(): void
     {
         Notification::fake();
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->inDistrict($this->pilotDistrict())->unverified()->create();
 
         $this->withHeader('Host', 'attacker.example.test')
             ->postJson('/email/verification-notification', ['email' => $user->email])
@@ -175,7 +181,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_invalid_email_verification_signatures_use_the_generic_link_error(): void
     {
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->inDistrict($this->pilotDistrict())->unverified()->create();
 
         $this->getJson('/email/verify/'.$user->getKey().'/'.sha1($user->email).'?expires=9999999999&signature=invalid')
             ->assertForbidden()
@@ -186,7 +192,7 @@ class AuthSecurityTest extends TestCase
     public function test_verification_resend_is_generic_and_throttled(): void
     {
         Notification::fake();
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->inDistrict($this->pilotDistrict())->unverified()->create();
 
         $known = $this->postJson('/email/verification-notification', ['email' => $user->email]);
         $unknown = $this->postJson('/email/verification-notification', ['email' => 'missing@example.test']);
@@ -214,7 +220,7 @@ class AuthSecurityTest extends TestCase
     public function test_password_recovery_is_generic_and_reset_is_single_use(): void
     {
         Notification::fake();
-        $user = User::factory()->reviewer()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'password' => 'An old reviewer passphrase',
         ]);
 
@@ -257,7 +263,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_expired_password_reset_is_rejected(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->inDistrict($this->pilotDistrict())->create();
         $token = Password::broker()->createToken($user);
         $this->travel(61)->minutes();
 
@@ -270,7 +276,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_password_policy_accepts_long_passphrases_and_rejects_short_or_compromised_values(): void
     {
-        config(['caneguard.self_registration_enabled' => true]);
+        config(['caneguard.self_registration_enabled' => true, 'caneguard.pilot_roster_certified' => true]);
 
         $short = $this->postJson('/register', [
             'name' => 'Short Password',
@@ -302,7 +308,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_password_reset_revokes_sessions_and_all_tokens(): void
     {
-        $user = User::factory()->reviewer()->create();
+        $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $first = $user->createToken('first')->plainTextToken;
         $second = $user->createToken('second')->plainTextToken;
         $token = Password::broker()->createToken($user);
@@ -325,7 +331,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_password_reset_revokes_a_persisted_web_session(): void
     {
-        $user = User::factory()->reviewer()->create();
+        $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         DB::table('sessions')->insert([
             'id' => 'active-session',
             'user_id' => $user->getKey(),
@@ -343,9 +349,9 @@ class AuthSecurityTest extends TestCase
         $this->assertDatabaseMissing('sessions', ['id' => 'active-session']);
     }
 
-    public function test_mobile_tokens_do_not_expire_and_fresh_login_rotates_one_device(): void
+    public function test_mobile_tokens_expire_in_thirty_days_and_fresh_login_rotates_one_device(): void
     {
-        $user = User::factory()->fieldReporter()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create([
             'password' => 'A field reporter passphrase',
         ]);
         $payload = [
@@ -368,10 +374,11 @@ class AuthSecurityTest extends TestCase
         $this->assertNotNull(PersonalAccessToken::findToken($other));
         $accessToken = PersonalAccessToken::findToken($second);
         $this->assertSame('primary-device-id', $accessToken?->device_id);
-        $this->assertNull($accessToken?->expires_at);
+        $this->assertTrue($accessToken->expires_at->equalTo($accessToken->created_at->copy()->addDays(30)));
 
-        $accessToken?->forceFill([
+        $accessToken->forceFill([
             'created_at' => now()->subDays(8),
+            'expires_at' => now()->addDays(22),
         ])->save();
         $this->withToken($second)
             ->getJson('/api/v1/mobile/auth/me')
@@ -387,7 +394,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_password_change_requires_step_up_and_revokes_authentication(): void
     {
-        $user = User::factory()->reviewer()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'password' => 'An old reviewer passphrase',
         ]);
         $token = $user->createToken('password-change')->plainTextToken;
@@ -411,7 +418,7 @@ class AuthSecurityTest extends TestCase
     public function test_email_change_requires_step_up_and_restarts_verification(): void
     {
         Notification::fake();
-        $user = User::factory()->reviewer()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'password' => 'An old reviewer passphrase',
         ]);
         $token = $user->createToken('email-change')->plainTextToken;
@@ -431,7 +438,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_new_device_enrollment_requires_step_up_and_preserves_other_devices(): void
     {
-        $user = User::factory()->fieldReporter()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create([
             'password' => 'A field reporter passphrase',
         ]);
         $first = $this->postJson('/api/v1/mobile/auth/login', [
@@ -454,7 +461,7 @@ class AuthSecurityTest extends TestCase
         ])->assertOk();
         $second = $enrollment->json('token');
 
-        $this->assertNull($enrollment->json('expires_at'));
+        $this->assertNotNull($enrollment->json('expires_at'));
         $this->assertNotNull(PersonalAccessToken::findToken($first));
         $this->assertNotNull(PersonalAccessToken::findToken($second));
         $this->assertDatabaseHas('security_audits', [
@@ -466,7 +473,7 @@ class AuthSecurityTest extends TestCase
 
     public function test_biometric_disablement_requires_step_up_and_revokes_tokens(): void
     {
-        $user = User::factory()->reviewer()->create([
+        $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'password' => 'A reviewer passphrase',
             'biometric_enabled' => true,
         ]);
@@ -488,10 +495,10 @@ class AuthSecurityTest extends TestCase
 
     public function test_only_administrators_can_change_roles(): void
     {
-        $fieldReporter = User::factory()->fieldReporter()->create([
+        $fieldReporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create([
             'password' => 'A field reporter passphrase',
         ]);
-        $target = User::factory()->reviewer()->create();
+        $target = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $this->actingAs($fieldReporter);
 
         $this->patchJson('/api/v1/admin/users/'.$target->uuid.'/role', [
@@ -503,13 +510,19 @@ class AuthSecurityTest extends TestCase
 
     public function test_sensitive_changes_require_step_up_and_role_changes_cannot_self_escalate(): void
     {
-        $admin = User::factory()->admin()->create([
+        $admin = User::factory()->inDistrict($this->pilotDistrict())->admin()->create([
             'password' => 'An administrator passphrase',
         ]);
-        $target = User::factory()->reviewer()->create([
+        $target = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'password' => 'A reviewer passphrase',
         ]);
-        $this->actingAs($admin);
+        DistrictGrant::query()->create([
+            'user_id' => $admin->id,
+            'district_id' => $this->pilotDistrict()->id,
+            'ability' => 'staff:manage',
+        ]);
+        // Grant provisioning advances the authority revision, just as a fresh request reload would.
+        $this->actingAs($admin->fresh());
 
         $this->postJson('/api/v1/auth/password', [
             'current_password' => 'wrong password',

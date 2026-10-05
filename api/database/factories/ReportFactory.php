@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\District;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -100,6 +101,11 @@ class ReportFactory extends Factory
     /**
      * Build a report fixture using the Model V1 four-class evidence shape.
      */
+    public function inDistrict(District $district): static
+    {
+        return $this->state(['district_id' => $district->id]);
+    }
+
     public function mobileModelV1(): static
     {
         return $this->state([

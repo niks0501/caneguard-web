@@ -13,7 +13,10 @@ const userResponseSchema = z.object({
     uuid: z.string(),
     name: z.string(),
     email: z.email(),
-    role: z.enum(["field_reporter", "reviewer", "admin", "expert"]),
+    role: z.enum(["farmer", "field_reporter", "reviewer", "admin"]),
+    capabilities: z.array(z.string()).default([]),
+    accounts_enabled: z.boolean().optional(),
+    district_id: z.number().int().nullable().optional(),
   }),
 });
 
@@ -27,7 +30,7 @@ const registrationResponseSchema = authActionResponseSchema.extend({
     uuid: z.string(),
     name: z.string(),
     email: z.email(),
-    role: z.literal("field_reporter"),
+    role: z.literal("farmer"),
     email_verified: z.boolean(),
   }),
 });
@@ -102,7 +105,7 @@ export async function logoutRequest(): Promise<void> {
 }
 
 function isWebRole(role: string): role is WebRole {
-  return role === "reviewer" || role === "admin" || role === "expert";
+  return role === "reviewer" || role === "admin";
 }
 
 export class WebRoleError extends Error {

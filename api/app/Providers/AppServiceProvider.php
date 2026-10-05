@@ -40,6 +40,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Report::class, ReportPolicy::class);
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        Sanctum::authenticateAccessTokensUsing(static function (PersonalAccessToken $token, bool $valid): bool {
+            return $valid && $token->expires_at !== null && $token->created_at !== null
+                && $token->expires_at->lessThanOrEqualTo($token->created_at->copy()->addDays(30))
+                && $token->created_at->greaterThan(now()->subDays(30));
+        });
 
         $applicationUrl = trim((string) config('app.url'));
         $applicationUrlParts = parse_url($applicationUrl);

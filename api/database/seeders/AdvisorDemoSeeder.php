@@ -6,9 +6,11 @@ use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
-use App\Models\ReportReferral;
+use App\Models\ReportClassScore;
 use App\Models\ReportReviewEvent;
+use App\Models\ReportSymptom;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +37,8 @@ class AdvisorDemoSeeder extends Seeder
 
     public function run(): void
     {
+        $districtId = app(DistrictAccess::class)->pilotId()
+            ?? throw new \LogicException('Seed the configured pilot district before seeding reports.');
         $reporter = User::query()
             ->where('email', 'field@caneguard.test')
             ->firstOrFail();
@@ -44,9 +48,6 @@ class AdvisorDemoSeeder extends Seeder
         $admin = User::query()
             ->where('email', 'admin@caneguard.test')
             ->firstOrFail();
-        $expert = User::query()
-            ->where('email', 'expert@caneguard.test')
-            ->first();
         $image = file_get_contents(
             database_path('seeders/assets/synthetic-sugarcane-rust.png'),
         );
@@ -66,13 +67,13 @@ class AdvisorDemoSeeder extends Seeder
             $reviewer,
             $admin,
             $advisory,
-            $expert,
         ) as $referenceCode => $attributes) {
             $reports[$referenceCode] = $this->seedReport(
                 $referenceCode,
                 $attributes,
                 $reporter,
                 $image,
+                $districtId,
             );
         }
 
@@ -100,22 +101,6 @@ class AdvisorDemoSeeder extends Seeder
             $reviewer,
         );
 
-        if ($expert !== null) {
-            $this->seedCompletedConsult(
-                $reports['BGO-20260910-0640'],
-                $reviewer,
-                $expert,
-            );
-            $this->seedPendingConsult(
-                $reports['BGO-20260919-0820'],
-                $reviewer,
-                $expert,
-            );
-            $this->seedVerificationEvent(
-                $reports['BGO-20260910-0640'],
-                $expert,
-            );
-        }
     }
 
     /**
@@ -127,6 +112,8 @@ class AdvisorDemoSeeder extends Seeder
     {
         $reportIds = Report::query()
             ->whereIn('reference_code', self::REPORT_REFERENCES)
+            ->whereDoesntHave('referrals')
+            ->whereDoesntHave('handoffNotes')
             ->pluck('id');
         $assignmentIds = FieldValidationAssignment::query()
             ->whereIn('report_id', $reportIds)
@@ -149,9 +136,6 @@ class AdvisorDemoSeeder extends Seeder
             FieldValidationAssignment::query()
                 ->whereIn('id', $assignmentIds)
                 ->delete();
-            ReportReferral::query()
-                ->whereIn('report_id', $reportIds)
-                ->delete();
             ReportReviewEvent::query()
                 ->whereIn('report_id', $reportIds)
                 ->delete();
@@ -160,13 +144,17 @@ class AdvisorDemoSeeder extends Seeder
                 ->delete();
             Advisory::query()
                 ->where('code', self::ADVISORY_CODE)
+                ->whereNotIn('id', Report::query()->whereNotNull('advisory_id')->select('advisory_id'))
                 ->delete();
         });
 
-        Storage::disk('local')->delete([
-            ...$photoPaths,
-            ...$reportImagePaths,
-        ]);
+        $paths = array_unique([...$photoPaths, ...$reportImagePaths]);
+        foreach ($paths as $path) {
+            if (! Report::query()->where('image_path', $path)->exists()
+                && ! FieldValidationCompletion::query()->where('fresh_photo_path', $path)->exists()) {
+                Storage::disk('local')->delete($path);
+            }
+        }
     }
 
     /**
@@ -180,9 +168,9 @@ class AdvisorDemoSeeder extends Seeder
     private function seedAdvisory(User $reviewer): Advisory
     {
         return Advisory::query()->updateOrCreate(
-            ['code' => self::ADVISORY_CODE],
+            ['code' => RailwayDemoData::reference(self::ADVISORY_CODE)],
             [
-                'uuid' => '389cb205-7897-42d0-80ec-3468eeab8b3d',
+                'uuid' => RailwayDemoData::uuid('advisory/'.self::ADVISORY_CODE, '389cb205-7897-42d0-80ec-3468eeab8b3d'),
                 'title' => 'Rust sanitation and monitored follow-up',
                 'content' => 'Remove heavily affected leaves, disinfect tools between rows, and schedule a follow-up visit when symptoms continue.',
                 'status' => Advisory::STATUS_VALIDATED,
@@ -203,9 +191,7 @@ class AdvisorDemoSeeder extends Seeder
         User $reviewer,
         User $admin,
         Advisory $advisory,
-        ?User $expert,
     ): array {
-        $expertCase = $expert !== null;
 
         return [
             'BGO-20260920-0810' => [
@@ -222,7 +208,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.8400000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'moderate',
+                'reported_severity' => 'Moderate',
                 'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
                 'reporter_observation_text' => 'The grower says the eastern rows have developed fine orange flecks that do not clear after rain.',
                 'field_notes' => 'Keep the visit open for a field check of the affected eastern rows.',
@@ -232,7 +218,6 @@ class AdvisorDemoSeeder extends Seeder
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
-                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
                 'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
                 'reviewer_id' => $reviewer->getKey(),
@@ -253,7 +238,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.7900000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'moderate',
+                'reported_severity' => 'Moderate',
                 'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
                 'reporter_observation_text' => 'The follow-up visit checks the same block after the office sanitation guidance.',
                 'field_notes' => 'Fewer orange flecks were noted along the eastern edge during the return visit.',
@@ -263,7 +248,6 @@ class AdvisorDemoSeeder extends Seeder
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
-                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
                 'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
                 'reviewer_id' => $reviewer->getKey(),
@@ -284,39 +268,26 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_SMUT,
                 'confidence' => 0.8800000,
                 'checklist_consistency' => 'inconsistent',
-                'reported_severity' => 'high',
+                'reported_severity' => 'Severe',
                 'reporter_suspected_condition' => Report::LABEL_SMUT,
                 'reporter_observation_text' => 'Several stalks carry dark whip-like growths near the top leaves.',
                 'field_notes' => 'The office requested an attributed review after comparing the image with the field checklist.',
                 'observed_at' => '2026-09-10 06:40:00.000',
                 'submitted_at' => '2026-09-10 07:00:00.000',
-                'review_status' => $expertCase
-                    ? Report::STATUS_VERIFIED_BY_STAFF
-                    : Report::STATUS_SUBMITTED_UNVERIFIED,
-                'case_state' => $expertCase ? Report::CASE_STATE_CLOSED : Report::CASE_STATE_OPEN,
-                'verification_outcome' => $expertCase
-                    ? Report::VERIFICATION_OUTCOME_VERIFIED
-                    : Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
+                'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
+                'case_state' => Report::CASE_STATE_OPEN,
+                'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                'referral_state' => $expertCase
-                    ? Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED
-                    : Report::REFERRAL_STATE_NOT_REFERRED,
-                'action_taken' => $expertCase
-                    ? Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION
-                    : null,
-                'authority_classified_condition' => $expertCase
-                    ? Report::AUTHORITY_CONDITION_SMUT
-                    : null,
-                'reviewer_id' => $expertCase ? $reviewer->getKey() : null,
-                'reviewed_at' => $expertCase ? '2026-09-14 10:00:00.000' : null,
-                'first_reviewed_at' => $expertCase ? '2026-09-10 08:00:00.000' : null,
-                'advisory_id' => $expertCase ? $advisory->getKey() : null,
-                'advisory_selected_by_id' => $expertCase ? $reviewer->getKey() : null,
-                'advisory_selected_at' => $expertCase ? '2026-09-14 10:00:00.000' : null,
-                'advisory_delivery_state' => $expertCase
-                    ? Report::ADVISORY_DELIVERY_DELIVERED
-                    : Report::ADVISORY_DELIVERY_NOT_SELECTED,
-                'advisory_delivered_at' => $expertCase ? '2026-09-14 10:01:00.000' : null,
+                'action_taken' => null,
+                'authority_classified_condition' => null,
+                'reviewer_id' => null,
+                'reviewed_at' => null,
+                'first_reviewed_at' => null,
+                'advisory_id' => null,
+                'advisory_selected_by_id' => null,
+                'advisory_selected_at' => null,
+                'advisory_delivery_state' => Report::ADVISORY_DELIVERY_NOT_SELECTED,
+                'advisory_delivered_at' => null,
             ],
             'BGO-20260919-0820' => [
                 'uuid' => '8f0e9123-4df7-4574-9074-962b1929b878',
@@ -332,22 +303,17 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.7300000,
                 'checklist_consistency' => 'inconclusive',
-                'reported_severity' => 'moderate',
+                'reported_severity' => 'Moderate',
                 'reporter_suspected_condition' => 'Red stripe',
                 'reporter_observation_text' => 'Narrow red bands run along the midrib on several leaves, with no clear orange pustules.',
-                'field_notes' => 'The submitted pattern may be red stripe rather than leaf rust; keep the expert review open.',
+                'field_notes' => 'The submitted pattern may be red stripe rather than leaf rust; review the field evidence.',
                 'observed_at' => '2026-09-19 08:20:00.000',
                 'submitted_at' => '2026-09-19 08:45:00.000',
                 'review_status' => Report::STATUS_SUBMITTED_UNVERIFIED,
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                'referral_state' => $expertCase
-                    ? Report::REFERRAL_STATE_REFERRED
-                    : Report::REFERRAL_STATE_NOT_REFERRED,
-                'action_taken' => $expertCase
-                    ? Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION
-                    : null,
+                'action_taken' => null,
             ],
             'BGO-20260912-0900' => [
                 'uuid' => 'ff502f07-b595-42ac-81f5-68c289b7b931',
@@ -363,7 +329,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_RUST,
                 'confidence' => 0.8100000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'low',
+                'reported_severity' => 'Mild',
                 'reporter_observation_text' => 'Orange pustules are scattered across older leaves along the southern row.',
                 'field_notes' => 'The office sent sanitation guidance and will compare the next visit with this record.',
                 'observed_at' => '2026-09-12 09:00:00.000',
@@ -372,7 +338,6 @@ class AdvisorDemoSeeder extends Seeder
                 'case_state' => Report::CASE_STATE_CLOSED,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
                 'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
                 'reviewer_id' => $reviewer->getKey(),
@@ -398,7 +363,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_SMUT,
                 'confidence' => 0.7600000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'high',
+                'reported_severity' => 'Severe',
                 'reporter_suspected_condition' => Report::LABEL_SMUT,
                 'reporter_observation_text' => 'The marked patch has more thin stalks and dark whips than at the first visit.',
                 'field_notes' => 'The affected rows were flagged for another office check after the condition worsened.',
@@ -408,7 +373,6 @@ class AdvisorDemoSeeder extends Seeder
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
-                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
                 'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
                 'reviewer_id' => $reviewer->getKey(),
@@ -431,7 +395,7 @@ class AdvisorDemoSeeder extends Seeder
                 'predicted_label' => Report::LABEL_HEALTHY,
                 'confidence' => 0.9400000,
                 'checklist_consistency' => 'consistent',
-                'reported_severity' => 'low',
+                'reported_severity' => 'Mild',
                 'reporter_observation_text' => 'Leaves were evenly green at the edge of the block; no obvious lesion was recorded before the phone lost its map fix.',
                 'field_notes' => 'Submitted offline with a clear crop view but without a recoverable location.',
                 'observed_at' => '2026-09-18 06:15:00.000',
@@ -440,7 +404,6 @@ class AdvisorDemoSeeder extends Seeder
                 'case_state' => Report::CASE_STATE_OPEN,
                 'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
-                'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
                 'action_taken' => null,
             ],
         ];
@@ -454,13 +417,26 @@ class AdvisorDemoSeeder extends Seeder
         array $attributes,
         User $reporter,
         string $image,
+        int $districtId,
     ): Report {
+        unset($attributes['referral_state']);
         $number = array_search($referenceCode, self::REPORT_REFERENCES, true) + 1;
+        $attributes = RailwayDemoData::identities($referenceCode, $attributes);
+        $referenceCode = RailwayDemoData::reference($referenceCode);
         $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
                 'reporter_id' => $reporter->getKey(),
+                'district_id' => $districtId,
+                'affected_area_measurement' => $attributes['affected_area_measurement']
+                    ?? (($attributes['affected_area_hectares'] ?? null) === null
+                        ? Report::MEASUREMENT_NOT_MEASURED
+                        : Report::MEASUREMENT_MEASURED),
+                'affected_portion_measurement' => $attributes['affected_portion_measurement']
+                    ?? (($attributes['affected_portion_percent'] ?? null) === null
+                        ? Report::MEASUREMENT_NOT_MEASURED
+                        : Report::MEASUREMENT_MEASURED),
                 'image_path' => sprintf('reports/2026-09/%s.png', strtolower($referenceCode)),
                 'image_mime_type' => 'image/png',
                 'image_size_bytes' => strlen($image),
@@ -484,36 +460,22 @@ class AdvisorDemoSeeder extends Seeder
         }
 
         $labels = Report::v2Labels();
-        $existingScoreLabels = DB::table('report_class_scores')
-            ->where('report_id', $report->getKey())
-            ->pluck('label')
-            ->all();
         foreach ($labels as $label) {
-            if (in_array($label, $existingScoreLabels, true)) {
-                continue;
-            }
-
-            DB::table('report_class_scores')->insert([
-                'report_id' => $report->getKey(),
-                'label' => $label,
-                'score' => $label === $report->predicted_label
+            ReportClassScore::query()->firstOrCreate(
+                ['report_id' => $report->getKey(), 'label' => $label],
+                ['score' => $label === $report->predicted_label
                     ? $report->confidence
-                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7),
-            ]);
+                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7)],
+            );
         }
 
         $symptomKey = $report->predicted_label === Report::LABEL_HEALTHY
             ? 'none'
             : $report->predicted_label;
-        if (! DB::table('report_symptoms')
-            ->where('report_id', $report->getKey())
-            ->where('symptom_key', $symptomKey)
-            ->exists()) {
-            DB::table('report_symptoms')->insert([
-                'report_id' => $report->getKey(),
-                'symptom_key' => $symptomKey,
-            ]);
-        }
+        ReportSymptom::query()->firstOrCreate([
+            'report_id' => $report->getKey(),
+            'symptom_key' => $symptomKey,
+        ]);
 
         return $report;
     }
@@ -526,7 +488,7 @@ class AdvisorDemoSeeder extends Seeder
         FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '885b0373-0c86-41d8-a838-0921c71f3a35',
+                'uuid' => RailwayDemoData::uuid('uuid/885b0373-0c86-41d8-a838-0921c71f3a35', '885b0373-0c86-41d8-a838-0921c71f3a35'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-19',
@@ -543,7 +505,7 @@ class AdvisorDemoSeeder extends Seeder
         FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => 'efcb6026-044d-4c4c-b330-cbdc111d7aef',
+                'uuid' => RailwayDemoData::uuid('uuid/efcb6026-044d-4c4c-b330-cbdc111d7aef', 'efcb6026-044d-4c4c-b330-cbdc111d7aef'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-22',
@@ -562,7 +524,7 @@ class AdvisorDemoSeeder extends Seeder
         $assignment = FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '6feab924-3ecd-49f2-96c2-5fb878ef48f6',
+                'uuid' => RailwayDemoData::uuid('uuid/6feab924-3ecd-49f2-96c2-5fb878ef48f6', '6feab924-3ecd-49f2-96c2-5fb878ef48f6'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-24',
@@ -570,8 +532,8 @@ class AdvisorDemoSeeder extends Seeder
             ],
         );
         $completionAttributes = [
-            'uuid' => '0d81b69b-4db2-4352-81e1-d943d34d9ee8',
-            'client_uuid' => '2936e0f6-299d-47f3-8da6-53cb50283263',
+            'uuid' => RailwayDemoData::uuid('uuid/0d81b69b-4db2-4352-81e1-d943d34d9ee8', '0d81b69b-4db2-4352-81e1-d943d34d9ee8'),
+            'client_uuid' => RailwayDemoData::uuid('client_uuid/2936e0f6-299d-47f3-8da6-53cb50283263', '2936e0f6-299d-47f3-8da6-53cb50283263'),
             'field_observation' => 'The monitored rows show fewer orange flecks after sanitation guidance.',
             'field_finding' => 'The block is recovering and remains suitable for routine office follow-up.',
             'action_taken' => 'Disinfected tools and marked the eastern row for another inspection.',
@@ -581,7 +543,7 @@ class AdvisorDemoSeeder extends Seeder
             'gps_latitude' => 14.1260000,
             'gps_longitude' => 120.6039000,
             'gps_accuracy' => 6.10,
-            'fresh_photo_path' => 'field-validation/2026-09-18-balaytigui.png',
+            'fresh_photo_path' => RailwayDemoData::path('field-validation/2026-09-18-balaytigui.png'),
             'fresh_photo_mime_type' => 'image/png',
             'fresh_photo_size_bytes' => strlen($image),
         ];
@@ -605,7 +567,7 @@ class AdvisorDemoSeeder extends Seeder
         $assignment = FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '7649e5e2-cdec-45aa-9f1a-8500272527b8',
+                'uuid' => RailwayDemoData::uuid('uuid/7649e5e2-cdec-45aa-9f1a-8500272527b8', '7649e5e2-cdec-45aa-9f1a-8500272527b8'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-22',
@@ -613,8 +575,8 @@ class AdvisorDemoSeeder extends Seeder
             ],
         );
         $completionAttributes = [
-            'uuid' => '88797c37-3af2-4adb-81ca-fa1dc78d2dcd',
-            'client_uuid' => '9a99f389-b8d0-49d6-968e-ad9c183c3f8c',
+            'uuid' => RailwayDemoData::uuid('uuid/88797c37-3af2-4adb-81ca-fa1dc78d2dcd', '88797c37-3af2-4adb-81ca-fa1dc78d2dcd'),
+            'client_uuid' => RailwayDemoData::uuid('client_uuid/9a99f389-b8d0-49d6-968e-ad9c183c3f8c', '9a99f389-b8d0-49d6-968e-ad9c183c3f8c'),
             'field_observation' => 'The marked patch has more thin stalks and dark whips than at the first visit.',
             'field_finding' => 'The smut symptoms worsened and need a renewed office response.',
             'action_taken' => 'Flagged the affected rows and requested an additional inspection.',
@@ -653,109 +615,5 @@ class AdvisorDemoSeeder extends Seeder
             && ! Storage::disk('local')->put($path, $image)) {
             throw new RuntimeException('Unable to seed the authorized validation photo.');
         }
-    }
-
-    private function seedCompletedConsult(
-        Report $report,
-        User $reviewer,
-        User $expert,
-    ): void {
-        ReportReferral::query()->updateOrCreate(
-            [
-                'report_id' => $report->getKey(),
-                'reference' => 'BGO-CONSULT-20260910',
-            ],
-            [
-                'referred_by_id' => $reviewer->getKey(),
-                'expert_id' => $expert->getKey(),
-                'destination' => 'CaneGuard Expert Desk',
-                'referral_date' => '2026-09-11',
-                'due_date' => '2026-09-14',
-                'expert_name' => $expert->name,
-                'expert_contact' => $expert->email,
-                'share_full_context' => false,
-                'note' => 'Please compare the smut evidence with the field observation.',
-                'consult_status' => ReportReferral::STATUS_COMPLETED,
-                'response_date' => '2026-09-14',
-                'response_note' => 'The attributed expert reviewed the supplied evidence.',
-                'response_finding' => 'The field evidence is consistent with sugarcane smut.',
-                'response_recorded_by_id' => $expert->getKey(),
-                'response_recorded_at' => '2026-09-14 09:30:00.000',
-                'finding_summary' => 'Expert confirms the reported condition.',
-                'finding_details' => 'Whip-like growths and the image evidence support smut.',
-                'finding_recommendation' => 'Remove affected stalks and monitor the adjacent rows.',
-                'finding_source' => ReportReferral::FINDING_SOURCE_IN_SYSTEM,
-                'finding_recorded_by_id' => $expert->getKey(),
-                'finding_recorded_at' => '2026-09-14 09:30:00.000',
-                'office_case_state' => Report::CASE_STATE_OPEN,
-                'office_verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
-                'office_field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                'office_action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
-                'office_authority_classified_condition' => null,
-                'office_review_notes' => 'The office position at handoff was awaiting expert input.',
-                'office_reviewer_id' => $reviewer->getKey(),
-                'office_reviewed_at' => '2026-09-11 08:00:00.000',
-            ],
-        );
-    }
-
-    private function seedPendingConsult(
-        Report $report,
-        User $reviewer,
-        User $expert,
-    ): void {
-        ReportReferral::query()->updateOrCreate(
-            [
-                'report_id' => $report->getKey(),
-                'reference' => 'BGO-CONSULT-20260919',
-            ],
-            [
-                'referred_by_id' => $reviewer->getKey(),
-                'expert_id' => $expert->getKey(),
-                'destination' => 'CaneGuard Expert Desk',
-                'referral_date' => '2026-09-19',
-                'due_date' => '2026-09-26',
-                'expert_name' => $expert->name,
-                'expert_contact' => $expert->email,
-                'share_full_context' => false,
-                'note' => 'Review the mixed symptoms and provide an attributed finding.',
-                'consult_status' => ReportReferral::STATUS_PENDING,
-                'response_date' => null,
-                'response_note' => null,
-                'response_finding' => null,
-                'response_recorded_by_id' => null,
-                'response_recorded_at' => null,
-                'finding_summary' => null,
-                'finding_details' => null,
-                'finding_recommendation' => null,
-                'finding_source' => null,
-                'finding_recorded_by_id' => null,
-                'finding_recorded_at' => null,
-                'office_case_state' => Report::CASE_STATE_OPEN,
-                'office_verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
-                'office_field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                'office_action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
-                'office_authority_classified_condition' => null,
-                'office_review_notes' => 'Scoped to the assigned expert workspace.',
-                'office_reviewer_id' => $reviewer->getKey(),
-                'office_reviewed_at' => '2026-09-19 09:00:00.000',
-            ],
-        );
-    }
-
-    private function seedVerificationEvent(Report $report, User $expert): void
-    {
-        $attributes = [
-            'report_id' => $report->getKey(),
-            'actor_id' => $expert->getKey(),
-            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
-        ];
-        ReportReviewEvent::query()->updateOrCreate($attributes, [
-            'action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
-            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
-            'notes' => 'Attributed expert verification recorded for the monthly feedback loop.',
-            'case_state' => Report::CASE_STATE_OPEN,
-            'created_at' => '2026-09-14 09:30:00.000',
-        ]);
     }
 }

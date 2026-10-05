@@ -6,8 +6,11 @@ use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
-use App\Models\ReportReferral;
+use App\Models\ReportClassScore;
+use App\Models\ReportQualityWarning;
+use App\Models\ReportSymptom;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -99,6 +102,8 @@ class DashboardReportSeeder extends Seeder
 
     public function run(): void
     {
+        $districtId = app(DistrictAccess::class)->pilotId()
+            ?? throw new \LogicException('Seed the configured pilot district before seeding reports.');
         $reporter = User::query()
             ->where('email', 'field@caneguard.test')
             ->firstOrFail();
@@ -120,11 +125,11 @@ class DashboardReportSeeder extends Seeder
                 $attributes,
                 $reporter,
                 $image,
+                $districtId,
             );
         }
 
-        $this->seedExpertConsults($reports, $reviewer);
-        $this->seedVolume($reporter, $reviewer, $image);
+        $this->seedVolume($reporter, $reviewer, $image, $districtId);
     }
 
     /**
@@ -175,7 +180,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_OPEN,
                 Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 null,
             ),
             'BGO-20260914-0830' => $this->attributes(
@@ -191,7 +195,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_OPEN,
                 Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 Report::FIELD_VALIDATION_STATE_ASSIGNED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
                 $reviewer,
                 '2026-09-15 10:30:00',
@@ -209,7 +212,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_CLOSED,
                 Report::VERIFICATION_OUTCOME_VERIFIED,
                 Report::FIELD_VALIDATION_STATE_COMPLETED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_NO_FURTHER_ACTION_REQUIRED,
                 $reviewer,
                 '2026-09-26 09:15:00',
@@ -227,7 +229,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_OPEN,
                 Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 null,
             ),
             'BGO-20261011-0910' => $this->attributes(
@@ -243,7 +244,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_OPEN,
                 Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 Report::FIELD_VALIDATION_STATE_ASSIGNED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
                 $reviewer,
                 '2026-10-12 13:10:00',
@@ -261,7 +261,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_CLOSED,
                 Report::VERIFICATION_OUTCOME_VERIFIED,
                 Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_ADVISORY_PROVIDED,
                 $reviewer,
                 '2026-10-19 08:30:00',
@@ -279,7 +278,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_CLOSED,
                 Report::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY,
                 Report::FIELD_VALIDATION_STATE_COMPLETED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_NO_FURTHER_ACTION_REQUIRED,
                 $reviewer,
                 '2026-10-25 11:45:00',
@@ -297,7 +295,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_CLOSED,
                 Report::VERIFICATION_OUTCOME_VERIFIED,
                 Report::FIELD_VALIDATION_STATE_COMPLETED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
                 $reviewer,
                 '2026-10-31 10:05:00',
@@ -315,7 +312,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_OPEN,
                 Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
             ),
             'BGO-20261115-0720' => $this->attributes(
@@ -331,7 +327,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_OPEN,
                 Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
                 Report::FIELD_VALIDATION_STATE_ASSIGNED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
                 $reviewer,
                 '2026-11-16 09:20:00',
@@ -349,7 +344,6 @@ class DashboardReportSeeder extends Seeder
                 Report::CASE_STATE_CLOSED,
                 Report::VERIFICATION_OUTCOME_VERIFIED,
                 Report::FIELD_VALIDATION_STATE_COMPLETED,
-                Report::REFERRAL_STATE_NOT_REFERRED,
                 Report::ACTION_ADVISORY_PROVIDED,
                 $reviewer,
                 '2026-11-25 12:00:00',
@@ -362,16 +356,24 @@ class DashboardReportSeeder extends Seeder
      * named workflow examples; stable report references update monthly coverage
      * in place on subsequent runs.
      */
-    private function seedVolume(User $reporter, User $reviewer, string $image): void
+    private function seedVolume(User $reporter, User $reviewer, string $image, int $districtId): void
     {
         $advisoryId = Advisory::query()
-            ->where('code', AdvisorDemoSeeder::ADVISORY_CODE)
+            ->where('code', RailwayDemoData::reference(AdvisorDemoSeeder::ADVISORY_CODE))
             ->value('id');
         $plan = self::volumeDefinitions(
             self::volumeConfiguration(),
             $reviewer->getKey(),
             $advisoryId === null ? null : (int) $advisoryId,
         );
+        if (RailwayDemoData::active()) {
+            $isolated = [];
+            foreach ($plan as $reference => $definition) {
+                $definition['report'] = RailwayDemoData::identities($reference, $definition['report']);
+                $isolated[RailwayDemoData::reference($reference)] = $definition;
+            }
+            $plan = $isolated;
+        }
         $references = array_keys($plan);
         $existingReports = Report::query()
             ->whereIn('reference_code', $references)
@@ -392,6 +394,7 @@ class DashboardReportSeeder extends Seeder
                     'scan_record_client_uuid' => $existing?->scan_record_client_uuid
                         ?? $definition['report']['scan_record_client_uuid'],
                     'reporter_id' => $reporter->getKey(),
+                    'district_id' => $districtId,
                     'image_path' => $path,
                     'image_mime_type' => 'image/png',
                     'image_size_bytes' => strlen($image),
@@ -426,55 +429,31 @@ class DashboardReportSeeder extends Seeder
         }
 
         $labels = Report::v2Labels();
-        $existingScores = DB::table('report_class_scores')
-            ->whereIn('report_id', array_values($reportIds))
-            ->get(['report_id', 'label'])
-            ->mapWithKeys(fn (object $score): array => [
-                $score->report_id.'|'.$score->label => true,
-            ])
-            ->all();
-        $scoreRows = [];
-        $symptomRows = [];
-        $warningRows = [];
-
         foreach ($plan as $referenceCode => $definition) {
-            $reportId = $reportIds[$referenceCode] ?? null;
-            if ($reportId === null) {
-                continue;
-            }
-
+            $reportId = $reportIds[$referenceCode];
             $confidence = (float) $definition['report']['confidence'];
             foreach ($labels as $label) {
-                if (isset($existingScores[$reportId.'|'.$label])) {
-                    continue;
-                }
-
-                $scoreRows[] = [
-                    'report_id' => $reportId,
-                    'label' => $label,
-                    'score' => $label === $definition['report']['predicted_label']
+                ReportClassScore::query()->firstOrCreate(
+                    ['report_id' => $reportId, 'label' => $label],
+                    ['score' => $label === $definition['report']['predicted_label']
                         ? $confidence
-                        : round((1 - $confidence) / (count($labels) - 1), 7),
-                ];
+                        : round((1 - $confidence) / (count($labels) - 1), 7)],
+                );
             }
 
-            $symptomRows[] = [
+            ReportSymptom::query()->firstOrCreate([
                 'report_id' => $reportId,
                 'symptom_key' => $definition['report']['predicted_label'] === Report::LABEL_HEALTHY
                     ? 'none'
                     : $definition['report']['predicted_label'],
-            ];
+            ]);
             if ($definition['quality_warning']) {
-                $warningRows[] = [
+                ReportQualityWarning::query()->firstOrCreate([
                     'report_id' => $reportId,
                     'warning_key' => 'low-resolution',
-                ];
+                ]);
             }
         }
-
-        self::insertInChunks('report_class_scores', $scoreRows);
-        self::insertInChunks('report_symptoms', $symptomRows);
-        self::insertInChunks('report_quality_warnings', $warningRows);
 
         $assignmentDefinitions = [];
         foreach ($plan as $referenceCode => $definition) {
@@ -575,76 +554,6 @@ class DashboardReportSeeder extends Seeder
             }
         }
 
-        $consultDefinitions = [];
-        foreach ($plan as $referenceCode => $definition) {
-            if ($definition['consult'] !== null && isset($reportIds[$referenceCode])) {
-                $consultDefinitions[$referenceCode] = $definition['consult'];
-            }
-        }
-        if ($consultDefinitions !== []) {
-            $existingConsults = DB::table('report_referrals')
-                ->whereIn('report_id', array_values(array_intersect_key(
-                    $reportIds,
-                    $consultDefinitions,
-                )))
-                ->pluck('report_id')
-                ->map(fn ($id): int => (int) $id)
-                ->all();
-            $existingConsults = array_fill_keys($existingConsults, true);
-            $consultRows = [];
-            foreach ($consultDefinitions as $referenceCode => $consult) {
-                $reportId = $reportIds[$referenceCode];
-                if (isset($existingConsults[$reportId])) {
-                    continue;
-                }
-
-                $consultRows[] = [
-                    'report_id' => $reportId,
-                    'referred_by_id' => $reviewer->getKey(),
-                    'consult_status' => $consult['consult_status'],
-                    'destination' => 'CaneGuard Regional Agronomy Desk',
-                    'reference' => $consult['reference'],
-                    'referral_date' => $consult['referral_date'],
-                    'due_date' => $consult['due_date'],
-                    'expert_name' => 'Regional Agronomy Desk',
-                    'expert_contact' => 'agronomy-desk@caneguard.test',
-                    'share_full_context' => false,
-                    'note' => $consult['note'],
-                    'response_date' => $consult['response_date'],
-                    'response_note' => $consult['response_note'],
-                    'response_finding' => $consult['response_finding'],
-                    'response_recorded_by_id' => $consult['response_recorded_by_id'],
-                    'response_recorded_at' => $consult['response_recorded_at'],
-                    'finding_summary' => $consult['finding_summary'],
-                    'finding_details' => $consult['finding_details'],
-                    'finding_recommendation' => $consult['finding_recommendation'],
-                    'finding_source' => $consult['finding_source'],
-                    'finding_recorded_by_id' => $consult['finding_recorded_by_id'],
-                    'finding_recorded_at' => $consult['finding_recorded_at'],
-                    'office_case_state' => Report::CASE_STATE_OPEN,
-                    'office_verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
-                    'office_field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-                    'office_action_taken' => Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
-                    'office_authority_classified_condition' => null,
-                    'office_review_notes' => 'The office is waiting for an attributed finding.',
-                    'office_reviewer_id' => $reviewer->getKey(),
-                    'office_reviewed_at' => $consult['office_reviewed_at'],
-                    'created_at' => $consult['office_reviewed_at'],
-                    'updated_at' => $consult['office_reviewed_at'],
-                ];
-            }
-            self::insertInChunks('report_referrals', $consultRows);
-        }
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $rows
-     */
-    private static function insertInChunks(string $table, array $rows): void
-    {
-        foreach (array_chunk($rows, 400) as $chunk) {
-            DB::table($table)->insertOrIgnore($chunk);
-        }
     }
 
     /**
@@ -701,14 +610,12 @@ class DashboardReportSeeder extends Seeder
                         );
                         $closed = $ordinal % $configuration['closure_spread'] === 0;
                         $validationCycle = $ordinal % $configuration['validation_spread'];
-                        $consult = null;
                         $assignment = null;
                         $completion = null;
                         $reviewStatus = Report::STATUS_SUBMITTED_UNVERIFIED;
                         $caseState = Report::CASE_STATE_OPEN;
                         $verificationOutcome = Report::VERIFICATION_OUTCOME_NOT_DETERMINED;
                         $fieldValidationState = Report::FIELD_VALIDATION_STATE_UNASSIGNED;
-                        $referralState = Report::REFERRAL_STATE_NOT_REFERRED;
                         $actionTaken = null;
                         $authorityCondition = null;
 
@@ -729,24 +636,6 @@ class DashboardReportSeeder extends Seeder
                             } else {
                                 $reviewStatus = Report::STATUS_RESOLVED;
                                 $actionTaken = Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED;
-                            }
-                        } elseif ($ordinal % 13 === 0) {
-                            $reviewStatus = Report::STATUS_SUBMITTED_UNVERIFIED;
-                            $actionTaken = Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION;
-                            $referralState = $ordinal % 26 === 0
-                                ? Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED
-                                : Report::REFERRAL_STATE_REFERRED;
-                            $consult = self::consultDefinition(
-                                $referenceCode,
-                                $submittedAt,
-                                $label,
-                                $reviewerId,
-                                $ordinal % 26 === 0,
-                            );
-                            if ($consult['consult_status'] === ReportReferral::STATUS_COMPLETED) {
-                                $authorityCondition = $ordinal % 39 === 0
-                                    ? Report::AUTHORITY_CONDITION_UNABLE_TO_CLASSIFY
-                                    : $label;
                             }
                         } elseif ($validationCycle === 0) {
                             $reviewStatus = Report::STATUS_FOR_FIELD_VALIDATION;
@@ -782,9 +671,7 @@ class DashboardReportSeeder extends Seeder
                         $advisoryAcknowledgedAt = null;
                         $reportAdvisoryId = null;
                         $advisoryDeliveryState = Report::ADVISORY_DELIVERY_NOT_SELECTED;
-                        if ($advisoryId !== null
-                            && $consult !== null
-                            && $consult['consult_status'] === ReportReferral::STATUS_COMPLETED) {
+                        if ($advisoryId !== null && $actionTaken === Report::ACTION_ADVISORY_PROVIDED) {
                             $reportAdvisoryId = $advisoryId;
                             $advisorySelectedAt = $reviewedAt ?? $submittedAt->addHours(2);
                             $advisoryDeliveredAt = $advisorySelectedAt->addMinutes(2);
@@ -814,7 +701,7 @@ class DashboardReportSeeder extends Seeder
                             'location_unavailable_reason' => $ordinal % 17 === 0
                                 ? Report::LOCATION_UNAVAILABLE_REASON_OFFLINE_NO_MAP
                                 : null,
-                            'gps_accuracy' => $ordinal % 17 === 0
+                            'gps_accuracy' => $ordinal % 17 === 0 || $ordinal % 5 === 0
                                 ? null
                                 : round(3.5 + ($ordinal % 28) * 0.4, 2),
                             'observed_at' => $observedAt,
@@ -848,7 +735,7 @@ class DashboardReportSeeder extends Seeder
                                     $label,
                                     strtolower($barangay),
                                 ),
-                            'mismatch_reported' => $consult !== null || $ordinal % 7 === 0,
+                            'mismatch_reported' => $ordinal % 7 === 0,
                             'reporter_suspected_condition' => $label === Report::LABEL_HEALTHY
                                 ? null
                                 : ($ordinal % 4 === 0 ? Report::REPORTER_CONCERN_RSSI : $label),
@@ -860,19 +747,16 @@ class DashboardReportSeeder extends Seeder
                                 ),
                             'predicted_label' => $label,
                             'confidence' => round(0.64 + ($ordinal % 29) * 0.011, 7),
-                            'checklist_consistency' => $consult !== null
-                                ? 'inconsistent'
-                                : ($ordinal % 6 === 0 ? 'inconclusive' : 'consistent'),
+                            'checklist_consistency' => ($ordinal % 6 === 0 ? 'inconclusive' : 'consistent'),
                             'reported_severity' => $label === Report::LABEL_HEALTHY
-                                ? 'low'
+                                ? 'Mild'
                                 : (($ordinal % 5 === 0 || $closed && $ordinal % 3 === 0)
-                                    ? 'high'
-                                    : 'moderate'),
+                                    ? 'Severe'
+                                    : 'Moderate'),
                             'review_status' => $reviewStatus,
                             'case_state' => $caseState,
                             'verification_outcome' => $verificationOutcome,
                             'field_validation_state' => $fieldValidationState,
-                            'referral_state' => $referralState,
                             'advisory_id' => $reportAdvisoryId,
                             'advisory_selected_by_id' => $reportAdvisoryId === null ? null : $reviewerId,
                             'advisory_selected_at' => $advisorySelectedAt,
@@ -893,7 +777,6 @@ class DashboardReportSeeder extends Seeder
                             'report' => $report,
                             'assignment' => $assignment,
                             'completion' => $completion,
-                            'consult' => $consult,
                             'quality_warning' => $ordinal % 9 === 0,
                         ];
                         $ordinal++;
@@ -918,7 +801,7 @@ class DashboardReportSeeder extends Seeder
 
     private static function volumeImagePath(CarbonImmutable $submittedAt): string
     {
-        return 'reports/'.$submittedAt->format('Y-m').'/dashboard-field-evidence.png';
+        return RailwayDemoData::path('reports/'.$submittedAt->format('Y-m').'/dashboard-field-evidence.png');
     }
 
     private static function farmerName(int $ordinal): string
@@ -967,7 +850,7 @@ class DashboardReportSeeder extends Seeder
             $visitedAt = $now->subHours(2);
         }
         $photoPath = $ordinal % 3 === 0
-            ? 'field-validation/'.$visitedAt->format('Y-m').'/follow-up-evidence.png'
+            ? RailwayDemoData::path('field-validation/'.$visitedAt->format('Y-m').'/follow-up-evidence.png')
             : null;
 
         return [
@@ -985,50 +868,7 @@ class DashboardReportSeeder extends Seeder
             'gps_longitude' => $longitude,
             'gps_accuracy' => $ordinal % 5 === 0 ? 34.50 : round(4.5 + ($ordinal % 12), 2),
             'fresh_photo_path' => $photoPath,
-            'follow_up_outcome' => ['improved', 'unchanged', 'worsened', 'monitoring'][$ordinal % 4],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function consultDefinition(
-        string $referenceCode,
-        CarbonImmutable $submittedAt,
-        string $label,
-        ?int $reviewerId,
-        bool $completed,
-    ): array {
-        $referralAt = $submittedAt->addDay();
-        $now = CarbonImmutable::now('UTC');
-        $findingAt = $referralAt->addDays(2)->setTime(10, 30);
-        if ($findingAt->gte($now)) {
-            $findingAt = $now->subHours(2);
-        }
-        if ($findingAt->lt($referralAt)) {
-            $findingAt = $referralAt;
-        }
-
-        return [
-            'consult_status' => $completed
-                ? ReportReferral::STATUS_COMPLETED
-                : ReportReferral::STATUS_PENDING,
-            'reference' => 'BGO-CONSULT-'.$submittedAt->format('Ymd').'-'.substr($referenceCode, -4),
-            'referral_date' => $referralAt->toDateString(),
-            'due_date' => $referralAt->addDays(5)->toDateString(),
-            'note' => 'Please compare the submitted field evidence with an attributed agronomy finding.',
-            'response_date' => $completed ? $findingAt->toDateString() : null,
-            'response_note' => $completed ? 'The attributed desk reviewed the supplied field evidence.' : null,
-            'response_finding' => $completed ? 'The field evidence supports the reported '.$label.' pattern.' : null,
-            'response_recorded_by_id' => $completed ? $reviewerId : null,
-            'response_recorded_at' => $completed ? $findingAt : null,
-            'finding_summary' => $completed ? 'The attributed desk recorded a finding for the office.' : null,
-            'finding_details' => $completed ? 'The supplied image and field notes were compared during review.' : null,
-            'finding_recommendation' => $completed ? 'Continue row monitoring and repeat the field check as needed.' : null,
-            'finding_source' => $completed ? ReportReferral::FINDING_SOURCE_IN_SYSTEM : null,
-            'finding_recorded_by_id' => $completed ? $reviewerId : null,
-            'finding_recorded_at' => $completed ? $findingAt : null,
-            'office_reviewed_at' => $submittedAt->addHours(3),
+            'follow_up_outcome' => ['improved', 'unchanged', 'worsened', 'unable_to_determine'][$ordinal % 4],
         ];
     }
 
@@ -1048,7 +888,6 @@ class DashboardReportSeeder extends Seeder
         string $caseState,
         string $verificationOutcome,
         string $fieldValidationState,
-        string $referralState,
         ?string $actionTaken,
         ?User $reviewer = null,
         ?string $reviewedAt = null,
@@ -1082,12 +921,11 @@ class DashboardReportSeeder extends Seeder
             'predicted_label' => $label,
             'confidence' => $confidence,
             'checklist_consistency' => $label === Report::LABEL_HEALTHY ? 'consistent' : 'inconclusive',
-            'reported_severity' => $affectedArea > 2 ? 'high' : 'moderate',
+            'reported_severity' => $affectedArea > 2 ? 'Severe' : 'Moderate',
             'review_status' => $reviewStatus,
             'case_state' => $caseState,
             'verification_outcome' => $verificationOutcome,
             'field_validation_state' => $fieldValidationState,
-            'referral_state' => $referralState,
             'action_taken' => $actionTaken,
             'authority_classified_condition' => $reviewStatus === Report::STATUS_VERIFIED_BY_STAFF
                 || $reviewStatus === Report::STATUS_RESOLVED
@@ -1102,75 +940,6 @@ class DashboardReportSeeder extends Seeder
     }
 
     /**
-     * @param  array<string, Report>  $reports
-     */
-    private function seedExpertConsults(array $reports, User $reviewer): void
-    {
-        ReportReferral::query()->updateOrCreate(
-            [
-                'report_id' => $reports['BGO-20261018-0630']->getKey(),
-                'reference' => 'BGO-CONSULT-20261019',
-            ],
-            [
-                'referred_by_id' => $reviewer->getKey(),
-                'destination' => 'CaneGuard Regional Agronomy Desk',
-                'referral_date' => '2026-10-19',
-                'due_date' => '2026-10-23',
-                'note' => 'Compare the mosaic evidence with the submitted field observation.',
-                'response_date' => '2026-10-20',
-                'response_note' => 'The attributed desk reviewed the supplied field evidence.',
-                'response_finding' => 'The image and field notes support mosaic.',
-                'response_recorded_by_id' => $reviewer->getKey(),
-                'response_recorded_at' => '2026-10-20 10:30:00',
-                'consult_status' => ReportReferral::STATUS_COMPLETED,
-                'expert_name' => 'Regional Agronomy Desk',
-                'expert_contact' => 'agronomy-desk@caneguard.test',
-                'share_full_context' => false,
-                'finding_summary' => 'The attributed desk agrees with the possible condition.',
-                'finding_details' => 'The submitted mosaic pattern is consistent with the field observation.',
-                'finding_recommendation' => 'Continue row monitoring and remove affected plants as needed.',
-                'finding_source' => ReportReferral::FINDING_SOURCE_IN_SYSTEM,
-                'finding_recorded_by_id' => $reviewer->getKey(),
-                'finding_recorded_at' => '2026-10-20 10:30:00',
-                'office_case_state' => Report::CASE_STATE_CLOSED,
-                'office_verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
-                'office_field_validation_state' => Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
-                'office_action_taken' => Report::ACTION_ADVISORY_PROVIDED,
-                'office_authority_classified_condition' => Report::LABEL_MOSAIC,
-                'office_review_notes' => 'The office position at handoff was awaiting an attributed finding.',
-                'office_reviewer_id' => $reviewer->getKey(),
-                'office_reviewed_at' => '2026-10-19 08:30:00',
-            ],
-        );
-
-        ReportReferral::query()->updateOrCreate(
-            [
-                'report_id' => $reports['BGO-20261011-0910']->getKey(),
-                'reference' => 'BGO-CONSULT-20261012',
-            ],
-            [
-                'referred_by_id' => $reviewer->getKey(),
-                'destination' => 'CaneGuard Regional Agronomy Desk',
-                'referral_date' => '2026-10-12',
-                'due_date' => '2026-10-18',
-                'note' => 'Review the smut evidence after the field validation assignment.',
-                'consult_status' => ReportReferral::STATUS_PENDING,
-                'expert_name' => 'Regional Agronomy Desk',
-                'expert_contact' => 'agronomy-desk@caneguard.test',
-                'share_full_context' => false,
-                'office_case_state' => Report::CASE_STATE_OPEN,
-                'office_verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
-                'office_field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
-                'office_action_taken' => Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED,
-                'office_authority_classified_condition' => null,
-                'office_review_notes' => 'The office is waiting for an attributed finding.',
-                'office_reviewer_id' => $reviewer->getKey(),
-                'office_reviewed_at' => '2026-10-12 13:10:00',
-            ],
-        );
-    }
-
-    /**
      * @param  array<string, mixed>  $attributes
      */
     private function seedReport(
@@ -1178,12 +947,16 @@ class DashboardReportSeeder extends Seeder
         array $attributes,
         User $reporter,
         string $image,
+        int $districtId,
     ): Report {
+        $attributes = RailwayDemoData::identities($referenceCode, $attributes);
+        $referenceCode = RailwayDemoData::reference($referenceCode);
         $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
                 'reporter_id' => $reporter->getKey(),
+                'district_id' => $districtId,
                 'image_path' => sprintf(
                     'reports/%s/%s.png',
                     CarbonImmutable::parse($attributes['submitted_at'], 'UTC')->format('Y-m'),
@@ -1213,36 +986,22 @@ class DashboardReportSeeder extends Seeder
         }
 
         $labels = Report::v2Labels();
-        $existingScoreLabels = DB::table('report_class_scores')
-            ->where('report_id', $report->getKey())
-            ->pluck('label')
-            ->all();
         foreach ($labels as $label) {
-            if (in_array($label, $existingScoreLabels, true)) {
-                continue;
-            }
-
-            DB::table('report_class_scores')->insert([
-                'report_id' => $report->getKey(),
-                'label' => $label,
-                'score' => $label === $report->predicted_label
+            ReportClassScore::query()->firstOrCreate(
+                ['report_id' => $report->getKey(), 'label' => $label],
+                ['score' => $label === $report->predicted_label
                     ? $report->confidence
-                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7),
-            ]);
+                    : round((1 - (float) $report->confidence) / (count($labels) - 1), 7)],
+            );
         }
 
         $symptomKey = $report->predicted_label === Report::LABEL_HEALTHY
             ? 'none'
             : $report->predicted_label;
-        if (! DB::table('report_symptoms')
-            ->where('report_id', $report->getKey())
-            ->where('symptom_key', $symptomKey)
-            ->exists()) {
-            DB::table('report_symptoms')->insert([
-                'report_id' => $report->getKey(),
-                'symptom_key' => $symptomKey,
-            ]);
-        }
+        ReportSymptom::query()->firstOrCreate([
+            'report_id' => $report->getKey(),
+            'symptom_key' => $symptomKey,
+        ]);
 
         return $report;
     }

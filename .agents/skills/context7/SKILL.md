@@ -1,6 +1,6 @@
 ---
 name: context7
-description: Retrieve current, version-sensitive library documentation through the project-local Context7 MCP server or the pinned Context7 CLI (Pi/FirstMate without MCP). Use when external package or API behavior may have changed since model training.
+description: Retrieve current, version-sensitive library documentation through the project-local Context7 MCP server or the pinned Context7 CLI when MCP is unavailable. Use when external package or API behavior may have changed since model training.
 ---
 
 <!-- Managed by AkiDev integration: context7 -->
@@ -13,8 +13,12 @@ Use Context7 when implementation depends on current external library or framewor
 
 AkiDev gives the active harness one of two Context7 access paths:
 
-- **Codex and OpenCode** use Context7 as a **project-local MCP server** (configured in `opencode.jsonc` and `.codex/config.toml`). Use the Context7 MCP tools directly when they are available.
-- **Pi and FirstMate workers without MCP** have no MCP support, so they use the **pinned Context7 CLI** (`ctx7` npm package, bin `ctx7`) via `npx`. Run the CLI when Context7 MCP tools are absent.
+- **Pi, Codex and OpenCode** prefer the project-local Context7 MCP server (`.pi/mcp.json`, `.codex/config.toml`, and `opencode.json`/`opencode.jsonc`).
+- **Pi and FirstMate workers without MCP** use the pinned CLI only when MCP tools are absent in their actual harness.
+- Pi has native stdio/streamable HTTP support; no adapter is needed.
+  Firstmate workers must run in the target project with its trusted configuration and MCP enabled by their owning harness.
+  SDK-only workers need the harness's built-in MCP/codemode extensions, not an AkiDev adapter.
+  Inspect available tools before choosing a fallback; never initialize a duplicate server or run `ctx7 setup`.
 
 Both paths are intentionally pinned to the reviewed Context7 versions recorded by AkiDev in `tools/versions.env` (`CONTEXT7_MCP_VERSION` for the MCP server, `CTX7_VERSION` for the CLI). The CLI version is rendered into this skill at install time.
 
@@ -23,8 +27,8 @@ Both paths are intentionally pinned to the reviewed Context7 versions recorded b
 When Context7 MCP tools are not available, fetch documentation with the pinned CLI without installing anything globally:
 
 ```bash
-npx -y ctx7@0.5.9 library <name> "what you are trying to do"
-npx -y ctx7@0.5.9 docs "<libraryId>" "your question"
+npx -y ctx7@0.5.12 library <name> "what you are trying to do"
+npx -y ctx7@0.5.12 docs "<libraryId>" "your question"
 ```
 
 Two-step flow:
@@ -32,15 +36,15 @@ Two-step flow:
 1. **Resolve** the library name to its Context7 library ID:
 
    ```bash
-   npx -y ctx7@0.5.9 library react "state management with hooks"
+   npx -y ctx7@0.5.12 library react "state management with hooks"
    ```
 
    `library` returns ranked matches with `Library ID` values in the form `/org/project` (for example `/reactjs/react.dev`), plus version-specific IDs when available (`/org/project/version`).
 
-2. **Query** documentation with the full ID — IDs always start with `/`:
+2. **Query** documentation with the full ID - IDs always start with `/`:
 
    ```bash
-   npx -y ctx7@0.5.9 docs /reactjs/react.dev "how to clean up useEffect with async operations"
+   npx -y ctx7@0.5.12 docs /reactjs/react.dev "how to clean up useEffect with async operations"
    ```
 
 Options: `--json` prints structured output; `ctx7 --help`, `ctx7 library --help`, and `ctx7 docs --help` document the full reference. Output is clean when piped (no spinners or colors), so `... | head -50` or `... | grep` works.

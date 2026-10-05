@@ -18,6 +18,24 @@ const locationUnavailableReasonLabels: Record<string, string> = {
   other: "other reason",
 };
 
+function locationWarning(item: FieldValidationQueueItem) {
+  const { finalLatitude: latitude, finalLongitude: longitude } = item;
+  if (latitude === null || longitude === null) {
+    return item.locationSource === "unavailable"
+      ? `Location unavailable${item.locationUnavailableReason
+        ? `: ${locationUnavailableReasonLabels[item.locationUnavailableReason] ?? item.locationUnavailableReason}`
+        : ""}. Use the report details or field records.`
+      : "No complete coordinate pair was submitted. Use the report details or field records.";
+  }
+
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+    !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    return "Coordinates are outside the valid latitude/longitude ranges and were not plotted. Verify the report details or field records.";
+  }
+
+  return null;
+}
+
 function queueItemMeta(item: FieldValidationQueueItem) {
   const affectedArea = item.affectedAreaHectares === null
     ? "Area not provided"
@@ -32,6 +50,7 @@ function queueItemMeta(item: FieldValidationQueueItem) {
 }
 
 function QueueItem({ item }: { item: FieldValidationQueueItem }) {
+  const warning = locationWarning(item);
   return (
     <article className="validation-queue-item">
       <div className="validation-queue-item__topline">
@@ -48,14 +67,10 @@ function QueueItem({ item }: { item: FieldValidationQueueItem }) {
         <div><dt>Assigned to</dt><dd>{item.assignee?.name ?? "Unassigned"}</dd></div>
         <div><dt>Visit details</dt><dd>{queueItemMeta(item)}</dd></div>
       </dl>
-      {item.finalLatitude === null || item.finalLongitude === null ? (
+      {warning ? (
         <p className="validation-queue-item__warning">
           <MapPinOff aria-hidden="true" />
-          {item.locationSource === "unavailable"
-            ? `Location unavailable${item.locationUnavailableReason
-              ? `: ${locationUnavailableReasonLabels[item.locationUnavailableReason] ?? item.locationUnavailableReason}`
-              : ""}. Use the report details or field records.`
-            : "No coordinates - use the report details or field records."}
+          {warning}
         </p>
       ) : null}
       <Link className="button button--secondary" to={routes.reportDetail(item.uuid)}>

@@ -112,7 +112,7 @@ export async function listMobileDevices(): Promise<MobileDevice[]> {
     return [...mockDevices];
   }
 
-  const response = await axiosClient.get("/api/v1/mobile/auth/devices");
+  const response = await axiosClient.get("/api/v1/auth/devices");
   const parsed = mobileDevicesResponseSchema.parse(response.data);
   return parsed.data.map((dto) => ({
     id: dto.id,
@@ -131,6 +131,6 @@ export async function revokeMobileDevice(id: number): Promise<{ message: string 
     return { message: "Device revoked successfully." };
   }
 
-  const response = await axiosClient.delete(`/api/v1/mobile/auth/devices/${id}`);
+  const response = await axiosClient.delete(`/api/v1/auth/devices/${id}`);
   return response.data;
 }

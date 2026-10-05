@@ -36,12 +36,21 @@ export function LoadingState({ message = "Loading submitted reports..." }) {
   );
 }
 
-export function EmptyState() {
+/**
+ * Per-card loading placeholder for the analytical dashboard's progressive
+ * loading (overhaul §4). Decorative: the section carries aria-busy while
+ * skeletons are visible, so screen readers are not spammed per card.
+ */
+export function Skeleton({ label = "Loading…" }: { label?: string }) {
+  return <div className="skeleton" aria-hidden="true" title={label} />;
+}
+
+export function EmptyState({ title = "No submitted reports yet", message = "New synchronized field observations will appear in this work queue." }: { title?: string; message?: string } = {}) {
   return (
     <StatePanel
       icon={<FileQuestion aria-hidden="true" />}
-      title="No submitted reports yet"
-      message="New synchronized field observations will appear in this work queue."
+      title={title}
+      message={message}
     />
   );
 }

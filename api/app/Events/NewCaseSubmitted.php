@@ -49,7 +49,7 @@ class NewCaseSubmitted implements ShouldBroadcast, ShouldRescue
     {
         return [
             'event_type' => self::EVENT_TYPE,
-            'domains' => ['reports', 'dashboard', 'notifications'],
+            'domains' => ['reports', 'dashboard', 'field-validation', 'notifications'],
         ];
     }
 }

@@ -28,6 +28,9 @@ export interface FieldValidationFilters {
 
 export interface FieldValidationMapProperties {
   uuid: string;
+  locationGroupKey?: string;
+  locationGroupSize?: number;
+  locationGroupCoordinates?: [number, number];
   referenceCode: string;
   barangay: string;
   province: string | null;

@@ -44,10 +44,6 @@ final class ReportFilterRules
                 'sometimes',
                 Rule::in(['improved', 'unchanged', 'worsened', 'unable_to_determine']),
             ],
-            'referral' => [
-                'sometimes',
-                Rule::in(['active']),
-            ],
         ];
 
         if ($includeStatus) {

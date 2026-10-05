@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MonthlyCaseSummary } from "./MonthlyCaseSummary";
 
@@ -29,7 +29,7 @@ const summary = {
 };
 
 describe("MonthlyCaseSummary", () => {
-  it("keeps the PHT monthly panel without the chart-covered breakdown lists", () => {
+  it("keeps only monthly report totals and field-validation workload in the summary", () => {
     render(
       <MonthlyCaseSummary
         summary={summary}
@@ -38,17 +38,18 @@ describe("MonthlyCaseSummary", () => {
       />,
     );
 
-    expect(screen.getByRole("region", { name: "Monthly submitted report summary" })).toHaveTextContent(
-      "These are operational report counts, not population-level disease statistics.",
-    );
-    // Barangay and Possible Condition lists moved to the PHT Report
-    // analytics charts; the panel keeps metric tiles and review time.
-    expect(screen.queryByRole("heading", { name: "Submitted reports by barangay" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Submitted reports by Possible Condition" })).not.toBeInTheDocument();
-    expect(screen.getByText(/Barangay and Possible Condition breakdowns now render as charts/)).toBeInTheDocument();
-    expect(screen.getByText(/Reports containing farmer\/farm information: 2\. This describes submitted case records, not an estimate of total affected farmers in Nasugbu\./)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Field-validation counts" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Review time" })).toBeInTheDocument();
-    expect(screen.queryByText(/prevalence|infection rate|outbreak probability|disease risk score/i)).not.toBeInTheDocument();
+    const monthly = screen.getByRole("region", { name: "Monthly submitted report summary" });
+    expect(monthly).toHaveTextContent("Counts describe reports submitted during 2026-07, not population-level disease statistics.");
+    const summaryView = within(monthly);
+    expect(summaryView.getByText("Submitted reports")).toBeInTheDocument();
+    expect(summaryView.getByText("Estimated affected area")).toBeInTheDocument();
+    expect(summaryView.getByText("Requiring field validation")).toBeInTheDocument();
+    expect(summaryView.getByText("Closed submitted reports")).toBeInTheDocument();
+    expect(summaryView.getByRole("heading", { name: "Field-validation counts" })).toBeInTheDocument();
+    expect(summaryView.getByText("No assignment")).toBeInTheDocument();
+    expect(summaryView.getByText("In progress")).toBeInTheDocument();
+    expect(summaryView.queryByRole("heading", { name: "Review time" })).not.toBeInTheDocument();
+    expect(summaryView.queryByText(/farmer|barangay and possible condition breakdowns/i)).not.toBeInTheDocument();
+    expect(summaryView.queryByText(/prevalence|infection rate|outbreak probability|disease risk score/i)).not.toBeInTheDocument();
   });
 });

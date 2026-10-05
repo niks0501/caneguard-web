@@ -16,10 +16,19 @@ function queryClient() {
 }
 
 describe("real-time invalidation", () => {
+  it("invalidates map and queue queries after a new submission signal", async () => {
+    const client = queryClient();
+    client.setQueryData(fieldValidationKeys.map({}), { features: [] });
+    client.setQueryData(fieldValidationKeys.queue({}), { items: [] });
+    const domains = domainsFromRealtimePayload({ domains: ["reports", "dashboard", "field-validation", "notifications"] });
+    await invalidateRealtimeQueries(client, domains);
+    expect(client.getQueryState(fieldValidationKeys.map({}))?.isInvalidated).toBe(true);
+    expect(client.getQueryState(fieldValidationKeys.queue({}))?.isInvalidated).toBe(true);
+  });
+
   it("invalidates only the REST query domains named by the signal", async () => {
     const client = queryClient();
     client.setQueryData(reportKeys.list({}), { reports: [] });
-    client.setQueryData(reportKeys.expertList({}), { reports: [] });
     client.setQueryData(dashboardKeys.summary(), { totalSubmitted: 0 });
     client.setQueryData(notificationsKeys.feed(), { notifications: [] });
     client.setQueryData(fieldValidationKeys.queue({}), { items: [] });
@@ -27,9 +36,6 @@ describe("real-time invalidation", () => {
     await invalidateRealtimeQueries(client, ["reports", "notifications"]);
 
     expect(client.getQueryState(reportKeys.list({}))?.isInvalidated).toBe(true);
-    expect(client.getQueryState(reportKeys.expertList({}))?.isInvalidated).toBe(
-      true,
-    );
     expect(
       client.getQueryState(notificationsKeys.feed())?.isInvalidated,
     ).toBe(true);

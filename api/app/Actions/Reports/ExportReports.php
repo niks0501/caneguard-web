@@ -41,7 +41,6 @@ final class ExportReports
         'referral_destination',
         'referral_reference',
         'referral_date',
-        'expert_response_date',
     ];
 
     public function __construct(
@@ -54,7 +53,7 @@ final class ExportReports
      */
     public function handle(array $filters): StreamedResponse
     {
-        $query = Report::query()
+        $query = Report::query()->visibleTo(request()->user())
             ->whereNull('canonical_report_id')
             ->with([
                 'reporter',
@@ -164,7 +163,6 @@ final class ExportReports
                 $referral?->destination ?? '',
                 $referral?->reference ?? '',
                 $referral?->referral_date?->format('Y-m-d') ?? '',
-                $referral?->response_date?->format('Y-m-d') ?? '',
             ],
         );
     }

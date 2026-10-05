@@ -32,6 +32,21 @@ php artisan config:clear
 echo "Running database migrations..."
 php artisan migrate --force
 
+# Demo-only, captain-approved bootstrap. The guarded seeder records a durable
+# receipt and never attributes legacy rows or grants named management authority.
+case "${CANEGUARD_RAILWAY_DEMO_SEED:-}" in
+    "") ;;
+    nasugbu-dashboard-20261006)
+        php artisan db:seed --class=RailwayDemoSeeder --force --no-interaction
+        # Console runs as root; private demo images must be readable by Apache.
+        chown -R www-data:www-data storage
+        ;;
+    *)
+        echo "Invalid Railway demo seed approval marker; refusing startup." >&2
+        exit 1
+        ;;
+esac
+
 echo "Caching Laravel configuration..."
 php artisan config:cache
 

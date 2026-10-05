@@ -5,6 +5,7 @@ interface PaginationProps {
   pageCount: number;
   itemCount: number;
   onPageChange: (page: number) => void;
+  itemLabel?: string;
 }
 
 function visiblePages(currentPage: number, pageCount: number) {
@@ -26,12 +27,13 @@ export function Pagination({
   pageCount,
   itemCount,
   onPageChange,
+  itemLabel = "reports",
 }: PaginationProps) {
   return (
-    <nav className="pagination" aria-label="Report table pagination">
+    <nav className="pagination" aria-label={`${itemLabel === "reports" ? "Report table" : itemLabel} pagination`}>
       <p>
         Page <strong>{currentPage}</strong> of <strong>{pageCount}</strong>
-        <span> · {itemCount} reports</span>
+        <span> · {itemCount} {itemLabel}</span>
       </p>
       <div>
         <button

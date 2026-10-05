@@ -15,6 +15,7 @@ import { useAuth } from "../auth/useAuth";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { LoadingState } from "../components/ui/States";
+import { WeeklyReportingSettings } from "../components/reports/WeeklyReportingSettings";
 import { formatDateTime } from "../lib/formatters";
 import {
   changeEmail,
@@ -158,9 +159,7 @@ export function SettingsPage() {
 
   const roleLabel =
     user?.role === "admin"
-      ? "Administrator"
-      : user?.role === "expert"
-        ? "Expert"
+      ? "District Mill Officer"
         : "Reviewer";
 
   return (
@@ -342,6 +341,8 @@ export function SettingsPage() {
             </form>
           </section>
         </div>
+
+        <WeeklyReportingSettings />
 
         {/* Mobile Devices Card */}
         <section className="settings-card settings-card--wide" aria-labelledby="devices-heading">

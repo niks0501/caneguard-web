@@ -11,6 +11,73 @@
     "content_type": "multipart/form-data",
     "undeclared_fields": "ignored"
   },
+  "authority": {
+    "client_owned": [
+      "client_uuid",
+      "image",
+      "image_source_type",
+      "source_width",
+      "source_height",
+      "predicted_label",
+      "confidence",
+      "class_scores",
+      "symptom_keys",
+      "checklist_consistency",
+      "reported_severity",
+      "mismatch_reported",
+      "reporter_suspected_condition",
+      "reporter_observation_text",
+      "quality_warnings",
+      "barangay",
+      "farmer_or_farm_owner_name",
+      "province",
+      "municipality",
+      "final_latitude",
+      "final_longitude",
+      "location_source",
+      "location_unavailable_reason",
+      "gps_accuracy",
+      "observed_at",
+      "captured_at",
+      "sugarcane_variety",
+      "crop_age",
+      "cane_class",
+      "affected_area_hectares",
+      "affected_area_measurement",
+      "affected_portion_percent",
+      "affected_portion_measurement",
+      "field_notes",
+      "model_version",
+      "preprocess_ms",
+      "inference_ms",
+      "total_ms",
+      "scan_record_client_uuid"
+    ],
+    "server_derived": [
+      "uuid",
+      "reference_code",
+      "reporter_id",
+      "district_id",
+      "image_mime_type",
+      "image_size_bytes",
+      "submitted_at",
+      "created_at",
+      "updated_at"
+    ],
+    "server_owned_read_only": [
+      "review_status",
+      "review_notes",
+      "reviewed_at",
+      "reviewer_id",
+      "lock_version",
+      "case_state",
+      "verification_outcome",
+      "field_validation_state",
+      "referral_state",
+      "authority_classified_condition"
+    ],
+    "undeclared_field_policy": "ignored"
+  },
   "authentication": {
     "transport": "Sanctum bearer token",
     "required_ability": "report:submit",
@@ -139,14 +206,17 @@
       "required": true,
       "nullable": false,
       "min_properties": 4,
-      "max_properties": 4,
-      "required_keys": [
-        "healthy",
-        "mosaic",
-        "rust",
-        "smut"
+      "additional_properties": true,
+      "key_pattern": "^[a-z][a-z0-9_-]{0,31}$",
+      "conditions": [
+        {
+          "rule": "model_class_keys",
+          "field": "model_version",
+          "value": "v1.0-mobilenetv2",
+          "required_keys": ["healthy", "mosaic", "rust", "smut"],
+          "additional_properties": false
+        }
       ],
-      "additional_properties": false,
       "values": {
         "type": "number",
         "minimum": 0,
@@ -554,9 +624,8 @@
       "required": true,
       "nullable": false,
       "max_length": 100,
-      "enum": [
-        "v1.0-mobilenetv2"
-      ]
+      "known_values": ["v1.0-mobilenetv2"],
+      "unrecognised_value_policy": "persist_as_submitted"
     },
     "preprocess_ms": {
       "wire_type": "text",

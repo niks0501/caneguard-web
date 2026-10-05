@@ -4,6 +4,7 @@ namespace App\Actions\Notifications;
 
 use App\Events\CaseAttentionChanged;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -11,7 +12,7 @@ class BroadcastCaseAttentionChanged
 {
     public function handle(User $recipient, string $eventType): void
     {
-        if (! $recipient->isOfficeUser()) {
+        if (! app(DistrictAccess::class)->office($recipient)) {
             return;
         }
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Notifications\CreateLifecycleNotifications;
 use App\Actions\Reports\BuildReportCaseHistory;
-use App\Actions\Reports\RecordReportReferral;
 use App\Actions\Reports\RecordReportReviewEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewReportRequest;
@@ -12,8 +11,8 @@ use App\Http\Resources\ReportResource;
 use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\ReportAudit;
-use App\Models\ReportReferral;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -30,68 +29,9 @@ class ReviewReportController extends Controller
         ReviewReportRequest $request,
         Report $report,
         CreateLifecycleNotifications $notifications,
-        RecordReportReferral $recordReferral,
         RecordReportReviewEvent $recordReviewEvent,
     ): ReportResource {
         $data = $request->validated();
-
-        if ($this->isNewReferral($report, $data)) {
-            $referralData = [
-                'destination' => trim($data['referral_destination']),
-                'reference' => trim($data['referral_reference']),
-                'referral_date' => $data['referral_date'],
-                'due_date' => $data['referral_due_date'] ?? null,
-                'expert_name' => isset($data['expert_name'])
-                    ? trim((string) $data['expert_name'])
-                    : null,
-                'expert_contact' => isset($data['expert_contact'])
-                    ? trim((string) $data['expert_contact'])
-                    : null,
-                'expert_uuid' => $data['expert_uuid'] ?? null,
-                'share_full_context' => $data['share_full_context'] ?? false,
-                'note' => isset($data['referral_note'])
-                    ? trim((string) $data['referral_note'])
-                    : null,
-                'consult_status' => $data['consult_status'] ?? null,
-                'advisory_uuid' => $data['advisory_uuid'] ?? null,
-                'advisory_id' => $data['advisory_id'] ?? null,
-                'expected_version' => $data['expected_version'],
-            ];
-            foreach ([
-                'notes' => 'office_notes',
-                'authority_classified_condition' => 'authority_classified_condition',
-                'verification_outcome' => 'verification_outcome',
-            ] as $input => $key) {
-                if (array_key_exists($input, $data)) {
-                    $referralData[$key] = $data[$input];
-                }
-            }
-
-            $updated = $recordReferral->handle(
-                $request->user(),
-                $report,
-                $referralData,
-            );
-
-            return new ReportResource($updated->load([
-                'reporter',
-                'reviewer',
-                'advisory',
-                'fieldValidationAssignment.assignee',
-                'fieldValidationAssignment.assignedBy',
-                'classScores',
-                'symptoms',
-                'qualityWarnings',
-                'referral.referredBy',
-                'referral.expert',
-                'referral.responseRecordedBy',
-                'referral.findingRecordedBy',
-                'referral.officeReviewer',
-                'referrals.expert',
-                'audits.actor',
-                ...$this->reviewEventRelations(),
-            ]));
-        }
 
         $advisoryForDelivery = null;
         $updated = DB::transaction(function () use ($request, $report, $data, $notifications, $recordReviewEvent, &$advisoryForDelivery): Report {
@@ -158,18 +98,6 @@ class ReviewReportController extends Controller
                         $reviewUpdate[$dimension] = $lifecycle[$dimension];
                     }
                 }
-            }
-
-            $reviewLifecycle = $locked->lifecycleSnapshot();
-            if (($reviewUpdate['case_state'] ?? $reviewLifecycle['case_state']) === Report::CASE_STATE_CLOSED
-                && $reviewLifecycle['referral_state'] === Report::REFERRAL_STATE_REFERRED
-                && $locked->referrals()
-                    ->whereIn('consult_status', ReportReferral::activeStatuses())
-                    ->exists()
-            ) {
-                throw ValidationException::withMessages([
-                    'case_state' => 'A referred case must remain open until an expert response is recorded.',
-                ]);
             }
 
             $assignmentSelected = ($reviewUpdate['field_validation_state'] ?? null)
@@ -275,6 +203,7 @@ class ReviewReportController extends Controller
                     ->where('uuid', $data['field_validation_assignee_uuid'])
                     ->where('role', User::ROLE_FIELD_REPORTER)
                     ->firstOrFail();
+                abort_unless(app(DistrictAccess::class)->allows($assignee, $locked->district_id), 403);
                 $targetVisitDate = array_key_exists('field_validation_target_date', $data)
                     ? $data['field_validation_target_date']
                     : $existingAssignment?->target_visit_date?->format('Y-m-d');
@@ -350,6 +279,9 @@ class ReviewReportController extends Controller
             'referral.findingRecordedBy',
             'referral.officeReviewer',
             'referrals.expert',
+            'referral.symptomFindings',
+            'referrals.symptomFindings',
+            'handoffNotes',
             'audits.actor',
             ...$this->reviewEventRelations(),
         ]));
@@ -370,17 +302,6 @@ class ReviewReportController extends Controller
         }
 
         return array_values(array_unique($relations));
-    }
-
-    private function isNewReferral(Report $report, array $data): bool
-    {
-        if (($data['action_taken'] ?? null) !== Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION) {
-            return false;
-        }
-
-        return ! $report->referrals()
-            ->whereIn('consult_status', ReportReferral::activeStatuses())
-            ->exists();
     }
 
     /**

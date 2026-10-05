@@ -8,17 +8,31 @@
  * defaults instead of receiving an invented palette.
  */
 
+import { kpiBandForIndex, kpiBandFillToken, type KpiBand } from "./kpiBandEncoding";
+
 type TokenName =
   | "--color-brand"
   | "--color-brand-hover"
+  | "--color-primary"
+  | "--color-primary-dark"
+  | "--color-primary-light"
+  | "--color-muted"
+  | "--color-border-strong"
+  | "--color-danger"
   | "--color-text"
   | "--color-secondary-text"
   | "--color-border"
   | "--color-surface"
+  | "--color-surface-soft"
+  | "--color-surface-tint"
   | "--disease-healthy"
   | "--disease-mosaic"
   | "--disease-rust"
   | "--disease-smut"
+  | "--kpi-band-1"
+  | "--kpi-band-2"
+  | "--kpi-band-3"
+  | "--kpi-band-4"
   | "--text-body-sm";
 
 export type ChartTokenName = TokenName;
@@ -52,6 +66,21 @@ export const chartTheme = {
   get brandHover(): string {
     return readToken("--color-brand-hover");
   },
+  get primaryDark(): string {
+    return readToken("--color-primary-dark");
+  },
+  get primaryLight(): string {
+    return readToken("--color-primary-light");
+  },
+  get danger(): string {
+    return readToken("--color-danger");
+  },
+  get muted(): string {
+    return readToken("--color-muted");
+  },
+  get borderStrong(): string {
+    return readToken("--color-border-strong");
+  },
   get text(): string {
     return readToken("--color-text");
   },
@@ -71,6 +100,22 @@ export const chartTheme = {
     return Number.isFinite(parsed) ? parsed : 16;
   },
 };
+
+/**
+ * The shared solid band ramp, read as a real colour value for Recharts.
+ *
+ * Every dashboard series fill resolves through here, so a chart mark and its
+ * legend swatch can never disagree about which `--kpi-band-<N>` solid they
+ * use. There are no pattern or texture fills left on the dashboard.
+ */
+export function bandColor(band: KpiBand): string {
+  return readToken(kpiBandFillToken(band) as TokenName);
+}
+
+/** The band ramp slot for a zero-based series index. */
+export function seriesColor(index: number): string {
+  return bandColor(kpiBandForIndex(index));
+}
 
 /** Possible-Condition colours stay the token set, keyed by condition. */
 export function conditionColor(condition: string): string {

@@ -9,13 +9,14 @@ import {
   Link2,
   MoreHorizontal,
 } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { ZodError } from "zod";
 import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
-import { ReferralWorkflow } from "../components/reports/ReferralWorkflow";
+import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
+import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
 import { ReportPicker } from "../components/reports/ReportPicker";
 import { DiseaseBadge, ReviewStatusBadge } from "../components/reports/ReportBadges";
 import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
@@ -25,12 +26,14 @@ import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/St
 import { CappedDetailList } from "../components/ui/CappedDetailList";
 import { ClampedText } from "../components/ui/ClampedText";
 import { Modal } from "../components/ui/Modal";
+import { Toast } from "../components/ui/Toast";
 import { confirmDiscardUnsavedChanges } from "../components/ui/confirmDiscard";
 import {
   actionTakenLabels,
   activeAuthorityClassifiedConditions,
   authorityClassifiedConditionLabels,
   caseStateLabels,
+  diseaseLabels,
   fieldValidationStateLabels,
   followUpOutcomeLabels,
   isLegacyAuthorityClassifiedCondition,
@@ -42,10 +45,8 @@ import {
   type ActionTaken,
   type AuthorityClassifiedCondition,
   type CaseState,
-  type ConsultStatus,
   type DiseaseReport,
   type FieldValidationState,
-  type ReferralState,
   type VerificationOutcome,
 } from "../domain/report.types";
 import type {
@@ -56,11 +57,9 @@ import { legacyLifecycleForReviewStatus } from "../data/api/mappers/lifecycle.ma
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
   useAdvisories,
-  useExpertDirectory,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useUnlinkDuplicateReport,
-  useRecordReportReferral,
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
@@ -75,7 +74,6 @@ type NextAction =
   | "needs_field_validation"
   | "advisory_provided"
   | "technical_assistance_provided"
-  | "referred_for_expert_validation"
   | "no_further_action_required";
 
 type MetadataDraft = {
@@ -90,8 +88,6 @@ type MetadataDraft = {
 const nextActions: Array<{ value: NextAction; description: string }> = [
   { value: "needs_field_validation", description: "Assign a Field Inspector to visit the site and record fresh field evidence. The case stays open." },
   { value: "advisory_provided", description: "Record guidance provided to the field contact." },
-  { value: "technical_assistance_provided", description: "Record practical technical assistance delivered." },
-  { value: "referred_for_expert_validation", description: "Record the expert handoff. The case stays open while input is pending." },
   { value: "no_further_action_required", description: "Record that no further office action is required." },
 ];
 
@@ -99,50 +95,25 @@ const nextActionLabels: Record<NextAction, string> = {
   needs_field_validation: "Needs field validation",
   advisory_provided: "Provide advisory",
   technical_assistance_provided: "Provide technical assistance",
-  referred_for_expert_validation: "Refer to expert",
   no_further_action_required: "No further action",
 };
-
-const referralStateLabels: Record<ReferralState, string> = {
-  not_referred: "Not referred",
-  referred: "Awaiting expert input",
-  expert_response_received: "Expert response received",
-};
-
-function referralDueDateFor(referralDate: string): string {
-  const date = new Date(`${referralDate}T00:00:00`);
-  date.setDate(date.getDate() + 7);
-  return date.toISOString().slice(0, 10);
-}
-
-function isActiveConsultStatus(status?: ConsultStatus): boolean {
-  return status === "pending" || status === "in_progress";
-}
-
-function hasActiveConsult(report: DiseaseReport): boolean {
-  if (report.consults) {
-    return report.consults.some((consult) => isActiveConsultStatus(consult.status));
-  }
-
-  const latestReferralStatus = report.referral?.status;
-  return latestReferralStatus !== undefined
-    ? isActiveConsultStatus(latestReferralStatus)
-    : report.lifecycle?.referralState === "referred";
-}
 
 function actionTakenForNextAction(nextAction: NextAction): ActionTaken | undefined {
   return nextAction === "needs_field_validation" ? undefined : nextAction;
 }
 
 function derivedNextAction(report: DiseaseReport): NextAction | null {
-  const fieldValidationState = report.lifecycle?.fieldValidationState ?? "unassigned";
+  const lifecycle = report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus);
+  const fieldValidationState = lifecycle.fieldValidationState ?? "unassigned";
   if (fieldValidationState === "assigned" || fieldValidationState === "in_progress") {
     return "needs_field_validation";
   }
-  if (report.lifecycle?.referralState === "referred") {
-    return "referred_for_expert_validation";
-  }
-  return report.actionTaken ?? null;
+  if (report.actionTaken && report.actionTaken !== "referred_for_expert_validation") return report.actionTaken;
+  // Q5 = A: when nothing is recorded yet, the recommendation comes from the
+  // status the page already shows instead of a generic instruction.
+  if (report.reviewStatus === "for_field_validation") return "needs_field_validation";
+  if (lifecycle.caseState === "closed") return "no_further_action_required";
+  return null;
 }
 
 function formatShortDate(isoString: string): string {
@@ -172,17 +143,8 @@ function formatLastActivity(report: DiseaseReport): string {
 function getHeroAnswer(
   report: DiseaseReport,
   selectedNextAction: NextAction | null,
-  referralPending: boolean,
   fieldValidationActive: boolean,
 ): { answer: string; consequence: string } {
-  if (referralPending) {
-    return {
-      answer: "Waiting on the expert",
-      consequence:
-        "The case stays open until the expert response is recorded. Staff-Classified Condition, verification, and notes can still be saved.",
-    };
-  }
-
   if (selectedNextAction === "needs_field_validation") {
     if (fieldValidationActive) {
       const assigneeName = report.fieldValidationAssignment?.assignee.name ?? "a Field Inspector";
@@ -211,13 +173,6 @@ function getHeroAnswer(
     return {
       answer: "Deliver technical assistance — assistance recorded with review.",
       consequence: "Record practical technical assistance delivered to the field contact.",
-    };
-  }
-
-  if (selectedNextAction === "referred_for_expert_validation") {
-    return {
-      answer: "Refer to expert — the case stays open while input is pending.",
-      consequence: "Capture the external handoff as plain operational text. The case stays open while input is pending.",
     };
   }
 
@@ -354,7 +309,8 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
         actor: "Authorized reviewer",
         fields: [
           { label: "Destination", value: consult.destination },
-          { label: "Reference", value: consult.reference },
+          { label: "Reference", value: consult.reference ?? "Not provided yet" },
+          ...(consult.trackingCode ? [{ label: "Tracking code", value: consult.trackingCode }] : []),
           ...(consult.dueDate ? [{ label: "Due date", value: consult.dueDate }] : []),
           ...(consult.expertName ? [{ label: "Expert", value: consult.expertName }] : []),
         ],
@@ -378,14 +334,15 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
   } else if (report.referral) {
     const ref = report.referral;
     entries.push({
-      id: `referral-${ref.reference}`,
+      id: `referral-${ref.id ?? ref.trackingCode ?? ref.referralDate}`,
       type: "referral",
       typeLabel: "Referral",
       timestamp: ref.referralDate,
       actor: ref.referredBy?.name ?? "Authorized reviewer",
       fields: [
         { label: "Destination", value: ref.destination },
-        { label: "Reference", value: ref.reference },
+        { label: "Reference", value: ref.reference ?? "Not provided yet" },
+        ...(ref.trackingCode ? [{ label: "Tracking code", value: ref.trackingCode }] : []),
         ...(ref.dueDate ? [{ label: "Due date", value: ref.dueDate }] : []),
         ...(ref.expertName ? [{ label: "Expert", value: ref.expertName }] : []),
       ],
@@ -393,7 +350,7 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
     });
     if (ref.responseDate) {
       entries.push({
-        id: `referral-resp-${ref.reference}`,
+        id: `referral-resp-${ref.id ?? ref.trackingCode ?? ref.referralDate}`,
         type: "referral",
         typeLabel: "Referral",
         timestamp: ref.responseDate,
@@ -504,24 +461,12 @@ function isRssiReporterConcern(report: DiseaseReport): boolean {
 
 export function CaseReviewPage() {
   const { reportId = "" } = useParams();
-  const navigate = useNavigate();
   const [notesOverride, setNotesOverride] = useState<string | null>(null);
   const [nextActionOverride, setNextActionOverride] = useState<NextAction | null>(null);
   const [nextActionTouched, setNextActionTouched] = useState(false);
   const [closeCaseConfirmed, setCloseCaseConfirmed] = useState(true);
   const [reopenCaseConfirmed, setReopenCaseConfirmed] = useState(false);
-  const [referralDestination, setReferralDestination] = useState("");
-  const [referralReference, setReferralReference] = useState("");
-  const [referralDate, setReferralDate] = useState("");
-  const [referralDueDate, setReferralDueDate] = useState("");
-  const [referralDueDateTouched, setReferralDueDateTouched] = useState(false);
-  const [referralExpertUuid, setReferralExpertUuid] = useState<string | null>(null);
-  const [referralExpertName, setReferralExpertName] = useState("");
-  const [referralExpertContact, setReferralExpertContact] = useState("");
-  const [referralShareFullContext, setReferralShareFullContext] = useState(false);
-  const [referralNote, setReferralNote] = useState("");
   const [advisoryUuidOverride, setAdvisoryUuidOverride] = useState<string | null | undefined>(undefined);
-  const [referralSubmitted, setReferralSubmitted] = useState(false);
   const [authorityClassificationOverride, setAuthorityClassificationOverride] =
     useState<AuthorityClassifiedCondition | null | undefined>(undefined);
   const [verificationOverride, setVerificationOverride] = useState<
@@ -543,7 +488,6 @@ export function CaseReviewPage() {
   const [officeDecisionSubmitted, setOfficeDecisionSubmitted] = useState(false);
   const [officeDecisionModalOpen, setOfficeDecisionModalOpen] = useState(false);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
-  const [referralModalOpen, setReferralModalOpen] = useState(false);
   const [duplicateLinkModalOpen, setDuplicateLinkModalOpen] = useState(false);
   const [metadataCorrectionModalOpen, setMetadataCorrectionModalOpen] = useState(false);
   const [fieldValidationAssignSubmitted, setFieldValidationAssignSubmitted] = useState(false);
@@ -551,24 +495,20 @@ export function CaseReviewPage() {
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
   const [historyFilter, setHistoryFilter] = useState<"all" | CaseHistoryEntryType>("all");
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const reportQuery = useReport(reportId);
   const possibleMatchesQuery = usePossibleRecentMatches(reportId);
   const fieldReportersQuery = useFieldReporters();
-  const expertDirectoryQuery = useExpertDirectory();
   const advisoriesQuery = useAdvisories();
   const reviewMutation = useUpdateReportReview(reportId);
   const duplicateLinkMutation = useLinkDuplicateReport(reportId);
   const duplicateUnlinkMutation = useUnlinkDuplicateReport(reportId);
-  const recordReferral = useRecordReportReferral(reportId);
   const report = reportQuery.data;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
   const advisories = advisoriesQuery.data ?? [];
   const lifecycle = report
     ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus)
     : undefined;
-  const referralPending = lifecycle?.referralState === "referred";
-  const proposalNeedsDecision = report?.referral?.status === "completed"
-    && !report.referral.consultReviewOutcome;
   const notes = notesOverride ?? report?.reviewNotes ?? "";
   const selectedNextAction = nextActionTouched
     ? nextActionOverride
@@ -607,10 +547,6 @@ export function CaseReviewPage() {
   // never silently rewrite an assignment that is already underway or complete.
   const fieldValidationNeeded =
     selectedNextAction === "needs_field_validation" && !fieldValidationActive;
-  const referralNeeded =
-    selectedNextAction === "referred_for_expert_validation" &&
-    report != null &&
-    !hasActiveConsult(report);
   const closeCaseForNextAction =
     selectedNextAction === "no_further_action_required" &&
     closeCaseConfirmed &&
@@ -626,17 +562,9 @@ export function CaseReviewPage() {
   const fieldValidationError =
     fieldValidationNeeded && !selectedFieldValidationAssignee
       ? "Select a Field Inspector before saving field validation."
-      : null;
-  const referralInputError = !referralDestination.trim()
-    ? "Add the expert destination."
-    : !referralReference.trim()
-      ? "Add the referral reference."
-      : !referralDate
-        ? "Add the referral date."
-        : !referralExpertUuid && !referralExpertName.trim()
-          ? "Select an in-system expert or enter an external expert name."
-          : null;
-  const referralFieldError = referralSubmitted && referralNeeded ? referralInputError : null;
+      : fieldValidationNeeded && caseAlreadyClosed && !reopenCaseConfirmed
+        ? "Reopen the case before assigning a field validation visit."
+        : null;
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
   const visibleHistory = historyFilter === "all"
     ? mergedHistory
@@ -651,7 +579,7 @@ export function CaseReviewPage() {
   };
 
   const heroContent = report
-    ? getHeroAnswer(report, selectedNextAction, referralPending, fieldValidationActive)
+    ? getHeroAnswer(report, selectedNextAction, fieldValidationActive)
     : { answer: "", consequence: "" };
 
   const mapUrl = report ? mapUrlFor(report) : null;
@@ -690,12 +618,12 @@ export function CaseReviewPage() {
     metadataCorrections !== undefined ||
     advisoryUuidOverride !== undefined;
 
-  const officeDecisionInvalid = officeDecisionSubmitted && (!hasReviewInput || noteError !== null);
+  const officeDecisionInvalid = officeDecisionSubmitted && noteError !== null;
 
   // Dirty signals per modal so Cancel, backdrop, and Escape all confirm
   // before discarding an edited draft (the shared Modal guard covers
   // backdrop/Escape/close-button; the guarded closers below cover Cancel).
-  const officeDecisionDirty = Boolean(
+  const officeContextDirty = Boolean(
     (notesOverride !== null && notesOverride !== (report?.reviewNotes ?? "")) ||
     (authorityClassificationOverride !== undefined &&
       authorityClassificationOverride !== (report?.authorityClassifiedCondition ?? null)) ||
@@ -704,19 +632,15 @@ export function CaseReviewPage() {
     (advisoryUuidOverride !== undefined &&
       advisoryUuidOverride !== (report?.advisory?.uuid ?? null)),
   );
-  const assignmentDirty = Boolean(
-    fieldValidationAssigneeOverride || fieldValidationTargetDateOverride,
+  const officeDecisionDirty = Boolean(
+    officeContextDirty ||
+    reopenCaseConfirmed ||
+    (selectedNextAction === "no_further_action_required" && !caseAlreadyClosed && !closeCaseConfirmed),
   );
-  const referralHandoffDirty = Boolean(
-    referralDestination.trim() ||
-    referralReference.trim() ||
-    referralDate ||
-    referralExpertUuid !== null ||
-    referralExpertName.trim() ||
-    referralExpertContact.trim() ||
-    referralShareFullContext ||
-    referralDueDate ||
-    referralNote.trim(),
+  const assignmentDirty = Boolean(
+    fieldValidationAssigneeOverride ||
+    fieldValidationTargetDateOverride ||
+    (caseAlreadyClosed && reopenCaseConfirmed),
   );
   const duplicateLinkDirty = Boolean(
     canonicalReportUuid.trim() || duplicateLinkReason.trim(),
@@ -729,9 +653,6 @@ export function CaseReviewPage() {
   };
   const closeAssignmentModal = () => {
     if (confirmDiscardUnsavedChanges(assignmentDirty)) setAssignmentModalOpen(false);
-  };
-  const closeReferralModal = () => {
-    if (confirmDiscardUnsavedChanges(referralHandoffDirty)) setReferralModalOpen(false);
   };
   const closeDuplicateLinkModal = () => {
     if (confirmDiscardUnsavedChanges(duplicateLinkDirty)) setDuplicateLinkModalOpen(false);
@@ -782,17 +703,6 @@ export function CaseReviewPage() {
   const mutationForbidden = mutationError?.status === 403;
   const mutationValidation = mutationError?.status === 422;
   const malformedMutationResponse = reviewMutation.error instanceof ZodError;
-  const referralMutationError =
-    recordReferral.error instanceof ApiError ? recordReferral.error : null;
-  const referralRecordError = referralMutationError
-    ? referralMutationError.status === 409
-      ? "This case changed while the referral was being saved. Refresh the report before trying again."
-      : referralMutationError.status === 422
-        ? "The referral could not be saved. Check the required fields and current case state."
-        : "The referral service is unavailable. No referral change was confirmed."
-    : recordReferral.error instanceof ZodError
-      ? "The server returned an unexpected referral response. Refresh the report before trying again."
-      : null;
   const duplicateLinkApiError =
     duplicateLinkMutation.error instanceof ApiError
       ? duplicateLinkMutation.error
@@ -872,9 +782,19 @@ export function CaseReviewPage() {
     }
   };
 
+  // Q2 = B: the chosen action opens its own pop-up, and that pop-up holds the
+  // action's fields and the single save for this decision.
+  const openActionPopUp = (action: NextAction) => {
+    if (action === "needs_field_validation") {
+      setAssignmentModalOpen(true);
+      return;
+    }
+    setOfficeDecisionModalOpen(true);
+  };
+
   const saveOfficeDecision = async () => {
     setOfficeDecisionSubmitted(true);
-    if (report?.reviewVersion === undefined || proposalNeedsDecision) return;
+    if (report?.reviewVersion === undefined) return;
     if (!hasReviewInput || noteError) return;
 
     const nextActionTaken = selectedNextAction
@@ -902,14 +822,11 @@ export function CaseReviewPage() {
     try {
       await reviewMutation.mutateAsync(input);
       setOfficeDecisionModalOpen(false);
-      const notice = selectedNextAction
+      const notice = nextActionTouched && selectedNextAction
         ? `Next action recorded: ${nextActionLabels[selectedNextAction]}.`
         : "The office review was updated.";
-      navigate(routes.reports, {
-        state: {
-          notice: `${report.referenceCode} - ${notice}`,
-        },
-      });
+      setSaveNotice(`${report.referenceCode} - ${notice}`);
+      await reportQuery.refetch();
     } catch {
       return;
     }
@@ -918,6 +835,7 @@ export function CaseReviewPage() {
   const saveAssignment = async () => {
     setFieldValidationAssignSubmitted(true);
     if (!selectedFieldValidationAssignee) return;
+    if (caseAlreadyClosed && !reopenCaseConfirmed) return;
     if (report?.reviewVersion === undefined) return;
 
     try {
@@ -926,46 +844,12 @@ export function CaseReviewPage() {
         fieldValidationState: "assigned",
         fieldValidationAssigneeUuid: selectedFieldValidationAssignee,
         fieldValidationTargetDate: selectedFieldValidationTargetDate || null,
+        ...(caseAlreadyClosed ? { caseState: "open" } : {}),
         expectedVersion: report.reviewVersion,
       });
       setAssignmentModalOpen(false);
-      navigate(routes.reports, {
-        state: {
-          notice: `${report.referenceCode} - Field validation visit assigned.`,
-        },
-      });
-    } catch {
-      return;
-    }
-  };
-
-  const saveReferralHandoff = async () => {
-    setReferralSubmitted(true);
-    if (referralInputError) return;
-    if (report?.reviewVersion === undefined) return;
-
-    try {
-      await recordReferral.mutateAsync({
-        destination: referralDestination,
-        reference: referralReference,
-        referralDate,
-        ...(referralDueDateTouched ? { dueDate: referralDueDate || null } : {}),
-        ...(referralExpertUuid ? { expertUuid: referralExpertUuid } : {}),
-        ...(referralExpertName.trim() ? { expertName: referralExpertName } : {}),
-        ...(referralExpertContact.trim() ? { expertContact: referralExpertContact } : {}),
-        ...(referralShareFullContext ? { shareFullContext: true } : {}),
-        note: referralNote,
-        authorityClassifiedCondition: selectedAuthorityClassification,
-        verificationOutcome: selectedVerificationOutcome || undefined,
-        officeNotes: notes,
-        expectedVersion: report.reviewVersion,
-      });
-      setReferralModalOpen(false);
-      navigate(routes.reports, {
-        state: {
-          notice: `${report.referenceCode} - Expert referral recorded. The case remains open while input is pending.`,
-        },
-      });
+      setSaveNotice(`${report.referenceCode} - Field validation visit assigned.`);
+      await reportQuery.refetch();
     } catch {
       return;
     }
@@ -987,19 +871,189 @@ export function CaseReviewPage() {
         expectedVersion: report.reviewVersion,
       });
       setMetadataCorrectionModalOpen(false);
-      navigate(routes.reports, {
-        state: {
-          notice: `${report.referenceCode} - Case information corrected.`,
-        },
-      });
+      setSaveNotice(`${report.referenceCode} - Case information corrected.`);
+      await reportQuery.refetch();
     } catch {
       return;
     }
   };
 
-  if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report evidence..." /></PageContent>;
+  if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report..." /></PageContent>;
   if (reportQuery.isSuccess && !report) return <PageContent><ErrorState message="This report does not exist in the current submitted report queue." /></PageContent>;
   if ((reportQuery.isError && (!report || suppressCachedDetail)) || !report) return <PageContent><ErrorState message={detailErrorMessage} onRetry={suppressCachedDetail ? undefined : () => reportQuery.refetch()} /></PageContent>;
+
+  // The office decision fields are shared by the actions that record them, so
+  // every action pop-up keeps one save for the decision it opens.
+  const renderOfficeDecisionFields = (submitted: boolean) => (
+    <>
+      <SelectFilter
+        label="Staff-Classified Condition"
+        value={selectedAuthorityClassification ?? ""}
+        onChange={(event) => {
+          setAuthorityClassificationOverride(
+            (event.target.value || null) as AuthorityClassifiedCondition | null,
+          );
+          setOfficeDecisionSubmitted(false);
+          reviewMutation.reset();
+        }}
+      >
+        <option value="">Not classified</option>
+        {activeAuthorityClassifiedConditions.map((value) => (
+          <option value={value} key={value}>
+            {authorityClassifiedConditionLabels[value]}
+          </option>
+        ))}
+        {existingLegacyAuthorityClassification ? (
+          <option value={existingLegacyAuthorityClassification}>
+            {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
+            {" (legacy record; not offered for new review)"}
+          </option>
+        ) : null}
+      </SelectFilter>
+      <p className="authority-classification-help">
+        Staff-Classified Condition is a separate human finding and never changes the original Possible Condition.
+      </p>
+      {report.authorityClassifiedCondition && report.reviewedBy ? (
+        <p className="authority-provenance">
+          Last classified by {report.reviewedBy}
+          {report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.
+        </p>
+      ) : null}
+
+      <SelectFilter
+        label="Verification outcome"
+        value={selectedVerificationOutcome}
+        onChange={(event) => {
+          setVerificationOverride(event.target.value as VerificationOutcome | "");
+          setOfficeDecisionSubmitted(false);
+          reviewMutation.reset();
+        }}
+      >
+        <option value="">No verification decision</option>
+        <option value="not_determined">Not determined</option>
+        <option value="verified">Verified</option>
+        <option value="unable_to_verify">Unable to verify</option>
+      </SelectFilter>
+      <p className="authority-classification-help">
+        Verification is a separate human judgment. It never closes a case on its own.
+      </p>
+
+      {submitted && noteError ? (
+        <p id="review-notes-error" className="form-error" role="alert">
+          {noteError}
+        </p>
+      ) : null}
+      <TextArea
+        id="review-notes"
+        label="Review notes"
+        hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review."
+        rows={5}
+        maxLength={1000}
+        value={notes}
+        aria-describedby={submitted && noteError ? "review-notes-error" : undefined}
+        onChange={(event) => {
+          setNotesOverride(event.target.value);
+          setOfficeDecisionSubmitted(false);
+          reviewMutation.reset();
+        }}
+        placeholder="Describe the intervention or other action used, if applicable..."
+      />
+      <p className="review-note-count">{notes.length}/1,000</p>
+    </>
+  );
+
+  // Every review-mutation failure is reported once, inside the pop-up that owns
+  // the save, instead of on the page and in the pop-up at the same time.
+  const renderReviewMutationErrors = () => (
+    <>
+      {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
+      {conflict ? (
+        <div className="review-conflict" role="alert">
+          <p>This report changed after you opened it. Refresh before saving again.</p>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              reviewMutation.reset();
+              reportQuery.refetch();
+            }}
+          >
+            Refresh report
+          </Button>
+        </div>
+      ) : null}
+      {mutationRateLimited ? (
+        <p className="form-error" role="alert">
+          Too many review attempts were received. Wait a moment before trying again.
+        </p>
+      ) : null}
+      {mutationForbidden ? (
+        <p className="form-error" role="alert">
+          Your account no longer has permission to review this report.
+        </p>
+      ) : null}
+      {mutationValidation && !serverNoteError ? (
+        <p className="form-error" role="alert">
+          The server rejected this review. Check the selected action and notes before trying again.
+        </p>
+      ) : null}
+      {malformedMutationResponse ? (
+        <p className="form-error" role="alert">
+          The server returned an unexpected response. Refresh the report before trying again.
+        </p>
+      ) : null}
+      {reviewMutation.isError &&
+      !conflict &&
+      !serverNoteError &&
+      !mutationRateLimited &&
+      !mutationForbidden &&
+      !mutationValidation &&
+      !malformedMutationResponse ? (
+        <p className="form-error" role="alert">
+          The review service is unavailable. No review change was confirmed.
+        </p>
+      ) : null}
+    </>
+  );
+
+  // Close and reopen belong to the action that changes the case state, so they
+  // travel with that action's single save instead of sitting beside the choice.
+  const renderCaseStateConfirmation = () => (
+    <>
+      {selectedNextAction === "no_further_action_required" && !caseAlreadyClosed ? (
+        <label className="case-confirmation">
+          <input
+            type="checkbox"
+            checked={closeCaseConfirmed}
+            onChange={(event) => {
+              setCloseCaseConfirmed(event.target.checked);
+              reviewMutation.reset();
+            }}
+          />
+          <span>
+            <strong>Close this case</strong>
+            <small>Office handling is complete. Closure is recorded with this save.</small>
+          </span>
+        </label>
+      ) : null}
+      {caseAlreadyClosed ? (
+        <label className="case-confirmation">
+          <input
+            type="checkbox"
+            checked={reopenCaseConfirmed}
+            onChange={(event) => {
+              setReopenCaseConfirmed(event.target.checked);
+              reviewMutation.reset();
+            }}
+          />
+          <span>
+            <strong>Reopen this case</strong>
+            <small>This case is closed. Check to reopen office handling when you save.</small>
+          </span>
+        </label>
+      ) : null}
+    </>
+  );
 
   return (
     <PageContent>
@@ -1019,129 +1073,7 @@ export function CaseReviewPage() {
         </div>
       ) : null}
 
-      {/* 1. Answer hero */}
-      <section className="review-card scan-hero" aria-labelledby="scan-hero-heading">
-        <div className="scan-hero__header">
-          <h2 id="scan-hero-heading">What this case needs from me</h2>
-        </div>
-
-        <div className="scan-hero__answer-block">
-          <p className="scan-hero__answer">
-            <strong>{heroContent.answer}</strong>
-          </p>
-          <p className="scan-hero__consequence">
-            {heroContent.consequence}
-          </p>
-          {report.attentionBand ? (
-            <p className={`attention-band-note attention-band-note--${report.attentionBand}`}>
-              <strong>Attention band: {report.attentionBand}</strong>
-              <span>{report.attentionBandReasons?.join(" ")}</span>
-              <small>Decision support only. The reviewer keeps the final call.</small>
-            </p>
-          ) : null}
-          {report.identificationGap?.state === "unidentified" ? (
-            <p className="identification-gap-banner" role="status">
-              <strong>No condition has been identified yet.</strong> Referring to an expert is the recommended next action. <a href="#review-next-action">Choose an expert referral</a>.
-            </p>
-          ) : null}
-        </div>
-
-        {referralPending ? (
-          <div className="scan-hero__referral-pending">
-            <div className="scan-hero__actions-row">
-              <a href="#referral-response-form" className="button button--secondary">
-                Record expert response
-              </a>
-            </div>
-          </div>
-        ) : (
-          <>
-            <fieldset
-              className="review-actions review-actions--hero"
-              id="review-next-action"
-            >
-              <legend>Next action - choose one</legend>
-              <div className="review-actions__pills">
-                {nextActions.map((action) => {
-                  const disabled =
-                    (fieldValidationActive && action.value === "needs_field_validation") ||
-                    (caseAlreadyClosed && action.value === "referred_for_expert_validation");
-                  const isClosedReferral =
-                    caseAlreadyClosed && action.value === "referred_for_expert_validation";
-                  return (
-                    <label
-                      className={`review-action-pill ${selectedNextAction === action.value ? "is-selected " : ""}${disabled ? "is-disabled" : ""}`}
-                      key={action.value}
-                    >
-                      <input
-                        type="radio"
-                        id={`next-action-${action.value}`}
-                        name="review-next-action"
-                        value={action.value}
-                        checked={selectedNextAction === action.value}
-                        disabled={disabled}
-                        aria-describedby={
-                          isClosedReferral ? "expert-disabled-reason" : undefined
-                        }
-                        onChange={() => {
-                          setNextActionOverride(action.value);
-                          setNextActionTouched(true);
-                          setReferralSubmitted(false);
-                          reviewMutation.reset();
-                          recordReferral.reset();
-                        }}
-                      />
-                      <span>
-                        <strong>{nextActionLabels[action.value]}</strong>
-                        <small className="action-pill-desc">
-                          {isClosedReferral
-                            ? "Closed cases cannot be referred for expert validation. Reopen the case to request expert review."
-                            : action.description}
-                        </small>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            {selectedNextAction === "no_further_action_required" && !caseAlreadyClosed ? (
-              <label className="case-confirmation">
-                <input
-                  type="checkbox"
-                  checked={closeCaseConfirmed}
-                  onChange={(event) => {
-                    setCloseCaseConfirmed(event.target.checked);
-                    reviewMutation.reset();
-                  }}
-                />
-                <span>
-                  <strong>Close this case</strong>
-                  <small>Office handling is complete. Closure is recorded with this save.</small>
-                </span>
-              </label>
-            ) : null}
-            {caseAlreadyClosed ? (
-              <label className="case-confirmation">
-                <input
-                  type="checkbox"
-                  checked={reopenCaseConfirmed}
-                  onChange={(event) => {
-                    setReopenCaseConfirmed(event.target.checked);
-                    reviewMutation.reset();
-                  }}
-                />
-                <span>
-                  <strong>Reopen this case</strong>
-                  <small>This case is closed. Check to reopen office handling when you save.</small>
-                </span>
-              </label>
-            ) : null}
-          </>
-        )}
-      </section>
-
-      {/* 2. Case status with plain-language attention notices */}
+      {/* 1. Case status with plain-language attention notices */}
       <section className="review-status-chips" aria-label="Case status">
         <div className="status-chip-row">
           <div className="status-chip">
@@ -1155,10 +1087,6 @@ export function CaseReviewPage() {
           <div className="status-chip">
             <span className="status-chip__label">Field validation:</span>
             <strong>{fieldValidationStateLabels[currentFieldValidationState]}</strong>
-          </div>
-          <div className="status-chip">
-            <span className="status-chip__label">Referral:</span>
-            <strong>{referralStateLabels[lifecycle?.referralState ?? "not_referred"]}</strong>
           </div>
           <div className="status-chip">
             <span className="status-chip__label">Verification:</span>
@@ -1203,7 +1131,7 @@ export function CaseReviewPage() {
           </div>
                 <div className="evidence-stage">
                   {report.imageStatus === "available" ? (
-                    <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane evidence for ${report.referenceCode}`} />
+                    <EvidenceThumbnail key={imageRetry} status="available" src={report.imageUrl} onLoadError={() => setImageLoadFailed(true)} label={`Submitted sugarcane photo for ${report.referenceCode}`} />
                   ) : (
                     <ImagePendingState status={report.imageStatus} />
                   )}
@@ -1229,6 +1157,16 @@ export function CaseReviewPage() {
             <DiseaseBadge disease={report.predictedDisease} />
           </div>
           <p><strong>AI-assisted result.</strong> Compare it with the submitted photo and field observations before deciding. It is not a diagnosis.</p>
+          {report.modelVersionRecognised === false || report.classScores?.some(({ label }) => !Object.hasOwn(diseaseLabels, label)) ? (
+            <div role="status">
+              {report.modelVersionRecognised === false ? <p>Model version not recognised — evidence shown as submitted: {report.modelVersion}</p> : null}
+              <dl>
+                {report.classScores?.map(({ label, score }) => (
+                  <div key={label}><dt>{Object.hasOwn(diseaseLabels, label) ? diseaseLabels[label as keyof typeof diseaseLabels] : `${label} (unrecognised class)`}</dt><dd>{Math.round(score * 100)}%</dd></div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
         </section>
 
         <section className="review-card" aria-labelledby="field-report-heading">
@@ -1332,148 +1270,6 @@ export function CaseReviewPage() {
           </section>
         </section>
 
-      {/* Office decision (after the case is understood) */}
-      <section className="review-card decision-summary" aria-labelledby="office-review-heading">
-        <div className="section-heading">
-          <div>
-            <h2 id="office-review-heading">Office decision</h2>
-          </div>
-          <CheckCircle2 aria-hidden="true" />
-        </div>
-
-        <div className="decision-summary__grid">
-          <div className="decision-summary__item">
-            <span className="decision-summary__label">Next action</span>
-            <strong>
-              {selectedNextAction
-                ? nextActionLabels[selectedNextAction]
-                : "Pending decision"}
-            </strong>
-          </div>
-          <div className="decision-summary__item">
-            <span className="decision-summary__label">Staff classification</span>
-            <strong>
-              {selectedAuthorityClassification
-                ? authorityClassifiedConditionLabels[selectedAuthorityClassification]
-                : "Not classified"}
-            </strong>
-          </div>
-          <div className="decision-summary__item">
-            <span className="decision-summary__label">Verification</span>
-            <strong>
-              {selectedVerificationOutcome
-                ? verificationOutcomeLabels[selectedVerificationOutcome]
-                : verificationOutcomeLabels[lifecycle?.verificationOutcome ?? "not_determined"]}
-            </strong>
-          </div>
-          <div className="decision-summary__item">
-            <span className="decision-summary__label">Last change</span>
-            <strong>
-              {report.reviewedBy
-                ? `Last classified by ${report.reviewedBy}${report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}`
-                : "Not yet reviewed"}
-            </strong>
-          </div>
-          {report.referral ? (
-            <div className="decision-summary__item">
-              <span className="decision-summary__label">Referral</span>
-              <strong>
-                {referralStateLabels[lifecycle?.referralState ?? "not_referred"]}
-                {report.referral.destination ? ` · ${report.referral.destination}` : ""}
-                {report.referral.reference ? ` · ${report.referral.reference}` : ""}
-              </strong>
-            </div>
-          ) : null}
-        </div>
-
-        {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
-        {conflict ? (
-          <div className="review-conflict" role="alert">
-            <p>This report changed after you opened it. Refresh before saving again.</p>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                reviewMutation.reset();
-                reportQuery.refetch();
-              }}
-            >
-              Refresh report
-            </Button>
-          </div>
-        ) : null}
-        {mutationRateLimited ? (
-          <p className="form-error" role="alert">
-            Too many review attempts were received. Wait a moment before trying again.
-          </p>
-        ) : null}
-        {mutationForbidden ? (
-          <p className="form-error" role="alert">
-            Your account no longer has permission to review this report.
-          </p>
-        ) : null}
-        {mutationValidation && !serverNoteError ? (
-          <p className="form-error" role="alert">
-            The server rejected this review. Check the selected action and notes before trying again.
-          </p>
-        ) : null}
-        {malformedMutationResponse ? (
-          <p className="form-error" role="alert">
-            The server returned an unexpected response. Refresh the report before trying again.
-          </p>
-        ) : null}
-
-        {fieldValidationActive && selectedNextAction === "needs_field_validation" ? (
-          <div className="review-state-summary" role="status">
-            <strong>Field validation: {fieldValidationStateLabels[currentFieldValidationState]}</strong>
-            <span>
-              {report.fieldValidationAssignment?.assignee.name
-                ? `Assigned to ${report.fieldValidationAssignment.assignee.name}. `
-                : ""}
-              {report.fieldValidationAssignment?.targetVisitDate
-                ? `Target visit ${report.fieldValidationAssignment.targetVisitDate}. `
-                : ""}
-              Active assignments and submitted field-validation evidence are not reassigned here.
-            </span>
-          </div>
-        ) : null}
-
-        <div className="decision-summary__actions">
-          {proposalNeedsDecision ? (
-            <p id="expert-proposal-decision" className="form-error" role="alert">
-              Accept or override the completed expert proposal before saving this review.
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            icon={<CheckCircle2 aria-hidden="true" />}
-            disabled={reviewMutation.isPending || proposalNeedsDecision}
-            onClick={() => setOfficeDecisionModalOpen(true)}
-          >
-            {reviewMutation.isPending ? "Saving review..." : "Record office decision"}
-          </Button>
-          {selectedNextAction === "needs_field_validation" && !fieldValidationActive ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setAssignmentModalOpen(true)}
-            >
-              Assign visit
-            </Button>
-          ) : null}
-          {selectedNextAction === "referred_for_expert_validation" && !hasActiveConsult(report) ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setReferralModalOpen(true)}
-            >
-              Record expert referral
-            </Button>
-          ) : null}
-        </div>
-      </section>
-
-
                 {report.fieldValidationAssignment?.completion ? (
                   <section
                     className="review-card field-validation-evidence-card"
@@ -1524,11 +1320,125 @@ export function CaseReviewPage() {
                   </section>
                 ) : null}
 
-        {report.referral ? (
-          <div id="referral-response-form">
-            <ReferralWorkflow report={report} />
+        {/* Office decision: after the evidence, one card whose answer and actions each lead to one save */}
+        <section className="review-card decision-summary" aria-labelledby="office-review-heading">
+          <div className="section-heading">
+            <div>
+              <h2 id="office-review-heading">Office decision</h2>
+            </div>
+            <CheckCircle2 aria-hidden="true" />
           </div>
-        ) : null}
+
+          <div className="decision-summary__answer-block">
+            <p className="decision-summary__answer">
+              <strong>{heroContent.answer}</strong>
+            </p>
+            <p className="decision-summary__consequence">
+              {heroContent.consequence}
+            </p>
+            {report.identificationGap?.state === "unidentified" ? (
+              <p className="identification-gap-banner" role="status">
+                <strong>No condition has been identified yet.</strong>
+              </p>
+            ) : null}
+          </div>
+
+          <fieldset
+            className="review-actions review-actions--decision"
+            id="review-next-action"
+          >
+            <legend>Next action - choose one</legend>
+            <div className="review-actions__pills">
+              {nextActions.map((action) => {
+                const disabled = fieldValidationActive && action.value === "needs_field_validation";
+                return (
+                  <label
+                    className={`review-action-pill ${selectedNextAction === action.value ? "is-selected " : ""}${disabled ? "is-disabled" : ""}`}
+                    key={action.value}
+                    onClick={() => {
+                      // The action itself opens its pop-up; clicking the
+                      // already chosen action reopens it after a cancel.
+                      if (!disabled) openActionPopUp(action.value);
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      id={`next-action-${action.value}`}
+                      name="review-next-action"
+                      value={action.value}
+                      checked={selectedNextAction === action.value}
+                      disabled={disabled}
+                      onChange={() => {
+                        setNextActionOverride(action.value);
+                        setNextActionTouched(true);
+                        reviewMutation.reset();
+                      }}
+                    />
+                    <span>
+                      <strong>{nextActionLabels[action.value]}</strong>
+                      <small className="action-pill-desc">
+                        {action.description}
+                      </small>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+          <div className="decision-summary__grid">
+            <div className="decision-summary__item">
+              <span className="decision-summary__label">Next action</span>
+              <strong>
+                {selectedNextAction
+                  ? nextActionLabels[selectedNextAction]
+                  : "Pending decision"}
+              </strong>
+            </div>
+            <div className="decision-summary__item">
+              <span className="decision-summary__label">Staff classification</span>
+              <strong>
+                {selectedAuthorityClassification
+                  ? authorityClassifiedConditionLabels[selectedAuthorityClassification]
+                  : "Not classified"}
+              </strong>
+            </div>
+            <div className="decision-summary__item">
+              <span className="decision-summary__label">Verification</span>
+              <strong>
+                {selectedVerificationOutcome
+                  ? verificationOutcomeLabels[selectedVerificationOutcome]
+                  : verificationOutcomeLabels[lifecycle?.verificationOutcome ?? "not_determined"]}
+              </strong>
+            </div>
+            <div className="decision-summary__item">
+              <span className="decision-summary__label">Last change</span>
+              <strong>
+                {report.reviewedBy
+                  ? `Last classified by ${report.reviewedBy}${report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}`
+                  : "Not yet reviewed"}
+              </strong>
+            </div>
+          </div>
+
+          {fieldValidationActive && selectedNextAction === "needs_field_validation" ? (
+            <div className="review-state-summary" role="status">
+              <strong>Field validation: {fieldValidationStateLabels[currentFieldValidationState]}</strong>
+              <span>
+                {report.fieldValidationAssignment?.assignee.name
+                  ? `Assigned to ${report.fieldValidationAssignment.assignee.name}. `
+                  : ""}
+                {report.fieldValidationAssignment?.targetVisitDate
+                  ? `Target visit ${report.fieldValidationAssignment.targetVisitDate}. `
+                  : ""}
+                Active assignments and submitted field-validation evidence are not reassigned here.
+              </span>
+            </div>
+          ) : null}
+
+        </section>
+
+        <HistoricalReferralPanel report={report} />
+        <OfflineHandoffNotes report={report} />
 
             {/* Case history (secondary, collapsed) */}
             <details className="review-card case-history-disclosure">
@@ -1625,13 +1535,16 @@ export function CaseReviewPage() {
               </div>
             </details>
 
-        <section className="more-actions-section" aria-label="More actions">
-          <div className="section-heading">
-            <div>
-              <h3>More actions</h3>
+        {/* Q3 = A: the remaining case actions live under one disclosure */}
+        <details className="review-card case-history-disclosure">
+          <summary>
+            <div className="disclosure-left">
+              <strong>Other case actions</strong>
             </div>
             <MoreHorizontal aria-hidden="true" />
-          </div>
+          </summary>
+          <div className="disclosure-content">
+        <section className="other-case-actions" aria-label="Other case actions">
           {report.canonicalLinkage?.isDuplicate ? (
             <div className="duplicate-linkage-summary" role="status">
               <strong>Linked as a possible duplicate</strong>
@@ -1687,6 +1600,8 @@ export function CaseReviewPage() {
             </Button>
           </div>
         </section>
+          </div>
+        </details>
       </div>
 
       {/* Modal 1: Office Decision (F1 + F4) */}
@@ -1719,57 +1634,8 @@ export function CaseReviewPage() {
         }
       >
         <div className="review-subform">
-          <SelectFilter
-            label="Staff-Classified Condition"
-            value={selectedAuthorityClassification ?? ""}
-            onChange={(event) => {
-              setAuthorityClassificationOverride(
-                (event.target.value || null) as AuthorityClassifiedCondition | null,
-              );
-              setOfficeDecisionSubmitted(false);
-              reviewMutation.reset();
-            }}
-          >
-            <option value="">Not classified</option>
-            {activeAuthorityClassifiedConditions.map((value) => (
-              <option value={value} key={value}>
-                {authorityClassifiedConditionLabels[value]}
-              </option>
-            ))}
-            {existingLegacyAuthorityClassification ? (
-              <option value={existingLegacyAuthorityClassification}>
-                {authorityClassifiedConditionLabels[existingLegacyAuthorityClassification]}
-                {" (legacy record; not offered for new review)"}
-              </option>
-            ) : null}
-          </SelectFilter>
-          <p className="authority-classification-help">
-            Staff-Classified Condition is a separate human finding and never changes the original Possible Condition.
-          </p>
-          {report.authorityClassifiedCondition && report.reviewedBy ? (
-            <p className="authority-provenance">
-              Last classified by {report.reviewedBy}
-              {report.reviewedAt ? ` on ${formatDateTime(report.reviewedAt)}` : ""}.
-            </p>
-          ) : null}
-
-          <SelectFilter
-            label="Verification outcome"
-            value={selectedVerificationOutcome}
-            onChange={(event) => {
-              setVerificationOverride(event.target.value as VerificationOutcome | "");
-              setOfficeDecisionSubmitted(false);
-              reviewMutation.reset();
-            }}
-          >
-            <option value="">No verification decision</option>
-            <option value="not_determined">Not determined</option>
-            <option value="verified">Verified</option>
-            <option value="unable_to_verify">Unable to verify</option>
-          </SelectFilter>
-          <p className="authority-classification-help">
-            Verification is a separate human judgment. It never closes a case on its own.
-          </p>
+          {renderCaseStateConfirmation()}
+          {renderOfficeDecisionFields(officeDecisionSubmitted)}
 
           {selectedNextAction === "advisory_provided" ? (
             <div className="review-subform" aria-label="Office advisory selection">
@@ -1821,84 +1687,7 @@ export function CaseReviewPage() {
               Use Review notes to record the treatment, pesticide, medicine, technical assistance, or other action used when applicable. If no intervention was used, say so in the notes.
             </p>
           </div>
-          {officeDecisionSubmitted && !hasReviewInput ? (
-            <p id="office-decision-error" className="form-error" role="alert">
-              Choose a next action or another review field before saving.
-            </p>
-          ) : null}
-          {officeDecisionSubmitted && noteError ? (
-            <p id="review-notes-error" className="form-error" role="alert">
-              {noteError}
-            </p>
-          ) : null}
-          <TextArea
-            id="review-notes"
-            label="Review notes"
-            hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable. Notes are saved with the review."
-            rows={5}
-            maxLength={1000}
-            value={notes}
-            aria-describedby={
-              officeDecisionSubmitted && noteError
-                ? "review-notes-error"
-                : undefined
-            }
-            onChange={(event) => {
-              setNotesOverride(event.target.value);
-              setOfficeDecisionSubmitted(false);
-              reviewMutation.reset();
-            }}
-            placeholder="Describe the intervention or other action used, if applicable..."
-          />
-          <p className="review-note-count">{notes.length}/1,000</p>
-
-          {serverNoteError ? <p className="form-error" role="alert">{serverNoteError}</p> : null}
-          {conflict ? (
-            <div className="review-conflict" role="alert">
-              <p>This report changed after you opened it. Refresh before saving again.</p>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  reviewMutation.reset();
-                  reportQuery.refetch();
-                }}
-              >
-                Refresh report
-              </Button>
-            </div>
-          ) : null}
-          {mutationRateLimited ? (
-            <p className="form-error" role="alert">
-              Too many review attempts were received. Wait a moment before trying again.
-            </p>
-          ) : null}
-          {mutationForbidden ? (
-            <p className="form-error" role="alert">
-              Your account no longer has permission to review this report.
-            </p>
-          ) : null}
-          {mutationValidation && !serverNoteError ? (
-            <p className="form-error" role="alert">
-              The server rejected this review. Check the selected action and notes before trying again.
-            </p>
-          ) : null}
-          {malformedMutationResponse ? (
-            <p className="form-error" role="alert">
-              The server returned an unexpected response. Refresh the report before trying again.
-            </p>
-          ) : null}
-          {reviewMutation.isError &&
-          !conflict &&
-          !serverNoteError &&
-          !mutationRateLimited &&
-          !mutationForbidden &&
-          !mutationValidation &&
-          !malformedMutationResponse ? (
-            <p className="form-error" role="alert">
-              The review service is unavailable. No review change was confirmed.
-            </p>
-          ) : null}
+          {renderReviewMutationErrors()}
         </div>
       </Modal>
 
@@ -1932,6 +1721,7 @@ export function CaseReviewPage() {
         }
       >
         <div className="review-subform" aria-label="Field validation assignment">
+          {renderCaseStateConfirmation()}
           <p className="authority-classification-help">
             An assignment activates immediately. Choose a Field Inspector; a target visit date is optional.
           </p>
@@ -1985,191 +1775,7 @@ export function CaseReviewPage() {
               Eligible Field Inspectors could not be loaded. Try again before assigning.
             </p>
           ) : null}
-        </div>
-      </Modal>
-
-      {/* Modal 3: Expert Referral (F3) */}
-      <Modal
-        id="referral-modal"
-        title="Record expert referral"
-        description="Print/download remains the default handoff. You can optionally create a signed, time-limited read-only link after saving."
-        open={referralModalOpen}
-        onClose={closeReferralModal}
-        disabled={recordReferral.isPending}
-        isDirty={referralHandoffDirty}
-        footer={
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={recordReferral.isPending}
-              onClick={closeReferralModal}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={recordReferral.isPending}
-              onClick={saveReferralHandoff}
-            >
-              {recordReferral.isPending ? "Saving referral..." : "Save referral"}
-            </Button>
-          </>
-        }
-      >
-        <div className="review-subform" aria-label="Expert referral details">
-          <p className="authority-classification-help">
-            Capture the handoff as plain operational text. Print/download remains the default; a secure link can be created from the saved consult.
-          </p>
-          {referralFieldError ? (
-            <p id="referral-destination-error" className="form-error" role="alert">
-              {referralFieldError}
-            </p>
-          ) : null}
-          <label className="select-filter" htmlFor="referral-destination">
-            <span>Expert destination</span>
-            <input
-              id="referral-destination"
-              value={referralDestination}
-              maxLength={160}
-              aria-describedby={referralFieldError ? "referral-destination-error" : undefined}
-              onChange={(event) => {
-                setReferralDestination(event.target.value);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-              placeholder="Office, laboratory, or expert group"
-            />
-          </label>
-          <label className="select-filter" htmlFor="referral-reference">
-            <span>Referral reference</span>
-            <input
-              id="referral-reference"
-              value={referralReference}
-              maxLength={160}
-              onChange={(event) => {
-                setReferralReference(event.target.value);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-              placeholder="Reference supplied by the receiving office"
-            />
-          </label>
-          <label className="select-filter" htmlFor="referral-date">
-            <span>Referral date</span>
-            <input
-              id="referral-date"
-              type="date"
-              value={referralDate}
-              onChange={(event) => {
-                const nextReferralDate = event.target.value;
-                const previousDefaultDueDate = referralDate
-                  ? referralDueDateFor(referralDate)
-                  : "";
-                setReferralDate(nextReferralDate);
-                if (!referralDueDate || referralDueDate === previousDefaultDueDate) {
-                  setReferralDueDate(nextReferralDate ? referralDueDateFor(nextReferralDate) : "");
-                }
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-            />
-          </label>
-          <label className="select-filter" htmlFor="referral-due-date">
-            <span>Consult due date (optional)</span>
-            <input
-              id="referral-due-date"
-              type="date"
-              value={referralDueDate}
-              onChange={(event) => {
-                setReferralDueDate(event.target.value);
-                setReferralDueDateTouched(true);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-            />
-          </label>
-          <SelectFilter
-            id="referral-expert"
-            label="In-system expert (optional)"
-            value={referralExpertUuid ?? ""}
-            onChange={(event) => {
-              setReferralExpertUuid(event.target.value || null);
-              setReferralSubmitted(false);
-              recordReferral.reset();
-            }}
-          >
-            <option value="">Choose an in-system expert or use the external path below</option>
-            {(expertDirectoryQuery.data ?? []).map((expert) => (
-              <option value={expert.uuid} key={expert.uuid}>
-                {expert.name} ({expert.email})
-              </option>
-            ))}
-          </SelectFilter>
-          {expertDirectoryQuery.isError ? (
-            <p className="form-error" role="alert">
-              In-system experts could not be loaded. You can still enter an external expert name.
-            </p>
-          ) : null}
-          <label className="select-filter" htmlFor="referral-expert-name">
-            <span>External expert name (optional)</span>
-            <input
-              id="referral-expert-name"
-              maxLength={160}
-              value={referralExpertName}
-              onChange={(event) => {
-                setReferralExpertName(event.target.value);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-              placeholder="Named expert or service"
-            />
-          </label>
-          <label className="select-filter" htmlFor="referral-expert-contact">
-            <span>Expert contact (optional)</span>
-            <input
-              id="referral-expert-contact"
-              maxLength={320}
-              value={referralExpertContact}
-              onChange={(event) => {
-                setReferralExpertContact(event.target.value);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-              placeholder="Email, phone, or office contact"
-            />
-          </label>
-          <label className="case-confirmation" htmlFor="referral-share-full-context">
-            <input
-              id="referral-share-full-context"
-              type="checkbox"
-              checked={referralShareFullContext}
-              onChange={(event) => {
-                setReferralShareFullContext(event.target.checked);
-                setReferralSubmitted(false);
-                recordReferral.reset();
-              }}
-            />
-            <span>
-              <strong>Share full case context</strong>
-              <small>Include the farmer/farm owner name and exact coordinates in the expert packet.</small>
-            </span>
-          </label>
-          <TextArea
-            id="referral-note"
-            label="Referral note (optional)"
-            hint="Keep the request neutral and grounded in the submitted evidence."
-            rows={3}
-            maxLength={1000}
-            value={referralNote}
-            onChange={(event) => {
-              setReferralNote(event.target.value);
-              setReferralSubmitted(false);
-              recordReferral.reset();
-            }}
-            placeholder="What should the expert review?"
-          />
-          {referralRecordError ? <p className="form-error" role="alert">{referralRecordError}</p> : null}
+          {renderReviewMutationErrors()}
         </div>
       </Modal>
 
@@ -2460,8 +2066,12 @@ export function CaseReviewPage() {
           ) : (
             <p className="authority-classification-help">No case information corrections recorded.</p>
           )}
+          {renderReviewMutationErrors()}
         </div>
       </Modal>
+      {saveNotice ? (
+        <Toast message={saveNotice} onDismiss={() => setSaveNotice(null)} />
+      ) : null}
     </PageContent>
   );
 }

@@ -41,17 +41,7 @@ final class ApplyOperationalQueueFilter
             ->where(function (Builder $query): void {
                 $query
                     ->whereNull('action_taken')
-                    ->orWhere(function (Builder $query): void {
-                        $query
-                            ->where(
-                                'action_taken',
-                                Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
-                            )
-                            ->whereIn('referral_state', [
-                                Report::REFERRAL_STATE_REFERRED,
-                                Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
-                            ]);
-                    });
+                    ->orWhere('action_taken', Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION);
             })
             ->where(function (Builder $query): void {
                 $query
@@ -151,10 +141,7 @@ final class ApplyOperationalQueueFilter
                 Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
             )
             ->where('field_validation_state', Report::FIELD_VALIDATION_STATE_UNASSIGNED)
-            ->whereNotIn('referral_state', [
-                Report::REFERRAL_STATE_REFERRED,
-                Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
-            ])
+            ->where('action_taken', '!=', Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION)
             ->whereNotNull('action_taken');
     }
 }

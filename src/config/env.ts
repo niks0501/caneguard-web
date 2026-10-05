@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  VITE_API_BASE_URL: z.url().default("http://localhost:8000"),
+  VITE_API_BASE_URL: z.url().default(import.meta.env.PROD ? "" : "http://localhost:8000"),
   VITE_DATA_SOURCE: z.enum(["api", "mock"]).default("api"),
   VITE_REPORT_REFRESH_MS: z.coerce.number().int().positive().default(600_000),
   VITE_MAPTILER_KEY: z.string().trim().default(""),

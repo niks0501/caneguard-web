@@ -83,72 +83,6 @@ export interface IdentificationGap {
   reasons: string[];
 }
 
-export interface ExpertConsultSummary {
-  id: number;
-  status: ConsultStatus;
-  referralDate: string | null;
-  dueDate: string | null;
-  expert?: { uuid: string; name: string } | null;
-  expertName?: string | null;
-  daysUntilDue: number | null;
-  daysOut: number | null;
-  overdue: boolean;
-  ageLabel: string;
-}
-
-export type SymptomFindingVerdict = "present" | "absent" | "unsure";
-
-export interface ExpertConsultPacket {
-  referenceCode: string;
-  submittedAt: string;
-  photoUrl: string;
-  reporterObservations: {
-    symptomKeys: string[];
-    reporterObservationText?: string | null;
-    fieldNotes?: string | null;
-    reporterSuspectedCondition?: string | null;
-    checklistConsistency?: string | null;
-    reportedSeverity?: string | null;
-    qualityWarnings: string[];
-  };
-  reporterSuspectedCondition?: string | null;
-  aiPossibleCondition: {
-    label: string;
-    decisionSupportLabel: string;
-  };
-  location: { barangay: string; municipality?: string | null; province?: string | null };
-  affectedArea: { value: number | null; unit: string; measurement: string };
-  affectedPortion: { value: number | null; unit: string; measurement: string };
-  officeContext: ReferralOfficeContext;
-  consult: {
-    id: number;
-    status: ConsultStatus;
-    reference: string;
-    referralDate: string | null;
-    dueDate: string | null;
-    question?: string | null;
-    conditionOpinion?: AuthorityClassifiedCondition | null;
-    basis?: string | null;
-    confidence?: "low" | "medium" | "high" | null;
-    recommendation?: string | null;
-    symptomVerdicts: Record<string, { verdict: SymptomFindingVerdict; note?: string | null }>;
-    responseDate?: string | null;
-  };
-  priorConsults: Array<{
-    id: number;
-    status: ConsultStatus;
-    reference: string;
-    referralDate: string | null;
-    dueDate: string | null;
-    question?: string | null;
-    conditionOpinion?: AuthorityClassifiedCondition | null;
-    basis?: string | null;
-    confidence?: "low" | "medium" | "high" | null;
-    recommendation?: string | null;
-  }>;
-  version: number;
-}
-
 export type ActionTaken =
   | "advisory_provided"
   | "technical_assistance_provided"
@@ -187,7 +121,8 @@ export interface ReportReferral {
   id?: number;
   status?: ConsultStatus;
   destination: string;
-  reference: string;
+  reference: string | null;
+  trackingCode?: string | null;
   referralDate: string;
   dueDate?: string | null;
   expertName?: string | null;
@@ -223,10 +158,12 @@ export interface ReportReferral {
 }
 
 export interface ReportConsult {
+  note?: string | null;
   id: number;
   status?: ConsultStatus;
   destination: string;
-  reference: string;
+  reference: string | null;
+  trackingCode?: string | null;
   referralDate: string;
   dueDate?: string | null;
   expertName?: string | null;
@@ -379,7 +316,17 @@ export interface ReportCaseHistory {
   };
 }
 
+export interface HandoffNote {
+  id: number;
+  destination: string;
+  reference: string | null;
+  sent_date: string;
+  note: string | null;
+  advice_received_note: string | null;
+}
+
 export interface DiseaseReport {
+  handoffNotes?: HandoffNote[];
   uuid: string;
   referenceCode: string;
   barangay: string;
@@ -411,8 +358,9 @@ export interface DiseaseReport {
   sourceHeight?: number;
   symptoms: SymptomResponse[];
   fieldNotes?: string;
-  classScores?: Array<{ label: DiseaseKey; score: number }>;
+  classScores?: Array<{ label: string; score: number }>;
   modelVersion?: string;
+  modelVersionRecognised?: boolean;
   processingTimingsMs?: {
     preprocess: number;
     inference: number;
@@ -461,7 +409,6 @@ export interface DiseaseReport {
   attentionBandReasons?: string[];
   caseHistory?: ReportCaseHistory;
   identificationGap?: IdentificationGap;
-  expertConsult?: ExpertConsultSummary | null;
 }
 
 export interface ReportReviewEvent {
@@ -489,7 +436,6 @@ export type ReportSort = "newest" | "oldest" | "due_soonest";
 
 export interface ReportFilters {
   queue?: OperationalQueue;
-  referral?: "active";
   search?: string;
   /** Derived compatibility projection; the actual lifecycle axes sit below. */
   status?: ReviewStatus | "all";

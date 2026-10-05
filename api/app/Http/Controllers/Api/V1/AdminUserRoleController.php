@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Auth\CheckStepUpPassword;
+use App\Actions\Auth\ReconcileDistrictAccess;
 use App\Actions\Auth\RecordSecurityAudit;
-use App\Actions\Auth\RevokeUserAuthentication;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangeUserRoleRequest;
+use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +20,6 @@ class AdminUserRoleController extends Controller
         ChangeUserRoleRequest $request,
         User $user,
         CheckStepUpPassword $stepUp,
-        RevokeUserAuthentication $revoker,
         RecordSecurityAudit $audits,
     ): JsonResponse {
         $actor = $request->user();
@@ -70,9 +71,12 @@ class AdminUserRoleController extends Controller
         }
 
         $oldRole = $user->role;
-        DB::transaction(function () use ($audits, $actor, $newRole, $oldRole, $revoker, $user): void {
-            $user->forceFill(['role' => $newRole])->save();
-            $revoker->handle($user);
+        DB::transaction(function () use ($request, $audits, $actor, $newRole, $oldRole, $user): void {
+            app(ReconcileDistrictAccess::class)->handle(
+                $user, District::findOrFail(app(DistrictAccess::class)->pilotId()),
+                $newRole, [], $newRole === User::ROLE_FARMER,
+                $request->validated('office_reference') ?? 'Legacy v1 role change: reference not supplied', $actor,
+            );
             $audits->handle(
                 SecurityAudit::ACTION_ROLE_CHANGE,
                 SecurityAudit::OUTCOME_SUCCESS,
@@ -84,6 +88,8 @@ class AdminUserRoleController extends Controller
                 ],
             );
         });
+
+        $user->refresh();
 
         return response()->json([
             'message' => 'The account role was updated.',

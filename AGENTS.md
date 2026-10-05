@@ -1,12 +1,13 @@
 ## Engineering Practice
 
 - Inspect the repository and existing patterns before making changes.
+- Before using an unfamiliar CLI subcommand or flag, check that CLI's help; do not assume compatibility with another tool's syntax.
 - Prefer the simplest complete solution and avoid unnecessary abstractions or dependencies.
 - Keep changes focused, readable, deterministic, and maintainable.
 - Preserve unrelated user work and never overwrite, reset, stash, delete, or rewrite unrelated changes.
 - Treat secrets, credentials, tokens, environment values, production data, and personal data as sensitive.
 - Do not expose sensitive values in output, logs, commits, examples, or generated files.
-- Ask before destructive actions, production changes, deployments, publishing, force operations, dependency changes, credential access, or other externally consequential actions.
+- Ask before destructive actions, production changes, deployments, publishing, force operations, dependency changes, credential access, or other externally consequential actions. Permission to push or open a PR does not authorize a force-push, including `--force-with-lease`; ask separately.
 - Resolve facts that can be discovered from the repository before asking the user.
 - Ask only when a genuine product decision, missing credential, destructive behavior, or material tradeoff requires user input.
 
@@ -20,7 +21,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Prefer these scoped commands over reading the full graph or performing broad source searches.
 - If `graphify-out/wiki/index.md` exists, use it for broad repository navigation.
 - Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when `query`, `path`, and `explain` do not provide enough context.
-- Dirty files under `graphify-out/` are expected after hooks or incremental updates and are not a reason to avoid Graphify.
+- Dirty files under `graphify-out/` are expected after hooks or incremental updates and are not a reason to avoid Graphify. Before staging, inspect generated diffs and stage only artifacts required by the task; refreshing Graphify does not by itself justify committing its output. Leave unrelated generated changes unstaged rather than resetting or deleting them.
 - After modifying code, run `graphify update .` to keep the graph current.
 - When the user explicitly invokes `/graphify`, follow the installed Graphify skill or instructions before doing anything else.
 
@@ -31,6 +32,17 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Expand to broader tests, builds, E2E, browser, or device verification only when justified.
 - Never claim a check passed unless it actually ran and succeeded.
 - Never hide failures by deleting tests, weakening assertions, or disabling validation.
+- Dashboard layout rules live in `src/index.css`; `npm run test:design-spine` asserts named selectors in `scripts/validate-design-spine.mjs`, so removing or renaming a dashboard class requires updating that validator in the same change.
+- The dashboard has exactly one tooltip: `.kpi-card__support-tip` on KPI 1, revealed on hover and `:focus-visible` and pointed at by the card link's `aria-describedby`. It must stay clipped rather than `display: none` while hidden, or the description stops resolving; `npm run test:design-spine` enforces both.
+- Dashboard control memory lives in `src/components/dashboard/dashboardPreferences.ts`: a versioned, validated `localStorage` payload holding the scope ruler (mode, month, custom window) and the map layer. Add new Overview controls there, restore them lazily in `useState`, and keep the corrupt/stale-value fallback covered by `src/components/dashboard/dashboardPreferences.test.ts`.
+- Dashboard graphics draw solid fills only: the KPI graphics (sparkline, waiting-age radial, schedule bar, status indicator), the decision charts and every legend swatch all take a flat `--kpi-band-*` solid from `src/styles/tokens.css`, indexed by `src/components/dashboard/kpiBandEncoding.ts`. `npm run test:design-spine` fails if a pattern or texture returns, if neighbouring fills drop below 3:1 (including the radial ring's 4-1 join), or if a band loses its gap or separator stroke. Tune a new band there, never with ad-hoc colours in a component.
+
+## Dashboard Visual Doctrine
+
+- Minimal text: dashboard surfaces carry data, not explanation. Delete retired prose rather than shortening it, and never add notes that restate what a chart or table already shows.
+- Every displayed time is 12-hour Asia/Manila with an explicit meridiem marker (`src/lib/formatters.ts`); never 24-hour.
+- Graphics draw flat solids from the `--kpi-band-*` ramp (`src/components/dashboard/kpiBandEncoding.ts`), never patterns, textures or ad-hoc colours.
+- Be honest about scope and shade: never label a scoped or filtered list as unfiltered or all-periods, and keep neighbouring graphic fills distinguishable rather than relying on a subtle tint.
 
 ## Failure Handling
 

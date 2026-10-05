@@ -52,58 +52,12 @@ class ReportListResource extends JsonResource
             'attention_band' => $this->attention_band,
             'attention_band_reasons' => $this->attention_band_reasons ?? [],
             'identification_gap' => app(AssessIdentificationGap::class)->handle($this->resource),
-            'expert_consult' => $this->activeConsultSummary(),
-            'referral' => $this->activeConsultSummary(),
             'version' => $this->lock_version,
             'image_url' => route(
                 'api.v1.reports.image',
                 ['report' => $this->uuid],
+                false,
             ),
-        ];
-    }
-
-    /**
-     * Keep the active consult's clock available in every office queue and the
-     * expert queue without creating a second operational queue.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function activeConsultSummary(): ?array
-    {
-        $consult = $this->resource->relationLoaded('referral')
-            ? $this->referral
-            : null;
-
-        if (! $consult || ! $consult->isActive()) {
-            return null;
-        }
-
-        $today = now()->startOfDay();
-        $daysUntilDue = $consult->due_date === null
-            ? null
-            : $today->diffInDays($consult->due_date->copy()->startOfDay(), false);
-        $daysOut = $consult->referral_date === null
-            ? null
-            : $consult->referral_date->copy()->startOfDay()->diffInDays($today, false);
-
-        return [
-            'id' => $consult->getKey(),
-            'status' => $consult->consult_status,
-            'referral_date' => $consult->referral_date?->format('Y-m-d'),
-            'due_date' => $consult->due_date?->format('Y-m-d'),
-            'expert' => $consult->expert ? [
-                'uuid' => $consult->expert->uuid,
-                'name' => $consult->expert->name,
-            ] : null,
-            'expert_name' => $consult->expert?->name ?? $consult->expert_name,
-            'days_until_due' => $daysUntilDue,
-            'days_out' => $daysOut,
-            'overdue' => $daysUntilDue !== null && $daysUntilDue < 0,
-            'age_label' => $daysUntilDue === null
-                ? 'No due date'
-                : ($daysUntilDue < 0
-                    ? 'Overdue'
-                    : ($daysUntilDue === 0 ? 'Due today' : 'Due in '.$daysUntilDue.' '.($daysUntilDue === 1 ? 'day' : 'days'))),
         ];
     }
 
@@ -188,7 +142,7 @@ class ReportListResource extends JsonResource
             'fresh_photo' => [
                 'available' => $completion->fresh_photo_path !== null,
                 'url' => $completion->fresh_photo_path !== null
-                    ? route('api.v1.reports.validation-photo', ['report' => $this->uuid])
+                    ? route('api.v1.reports.validation-photo', ['report' => $this->uuid], false)
                     : null,
             ],
         ];

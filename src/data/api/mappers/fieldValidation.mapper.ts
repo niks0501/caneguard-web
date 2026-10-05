@@ -45,6 +45,9 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
     geometry: feature.geometry,
     properties: {
       uuid: feature.properties.uuid,
+      locationGroupKey: feature.properties.location_group_key ?? feature.properties.uuid,
+      locationGroupSize: feature.properties.location_group_size ?? 1,
+      locationGroupCoordinates: feature.properties.location_group_coordinates ?? feature.geometry.coordinates,
       referenceCode: feature.properties.reference_code,
       barangay: feature.properties.barangay,
       province: feature.properties.province,

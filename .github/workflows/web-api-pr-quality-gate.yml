@@ -41,6 +41,17 @@ jobs:
       - name: Install Web dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('api/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
       - name: Install Laravel dependencies
         run: composer install --working-dir=api --no-interaction --no-progress --prefer-dist
 
@@ -62,6 +73,11 @@ jobs:
           php api/artisan key:generate --force --no-interaction
 
       - name: Run Web checks (lint, typecheck, tests, build)
+        # Build proof only: reserved test origin, never a deploy configuration.
+        env:
+          VITE_API_BASE_URL: https://caneguard.example.test
+          VITE_DATA_SOURCE: api
+          VITE_REALTIME_ENABLED: 'false'
         run: npm run check:web
 
       - name: Run Laravel checks (tests, formatting)

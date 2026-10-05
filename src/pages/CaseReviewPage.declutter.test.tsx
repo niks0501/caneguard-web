@@ -8,14 +8,11 @@ import { reportDetailDto } from "../test/fixtures";
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import {
   useAdvisories,
-  useConfirmExpertReferral,
-  useExpertDirectory,
+  useRecordHandoffNote,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useReports,
   useUnlinkDuplicateReport,
-  useRecordExpertReferralResponse,
-  useRecordReportReferral,
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
@@ -23,14 +20,11 @@ import { CaseReviewPage } from "./CaseReviewPage";
 
 vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),
-  useConfirmExpertReferral: vi.fn(),
-  useExpertDirectory: vi.fn(),
+  useRecordHandoffNote: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
   useReports: vi.fn(),
   useUnlinkDuplicateReport: vi.fn(),
-  useRecordExpertReferralResponse: vi.fn(),
-  useRecordReportReferral: vi.fn(),
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
 }));
@@ -69,16 +63,13 @@ function renderPage(reportData = baseReport) {
 describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
   beforeEach(() => {
     vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
+    vi.mocked(useRecordHandoffNote).mockReturnValue({ mutateAsync: vi.fn(), isPending: false, isError: false } as unknown as ReturnType<typeof useRecordHandoffNote>);
     vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
     vi.mocked(usePossibleRecentMatches).mockReturnValue({
       data: { matches: [], message: "", possibleMatch: false, canSubmit: true },
       isPending: false,
       isError: false,
     } as unknown as ReturnType<typeof usePossibleRecentMatches>);
-    vi.mocked(useRecordExpertReferralResponse).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useRecordExpertReferralResponse>);
-    vi.mocked(useRecordReportReferral).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useRecordReportReferral>);
-    vi.mocked(useConfirmExpertReferral).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useConfirmExpertReferral>);
-    vi.mocked(useExpertDirectory).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useExpertDirectory>);
     vi.mocked(useReports).mockReturnValue({ data: { reports: [], meta: { currentPage: 1, from: null, lastPage: 1, perPage: 8, to: null, total: 0 } }, error: null, isError: false, isPending: false, isFetching: false } as unknown as ReturnType<typeof useReports>);
     vi.mocked(useLinkDuplicateReport).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useLinkDuplicateReport>);
     vi.mocked(useUnlinkDuplicateReport).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUnlinkDuplicateReport>);
@@ -182,16 +173,12 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
       isPending: false,
       isError: false,
     } as unknown as ReturnType<typeof usePossibleRecentMatches>);
-    vi.mocked(useConfirmExpertReferral).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useConfirmExpertReferral>);
-    vi.mocked(useExpertDirectory).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useExpertDirectory>);
-    vi.mocked(useRecordExpertReferralResponse).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useRecordExpertReferralResponse>);
-    vi.mocked(useRecordReportReferral).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useRecordReportReferral>);
     vi.mocked(useLinkDuplicateReport).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useLinkDuplicateReport>);
     vi.mocked(useUnlinkDuplicateReport).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUnlinkDuplicateReport>);
     vi.mocked(useUpdateReportReview).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUpdateReportReview>);
   });
 
-  it("retires the two-column split: no review-layout or review-sidebar remains and the flow reads hero, status, photo, condition, field report, office decision, history", () => {
+  it("retires the two-column split and reads evidence first: status, photo, condition, field report, office decision, history", () => {
     renderPage();
 
     expect(document.querySelector(".review-layout")).toBeNull();
@@ -201,23 +188,23 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     const flow = document.querySelector(".review-single-column");
     expect(flow).toBeInTheDocument();
 
-    const hero = screen.getByRole("heading", { name: "What this case needs from me" });
     const chips = screen.getByRole("region", { name: "Case status" });
     const photo = screen.getByRole("heading", { name: "Submitted photo" });
     const condition = screen.getByRole("heading", { name: "Possible Condition" });
     const fieldReport = screen.getByRole("heading", { name: "Field report" });
     const decision = screen.getByRole("heading", { name: "Office decision" });
+    const history = screen.getByRole("heading", { name: "Case history" });
 
     for (const heading of [photo, condition, fieldReport, decision]) {
       expect(flow!.contains(heading)).toBe(true);
     }
-    // Reading order in the DOM matches visual order: hero, status, photo,
-    // condition, field report, office decision.
-    expect(hero.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Reading order in the DOM matches visual order, and the decision comes
+    // after the submitted evidence the reviewer has to acknowledge first.
     expect(chips.compareDocumentPosition(photo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(photo.compareDocumentPosition(condition) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(condition.compareDocumentPosition(fieldReport) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(fieldReport.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(decision.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
 });
