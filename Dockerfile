@@ -71,6 +71,12 @@ RUN sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" \
 WORKDIR /var/www/html
 
 COPY api/ ./
+# Contract readers use base_path('../docs/...'); weekly rendering uses ../brand.
+COPY docs/contracts/mobile-report-upload-v1.json docs/contracts/mobile-report-upload-v2.json docs/contracts/mobile-field-validation-assignment-v1.json docs/contracts/mobile-field-validation-completion-v1.json docs/contracts/mobile-notifications-v1.json /var/www/docs/contracts/
+COPY brand/CaneGuard_logo_flat.svg /var/www/brand/
+COPY railway/uploads.ini /usr/local/etc/php/conf.d/caneguard-uploads.ini
+# Fail the image build if mod_php's CLI-shared upload configuration is missing.
+RUN php -r 'if (ini_get("upload_max_filesize") !== "12M" || ini_get("post_max_size") !== "16M") { exit(1); }'
 
 RUN composer install \
     --no-dev \

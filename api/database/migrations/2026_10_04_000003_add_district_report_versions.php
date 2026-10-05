@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationReplay;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -8,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('district_recipient_sets', function (Blueprint $table): void {
+        MigrationReplay::create('district_recipient_sets', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('district_id')->constrained()->restrictOnDelete();
             $table->json('recipients');
@@ -16,7 +17,7 @@ return new class extends Migration
             $table->timestamp('revoked_at')->nullable();
             $table->timestamps();
         });
-        Schema::create('district_report_versions', function (Blueprint $table): void {
+        MigrationReplay::create('district_report_versions', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('district_id')->constrained()->restrictOnDelete();
@@ -33,7 +34,7 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['district_id', 'week_start', 'version'], 'district_week_version_unique');
         });
-        Schema::create('district_report_transmissions', function (Blueprint $table): void {
+        MigrationReplay::create('district_report_transmissions', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('district_report_version_id')->unique()->constrained()->restrictOnDelete();
             $table->foreignId('district_recipient_set_id')->constrained()->restrictOnDelete();
@@ -45,7 +46,7 @@ return new class extends Migration
             $table->string('transport_receipt', 160)->nullable();
             $table->timestamps();
         });
-        Schema::create('district_report_events', function (Blueprint $table): void {
+        MigrationReplay::create('district_report_events', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('district_report_version_id')->constrained()->restrictOnDelete();
             $table->foreignId('district_id')->constrained()->restrictOnDelete();

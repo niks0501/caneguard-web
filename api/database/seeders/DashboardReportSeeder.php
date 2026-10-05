@@ -359,13 +359,21 @@ class DashboardReportSeeder extends Seeder
     private function seedVolume(User $reporter, User $reviewer, string $image, int $districtId): void
     {
         $advisoryId = Advisory::query()
-            ->where('code', AdvisorDemoSeeder::ADVISORY_CODE)
+            ->where('code', RailwayDemoData::reference(AdvisorDemoSeeder::ADVISORY_CODE))
             ->value('id');
         $plan = self::volumeDefinitions(
             self::volumeConfiguration(),
             $reviewer->getKey(),
             $advisoryId === null ? null : (int) $advisoryId,
         );
+        if (RailwayDemoData::active()) {
+            $isolated = [];
+            foreach ($plan as $reference => $definition) {
+                $definition['report'] = RailwayDemoData::identities($reference, $definition['report']);
+                $isolated[RailwayDemoData::reference($reference)] = $definition;
+            }
+            $plan = $isolated;
+        }
         $references = array_keys($plan);
         $existingReports = Report::query()
             ->whereIn('reference_code', $references)
@@ -793,7 +801,7 @@ class DashboardReportSeeder extends Seeder
 
     private static function volumeImagePath(CarbonImmutable $submittedAt): string
     {
-        return 'reports/'.$submittedAt->format('Y-m').'/dashboard-field-evidence.png';
+        return RailwayDemoData::path('reports/'.$submittedAt->format('Y-m').'/dashboard-field-evidence.png');
     }
 
     private static function farmerName(int $ordinal): string
@@ -842,7 +850,7 @@ class DashboardReportSeeder extends Seeder
             $visitedAt = $now->subHours(2);
         }
         $photoPath = $ordinal % 3 === 0
-            ? 'field-validation/'.$visitedAt->format('Y-m').'/follow-up-evidence.png'
+            ? RailwayDemoData::path('field-validation/'.$visitedAt->format('Y-m').'/follow-up-evidence.png')
             : null;
 
         return [
@@ -941,6 +949,8 @@ class DashboardReportSeeder extends Seeder
         string $image,
         int $districtId,
     ): Report {
+        $attributes = RailwayDemoData::identities($referenceCode, $attributes);
+        $referenceCode = RailwayDemoData::reference($referenceCode);
         $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
             ['reference_code' => $referenceCode],
             [

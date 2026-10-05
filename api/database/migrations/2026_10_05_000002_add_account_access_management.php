@@ -1,9 +1,9 @@
 <?php
 
+use App\Support\MigrationReplay;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -14,17 +14,13 @@ return new class extends Migration
             ->groupBy('district_id')->havingRaw('COUNT(*) > 1')->exists()) {
             throw new RuntimeException('Multiple active report approvers require approved operator reconciliation before migration.');
         }
-        Schema::table('users', function (Blueprint $table): void {
-            $table->unsignedBigInteger('access_version')->default(1);
-            $table->string('registration_origin', 32)->default('unknown');
-            $table->index(['created_at', 'id']);
-        });
-        Schema::table('district_grants', function (Blueprint $table): void {
-            $table->unsignedBigInteger('active_approver_district')->nullable()
-                ->storedAs("CASE WHEN ability = 'report:approve' AND revoked_at IS NULL THEN district_id ELSE NULL END");
-            $table->unique('active_approver_district');
-        });
-        Schema::create('account_reviews', function (Blueprint $table): void {
+        MigrationReplay::column('users', 'access_version', fn (Blueprint $table) => $table->unsignedBigInteger('access_version')->default(1));
+        MigrationReplay::column('users', 'registration_origin', fn (Blueprint $table) => $table->string('registration_origin', 32)->default('unknown'));
+        MigrationReplay::index('users', ['created_at', 'id'], 'users_created_at_id_index');
+        MigrationReplay::column('district_grants', 'active_approver_district', fn (Blueprint $table) => $table->unsignedBigInteger('active_approver_district')->nullable()
+            ->storedAs("CASE WHEN ability = 'report:approve' AND revoked_at IS NULL THEN district_id ELSE NULL END"));
+        MigrationReplay::index('district_grants', ['active_approver_district'], 'district_grants_active_approver_district_unique', true);
+        MigrationReplay::create('account_reviews', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained()->restrictOnDelete();
             $table->foreignId('actor_id')->constrained('users')->restrictOnDelete();
@@ -32,7 +28,7 @@ return new class extends Migration
             $table->string('office_reference', 160);
             $table->timestamps();
         });
-        Schema::create('account_access_events', function (Blueprint $table): void {
+        MigrationReplay::create('account_access_events', function (Blueprint $table): void {
             $table->id();
             $table->uuid('operation_id')->index();
             $table->foreignId('district_id')->constrained()->restrictOnDelete();
@@ -48,7 +44,7 @@ return new class extends Migration
             $table->index(['target_id', 'occurred_at', 'id']);
             $table->index(['district_id', 'occurred_at', 'id']);
         });
-        Schema::create('account_access_receipts', function (Blueprint $table): void {
+        MigrationReplay::create('account_access_receipts', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('actor_id')->constrained('users')->restrictOnDelete();
             $table->foreignId('district_id')->constrained()->restrictOnDelete();

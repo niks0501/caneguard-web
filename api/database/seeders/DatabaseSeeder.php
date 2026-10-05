@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
                 'password' => config('caneguard.demo_users.reviewer_password'),
             ],
             [
-                'name' => 'Crisanto de Vera',
+                'name' => RailwayDemoData::active() ? RailwayDemoData::managerName() : 'Crisanto de Vera',
                 'email' => 'admin@caneguard.test',
                 'role' => User::ROLE_ADMIN,
                 'email_verified_at' => now(),

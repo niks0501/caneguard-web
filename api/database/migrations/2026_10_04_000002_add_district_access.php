@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationReplay;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -9,13 +10,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('districts', function (Blueprint $table): void {
+        MigrationReplay::create('districts', function (Blueprint $table): void {
             $table->id();
             $table->string('code', 80)->unique();
             $table->string('name', 160);
             $table->timestamps();
         });
-        Schema::create('district_memberships', function (Blueprint $table): void {
+        MigrationReplay::create('district_memberships', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
             $table->foreignId('district_id')->constrained()->restrictOnDelete();
@@ -23,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['user_id', 'district_id']);
         });
-        Schema::create('district_grants', function (Blueprint $table): void {
+        MigrationReplay::create('district_grants', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
             $table->foreignId('district_id')->constrained()->restrictOnDelete();
@@ -33,11 +34,10 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['user_id', 'district_id', 'ability']);
         });
-        Schema::table('reports', function (Blueprint $table): void {
-            // No inferred backfill: the office must approve record attribution.
-            $table->foreignId('district_id')->nullable()->constrained()->restrictOnDelete();
-            $table->index(['district_id', 'submitted_at']);
-        });
+        // No inferred backfill: the office must approve record attribution.
+        MigrationReplay::column('reports', 'district_id', fn (Blueprint $table) => $table->foreignId('district_id')->nullable());
+        MigrationReplay::foreign('reports', 'district_id', 'districts');
+        MigrationReplay::index('reports', ['district_id', 'submitted_at'], 'reports_district_id_submitted_at_index');
         // Old credentials must not carry their former unscoped authority forward.
         DB::table('personal_access_tokens')->delete();
         DB::table('sessions')->delete();

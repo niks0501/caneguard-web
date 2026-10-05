@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
+import { validateProductionBuild } from "./src/config/productionBuild.js";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -20,46 +21,51 @@ const qaApiProxy = qaApiProxyTarget
     )
   : undefined;
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  build: {
-    rollupOptions: {
-      output: {
-        // Overhaul P1: keep the chart vendor out of the initial chunk so
-        // every route stops shipping Recharts before any chart mounts.
-        manualChunks: (id) => {
-          if (id.includes("node_modules/recharts")) return "chart-vendor";
-          return undefined;
+export default defineConfig(({ command, mode }) => {
+  if (command === "build") {
+    validateProductionBuild({ ...loadEnv(mode, process.cwd(), "VITE_"), ...process.env });
+  }
+  return {
+    plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          // Overhaul P1: keep the chart vendor out of the initial chunk so
+          // every route stops shipping Recharts before any chart mounts.
+          manualChunks: (id) => {
+            if (id.includes("node_modules/recharts")) return "chart-vendor";
+            return undefined;
+          },
         },
       },
     },
-  },
-  optimizeDeps: {
-    exclude: ["maplibre-gl"],
-  },
-  server: {
-    allowedHosts: qaPublicHost ? [qaPublicHost] : undefined,
-    proxy: qaApiProxy,
-    fs: {
-      deny: [
-        ".env",
-        ".env.*",
-        "*.{crt,pem,key,p12,pfx,cer,der}",
-        ".npmrc",
-        ".yarnrc.yml",
-        "**/.git/**",
-        "**/auth.json",
-        "**/api/.env*",
-        "**/api/config/**",
-        "**/api/storage/**",
-        "**/api/bootstrap/cache/**",
-      ],
+    optimizeDeps: {
+      exclude: ["maplibre-gl"],
     },
-  },
-  test: {
-    environment: "jsdom",
-    setupFiles: "./src/test/setup.ts",
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["caneguard-mobile/**"],
-  },
+    server: {
+      allowedHosts: qaPublicHost ? [qaPublicHost] : undefined,
+      proxy: qaApiProxy,
+      fs: {
+        deny: [
+          ".env",
+          ".env.*",
+          "*.{crt,pem,key,p12,pfx,cer,der}",
+          ".npmrc",
+          ".yarnrc.yml",
+          "**/.git/**",
+          "**/auth.json",
+          "**/api/.env*",
+          "**/api/config/**",
+          "**/api/storage/**",
+          "**/api/bootstrap/cache/**",
+        ],
+      },
+    },
+    test: {
+      environment: "jsdom",
+      setupFiles: "./src/test/setup.ts",
+      include: ["src/**/*.{test,spec}.{ts,tsx}"],
+      exclude: ["caneguard-mobile/**"],
+    },
+  };
 });

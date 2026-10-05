@@ -8,6 +8,9 @@ return [
     'pilot_roster_certified' => env('CANEGUARD_PILOT_ROSTER_CERTIFIED', false),
     // Blank means no live district. Never infer membership from location/name.
     'pilot_district_code' => env('CANEGUARD_PILOT_DISTRICT_CODE', ''),
+    // Exact one-deployment approval marker; ordinary production boots never seed.
+    'railway_demo_seed_approval' => env('CANEGUARD_RAILWAY_DEMO_SEED', ''),
+    'railway_demo_manager_name' => env('CANEGUARD_RAILWAY_DEMO_MANAGER_NAME', ''),
     // Recognition only: unknown bounded versions remain valid submitted evidence.
     'accepted_model_versions' => array_values(array_filter(array_map(
         'trim',

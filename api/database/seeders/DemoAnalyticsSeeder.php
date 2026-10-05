@@ -39,7 +39,7 @@ class DemoAnalyticsSeeder extends Seeder
         $reporter = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
         $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
         $admin = User::query()->where('email', 'admin@caneguard.test')->firstOrFail();
-        $advisory = Advisory::query()->where('code', 'ADV-OFFICE-OPS-001')->firstOrFail();
+        $advisory = Advisory::query()->where('code', RailwayDemoData::reference('ADV-OFFICE-OPS-001'))->firstOrFail();
 
         $image = file_get_contents(database_path('seeders/assets/synthetic-sugarcane-rust.png'));
         $dimensions = is_string($image) ? getimagesizefromstring($image) : false;
@@ -59,8 +59,8 @@ class DemoAnalyticsSeeder extends Seeder
             $sampleInMonth = $ordinal % self::REPORTS_PER_MONTH;
             $month = $now->startOfMonth()->subMonths($monthOffset);
             $submittedAt = $this->submittedAt($month, $sampleInMonth, $monthOffset, $now);
-            $referenceCode = self::REFERENCE_PREFIX.sprintf('%04d', $ordinal + 1);
-            $imagePath = 'reports/demo-analytics/synthetic-field-evidence.png';
+            $referenceCode = RailwayDemoData::reference(self::REFERENCE_PREFIX.sprintf('%04d', $ordinal + 1));
+            $imagePath = RailwayDemoData::path('reports/demo-analytics/synthetic-field-evidence.png');
 
             if (! $disk->exists($imagePath) && ! $disk->put($imagePath, $image)) {
                 throw new RuntimeException("Unable to store demo report image [{$imagePath}].");

@@ -26,6 +26,7 @@ import {
 import { NASUGBU_BARANGAY_POINTS, NASUGBU_MAP_CENTER } from "./nasugbuBarangays";
 import { registerMissingMapImage } from "./registerMissingMapImage";
 
+import "../../config/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const mapTilerStyle = env.mapTilerKey

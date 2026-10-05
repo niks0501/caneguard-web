@@ -34,10 +34,15 @@ class SecurityHeaders
             ))
             : "'none'";
 
+        // Only the SPA may load same-origin preview frames. Document/API
+        // responses remain unable to create child frames.
+        $isSpa = $isHtml && ! $isReportDocument && ! $request->is('api/*');
+        $frameSrc = $isSpa ? "'self'" : "'none'";
+
         $response->headers->set(
             'Content-Security-Policy',
             $isHtml
-                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'; img-src 'self' data:; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'"
+                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'; img-src 'self' data:; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'; frame-src {$frameSrc}; worker-src 'self'"
                 : "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
         );
         $response->headers->set('X-Frame-Options', $isReportDocument ? 'SAMEORIGIN' : 'DENY');

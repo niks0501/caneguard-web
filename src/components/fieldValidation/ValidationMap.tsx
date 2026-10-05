@@ -18,6 +18,7 @@ import { routes } from "../../app/routes";
 import { formatValidationDate } from "./fieldValidation.format";
 import { env } from "../../config/env";
 
+import "../../config/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const mapTilerStyle = env.mapTilerKey

@@ -168,9 +168,9 @@ class AdvisorDemoSeeder extends Seeder
     private function seedAdvisory(User $reviewer): Advisory
     {
         return Advisory::query()->updateOrCreate(
-            ['code' => self::ADVISORY_CODE],
+            ['code' => RailwayDemoData::reference(self::ADVISORY_CODE)],
             [
-                'uuid' => '389cb205-7897-42d0-80ec-3468eeab8b3d',
+                'uuid' => RailwayDemoData::uuid('advisory/'.self::ADVISORY_CODE, '389cb205-7897-42d0-80ec-3468eeab8b3d'),
                 'title' => 'Rust sanitation and monitored follow-up',
                 'content' => 'Remove heavily affected leaves, disinfect tools between rows, and schedule a follow-up visit when symptoms continue.',
                 'status' => Advisory::STATUS_VALIDATED,
@@ -421,6 +421,8 @@ class AdvisorDemoSeeder extends Seeder
     ): Report {
         unset($attributes['referral_state']);
         $number = array_search($referenceCode, self::REPORT_REFERENCES, true) + 1;
+        $attributes = RailwayDemoData::identities($referenceCode, $attributes);
+        $referenceCode = RailwayDemoData::reference($referenceCode);
         $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
             ['reference_code' => $referenceCode],
             [
@@ -486,7 +488,7 @@ class AdvisorDemoSeeder extends Seeder
         FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '885b0373-0c86-41d8-a838-0921c71f3a35',
+                'uuid' => RailwayDemoData::uuid('uuid/885b0373-0c86-41d8-a838-0921c71f3a35', '885b0373-0c86-41d8-a838-0921c71f3a35'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-19',
@@ -503,7 +505,7 @@ class AdvisorDemoSeeder extends Seeder
         FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => 'efcb6026-044d-4c4c-b330-cbdc111d7aef',
+                'uuid' => RailwayDemoData::uuid('uuid/efcb6026-044d-4c4c-b330-cbdc111d7aef', 'efcb6026-044d-4c4c-b330-cbdc111d7aef'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-22',
@@ -522,7 +524,7 @@ class AdvisorDemoSeeder extends Seeder
         $assignment = FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '6feab924-3ecd-49f2-96c2-5fb878ef48f6',
+                'uuid' => RailwayDemoData::uuid('uuid/6feab924-3ecd-49f2-96c2-5fb878ef48f6', '6feab924-3ecd-49f2-96c2-5fb878ef48f6'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-24',
@@ -530,8 +532,8 @@ class AdvisorDemoSeeder extends Seeder
             ],
         );
         $completionAttributes = [
-            'uuid' => '0d81b69b-4db2-4352-81e1-d943d34d9ee8',
-            'client_uuid' => '2936e0f6-299d-47f3-8da6-53cb50283263',
+            'uuid' => RailwayDemoData::uuid('uuid/0d81b69b-4db2-4352-81e1-d943d34d9ee8', '0d81b69b-4db2-4352-81e1-d943d34d9ee8'),
+            'client_uuid' => RailwayDemoData::uuid('client_uuid/2936e0f6-299d-47f3-8da6-53cb50283263', '2936e0f6-299d-47f3-8da6-53cb50283263'),
             'field_observation' => 'The monitored rows show fewer orange flecks after sanitation guidance.',
             'field_finding' => 'The block is recovering and remains suitable for routine office follow-up.',
             'action_taken' => 'Disinfected tools and marked the eastern row for another inspection.',
@@ -541,7 +543,7 @@ class AdvisorDemoSeeder extends Seeder
             'gps_latitude' => 14.1260000,
             'gps_longitude' => 120.6039000,
             'gps_accuracy' => 6.10,
-            'fresh_photo_path' => 'field-validation/2026-09-18-balaytigui.png',
+            'fresh_photo_path' => RailwayDemoData::path('field-validation/2026-09-18-balaytigui.png'),
             'fresh_photo_mime_type' => 'image/png',
             'fresh_photo_size_bytes' => strlen($image),
         ];
@@ -565,7 +567,7 @@ class AdvisorDemoSeeder extends Seeder
         $assignment = FieldValidationAssignment::query()->updateOrCreate(
             ['report_id' => $report->getKey()],
             [
-                'uuid' => '7649e5e2-cdec-45aa-9f1a-8500272527b8',
+                'uuid' => RailwayDemoData::uuid('uuid/7649e5e2-cdec-45aa-9f1a-8500272527b8', '7649e5e2-cdec-45aa-9f1a-8500272527b8'),
                 'assignee_id' => $reporter->getKey(),
                 'assigned_by_id' => $reviewer->getKey(),
                 'target_visit_date' => '2026-09-22',
@@ -573,8 +575,8 @@ class AdvisorDemoSeeder extends Seeder
             ],
         );
         $completionAttributes = [
-            'uuid' => '88797c37-3af2-4adb-81ca-fa1dc78d2dcd',
-            'client_uuid' => '9a99f389-b8d0-49d6-968e-ad9c183c3f8c',
+            'uuid' => RailwayDemoData::uuid('uuid/88797c37-3af2-4adb-81ca-fa1dc78d2dcd', '88797c37-3af2-4adb-81ca-fa1dc78d2dcd'),
+            'client_uuid' => RailwayDemoData::uuid('client_uuid/9a99f389-b8d0-49d6-968e-ad9c183c3f8c', '9a99f389-b8d0-49d6-968e-ad9c183c3f8c'),
             'field_observation' => 'The marked patch has more thin stalks and dark whips than at the first visit.',
             'field_finding' => 'The smut symptoms worsened and need a renewed office response.',
             'action_taken' => 'Flagged the affected rows and requested an additional inspection.',

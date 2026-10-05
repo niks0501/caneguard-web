@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>CaneGuard Weekly Field Report · {{ $content['period']['week'] }} · Version {{ $version->version }}</title>
-<style>
+<style nonce="{{ request()->attributes->get('csp_nonce') }}">
 @page { margin: 18mm 15mm 18mm; }
 * { box-sizing: border-box; }
 body { font-family: 'DejaVu Sans', sans-serif; font-size: 9pt; line-height: 1.45; color: #1e452a; margin: 0; }

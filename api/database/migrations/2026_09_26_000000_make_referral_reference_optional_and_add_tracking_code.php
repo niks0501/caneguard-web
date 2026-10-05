@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationReplay;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -8,12 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('report_referrals', function (Blueprint $table): void {
-            // Existing external references remain untouched; newer handoffs may
-            // not receive an office memo or letter number until later.
-            $table->string('reference', 160)->nullable()->change();
-            $table->string('tracking_code', 32)->nullable()->unique();
-        });
+        // Repeating the nullable change is safe; it does not modify reference values.
+        Schema::table('report_referrals', fn (Blueprint $table) => $table->string('reference', 160)->nullable()->change());
+        MigrationReplay::column('report_referrals', 'tracking_code', fn (Blueprint $table) => $table->string('tracking_code', 32)->nullable());
+        MigrationReplay::index('report_referrals', ['tracking_code'], 'report_referrals_tracking_code_unique', true);
     }
 
     public function down(): void

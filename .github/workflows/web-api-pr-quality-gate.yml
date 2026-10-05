@@ -73,6 +73,11 @@ jobs:
           php api/artisan key:generate --force --no-interaction
 
       - name: Run Web checks (lint, typecheck, tests, build)
+        # Build proof only: reserved test origin, never a deploy configuration.
+        env:
+          VITE_API_BASE_URL: https://caneguard.example.test
+          VITE_DATA_SOURCE: api
+          VITE_REALTIME_ENABLED: 'false'
         run: npm run check:web
 
       - name: Run Laravel checks (tests, formatting)

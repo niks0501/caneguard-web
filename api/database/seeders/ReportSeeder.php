@@ -127,10 +127,10 @@ class ReportSeeder extends Seeder
                 0,
                 'UTC',
             );
-            $referenceCode = sprintf('BGO-%s', $submittedAt->format('Ymd-Hi'));
+            $referenceCode = RailwayDemoData::reference(sprintf('BGO-%s', $submittedAt->format('Ymd-Hi')));
             $path = sprintf('reports/2026-07/%s.png', strtolower($referenceCode));
-            $clientUuid = $clientUuids[$number - 1];
-            $reportUuid = $reportUuids[$number - 1];
+            $clientUuid = RailwayDemoData::uuid('client_uuid/'.$referenceCode, $clientUuids[$number - 1]);
+            $reportUuid = RailwayDemoData::uuid('uuid/'.$referenceCode, $reportUuids[$number - 1]);
             $farmerOrFarmOwnerName = $farmOwners[$number - 1];
             $confidence = round(0.62 + ($number * 0.025), 7);
             $capturedAt = $submittedAt->subMinutes(20 + $number);

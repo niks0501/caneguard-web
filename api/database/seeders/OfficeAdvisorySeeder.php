@@ -40,6 +40,8 @@ class OfficeAdvisorySeeder extends Seeder
             ->firstOrFail();
 
         foreach (self::ADVISORIES as $index => $advisory) {
+            $advisory['uuid'] = RailwayDemoData::uuid('advisory/'.$advisory['code'], $advisory['uuid']);
+            $advisory['code'] = RailwayDemoData::reference($advisory['code']);
             Advisory::query()->updateOrCreate(
                 ['code' => $advisory['code']],
                 [
