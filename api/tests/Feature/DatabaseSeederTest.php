@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase
@@ -42,6 +43,9 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseCount('districts', 1);
         $this->assertDatabaseCount('district_memberships', 2);
         $this->assertDatabaseCount('reports', $reportCount);
+        $pilotId = District::query()->where('code', 'demo-pilot')->sole()->id;
+        $this->assertSame($reportCount, Report::query()->where('district_id', $pilotId)->count());
+        $this->assertSeededDashboardCounts($reportCount);
         $this->assertDatabaseCount('advisories', 4);
         $this->assertDatabaseCount('report_class_scores', $reportCount * count(Report::v2Labels()));
         $this->assertDatabaseCount('report_symptoms', $reportCount);
@@ -59,11 +63,15 @@ class DatabaseSeederTest extends TestCase
         $counts = $this->tableCounts();
         $identities = $this->identities();
         $files = Storage::disk('local')->allFiles();
+        // Simulate the old seeder output: rerunning must repair stamps in place.
+        DB::table('reports')->update(['district_id' => null]);
         $this->seed(DatabaseSeeder::class);
 
         $this->assertSame($counts, $this->tableCounts());
         $this->assertSame($identities, $this->identities());
         $this->assertSame($files, Storage::disk('local')->allFiles());
+        $this->assertSame($reportCount, Report::query()->where('district_id', $pilotId)->count());
+        $this->assertSeededDashboardCounts($reportCount);
     }
 
     public function test_full_seed_preserves_unrelated_rows_and_evidence(): void
@@ -99,6 +107,23 @@ class DatabaseSeederTest extends TestCase
         $this->assertSame('unrelated evidence', Storage::disk('local')->get($report->image_path));
     }
 
+    private function assertSeededDashboardCounts(int $reportCount): void
+    {
+        // Exercise real seeder stamps and memberships, not test-only certification.
+        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->sole());
+        $this->getJson('/api/v1/dashboard/summary?include=counts')
+            ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', $reportCount);
+        $monthCount = Report::query()
+            ->whereBetween('submitted_at', ['2026-09-30 16:00:00', '2026-10-31 15:59:59'])
+            ->count();
+        $this->assertGreaterThan(0, $monthCount);
+        $this->getJson('/api/v1/dashboard/summary?month=2026-10&include=counts,monthly')
+            ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', $reportCount)
+            ->assertJsonPath('data.monthly_summary.reported_cases', $monthCount);
+    }
+
     private function tableCounts(): array
     {
         $counts = [];
@@ -113,7 +138,7 @@ class DatabaseSeederTest extends TestCase
     {
         return [
             'users' => User::query()->orderBy('id')->get(['id', 'uuid', 'email'])->toArray(),
-            'reports' => Report::query()->orderBy('id')->get(['id', 'uuid', 'reference_code', 'client_uuid', 'scan_record_client_uuid', 'advisory_id'])->toArray(),
+            'reports' => Report::query()->orderBy('id')->get(['id', 'uuid', 'reference_code', 'client_uuid', 'scan_record_client_uuid', 'advisory_id', 'district_id'])->toArray(),
             'assignments' => FieldValidationAssignment::query()->orderBy('id')->get(['id', 'uuid', 'report_id'])->toArray(),
             'completions' => FieldValidationCompletion::query()->orderBy('id')->get(['id', 'uuid', 'client_uuid', 'assignment_id'])->toArray(),
         ];

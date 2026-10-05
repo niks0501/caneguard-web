@@ -229,7 +229,15 @@ php artisan db:seed --class=AdvisorDemoSeeder
 php artisan db:seed --class=DashboardReportSeeder
 ```
 
-`php artisan db:seed` runs all seeders. The `--class` commands rerun an individual seeder.
+`php artisan db:seed` runs all seeders. The `--class` commands rerun an individual seeder. All seeded reports carry the district selected by `CANEGUARD_PILOT_DISTRICT_CODE`; individual report seeders require that district to exist first.
+
+For an existing **local demo database** with legacy reports whose `district_id` is NULL, run this one-shot backfill from `api/` after verifying the local connection and configured pilot district:
+
+```bash
+php artisan caneguard:backfill-local-report-districts
+```
+
+The command stamps only NULL district values, preserves existing district stamps, timestamps and evidence, and is safe to rerun (the second run stamps zero rows). It refuses environments other than `local` or `testing`, and requires an existing configured pilot district. It is intentionally not an automatic migration or part of normal seeding: do not use it on production data or on a database containing uncertified legacy reports.
 
 **DANGER: `php artisan migrate:fresh --seed` drops every table and deletes all data in the selected database before rebuilding and seeding it. Use it only for a disposable local development database—never production.**
 The accounts are `field@caneguard.test`, `mao@caneguard.test`, and `admin@caneguard.test`.

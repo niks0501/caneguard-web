@@ -7,6 +7,7 @@ use App\Models\ReportClassScore;
 use App\Models\ReportQualityWarning;
 use App\Models\ReportSymptom;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,8 @@ class ReportSeeder extends Seeder
 {
     public function run(): void
     {
+        $districtId = app(DistrictAccess::class)->pilotId()
+            ?? throw new \LogicException('Seed the configured pilot district before seeding reports.');
         $reporter = User::query()
             ->where('email', 'field@caneguard.test')
             ->firstOrFail();
@@ -137,6 +140,7 @@ class ReportSeeder extends Seeder
                 $clientUuid,
                 $reportUuid,
                 $reporter,
+                $districtId,
                 $reviewer,
                 $location,
                 $barangays,
@@ -155,6 +159,7 @@ class ReportSeeder extends Seeder
                     [
                         'uuid' => $reportUuid,
                         'reporter_id' => $reporter->getKey(),
+                        'district_id' => $districtId,
                         'client_uuid' => $clientUuid,
                         'barangay' => $barangays[($number - 1) % count($barangays)],
                         'farmer_or_farm_owner_name' => $farmerOrFarmOwnerName,

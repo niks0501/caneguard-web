@@ -10,6 +10,7 @@ use App\Models\ReportClassScore;
 use App\Models\ReportQualityWarning;
 use App\Models\ReportSymptom;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -101,6 +102,8 @@ class DashboardReportSeeder extends Seeder
 
     public function run(): void
     {
+        $districtId = app(DistrictAccess::class)->pilotId()
+            ?? throw new \LogicException('Seed the configured pilot district before seeding reports.');
         $reporter = User::query()
             ->where('email', 'field@caneguard.test')
             ->firstOrFail();
@@ -122,10 +125,11 @@ class DashboardReportSeeder extends Seeder
                 $attributes,
                 $reporter,
                 $image,
+                $districtId,
             );
         }
 
-        $this->seedVolume($reporter, $reviewer, $image);
+        $this->seedVolume($reporter, $reviewer, $image, $districtId);
     }
 
     /**
@@ -352,7 +356,7 @@ class DashboardReportSeeder extends Seeder
      * named workflow examples; stable report references update monthly coverage
      * in place on subsequent runs.
      */
-    private function seedVolume(User $reporter, User $reviewer, string $image): void
+    private function seedVolume(User $reporter, User $reviewer, string $image, int $districtId): void
     {
         $advisoryId = Advisory::query()
             ->where('code', AdvisorDemoSeeder::ADVISORY_CODE)
@@ -382,6 +386,7 @@ class DashboardReportSeeder extends Seeder
                     'scan_record_client_uuid' => $existing?->scan_record_client_uuid
                         ?? $definition['report']['scan_record_client_uuid'],
                     'reporter_id' => $reporter->getKey(),
+                    'district_id' => $districtId,
                     'image_path' => $path,
                     'image_mime_type' => 'image/png',
                     'image_size_bytes' => strlen($image),
@@ -934,12 +939,14 @@ class DashboardReportSeeder extends Seeder
         array $attributes,
         User $reporter,
         string $image,
+        int $districtId,
     ): Report {
         $report = Report::withoutEvents(fn (): Report => Report::query()->updateOrCreate(
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
                 'reporter_id' => $reporter->getKey(),
+                'district_id' => $districtId,
                 'image_path' => sprintf(
                     'reports/%s/%s.png',
                     CarbonImmutable::parse($attributes['submitted_at'], 'UTC')->format('Y-m'),

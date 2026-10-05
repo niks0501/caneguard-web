@@ -10,6 +10,7 @@ use App\Models\ReportClassScore;
 use App\Models\ReportReviewEvent;
 use App\Models\ReportSymptom;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,8 @@ class AdvisorDemoSeeder extends Seeder
 
     public function run(): void
     {
+        $districtId = app(DistrictAccess::class)->pilotId()
+            ?? throw new \LogicException('Seed the configured pilot district before seeding reports.');
         $reporter = User::query()
             ->where('email', 'field@caneguard.test')
             ->firstOrFail();
@@ -70,6 +73,7 @@ class AdvisorDemoSeeder extends Seeder
                 $attributes,
                 $reporter,
                 $image,
+                $districtId,
             );
         }
 
@@ -413,6 +417,7 @@ class AdvisorDemoSeeder extends Seeder
         array $attributes,
         User $reporter,
         string $image,
+        int $districtId,
     ): Report {
         unset($attributes['referral_state']);
         $number = array_search($referenceCode, self::REPORT_REFERENCES, true) + 1;
@@ -421,6 +426,7 @@ class AdvisorDemoSeeder extends Seeder
             [
                 ...$attributes,
                 'reporter_id' => $reporter->getKey(),
+                'district_id' => $districtId,
                 'affected_area_measurement' => $attributes['affected_area_measurement']
                     ?? (($attributes['affected_area_hectares'] ?? null) === null
                         ? Report::MEASUREMENT_NOT_MEASURED
