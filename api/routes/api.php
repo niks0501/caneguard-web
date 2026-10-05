@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\LinkDuplicateReportController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MapReportController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
+use App\Http\Controllers\Api\V1\MobileFieldSurveyController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationCompletionController;
 use App\Http\Controllers\Api\V1\MobileMapTileController;
@@ -139,6 +140,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'access.identity'])
         ->middleware('mobile.token');
 
     Route::middleware('inspector.access')->group(function () {
+        Route::post('/mobile/field-surveys', MobileFieldSurveyController::class)
+            ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1'])
+            ->name('api.v1.mobile.field-surveys.store');
         Route::get('/mobile/reports/possible-matches', MobilePossibleRecentMatchesController::class)
             ->middleware(['mobile.token', 'abilities:report:submit'])
             ->name('api.v1.mobile.reports.possible-matches');

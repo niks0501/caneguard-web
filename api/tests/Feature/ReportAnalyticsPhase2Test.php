@@ -232,6 +232,8 @@ class ReportAnalyticsPhase2Test extends TestCase
 
     public function test_backlog_buckets_waiting_age_and_names_the_oldest_wait(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-09-07T02:00:00Z'));
+
         $oldSubmittedAt = CarbonImmutable::parse('2026-06-15T02:00:00Z');
         Report::factory()->inDistrict($this->pilotDistrict())->create([
             'case_state' => Report::CASE_STATE_OPEN,
