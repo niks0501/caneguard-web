@@ -76,7 +76,41 @@ describe("weekly district approval", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Request send" })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: "Request send" }));
     expect(await screen.findByText("Send intent recorded. Delivery is not confirmed.")).toBeInTheDocument();
-    expect(sendBody).toEqual({ content_hash: version.content_hash, idempotency_key: version.uuid });
+    expect(sendBody).toEqual({ content_hash: version.content_hash, idempotency_key: expect.stringMatching(/^[a-f0-9-]{36}$/) });
+  });
+
+  it("shows an honest SMTP receipt and never calls acceptance inbox delivery", async () => {
+    auth("admin", ["report:send"]);
+    server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z", prepared_name: "Reviewer Name", approved_name: "Approver Name", approved_title: "District Mill Officer", transmissions: [{
+      id: 1, state: "sent", transport_receipt: "provider-id@example.test", failure_reason: null,
+      requested_name: "Sender Name", requested_by_id: 1, send_grant_id: 3, send_grant_revision: 2,
+      created_at: "2026-10-01T05:00:00Z", completed_at: "2026-10-01T05:01:00Z",
+    }] }], meta: { send_enabled: true } })));
+    renderApproval();
+    expect(await screen.findByText("SMTP provider accepted the report. Inbox delivery is not guaranteed.")).toBeInTheDocument();
+    expect(screen.getByText(/Provider message ID: provider-id/)).toBeInTheDocument();
+    expect(screen.getByText(/Ordered by Sender Name.*Grant 3, revision 2/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request send" })).toBeDisabled();
+  });
+
+  it("filters only the derived view and keeps the approved PDF unfiltered", async () => {
+    const user = userEvent.setup();
+    renderApproval();
+    await screen.findByTitle("Official weekly report version 1");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Class view" }), "rssi");
+    expect(screen.getByTitle("Official weekly report version 1")).toHaveAttribute("src", `${base}/${version.uuid}/document?disease=rssi`);
+    expect(screen.getByRole("link", { name: "Download draft A4 PDF" })).toHaveAttribute("href", `${base}/${version.uuid}/pdf`);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /downy/i })).not.toBeInTheDocument();
+  });
+
+  it("blocks all workflow actions offline without queuing a mutation", async () => {
+    auth("admin", ["report:approve", "report:send"]);
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    renderApproval();
+    expect(screen.getByRole("button", { name: "Prepare district version" })).toBeDisabled();
+    expect(screen.getByText(/Preparation, approval and sending are not queued offline/)).toBeInTheDocument();
+    vi.restoreAllMocks();
   });
 
   it("keeps sending disabled behind the office contract gate", async () => {

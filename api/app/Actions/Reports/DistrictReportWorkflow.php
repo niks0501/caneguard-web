@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Jobs\DeliverDistrictReport;
 use App\Models\District;
 use App\Models\DistrictGrant;
 use App\Models\DistrictRecipientSet;
@@ -17,26 +18,37 @@ use Illuminate\Support\Facades\DB;
 /** Preparation is not approval; send records an intent, never delivers mail. */
 final class DistrictReportWorkflow
 {
-    public function __construct(private readonly DistrictAccess $access, private readonly BuildReportDocument $documents) {}
+    public function __construct(private readonly DistrictAccess $access, private readonly BuildWeeklyReportContent $documents, private readonly RenderWeeklyReport $renderer) {}
 
-    public function prepare(User $actor, string $week): DistrictReportVersion
+    public function prepare(User $actor, string $week, bool $appendix = false): DistrictReportVersion
     {
         abort_unless($this->access->office($actor), 403);
-        $period = $this->documents->resolvePeriod(['period_type' => 'weekly', 'week' => $week]);
+        abort_if($appendix && ! $this->appendixAllowed($actor), 403);
+        $period = $this->documents->period($week);
 
-        return DB::transaction(function () use ($actor, $period, $week): DistrictReportVersion {
+        return DB::transaction(function () use ($actor, $period, $week, $appendix): DistrictReportVersion {
             $district = District::query()->lockForUpdate()->findOrFail($this->access->pilotId());
             $refs = $this->sourceRefs($district->id, $period['start']->toDateString(), true);
-            $content = $this->documents->handle(['period_type' => 'weekly', 'week' => $week], $actor);
+            $content = $this->documents->handle($district, $week, $appendix);
+            $content['evidence_digest'] = $this->hash($refs);
+            $latest = DistrictReportVersion::query()->where('district_id', $district->id)
+                ->where('week_start', $period['start']->toDateString())->orderByDesc('version')->first();
+            $hash = $this->hash($content);
+            if ($latest !== null && hash_equals($latest->content_hash, $hash)) {
+                return $latest;
+            }
             $version = DistrictReportVersion::query()->create([
                 'district_id' => $district->id,
                 'week_start' => $period['start']->toDateString(),
                 'version' => 1 + (int) DistrictReportVersion::query()->where('district_id', $district->id)
                     ->where('week_start', $period['start']->toDateString())->max('version'),
                 'content' => $content,
-                'content_hash' => $this->hash($content),
+                'content_hash' => $hash,
                 'source_refs' => $refs,
                 'prepared_by_id' => $actor->id,
+                'prepared_name' => $actor->name,
+                'supersedes_version_id' => $latest?->id,
+                'version_reason' => $latest === null ? 'initial' : ($this->hash($content['late_evidence']) !== $this->hash($latest->content['late_evidence'] ?? []) ? 'late_evidence' : 'correction'),
             ]);
             $this->event($version, 'prepared', $actor);
 
@@ -59,12 +71,19 @@ final class DistrictReportWorkflow
 
                 return $locked;
             }
-            $locked->update([
+            abort_unless(($locked->content['contract'] ?? null) === 'weekly-report-content-v1', 409);
+            abort_if(($locked->content['appendix_enabled'] ?? false) && ! $this->appendixAllowed($actor), 403);
+            $locked->fill([
                 'approved_by_id' => $actor->id,
                 'approved_grant_id' => $grant->id,
                 'approved_grant_revision' => $grant->revision,
                 'approved_at' => now()->utc(),
+                'approved_name' => $actor->name,
+                'approved_title' => 'District Mill Officer',
+                'renderer_version' => RenderWeeklyReport::VERSION,
             ]);
+            $bytes = $this->renderer->pdf($locked);
+            $locked->fill(['document_sha256' => hash('sha256', $bytes), 'document_bytes' => base64_encode($bytes)])->save();
             $this->event($locked, 'approved', $actor, $grant);
 
             return $locked;
@@ -83,14 +102,16 @@ final class DistrictReportWorkflow
             abort_unless($grant !== null, 403);
             $this->assertCurrent($locked, $hash);
             abort_unless($this->approvalValid($locked), 409);
-            $existing = DistrictReportTransmission::query()->where('district_report_version_id', $locked->id)->first();
+            $existing = DistrictReportTransmission::query()->where('idempotency_key', $key)->first();
             if ($existing !== null) {
-                abort_unless($existing->idempotency_key === $key && $existing->requested_by_id === $actor->id
+                abort_unless($existing->district_report_version_id === $locked->id && $existing->requested_by_id === $actor->id
                     && $existing->state !== 'cancelled', 409);
 
                 return $existing;
             }
-            abort_if(DistrictReportTransmission::query()->where('idempotency_key', $key)->exists(), 409);
+            abort_if(DistrictReportTransmission::query()->where('district_report_version_id', $locked->id)
+                ->whereIn('state', ['pending', 'delivering', 'sent'])->exists(), 409);
+            abort_if(($locked->content['appendix_enabled'] ?? false) && config('caneguard.weekly_appendix_enabled') !== true, 403);
             $recipients = DistrictRecipientSet::query()->where('district_id', $locked->district_id)
                 ->whereNull('revoked_at')->orderByDesc('id')->lockForUpdate()->first();
             abort_unless($recipients !== null && $recipients->recipients !== [], 409);
@@ -98,18 +119,20 @@ final class DistrictReportWorkflow
                 'district_report_version_id' => $locked->id,
                 'district_recipient_set_id' => $recipients->id,
                 'requested_by_id' => $actor->id,
+                'requested_name' => $actor->name,
                 'send_grant_id' => $grant->id,
                 'send_grant_revision' => $grant->revision,
                 'idempotency_key' => $key,
                 'state' => 'pending',
             ]);
             $this->event($locked, 'send_requested', $actor, $grant, $intent);
+            DeliverDistrictReport::dispatch($intent->id)->onConnection('database')->afterCommit();
 
             return $intent;
         }, attempts: 3);
     }
 
-    /** Must be called by any future transport worker immediately before delivery. No mail implementation ships here. */
+    /** Called by the transport worker immediately before claiming delivery. */
     public function checkPending(DistrictReportTransmission $intent): bool
     {
         return DB::transaction(function () use ($intent): bool {
@@ -124,7 +147,8 @@ final class DistrictReportWorkflow
             $valid = config('caneguard.weekly_send_enabled') === true && $grant !== null
                 && $grant->id === $intent->send_grant_id && $grant->revision === $intent->send_grant_revision
                 && $recipients->revoked_at === null && $recipients->district_id === $version->district_id
-                && $this->approvalValid($version) && $this->isCurrent($version, $version->content_hash);
+                && $this->approvalValid($version) && $this->isCurrent($version, $version->content_hash)
+                && (! ($version->content['appendix_enabled'] ?? false) || config('caneguard.weekly_appendix_enabled') === true);
             if (! $valid) {
                 $intent->update(['state' => 'cancelled']);
                 $this->event($version, 'cancelled', $actor, $grant, $intent);
@@ -149,7 +173,8 @@ final class DistrictReportWorkflow
         $actor = User::find($version->approved_by_id);
         $grant = $this->access->grant($actor, 'report:approve', $version->district_id);
 
-        return $grant !== null && $grant->id === $version->approved_grant_id
+        return $version->document_sha256 !== null && $version->document_bytes !== null
+            && $grant !== null && $grant->id === $version->approved_grant_id
             && $grant->revision === $version->approved_grant_revision;
     }
 
@@ -164,15 +189,18 @@ final class DistrictReportWorkflow
             && hash_equals($version->content_hash, $this->hash($version->content))
             && ! DistrictReportVersion::query()->where('district_id', $version->district_id)
                 ->where('week_start', $version->week_start)->where('version', '>', $version->version)->exists()
-            && $version->source_refs === $this->sourceRefs($version->district_id, $version->week_start);
+            && hash_equals($this->hash($version->source_refs), $this->hash($this->sourceRefs($version->district_id, $version->week_start)));
     }
 
     private function sourceRefs(int $districtId, string $weekStart, bool $lock = false): array
     {
         $start = CarbonImmutable::parse($weekStart, 'Asia/Manila')->startOfDay();
 
+        $lateIds = $this->documents->lateQuery($districtId, $start)->select('id');
+
         return Report::query()->where('district_id', $districtId)
-            ->where('submitted_at', '>=', $start->utc())->where('submitted_at', '<', $start->addWeek()->utc())
+            ->where(fn ($query) => $query->where(fn ($q) => $q->where('submitted_at', '>=', $start->utc())->where('submitted_at', '<', $start->addWeek()->utc()))
+                ->orWhereIn('id', $lateIds))
             ->orderBy('id')->when($lock, fn ($query) => $query->lockForUpdate())->get()
             ->map(fn (Report $report): array => [
                 'uuid' => $report->uuid,
@@ -200,7 +228,13 @@ final class DistrictReportWorkflow
         return $value;
     }
 
-    private function event(DistrictReportVersion $version, string $action, User $actor, ?DistrictGrant $grant = null, ?DistrictReportTransmission $intent = null): void
+    public function appendixAllowed(User $actor): bool
+    {
+        return config('caneguard.weekly_appendix_enabled') === true
+            && $this->access->grant($actor, 'report:approve', $this->access->pilotId()) !== null;
+    }
+
+    public function event(DistrictReportVersion $version, string $action, User $actor, ?DistrictGrant $grant = null, ?DistrictReportTransmission $intent = null): void
     {
         DistrictReportEvent::query()->create([
             'district_report_version_id' => $version->id,
@@ -211,8 +245,8 @@ final class DistrictReportWorkflow
             'actor_id' => $actor->id,
             'actor_uuid' => $actor->uuid,
             'actor_role' => $actor->role,
-            'grant_id' => $grant?->id,
-            'grant_revision' => $grant?->revision,
+            'grant_id' => $intent?->send_grant_id ?? $grant?->id,
+            'grant_revision' => $intent?->send_grant_revision ?? $grant?->revision,
             'recipient_set_id' => $intent?->district_recipient_set_id,
             'idempotency_key' => $intent?->idempotency_key,
             'created_at' => now()->utc(),

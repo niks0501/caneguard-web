@@ -37,6 +37,19 @@ return [
 
     'mailers' => [
 
+        // Used only by an explicit weekly-report send intent. TLS cannot downgrade.
+        'weekly_smtp' => [
+            'transport' => 'smtp',
+            'scheme' => env('CANEGUARD_WEEKLY_SMTP_SCHEME', 'smtp'),
+            'host' => env('CANEGUARD_WEEKLY_SMTP_HOST', '127.0.0.1'),
+            'port' => env('CANEGUARD_WEEKLY_SMTP_PORT', 587),
+            'username' => env('CANEGUARD_WEEKLY_SMTP_USERNAME'),
+            'password' => env('CANEGUARD_WEEKLY_SMTP_PASSWORD'),
+            'require_tls' => true,
+            'auto_tls' => true,
+            'timeout' => 30,
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
