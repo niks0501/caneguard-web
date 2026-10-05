@@ -186,8 +186,9 @@ export function ValidationMap({
   const mapRef = useRef<MapRef | null>(null);
   const fittedFrameKey = useRef<string | null>(null);
   useEffect(() => {
-    clickSequence.current++;
-    return () => { clickSequence.current++; };
+    const requests = clickSequence;
+    requests.current++;
+    return () => { requests.current++; };
   }, [data.features]);
 
   const sourceData = {

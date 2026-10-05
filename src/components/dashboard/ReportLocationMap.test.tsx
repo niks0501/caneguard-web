@@ -284,7 +284,7 @@ describe("ReportLocationMap layer toggle", () => {
       { id: "dashboard-barangay-circles", features: 2 },
       { id: "dashboard-gps-points", features: 2 },
     ]);
-    expect(screen.getByText("2 GPS points shown (limit 100).")).toBeInTheDocument();
+    expect(screen.getByText("2 reports shown at 2 locations (limit 100).")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Barangay circles" }));
 

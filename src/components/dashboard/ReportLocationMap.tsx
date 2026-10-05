@@ -421,7 +421,7 @@ export function ReportLocationMap({
         ) : null}
         {layer === "gps" && inView && gps.data ? (
           <p className="decision-chart-card__hint">
-            {gps.data.metadata.returnedCount} GPS points shown (limit {GPS_LIMIT})
+            {gps.data.metadata.returnedCount} reports shown at {gpsGroups.length} locations (limit {GPS_LIMIT})
             {gps.data.metadata.truncated ? "; a sample only" : ""}.
           </p>
         ) : null}
