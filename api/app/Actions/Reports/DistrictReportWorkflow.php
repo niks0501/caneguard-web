@@ -135,8 +135,11 @@ final class DistrictReportWorkflow
     /** Called by the transport worker immediately before claiming delivery. */
     public function checkPending(DistrictReportTransmission $intent): bool
     {
-        return DB::transaction(function () use ($intent): bool {
-            $version = $this->lock(DistrictReportVersion::findOrFail($intent->district_report_version_id));
+        // Resolve the district before the transaction: a repeatable-read snapshot must not predate its lock.
+        $version = DistrictReportVersion::findOrFail($intent->district_report_version_id);
+
+        return DB::transaction(function () use ($intent, $version): bool {
+            $version = $this->lock($version);
             $intent = DistrictReportTransmission::query()->lockForUpdate()->findOrFail($intent->id);
             if ($intent->state !== 'pending') {
                 return false;

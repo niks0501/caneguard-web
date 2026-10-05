@@ -29,8 +29,8 @@ final class DeliverDistrictReport implements ShouldQueue
     public function handle(DistrictReportWorkflow $workflow, RenderWeeklyReport $renderer, SendWeeklyReportSmtp $transport): void
     {
         $intent = DistrictReportTransmission::findOrFail($this->intentId);
-        $claimed = DB::transaction(function () use ($intent, $workflow): bool {
-            $version = DistrictReportVersion::findOrFail($intent->district_report_version_id);
+        $version = DistrictReportVersion::findOrFail($intent->district_report_version_id);
+        $claimed = DB::transaction(function () use ($intent, $version, $workflow): bool {
             District::query()->whereKey($version->district_id)->lockForUpdate()->firstOrFail();
             if (! $workflow->checkPending($intent)) {
                 return false;

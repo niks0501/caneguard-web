@@ -8695,3 +8695,50 @@ body {
 .review-toast__dismiss > svg {
   width: 15px;
 }
+
+/* Accounts extends the office table rhythm; authority decisions stay on detail. */
+.accounts-page { min-width: 0; }
+.accounts-views { display: flex; flex-wrap: wrap; gap: var(--space-2); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-3); }
+.accounts-views button { min-height: 44px; padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); cursor: pointer; font: inherit; }
+.accounts-views button[aria-current] { color: var(--color-inverse-text); background: var(--color-primary); border-color: var(--color-primary); font-weight: 600; }
+.accounts-views button:hover { text-decoration: underline; text-underline-offset: 4px; }
+.accounts-views span { margin-left: var(--space-2); font-variant-numeric: tabular-nums; }
+.accounts-filters { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr)); gap: var(--space-4); margin-block: var(--space-5); }
+.accounts-filters select, .accounts-editor select { width: 100%; min-height: 44px; padding: var(--space-2); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); font: inherit; }
+.accounts-scope { color: var(--color-secondary-text); margin-block: var(--space-4); }
+.accounts-table { width: 100%; table-layout: fixed; }
+.accounts-table th:first-child { width: 24%; }
+.accounts-table th:last-child { width: 9%; }
+.accounts-table td { overflow-wrap: anywhere; vertical-align: top; }
+.accounts-email { display: block; margin-top: var(--space-1); color: var(--color-secondary-text); }
+.accounts-open, .accounts-back { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-primary); text-decoration: underline; text-underline-offset: 4px; }
+.accounts-empty { padding-block: var(--space-6); }
+.accounts-detail, .accounts-editor, .accounts-history { padding: var(--space-5); margin-block: var(--space-5); border: 1px solid var(--color-border); background: var(--color-surface); }
+.accounts-detail h2, .accounts-editor h2, .accounts-history h2 { margin-top: 0; }
+.accounts-detail .detail-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.accounts-detail dd, .accounts-timeline p { overflow-wrap: anywhere; }
+.accounts-editor .settings-field { max-width: 38rem; margin-block: var(--space-4); }
+.accounts-keys { padding: var(--space-4); border: 1px solid var(--color-border); display: flex; flex-wrap: wrap; gap: var(--space-4); }
+.accounts-keys legend { font-weight: 600; }
+.accounts-keys label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; cursor: pointer; }
+.accounts-keys input { width: 22px; height: 22px; accent-color: var(--color-primary); }
+.accounts-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-block: var(--space-4); }
+.accounts-timeline { list-style: none; margin: 0; padding: 0; }
+.accounts-timeline > li { padding-block: var(--space-4); border-top: 1px solid var(--color-border); }
+.accounts-timeline header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); }
+.accounts-timeline time { color: var(--color-secondary-text); font-variant-numeric: tabular-nums; }
+.accounts-timeline summary { cursor: pointer; min-height: 44px; display: list-item; padding-block: var(--space-2); color: var(--color-primary); }
+@media (max-width: 1100px) {
+  .accounts-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .accounts-table { table-layout: auto; }
+}
+@media (max-width: 760px) {
+  .accounts-filters, .accounts-detail .detail-list { grid-template-columns: minmax(0, 1fr); }
+  .accounts-table, .accounts-table tbody, .accounts-table tr, .accounts-table td { display: block; width: 100%; }
+  .accounts-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .accounts-table tr { padding: var(--space-4); margin-bottom: var(--space-4); border: 1px solid var(--color-border); background: var(--color-surface); }
+  .accounts-table td { border: 0; padding: var(--space-2) 0; }
+  .accounts-table td::before { content: attr(data-label); display: block; color: var(--color-secondary-text); font-weight: 600; }
+  .accounts-detail, .accounts-editor, .accounts-history { padding: var(--space-4); }
+  .accounts-actions .button { width: 100%; }
+}

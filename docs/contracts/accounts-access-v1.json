@@ -1,0 +1,75 @@
+{
+  "contract_version": "accounts-access-v1",
+  "event_contract_version": "account-access-event-v1",
+  "base_path": "/api/v2/admin/accounts",
+  "gate": "CANEGUARD_ACCOUNTS_ENABLED",
+  "default_enabled": false,
+  "roles": [
+    "farmer",
+    "field_reporter",
+    "reviewer",
+    "admin"
+  ],
+  "grants": [
+    "report:approve",
+    "report:send",
+    "staff:manage"
+  ],
+  "default_grants": [],
+  "access_operations": [
+    "admit",
+    "replace",
+    "revoke",
+    "restore"
+  ],
+  "review_dispositions": [
+    "keep_farmer",
+    "defer",
+    "reopen"
+  ],
+  "routes": [
+    [
+      "GET",
+      ""
+    ],
+    [
+      "GET",
+      "/{uuid}"
+    ],
+    [
+      "GET",
+      "/{uuid}/events"
+    ],
+    [
+      "PUT",
+      "/{uuid}/review"
+    ],
+    [
+      "PUT",
+      "/{uuid}/access"
+    ],
+    [
+      "POST",
+      "/approval-transfer"
+    ]
+  ],
+  "mutation_required": [
+    "contract_version",
+    "current_password",
+    "office_reference",
+    "idempotency_key"
+  ],
+  "authorization": [
+    "office_cookie",
+    "verified_admin",
+    "active_pilot_membership",
+    "staff:manage",
+    "never_self"
+  ],
+  "singleton": "one_non_revoked_report_approve_per_district",
+  "retention": "identity_and_official_history_lifetime",
+  "examples": [
+    "examples/accounts-access-v1-list.json",
+    "examples/account-access-event-v1.json"
+  ]
+}

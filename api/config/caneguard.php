@@ -2,6 +2,7 @@
 
 return [
     'legacy_public_storage_link' => public_path('storage'),
+    'accounts_enabled' => env('CANEGUARD_ACCOUNTS_ENABLED', false),
     'self_registration_enabled' => env('CANEGUARD_SELF_REGISTRATION_ENABLED', false),
     // Both switches remain closed until the office certifies the pilot roster.
     'pilot_roster_certified' => env('CANEGUARD_PILOT_ROSTER_CERTIFIED', false),

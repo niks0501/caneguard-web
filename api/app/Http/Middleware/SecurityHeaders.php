@@ -48,6 +48,10 @@ class SecurityHeaders
             'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
         );
 
+        if ($request->is('api/v2/admin/accounts*')) {
+            $response->headers->set('Cache-Control', 'private, no-store');
+        }
+
         // Only advertise HSTS when Laravel knows this request used HTTPS. An
         // HTTP local/dev request must not accidentally opt a host into HSTS.
         if ($request->isSecure()) {

@@ -6,6 +6,7 @@ export interface AppUser {
   email: string;
   role: WebRole;
   capabilities?: string[];
+  accounts_enabled?: boolean;
   district_id?: number | null;
 }
 

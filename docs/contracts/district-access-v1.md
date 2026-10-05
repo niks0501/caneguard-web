@@ -26,6 +26,10 @@ The office-cookie management counterpart is `PUT /api/v1/admin/users/{uuid}/acce
 
 Office-owned roster certification and evidence-based legacy record attribution are external launch work. Do not blanket-backfill records or manufacture verification/grants. Keep `CANEGUARD_SELF_REGISTRATION_ENABLED=false` and `CANEGUARD_PILOT_ROSTER_CERTIFIED=false` until the office certifies the roster. Enabling only one switch still denies registration. Registration then creates unverified farmers, never staff.
 
+## Accounts management compatibility
+
+The gated [accounts-access-v1](accounts-access-v1.md) v2 office API adds approved signup discovery, atomic admission/triage, deliberate independent keys, district-only revoke/restore and approval-key transfer. Common console/v1/v2 reconciliation now serializes on the district, preserves unchanged grants, enforces the report-approver singleton, advances authority revisions and appends lifetime-retained decision evidence. Existing v1 discovery/admission boundaries and response shapes remain; unsafe self/stale/singleton operations may newly reject. V1 role changes use this same action and accept an optional office reference for compatibility. New Web decisions always require an office reference and fresh password. Bootstrap/final-manager recovery stays operator-owned; do not use public registration for recovery.
+
 ## Immutable weekly workflow
 
 The Web document builder can still preview draft analytics. Official versions are distinct sealed district documents.

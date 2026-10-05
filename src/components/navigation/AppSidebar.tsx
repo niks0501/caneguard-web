@@ -6,6 +6,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { NavLink } from "react-router";
 import { routes } from "../../app/routes";
@@ -67,6 +68,14 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             <span>Monitoring</span>
             <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
           </NavLink>
+        ) : null}
+        {auth.user?.role === "admin" && auth.user.accounts_enabled && auth.user.capabilities?.includes("staff:manage") ? (
+          <>
+            <p>Administration</p>
+            <NavLink className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`} to={routes.accounts} onClick={onNavigate}>
+              <Users aria-hidden="true" /><span>Accounts</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+            </NavLink>
+          </>
         ) : null}
         <p>Account</p>
         <NavLink

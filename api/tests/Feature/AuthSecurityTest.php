@@ -521,7 +521,8 @@ class AuthSecurityTest extends TestCase
             'district_id' => $this->pilotDistrict()->id,
             'ability' => 'staff:manage',
         ]);
-        $this->actingAs($admin);
+        // Grant provisioning advances the authority revision, just as a fresh request reload would.
+        $this->actingAs($admin->fresh());
 
         $this->postJson('/api/v1/auth/password', [
             'current_password' => 'wrong password',

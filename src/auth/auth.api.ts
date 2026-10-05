@@ -15,6 +15,7 @@ const userResponseSchema = z.object({
     email: z.email(),
     role: z.enum(["farmer", "field_reporter", "reviewer", "admin"]),
     capabilities: z.array(z.string()).default([]),
+    accounts_enabled: z.boolean().optional(),
     district_id: z.number().int().nullable().optional(),
   }),
 });

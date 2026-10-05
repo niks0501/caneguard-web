@@ -1,0 +1,51 @@
+{
+  "contract_version": "accounts-access-v1",
+  "data": [
+    {
+      "uuid": "00000000-0000-4000-8000-000000000201",
+      "name": "Alex Sample",
+      "email": "alex@example.test",
+      "created_at": "2026-10-05T02:00:00.000Z",
+      "origin": "public_signup",
+      "email_verified": true,
+      "role": "farmer",
+      "membership_state": "not_issued",
+      "effective_grants": [],
+      "stored_grants": [],
+      "review_state": "new",
+      "web_access_allowed": false,
+      "access_version": 1,
+      "allowed_actions": [
+        "admit",
+        "keep_farmer",
+        "defer",
+        "reopen"
+      ],
+      "denial_reasons": [],
+      "grant_revisions": []
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 25,
+    "total": 1,
+    "filtered_total": 1,
+    "counts": {
+      "new": 1,
+      "staff": 0,
+      "farmers": 1,
+      "revoked": 0,
+      "all": 1
+    },
+    "scope": {
+      "district": {
+        "code": "sample-pilot",
+        "name": "Sample pilot district"
+      },
+      "one_approver": true,
+      "approver": null,
+      "transfer_available": false,
+      "scope": "Configured pilot members and unassigned identities; foreign district identities excluded. Public signups are a single-pilot global inbox."
+    }
+  }
+}

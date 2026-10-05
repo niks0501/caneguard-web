@@ -16,7 +16,11 @@ class DistrictGrant extends Model
         static::updating(function (self $grant): void {
             $grant->revision = ((int) $grant->getOriginal('revision')) + 1;
         });
-        static::saved(fn (self $grant) => app(RevokeUserAuthentication::class)->handle(User::findOrFail($grant->user_id)));
-        static::deleted(fn (self $grant) => app(RevokeUserAuthentication::class)->handle(User::findOrFail($grant->user_id)));
+        $invalidate = function (self $grant): void {
+            User::query()->whereKey($grant->user_id)->increment('access_version');
+            app(RevokeUserAuthentication::class)->handle(User::findOrFail($grant->user_id));
+        };
+        static::saved($invalidate);
+        static::deleted($invalidate);
     }
 }

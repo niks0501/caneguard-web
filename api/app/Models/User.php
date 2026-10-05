@@ -7,9 +7,11 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +22,11 @@ use Laravel\Sanctum\NewAccessToken;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
+    protected $attributes = ['access_version' => 1, 'registration_origin' => 'unknown'];
+
+    // Resolve the SQL increment before updated observers/DTOs inspect the saved identity.
+    protected array $refreshes = ['access_version'];
+
     public const ROLE_FARMER = 'farmer';
 
     public const ROLE_FIELD_REPORTER = 'field_reporter';
@@ -100,6 +107,12 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected static function booted(): void
     {
+        static::updating(function (self $user): void {
+            if ($user->isDirty(['name', 'role', 'email', 'email_verified_at', 'password', 'biometric_enabled', 'registration_origin'])) {
+                // Security writers may hold an older model than a concurrent grant decision.
+                $user->access_version = DB::raw('access_version + 1');
+            }
+        });
         static::updated(function (self $user): void {
             if ($user->wasChanged('role')) {
                 DistrictGrant::query()->where('user_id', $user->id)->update([
@@ -119,6 +132,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isWebUser(): bool
     {
         return in_array($this->role, self::webRoles(), true);
+    }
+
+    public function accountReview(): HasOne
+    {
+        return $this->hasOne(AccountReview::class);
+    }
+
+    public function districtMemberships(): HasMany
+    {
+        return $this->hasMany(DistrictMembership::class);
+    }
+
+    public function districtGrants(): HasMany
+    {
+        return $this->hasMany(DistrictGrant::class);
     }
 
     /**
@@ -153,9 +181,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(FieldValidationAssignment::class, 'assigned_by_id');
     }
 
+    protected function accessVersion(): Attribute
+    {
+        return Attribute::get(fn ($value) => (int) $value);
+    }
+
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     protected function casts(): array

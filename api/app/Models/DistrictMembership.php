@@ -11,7 +11,11 @@ class DistrictMembership extends Model
 {
     protected static function booted(): void
     {
-        static::saved(fn (self $membership) => app(RevokeUserAuthentication::class)->handle(User::findOrFail($membership->user_id)));
-        static::deleted(fn (self $membership) => app(RevokeUserAuthentication::class)->handle(User::findOrFail($membership->user_id)));
+        $invalidate = function (self $membership): void {
+            User::query()->whereKey($membership->user_id)->increment('access_version');
+            app(RevokeUserAuthentication::class)->handle(User::findOrFail($membership->user_id));
+        };
+        static::saved($invalidate);
+        static::deleted($invalidate);
     }
 }
