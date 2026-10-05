@@ -51,7 +51,13 @@ class DatabaseSeeder extends Seeder
         }
 
         $pilotCode = trim((string) config('caneguard.pilot_district_code'));
-        $pilotDistrict = $pilotCode === '' ? null : District::query()->firstOrCreate(
+        if ($pilotCode === '') {
+            throw new LogicException(
+                'Set CANEGUARD_PILOT_DISTRICT_CODE before seeding demo users.',
+            );
+        }
+
+        $pilotDistrict = District::query()->firstOrCreate(
             ['code' => $pilotCode],
             ['name' => $pilotCode],
         );
