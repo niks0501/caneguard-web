@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\MobileNotificationContract;
 use App\Events\CaseAttentionChanged;
 use App\Events\NewCaseSubmitted;
+use App\Models\Advisory;
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\User;
@@ -300,9 +301,13 @@ class NotificationTest extends TestCase
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $submitter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $validator = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        // This tests office-review notifications, not delivery of newly selected guidance.
+        $advisory = Advisory::factory()->create(['status' => Advisory::STATUS_VALIDATED]);
         $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'reporter_id' => $submitter,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'advisory_id' => $advisory->getKey(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
         ]);
         FieldValidationAssignment::factory()->create([
             'report_id' => $report->getKey(),
@@ -313,7 +318,9 @@ class NotificationTest extends TestCase
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
             'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
+            'advisory_uuid' => $advisory->uuid,
             'expected_version' => 0,
         ])->assertOk();
 
