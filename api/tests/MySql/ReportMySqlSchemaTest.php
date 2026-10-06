@@ -28,7 +28,7 @@ class ReportMySqlSchemaTest extends TestCase
             ->keyBy('COLUMN_NAME');
 
         $this->assertColumn($columns, 'uuid', 'char', 36);
-        $this->assertColumn($columns, 'reference_code', 'varchar', 32);
+        $this->assertColumn($columns, 'reference_code', 'varchar', 64);
         $this->assertColumn($columns, 'client_uuid', 'char', 36);
         $this->assertColumn($columns, 'scan_record_client_uuid', 'char', 36);
         $this->assertNullable($columns, 'scan_record_client_uuid');
