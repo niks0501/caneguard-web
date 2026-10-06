@@ -8,28 +8,32 @@ use App\Actions\Auth\ReconcileDistrictAccess;
 use App\Http\Controllers\Controller;
 use App\Models\District;
 use App\Models\DistrictGrant;
-use App\Models\DistrictMembership;
 use App\Models\User;
 use App\Security\DistrictAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
+/** @deprecated Use PATCH /api/v1/admin/accounts/{uuid}. */
 final class DistrictAccessController extends Controller
 {
     public function accounts(Request $request, string $uuid, ManageAccounts $accounts): JsonResponse
     {
-        return response()->json($accounts->handle($request, 'access', $uuid));
+        $result = $accounts->handle($request, 'access', $uuid);
+        $result['data'] = WebAccountsController::account(User::where('uuid', $uuid)->firstOrFail());
+
+        return response()->json($result);
     }
 
     public function __invoke(Request $request, User $user, DistrictAccess $access, ReconcileDistrictAccess $reconcile, CheckStepUpPassword $stepUp): JsonResponse
     {
         $actor = $request->user();
-        abort_unless(! $actor->is($user) && $access->grant($actor, 'staff:manage', $access->pilotId()) !== null
-            && in_array($user->role, User::roles(), true), 403);
-        // New, unassigned identities require controlled office reconciliation; Web cannot adopt foreign identities.
-        abort_unless(DistrictMembership::query()->where('user_id', $user->id)
-            ->where('district_id', $access->pilotId())->whereNull('revoked_at')->exists(), 403);
+        Gate::authorize('manageLegacy', $user);
+        if ($actor->is($user)) {
+            throw ValidationException::withMessages(['role' => ['You cannot change your own role or account status.']]);
+        }
         $input = $request->validate([
             'current_password' => ['required', 'string', 'max:255'],
             'role' => ['required', Rule::in(User::roles())],

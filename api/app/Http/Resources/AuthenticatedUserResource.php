@@ -15,10 +15,11 @@ class AuthenticatedUserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
-            ...($request->is('api/v1/me') && config('caneguard.accounts_enabled') ? ['accounts_enabled' => true] : []),
-            'capabilities' => app(DistrictAccess::class)->capabilities($this->resource),
-            'district_id' => app(DistrictAccess::class)->allows($this->resource, app(DistrictAccess::class)->pilotId())
-                ? app(DistrictAccess::class)->pilotId() : null,
+            ...($request->is('api/v1/me') ? ['is_active' => $this->is_active] : [
+                'capabilities' => app(DistrictAccess::class)->capabilities($this->resource),
+                'district_id' => app(DistrictAccess::class)->allows($this->resource, app(DistrictAccess::class)->pilotId())
+                    ? app(DistrictAccess::class)->pilotId() : null,
+            ]),
         ];
     }
 }

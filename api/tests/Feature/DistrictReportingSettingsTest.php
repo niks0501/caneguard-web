@@ -12,7 +12,7 @@ class DistrictReportingSettingsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_schedule_is_unconfigured_until_named_manager_saves_with_password_step_up(): void
+    public function test_schedule_is_unconfigured_until_admin_saves_with_password_step_up(): void
     {
         $district = $this->pilotDistrict();
         $manager = User::factory()->admin()->inDistrict($district)->create();
@@ -28,16 +28,19 @@ class DistrictReportingSettingsTest extends TestCase
         $this->assertDatabaseCount('district_report_transmissions', 0);
         $this->assertFalse(config('caneguard.weekly_send_enabled'));
         $grant->update(['revoked_at' => now()]);
-        $this->putJson('/api/v1/district-reporting-settings', $payload)->assertForbidden();
+        $this->putJson('/api/v1/district-reporting-settings', $payload)->assertOk();
+        $manager->forceFill(['is_active' => false])->save();
+        $this->actingAs($manager->fresh(), 'web');
+        $this->putJson('/api/v1/district-reporting-settings', $payload)->assertUnauthorized();
     }
 
-    public function test_reviewers_can_read_but_cannot_change_the_schedule_even_with_erroneous_grants(): void
+    public function test_reviewers_cannot_read_or_change_admin_settings_even_with_erroneous_grants(): void
     {
         $district = $this->pilotDistrict();
         $reviewer = User::factory()->reviewer()->inDistrict($district)->create();
         DistrictGrant::query()->create(['user_id' => $reviewer->id, 'district_id' => $district->id, 'ability' => 'staff:manage']);
         $this->actingAs($reviewer, 'web');
-        $this->getJson('/api/v1/district-reporting-settings')->assertOk()->assertJsonPath('data.can_manage', false);
+        $this->getJson('/api/v1/district-reporting-settings')->assertForbidden();
         $this->putJson('/api/v1/district-reporting-settings', [])->assertForbidden();
         $inspector = User::factory()->fieldReporter()->inDistrict($district)->create();
         Auth::forgetGuards();

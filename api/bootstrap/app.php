@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withBroadcasting(__DIR__.'/../routes/channels.php', [
-        'middleware' => ['web', 'auth'],
+        'middleware' => ['web', 'auth', EnsureActiveIdentity::class, EnsureOfficeAccess::class],
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustHosts(

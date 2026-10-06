@@ -35,19 +35,30 @@ use App\Http\Controllers\Api\V1\ReportHandoffNoteController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
+use App\Http\Controllers\Api\V1\WebAccountsController;
 use App\Http\Controllers\Api\V2\AccountsController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
 use App\Http\Controllers\Auth\ChangeEmailController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\DisableBiometricController;
+use App\Http\Middleware\DeprecatedAccountApi;
 use App\Http\Middleware\EnsureAccountsAccess;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
 
+Route::prefix('v1/admin/accounts')->middleware([
+    'auth:sanctum', 'access.identity', 'verified', EnsureAccountsAccess::class,
+])->group(function () {
+    Route::get('/', [WebAccountsController::class, 'index']);
+    Route::get('/{uuid}', [WebAccountsController::class, 'show'])->whereUuid('uuid');
+    Route::get('/{uuid}/events', [WebAccountsController::class, 'events'])->whereUuid('uuid');
+    Route::patch('/{uuid}', [WebAccountsController::class, 'update'])->whereUuid('uuid')->middleware('throttle:10,1');
+});
+
+// Compatibility writers remain functional for this release, with caller telemetry.
 Route::prefix('v2/admin/accounts')->middleware([
-    'auth:sanctum', 'verified', 'access.identity',
-    EnsureAccountsAccess::class, 'office.access',
+    'auth:sanctum', 'access.identity', 'verified', EnsureAccountsAccess::class, DeprecatedAccountApi::class,
 ])->group(function () {
     Route::get('/', [AccountsController::class, 'index']);
     Route::post('/approval-transfer', [AccountsController::class, 'transfer'])->middleware('throttle:10,1');
@@ -62,7 +73,7 @@ Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
 Route::get('/v1/reference/locations', LocationReferenceController::class)
     ->middleware(['auth:sanctum', 'verified', 'access.identity', 'mobile.token']);
 
-Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'access.identity'])->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])->group(function () {
     Route::get('/me', AuthenticatedUserController::class)->middleware('office.access');
     Route::post('/auth/password', ChangePasswordController::class)
         ->name('api.v1.auth.password');
@@ -73,18 +84,19 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'access.identity'])
     Route::middleware('office.access')->group(function () {
         Route::get('/auth/devices', [MobileAuthController::class, 'devices'])->name('api.v1.auth.devices');
         Route::delete('/auth/devices/{device}', [MobileAuthController::class, 'revokeDevice'])->whereNumber('device')->name('api.v1.auth.devices.revoke');
-        Route::put('/admin/users/{user:uuid}/access', DistrictAccessController::class);
+        Route::put('/admin/users/{user:uuid}/access', DistrictAccessController::class)
+            ->middleware([EnsureAccountsAccess::class, DeprecatedAccountApi::class]);
         Route::patch('/admin/users/{user:uuid}/role', AdminUserRoleController::class)
-            ->name('api.v1.admin.users.role');
+            ->middleware([EnsureAccountsAccess::class, DeprecatedAccountApi::class])->name('api.v1.admin.users.role');
         Route::get('/district-reports', [DistrictReportController::class, 'index']);
         Route::post('/district-reports', [DistrictReportController::class, 'prepare']);
         Route::get('/district-reports/{version}/document', [DistrictReportController::class, 'document'])
             ->name('api.v1.reports.documents.district-version');
         Route::get('/district-reports/{version}/pdf', [DistrictReportController::class, 'pdf']);
-        Route::get('/district-reporting-settings', [DistrictReportingSettingsController::class, 'show']);
-        Route::put('/district-reporting-settings', [DistrictReportingSettingsController::class, 'update']);
-        Route::post('/district-reports/{version}/approve', [DistrictReportController::class, 'approve']);
-        Route::post('/district-reports/{version}/send', [DistrictReportController::class, 'send']);
+        Route::get('/district-reporting-settings', [DistrictReportingSettingsController::class, 'show'])->middleware(EnsureAccountsAccess::class);
+        Route::put('/district-reporting-settings', [DistrictReportingSettingsController::class, 'update'])->middleware(EnsureAccountsAccess::class);
+        Route::post('/district-reports/{version}/approve', [DistrictReportController::class, 'approve'])->middleware(EnsureAccountsAccess::class);
+        Route::post('/district-reports/{version}/send', [DistrictReportController::class, 'send'])->middleware(EnsureAccountsAccess::class);
         Route::get('/dashboard/summary', DashboardSummaryController::class);
         Route::get('/advisories', [AdvisoryController::class, 'index'])
             ->name('api.v1.advisories.index');

@@ -33,10 +33,10 @@ class DistrictAccessMySqlTest extends TestCase
         $pilot = Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-29 10:00:00']);
         $unassigned = Report::factory()->create(['submitted_at' => '2026-09-29 10:00:00']);
         $this->actingAs($officer, 'web');
-        $this->getJson('/api/v1/reports')->assertOk()->assertJsonFragment(['uuid' => $pilot->uuid])->assertJsonMissing(['uuid' => $unassigned->uuid]);
+        $this->getJson('/api/v1/reports')->assertOk()->assertJsonFragment(['uuid' => $pilot->uuid])->assertJsonFragment(['uuid' => $unassigned->uuid]);
         $officer->notify(new NewCaseSubmittedNotification($pilot->uuid, $pilot->reference_code));
         $officer->notify(new NewCaseSubmittedNotification($unassigned->uuid, $unassigned->reference_code));
-        $this->getJson('/api/v1/notifications')->assertOk()->assertJsonCount(1, 'data');
+        $this->getJson('/api/v1/notifications')->assertOk()->assertJsonCount(2, 'data');
 
         $version = $this->postJson('/api/v1/district-reports', ['week' => '2026-W40'])->assertCreated()->json('data');
         $path = '/api/v1/district-reports/'.$version['uuid'];

@@ -20,7 +20,7 @@ export function createAxiosClient(config: Pick<AppEnv, "apiBaseUrl"> = env) {
     (error: unknown) => {
       const apiError = toApiError(error);
       if (apiError.status === 401 || apiError.status === 419) {
-        notifySessionExpired();
+        notifySessionExpired(apiError.code === "ACCOUNT_DISABLED" ? "account_disabled" : undefined);
       }
       return Promise.reject(apiError);
     },

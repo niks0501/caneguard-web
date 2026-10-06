@@ -20,7 +20,12 @@ final class DistrictAccess
 
     public function allows(?User $user, ?int $districtId, bool $lock = false): bool
     {
-        return $user !== null && $user->hasVerifiedEmail()
+        // Web access is role-based. Membership is retained only for mobile field workflows.
+        if ($user?->isWebUser()) {
+            return $user->hasWebAccess();
+        }
+
+        return $user !== null && $user->is_active && $user->hasVerifiedEmail()
             && in_array($user->role, [User::ROLE_FIELD_REPORTER, ...User::officeRoles()], true)
             && $districtId !== null && $districtId === $this->pilotId()
             && DistrictMembership::query()->where('user_id', $user->getKey())
@@ -29,7 +34,7 @@ final class DistrictAccess
 
     public function office(?User $user): bool
     {
-        return $user?->isOfficeUser() === true && $this->allows($user, $this->pilotId());
+        return $user?->hasWebAccess() === true;
     }
 
     public function inspector(?User $user): bool
@@ -52,6 +57,10 @@ final class DistrictAccess
     /** Shared district ceiling; personal report reads further require ownership. */
     public function scope(Builder $query, ?User $user, bool $ownerOnly = true): Builder
     {
+        if ($this->office($user)) {
+            return $query;
+        }
+
         if (! $this->allows($user, $this->pilotId())) {
             return $query->whereRaw('1 = 0');
         }
@@ -74,16 +83,8 @@ final class DistrictAccess
 
     public function capabilities(User $user): array
     {
-        $capabilities = $this->inspector($user)
+        return $this->inspector($user)
             ? ['report:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read']
-            : ($this->office($user) ? ['case:review'] : []);
-
-        foreach (DistrictGrant::ABILITIES as $ability) {
-            if ($this->grant($user, $ability, $this->pilotId()) !== null) {
-                $capabilities[] = $ability;
-            }
-        }
-
-        return $capabilities;
+            : [];
     }
 }

@@ -79,7 +79,7 @@ class DemoUserSeederTest extends TestCase
             $this->assertTrue($access->office($user));
             $this->postJson('/login', ['email' => $email, 'password' => $password])->assertNoContent();
             $this->assertAuthenticatedAs($user, 'web');
-            $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.district_id', $district->id);
+            $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.is_active', true)->assertJsonMissingPath('data.district_id');
             $this->getJson('/api/v1/dashboard/summary')->assertOk();
             $this->postJson('/logout')->assertNoContent();
             Auth::forgetGuards();
@@ -136,7 +136,9 @@ class DemoUserSeederTest extends TestCase
 
         $this->assertSame($memberships, DistrictMembership::query()->orderBy('id')->get()->toArray());
         foreach (User::query()->whereIn('role', User::officeRoles())->get() as $user) {
-            $this->assertFalse(app(DistrictAccess::class)->office($user));
+            $this->assertTrue(app(DistrictAccess::class)->office($user));
+            $user->forceFill(['is_active' => false])->save();
+            $this->assertFalse(app(DistrictAccess::class)->office($user->fresh()));
         }
     }
 

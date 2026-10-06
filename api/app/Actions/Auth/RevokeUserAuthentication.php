@@ -12,8 +12,17 @@ final class RevokeUserAuthentication
     public function handle(User $user): void
     {
         $user->tokens()->delete();
-        // Rotating the remember token also invalidates persistent Web login.
-        DB::table('users')->where('id', $user->getKey())->update(['remember_token' => null]);
+        // Versioning invalidates every session backend, even replayed/in-flight sessions.
+        DB::table('users')->where('id', $user->getKey())->update([
+            'remember_token' => null,
+            'auth_version' => DB::raw('auth_version + 1'),
+        ]);
+        $user->auth_version = (int) DB::table('users')->where('id', $user->getKey())->value('auth_version');
+
+        $session = app('session.store');
+        if ((string) $session->get(Auth::guard('web')->getName()) === (string) $user->getAuthIdentifier()) {
+            $session->getHandler()->destroy($session->getId());
+        }
 
         DB::table((string) config('session.table', 'sessions'))
             ->where('user_id', $user->getAuthIdentifier())

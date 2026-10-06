@@ -40,7 +40,7 @@ class AuthSecurityTest extends TestCase
         $this->assertDatabaseCount('security_audits', 0);
     }
 
-    public function test_registration_creates_only_a_verified_email_gated_farmer(): void
+    public function test_registration_stays_disabled_even_with_legacy_flags_enabled(): void
     {
         config(['caneguard.self_registration_enabled' => true, 'caneguard.pilot_roster_certified' => true]);
         Notification::fake();
@@ -52,22 +52,11 @@ class AuthSecurityTest extends TestCase
             'role' => User::ROLE_ADMIN,
         ]);
 
-        $response
-            ->assertCreated()
-            ->assertJsonPath('code', 'REGISTRATION_CREATED')
-            ->assertJsonPath('user.role', User::ROLE_FARMER)
-            ->assertJsonPath('user.email_verified', false);
-
-        $user = User::query()->where('email', 'new@example.test')->sole();
-        $this->assertNull($user->email_verified_at);
-        $this->assertTrue(Hash::check('A safe field reporter passphrase', $user->password));
+        $response->assertForbidden()->assertJsonPath('code', 'REGISTRATION_DISABLED');
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('security_audits', 0);
         $this->assertGuest();
-        Notification::assertSentTo($user, VerifyEmail::class);
-        $this->assertDatabaseHas('security_audits', [
-            'action' => SecurityAudit::ACTION_REGISTRATION,
-            'outcome' => SecurityAudit::OUTCOME_SUCCESS,
-            'target_user_id' => $user->getKey(),
-        ]);
+        Notification::assertNothingSent();
     }
 
     public function test_unverified_users_cannot_use_web_or_mobile_authentication(): void
@@ -276,34 +265,19 @@ class AuthSecurityTest extends TestCase
 
     public function test_password_policy_accepts_long_passphrases_and_rejects_short_or_compromised_values(): void
     {
-        config(['caneguard.self_registration_enabled' => true, 'caneguard.pilot_roster_certified' => true]);
-
-        $short = $this->postJson('/register', [
-            'name' => 'Short Password',
-            'email' => 'short@example.test',
-            'password' => 'too-short',
-        ]);
-        $short->assertUnprocessable()->assertJsonPath('code', 'VALIDATION_ERROR');
-
-        $compromised = $this->postJson('/register', [
-            'name' => 'Known Password',
-            'email' => 'known@example.test',
-            'password' => 'correct horse battery staple',
-        ]);
-        $compromised->assertUnprocessable()->assertJsonPath('code', 'VALIDATION_ERROR');
-
+        // Registration is closed; exercise the same password policy through recovery.
+        $user = User::factory()->reviewer()->create();
+        $token = Password::broker()->createToken($user);
+        foreach (['too-short', 'correct horse battery staple', str_repeat('x', 129)] as $password) {
+            $this->postJson('/reset-password', [
+                'email' => $user->email, 'token' => $token, 'password' => $password,
+            ])->assertUnprocessable()->assertJsonPath('code', 'VALIDATION_ERROR');
+        }
         $long = str_repeat('x', 64);
-        $this->postJson('/register', [
-            'name' => 'Long Password',
-            'email' => 'long@example.test',
-            'password' => $long,
-        ])->assertCreated();
-
-        $this->postJson('/register', [
-            'name' => 'Too Long Password',
-            'email' => 'too-long@example.test',
-            'password' => str_repeat('x', 129),
-        ])->assertUnprocessable()->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->postJson('/reset-password', [
+            'email' => $user->email, 'token' => $token, 'password' => $long,
+        ])->assertOk()->assertJsonPath('code', 'PASSWORD_RESET');
+        $this->assertTrue(Hash::check($long, $user->fresh()->password));
     }
 
     public function test_password_reset_revokes_sessions_and_all_tokens(): void
@@ -538,7 +512,7 @@ class AuthSecurityTest extends TestCase
         $this->patchJson('/api/v1/admin/users/'.$admin->uuid.'/role', [
             'current_password' => 'An administrator passphrase',
             'role' => User::ROLE_FIELD_REPORTER,
-        ])->assertForbidden()->assertJsonPath('code', 'ROLE_CHANGE_FORBIDDEN');
+        ])->assertUnprocessable()->assertJsonPath('code', 'ROLE_CHANGE_FORBIDDEN');
         $this->assertSame(User::ROLE_ADMIN, $admin->fresh()->role);
     }
 }

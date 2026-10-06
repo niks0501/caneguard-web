@@ -12,12 +12,12 @@ class ReportPolicy
 
     public function viewAny(User $user): bool
     {
-        return $this->access->office($user);
+        return $user->hasWebAccess();
     }
 
     public function view(User $user, Report $report): bool
     {
-        return $this->access->office($user) && $this->access->report($user, $report);
+        return $user->hasWebAccess();
     }
 
     public function viewPossibleMatches(User $user, Report $report): bool

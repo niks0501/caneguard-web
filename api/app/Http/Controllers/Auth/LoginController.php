@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
-use App\Security\DistrictAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,7 +11,7 @@ class LoginController extends Controller
 {
     public function __invoke(LoginRequest $request): JsonResponse
     {
-        if (! Auth::attempt($request->safe()->only(['email', 'password']))) {
+        if (! Auth::guard('web')->attempt($request->safe()->only(['email', 'password']))) {
             return response()->json([
                 'message' => 'The provided credentials are invalid.',
                 'code' => 'INVALID_CREDENTIALS',
@@ -23,7 +22,18 @@ class LoginController extends Controller
         }
 
         $request->session()->regenerate();
-        $user = $request->user();
+        $user = Auth::guard('web')->user();
+
+        if (! $user?->is_active) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'message' => 'Account disabled — contact your administrator.',
+                'code' => 'ACCOUNT_DISABLED',
+            ], 403);
+        }
 
         if (! $user?->hasVerifiedEmail()) {
             Auth::guard('web')->logout();
@@ -36,7 +46,7 @@ class LoginController extends Controller
             ], 403);
         }
 
-        if (! app(DistrictAccess::class)->office($user)) {
+        if (! $user->isWebUser()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -46,6 +56,8 @@ class LoginController extends Controller
                 'code' => 'FORBIDDEN',
             ], 403);
         }
+
+        $request->session()->put('auth.version', $user->auth_version);
 
         return response()->json([], 204);
     }

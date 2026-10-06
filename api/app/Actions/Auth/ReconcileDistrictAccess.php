@@ -9,11 +9,11 @@ use App\Models\DistrictMembership;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
-use App\Security\DistrictAccess;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
-/** One complete, explicit authority decision, shared by console, v1 and v2. */
+/** @deprecated Compatibility storage for console and legacy writers; grants no longer authorize Web. */
 final class ReconcileDistrictAccess
 {
     public function handle(User $target, District $district, string $role, array $abilities, bool $revoke, string $officeReference, ?User $actor = null, string $action = 'replace', ?string $operationId = null): ?AccountAccessEvent
@@ -43,11 +43,9 @@ final class ReconcileDistrictAccess
                     AccountAccessFailure::reject('ACCESS_VERSION_CONFLICT', 'Manager authority changed. Sign in and review again.');
                 }
                 if ($actor->is($target)) {
-                    AccountAccessFailure::reject('SELF_CHANGE_FORBIDDEN', 'You cannot change your own authority.', 403);
+                    AccountAccessFailure::reject('SELF_CHANGE_FORBIDDEN', 'You cannot change your own authority.', 422);
                 }
-                abort_unless(app(DistrictAccess::class)->grant($actor, 'staff:manage', $district->id, lock: true) !== null, 403);
-                abort_if(DistrictMembership::query()->where('user_id', $target->id)->where('district_id', '!=', $district->id)->lockForUpdate()->get()->isNotEmpty()
-                    || DistrictGrant::query()->where('user_id', $target->id)->where('district_id', '!=', $district->id)->lockForUpdate()->get()->isNotEmpty(), 404);
+                Gate::forUser($actor)->authorize('manageLegacy', $target);
             }
             // Re-read verification under the same lock as the authority write.
             if ($abilities !== [] && ! $target->hasVerifiedEmail()) {
@@ -56,6 +54,8 @@ final class ReconcileDistrictAccess
             $revoke = $revoke || $role === User::ROLE_FARMER;
             $directory = app(AccountsDirectory::class);
             $before = $directory->snapshot($target, lock: true);
+            $beforeWeb = ['role' => $target->role, 'is_active' => $target->is_active];
+            $beforeVersion = $target->access_version;
             if (array_diff(array_column($before['grants'], 'ability'), DistrictGrant::ABILITIES) !== []) {
                 AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'Unsupported stored keys require operator reconciliation.', 422);
             }
@@ -63,20 +63,16 @@ final class ReconcileDistrictAccess
             sort($active);
             sort($abilities);
             $desiredState = $revoke ? 'revoked' : 'active';
-            if ($before['role'] === $role && $before['membership_state'] === $desiredState && $active === $abilities) {
+            if ($before['role'] === $role && $before['membership_state'] === $desiredState && $active === $abilities && $target->is_active === ! $revoke) {
                 return null;
             }
+            // Compatibility-only storage constraint; this key grants no Web authorization.
             if (! $revoke && in_array('report:approve', $abilities, true)
                 && DistrictGrant::query()->where('district_id', $district->id)->where('ability', 'report:approve')
                     ->whereNull('revoked_at')->where('user_id', '!=', $target->id)->lockForUpdate()->first() !== null) {
-                AccountAccessFailure::reject('APPROVER_ALREADY_ASSIGNED', 'Transfer the existing approval key instead of issuing a second key.');
+                AccountAccessFailure::reject('APPROVER_ALREADY_ASSIGNED', 'Migrate to the role/status API; legacy approval-key storage permits one holder.');
             }
-            if ($actor !== null && in_array('staff:manage', $active, true)
-                && ($revoke || $role !== User::ROLE_ADMIN || ! in_array('staff:manage', $abilities, true))
-                && ! $this->otherManager($district, $target)) {
-                AccountAccessFailure::reject('LAST_MANAGER_PROTECTED', 'The last staff manager requires controlled operator handover.');
-            }
-            $target->forceFill(['role' => $role])->save();
+            $target->forceFill(['role' => $role, 'is_active' => ! $revoke])->save();
             $membership = DistrictMembership::query()->firstOrNew(['user_id' => $target->id, 'district_id' => $district->id]);
             if (! $membership->exists || ($membership->revoked_at === null) !== ! $revoke) {
                 $membership->revoked_at = $revoke ? now()->utc() : null;
@@ -92,6 +88,10 @@ final class ReconcileDistrictAccess
                 }
             }
             $target->refresh();
+            // Legacy metadata changes still need a compare-and-swap version, not Web authority.
+            if ($target->access_version === $beforeVersion) {
+                $target->increment('access_version');
+            }
             // A role-only or membership-only change still invalidates old credentials.
             app(RevokeUserAuthentication::class)->handle($target);
             $event = AccountAccessEvent::query()->create([
@@ -103,6 +103,7 @@ final class ReconcileDistrictAccess
                 'occurred_at' => now()->utc(),
             ]);
             app(RecordSecurityAudit::class)->handle('district_access_changed', SecurityAudit::OUTCOME_SUCCESS, $actor, $target, [
+                'before' => $beforeWeb, 'after' => ['role' => $role, 'is_active' => ! $revoke],
                 'district_id' => $district->id, 'old_role' => $before['role'], 'new_role' => $role,
                 'abilities' => $abilities, 'revoked' => $revoke, 'office_reference' => trim($officeReference),
                 'provisioning_channel' => $actor === null ? 'controlled_console' : 'web', 'event_id' => $event->id,
@@ -110,12 +111,5 @@ final class ReconcileDistrictAccess
 
             return $event;
         }, attempts: 3);
-    }
-
-    private function otherManager(District $district, User $target): bool
-    {
-        return User::query()->where('id', '!=', $target->id)->where('role', User::ROLE_ADMIN)->whereNotNull('email_verified_at')
-            ->whereHas('districtMemberships', fn ($q) => $q->where('district_id', $district->id)->whereNull('revoked_at'))
-            ->whereHas('districtGrants', fn ($q) => $q->where('district_id', $district->id)->where('ability', 'staff:manage')->whereNull('revoked_at'))->exists();
     }
 }

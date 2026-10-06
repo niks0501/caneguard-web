@@ -69,7 +69,7 @@ async function resolveSessionSnapshot(): Promise<AuthSnapshot> {
       return {
         status: "unauthenticated",
         user: null,
-        reason: error.status === 403 ? "access_denied" : null,
+        reason: error.code === "ACCOUNT_DISABLED" ? "account_disabled" : error.status === 403 ? "access_denied" : null,
       };
     }
     return { status: "service_error", user: null, reason: null };
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = subscribeToSessionExpiration(() => {
+    const unsubscribe = subscribeToSessionExpiration((reason) => {
       setAuthSessionHint(false);
       queryClient.clear();
       setSnapshot((current) => {
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return {
           status: "unauthenticated",
           user: null,
-          reason: "session_expired",
+          reason: reason ?? "session_expired",
         };
       });
     });

@@ -6,7 +6,6 @@ use App\Actions\Reports\DistrictReportWorkflow;
 use App\Actions\Reports\RenderWeeklyReport;
 use App\Actions\Reports\SendWeeklyReportSmtp;
 use App\Models\District;
-use App\Models\DistrictGrant;
 use App\Models\DistrictRecipientSet;
 use App\Models\DistrictReportTransmission;
 use App\Models\DistrictReportVersion;
@@ -69,7 +68,7 @@ final class DeliverDistrictReport implements ShouldQueue
             }
             $intent->update(['state' => $state, 'transport_receipt' => $receipt, 'failure_reason' => $failure, 'completed_at' => now()->utc()]);
             $workflow->event(DistrictReportVersion::findOrFail($intent->district_report_version_id), $state === 'sent' ? 'delivered' : 'delivery_failed',
-                User::findOrFail($intent->requested_by_id), DistrictGrant::findOrFail($intent->send_grant_id), $intent);
+                User::findOrFail($intent->requested_by_id), null, $intent);
         });
     }
 }

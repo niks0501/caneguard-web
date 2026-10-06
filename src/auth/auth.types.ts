@@ -5,9 +5,7 @@ export interface AppUser {
   name: string;
   email: string;
   role: WebRole;
-  capabilities?: string[];
-  accounts_enabled?: boolean;
-  district_id?: number | null;
+  is_active?: boolean;
 }
 
 export interface LoginCredentials {
@@ -37,6 +35,7 @@ export type AuthStatus =
 
 export type AuthReason =
   | "session_expired"
+  | "account_disabled"
   | "access_denied"
   | null;
 

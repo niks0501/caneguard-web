@@ -96,7 +96,7 @@ class AccountsAccessMySqlTest extends TestCase
         $this->assertSame(2, DB::table('account_access_events')->where('district_id', $district->id)->count());
     }
 
-    public function test_transfer_cancels_pending_delivery_without_destroying_sealed_approval_history(): void
+    public function test_legacy_key_transfer_does_not_change_active_admin_approval_or_sealed_history(): void
     {
         [$actor, $district, $old, $target] = $this->fixtures();
         config(['caneguard.weekly_send_enabled' => true]);
@@ -122,11 +122,11 @@ class AccountsAccessMySqlTest extends TestCase
         $request = Request::create('/api/v2/admin/accounts/approval-transfer', 'POST', $body);
         $request->setUserResolver(fn () => $actor->fresh());
         app(ManageAccounts::class)->handle($request, 'transfer');
-        $this->assertFalse($workflow->checkPending($intent));
-        $this->assertSame('cancelled', $intent->fresh()->state);
+        $this->assertTrue($workflow->checkPending($intent));
+        $this->assertSame('pending', $intent->fresh()->state);
         $this->assertSame($old->id, $version->fresh()->approved_by_id);
         $this->assertSame($approval->revision, $version->fresh()->approved_grant_revision);
-        $this->assertDatabaseHas('district_report_events', ['district_report_version_id' => $version->id, 'action' => 'cancelled']);
+        $this->assertDatabaseMissing('district_report_events', ['district_report_version_id' => $version->id, 'action' => 'cancelled']);
     }
 
     public function test_stale_identity_save_atomically_advances_the_latest_grant_version(): void

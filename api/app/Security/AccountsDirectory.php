@@ -15,11 +15,7 @@ final class AccountsDirectory
 
     public function scope(): Builder
     {
-        $districtId = $this->access->pilotId();
-
-        return User::query()->whereDoesntHave('districtMemberships', fn ($q) => $q->where('district_id', '!=', $districtId))
-            ->whereDoesntHave('districtGrants', fn ($q) => $q->where('district_id', '!=', $districtId))
-            ->with(['districtMemberships', 'districtGrants', 'accountReview']);
+        return User::query()->with(['districtMemberships', 'districtGrants', 'accountReview']);
     }
 
     public function target(string $uuid): User
@@ -55,6 +51,11 @@ final class AccountsDirectory
         $reasons = [];
         if ($actor?->is($user)) {
             $reasons[] = 'You cannot change your own authority. Use controlled operator handover.';
+        } elseif ($user->isWebUser()) {
+            $actions = ! $user->is_active ? ['restore'] : ($state === 'not_issued' ? ['admit'] : ['replace', 'revoke']);
+            if ($user->is_active && $user->role === User::ROLE_ADMIN) {
+                $actions[] = 'transfer';
+            }
         } elseif (! $supported || ($state === 'not_issued' && ! $eligible)) {
             $reasons[] = 'Legacy or unsupported identity requires controlled operator reconciliation.';
         } else {
