@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Actions\Auth\RecordSecurityAudit;
 use App\Jobs\DeliverDistrictReport;
 use App\Models\District;
 use App\Models\DistrictGrant;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /** Preparation is not approval; send records an intent, never delivers mail. */
 final class DistrictReportWorkflow
@@ -22,7 +24,7 @@ final class DistrictReportWorkflow
 
     public function prepare(User $actor, string $week, bool $appendix = false): DistrictReportVersion
     {
-        abort_unless($this->access->office($actor), 403);
+        Gate::forUser($actor)->authorize('create', DistrictReportVersion::class);
         abort_if($appendix && ! $this->appendixAllowed($actor), 403);
         $period = $this->documents->period($week);
 
@@ -58,13 +60,11 @@ final class DistrictReportWorkflow
 
     public function approve(User $actor, DistrictReportVersion $version, string $hash): DistrictReportVersion
     {
-        // Check role/grant before conflict/record-state responses, including direct reviewer calls.
-        abort_unless($this->access->grant($actor, 'report:approve', $version->district_id) !== null, 403);
+        Gate::forUser($actor)->authorize('approve', $version);
 
         return DB::transaction(function () use ($actor, $version, $hash): DistrictReportVersion {
             $locked = $this->lock($version);
-            $grant = $this->access->grant($actor->fresh(), 'report:approve', $locked->district_id);
-            abort_unless($grant !== null, 403);
+            Gate::forUser($actor->fresh())->authorize('approve', $locked);
             $this->assertCurrent($locked, $hash);
             if ($locked->approved_at !== null) {
                 abort_unless($this->approvalValid($locked), 409);
@@ -75,8 +75,8 @@ final class DistrictReportWorkflow
             abort_if(($locked->content['appendix_enabled'] ?? false) && ! $this->appendixAllowed($actor), 403);
             $locked->fill([
                 'approved_by_id' => $actor->id,
-                'approved_grant_id' => $grant->id,
-                'approved_grant_revision' => $grant->revision,
+                'approved_grant_id' => null,
+                'approved_grant_revision' => null,
                 'approved_at' => now()->utc(),
                 'approved_name' => $actor->name,
                 'approved_title' => 'District Mill Officer',
@@ -84,7 +84,8 @@ final class DistrictReportWorkflow
             ]);
             $bytes = $this->renderer->pdf($locked);
             $locked->fill(['document_sha256' => hash('sha256', $bytes), 'document_bytes' => base64_encode($bytes)])->save();
-            $this->event($locked, 'approved', $actor, $grant);
+            $this->event($locked, 'approved', $actor);
+            app(RecordSecurityAudit::class)->handle('report_approved', 'success', $actor, $actor, ['report_uuid' => $locked->uuid]);
 
             return $locked;
         }, attempts: 3);
@@ -92,14 +93,13 @@ final class DistrictReportWorkflow
 
     public function requestSend(User $actor, DistrictReportVersion $version, string $hash, string $key): DistrictReportTransmission
     {
-        abort_unless($this->access->grant($actor, 'report:send', $version->district_id) !== null, 403);
+        Gate::forUser($actor)->authorize('send', $version);
         // The office delivery contract is a separate launch gate, default closed.
         abort_unless(config('caneguard.weekly_send_enabled') === true, 503);
 
         return DB::transaction(function () use ($actor, $version, $hash, $key): DistrictReportTransmission {
             $locked = $this->lock($version);
-            $grant = $this->access->grant($actor->fresh(), 'report:send', $locked->district_id);
-            abort_unless($grant !== null, 403);
+            Gate::forUser($actor->fresh())->authorize('send', $locked);
             $this->assertCurrent($locked, $hash);
             abort_unless($this->approvalValid($locked), 409);
             $existing = DistrictReportTransmission::query()->where('idempotency_key', $key)->first();
@@ -120,12 +120,13 @@ final class DistrictReportWorkflow
                 'district_recipient_set_id' => $recipients->id,
                 'requested_by_id' => $actor->id,
                 'requested_name' => $actor->name,
-                'send_grant_id' => $grant->id,
-                'send_grant_revision' => $grant->revision,
+                'send_grant_id' => null,
+                'send_grant_revision' => null,
                 'idempotency_key' => $key,
                 'state' => 'pending',
             ]);
-            $this->event($locked, 'send_requested', $actor, $grant, $intent);
+            $this->event($locked, 'send_requested', $actor, null, $intent);
+            app(RecordSecurityAudit::class)->handle('report_send_requested', 'success', $actor, $actor, ['report_uuid' => $locked->uuid]);
             DeliverDistrictReport::dispatch($intent->id)->onConnection('database')->afterCommit();
 
             return $intent;
@@ -145,16 +146,14 @@ final class DistrictReportWorkflow
                 return false;
             }
             $actor = User::findOrFail($intent->requested_by_id);
-            $grant = $this->access->grant($actor, 'report:send', $version->district_id);
             $recipients = DistrictRecipientSet::findOrFail($intent->district_recipient_set_id);
-            $valid = config('caneguard.weekly_send_enabled') === true && $grant !== null
-                && $grant->id === $intent->send_grant_id && $grant->revision === $intent->send_grant_revision
+            $valid = config('caneguard.weekly_send_enabled') === true && Gate::forUser($actor)->allows('send', $version)
                 && $recipients->revoked_at === null && $recipients->district_id === $version->district_id
                 && $this->approvalValid($version) && $this->isCurrent($version, $version->content_hash)
                 && (! ($version->content['appendix_enabled'] ?? false) || config('caneguard.weekly_appendix_enabled') === true);
             if (! $valid) {
                 $intent->update(['state' => 'cancelled']);
-                $this->event($version, 'cancelled', $actor, $grant, $intent);
+                $this->event($version, 'cancelled', $actor, null, $intent);
             }
 
             return $valid;
@@ -173,12 +172,10 @@ final class DistrictReportWorkflow
         if ($version->approved_at === null) {
             return false;
         }
-        $actor = User::find($version->approved_by_id);
-        $grant = $this->access->grant($actor, 'report:approve', $version->district_id);
 
-        return $version->document_sha256 !== null && $version->document_bytes !== null
-            && $grant !== null && $grant->id === $version->approved_grant_id
-            && $grant->revision === $version->approved_grant_revision;
+        // Sealed historical sign-off is not a second current-user authorization gate.
+        // The requesting Admin's Policy and current evidence are checked separately.
+        return $version->document_sha256 !== null && $version->document_bytes !== null;
     }
 
     private function assertCurrent(DistrictReportVersion $version, string $hash): void
@@ -234,7 +231,7 @@ final class DistrictReportWorkflow
     public function appendixAllowed(User $actor): bool
     {
         return config('caneguard.weekly_appendix_enabled') === true
-            && $this->access->grant($actor, 'report:approve', $this->access->pilotId()) !== null;
+            && $actor->isActiveAdmin();
     }
 
     public function event(DistrictReportVersion $version, string $action, User $actor, ?DistrictGrant $grant = null, ?DistrictReportTransmission $intent = null): void

@@ -14,6 +14,7 @@ use App\Security\DistrictAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
+/** @deprecated Use PATCH /api/v1/admin/accounts/{uuid}. */
 class AdminUserRoleController extends Controller
 {
     public function __invoke(
@@ -38,7 +39,7 @@ class AdminUserRoleController extends Controller
             return response()->json([
                 'message' => 'An administrator cannot change their own role.',
                 'code' => 'ROLE_CHANGE_FORBIDDEN',
-            ], 403);
+            ], 422);
         }
 
         if (! $stepUp->handle(
@@ -99,6 +100,7 @@ class AdminUserRoleController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'is_active' => $user->is_active,
             ],
         ]);
     }

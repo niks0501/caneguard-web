@@ -10,14 +10,9 @@ final class EnsurePublicRegistrationEnabled
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (config('caneguard.self_registration_enabled') !== true
-            || config('caneguard.pilot_roster_certified') !== true) {
-            return response()->json([
-                'message' => 'Public self-registration is disabled. Contact your CaneGuard administrator to request an authorized account.',
-                'code' => 'REGISTRATION_DISABLED',
-            ], 403);
-        }
-
-        return $next($request);
+        return response()->json([
+            'message' => 'Public self-registration is disabled. Contact your CaneGuard administrator to request an authorized account.',
+            'code' => 'REGISTRATION_DISABLED',
+        ], 403);
     }
 }

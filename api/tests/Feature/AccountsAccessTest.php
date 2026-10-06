@@ -26,32 +26,28 @@ class AccountsAccessTest extends TestCase
         config(['caneguard.accounts_enabled' => true]);
     }
 
-    public function test_discovery_is_paged_scoped_and_includes_unverified_signups_but_never_foreign_identities(): void
+    public function test_deprecated_discovery_exposes_only_web_role_status_without_district_authority(): void
     {
-        [$actor, $district] = $this->manager();
-        $new = $this->candidate(false);
-        $legacy = User::factory()->farmer()->create();
+        [$actor] = $this->manager();
+        $this->candidate(false);
         $foreignDistrict = District::query()->create(['code' => 'foreign', 'name' => 'Foreign']);
-        $foreign = User::factory()->farmer()->inDistrict($foreignDistrict)->create(['registration_origin' => 'public_signup']);
+        $foreign = User::factory()->reviewer()->inDistrict($foreignDistrict)->create();
         $this->actingAs($actor, 'web');
-        $this->getJson('/api/v2/admin/accounts')->assertOk()->assertHeader('cache-control', 'no-store, private')
-            ->assertJsonPath('meta.counts.new', 1)->assertJsonPath('data.0.uuid', $new->uuid)->assertJsonPath('data.0.email_verified', false);
-        $this->getJson('/api/v2/admin/accounts?view=all')->assertOk()->assertJsonPath('meta.total', 3)->assertJsonMissing(['uuid' => $foreign->uuid]);
-        $this->getJson('/api/v2/admin/accounts/'.$foreign->uuid)->assertNotFound();
-        $this->getJson('/api/v2/admin/accounts/'.$foreign->uuid.'/events')->assertNotFound();
-        $this->getJson('/api/v2/admin/accounts/'.$legacy->uuid)->assertOk()->assertJsonPath('data.allowed_actions', []);
-        $this->getJson('/api/v2/admin/accounts?role=farmer&verification=unverified&membership=not_issued')->assertOk()->assertJsonPath('meta.filtered_total', 1);
-        $this->getJson('/api/v2/admin/accounts?per_page=1000')->assertUnprocessable();
-        $this->getJson('/api/v2/admin/accounts?view=foreign')->assertUnprocessable();
+        $this->getJson('/api/v2/admin/accounts')->assertOk()->assertHeader('Deprecation', 'true')
+            ->assertHeader('cache-control', 'no-store, private')->assertJsonPath('meta.total', 2)
+            ->assertJsonMissingPath('data.0.grant_revisions');
+        $this->getJson('/api/v2/admin/accounts/'.$foreign->uuid)->assertOk()->assertJsonPath('data.role', 'reviewer');
+        $this->getJson('/api/v2/admin/accounts/'.$foreign->uuid.'/events')->assertOk();
+        $this->getJson('/api/v2/admin/accounts?page=0')->assertUnprocessable();
     }
 
-    public function test_every_read_boundary_denies_ungranted_unsupported_unverified_and_bearer_actors(): void
+    public function test_every_read_boundary_denies_reviewer_unsupported_unverified_and_bearer_actors(): void
     {
         [$manager, $district] = $this->manager();
         $candidate = $this->candidate();
-        foreach ([User::factory()->admin()->inDistrict($district)->create(), User::factory()->reviewer()->inDistrict($district)->create(),
+        foreach ([User::factory()->reviewer()->inDistrict($district)->create(),
             User::factory()->farmer()->create(), User::factory()->admin()->unverified()->inDistrict($district)->create(),
-            User::factory()->admin()->create(), User::factory()->create(['role' => 'disabled'])] as $actor) {
+            User::factory()->create(['role' => 'disabled'])] as $actor) {
             Auth::forgetGuards();
             $this->actingAs($actor, 'web');
             foreach (['', '/'.$candidate->uuid, '/'.$candidate->uuid.'/events'] as $suffix) {
@@ -74,7 +70,7 @@ class AccountsAccessTest extends TestCase
         $this->actingAs($actor, 'web');
         $payload = $this->accessPayload($target, 'admit', 'admin');
         $result = $this->putJson($this->path($target), $payload)->assertOk()->assertJsonPath('data.role', 'admin')
-            ->assertJsonPath('data.membership_state', 'active')->assertJsonPath('data.effective_grants', [])->assertJsonPath('credentials_revoked', true)->json();
+            ->assertJsonPath('data.is_active', true)->assertJsonMissingPath('data.effective_grants')->assertJsonPath('credentials_revoked', true)->json();
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $oldToken->accessToken->id]);
         $this->assertDatabaseMissing('sessions', ['id' => 'old']);
         $this->assertDatabaseCount('account_access_events', 1);
@@ -82,7 +78,7 @@ class AccountsAccessTest extends TestCase
         $this->assertDatabaseCount('account_access_events', 1);
         $this->putJson($this->path($target), [...$payload, 'office_reference' => 'different'])->assertConflict()->assertJsonPath('code', 'IDEMPOTENCY_CONFLICT');
         $this->getJson('/api/v2/admin/accounts/'.$target->uuid.'/events')->assertOk()->assertJsonPath('data.0.before.role', 'farmer')
-            ->assertJsonPath('data.0.actor.uuid', $actor->uuid)->assertJsonPath('data.0.contract_version', 'account-access-event-v1');
+            ->assertJsonPath('data.0.actor_name', $actor->name)->assertJsonPath('data.0.action', 'district_access_changed');
         $serialized = json_encode($result);
         $this->assertStringNotContainsString('current_password', $serialized);
         $this->assertStringNotContainsString('remember_token', $serialized);
@@ -119,7 +115,7 @@ class AccountsAccessTest extends TestCase
             ['desired' => ['role' => 'admin', 'grants' => ['*']]], ['desired' => ['role' => 'admin', 'grants' => ['staff:manage', 'staff:manage']]]] as $override) {
             $this->putJson($this->path($target), array_replace($body, $override))->assertUnprocessable();
         }
-        $this->putJson($this->path($actor), $this->accessPayload($actor, 'replace'))->assertForbidden()->assertJsonPath('code', 'SELF_CHANGE_FORBIDDEN');
+        $this->putJson($this->path($actor), $this->accessPayload($actor, 'replace'))->assertUnprocessable()->assertJsonPath('code', 'SELF_CHANGE_FORBIDDEN');
         $this->assertDatabaseMissing('district_memberships', ['user_id' => $target->id]);
         $this->assertDatabaseCount('account_access_events', 0);
         $this->assertDatabaseHas('security_audits', ['action' => 'step_up', 'outcome' => 'failure']);
@@ -159,9 +155,9 @@ class AccountsAccessTest extends TestCase
         DistrictGrant::query()->create(['user_id' => $target->id, 'district_id' => $district->id, 'ability' => 'report:send']);
         $this->actingAs($actor, 'web');
         $target->refresh();
-        $this->putJson($this->path($target), $this->accessPayload($target, 'revoke', 'admin'))->assertOk()->assertJsonPath('data.role', 'admin')->assertJsonPath('data.membership_state', 'revoked');
+        $this->putJson($this->path($target), $this->accessPayload($target, 'revoke', 'admin'))->assertOk()->assertJsonPath('data.role', 'admin')->assertJsonPath('data.is_active', false);
         $this->putJson($this->path($target), $this->accessPayload($target->fresh(), 'replace', 'admin'))->assertUnprocessable();
-        $this->putJson($this->path($target), $this->accessPayload($target->fresh(), 'restore', 'admin'))->assertOk()->assertJsonPath('data.effective_grants', []);
+        $this->putJson($this->path($target), $this->accessPayload($target->fresh(), 'restore', 'admin'))->assertOk()->assertJsonPath('data.is_active', true)->assertJsonMissingPath('data.effective_grants');
         $this->assertDatabaseHas('users', ['uuid' => $target->uuid, 'role' => 'admin']);
         $this->assertDatabaseCount('account_access_events', 2);
         $version = $target->fresh()->access_version;
@@ -202,18 +198,21 @@ class AccountsAccessTest extends TestCase
         $this->assertDatabaseHas('account_access_events', ['target_id' => $target->id, 'office_reference' => 'synthetic role review']);
     }
 
-    public function test_gate_off_missing_configuration_and_revoked_manager_fail_closed(): void
+    public function test_legacy_flags_and_memberships_no_longer_gate_active_admin_but_disabled_does(): void
     {
         [$actor, $district] = $this->manager();
         $this->actingAs($actor, 'web');
         config(['caneguard.accounts_enabled' => false]);
-        $this->getJson('/api/v2/admin/accounts')->assertStatus(503)->assertJsonPath('code', 'ACCOUNTS_UNAVAILABLE')->assertHeader('cache-control', 'no-store, private');
+        $this->getJson('/api/v2/admin/accounts')->assertOk()->assertHeader('cache-control', 'no-store, private');
         config(['caneguard.accounts_enabled' => true, 'caneguard.pilot_district_code' => '']);
-        $this->getJson('/api/v2/admin/accounts')->assertForbidden()->assertJsonPath('code', 'DISTRICT_NOT_CONFIGURED');
+        $this->getJson('/api/v2/admin/accounts')->assertOk();
         config(['caneguard.pilot_district_code' => $district->code]);
         DistrictMembership::query()->where('user_id', $actor->id)->firstOrFail()->update(['revoked_at' => now()]);
         $this->actingAs($actor->fresh(), 'web');
-        $this->getJson('/api/v2/admin/accounts')->assertForbidden()->assertHeader('cache-control', 'no-store, private');
+        $this->getJson('/api/v2/admin/accounts')->assertOk();
+        $actor->forceFill(['is_active' => false])->save();
+        $this->actingAs($actor->fresh(), 'web');
+        $this->getJson('/api/v2/admin/accounts')->assertUnauthorized();
     }
 
     public function test_registration_records_origin_but_never_role_keys_membership_or_verification_from_input(): void
@@ -223,11 +222,10 @@ class AccountsAccessTest extends TestCase
         $this->postJson('/register', [
             'name' => 'Synthetic public candidate', 'email' => 'signup@example.test', 'password' => 'Synthetic signup passphrase',
             'role' => 'admin', 'district_id' => 99999, 'email_verified_at' => now(), 'grants' => ['staff:manage'],
-        ])->assertCreated()->assertJsonPath('user.role', 'farmer')->assertJsonPath('user.email_verified', false);
-        $user = User::query()->where('email', 'signup@example.test')->sole();
-        $this->assertSame('public_signup', $user->registration_origin);
-        $this->assertDatabaseMissing('district_memberships', ['user_id' => $user->id]);
-        $this->assertDatabaseMissing('district_grants', ['user_id' => $user->id]);
+        ])->assertForbidden()->assertJsonPath('code', 'REGISTRATION_DISABLED');
+        $this->assertDatabaseMissing('users', ['email' => 'signup@example.test']);
+        $this->assertDatabaseCount('district_memberships', 0);
+        $this->assertDatabaseCount('district_grants', 0);
         $this->assertGuest();
     }
 

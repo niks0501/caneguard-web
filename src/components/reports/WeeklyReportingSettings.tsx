@@ -66,6 +66,6 @@ export function WeeklyReportingSettings() {
     {settings ? <p>Current schedule: {settings.reminder_day && settings.reminder_time ? `${days[settings.reminder_day - 1]} at ${clock(settings.reminder_time)} PHT` : "Not configured"}</p> : null}
     {settings?.can_manage ? <ScheduleForm key={`${settings.reminder_day}:${settings.reminder_time}`} initialDay={settings.reminder_day} initialTime={settings.reminder_time} busy={save.isPending} onSave={(input) => save.mutate(input)} /> : null}
     {save.isSuccess ? <p role="status">Reporting schedule saved. Sending remains manual.</p> : null}
-    {error ? <p role="alert">{toApiError(error).status === 403 ? "Your management grant or password could not be verified." : "The reporting schedule could not be saved or loaded. Try again when online."}</p> : null}
+    {error ? <p role="alert">{toApiError(error).status === 403 ? "Your Admin access or password could not be verified." : "The reporting schedule could not be saved or loaded. Try again when online."}</p> : null}
   </section>;
 }

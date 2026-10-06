@@ -20,7 +20,7 @@ class DistrictAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_remains_closed_until_both_office_gates_open_and_never_creates_staff(): void
+    public function test_registration_is_closed_and_existing_farmer_mobile_security_still_works(): void
     {
         Notification::fake();
         config(['caneguard.self_registration_enabled' => true, 'caneguard.pilot_roster_certified' => false]);
@@ -29,12 +29,12 @@ class DistrictAccessTest extends TestCase
         $this->postJson('/register', $payload)->assertForbidden()->assertJsonPath('code', 'REGISTRATION_DISABLED');
         $this->assertDatabaseCount('users', 0);
         config(['caneguard.pilot_roster_certified' => true]);
-        $this->postJson('/register', $payload)->assertCreated()->assertJsonPath('user.role', 'farmer');
+        $this->postJson('/register', $payload)->assertForbidden()->assertJsonPath('code', 'REGISTRATION_DISABLED');
+        $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('district_memberships', 0);
         $this->assertDatabaseCount('district_grants', 0);
         $this->assertDatabaseCount('personal_access_tokens', 0);
-        $user = User::query()->sole();
-        $user->markEmailAsVerified();
+        $user = User::factory()->farmer()->create();
         $token = app(IssueMobileToken::class)->handle($user, 'Farmer device', 'farmer-device');
         $this->assertSame(['account:security'], $token->accessToken->abilities);
         $this->withToken($token->plainTextToken)->getJson('/api/v1/mobile/auth/me')->assertOk()
@@ -117,7 +117,7 @@ class DistrictAccessTest extends TestCase
         $this->assertSame($inspector->id, $own->fresh()->reporter_id);
     }
 
-    public function test_one_pilot_scope_covers_office_lists_details_images_documents_and_stale_notifications(): void
+    public function test_web_reports_and_notifications_are_not_membership_scoped(): void
     {
         $district = $this->pilotDistrict();
         $reviewer = User::factory()->reviewer()->inDistrict($district)->create();
@@ -129,24 +129,26 @@ class DistrictAccessTest extends TestCase
             $reviewer->notify(new NewCaseSubmittedNotification($report->uuid, $report->reference_code));
         }
         $this->actingAs($reviewer, 'web');
-        $this->getJson('/api/v1/reports')->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.uuid', $pilot->uuid);
-        $this->getJson('/api/v1/dashboard/summary')->assertOk()->assertJsonPath('data.counts.total_submitted', 1);
-        $this->getJson('/api/v1/reports/map')->assertOk()->assertJsonPath('metadata.total_count', 1);
-        $this->getJson('/api/v1/reports/analytics?from=2026-01-01&to=2026-12-31')->assertOk()->assertJsonMissing(['uuid' => $foreignReport->uuid]);
-        $this->getJson('/api/v1/notifications')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.unread_count', 1);
+        $this->getJson('/api/v1/reports')->assertOk()->assertJsonPath('meta.total', 3)->assertJsonFragment(['uuid' => $pilot->uuid]);
+        $this->getJson('/api/v1/dashboard/summary')->assertOk()->assertJsonPath('data.counts.total_submitted', 3);
+        $this->getJson('/api/v1/reports/map')->assertOk()->assertJsonPath('metadata.total_count', 3);
+        $this->getJson('/api/v1/reports/analytics?from=2026-01-01&to=2026-12-31')->assertOk();
+        $this->getJson('/api/v1/notifications')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('meta.unread_count', 3);
         foreach ([$foreignReport, $unassigned] as $report) {
-            foreach (['', '/image', '/validation-photo', '/referral/summary', '/referral-summary', '/possible-matches'] as $suffix) {
-                $this->getJson("/api/v1/reports/{$report->uuid}{$suffix}")->assertForbidden();
-            }
-            $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [])->assertForbidden();
+            $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk();
+            $this->getJson("/api/v1/reports/{$report->uuid}/possible-matches")->assertOk();
+            $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [])->assertUnprocessable();
         }
         $export = $this->get('/api/v1/reports/export')->assertOk()->streamedContent();
         $this->assertStringContainsString($pilot->reference_code, $export);
-        $this->assertStringNotContainsString($foreignReport->reference_code, $export);
-        $this->assertStringNotContainsString($unassigned->reference_code, $export);
+        $this->assertStringContainsString($foreignReport->reference_code, $export);
+        $this->assertStringContainsString($unassigned->reference_code, $export);
         $this->get('/api/v1/reports/documents/report?period_type=weekly')->assertOk();
         DistrictMembership::query()->where('user_id', $reviewer->id)->firstOrFail()->update(['revoked_at' => now()]);
-        $this->getJson('/api/v1/reports')->assertForbidden();
+        $this->getJson('/api/v1/reports')->assertOk();
+        $reviewer->forceFill(['is_active' => false])->save();
+        $this->actingAs($reviewer->fresh(), 'web');
+        $this->getJson('/api/v1/reports')->assertUnauthorized();
     }
 
     public function test_roster_and_grant_changes_are_audited_revoke_auth_and_never_reactivate_retired_experts(): void

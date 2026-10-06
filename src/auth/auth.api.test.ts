@@ -56,8 +56,15 @@ describe("auth API", () => {
       name: "Review User",
       email: "reviewer@example.test",
       role: "reviewer",
-      capabilities: [],
+      is_active: true,
     });
+  });
+
+  it("rejects disabled identities rather than creating an authenticated redirect loop", async () => {
+    server.use(http.get(`${baseUrl}/api/v1/me`, () => HttpResponse.json({
+      data: { uuid: "user-1", name: "Review User", email: "reviewer@example.test", role: "reviewer", is_active: false },
+    })));
+    await expect(getCurrentUser()).rejects.toMatchObject({ status: 401, code: "ACCOUNT_DISABLED" });
   });
 
   it("rejects a field reporter returned during restoration", async () => {

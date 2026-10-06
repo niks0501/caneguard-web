@@ -39,8 +39,7 @@ class WebAuthenticationTest extends TestCase
                     'name' => $reviewer->name,
                     'email' => $reviewer->email,
                     'role' => User::ROLE_REVIEWER,
-                    'capabilities' => ['case:review'],
-                    'district_id' => $this->pilotDistrict()->id,
+                    'is_active' => true,
                 ],
             ]);
 

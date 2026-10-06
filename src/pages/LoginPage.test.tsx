@@ -111,14 +111,19 @@ describe("LoginPage", () => {
     expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
   });
 
-  it("shows the registration link only when public self-registration is enabled", () => {
+  it("keeps the registration entry hidden regardless of the retired flag", () => {
     vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
     renderLoginPage();
+    expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
-      "href",
-      "/register",
-    );
+  it("shows the actionable disabled-account message instead of generic access denial", async () => {
+    const user = userEvent.setup();
+    renderLoginPage({ login: vi.fn().mockRejectedValue(new ApiError("Disabled", { status: 403, code: "ACCOUNT_DISABLED" })) });
+    await user.type(screen.getByLabelText("Email"), "staff@example.test");
+    await user.type(screen.getByLabelText("Password"), "synthetic-password");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Account disabled — contact your administrator.");
   });
 
   it("toggles password visibility when clicking the eye button", async () => {

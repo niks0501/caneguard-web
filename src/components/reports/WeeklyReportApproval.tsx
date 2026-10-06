@@ -12,7 +12,6 @@ const transmissionSchema = z.object({
   id: z.number().int(), state: z.enum(["pending", "delivering", "sent", "failed", "cancelled"]),
   transport_receipt: z.string().nullable(), failure_reason: z.string().nullable(),
   requested_name: z.string().nullable(), requested_by_id: z.number().int(),
-  send_grant_id: z.number().int(), send_grant_revision: z.number().int(),
   completed_at: z.string().nullable(), created_at: z.string(),
 });
 const versionSchema = z.object({
@@ -66,13 +65,13 @@ export function WeeklyReportApproval({ week }: { week: string }) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   });
   const officer = user?.role === "admin";
-  const canApprove = officer && user.capabilities?.includes("report:approve");
-  const canSend = officer && user.capabilities?.includes("report:send");
+  const canApprove = officer;
+  const canSend = officer;
   const error = action.error ?? versions.error;
   const status = error ? toApiError(error).status : undefined;
   const errorMessage = status === 409
     ? "This version or its approval is no longer current. Prepare a new version and review it again."
-    : status === 403 ? "Your district grant or privacy permission changed. Refresh your session before continuing."
+    : status === 403 ? "Your account access changed. Refresh your session before continuing."
       : status === 503 ? "The office delivery gate is closed. No send was requested."
         : "The weekly report could not be confirmed. Retry when the service is available.";
   const busy = action.isPending || versions.isFetching || !online;
@@ -99,7 +98,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
       {canSend && versions.data && !versions.data.meta.send_enabled ? <p role="status">Office delivery gate closed.</p> : null}
       {receipt ? <div aria-label="Delivery receipt" role="status">
         <p>{receipt.state === "sent" ? "SMTP provider accepted the report. Inbox delivery is not guaranteed." : receipt.state === "failed" ? "Delivery failed or is uncertain. Check the provider before ordering another send." : receipt.state === "cancelled" ? "Send cancelled after authority or evidence changed." : receipt.state === "delivering" ? "Delivery in progress. Do not order another send." : "Send intent recorded. Delivery is not confirmed."}</p>
-        <p>Ordered by {receipt.requested_name ?? `staff ${receipt.requested_by_id}`} · {formatDateTime(receipt.created_at)} · Grant {receipt.send_grant_id}, revision {receipt.send_grant_revision}</p>
+        <p>Ordered by {receipt.requested_name ?? `staff ${receipt.requested_by_id}`} · {formatDateTime(receipt.created_at)}</p>
         {receipt.transport_receipt ? <p>Provider message ID: {receipt.transport_receipt}</p> : null}
         {receipt.completed_at ? <p>{formatDateTime(receipt.completed_at)}</p> : null}
         {receipt.failure_reason ? <p>{receipt.failure_reason}</p> : null}

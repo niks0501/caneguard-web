@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { axiosClient } from "../api/axiosClient";
+import { ApiError } from "../api/ApiError";
 import type {
   AppUser,
   LoginCredentials,
@@ -14,9 +15,7 @@ const userResponseSchema = z.object({
     name: z.string(),
     email: z.email(),
     role: z.enum(["farmer", "field_reporter", "reviewer", "admin"]),
-    capabilities: z.array(z.string()).default([]),
-    accounts_enabled: z.boolean().optional(),
-    district_id: z.number().int().nullable().optional(),
+    is_active: z.boolean().default(true),
   }),
 });
 
@@ -92,6 +91,10 @@ export async function getCurrentUser(): Promise<AppUser> {
   const response = await axiosClient.get("/api/v1/me");
   const user = userResponseSchema.parse(response.data).data;
   const role = user.role;
+
+  if (!user.is_active) {
+    throw new ApiError("Account disabled — contact your administrator.", { status: 401, code: "ACCOUNT_DISABLED" });
+  }
 
   if (!isWebRole(role)) {
     throw new WebRoleError();

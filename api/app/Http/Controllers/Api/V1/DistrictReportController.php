@@ -13,6 +13,7 @@ use App\Security\DistrictAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class DistrictReportController extends Controller
@@ -38,7 +39,8 @@ class DistrictReportController extends Controller
 
     public function document(Request $request, DistrictReportVersion $version, DistrictAccess $access, DistrictReportWorkflow $workflow, RenderWeeklyReport $renderer): Response
     {
-        abort_unless($access->office($request->user()) && $access->allows($request->user(), $version->district_id), 403);
+        Gate::authorize('view', $version);
+        abort_unless(($version->content['contract'] ?? null) === 'weekly-report-content-v1', 409);
         $input = $request->validate(['disease' => ['sometimes', Rule::in(array_keys(BuildWeeklyReportContent::DISEASES))], 'appendix' => ['sometimes', 'boolean']]);
         $appendix = $request->boolean('appendix');
         abort_if($appendix && ! $workflow->appendixAllowed($request->user()), 403);
@@ -48,7 +50,7 @@ class DistrictReportController extends Controller
 
     public function pdf(Request $request, DistrictReportVersion $version, DistrictAccess $access, DistrictReportWorkflow $workflow, RenderWeeklyReport $renderer, WeeklyReportGraphics $graphics): Response
     {
-        abort_unless($access->office($request->user()) && $access->allows($request->user(), $version->district_id), 403);
+        Gate::authorize('view', $version);
         // Filtered HTML is a derived convenience, never an alternative approved PDF.
         $request->validate(['disease' => ['prohibited'], 'appendix' => ['prohibited']]);
         abort_if(($version->content['appendix_enabled'] ?? false) && ! $workflow->appendixAllowed($request->user()), 403);
@@ -72,7 +74,6 @@ class DistrictReportController extends Controller
 
     public function approve(Request $request, DistrictReportVersion $version, DistrictReportWorkflow $workflow, DistrictAccess $access): JsonResponse
     {
-        abort_unless($access->grant($request->user(), 'report:approve', $version->district_id) !== null, 403);
         $input = $request->validate(['content_hash' => ['required', 'regex:/^[a-f0-9]{64}$/']]);
 
         return response()->json(['data' => $workflow->approve($request->user(), $version, $input['content_hash'])->makeHidden(['content', 'source_refs'])])->header('Cache-Control', 'private, no-store');
@@ -80,7 +81,6 @@ class DistrictReportController extends Controller
 
     public function send(Request $request, DistrictReportVersion $version, DistrictReportWorkflow $workflow, DistrictAccess $access): JsonResponse
     {
-        abort_unless($access->grant($request->user(), 'report:send', $version->district_id) !== null, 403);
         $input = $request->validate(['content_hash' => ['required', 'regex:/^[a-f0-9]{64}$/'], 'idempotency_key' => ['required', 'uuid']]);
 
         return response()->json(['data' => $workflow->requestSend($request->user(), $version, $input['content_hash'], $input['idempotency_key'])], 202)->header('Cache-Control', 'private, no-store');

@@ -73,7 +73,7 @@ class DeliverDistrictReportTest extends TestCase
     }
 
     #[DataProvider('changes')]
-    public function test_worker_rechecks_closed_gate_revoked_recipients_grants_and_changed_evidence(string $change): void
+    public function test_worker_rechecks_closed_gate_revoked_recipients_account_status_and_changed_evidence(string $change): void
     {
         [$officer, $version, $intent] = $this->intent();
         if ($change === 'gate') {
@@ -83,10 +83,10 @@ class DeliverDistrictReportTest extends TestCase
             DistrictRecipientSet::findOrFail($intent->district_recipient_set_id)->update(['revoked_at' => now()]);
         }
         if ($change === 'sender') {
-            DistrictGrant::findOrFail($intent->send_grant_id)->update(['revoked_at' => now()]);
+            $officer->forceFill(['is_active' => false])->save();
         }
         if ($change === 'approver') {
-            DistrictGrant::findOrFail($version->approved_grant_id)->update(['revoked_at' => now()]);
+            $officer->forceFill(['role' => User::ROLE_REVIEWER])->save();
         }
         if ($change === 'source') {
             Report::factory()->inDistrict($this->pilotDistrict())->create(['submitted_at' => '2026-09-29 10:00:00']);

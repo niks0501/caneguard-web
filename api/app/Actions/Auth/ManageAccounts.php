@@ -6,16 +6,17 @@ use App\Models\AccountAccessEvent;
 use App\Models\AccountReview;
 use App\Models\District;
 use App\Models\DistrictGrant;
-use App\Models\DistrictMembership;
 use App\Models\User;
 use App\Security\AccountsDirectory;
 use App\Security\DistrictAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+/** @deprecated Compatibility action for the v2 account writers. */
 final class ManageAccounts
 {
     public function __construct(private DistrictAccess $access, private AccountsDirectory $directory, private ReconcileDistrictAccess $reconcile) {}
@@ -64,9 +65,9 @@ final class ManageAccounts
             abort_unless(count($ids) === count($uuids), 404);
             $users = User::query()->whereIn('id', array_unique([$actorId, ...$ids]))->orderBy('id')->lockForUpdate()->get();
             $actor = $users->firstWhere('id', $actorId);
-            abort_unless($this->access->grant($actor, 'staff:manage', $district->id, lock: true) !== null, 403);
+            Gate::forUser($actor)->authorize('manageLegacy', $users->firstWhere('id', $ids[0]));
             if (in_array($actorId, $ids, true)) {
-                AccountAccessFailure::reject('SELF_CHANGE_FORBIDDEN', 'You cannot change your own authority.', 403);
+                AccountAccessFailure::reject('SELF_CHANGE_FORBIDDEN', 'You cannot change your own authority.', 422);
             }
             if (! Hash::check($input['current_password'], $actor->getAuthPassword())) {
                 AccountAccessFailure::reject('STEP_UP_REQUIRED', 'The current password is incorrect.', 422);
@@ -83,9 +84,6 @@ final class ManageAccounts
             }
             $targets = collect($uuids)->map(fn ($id) => $users->firstWhere('uuid', $id));
             foreach ($targets as $index => $target) {
-                // Locking reads see the latest committed ownership, even under MySQL REPEATABLE READ.
-                abort_if(DistrictMembership::query()->where('user_id', $target->id)->where('district_id', '!=', $district->id)->lockForUpdate()->get()->isNotEmpty()
-                    || DistrictGrant::query()->where('user_id', $target->id)->where('district_id', '!=', $district->id)->lockForUpdate()->get()->isNotEmpty(), 404);
                 $version = $kind === 'transfer' ? $input[$index === 0 ? 'from_expected_access_version' : 'to_expected_access_version'] : $input['expected_access_version'];
                 if ($target->access_version !== (int) $version) {
                     AccountAccessFailure::reject('ACCESS_VERSION_CONFLICT', 'Authority changed. Reload and review again.');

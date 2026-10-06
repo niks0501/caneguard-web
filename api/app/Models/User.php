@@ -19,10 +19,10 @@ use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\NewAccessToken;
 
 #[Fillable(['name', 'email', 'password', 'role'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'auth_version'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
-    protected $attributes = ['access_version' => 1, 'registration_origin' => 'unknown'];
+    protected $attributes = ['access_version' => 1, 'registration_origin' => 'unknown', 'is_active' => true, 'auth_version' => 1];
 
     // Resolve the SQL increment before updated observers/DTOs inspect the saved identity.
     protected array $refreshes = ['access_version'];
@@ -108,13 +108,13 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static function booted(): void
     {
         static::updating(function (self $user): void {
-            if ($user->isDirty(['name', 'role', 'email', 'email_verified_at', 'password', 'biometric_enabled', 'registration_origin'])) {
+            if ($user->isDirty(['name', 'role', 'email', 'email_verified_at', 'password', 'biometric_enabled', 'registration_origin', 'is_active'])) {
                 // Security writers may hold an older model than a concurrent grant decision.
                 $user->access_version = DB::raw('access_version + 1');
             }
         });
         static::updated(function (self $user): void {
-            if ($user->wasChanged('role')) {
+            if ($user->wasChanged(['role', 'is_active'])) {
                 DistrictGrant::query()->where('user_id', $user->id)->update([
                     'revoked_at' => now()->utc(),
                     'revision' => DB::raw('revision + 1'),
@@ -132,6 +132,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isWebUser(): bool
     {
         return in_array($this->role, self::webRoles(), true);
+    }
+
+    public function hasWebAccess(): bool
+    {
+        return $this->is_active && $this->hasVerifiedEmail() && $this->isWebUser();
+    }
+
+    public function isActiveAdmin(): bool
+    {
+        return $this->hasWebAccess() && $this->role === self::ROLE_ADMIN;
     }
 
     public function accountReview(): HasOne
@@ -194,6 +204,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'biometric_enabled' => 'boolean',
+            'is_active' => 'boolean',
+            'auth_version' => 'integer',
             'password' => 'hashed',
         ];
     }

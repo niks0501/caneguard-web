@@ -38,50 +38,19 @@ afterEach(() => {
 });
 
 describe("public authentication pages", () => {
-  it("registers a farmer without accepting a client role when explicitly enabled", async () => {
+  it("keeps farmer registration hidden even when the retired client flag is enabled", async () => {
     vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
-    let requestBody: Record<string, unknown> | undefined;
-    server.use(
-      http.get(`${baseUrl}/sanctum/csrf-cookie`, () =>
-        new HttpResponse(null, { status: 204 }),
-      ),
-      http.post(`${baseUrl}/register`, async ({ request }) => {
-        requestBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(
-          {
-            message: "Account created.",
-            code: "REGISTRATION_CREATED",
-            user: {
-              uuid: "user-1",
-              name: "Field Reporter",
-              email: "field@example.test",
-              role: "farmer",
-              email_verified: false,
-            },
-          },
-          { status: 201 },
-        );
-      }),
-    );
-    const user = await renderAuthPage("/register");
-
-    await user.type(screen.getByLabelText("Name"), "Field Reporter");
-    await user.type(screen.getByLabelText("Email"), "field@example.test");
-    await user.type(screen.getByLabelText("Password"), "A field reporter passphrase");
-    await user.type(
-      screen.getByLabelText("Confirm password"),
-      "A field reporter passphrase",
-    );
-    await user.click(screen.getByRole("button", { name: "Create farmer account" }));
-
-    expect(await screen.findByText("Account created.")).toBeInTheDocument();
-    expect(requestBody).toEqual({
-      name: "Field Reporter",
-      email: "field@example.test",
-      password: "A field reporter passphrase",
-      password_confirmation: "A field reporter passphrase",
-    });
-    expect(requestBody).not.toHaveProperty("role");
+    let called = false;
+    server.use(http.post(`${baseUrl}/register`, () => {
+      called = true;
+      return HttpResponse.json({ code: "REGISTRATION_DISABLED" }, { status: 403 });
+    }));
+    await renderAuthPage("/register");
+    expect(await screen.findByRole("heading", { name: "Sign in to review field reports" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/login");
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
+    expect(called).toBe(false);
   });
 
   it("does not expose registration when public self-registration is disabled", async () => {

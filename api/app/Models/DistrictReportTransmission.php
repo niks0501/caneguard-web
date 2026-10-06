@@ -8,6 +8,8 @@ class DistrictReportTransmission extends Model
 {
     protected $guarded = [];
 
+    protected $hidden = ['send_grant_id', 'send_grant_revision'];
+
     protected static function booted(): void
     {
         static::updating(function (self $intent): void {

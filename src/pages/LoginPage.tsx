@@ -6,7 +6,6 @@ import caneGuardLogoFlatOnDark from "../assets/brand/CaneGuard_logo_flat_onDark.
 import farmHero from "../assets/hero.png";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
-import { isPublicRegistrationEnabled } from "../app/publicRegistration";
 import { WebRoleError } from "../auth/auth.api";
 import { useAuth } from "../auth/useAuth";
 import { Button } from "../components/ui/Button";
@@ -67,6 +66,8 @@ export function LoginPage() {
     } catch (error) {
       if (error instanceof ApiError && error.status === 422) {
         setErrorMessage("The email or password is incorrect.");
+      } else if (error instanceof ApiError && error.code === "ACCOUNT_DISABLED") {
+        setErrorMessage("Account disabled — contact your administrator.");
       } else if (error instanceof ApiError && error.status === 429) {
         setErrorMessage(
           "Too many sign-in attempts. Wait a minute before trying again.",
@@ -95,6 +96,8 @@ export function LoginPage() {
   const routeMessage =
     routeState.reason === "session_expired"
       ? "Your session expired. Sign in again to continue where you left off."
+      : routeState.reason === "account_disabled"
+        ? "Account disabled — contact your administrator."
       : routeState.reason === "access_denied"
         ? "This account is not authorized for the SRA Don Pedro Web workspace."
         : null;
@@ -207,11 +210,6 @@ export function LoginPage() {
           </div>
         </form>
 
-        {isPublicRegistrationEnabled() ? (
-          <p className="login-support">
-            Farmer? <Link to={routes.register}>Create an account</Link>
-          </p>
-        ) : null}
       </section>
     </main>
   );

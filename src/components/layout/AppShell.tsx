@@ -118,7 +118,10 @@ export function AppShell() {
           onOpenMenu={() => setNavigationOpen(true)}
           realtimeStatus={realtime.status}
         />
-        <main id="main-content" tabIndex={-1}><Outlet /></main>
+        <main id="main-content" tabIndex={-1}>
+          {location.state?.notice === "That section needs an Admin account." ? <p className="route-notice" role="status">{location.state.notice}</p> : null}
+          <Outlet />
+        </main>
       </div>
     </div>
   );

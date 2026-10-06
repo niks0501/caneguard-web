@@ -12,7 +12,7 @@ class DistrictReportVersion extends Model
 
     protected $guarded = [];
 
-    protected $hidden = ['document_bytes'];
+    protected $hidden = ['document_bytes', 'district_id', 'approved_grant_id', 'approved_grant_revision'];
 
     public function uniqueIds(): array
     {

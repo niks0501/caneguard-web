@@ -37,7 +37,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
         >
           <LayoutDashboard aria-hidden="true" />
-          <span>Overview</span>
+          <span>Dashboard</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
         <NavLink
@@ -46,7 +46,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
         >
           <SquareCheck aria-hidden="true" />
-          <span>Needs assessment</span>
+          <span>Case Review</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
         <NavLink
@@ -55,7 +55,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
         >
           <ShieldCheck aria-hidden="true" />
-          <span>Submitted reports</span>
+          <span>Reports</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
         {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
@@ -65,15 +65,21 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
           >
             <CalendarDays aria-hidden="true" />
-            <span>Monitoring</span>
+            <span>Monitoring / Map</span>
             <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
           </NavLink>
         ) : null}
-        {auth.user?.role === "admin" && auth.user.accounts_enabled && auth.user.capabilities?.includes("staff:manage") ? (
+        {auth.user?.role === "admin" ? (
           <>
             <p>Administration</p>
+            <NavLink className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`} to={routes.reportApproval} onClick={onNavigate}>
+              <ShieldCheck aria-hidden="true" /><span>Report Approval</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+            </NavLink>
             <NavLink className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`} to={routes.accounts} onClick={onNavigate}>
-              <Users aria-hidden="true" /><span>Accounts</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+              <Users aria-hidden="true" /><span>User Management</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
+            </NavLink>
+            <NavLink className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`} to={routes.adminSettings} onClick={onNavigate}>
+              <Settings aria-hidden="true" /><span>Admin Settings</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
             </NavLink>
           </>
         ) : null}
@@ -84,7 +90,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
         >
           <Settings aria-hidden="true" />
-          <span>Account &amp; settings</span>
+          <span>Settings</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
       </nav>

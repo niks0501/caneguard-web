@@ -28,7 +28,7 @@ const user = {
 
 function AuthStatus() {
   const auth = useAuth();
-  return <span data-testid="auth-status">{auth.status}</span>;
+  return <><span data-testid="auth-status">{auth.status}</span><span data-testid="auth-reason">{auth.reason}</span></>;
 }
 
 function renderAuthProvider() {
@@ -73,6 +73,15 @@ describe("AuthProvider session restoration", () => {
     });
     expect(authApi.getCurrentUser).toHaveBeenCalledTimes(1);
     expect(hasAuthSessionHint()).toBe(true);
+  });
+
+  it("restores disabled accounts as signed out with a disabled-account notice", async () => {
+    setAuthSessionHint(true);
+    authApi.getCurrentUser.mockRejectedValue(new ApiError("Disabled", { status: 401, code: "ACCOUNT_DISABLED" }));
+    renderAuthProvider();
+    await waitFor(() => expect(screen.getByTestId("auth-status")).toHaveTextContent("unauthenticated"));
+    expect(screen.getByTestId("auth-reason")).toHaveTextContent("account_disabled");
+    expect(hasAuthSessionHint()).toBe(false);
   });
 
   it("treats a restoration 401 as logged out and clears the stale hint", async () => {

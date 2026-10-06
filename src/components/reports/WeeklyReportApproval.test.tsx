@@ -16,10 +16,12 @@ const version = {
   approved_at: null as string | null,
 };
 
-function auth(role: "reviewer" | "admin", capabilities: string[]) {
+function auth(role: "reviewer" | "admin", _legacyCapabilities: string[]) {
+  void _legacyCapabilities; // Old payload keys never participate in UI authorization.
   vi.mocked(useAuth).mockReturnValue({
     status: "authenticated",
-    user: { uuid: "user-1", name: "Office User", email: "office@example.test", role, capabilities },
+    user: { uuid: "user-1", name: "Office User", email: "office@example.test", role },
+    reason: null, login: vi.fn(), logout: vi.fn(), restoreSession: vi.fn(),
   } as ReturnType<typeof useAuth>);
 }
 
@@ -44,12 +46,12 @@ describe("weekly district approval", () => {
     expect(screen.queryByRole("button", { name: "Request send" })).not.toBeInTheDocument();
   });
 
-  it("ungranted officers do not acquire action controls", async () => {
+  it("admins get approval and send controls without named grants", async () => {
     auth("admin", []);
     renderApproval();
     await screen.findByTitle("Official weekly report version 1");
-    expect(screen.queryByRole("button", { name: "Approve version" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Request send" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve version" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request send" })).toBeInTheDocument();
   });
 
   it("approves the displayed immutable hash then records an idempotent intent without claiming delivery", async () => {
@@ -89,7 +91,7 @@ describe("weekly district approval", () => {
     renderApproval();
     expect(await screen.findByText("SMTP provider accepted the report. Inbox delivery is not guaranteed.")).toBeInTheDocument();
     expect(screen.getByText(/Provider message ID: provider-id/)).toBeInTheDocument();
-    expect(screen.getByText(/Ordered by Sender Name.*Grant 3, revision 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Ordered by Sender Name/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Request send" })).toBeDisabled();
   });
 

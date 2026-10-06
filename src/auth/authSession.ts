@@ -1,4 +1,4 @@
-type SessionExpiredListener = () => void;
+type SessionExpiredListener = (reason?: "account_disabled") => void;
 
 const AUTH_SESSION_HINT_KEY = "caneguard.auth-session";
 const listeners = new Set<SessionExpiredListener>();
@@ -34,8 +34,8 @@ export function setAuthSessionHint(isAuthenticated: boolean) {
   }
 }
 
-export function notifySessionExpired() {
-  listeners.forEach((listener) => listener());
+export function notifySessionExpired(reason?: "account_disabled") {
+  listeners.forEach((listener) => listener(reason));
 }
 
 export function subscribeToSessionExpiration(
