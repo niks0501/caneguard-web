@@ -120,7 +120,8 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
     expect(possibleCondition).toBeVisible();
     expect(within(possibleCondition).getByText(/AI-assisted result\./)).toBeInTheDocument();
     expect(screen.queryByText("Technical Evidence")).not.toBeInTheDocument();
-    expect(screen.queryByText("93%")).not.toBeInTheDocument();
+    expect(within(possibleCondition).queryByText("93%")).not.toBeInTheDocument();
+    expect(screen.getByText("93%")).not.toBeVisible();
   });
 
   it("keeps the Possible Condition visible with its badge", () => {
@@ -128,7 +129,7 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
 
     const possibleCondition = screen.getByRole("region", { name: "Possible Condition" });
     expect(possibleCondition).toBeVisible();
-    expect(possibleCondition).toHaveTextContent("Possible Condition: Rust");
+    expect(possibleCondition).toHaveTextContent("Rust");
   });
 
   it("asserts that a farm list with more than 4 rows renders a Show remaining control and row count before expand + 1 == row count after expand", async () => {
@@ -191,8 +192,8 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     const chips = screen.getByRole("region", { name: "Case status" });
     const photo = screen.getByRole("heading", { name: "Submitted photo" });
     const condition = screen.getByRole("heading", { name: "Possible Condition" });
-    const fieldReport = screen.getByRole("heading", { name: "Field report" });
-    const decision = screen.getByRole("heading", { name: "Office decision" });
+    const fieldReport = screen.getByRole("heading", { name: "Observed symptoms" });
+    const decision = screen.getByRole("heading", { name: "Choose Action" });
     const history = screen.getByRole("heading", { name: "Case history" });
 
     for (const heading of [photo, condition, fieldReport, decision]) {

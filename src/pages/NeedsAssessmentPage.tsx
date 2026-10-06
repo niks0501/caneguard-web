@@ -1,5 +1,6 @@
 import { ClipboardCheck, RefreshCw, TriangleAlert } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
+import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
@@ -15,12 +16,12 @@ function outcomeLabel(outcome: FollowUpOutcome | null | undefined) {
   return outcome ? followUpOutcomeLabels[outcome] : "Outcome not recorded";
 }
 
-function AssessmentRow({ report, attention = false }: { report: DiseaseReport; attention?: boolean }) {
+function AssessmentRow({ report, attention = false, queueContext }: { report: DiseaseReport; attention?: boolean; queueContext: ReviewQueueContext }) {
   const outcome = report.latestValidation?.followUpOutcome;
   return (
     <article className={`needs-assessment-row${attention ? " needs-assessment-row--attention" : ""}`}>
       <div className="needs-assessment-row__identity">
-        <Link className="report-link" to={routes.reportDetail(report.uuid)}>
+        <Link className="report-link" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>
           <strong>{report.referenceCode}</strong>
         </Link>
         <span>{report.farmReference ?? report.barangay}</span>
@@ -32,7 +33,7 @@ function AssessmentRow({ report, attention = false }: { report: DiseaseReport; a
       </div>
       <p>{report.latestValidation?.finding ?? "Field evidence is ready for office assessment."}</p>
       <div className="needs-assessment-row__actions">
-        <Link className="button button--secondary button--small" to={routes.reportDetail(report.uuid)}>Review evidence</Link>
+        <Link className="button button--secondary button--small" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>Review evidence</Link>
         {report.lifecycle?.fieldValidationState !== "completed" ? (
           <Link className="button button--primary button--small" to={routes.fieldOperationsForReport(report.uuid)}>Assign visit</Link>
         ) : null}
@@ -54,13 +55,18 @@ function ReportSection({
   empty: string;
   attention?: boolean;
 }) {
+  const location = useLocation();
   return (
     <section className={`needs-assessment-section${attention ? " needs-assessment-section--attention" : ""}`} aria-labelledby={`${title.toLowerCase().replaceAll(" ", "-")}-heading`}>
       <div className="workspace-heading">
         <div><h2 id={`${title.toLowerCase().replaceAll(" ", "-")}-heading`}>{title}</h2><p>{description}</p></div>
         <strong className="needs-assessment-count">{reports.length}</strong>
       </div>
-      {reports.length > 0 ? <div className="needs-assessment-list">{reports.map((report) => <AssessmentRow key={report.uuid} report={report} attention={attention} />)}</div> : <p className="needs-assessment-empty">{empty}</p>}
+      {reports.length > 0 ? <div className="needs-assessment-list">{reports.map((report) => <AssessmentRow key={report.uuid} report={report} attention={attention} queueContext={{
+        returnTo: `${location.pathname}${location.search}`, filters: {},
+        remainingIds: reports.slice(reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
+        reviewedIds: [], snapshotOnly: true,
+      }} />)}</div> : <p className="needs-assessment-empty">{empty}</p>}
     </section>
   );
 }

@@ -39,7 +39,7 @@ function renderTable(
   variant: "default" | "monitoring" = "default",
 ) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={["/reports?queue=needs_review&sort=oldest&barangay=Balaytigui"]}>
       <ReportTable reports={reports} variant={variant} />
     </MemoryRouter>,
   );
@@ -155,7 +155,18 @@ describe("ReportTable", () => {
     const row = screen.getByRole("row", { name: /CG-2026-0001/i });
     await user.click(row);
 
-    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001");
+    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001", {
+      state: { reviewQueue: {
+        returnTo: "/reports?queue=needs_review&sort=oldest&barangay=Balaytigui",
+        filters: {
+          page: 1, perPage: 15, queue: "needs_review", sort: "oldest", barangay: "Balaytigui",
+          search: undefined, status: undefined, disease: undefined, dateFrom: undefined, dateTo: undefined,
+          caseState: undefined, verificationOutcome: undefined, fieldValidationState: undefined,
+          staffClassifiedCondition: undefined, reportedConcern: undefined,
+        },
+        remainingIds: [], reviewedIds: [],
+      } },
+    });
   });
 
   it("navigates to report details when Enter is pressed on the focused row", async () => {
@@ -166,7 +177,18 @@ describe("ReportTable", () => {
     row.focus();
     await user.keyboard("{Enter}");
 
-    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001");
+    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001", {
+      state: { reviewQueue: {
+        returnTo: "/reports?queue=needs_review&sort=oldest&barangay=Balaytigui",
+        filters: {
+          page: 1, perPage: 15, queue: "needs_review", sort: "oldest", barangay: "Balaytigui",
+          search: undefined, status: undefined, disease: undefined, dateFrom: undefined, dateTo: undefined,
+          caseState: undefined, verificationOutcome: undefined, fieldValidationState: undefined,
+          staffClassifiedCondition: undefined, reportedConcern: undefined,
+        },
+        remainingIds: [], reviewedIds: [],
+      } },
+    });
   });
 
   it("toggles row expansion without navigating when expand chevron is clicked", async () => {

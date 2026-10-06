@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -405,6 +406,7 @@ class ReviewReportTest extends TestCase
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_VERIFIED_BY_STAFF,
             'notes' => 'Reviewed by the authority team.',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
             'expected_version' => 0,
             'reviewer_id' => $spoofedReviewer->getKey(),
             'reporter_id' => $admin->getKey(),
@@ -547,6 +549,7 @@ class ReviewReportTest extends TestCase
             'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
             'case_state' => Report::CASE_STATE_OPEN,
             'notes' => 'Advisory provided while the case remains open for monitoring.',
+            'advisory_uuid' => Advisory::factory()->create(['status' => Advisory::STATUS_VALIDATED])->uuid,
             'metadata_corrections' => [
                 'barangay' => 'Poblacion',
                 'farmer_or_farm_owner_name' => 'Corrected Farmer',
@@ -598,6 +601,7 @@ class ReviewReportTest extends TestCase
 
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
             'expected_version' => 0,
         ])
             ->assertOk()
@@ -717,6 +721,7 @@ class ReviewReportTest extends TestCase
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
             'notes' => 'Review remains available without optional history.',
+            'advisory_uuid' => Advisory::factory()->create(['status' => Advisory::STATUS_VALIDATED])->uuid,
             'expected_version' => 0,
         ])
             ->assertOk()
@@ -742,6 +747,7 @@ class ReviewReportTest extends TestCase
             'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
             'action_taken' => Report::ACTION_ADVISORY_PROVIDED,
             'notes' => 'First review notes by staff.',
+            'advisory_uuid' => Advisory::factory()->create(['status' => Advisory::STATUS_VALIDATED])->uuid,
             'expected_version' => 0,
         ])
             ->assertOk()

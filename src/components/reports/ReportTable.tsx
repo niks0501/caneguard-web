@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { routes } from "../../app/routes";
+import { parseReportListUrl } from "../../pages/reportListUrlState";
 import {
   actionTakenLabels,
   authorityClassifiedConditionLabels,
@@ -36,6 +37,13 @@ export function ReportTable({
   variant?: "default" | "monitoring";
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queueState = (uuid: string) => ({ reviewQueue: {
+    returnTo: `${location.pathname}${location.search}`,
+    filters: parseReportListUrl(new URLSearchParams(location.search)).filters,
+    remainingIds: reports.slice(reports.findIndex((report) => report.uuid === uuid) + 1).map((report) => report.uuid),
+    reviewedIds: [],
+  } });
   const isMonitoring = variant === "monitoring";
   const detailRoute = routes.reportDetail;
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -60,7 +68,7 @@ export function ReportTable({
     ) {
       return;
     }
-    navigate(detailRoute(uuid));
+    navigate(detailRoute(uuid), { state: queueState(uuid) });
   };
 
   const handleRowKeyDown = (
@@ -70,7 +78,7 @@ export function ReportTable({
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      navigate(detailRoute(uuid));
+      navigate(detailRoute(uuid), { state: queueState(uuid) });
     }
   };
 
@@ -122,6 +130,7 @@ export function ReportTable({
                       <Link
                         className="report-link"
                         to={detailRoute(report.uuid)}
+                        state={queueState(report.uuid)}
                         aria-label={`Open ${report.referenceCode}`}
                       >
                         <span className="sr-only">Open </span>

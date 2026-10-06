@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Check, ClipboardList, RefreshCw } from "lucide-react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { ApiError } from "../api/ApiError";
 import { routes } from "../app/routes";
+import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
@@ -40,10 +41,12 @@ function AssignmentRow({
   report,
   reporters,
   focused,
+  queueContext,
 }: {
   report: DiseaseReport;
   reporters: Array<{ uuid: string; name: string }>;
   focused: boolean;
+  queueContext: ReviewQueueContext;
 }) {
   const currentAssignment = report.fieldValidationAssignment;
   const [assigneeUuid, setAssigneeUuid] = useState(currentAssignment?.assignee.uuid ?? "");
@@ -77,7 +80,7 @@ function AssignmentRow({
     <article className={`field-operations-row${focused ? " is-focused" : ""}`} id={`field-operation-${report.uuid}`}>
       <div className="field-operations-row__identity">
         <div>
-          <Link className="report-link" to={routes.reportDetail(report.uuid)}>
+          <Link className="report-link" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>
             <strong>{report.referenceCode}</strong>
           </Link>
           <span>{report.farmReference ?? report.barangay}</span>
@@ -122,6 +125,7 @@ function AssignmentRow({
 
 export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }) {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const focusedReport = searchParams.get("report");
   const reportsQuery = useReports(
     { queue: "needs_visit", perPage: 100, sort: "due_soonest" },
@@ -187,7 +191,12 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
         {reportsQuery.data && reportersQuery.data ? (
           reports.length > 0 ? (
             <div className="field-operations-list">
-              {reports.map((report) => <AssignmentRow key={report.uuid} report={report} reporters={reportersQuery.data ?? []} focused={report.uuid === focusedReport} />)}
+              {reports.map((report) => <AssignmentRow key={report.uuid} report={report} reporters={reportersQuery.data ?? []} focused={report.uuid === focusedReport} queueContext={{
+                returnTo: `${location.pathname}${location.search}`,
+                filters: { queue: "needs_visit", sort: "due_soonest", perPage: 100 },
+                remainingIds: reports.slice(reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
+                reviewedIds: [], snapshotOnly: true,
+              }} />)}
             </div>
           ) : <div className="empty-state"><ClipboardList aria-hidden="true" /><h3>No active visits match</h3><p>All scheduled visits are assigned, or the search has no matches.</p></div>
         ) : null}
