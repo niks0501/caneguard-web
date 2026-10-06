@@ -221,6 +221,41 @@ class ReviewReportRequest extends ApiFormRequest
                 || $this->input('status') === Report::STATUS_FOR_FIELD_VALIDATION
                 || filled($this->input('field_validation_assignee_uuid'));
 
+            $requestedVerification = $this->input('verification_outcome');
+            if ($requestedVerification === null && is_string($this->input('status'))
+                && in_array($this->input('status'), Report::reviewStatuses(), true)
+            ) {
+                $requestedVerification = Report::lifecycleForReviewStatus($this->input('status'))['verification_outcome'];
+            }
+            $classification = array_key_exists('authority_classified_condition', $this->all())
+                ? $this->input('authority_classified_condition')
+                : ($report instanceof Report ? $report->authority_classified_condition : null);
+            if (($requestedVerification === Report::VERIFICATION_OUTCOME_VERIFIED
+                || ($this->has('authority_classified_condition')
+                    && $requestedVerification === null
+                    && $report instanceof Report
+                    && $report->lifecycleSnapshot()['verification_outcome'] === Report::VERIFICATION_OUTCOME_VERIFIED))
+                && blank($classification)
+            ) {
+                $validator->errors()->add('authority_classified_condition', 'Staff-Classified Condition is required for Verified.');
+            }
+            if ($assignmentSelected && $requestedVerification !== null
+                && $requestedVerification !== Report::VERIFICATION_OUTCOME_NOT_DETERMINED
+            ) {
+                $validator->errors()->add('verification_outcome', 'Field Validation must remain Not Determined.');
+            }
+            if ($this->input('action_taken') === Report::ACTION_ADVISORY_PROVIDED
+                && blank($this->input('advisory_uuid')) && blank($this->input('advisory_id'))
+            ) {
+                $validator->errors()->add('advisory_uuid', 'Select a validated advisory for Advisory Guidance.');
+            }
+            if ($this->input('action_taken') === Report::ACTION_TECHNICAL_ASSISTANCE_PROVIDED
+                && (! is_string($this->input('notes'))
+                    || ! preg_match('/[^\s\p{Z}]/u', $this->input('notes')))
+            ) {
+                $validator->errors()->add('notes', 'Meaningful Technical Assistance details are required.');
+            }
+
             if ($assignmentSelected && blank($this->input('field_validation_assignee_uuid'))) {
                 $validator->errors()->add(
                     'field_validation_assignee_uuid',

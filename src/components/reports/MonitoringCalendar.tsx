@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { ApiError } from "../../api/ApiError";
 import { routes } from "../../app/routes";
 import type { FieldValidationQueueItem } from "../../domain/fieldValidation.types";
@@ -113,6 +113,7 @@ function calendarErrorMessage(error: unknown) {
 
 export function MonitoringCalendar() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const parsedUrl = parseReportListUrl(searchParams);
   const month = isValidMonth(parsedUrl.calendarMonth)
     ? parsedUrl.calendarMonth
@@ -218,6 +219,12 @@ export function MonitoringCalendar() {
                       <Link
                         className={`monitoring-calendar__visit${overdue ? " is-overdue" : ""}`}
                         to={routes.reportDetail(item.uuid)}
+                        state={{ reviewQueue: {
+                          returnTo: `${location.pathname}${location.search}`,
+                          filters: parsedUrl.filters,
+                          remainingIds: items.slice(items.findIndex((entry) => entry.uuid === item.uuid) + 1).map((entry) => entry.uuid),
+                          reviewedIds: [], snapshotOnly: true,
+                        } }}
                         key={item.uuid}
                         aria-label={`${item.referenceCode}: ${visitLabel(item, today)}`}
                       >

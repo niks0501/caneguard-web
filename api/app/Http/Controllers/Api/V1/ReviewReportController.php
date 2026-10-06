@@ -79,6 +79,7 @@ class ReviewReportController extends Controller
                     || filled($data['field_validation_assignee_uuid'] ?? null);
                 if ($assignmentSelected) {
                     $lifecycle['field_validation_state'] = Report::FIELD_VALIDATION_STATE_ASSIGNED;
+                    $lifecycle['verification_outcome'] = Report::VERIFICATION_OUTCOME_NOT_DETERMINED;
                 } elseif (array_key_exists('field_validation_state', $data)) {
                     $lifecycle['field_validation_state'] = $data['field_validation_state'];
                 }
@@ -93,7 +94,7 @@ class ReviewReportController extends Controller
                     'field_validation_state',
                 ] as $dimension) {
                     if (array_key_exists($dimension, $data)
-                        || ($dimension === 'field_validation_state' && $assignmentSelected)
+                        || (in_array($dimension, ['field_validation_state', 'verification_outcome'], true) && $assignmentSelected)
                     ) {
                         $reviewUpdate[$dimension] = $lifecycle[$dimension];
                     }

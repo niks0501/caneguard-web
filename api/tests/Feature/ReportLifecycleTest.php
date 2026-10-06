@@ -179,6 +179,7 @@ class ReportLifecycleTest extends TestCase
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'status' => Report::STATUS_VERIFIED_BY_STAFF,
             'notes' => 'Record the legacy review outcome.',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST,
             'expected_version' => 0,
         ])->assertOk()
             ->assertJsonPath(
