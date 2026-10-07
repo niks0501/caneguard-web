@@ -1,9 +1,63 @@
 <?php
 
+$normalizeReportEmbedOrigin = static function (string $origin): ?string {
+    $origin = trim($origin);
+    if ($origin === 'self') {
+        return 'self';
+    }
+    if ($origin === '' || preg_match('/[\x00-\x20\x7f]/', $origin) === 1) {
+        return null;
+    }
+
+    $parts = parse_url($origin);
+    if (! is_array($parts)
+        || ! in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
+        || ! isset($parts['host'])
+        || isset($parts['user'])
+        || isset($parts['pass'])
+        || isset($parts['query'])
+        || isset($parts['fragment'])
+        || (isset($parts['path']) && ! in_array($parts['path'], ['', '/'], true))) {
+        return null;
+    }
+
+    $host = strtolower((string) $parts['host']);
+    $unbracketedHost = trim($host, '[]');
+    if (str_contains($host, '*')
+        || (filter_var($unbracketedHost, FILTER_VALIDATE_IP) === false
+            && filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false)) {
+        return null;
+    }
+
+    $port = $parts['port'] ?? null;
+    if ($port !== null && ($port < 1 || $port > 65535)) {
+        return null;
+    }
+
+    $normalizedHost = str_contains($unbracketedHost, ':')
+        ? '['.$unbracketedHost.']'
+        : $host;
+
+    return strtolower((string) $parts['scheme']).'://'.$normalizedHost.($port === null ? '' : ':'.$port);
+};
+
+$frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/');
+$frontendOrigin = $normalizeReportEmbedOrigin($frontendUrl);
+$configuredReportEmbedOrigins = env('CANEGUARD_REPORT_EMBED_ORIGINS');
+$reportEmbedOrigins = ['self', $frontendOrigin];
+if ($configuredReportEmbedOrigins !== null) {
+    array_push($reportEmbedOrigins, ...explode(',', (string) $configuredReportEmbedOrigins));
+}
+$reportEmbedOrigins = array_values(array_unique(array_filter(array_map(
+    $normalizeReportEmbedOrigin,
+    $reportEmbedOrigins,
+))));
+
 return [
     'legacy_public_storage_link' => public_path('storage'),
     'accounts_enabled' => env('CANEGUARD_ACCOUNTS_ENABLED', false),
     'self_registration_enabled' => env('CANEGUARD_SELF_REGISTRATION_ENABLED', false),
+    'frontend_origin' => $frontendOrigin,
     // Both switches remain closed until the office certifies the pilot roster.
     'pilot_roster_certified' => env('CANEGUARD_PILOT_ROSTER_CERTIFIED', false),
     // Blank means no live district. Never infer membership from location/name.
@@ -18,11 +72,11 @@ return [
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',
-            rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/').'/verify-email',
+            $frontendUrl.'/verify-email',
         ),
         'password_reset_url' => env(
             'CANEGUARD_PASSWORD_RESET_URL',
-            rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/').'/reset-password',
+            $frontendUrl.'/reset-password',
         ),
         'password_min_length' => max(15, (int) env('CANEGUARD_PASSWORD_MIN_LENGTH', 15)),
         'password_max_length' => max(64, (int) env('CANEGUARD_PASSWORD_MAX_LENGTH', 128)),
@@ -48,11 +102,8 @@ return [
         'retention_days' => (int) env('CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS', 2555),
     ],
     'reports' => [
-        // Report documents are embedded only by the authenticated web app.
-        'embed_origins' => array_values(array_filter(array_map(
-            'trim',
-            explode(',', (string) env('CANEGUARD_REPORT_EMBED_ORIGINS', 'self')),
-        ))),
+        // The frontend is the only default cross-origin embedder; optional additional embedders must be exact HTTP(S) origins.
+        'embed_origins' => $reportEmbedOrigins,
     ],
     'seeders' => [
         'dashboard' => [
