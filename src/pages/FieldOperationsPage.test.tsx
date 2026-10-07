@@ -290,7 +290,6 @@ describe("FieldOperationsPage search, grouping, and completeness", () => {
 
     vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: matrix.length, total: matrix.length, oldest: null, items: matrix }));
     renderPage();
-    await user.click(screen.getByRole("button", { name: "Mine" }));
     const search = screen.getByPlaceholderText(/Search reference, farm, barangay, inspector/i);
     await user.type(search, "no-such-visit");
     expect(screen.getByRole("heading", { name: "No visits match the current filters" })).toBeInTheDocument();

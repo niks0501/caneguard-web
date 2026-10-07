@@ -1,8 +1,7 @@
-import { useContext, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ClipboardList, RefreshCw } from "lucide-react";
 import { useSearchParams } from "react-router";
 import { ApiError } from "../api/ApiError";
-import { AuthContext } from "../auth/auth.context";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
@@ -47,13 +46,11 @@ const sectionDescriptions: Record<FieldOperationSection, string> = {
 
 export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const auth = useContext(AuthContext);
   const focusedReport = searchParams.get("report");
   const officeDate = manilaDateAt();
 
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
-  const [mineOnly, setMineOnly] = useState(false);
   const [barangayFilter, setBarangayFilter] = useState("");
   const [visitDateFilter, setVisitDateFilter] = useState("");
   const [groupByBarangay, setGroupByBarangay] = useState(false);
@@ -91,18 +88,11 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
     [workload],
   );
 
-  const currentUserName = auth?.user?.name;
-  const currentUserId = auth?.user?.uuid;
   const needle = search.trim().toLowerCase();
 
   const filteredItems = useMemo(() => {
     return workload.filter((item) => {
       if (quickFilter !== "all" && fieldOperationSection(item, officeDate) !== quickFilter) return false;
-      if (mineOnly) {
-        const matchesUser = item.assignee?.uuid === currentUserId
-          || (currentUserName && item.assignee?.name.toLowerCase() === currentUserName.toLowerCase());
-        if (!matchesUser) return false;
-      }
       if (barangayFilter && item.barangay !== barangayFilter) return false;
       if (visitDateFilter && item.targetVisitDate !== visitDateFilter) return false;
       if (needle) {
@@ -116,7 +106,7 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
       }
       return true;
     });
-  }, [workload, quickFilter, mineOnly, currentUserId, currentUserName, barangayFilter, visitDateFilter, needle, officeDate]);
+  }, [workload, quickFilter, barangayFilter, visitDateFilter, needle, officeDate]);
 
   const sections = useMemo(() => {
     const grouped = groupFieldWorkloadBySection(filteredItems, officeDate);
@@ -150,10 +140,9 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
     void Promise.all([reportsQuery.refetch(), queueQuery.refetch()]);
   };
 
-  const hasActiveFilters = quickFilter !== "all" || mineOnly || Boolean(barangayFilter) || Boolean(visitDateFilter) || Boolean(needle);
+  const hasActiveFilters = quickFilter !== "all" || Boolean(barangayFilter) || Boolean(visitDateFilter) || Boolean(needle);
   const clearFilters = () => {
     setQuickFilter("all");
-    setMineOnly(false);
     setBarangayFilter("");
     setVisitDateFilter("");
     setSearch("");
@@ -224,14 +213,6 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
                 {key === "all" ? "All" : fieldOperationSectionLabels[key]}
               </button>
             ))}
-            <button
-              type="button"
-              className={`queue-filter-btn${mineOnly ? " is-active" : ""}`}
-              aria-pressed={mineOnly}
-              onClick={() => setMineOnly((current) => !current)}
-            >
-              Mine
-            </button>
           </div>
           <label className="select-filter">
             <span>Barangay</span>
