@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "../styles/report-evidence-review.css";
 import {
   ArrowLeft,
@@ -19,7 +19,8 @@ import { reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
 import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
 import { ReportPicker } from "../components/reports/ReportPicker";
-import { DiseaseBadge, ReviewStatusBadge } from "../components/reports/ReportBadges";
+import { DiseaseBadge } from "../components/reports/ReportBadges";
+import { QueueStatusCell } from "../components/reports/QueueRowCells";
 import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
 import { Button } from "../components/ui/Button";
 import { TextArea } from "../components/ui/FormControls";
@@ -49,6 +50,7 @@ import type {
 import { legacyLifecycleForReviewStatus } from "../data/api/mappers/lifecycle.mapper";
 import {
   useLinkDuplicateReport,
+  useOpenCase,
   usePossibleRecentMatches,
   useUnlinkDuplicateReport,
   useReport,
@@ -368,6 +370,9 @@ function CaseReviewContent() {
   const reviewMutation = useUpdateReportReview(reportId);
   const duplicateLinkMutation = useLinkDuplicateReport(reportId);
   const duplicateUnlinkMutation = useUnlinkDuplicateReport(reportId);
+  const openCaseMutation = useOpenCase(reportId);
+  const { mutate: openCase } = openCaseMutation;
+  const openedCaseIds = useRef<Set<string>>(new Set());
   const report = reportQuery.data;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
   const lifecycle = report ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus) : undefined;
@@ -385,6 +390,15 @@ function CaseReviewContent() {
   };
 
   const mapUrl = report ? mapUrlFor(report) : null;
+
+  // Opening the case moves Needs Review to Under Review. The stamp is
+  // idempotent and must run once per case per page load, never on a refetch.
+  useEffect(() => {
+    if (!report || report.firstReviewedAt) return;
+    if (openedCaseIds.current.has(report.uuid)) return;
+    openedCaseIds.current.add(report.uuid);
+    openCase();
+  }, [report, openCase]);
 
   const latestHistoryDate = mergedHistory[0]?.timestamp;
   const caseHistoryAvailable = report?.caseHistory?.available ?? true;
@@ -597,7 +611,7 @@ function CaseReviewContent() {
       <PageHeader
         title={report.referenceCode}
         description={humanLocationFor(report)}
-        actions={<ReviewStatusBadge status={report.reviewStatus} />}
+        actions={<QueueStatusCell row={report} />}
       />
       {reportQuery.isRefetchError ? (
         <div className="detail-refresh-warning" role="alert">

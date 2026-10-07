@@ -48,8 +48,26 @@ describe("parseReportListUrl", () => {
     });
   });
 
-  it("defaults the unscoped work queue to the oldest submission", () => {
-    expect(parseReportListUrl(new URLSearchParams()).filters.sort).toBe("oldest");
+  it("opens the unscoped reviewer queue on the due-soonest case", () => {
+    expect(parseReportListUrl(new URLSearchParams()).filters.sort).toBe("due_soonest");
+  });
+
+  it("maps the one workflow status and the reviewer filter", () => {
+    const state = parseReportListUrl(
+      new URLSearchParams({ workflow_status: "needs_review", reviewer: "officer-1" }),
+    );
+
+    expect(state.filters.workflowStatus).toBe("needs_review");
+    expect(state.filters.reviewer).toBe("officer-1");
+    expect(state.hasActiveFilters).toBe(true);
+    expect(state.invalid).toBe(false);
+  });
+
+  it.each([
+    ["workflow_status=not_a_workflow_state"],
+    [`reviewer=${"a".repeat(121)}`],
+  ])("rejects an invalid reviewer-queue filter: %s", (query) => {
+    expect(parseReportListUrl(new URLSearchParams(query)).invalid).toBe(true);
   });
 
   it("defaults the follow-up queue to the nearest due date", () => {

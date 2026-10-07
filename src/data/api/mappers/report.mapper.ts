@@ -114,6 +114,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     capturedAt: dto.captured_at,
     submittedAt: dto.submitted_at,
     firstReviewedAt: dto.first_reviewed_at ?? undefined,
+    scheduledRevisit: dto.scheduled_revisit ?? false,
     predictedDisease: dto.predicted_label,
     mismatchReported: dto.mismatch_reported,
     imageUrl: resolveReportImageUrl(dto.image_url, env.apiBaseUrl),
@@ -158,6 +159,7 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
       : null,
     locationUnavailable: dto.location_unavailable ?? false,
     locationUnavailableReason: dto.location_unavailable_reason ?? null,
+    affectedAreaHectares: dto.affected_area_hectares ?? undefined,
     affectedAreaMeasurement: dto.affected_area_measurement,
     affectedPortionMeasurement: dto.affected_portion_measurement,
     followUp: dto.follow_up
@@ -184,6 +186,7 @@ export function mapReportDetail(
     observedAt: dto.timestamps.observed_at ?? undefined,
     submittedAt: dto.timestamps.submitted_at,
     firstReviewedAt: dto.first_reviewed_at ?? undefined,
+    scheduledRevisit: dto.scheduled_revisit ?? false,
     finalLatitude: dto.observations.final_latitude ?? undefined,
     finalLongitude: dto.observations.final_longitude ?? undefined,
     locationSource: dto.observations.location_source ?? undefined,

@@ -39,7 +39,11 @@ class ReportListResource extends JsonResource
             'latest_validation' => $this->latestValidationSummary(),
             'location_unavailable' => $this->resource->hasLocationUnavailable(),
             'location_unavailable_reason' => $this->location_unavailable_reason,
+            'affected_area_hectares' => $this->affected_area_hectares === null
+                ? null
+                : (float) $this->affected_area_hectares,
             'affected_area_measurement' => $this->resource->affectedAreaMeasurement(),
+            'scheduled_revisit' => (bool) $this->scheduled_revisit,
             'affected_portion_measurement' => $this->resource->affectedPortionMeasurement(),
             'follow_up' => [
                 'due_on' => $this->fieldValidationAssignment?->target_visit_date?->format('Y-m-d'),

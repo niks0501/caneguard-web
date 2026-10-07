@@ -25,6 +25,7 @@ vi.mock("../hooks/useReports", () => ({
   usePossibleRecentMatches: vi.fn(),
   useReports: vi.fn(),
   useUnlinkDuplicateReport: vi.fn(),
+  useOpenCase: vi.fn(() => ({ mutate: vi.fn() })),
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
 }));

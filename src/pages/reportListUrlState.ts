@@ -5,6 +5,7 @@ import type {
   ReviewStatus,
 } from "../domain/report.types";
 import { operationalQueueValues } from "../domain/operationalQueue";
+import { workflowStatusValues } from "../domain/workflowStatus";
 
 export const reportListPageSize = 15;
 
@@ -41,6 +42,8 @@ const staffClassifiedConditionSchema = z.enum([
   "unable_to_classify",
 ]);
 const reportedConcernSchema = z.enum(["rssi"]);
+const workflowStatusSchema = z.enum(workflowStatusValues);
+const reviewerSchema = z.string().trim().min(1).max(120);
 const calendarMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 const dateSchema = z.iso.date();
 
@@ -82,6 +85,8 @@ export function parseReportListUrl(
     "authority_classified_condition",
   );
   const rawReportedConcern = optionalValue(searchParams, "concern");
+  const rawWorkflowStatus = optionalValue(searchParams, "workflow_status");
+  const rawReviewer = optionalValue(searchParams, "reviewer");
   const rawCalendarMonth = optionalValue(searchParams, "calendar_month");
 
   const page =
@@ -103,6 +108,10 @@ export function parseReportListUrl(
   const reportedConcern = rawReportedConcern
     ? reportedConcernSchema.safeParse(rawReportedConcern)
     : null;
+  const workflowStatus = rawWorkflowStatus
+    ? workflowStatusSchema.safeParse(rawWorkflowStatus)
+    : null;
+  const reviewer = rawReviewer ? reviewerSchema.safeParse(rawReviewer) : null;
   const calendarMonth = rawCalendarMonth
     ? calendarMonthSchema.safeParse(rawCalendarMonth)
     : null;
@@ -124,6 +133,8 @@ export function parseReportListUrl(
     Boolean(fieldValidationState && !fieldValidationState.success) ||
     Boolean(staffClassifiedCondition && !staffClassifiedCondition.success) ||
     Boolean(reportedConcern && !reportedConcern.success) ||
+    Boolean(workflowStatus && !workflowStatus.success) ||
+    Boolean(reviewer && !reviewer.success) ||
     Boolean(calendarMonth && !calendarMonth.success) ||
     Boolean(dateFrom && !dateFrom.success) ||
     Boolean(dateTo && !dateTo.success) ||
@@ -158,13 +169,12 @@ export function parseReportListUrl(
       reportedConcern: reportedConcern?.success
         ? reportedConcern.data
         : undefined,
-      // The unscoped work queue opens on the oldest submission; a due queue
-      // opens on the nearest target visit date.
-      sort: sort?.success
-        ? sort.data
-        : queue?.success && queue.data === "follow_up_due"
-            ? "due_soonest"
-            : "oldest",
+      workflowStatus: workflowStatus?.success
+        ? workflowStatus.data
+        : undefined,
+      reviewer: reviewer?.success ? reviewer.data : undefined,
+      // The reviewer queue opens on the case that needs attention soonest.
+      sort: sort?.success ? sort.data : "due_soonest",
     },
     hasActiveFilters: Boolean(
       rawQueue ||
@@ -178,7 +188,9 @@ export function parseReportListUrl(
         rawVerificationOutcome ||
         rawFieldValidationState ||
         rawStaffClassifiedCondition ||
-        rawReportedConcern,
+        rawReportedConcern ||
+        rawWorkflowStatus ||
+        rawReviewer,
     ),
     invalid,
   };

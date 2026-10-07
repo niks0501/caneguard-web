@@ -1,5 +1,6 @@
 import syntheticSugarcaneRustImage from "../../assets/synthetic-sugarcane-rust.png";
-import type { DiseaseReport } from "../../domain/report.types";
+import type { DiseaseReport, ReportLifecycle } from "../../domain/report.types";
+import { legacyLifecycleForReviewStatus } from "../api/mappers/lifecycle.mapper";
 
 const commonSymptoms = {
   downy: [
@@ -250,10 +251,21 @@ const sourceReports: DiseaseReport[] = [
 
 // The seeded synthetic evidence is already part of the repository and keeps
 // mock-mode screenshots representative of the real report-image experience.
+// Mock rows carry the same lifecycle dimensions the API returns so the
+// reviewer queue derives the same six-state status in mock mode.
+function mockLifecycle(report: DiseaseReport): ReportLifecycle {
+  const lifecycle = legacyLifecycleForReviewStatus(report.reviewStatus);
+
+  return report.reviewStatus === "for_field_validation"
+    ? { ...lifecycle, fieldValidationState: "assigned" }
+    : lifecycle;
+}
+
 export const mockReports: DiseaseReport[] = sourceReports.map((report, index) => {
   const location = nasugbuLocations[index % nasugbuLocations.length];
   const localReport: DiseaseReport = {
     ...report,
+    lifecycle: report.lifecycle ?? mockLifecycle(report),
     barangay: location.barangay,
     province: "Batangas",
     municipality: "Nasugbu",

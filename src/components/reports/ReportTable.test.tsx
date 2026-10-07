@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
-import type { DiseaseReport } from "../../domain/report.types";
+import type { DiseaseReport, ReportLifecycle } from "../../domain/report.types";
 import { ReportTable } from "./ReportTable";
 
 const mockNavigate = vi.fn();
@@ -14,13 +14,23 @@ vi.mock("react-router", async (importOriginal) => {
   };
 });
 
-function report(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
+type QueueReport = DiseaseReport & { scheduledRevisit?: boolean };
+
+const openUntouched: ReportLifecycle = {
+  caseState: "open",
+  verificationOutcome: "not_determined",
+  fieldValidationState: "unassigned",
+  referralState: "not_referred",
+};
+
+function report(overrides: Partial<QueueReport> = {}): DiseaseReport {
   return {
     uuid: "00000000-0000-4000-8000-000000000001",
     referenceCode: "CG-2026-0001",
     barangay: "Balaytigui",
     province: "Batangas",
     municipality: "Nasugbu",
+    farmReference: "Dela Cruz farm",
     submittedByName: "Ramon Dela Cruz",
     submitterRole: "field_reporter",
     capturedAt: "2026-07-18T07:42:00+08:00",
@@ -30,6 +40,7 @@ function report(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
     imageStatus: "available",
     symptoms: [],
     reviewStatus: "submitted_unverified",
+    lifecycle: openUntouched,
     ...overrides,
   };
 }
@@ -39,174 +50,210 @@ function renderTable(
   variant: "default" | "monitoring" = "default",
 ) {
   return render(
-    <MemoryRouter initialEntries={["/reports?queue=needs_review&sort=oldest&barangay=Balaytigui"]}>
+    <MemoryRouter
+      initialEntries={["/reports?queue=needs_review&sort=oldest&barangay=Balaytigui"]}
+    >
       <ReportTable reports={reports} variant={variant} />
     </MemoryRouter>,
   );
 }
 
-describe("ReportTable", () => {
-  it("renders the monitoring register signals without merging reporter and staff concerns", () => {
-    renderTable([
-      report({
-        farmReference: "Farm Alpha",
-        reporterSuspectedCondition: "RSSI",
-        authorityClassifiedCondition: "rssi",
-        actionTaken: "technical_assistance_provided",
-        latestValidation: {
-          visitedAt: "2026-08-14T09:30:00.000Z",
-          fieldObservation: "Fresh observation",
-          finding: "Validation finding",
-          actionTaken: "Field action",
-          followUpOutcome: "worsened",
-          assignee: { uuid: "officer-1", name: "Field Officer" },
-        },
-        followUp: { dueOn: "2026-08-20", overdue: true },
-      }),
-    ], "monitoring");
+function rowFor(reference: string) {
+  return screen.getByRole("row", { name: new RegExp(reference, "i") });
+}
 
-    expect(screen.getByRole("columnheader", { name: "Reported concern" })).toBeInTheDocument();
-    expect(screen.getByText("Reported: RSSI")).toBeInTheDocument();
-    expect(screen.getByText("Staff: RSSI")).toBeInTheDocument();
-    expect(screen.getByText("Validation finding")).toBeInTheDocument();
-    expect(screen.getByText("Follow-up: Worsened")).toBeInTheDocument();
-    expect(screen.getByText("Technical assistance provided")).toBeInTheDocument();
-    expect(screen.getByText("Overdue")).toBeInTheDocument();
-  });
+describe("ReportTable - six queue columns", () => {
+  it.each(["default", "monitoring"] as const)(
+    "renders exactly the six queue columns for the %s register",
+    (variant) => {
+      renderTable([report()], variant);
 
-  it("keeps work status while hiding model confidence and machine facts", () => {
-    renderTable([report({
-      modelVersion: "CaneGuard-model-v1",
-      attentionBand: "red",
-      attentionBandReasons: ["test-only backend detail"],
-      machineFacts: {
-        confidence: 0.95,
-        checklistConsistency: "inconsistent",
-        qualityWarnings: ["blurred"],
-        gpsAccuracy: 4.25,
-        locationSource: "gps",
-        reporterConcern: "RSSI",
-        reporterMismatch: true,
-      },
-    })]);
+      const headers = screen
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent?.trim() ?? "");
 
+      expect(headers).toEqual([
+        "Case",
+        "Location",
+        "Possible Condition",
+        "Affected Area",
+        "Case Status",
+        "Review",
+      ]);
+    },
+  );
+
+  it("keeps the case cell to code, farm and markers only", () => {
+    renderTable([report({ mismatchReported: true })]);
+
+    const row = rowFor("CG-2026-0001");
+    expect(within(row).getByText("CG-2026-0001")).toBeInTheDocument();
+    expect(within(row).getByText("Dela Cruz farm")).toBeInTheDocument();
+    expect(within(row).getByText(/reporter concern/i)).toBeInTheDocument();
+    expect(screen.queryByAltText(/Submitted photo/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Ramon Dela Cruz")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reporter:/i)).not.toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Work status" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("columnheader", { name: "Review status" }),
+      screen.queryByRole("button", { name: /Details for CG-2026-0001/i }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText("95%")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/confidence/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("CaneGuard-model-v1")).not.toBeInTheDocument();
-    expect(screen.queryByText("red")).not.toBeInTheDocument();
-    expect(screen.queryByText("4.25")).not.toBeInTheDocument();
-    expect(screen.getByText("Possible Condition: Rust")).toBeInTheDocument();
   });
 
-  it("shows submission age and the staff classification when present", () => {
+  it("falls back to 'No farm reference'", () => {
+    renderTable([report({ farmReference: undefined })]);
+
+    expect(within(rowFor("CG-2026-0001")).getByText("No farm reference")).toBeInTheDocument();
+  });
+
+  it("keeps the predicted condition and the staff line", () => {
+    renderTable([report({ authorityClassifiedCondition: "smut" })]);
+
+    const row = rowFor("CG-2026-0001");
+    expect(within(row).getByText(/Rust/)).toBeInTheDocument();
+    expect(within(row).getByText("Staff: Sugarcane Smut")).toBeInTheDocument();
+  });
+
+  it("moves the submitted timestamp off the row", () => {
+    renderTable([report()]);
+
+    const row = rowFor("CG-2026-0001");
+    expect(within(row).queryByText("Jul 18, 2026")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", { name: "Submitted" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("ReportTable - affected area", () => {
+  it("shows measured hectares", () => {
+    renderTable([report({ affectedAreaHectares: 2.4 })]);
+
+    expect(within(rowFor("CG-2026-0001")).getByText("2.4 ha")).toBeInTheDocument();
+  });
+
+  it("shows a dash when the area was not measured", () => {
     renderTable([
+      report({ affectedAreaHectares: undefined, affectedAreaMeasurement: "not_measured" }),
+    ]);
+
+    expect(within(rowFor("CG-2026-0001")).getByText("—")).toBeInTheDocument();
+  });
+});
+
+describe("ReportTable - one workflow status", () => {
+  it("shows Needs Review for an untouched open case", () => {
+    renderTable([report()]);
+
+    expect(within(rowFor("CG-2026-0001")).getByText("Needs Review")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).queryByText("Needs review")).not.toBeInTheDocument();
+  });
+
+  it("shows Field Validation for assigned work", () => {
+    renderTable([
+      report({ lifecycle: { ...openUntouched, fieldValidationState: "assigned" } }),
+    ]);
+
+    expect(within(rowFor("CG-2026-0001")).getByText("Field Validation")).toBeInTheDocument();
+  });
+
+  it("shows Resolved for a closed case", () => {
+    renderTable([
+      report({ lifecycle: { ...openUntouched, caseState: "closed" } }),
+    ]);
+
+    expect(within(rowFor("CG-2026-0001")).getByText("Resolved")).toBeInTheDocument();
+  });
+
+  it("shows Follow-Up only when the scheduled-revisit flag is set", () => {
+    const { unmount } = renderTable([
       report({
-        authorityClassifiedCondition: "smut",
-        submittedAt: new Date(Date.now() - 40 * 86_400_000).toISOString(),
+        lifecycle: { ...openUntouched, fieldValidationState: "completed" },
+        scheduledRevisit: true,
       }),
     ]);
 
-    expect(screen.getByText("1 month ago")).toBeInTheDocument();
-    expect(
-      screen.getByText("Staff: Sugarcane Smut"),
-    ).toBeInTheDocument();
-  });
+    expect(within(rowFor("CG-2026-0001")).getByText("Follow-Up")).toBeInTheDocument();
+    unmount();
 
-  it("shows an overdue follow-up instead of a bare date", () => {
     renderTable([
       report({
+        lifecycle: { ...openUntouched, fieldValidationState: "completed" },
         followUp: { dueOn: "2026-08-20", overdue: true },
       }),
     ]);
 
-    expect(screen.getByText("Overdue")).toBeInTheDocument();
-    expect(screen.getByText("Aug 20, 2026")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).queryByText("Follow-Up")).not.toBeInTheDocument();
   });
 
-  it("marks a case submitted without an exact coordinate", () => {
-    renderTable([report({ locationUnavailable: true })]);
+  it("shows Under Review once a case has been opened", () => {
+    renderTable([report({ firstReviewedAt: "2026-07-21T02:00:00.000Z" })]);
 
-    expect(screen.getByText("Location unavailable")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Under Review")).toBeInTheDocument();
   });
+});
 
-
-
-
-  it("uses actionable identification-gap wording without an automated risk level", () => {
-    renderTable([report({
-      identificationGap: { state: "unidentified", reasons: ["no_condition"] },
-    })]);
-
-    expect(screen.getByText("Condition not identified — review needed")).toBeInTheDocument();
-    expect(screen.queryByText(/risk|score|band/i)).not.toBeInTheDocument();
-  });
-
+describe("ReportTable - queue navigation", () => {
   it("navigates to report details when a row is clicked", async () => {
     const user = userEvent.setup();
-    renderTable([report({ uuid: "00000000-0000-4000-8000-000000000001" })]);
+    mockNavigate.mockClear();
+    renderTable([report()]);
 
-    const row = screen.getByRole("row", { name: /CG-2026-0001/i });
-    await user.click(row);
+    await user.click(rowFor("CG-2026-0001"));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001", {
-      state: { reviewQueue: {
-        returnTo: "/reports?queue=needs_review&sort=oldest&barangay=Balaytigui",
-        filters: {
-          page: 1, perPage: 15, queue: "needs_review", sort: "oldest", barangay: "Balaytigui",
-          search: undefined, status: undefined, disease: undefined, dateFrom: undefined, dateTo: undefined,
-          caseState: undefined, verificationOutcome: undefined, fieldValidationState: undefined,
-          staffClassifiedCondition: undefined, reportedConcern: undefined,
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/reports/00000000-0000-4000-8000-000000000001",
+      {
+        state: {
+          reviewQueue: expect.objectContaining({
+            returnTo: "/reports?queue=needs_review&sort=oldest&barangay=Balaytigui",
+            filters: expect.objectContaining({
+              queue: "needs_review",
+              barangay: "Balaytigui",
+            }),
+            remainingIds: [],
+            reviewedIds: [],
+          }),
         },
-        remainingIds: [], reviewedIds: [],
-      } },
-    });
+      },
+    );
   });
 
   it("navigates to report details when Enter is pressed on the focused row", async () => {
     const user = userEvent.setup();
-    renderTable([report({ uuid: "00000000-0000-4000-8000-000000000001" })]);
+    mockNavigate.mockClear();
+    renderTable([report()]);
 
-    const row = screen.getByRole("row", { name: /CG-2026-0001/i });
+    const row = rowFor("CG-2026-0001");
     row.focus();
     await user.keyboard("{Enter}");
 
-    expect(mockNavigate).toHaveBeenCalledWith("/reports/00000000-0000-4000-8000-000000000001", {
-      state: { reviewQueue: {
-        returnTo: "/reports?queue=needs_review&sort=oldest&barangay=Balaytigui",
-        filters: {
-          page: 1, perPage: 15, queue: "needs_review", sort: "oldest", barangay: "Balaytigui",
-          search: undefined, status: undefined, disease: undefined, dateFrom: undefined, dateTo: undefined,
-          caseState: undefined, verificationOutcome: undefined, fieldValidationState: undefined,
-          staffClassifiedCondition: undefined, reportedConcern: undefined,
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/reports/00000000-0000-4000-8000-000000000001",
+      expect.objectContaining({
+        state: {
+          reviewQueue: expect.objectContaining({
+            returnTo: "/reports?queue=needs_review&sort=oldest&barangay=Balaytigui",
+            remainingIds: [],
+            reviewedIds: [],
+          }),
         },
-        remainingIds: [], reviewedIds: [],
-      } },
-    });
+      }),
+    );
   });
 
-  it("toggles row expansion without navigating when expand chevron is clicked", async () => {
+  it("carries the queue context on the Review action anchor", async () => {
     const user = userEvent.setup();
-    renderTable([report({ submittedByName: "Ramon Dela Cruz" })]);
-
     mockNavigate.mockClear();
-    const expandBtn = screen.getByRole("button", { name: /Details for CG-2026-0001/i });
-    expect(screen.queryByText(/Reporter:/i)).not.toBeInTheDocument();
+    renderTable([report()]);
 
-    await user.click(expandBtn);
+    const reviewAction = within(rowFor("CG-2026-0001")).getByRole("link", {
+      name: /Open CG-2026-0001/i,
+    });
+    expect(reviewAction).toHaveAttribute(
+      "href",
+      "/reports/00000000-0000-4000-8000-000000000001",
+    );
 
-    expect(mockNavigate).not.toHaveBeenCalled();
-    expect(screen.getByText(/Reporter:/i)).toBeInTheDocument();
-    expect(screen.getByText("Ramon Dela Cruz")).toBeInTheDocument();
-
-    // Clicking inside the expanded content does not navigate
-    await user.click(screen.getByText("Ramon Dela Cruz"));
+    await user.click(reviewAction);
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

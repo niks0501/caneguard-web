@@ -1,4 +1,5 @@
 import type { OperationalQueue } from "./operationalQueue";
+import type { WorkflowStatus } from "./workflowStatus";
 
 export type DiseaseKey = "healthy" | "mosaic" | "rust" | "smut";
 export type AttentionBand = "green" | "amber" | "red";
@@ -341,6 +342,8 @@ export interface DiseaseReport {
   observedAt?: string;
   submittedAt: string;
   firstReviewedAt?: string;
+  /** Ratified explicit scheduled-revisit flag driving the Follow-Up state. */
+  scheduledRevisit?: boolean;
   finalLatitude?: number;
   finalLongitude?: number;
   locationSource?: LocationSource;
@@ -437,6 +440,10 @@ export type ReportSort = "newest" | "oldest" | "due_soonest";
 export interface ReportFilters {
   queue?: OperationalQueue;
   search?: string;
+  /** The one reviewer-facing workflow filter (six workflow states). */
+  workflowStatus?: WorkflowStatus | "all";
+  /** Field-validation assignee uuid (A3). */
+  reviewer?: string;
   /** Derived compatibility projection; the actual lifecycle axes sit below. */
   status?: ReviewStatus | "all";
   caseState?: CaseState | "all";

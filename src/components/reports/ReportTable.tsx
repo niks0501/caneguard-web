@@ -1,34 +1,32 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { routes } from "../../app/routes";
 import { parseReportListUrl } from "../../pages/reportListUrlState";
-import {
-  actionTakenLabels,
-  authorityClassifiedConditionLabels,
-  followUpOutcomeLabels,
-  submitterRoleLabels,
-} from "../../domain/report.metadata";
 import type { DiseaseReport } from "../../domain/report.types";
 import {
-  formatAge,
-  formatDate,
-  formatDateTime,
-  formatDueState,
-} from "../../lib/formatters";
-import { EvidenceThumbnail } from "./EvidenceThumbnail";
-import {
-  DiseaseBadge,
-  IdentificationGapBadge,
-  ReviewStatusBadge,
-} from "./ReportBadges";
+  QueueAffectedAreaCell,
+  QueueCaseCell,
+  QueueConditionCell,
+  QueueLocationCell,
+  QueueReviewLink,
+  QueueStatusCell,
+  type QueueRowView,
+} from "./QueueRowCells";
 
 /**
- * The work queue renders 6 scan columns at standard 1280px office laptop widths:
- * reference (which is the link), condition, location, submitted date, follow-up, and work status.
- * Additional details like reporter information are available behind row expansion.
- * AI confidence is never a queue priority score.
+ * The one reviewer queue: exactly six columns that pick the next case.
+ * Everything needed to review a case lives on the Case Review page, so the row
+ * carries no expand surface, thumbnail, submitted timestamp or identity names.
+ * The table rule: the table helps the reviewer decide which case to open next.
  */
+const QUEUE_HEADERS = [
+  "Case",
+  "Location",
+  "Possible Condition",
+  "Affected Area",
+  "Case Status",
+  "Review",
+] as const;
+
 export function ReportTable({
   reports,
   variant = "default",
@@ -38,21 +36,21 @@ export function ReportTable({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const queueState = (uuid: string) => ({ reviewQueue: {
-    returnTo: `${location.pathname}${location.search}`,
-    filters: parseReportListUrl(new URLSearchParams(location.search)).filters,
-    remainingIds: reports.slice(reports.findIndex((report) => report.uuid === uuid) + 1).map((report) => report.uuid),
-    reviewedIds: [],
-  } });
   const isMonitoring = variant === "monitoring";
-  const detailRoute = routes.reportDetail;
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
-  const toggleRow = (uuid: string) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [uuid]: !prev[uuid],
-    }));
+  const queueState = (uuid: string) => ({
+    reviewQueue: {
+      returnTo: `${location.pathname}${location.search}`,
+      filters: parseReportListUrl(new URLSearchParams(location.search)).filters,
+      remainingIds: reports
+        .slice(reports.findIndex((report) => report.uuid === uuid) + 1)
+        .map((report) => report.uuid),
+      reviewedIds: [],
+    },
+  });
+
+  const openCase = (uuid: string) => {
+    navigate(routes.reportDetail(uuid), { state: queueState(uuid) });
   };
 
   const handleRowClick = (
@@ -61,14 +59,10 @@ export function ReportTable({
   ) => {
     const target = event.target as HTMLElement | null;
     if (!target) return;
-    if (
-      target.closest(
-        "button, a, input, select, textarea, [role='button'], .report-row-expanded-content",
-      )
-    ) {
+    if (target.closest("button, a, input, select, textarea, [role='button']")) {
       return;
     }
-    navigate(detailRoute(uuid), { state: queueState(uuid) });
+    openCase(uuid);
   };
 
   const handleRowKeyDown = (
@@ -78,7 +72,7 @@ export function ReportTable({
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      navigate(detailRoute(uuid), { state: queueState(uuid) });
+      openCase(uuid);
     }
   };
 
@@ -87,29 +81,14 @@ export function ReportTable({
       <table className={`report-table${isMonitoring ? " report-table--monitoring" : ""}`}>
         <thead>
           <tr>
-            <th scope="col">Report</th>
-            {isMonitoring ? (
-              <>
-                <th scope="col">Reported concern</th>
-                <th scope="col">Latest validation</th>
-                <th scope="col">Action taken</th>
-                <th scope="col">Next follow-up</th>
-              </>
-            ) : (
-              <>
-                <th scope="col">Possible Condition</th>
-                <th scope="col">Location</th>
-                <th scope="col">Submitted</th>
-                <th scope="col">Follow-up</th>
-              </>
-            )}
-            <th scope="col">Work status</th>
+            {QUEUE_HEADERS.map((header) => (
+              <th scope="col" key={header}>{header}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {reports.map((report) => {
-            const due = formatDueState(report.followUp);
-            const isExpanded = Boolean(expandedRows[report.uuid]);
+            const row: QueueRowView = report;
             return (
               <tr
                 className={`report-row report-row--${report.reviewStatus}`}
@@ -120,210 +99,22 @@ export function ReportTable({
                 onKeyDown={(e) => handleRowKeyDown(e, report.uuid)}
               >
                 <td>
-                  <div className="report-identity">
-                    <EvidenceThumbnail
-                      status={report.imageStatus}
-                      label={`Submitted photo for ${report.referenceCode}`}
-                      src={report.imageUrl}
-                    />
-                    <div>
-                      <Link
-                        className="report-link"
-                        to={detailRoute(report.uuid)}
-                        state={queueState(report.uuid)}
-                        aria-label={`Open ${report.referenceCode}`}
-                      >
-                        <span className="sr-only">Open </span>
-                        <strong>{report.referenceCode}</strong>
-                      </Link>
-                      <span>{isMonitoring
-                        ? (report.farmReference ?? report.barangay)
-                        : (report.farmReference ?? "No farm reference")}</span>
-                      {isMonitoring ? (
-                        <span className="table-secondary">Barangay: {report.barangay}</span>
-                      ) : null}
-                      {report.mismatchReported === true ? (
-                        <span className="mismatch-table-marker">
-                          Reporter concern needs review
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
+                  <QueueCaseCell row={row} />
                 </td>
-                {isMonitoring ? (
-                  <>
-                    <td className="monitoring-register-detail">
-                      {report.reporterSuspectedCondition ? (
-                        <strong className="table-primary">
-                          Reported: {report.reporterSuspectedCondition}
-                        </strong>
-                      ) : (
-                        <span className="table-secondary">No concern reported</span>
-                      )}
-                      {report.authorityClassifiedCondition ? (
-                        <span className="table-secondary">
-                          Staff: {authorityClassifiedConditionLabels[report.authorityClassifiedCondition]}
-                        </span>
-                      ) : (
-                        <span className="table-secondary">Staff: Not classified</span>
-                      )}
-                    </td>
-                    <td className="monitoring-register-detail">
-                      {report.latestValidation ? (
-                        <>
-                          <strong className="table-primary">
-                            {formatDateTime(report.latestValidation.visitedAt)}
-                          </strong>
-                          <span className="table-secondary">
-                            {report.latestValidation.finding}
-                          </span>
-                          <span className="table-secondary">
-                            {report.latestValidation.assignee?.name ?? "Assignee unavailable"}
-                          </span>
-                          {report.latestValidation.followUpOutcome ? (
-                            <span className="monitoring-outcome-chip">
-                              Follow-up: {followUpOutcomeLabels[report.latestValidation.followUpOutcome]}
-                            </span>
-                          ) : null}
-                        </>
-                      ) : (
-                        <span className="table-secondary">
-                          {report.fieldValidationAssignment?.targetVisitDate
-                            ? "Field visit assigned; report pending"
-                            : "No visit completed"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="monitoring-register-detail">
-                      {report.actionTaken ? (
-                        <span className="table-primary">
-                          {actionTakenLabels[report.actionTaken] ?? report.actionTaken}
-                        </span>
-                      ) : (
-                        <span className="table-secondary">Not recorded</span>
-                      )}
-                      {report.latestValidation?.actionTaken ? (
-                        <span className="table-secondary">
-                          Field: {report.latestValidation.actionTaken}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td>
-                      {due ? (
-                        <>
-                          <strong className={`table-primary${due.overdue ? " table-overdue" : ""}`}>
-                            {due.label}
-                          </strong>
-                          <span className="table-secondary">
-                            {due.overdue ? "Overdue" : "Scheduled"}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="table-secondary">Not scheduled</span>
-                      )}
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td>
-                      <DiseaseBadge disease={report.predictedDisease} />
-                      {report.authorityClassifiedCondition ? (
-                        <span className="table-secondary">
-                          Staff:{" "}
-                          {
-                            authorityClassifiedConditionLabels[
-                              report.authorityClassifiedCondition
-                            ]
-                          }
-                        </span>
-                      ) : null}
-                    </td>
-                    <td>
-                      <strong className="table-primary">{report.barangay}</strong>
-                      <span className="table-secondary">
-                        {report.locationUnavailable
-                          ? "Location unavailable"
-                          : [report.municipality, report.province]
-                              .filter(Boolean)
-                              .join(", ") || "Location not provided"}
-                      </span>
-                    </td>
-                    <td>
-                      <strong className="table-primary">
-                        {formatDate(report.submittedAt)}
-                      </strong>
-                      <span className="table-secondary">
-                        {formatAge(report.submittedAt)}
-                      </span>
-                    </td>
-                    <td>
-                      {due ? (
-                        <>
-                          <strong
-                            className={`table-primary${
-                              due.overdue ? " table-overdue" : ""
-                            }`}
-                          >
-                            {due.label}
-                          </strong>
-                          <span className="table-secondary">
-                            {due.overdue ? "Overdue" : "Visit scheduled"}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="table-secondary">No visit scheduled</span>
-                      )}
-                    </td>
-                  </>
-                )}
+                <td>
+                  <QueueLocationCell row={row} />
+                </td>
+                <td>
+                  <QueueConditionCell row={row} />
+                </td>
+                <td>
+                  <QueueAffectedAreaCell row={row} />
+                </td>
                 <td className="report-status-cell">
-                  <div className="report-status-cell__wrapper">
-                    <ReviewStatusBadge status={report.reviewStatus} />
-                    <IdentificationGapBadge state={report.identificationGap?.state} />
-                    <button
-                      type="button"
-                      className="row-expand-btn"
-                      aria-expanded={isExpanded}
-                      aria-label={`Details for ${report.referenceCode}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleRow(report.uuid);
-                      }}
-                    >
-                      {isExpanded ? (
-                        <ChevronUp aria-hidden="true" />
-                      ) : (
-                        <ChevronDown aria-hidden="true" />
-                      )}
-                    </button>
-                  </div>
-                  {isExpanded ? (
-                    <div className="report-row-expanded-content">
-                      <div className="report-row-expanded-item">
-                        <span className="table-secondary">Reporter: </span>
-                        <strong className="table-primary">
-                          {report.submittedByName}
-                        </strong>{" "}
-                        <span className="table-secondary">
-                          ({submitterRoleLabels[report.submitterRole]})
-                        </span>
-                      </div>
-                      {report.fieldValidationAssignment?.assignee ? (
-                        <div className="report-row-expanded-item">
-                          <span className="table-secondary">Assigned to: </span>
-                          <strong className="table-primary">
-                            {report.fieldValidationAssignment.assignee.name}
-                          </strong>
-                        </div>
-                      ) : null}
-                      <div className="report-row-expanded-item">
-                        <span className="table-secondary">First reviewed: </span>
-                        <strong className="table-primary">
-                          {report.firstReviewedAt ? formatDate(report.firstReviewedAt) : "Not reviewed"}
-                        </strong>
-                      </div>
-                    </div>
-                  ) : null}
+                  <QueueStatusCell row={row} />
+                </td>
+                <td className="report-review-cell">
+                  <QueueReviewLink row={row} state={queueState(report.uuid)} />
                 </td>
               </tr>
             );

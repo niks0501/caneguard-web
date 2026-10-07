@@ -368,6 +368,7 @@ export const reportListItemSchema = z.object({
   }).nullable().optional(),
   location_unavailable: z.boolean().optional(),
   location_unavailable_reason: locationUnavailableReasonSchema.nullable().optional(),
+  affected_area_hectares: z.number().nullable().optional(),
   affected_area_measurement: measurementProvenanceSchema.optional(),
   affected_portion_measurement: measurementProvenanceSchema.optional(),
   follow_up: z.object({
@@ -375,6 +376,7 @@ export const reportListItemSchema = z.object({
     overdue: z.boolean(),
   }).optional(),
   mismatch_reported: z.boolean().nullable(),
+  scheduled_revisit: z.boolean().optional(),
   machine_facts: reportMachineFactsSchema.optional(),
   attention_band: attentionBandSchema.nullable().optional(),
   attention_band_reasons: z.array(z.string()).optional(),
@@ -497,6 +499,7 @@ export const reportDetailSchema = z.object({
   lifecycle: reportLifecycleSchema.optional(),
   machine_facts: reportMachineFactsSchema.optional(),
   first_reviewed_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  scheduled_revisit: z.boolean().optional(),
   case_history: reportCaseHistorySchema.optional(),
   attention_band: attentionBandSchema.nullable().optional(),
   attention_band_reasons: z.array(z.string()).optional(),

@@ -77,6 +77,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'reviewer_id',
     'reviewed_at',
     'first_reviewed_at',
+    'scheduled_revisit',
     'lock_version',
     'canonical_report_id',
 ])]
@@ -175,6 +176,19 @@ class Report extends Model
     public const FIELD_VALIDATION_STATE_IN_PROGRESS = 'in_progress';
 
     public const FIELD_VALIDATION_STATE_COMPLETED = 'completed';
+
+    /** Reviewer queue workflow states derived with a fixed precedence. */
+    public const WORKFLOW_STATUS_NEEDS_REVIEW = 'needs_review';
+
+    public const WORKFLOW_STATUS_UNDER_REVIEW = 'under_review';
+
+    public const WORKFLOW_STATUS_FIELD_VALIDATION = 'field_validation';
+
+    public const WORKFLOW_STATUS_REFERRED = 'referred';
+
+    public const WORKFLOW_STATUS_FOLLOW_UP = 'follow_up';
+
+    public const WORKFLOW_STATUS_RESOLVED = 'resolved';
 
     public const REFERRAL_STATE_NOT_REFERRED = 'not_referred';
 
@@ -379,6 +393,23 @@ class Report extends Model
             self::STATUS_VERIFIED_BY_STAFF,
             self::STATUS_UNABLE_TO_VERIFY,
             self::STATUS_RESOLVED,
+        ];
+    }
+
+    /**
+     * Reviewer queue states in ratified precedence order (highest first).
+     *
+     * @return array<int, string>
+     */
+    public static function workflowStatuses(): array
+    {
+        return [
+            self::WORKFLOW_STATUS_RESOLVED,
+            self::WORKFLOW_STATUS_FIELD_VALIDATION,
+            self::WORKFLOW_STATUS_REFERRED,
+            self::WORKFLOW_STATUS_FOLLOW_UP,
+            self::WORKFLOW_STATUS_UNDER_REVIEW,
+            self::WORKFLOW_STATUS_NEEDS_REVIEW,
         ];
     }
 
@@ -690,6 +721,7 @@ class Report extends Model
             'submitted_at' => 'immutable_datetime',
             'reviewed_at' => 'immutable_datetime',
             'first_reviewed_at' => 'immutable_datetime',
+            'scheduled_revisit' => 'boolean',
             'advisory_selected_at' => 'immutable_datetime',
             'advisory_delivered_at' => 'immutable_datetime',
             'advisory_acknowledged_at' => 'immutable_datetime',
