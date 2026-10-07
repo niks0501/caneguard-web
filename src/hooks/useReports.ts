@@ -42,6 +42,28 @@ export function useReport(reportId: string) {
   return useQuery(reportQueryOptions(reportId));
 }
 
+/**
+ * Opening a case stamps the first-reviewed signal through the dedicated
+ * idempotent endpoint (Q8). The stamp never bumps `lock_version`, so the
+ * cached detail keeps the version the reviewer already loaded.
+ */
+export function useOpenCase(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => reportsRepository.openCase(reportId),
+    onSuccess: ({ firstReviewedAt }) => {
+      queryClient.setQueryData<DiseaseReport | null>(
+        reportKeys.detail(reportId),
+        (current) =>
+          current
+            ? { ...current, firstReviewedAt: firstReviewedAt ?? current.firstReviewedAt }
+            : current,
+      );
+    },
+  });
+}
+
 function useReportMutation<TInput>(
   reportId: string,
   mutationFn: (input: TInput) => Promise<DiseaseReport>,

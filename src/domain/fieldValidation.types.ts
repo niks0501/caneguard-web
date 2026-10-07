@@ -1,7 +1,10 @@
 import type {
+  ActionTaken,
+  AuthorityClassifiedCondition,
   DiseaseKey,
   LocationSource,
   LocationUnavailableReason,
+  MeasurementProvenance,
   ReportLifecycle,
   ReviewStatus,
 } from "./report.types";
@@ -35,13 +38,21 @@ export interface FieldValidationMapProperties {
   barangay: string;
   province: string | null;
   municipality: string | null;
+  farmReference?: string | null;
   observedAt: string | null;
   submittedAt: string;
+  firstReviewedAt?: string | null;
   predictedDisease: DiseaseKey;
   confidence: number;
   reviewStatus: ReviewStatus;
   lifecycle?: ReportLifecycle;
+  authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
+  actionTaken?: ActionTaken | null;
+  mismatchReported?: boolean | null;
+  scheduledRevisit?: boolean;
+  affectedAreaMeasurement?: MeasurementProvenance | null;
   locationSource: LocationSource | null;
+  locationUnavailable?: boolean;
   gpsAccuracy: number | null;
   affectedAreaHectares: number | null;
   affectedPortionPercent: number | null;

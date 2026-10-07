@@ -78,6 +78,16 @@ function installApi() {
     http.get(`${apiBase}/api/v1/advisories`, () =>
       HttpResponse.json({ data: [validatedAdvisory, draftAdvisory, retiredAdvisory] }),
     ),
+    http.post(
+      `${apiBase}/api/v1/reports/${reportDetailDto.identity.uuid}/open`,
+      () =>
+        HttpResponse.json({
+          data: {
+            uuid: reportDetailDto.identity.uuid,
+            first_reviewed_at: "2026-07-21T02:00:00.000Z",
+          },
+        }),
+    ),
     http.patch(
       `${apiBase}/api/v1/reports/${reportDetailDto.identity.uuid}/review`,
       async ({ request }) => {

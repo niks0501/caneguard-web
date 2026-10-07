@@ -44,6 +44,15 @@ final class ReportFilterRules
                 'sometimes',
                 Rule::in(['improved', 'unchanged', 'worsened', 'unable_to_determine']),
             ],
+            'workflow_status' => [
+                'sometimes',
+                Rule::in(Report::workflowStatuses()),
+            ],
+            'reviewer' => [
+                'sometimes',
+                'uuid',
+                Rule::exists('users', 'uuid'),
+            ],
         ];
 
         if ($includeStatus) {

@@ -15,6 +15,7 @@ import type {
   HandoffNoteInput,
 } from "../../domain/review.types";
 import { diseaseLabels } from "../../domain/report.metadata";
+import { deriveWorkflowStatus } from "../../domain/workflowStatus";
 import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
 import {
   legacyLifecycleForReviewStatus,
@@ -104,6 +105,13 @@ export class MockReportsRepository implements ReportsRepository {
           !filters?.status ||
           filters.status === "all" ||
           report.reviewStatus === filters.status;
+        const matchesWorkflowStatus =
+          !filters?.workflowStatus ||
+          filters.workflowStatus === "all" ||
+          deriveWorkflowStatus(report) === filters.workflowStatus;
+        const matchesReviewer =
+          !filters?.reviewer ||
+          report.fieldValidationAssignment?.assignee.uuid === filters.reviewer;
         const matchesQueue = !filters?.queue
           || isInOperationalQueue(report, filters.queue, today);
         const matchesDisease =
@@ -123,6 +131,8 @@ export class MockReportsRepository implements ReportsRepository {
         return (
           matchesSearch &&
           matchesStatus &&
+          matchesWorkflowStatus &&
+          matchesReviewer &&
           matchesQueue &&
           matchesDisease &&
           matchesBarangay &&
@@ -229,6 +239,17 @@ export class MockReportsRepository implements ReportsRepository {
   async getReportById(reportId: string): Promise<DiseaseReport | null> {
     const report = this.reports.find((item) => item.uuid === reportId);
     return report ? cloneReport(report) : null;
+  }
+
+  async openCase(reportId: string): Promise<{ firstReviewedAt: string | null }> {
+    const report = this.reports.find((item) => item.uuid === reportId);
+    if (!report) throw new Error(`Report ${reportId} was not found.`);
+
+    if (!report.firstReviewedAt) {
+      report.firstReviewedAt = new Date().toISOString();
+    }
+
+    return { firstReviewedAt: report.firstReviewedAt ?? null };
   }
 
   async getPossibleRecentMatches(): Promise<PossibleRecentMatches> {

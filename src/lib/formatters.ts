@@ -94,3 +94,21 @@ export function formatDueState(
     overdue: followUp.overdue,
   };
 }
+
+/**
+ * Affected Area queue cell: the measured hectares when a measurement exists,
+ * otherwise an em dash so an unmeasured case never reads as zero.
+ */
+export function formatAffectedArea(
+  hectares: number | null | undefined,
+  measurement?: "measured" | "not_measured" | null,
+): string {
+  if (measurement === "not_measured") return "—";
+  if (typeof hectares !== "number" || !Number.isFinite(hectares)) return "—";
+
+  const formatted = new Intl.NumberFormat("en-PH", {
+    maximumFractionDigits: 2,
+  }).format(hectares);
+
+  return `${formatted} ha`;
+}

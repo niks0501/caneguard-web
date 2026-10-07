@@ -29,14 +29,15 @@ import {
 } from "../components/ui/States";
 import {
   authorityClassifiedConditionLabels,
-  caseStateLabels,
   diseaseLabels,
-  fieldValidationStateLabels,
-  reviewStatusLabels,
-  verificationOutcomeLabels,
 } from "../domain/report.metadata";
+import {
+  workflowStatusLabels,
+  workflowStatusValues,
+} from "../domain/workflowStatus";
 import type { ReportFilters } from "../domain/report.types";
 import { reportKeys } from "../hooks/reportQueries";
+import { useFieldReporters } from "../hooks/useFieldReporters";
 import { useExportReports, useReports } from "../hooks/useReports";
 import {
   parseReportListUrl,
@@ -45,6 +46,8 @@ import {
 type FilterKey =
   | "search"
   | "queue"
+  | "workflow_status"
+  | "reviewer"
   | "status"
   | "case_state"
   | "verification_outcome"
@@ -117,6 +120,7 @@ export function SubmittedReportsPage({
   const reportsQuery = useReports(queryFilters, {
     enabled: !urlState.invalid,
   });
+  const fieldReporters = useFieldReporters();
   const exportReports = useExportReports();
   const reports = reportsQuery.data?.reports ?? [];
   const meta = reportsQuery.data?.meta;
@@ -324,13 +328,17 @@ export function SubmittedReportsPage({
             <option value="rssi">RSSI</option>
           </SelectFilter>
           <SelectFilter
-            label="Work status"
-            value={urlState.filters.status ?? ""}
-            onChange={(event) => updateFilter("status", event.target.value)}
+            label="Status"
+            value={urlState.filters.workflowStatus ?? ""}
+            onChange={(event) =>
+              updateFilter("workflow_status", event.target.value)
+            }
           >
-            <option value="">All work statuses</option>
-            {Object.entries(reviewStatusLabels).map(([value, label]) => (
-              <option value={value} key={value}>{label}</option>
+            <option value="">All statuses</option>
+            {workflowStatusValues.map((value) => (
+              <option value={value} key={value}>
+                {workflowStatusLabels[value]}
+              </option>
             ))}
           </SelectFilter>
           <SelectFilter
@@ -342,6 +350,18 @@ export function SubmittedReportsPage({
           >
             <option value="">All Possible Conditions</option>
             {Object.entries(diseaseLabels).map(([value, label]) => (
+              <option value={value} key={value}>{label}</option>
+            ))}
+          </SelectFilter>
+          <SelectFilter
+            label="Staff-classified condition"
+            value={urlState.filters.staffClassifiedCondition ?? ""}
+            onChange={(event) =>
+              updateFilter("authority_classified_condition", event.target.value)
+            }
+          >
+            <option value="">Any staff classification</option>
+            {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
               <option value={value} key={value}>{label}</option>
             ))}
           </SelectFilter>
@@ -382,69 +402,27 @@ export function SubmittedReportsPage({
             />
           </label>
           <SelectFilter
+            label="Reviewer"
+            value={urlState.filters.reviewer ?? ""}
+            onChange={(event) => updateFilter("reviewer", event.target.value)}
+          >
+            <option value="">Anyone</option>
+            {(fieldReporters.data ?? []).map((reporter) => (
+              <option value={reporter.uuid} key={reporter.uuid}>{reporter.name}</option>
+            ))}
+          </SelectFilter>
+          <SelectFilter
             label="Sort by"
-            value={urlState.filters.sort ?? "oldest"}
+            value={urlState.filters.sort ?? "due_soonest"}
             onChange={(event) =>
               updateFilter("sort", event.target.value)
             }
           >
+            <option value="due_soonest">Due soonest</option>
             <option value="oldest">Oldest submitted first</option>
             <option value="newest">Newest submitted first</option>
-            <option value="due_soonest">Due soonest</option>
           </SelectFilter>
         </div>
-
-        <details className="more-filters">
-          <summary>More filters</summary>
-          <div className="filter-bar">
-            <SelectFilter
-              label="Case state"
-              value={urlState.filters.caseState ?? ""}
-              onChange={(event) => updateFilter("case_state", event.target.value)}
-            >
-              <option value="">Any case state</option>
-              {Object.entries(caseStateLabels).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
-              ))}
-            </SelectFilter>
-            <SelectFilter
-              label="Verification outcome"
-              value={urlState.filters.verificationOutcome ?? ""}
-              onChange={(event) =>
-                updateFilter("verification_outcome", event.target.value)
-              }
-            >
-              <option value="">Any verification outcome</option>
-              {Object.entries(verificationOutcomeLabels).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
-              ))}
-            </SelectFilter>
-            <SelectFilter
-              label="Field validation state"
-              value={urlState.filters.fieldValidationState ?? ""}
-              onChange={(event) =>
-                updateFilter("field_validation_state", event.target.value)
-              }
-            >
-              <option value="">Any field validation state</option>
-              {Object.entries(fieldValidationStateLabels).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
-              ))}
-            </SelectFilter>
-            <SelectFilter
-              label="Staff-classified condition"
-              value={urlState.filters.staffClassifiedCondition ?? ""}
-              onChange={(event) =>
-                updateFilter("authority_classified_condition", event.target.value)
-              }
-            >
-              <option value="">Any staff classification</option>
-              {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
-              ))}
-            </SelectFilter>
-          </div>
-        </details>
 
         {reportsQuery.isFetching && hasDisplayableData ? (
           <p className="queue-refresh-status" role="status">

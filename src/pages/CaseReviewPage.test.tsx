@@ -32,6 +32,7 @@ vi.mock("../hooks/useReports", () => ({
   usePossibleRecentMatches: vi.fn(),
   useReports: vi.fn(),
   useUnlinkDuplicateReport: vi.fn(),
+  useOpenCase: vi.fn(() => ({ mutate: vi.fn() })),
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
 }));
@@ -395,7 +396,7 @@ describe("CaseReviewPage", () => {
     const caseStatus = screen.getByRole("region", {
       name: "Case status",
     });
-    expect(screen.getByText("Needs review")).toBeInTheDocument();
+    expect(screen.getByText("Needs Review")).toBeInTheDocument();
     expect(caseStatus).toHaveTextContent("Open");
     expect(caseStatus).not.toHaveTextContent("Referral");
     await user.click(screen.getByText("View Full Report Details"));
@@ -1527,13 +1528,17 @@ describe("CaseReviewPage", () => {
         data: {
           ...reportDetailDto,
           review: { ...reportDetailDto.review, status: "for_field_validation" },
+          lifecycle: {
+            ...reportDetailDto.lifecycle,
+            field_validation_state: "assigned",
+          },
         },
       }).data,
     );
     vi.mocked(useReport).mockReturnValue(queryResult({ data: fieldValidationReport }));
     renderPage();
 
-    expect(screen.getByText("Needs field validation")).toBeInTheDocument();
+    expect(screen.getByText("Field Validation")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
     expect(screen.getByText("Pending decision")).toBeInTheDocument();
 

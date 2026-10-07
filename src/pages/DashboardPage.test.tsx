@@ -628,28 +628,29 @@ describe("DashboardPage", () => {
     expect(recent.getByRole("heading", { name: "Recent reports" })).toBeInTheDocument();
   });
 
-  it("shows recent reports with the reported-concern column and no table prose", () => {
+  it("shows recent reports with the six queue columns and no table prose", () => {
     renderDashboard();
 
     const recent = within(screen.getByRole("region", { name: "Recent reports" }));
-    expect(recent.getByText("Reported concern")).toBeInTheDocument();
-    // The two badge headers are plain again: no capsule spans, and the
-    // Possible Condition header drops the retired "(AI)" suffix while the
-    // cell contract stays untouched.
     const headers = within(recent.getByRole("table"))
       .getAllByRole("columnheader")
-      .map((header) => header.textContent);
-    expect(headers).toContain("Possible Condition");
-    expect(headers).toContain("Work status");
-    // No capsule wrapper: the header text sits directly in the <th>, which
+      .map((header) => header.textContent?.trim());
+    expect(headers).toEqual([
+      "Case",
+      "Location",
+      "Possible Condition",
+      "Affected Area",
+      "Case Status",
+      "Review",
+    ]);
+    // No capsule wrapper: the badge headers sit directly in the <th>, which
     // carries the same content-sized no-wrap contract as its body cells.
     const conditionHeader = recent.getByText("Possible Condition");
-    const statusHeader = recent.getByText("Work status");
+    const statusHeader = recent.getByText("Case Status");
     expect(conditionHeader.tagName).toBe("TH");
     expect(conditionHeader).toHaveClass("dashboard-report-table__cell-condition");
     expect(statusHeader.tagName).toBe("TH");
     expect(statusHeader).toHaveClass("dashboard-report-table__cell-status");
-    expect(recent.getAllByText("Not stated").length).toBeGreaterThan(0);
     // The retired all-periods note stays deleted, not reworded.
     expect(recent.queryByText(/all periods/)).not.toBeInTheDocument();
     // Section-meta line 'synchronized submissions' is removed everywhere.
@@ -663,7 +664,7 @@ describe("DashboardPage", () => {
     );
   });
 
-  it("keeps the reporter's concern distinct from the AI classification in the table", () => {
+  it("renders the model classification without the retired reporter-concern column", () => {
     vi.mocked(useDashboard).mockReturnValue(
       dashboardResult({
         data: {
@@ -686,27 +687,21 @@ describe("DashboardPage", () => {
     const headers = within(table)
       .getAllByRole("columnheader")
       .map((header) => header.textContent);
-    const concernColumn = headers.indexOf("Reported concern");
-    const conditionColumn = headers.indexOf("Possible Condition");
-    expect(concernColumn).toBeGreaterThan(-1);
-    expect(conditionColumn).toBeGreaterThan(-1);
+    expect(headers).not.toContain("Reported concern");
+    expect(headers).not.toContain("Submitted");
 
-    const cells = within(table).getAllByRole("cell");
-    // Reported concern is the reporter's own words.
-    expect(cells[concernColumn]).toHaveTextContent("RSSI");
-    expect(cells[concernColumn]).not.toHaveTextContent("Mosaic");
-    // Possible Condition is the model's classification, never merged in.
-    expect(cells[conditionColumn]).toHaveTextContent("Mosaic");
-    expect(cells[conditionColumn]).not.toHaveTextContent("RSSI");
+    const row = within(table).getByRole("row", { name: /CG-2026-0718/i });
+    // Possible Condition is the model's classification; the reporter's own
+    // words are not a queue column and never merge into it.
+    expect(within(row).getByText(/Mosaic/)).toBeInTheDocument();
+    expect(within(row).queryByText("RSSI")).not.toBeInTheDocument();
   });
 
-  it("keeps the longest real condition and work-status pills in content-sized no-wrap cells", () => {
+  it("keeps the longest condition and workflow-status pills in content-sized no-wrap cells", () => {
     // The longest strings the badges can render: diseaseLabels.healthy minus
-    // its "Possible Condition: " prefix, and reviewStatusLabels
-    // .for_field_validation. Both must stay one line, so both cells carry the
-    // content-sized no-wrap contract that the design-spine validator asserts
-    // against index.css (`min-width: max-content; white-space: nowrap`), with
-    // `.table-scroll` (`overflow-x: auto`) as the small-screen escape.
+    // its "Possible Condition: " prefix, and the six-state workflow labels.
+    // Both must stay one line, so both cells carry the content-sized no-wrap
+    // contract that the design-spine validator asserts against index.css.
     vi.mocked(useDashboard).mockReturnValue(
       dashboardResult({
         data: {
@@ -716,6 +711,12 @@ describe("DashboardPage", () => {
               ...mockReports[0],
               predictedDisease: "healthy",
               reviewStatus: "for_field_validation",
+              lifecycle: {
+                caseState: "open",
+                verificationOutcome: "not_determined",
+                fieldValidationState: "assigned",
+                referralState: "not_referred",
+              },
             },
           ],
         },
@@ -728,8 +729,10 @@ describe("DashboardPage", () => {
     ).getByRole("table");
     expect(container.querySelector(".table-scroll")).toContainElement(table);
 
-    const conditionPill = within(table).getByText("No supported disease detected");
-    const statusPill = within(table).getByText("Needs field validation");
+    const conditionPill = within(table).getByText(
+      "Possible Condition: No supported disease detected",
+    );
+    const statusPill = within(table).getByText("Field Validation");
     expect(conditionPill.closest("td")).toHaveClass(
       "dashboard-report-table__cell-condition",
     );

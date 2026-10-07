@@ -21,6 +21,12 @@ vi.mock("../hooks/useFieldValidation", () => ({
   useFieldValidationQueue: vi.fn(),
 }));
 
+vi.mock("../hooks/useFieldReporters", () => ({
+  useFieldReporters: vi.fn(() => ({
+    data: [{ uuid: "officer-1", name: "Field Officer" }],
+  })),
+}));
+
 const pageData = {
   reports: mockReports.slice(0, 2),
   meta: {
@@ -122,7 +128,7 @@ describe("SubmittedReportsPage", () => {
       screen.getByRole("columnheader", { name: "Possible Condition" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Work status" }),
+      screen.getByRole("columnheader", { name: "Case Status" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("columnheader", { name: "Observed" }),
@@ -131,7 +137,7 @@ describe("SubmittedReportsPage", () => {
     expect(screen.getByText("Reporter concern needs review")).toBeInTheDocument();
     expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
     expect(screen.getAllByText("Possible Condition: Smut").length).toBeGreaterThanOrEqual(1);
-    const statusCell = screen.getByRole("cell", { name: "Needs field validation" });
+    const statusCell = screen.getByRole("cell", { name: "Field Validation" });
     const longStatusLabel = statusCell.querySelector(".status-badge__label");
     expect(longStatusLabel).toHaveClass("status-badge__label");
     expect(longStatusLabel?.parentElement).toHaveClass("status-badge");
@@ -148,8 +154,9 @@ describe("SubmittedReportsPage", () => {
       "href",
       "/monitoring?concern=rssi",
     );
-    expect(screen.getByRole("columnheader", { name: "Reported concern" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Latest validation" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Case" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Affected Area" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Reported concern" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Visit calendar" })).toBeInTheDocument();
     expect(useReports).toHaveBeenCalledWith(
@@ -208,20 +215,20 @@ describe("SubmittedReportsPage", () => {
 
   it("stores filter and page changes in the URL and resets the page", async () => {
     const user = userEvent.setup();
-    renderPage("/reports?page=3&status=resolved");
+    renderPage("/reports?page=3&workflow_status=resolved");
 
     await user.selectOptions(
-      screen.getByLabelText("Work status"),
-      "for_field_validation",
+      screen.getByLabelText("Status"),
+      "field_validation",
     );
 
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "?status=for_field_validation",
+      "?workflow_status=field_validation",
     );
 
     await user.click(screen.getByRole("button", { name: "Go to page 2" }));
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "?status=for_field_validation&page=2",
+      "?workflow_status=field_validation&page=2",
     );
   });
 
@@ -387,16 +394,16 @@ describe("SubmittedReportsPage", () => {
     ).toBeDisabled();
     expect(screen.queryByText(/latest refresh failed/i)).not.toBeInTheDocument();
   });
-  it("defaults the unscoped work queue to the oldest submission", () => {
+  it("opens the reviewer queue on the due-soonest case", () => {
     renderPage("/reports");
 
     expect(useReports).toHaveBeenCalledWith(
-      expect.objectContaining({ sort: "oldest" }),
+      expect.objectContaining({ sort: "due_soonest" }),
       { enabled: true },
     );
   });
 
-  it("offers queue, work-status, and operational sorts without confidence sorting", () => {
+  it("offers the queue, status, reviewer and operational sorts without confidence sorting", () => {
     renderPage("/reports");
 
     const sort = screen.getByLabelText("Sort by");
@@ -404,30 +411,30 @@ describe("SubmittedReportsPage", () => {
       (option) => option.textContent,
     );
     expect(sortOptions).toEqual([
+      "Due soonest",
       "Oldest submitted first",
       "Newest submitted first",
-      "Due soonest",
     ]);
     expect(screen.getByLabelText("Queue")).toBeInTheDocument();
-    expect(screen.getByLabelText("Work status")).toBeInTheDocument();
+    expect(screen.getByLabelText("Status")).toBeInTheDocument();
+    expect(screen.getByLabelText("Reviewer")).toBeInTheDocument();
     expect(
       screen.getByLabelText("Staff-classified condition"),
     ).toBeInTheDocument();
   });
 
-  it("filters by the independent lifecycle and classification concepts", async () => {
+  it("filters by the one workflow status, the reviewer and the classification", async () => {
     const user = userEvent.setup();
     renderPage("/reports");
 
-    await user.selectOptions(screen.getByLabelText("Case state"), "open");
-    expect(screen.getByTestId("location")).toHaveTextContent("?case_state=open");
-
-    await user.selectOptions(
-      screen.getByLabelText("Field validation state"),
-      "assigned",
-    );
+    await user.selectOptions(screen.getByLabelText("Status"), "field_validation");
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "field_validation_state=assigned",
+      "?workflow_status=field_validation",
+    );
+
+    await user.selectOptions(screen.getByLabelText("Reviewer"), "officer-1");
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "reviewer=officer-1",
     );
 
     await user.selectOptions(

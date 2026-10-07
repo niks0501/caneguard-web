@@ -1,4 +1,5 @@
 import type { AxiosInstance } from "axios";
+import { z } from "zod";
 import { ApiError } from "../../api/ApiError";
 import { axiosClient } from "../../api/axiosClient";
 import type { ReportsRepository } from "../contracts/ReportsRepository";
@@ -38,6 +39,13 @@ const sortValues = {
   due_soonest: "due_soonest",
 } as const;
 
+const openCaseResponseSchema = z.object({
+  data: z.object({
+    uuid: z.string(),
+    first_reviewed_at: z.iso.datetime({ offset: true }).nullable(),
+  }),
+});
+
 function toQueryParams(
   filters: ReportFilters = {},
   includePagination = true,
@@ -47,6 +55,11 @@ function toQueryParams(
     per_page: includePagination ? filters.perPage : undefined,
     queue: filters.queue,
     search: filters.search?.trim() || undefined,
+    workflow_status:
+      filters.workflowStatus && filters.workflowStatus !== "all"
+        ? filters.workflowStatus
+        : undefined,
+    reviewer: filters.reviewer?.trim() || undefined,
     status:
       filters.status && filters.status !== "all" ? filters.status : undefined,
     predicted_label:
@@ -153,6 +166,15 @@ export class ApiReportsRepository implements ReportsRepository {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;
     }
+  }
+
+  async openCase(reportId: string): Promise<{ firstReviewedAt: string | null }> {
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/open`,
+    );
+    const parsed = openCaseResponseSchema.parse(response.data);
+
+    return { firstReviewedAt: parsed.data.first_reviewed_at };
   }
 
   async getPossibleRecentMatches(

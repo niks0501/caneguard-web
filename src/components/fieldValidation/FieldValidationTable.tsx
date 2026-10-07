@@ -1,14 +1,59 @@
-import { Link } from "react-router";
-import type { FieldValidationMapFeature } from "../../domain/fieldValidation.types";
-import { diseaseLabels, reviewStatusLabels } from "../../domain/report.metadata";
+import { useNavigate } from "react-router";
 import { routes } from "../../app/routes";
-import { formatValidationDate } from "./fieldValidation.format";
+import type { FieldValidationMapFeature } from "../../domain/fieldValidation.types";
+import {
+  QueueAffectedAreaCell,
+  QueueCaseCell,
+  QueueConditionCell,
+  QueueLocationCell,
+  QueueReviewLink,
+  QueueStatusCell,
+  type QueueRowView,
+} from "../reports/QueueRowCells";
+
+/**
+ * The map's "Located observations" list uses the same six-column reviewer
+ * queue as the registers. Coordinates stay on the case page (and in the map
+ * itself); the row keeps the action that opens the case.
+ */
+const QUEUE_HEADERS = [
+  "Case",
+  "Location",
+  "Possible Condition",
+  "Affected Area",
+  "Case Status",
+  "Review",
+] as const;
+
+function toQueueRow(feature: FieldValidationMapFeature): QueueRowView {
+  const properties = feature.properties;
+
+  return {
+    uuid: properties.uuid,
+    referenceCode: properties.referenceCode,
+    barangay: properties.barangay,
+    municipality: properties.municipality,
+    province: properties.province,
+    farmReference: properties.farmReference,
+    mismatchReported: properties.mismatchReported,
+    locationUnavailable: properties.locationUnavailable,
+    predictedDisease: properties.predictedDisease,
+    authorityClassifiedCondition: properties.authorityClassifiedCondition,
+    affectedAreaHectares: properties.affectedAreaHectares,
+    affectedAreaMeasurement: properties.affectedAreaMeasurement,
+    lifecycle: properties.lifecycle,
+    firstReviewedAt: properties.firstReviewedAt,
+    scheduledRevisit: properties.scheduledRevisit,
+  };
+}
 
 export function FieldValidationTable({
   features,
 }: {
   features: FieldValidationMapFeature[];
 }) {
+  const navigate = useNavigate();
+
   return (
     <section className="field-validation-table-card" aria-labelledby="location-table-heading">
       <div className="workspace-heading">
@@ -24,39 +69,45 @@ export function FieldValidationTable({
           <table className="report-table field-validation-table">
             <thead>
               <tr>
-                <th scope="col">Report</th>
-                <th scope="col">Location</th>
-                <th scope="col">Possible Condition</th>
-                <th scope="col">Review state</th>
-                <th scope="col"><span className="sr-only">Actions</span></th>
+                {QUEUE_HEADERS.map((header) => (
+                  <th scope="col" key={header}>{header}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {features.map((feature) => {
-                const properties = feature.properties;
-                const lat = feature.geometry.coordinates[1].toFixed(4);
-                const lng = feature.geometry.coordinates[0].toFixed(4);
+                const row = toQueueRow(feature);
                 return (
-                  <tr key={feature.id}>
+                  <tr
+                    key={feature.id}
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        navigate(routes.reportDetail(row.uuid), {
+                          state: { reviewQueue: { remainingIds: [], reviewedIds: [] } },
+                        });
+                      }
+                    }}
+                  >
                     <td>
-                      <strong className="table-primary">{properties.referenceCode}</strong>
-                      <span className="table-secondary">{formatValidationDate(properties.observedAt)}</span>
+                      <QueueCaseCell row={row} />
                     </td>
                     <td>
-                      <strong className="table-primary">{properties.barangay}</strong>
-                      <span className="table-secondary machine-text">{lat}, {lng}</span>
-                      {(properties.locationGroupSize ?? 1) > 1 ? <span className="table-secondary">{properties.locationGroupSize} at this location</span> : null}
+                      <QueueLocationCell row={row} />
                     </td>
                     <td>
-                      <span className="table-primary">{diseaseLabels[properties.predictedDisease]}</span>
+                      <QueueConditionCell row={row} />
                     </td>
                     <td>
-                      <span className="table-primary">{reviewStatusLabels[properties.reviewStatus]}</span>
+                      <QueueAffectedAreaCell row={row} />
+                    </td>
+                    <td>
+                      <QueueStatusCell row={row} />
                     </td>
                     <td className="field-validation-table__action-cell">
-                      <Link className="table-action" to={routes.reportDetail(properties.uuid)}>
-                        Open Report
-                      </Link>
+                      <QueueReviewLink row={row} />
                     </td>
                   </tr>
                 );
