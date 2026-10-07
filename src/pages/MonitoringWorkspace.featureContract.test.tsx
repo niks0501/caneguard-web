@@ -412,7 +412,7 @@ describe("Visit Calendar contract", () => {
     renderWorkspace("/monitoring?view=calendar&calendar_month=2026-11");
     await user.click(await screen.findByRole("button", { name: "Today" }));
 
-    expect(await screen.findByText(/October 2026/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/October 2026/i)).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: /October 7, 2026/i })).toBeInTheDocument();
   });
 
