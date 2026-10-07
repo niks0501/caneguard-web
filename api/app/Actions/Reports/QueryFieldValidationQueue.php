@@ -84,6 +84,7 @@ class QueryFieldValidationQueue
                 'verification_outcome',
                 'field_validation_state',
                 'referral_state',
+                'lock_version',
             ])
             ->when(
                 in_array($queue, [
