@@ -45,7 +45,6 @@ export function MonitoringWorkspacePage() {
             {icon}<span>{label}</span>
           </Link>
         ))}
-        <Link className="monitoring-workspace-tabs__saved" to={`${routes.monitoring}?view=calendar`}>Inspector schedule</Link>
         <Link className="monitoring-workspace-tabs__saved" to={routes.needsAssessment}>Needs assessment</Link>
       </nav>
       {view === "register" ? <SubmittedReportsPage workspace="monitoring" embedded /> : null}

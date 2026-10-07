@@ -420,7 +420,11 @@ describe("Visit Calendar contract", () => {
     queueItems = [scheduleItem(1, "2026-10-07")];
     renderWorkspace("/monitoring?view=calendar&calendar_month=2026-10");
 
-    await waitFor(() => expect(screen.getByText("CG-SCHED-001")).toBeInTheDocument());
+    // The compact cell indicator and the complete selected-day agenda both name
+    // the visit, so the read-only wait-for-data probe is scoped to the grid.
+    await waitFor(() =>
+      expect(within(screen.getByRole("grid")).getByText("CG-SCHED-001")).toBeInTheDocument(),
+    );
     expect(screen.queryByRole("button", { name: /add visit/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i)).not.toBeInTheDocument();
   });
