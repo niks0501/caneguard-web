@@ -4,6 +4,7 @@ import {
   fieldValidationMapQueryOptions,
   fieldValidationQueueQueryOptions,
 } from "./fieldValidationQueries";
+import type { FieldValidationQueueQueryOptions } from "./fieldValidationQueries";
 
 export function useFieldValidationMap(
   filters: FieldValidationFilters,
@@ -14,7 +15,7 @@ export function useFieldValidationMap(
 
 export function useFieldValidationQueue(
   filters: FieldValidationFilters,
-  options: { enabled?: boolean } = {},
+  options: FieldValidationQueueQueryOptions = {},
 ) {
   return useQuery(fieldValidationQueueQueryOptions(filters, options));
 }

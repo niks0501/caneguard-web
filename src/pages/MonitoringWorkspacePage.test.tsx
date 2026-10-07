@@ -33,6 +33,5 @@ describe("MonitoringWorkspacePage", () => {
     expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/monitoring?view=calendar");
     expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/monitoring?view=map");
     expect(screen.getByRole("link", { name: "Field Operations" })).toHaveAttribute("href", "/monitoring?view=field-operations");
-    expect(screen.getByRole("link", { name: "Inspector schedule" })).toHaveAttribute("href", "/monitoring?view=calendar");
   });
 });

@@ -251,10 +251,10 @@ describe("queue contract - sort and six-column row surface", () => {
 });
 
 describe("queue regressions (SAVED, STATE)", () => {
-  it("SAVED: monitoring keeps its saved views and their URL contract", async () => {
+  it("SAVED: monitoring keeps its Quick views and their URL contract", async () => {
     renderPage("/monitoring?concern=rssi", "monitoring");
 
-    expect(screen.getByRole("link", { name: "RSSI concerns" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "RSSI" })).toHaveAttribute(
       "href",
       "/monitoring?concern=rssi",
     );

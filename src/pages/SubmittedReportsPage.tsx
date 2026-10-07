@@ -15,7 +15,7 @@ import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { PageContent, PageHeader } from "../components/layout/Page";
-import { MonitoringCalendar } from "../components/reports/MonitoringCalendar";
+import { MonitoringScheduleSummary } from "../components/reports/MonitoringScheduleSummary";
 import { ReportTable } from "../components/reports/ReportTable";
 import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
 import { Button } from "../components/ui/Button";
@@ -253,21 +253,20 @@ export function SubmittedReportsPage({
         )}
       /> : null}
 
-      {!isMonitoring ? (
+      {isMonitoring ? (
+        <nav className="monitoring-quick-views" aria-label="Monitoring quick views">
+          <span className="monitoring-quick-views__label">Quick views</span>
+          <Link to={routes.monitoring} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All cases</Link>
+          <Link to={`${routes.monitoring}?concern=rssi`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI</Link>
+          <Link to={`${routes.monitoring}?queue=follow_up_due`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
+          <Link to={`${routes.monitoring}?queue=upcoming`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
+        </nav>
+      ) : (
         <nav className="monitoring-saved-views" aria-label="Report saved views">
           <span className="monitoring-saved-views__label">Saved views</span>
           <Link to={routes.reports} className="is-active">All submitted reports</Link>
         </nav>
-      ) : isMonitoring ? (
-        <nav className="monitoring-saved-views" aria-label="Monitoring saved views">
-          <span className="monitoring-saved-views__label">Saved views</span>
-          <Link to={routes.monitoring} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All monitoring cases</Link>
-          <Link to={`${routes.monitoring}?concern=rssi`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI concerns</Link>
-          <Link to={`${routes.monitoring}?queue=follow_up_due`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
-          <Link to={`${routes.monitoring}?queue=upcoming`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
-          {!embedded ? <Link to={`${routes.monitoring}?view=calendar`} className={searchParams.get("view") === "calendar" ? "is-active" : undefined}>Inspector schedule</Link> : null}
-        </nav>
-      ) : null}
+      )}
 
       {reviewNotice ? (
         <div className="success-banner" role="status">
@@ -511,7 +510,7 @@ export function SubmittedReportsPage({
             />
           </>
         ) : null}
-        {isMonitoring && !urlState.invalid ? <MonitoringCalendar /> : null}
+        {isMonitoring && !urlState.invalid ? <MonitoringScheduleSummary /> : null}
       </section>
       <ReportDocumentBuilder
         open={reportBuilderOpen}

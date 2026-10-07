@@ -146,11 +146,11 @@ describe("SubmittedReportsPage", () => {
     ).toHaveTextContent("Open");
   });
 
-  it("renders the monitoring workspace with shared saved views and register columns", () => {
+  it("renders the monitoring workspace with shared Quick views and register columns", () => {
     renderPage("/monitoring?concern=rssi", "monitoring");
 
     expect(screen.getByRole("heading", { name: "Monitoring workspace" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "RSSI concerns" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "RSSI" })).toHaveAttribute(
       "href",
       "/monitoring?concern=rssi",
     );
@@ -158,14 +158,15 @@ describe("SubmittedReportsPage", () => {
     expect(screen.getByRole("columnheader", { name: "Affected Area" })).toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "Reported concern" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Visit calendar" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Schedule summary" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Visit calendar" })).not.toBeInTheDocument();
     expect(useReports).toHaveBeenCalledWith(
       expect.objectContaining({ reportedConcern: "rssi" }),
       { enabled: true },
     );
     expect(useFieldValidationQueue).toHaveBeenCalledWith(
-      expect.objectContaining({ dueFrom: expect.any(String), dueTo: expect.any(String) }),
-      { enabled: true },
+      expect.objectContaining({ queue: "needs_visit", limit: 100 }),
+      expect.objectContaining({ complete: true }),
     );
   });
 

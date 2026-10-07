@@ -1,104 +1,35 @@
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { ApiError } from "../../api/ApiError";
 import { routes } from "../../app/routes";
 import type { FieldValidationQueueItem } from "../../domain/fieldValidation.types";
+import {
+  groupScheduleByDate,
+  isScheduleDateKey,
+  isScheduleMonthKey,
+  scheduleDateLabel,
+  scheduleMonthGrid,
+  scheduleMonthLabel,
+  scheduleMonthOf,
+  shiftScheduleMonth,
+} from "../../domain/monitoringSchedule";
+import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
 import { useFieldValidationQueue } from "../../hooks/useFieldValidation";
-import { LoadingState, ErrorState } from "../ui/States";
-import { parseReportListUrl } from "../../pages/reportListUrlState";
+import { ErrorState, LoadingState } from "../ui/States";
+import { activeVisitWorkloadFilters } from "./monitoringWorkload";
 
-const monthPattern = /^(\d{4})-(\d{2})$/;
 const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function pad(value: number) {
-  return String(value).padStart(2, "0");
+/** Date-only scheduling state: Today is never Overdue. */
+function scheduleStateLabel(targetVisitDate: string | null, officeDate: string) {
+  if (!targetVisitDate) return "Unscheduled";
+  if (targetVisitDate < officeDate) return "Overdue";
+  if (targetVisitDate === officeDate) return "Today";
+  return "Scheduled";
 }
 
-function localToday() {
-  const today = new Date();
-  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-}
-
-function currentMonth() {
-  return localToday().slice(0, 7);
-}
-
-function isValidMonth(value: string | undefined): value is string {
-  if (!value) return false;
-  const match = monthPattern.exec(value);
-  if (!match) return false;
-  const month = Number(match[2]);
-  return month >= 1 && month <= 12;
-}
-
-function monthBounds(month: string) {
-  const match = monthPattern.exec(month);
-  if (!match) return { from: `${month}-01`, to: `${month}-28` };
-  const year = Number(match[1]);
-  const monthNumber = Number(match[2]);
-  const lastDay = new Date(year, monthNumber, 0).getDate();
-  return {
-    from: `${month}-01`,
-    to: `${month}-${pad(lastDay)}`,
-  };
-}
-
-function localDateKey(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function calendarDays(month: string) {
-  const match = monthPattern.exec(month);
-  if (!match) return [];
-  const year = Number(match[1]);
-  const monthNumber = Number(match[2]) - 1;
-  const firstDay = new Date(year, monthNumber, 1);
-  const leadingDays = (firstDay.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, monthNumber + 1, 0).getDate();
-  const totalDays = Math.ceil((leadingDays + daysInMonth) / 7) * 7;
-
-  return Array.from({ length: totalDays }, (_, index) => {
-    const date = new Date(year, monthNumber, index - leadingDays + 1);
-    return {
-      key: localDateKey(date),
-      day: date.getDate(),
-      inMonth: date.getMonth() === monthNumber,
-    };
-  });
-}
-
-function monthLabel(month: string) {
-  const match = monthPattern.exec(month);
-  if (!match) return month;
-  return new Intl.DateTimeFormat("en-PH", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(Number(match[1]), Number(match[2]) - 1, 1));
-}
-
-function changeMonth(month: string, amount: number) {
-  const match = monthPattern.exec(month);
-  if (!match) return currentMonth();
-  const next = new Date(Number(match[1]), Number(match[2]) - 1 + amount, 1);
-  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}`;
-}
-
-function visitLabel(item: FieldValidationQueueItem, today: string) {
-  if (!item.targetVisitDate) return "Visit date not scheduled";
-  if (item.targetVisitDate < today) return `Overdue visit, target ${item.targetVisitDate}`;
-  if (item.targetVisitDate === today) return "Visit targeted for today; not overdue";
-  return `Scheduled visit, target ${item.targetVisitDate}`;
-}
-
-function visitItemsByDate(items: FieldValidationQueueItem[]) {
-  const byDate = new Map<string, FieldValidationQueueItem[]>();
-  items.forEach((item) => {
-    if (!item.targetVisitDate) return;
-    const dayItems = byDate.get(item.targetVisitDate) ?? [];
-    dayItems.push(item);
-    byDate.set(item.targetVisitDate, dayItems);
-  });
-  return byDate;
+function locationLabel(item: FieldValidationQueueItem) {
+  return [item.barangay, item.municipality, item.province].filter(Boolean).join(", ");
 }
 
 function calendarErrorMessage(error: unknown) {
@@ -111,61 +42,88 @@ function calendarErrorMessage(error: unknown) {
   return "The visit calendar could not be loaded. Please try again.";
 }
 
+/**
+ * Dedicated, read-focused schedule surface.
+ *
+ * The month grid keeps a stable row height: a busy date shows at most two
+ * compact visit indicators plus an exact `+N more` control, and the complete
+ * workload for a selected date lives in the selected-day agenda. The Calendar
+ * never mutates scheduling; Field Operations stays authoritative.
+ */
 export function MonitoringCalendar() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const parsedUrl = parseReportListUrl(searchParams);
-  const month = isValidMonth(parsedUrl.calendarMonth)
-    ? parsedUrl.calendarMonth
-    : currentMonth();
-  const bounds = monthBounds(month);
-  const calendarQuery = useFieldValidationQueue(
-    {
-      queue: "needs_visit",
-      dueFrom: bounds.from,
-      dueTo: bounds.to,
-      limit: 100,
-    },
-    { enabled: !parsedUrl.invalid },
-  );
-  const items = calendarQuery.data?.items ?? [];
-  const itemsByDate = visitItemsByDate(items);
-  const today = localToday();
+  const officeDate = manilaDateAt();
+  const officeMonth = manilaMonthAt();
 
-  const setMonth = (nextMonth: string) => {
+  const requestedMonth = searchParams.get("calendar_month");
+  const month = isScheduleMonthKey(requestedMonth) ? requestedMonth : officeMonth;
+  const requestedDate = searchParams.get("calendar_date");
+  const explicitDate =
+    isScheduleDateKey(requestedDate) && scheduleMonthOf(requestedDate) === month
+      ? requestedDate
+      : null;
+  const selectedDate = explicitDate ?? (month === officeMonth ? officeDate : null);
+
+  const workload = useFieldValidationQueue(activeVisitWorkloadFilters, { complete: true });
+  const items = workload.data?.items ?? [];
+  const itemsByDate = groupScheduleByDate(items);
+  const agendaItems = selectedDate ? itemsByDate.get(selectedDate) ?? [] : [];
+  const gridDays = scheduleMonthGrid(month);
+  const gridWeeks = Array.from({ length: gridDays.length / 7 }, (_, weekIndex) =>
+    gridDays.slice(weekIndex * 7, weekIndex * 7 + 7),
+  );
+
+  const updateParams = (mutate: (next: URLSearchParams) => void) => {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
-      next.set("calendar_month", nextMonth);
-      next.delete("page");
+      mutate(next);
       return next;
     });
   };
 
+  const selectDate = (dateKey: string) =>
+    updateParams((next) => {
+      next.set("calendar_date", dateKey);
+    });
+
+  const showMonth = (nextMonth: string) =>
+    updateParams((next) => {
+      next.set("calendar_month", nextMonth);
+      next.delete("calendar_date");
+    });
+
+  const showInitialError = workload.isError && !workload.data;
+  const calendarQueueContext = {
+    reviewQueue: {
+      returnTo: `${location.pathname}${location.search}`,
+      filters: {},
+      remainingIds: [],
+      reviewedIds: [],
+      snapshotOnly: true,
+    },
+  };
+
   return (
     <section className="monitoring-calendar" aria-labelledby="monitoring-calendar-heading">
-      <div className="workspace-heading">
-        <div>
-          <span className="eyebrow">Date-only schedule</span>
-          <h2 id="monitoring-calendar-heading">Visit calendar</h2>
-        </div>
-        <span>Target dates use the office calendar day. Today is not overdue.</span>
-      </div>
       <div className="monitoring-calendar__toolbar">
         <button
           type="button"
           className="button button--secondary button--small"
           aria-label="Previous month"
-          onClick={() => setMonth(changeMonth(month, -1))}
+          onClick={() => showMonth(shiftScheduleMonth(month, -1))}
         >
           <ChevronLeft aria-hidden="true" />
           <span>Previous</span>
         </button>
-        <strong aria-live="polite">{monthLabel(month)}</strong>
+        <h2 className="monitoring-calendar__month" id="monitoring-calendar-heading" aria-live="polite">
+          {scheduleMonthLabel(month)}
+        </h2>
         <button
           type="button"
           className="button button--secondary button--small"
           aria-label="Next month"
-          onClick={() => setMonth(changeMonth(month, 1))}
+          onClick={() => showMonth(shiftScheduleMonth(month, 1))}
         >
           <span>Next</span>
           <ChevronRight aria-hidden="true" />
@@ -173,71 +131,153 @@ export function MonitoringCalendar() {
         <button
           type="button"
           className="button button--quiet button--small"
-          onClick={() => setMonth(currentMonth())}
+          onClick={() => showMonth(officeMonth)}
         >
           Today
         </button>
       </div>
-      {calendarQuery.isRefetchError && calendarQuery.data ? (
+
+      {workload.isRefetchError && workload.data ? (
         <p className="queue-refresh-warning" role="alert">
           The latest calendar refresh failed. Showing the most recently loaded visits.
         </p>
       ) : null}
-      {calendarQuery.isPending && !calendarQuery.data ? (
+      {workload.isPending && !workload.data ? (
         <LoadingState message="Loading scheduled visits..." />
       ) : null}
-      {calendarQuery.isError && !calendarQuery.data ? (
+      {showInitialError ? (
         <ErrorState
-          message={calendarErrorMessage(calendarQuery.error)}
-          onRetry={() => void calendarQuery.refetch()}
+          message={calendarErrorMessage(workload.error)}
+          onRetry={() => void workload.refetch()}
         />
       ) : null}
-      {calendarQuery.data ? (
-        items.length === 0 ? (
-          <p className="monitoring-calendar__empty" role="status">
-            <CalendarDays aria-hidden="true" /> No scheduled visits in {monthLabel(month)}.
-          </p>
-        ) : (
-          <div className="monitoring-calendar__grid" role="grid" aria-label={`${monthLabel(month)} scheduled visits`}>
-            {weekdayLabels.map((label) => (
-              <div className="monitoring-calendar__weekday" role="columnheader" key={label}>{label}</div>
-            ))}
-            {calendarDays(month).map((day) => {
-              const dayItems = itemsByDate.get(day.key) ?? [];
-              const isToday = day.key === today;
-              return (
-                <div
-                  className={`monitoring-calendar__day${day.inMonth ? "" : " is-outside-month"}${isToday ? " is-today" : ""}`}
-                  role="gridcell"
-                  key={day.key}
-                  aria-label={`${day.key}${isToday ? ", today" : ""}`}
-                >
-                  <span className="monitoring-calendar__day-number">{day.day}</span>
-                  {dayItems.map((item) => {
-                    const overdue = Boolean(item.targetVisitDate && item.targetVisitDate < today);
-                    return (
-                      <Link
-                        className={`monitoring-calendar__visit${overdue ? " is-overdue" : ""}`}
-                        to={routes.reportDetail(item.uuid)}
-                        state={{ reviewQueue: {
-                          returnTo: `${location.pathname}${location.search}`,
-                          filters: parsedUrl.filters,
-                          remainingIds: items.slice(items.findIndex((entry) => entry.uuid === item.uuid) + 1).map((entry) => entry.uuid),
-                          reviewedIds: [], snapshotOnly: true,
-                        } }}
-                        key={item.uuid}
-                        aria-label={`${item.referenceCode}: ${visitLabel(item, today)}`}
-                      >
-                        <strong>{item.referenceCode}</strong>
-                        <span>{overdue ? "Overdue" : isToday ? "Today" : "Scheduled"}</span>
-                      </Link>
-                    );
-                  })}
+
+      {workload.data ? (
+        <div className="monitoring-calendar__body">
+          <div
+            className="monitoring-calendar__grid"
+            role="grid"
+            aria-label={`${scheduleMonthLabel(month)} scheduled visits`}
+          >
+            <div className="monitoring-calendar__week" role="row">
+              {weekdayLabels.map((label) => (
+                <div className="monitoring-calendar__weekday" role="columnheader" key={label}>
+                  {label}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            {gridWeeks.map((week) => (
+              <div className="monitoring-calendar__week" role="row" key={week[0].key}>
+                {week.map((day) => {
+                  const dayItems = day.inMonth ? itemsByDate.get(day.key) ?? [] : [];
+                  const hiddenCount = Math.max(0, dayItems.length - 2);
+                  const isToday = day.key === officeDate;
+                  const label = day.inMonth
+                    ? `${scheduleDateLabel(day.key)}${isToday ? ", today" : ""}`
+                    : `${scheduleDateLabel(day.key)}, outside this month`;
+
+                  return (
+                    <div
+                      className={`monitoring-calendar__day${day.inMonth ? "" : " is-outside-month"}${isToday ? " is-today" : ""}${day.inMonth && selectedDate === day.key ? " is-selected" : ""}`}
+                      role="gridcell"
+                      key={day.key}
+                      aria-label={label}
+                      aria-selected={day.inMonth ? selectedDate === day.key : undefined}
+                    >
+                      {day.inMonth ? (
+                        <button
+                          type="button"
+                          className="monitoring-calendar__day-number"
+                          aria-label={`Select ${scheduleDateLabel(day.key)}`}
+                          onClick={() => selectDate(day.key)}
+                        >
+                          {day.dayNumber}
+                        </button>
+                      ) : (
+                        <span className="monitoring-calendar__day-number" aria-hidden="true">
+                          {day.dayNumber}
+                        </span>
+                      )}
+                      {dayItems.length > 0 ? (
+                        <div className="monitoring-calendar__visits">
+                          {dayItems.slice(0, 2).map((item) => (
+                            <button
+                              type="button"
+                              className={`monitoring-calendar__visit${item.targetVisitDate && item.targetVisitDate < officeDate ? " is-overdue" : ""}`}
+                              key={`${day.key}-${item.uuid}-${item.referenceCode}`}
+                              aria-label={`${item.referenceCode}, ${scheduleStateLabel(item.targetVisitDate ?? null, officeDate)}`}
+                              onClick={() => selectDate(day.key)}
+                            >
+                              {item.referenceCode}
+                              <span className="monitoring-calendar__visit-state">
+                                {scheduleStateLabel(item.targetVisitDate ?? null, officeDate)}
+                              </span>
+                            </button>
+                          ))}
+                          {hiddenCount > 0 ? (
+                            <button
+                              type="button"
+                              className="monitoring-calendar__more"
+                              aria-label={`Select ${scheduleDateLabel(day.key)} and show ${hiddenCount} more ${hiddenCount === 1 ? "visit" : "visits"}`}
+                              onClick={() => selectDate(day.key)}
+                            >
+                              {`+${hiddenCount} more`}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        )
+
+          {selectedDate ? (
+            <section
+              className="monitoring-calendar__agenda"
+              aria-labelledby="monitoring-calendar-agenda-heading"
+            >
+              <h3 id="monitoring-calendar-agenda-heading">{scheduleDateLabel(selectedDate)}</h3>
+              <p className="monitoring-calendar__agenda-count">
+                {agendaItems.length} scheduled {agendaItems.length === 1 ? "visit" : "visits"}
+              </p>
+              {agendaItems.length === 0 ? (
+                <p className="monitoring-calendar__agenda-empty" role="status">
+                  No visits are scheduled on this date.
+                </p>
+              ) : (
+                <ul className="monitoring-calendar__agenda-list">
+                  {agendaItems.map((item) => (
+                    <li key={`${item.uuid}-${item.referenceCode}`}>
+                      <article className="monitoring-calendar__agenda-entry">
+                        <strong>{item.referenceCode}</strong>
+                        <span className="monitoring-calendar__agenda-location">{locationLabel(item)}</span>
+                        <span className="monitoring-calendar__agenda-assignee">
+                          {item.assignee?.name ?? "Unassigned"}
+                        </span>
+                        <span className="monitoring-calendar__agenda-state">
+                          {scheduleStateLabel(item.targetVisitDate ?? null, officeDate)}
+                        </span>
+                        <Link
+                          className="button button--secondary button--small"
+                          to={routes.reportDetail(item.uuid)}
+                          state={calendarQueueContext}
+                        >
+                          Open case
+                        </Link>
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : (
+            <p className="monitoring-calendar__prompt" role="status">
+              Select a date to see the scheduled workload for that day.
+            </p>
+          )}
+        </div>
       ) : null}
     </section>
   );
