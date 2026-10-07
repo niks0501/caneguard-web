@@ -13,6 +13,7 @@
     "security:dependency-check": "node scripts/security-dependency-check.mjs",
     "test:quality-gate-workflow": "node --test scripts/quality-gate-workflow.node-test.mjs",
     "graphify:validate": "node scripts/validate-graphify-artifacts.mjs",
+    "graphify:refresh": "graphify update . && node scripts/normalize-graphify-graph.mjs && graphify cluster-only .",
     "test:watch": "vitest",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
