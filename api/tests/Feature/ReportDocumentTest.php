@@ -30,6 +30,8 @@ class ReportDocumentTest extends TestCase
         ]);
 
         Sanctum::actingAs($reviewer);
+        $webOrigin = 'https://web.example.test';
+        config(['caneguard.reports.embed_origins' => ['self', $webOrigin]]);
         $response = $this->get('/api/v1/reports/documents/report?'.http_build_query([
             'period_type' => 'weekly',
             'week' => '2026-W38',
@@ -37,7 +39,12 @@ class ReportDocumentTest extends TestCase
 
         $response->assertOk()
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
-            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+            ->assertHeaderMissing('X-Frame-Options')
+            ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'self' {$webOrigin}");
+        $this->assertStringNotContainsString(
+            'frame-ancestors *',
+            (string) $response->headers->get('Content-Security-Policy'),
+        );
         $document = app(BuildReportDocument::class)->handle([
             'period_type' => 'weekly',
             'week' => '2026-W38',

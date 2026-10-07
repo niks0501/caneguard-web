@@ -32,7 +32,23 @@ class WeeklyReportPdfTest extends TestCase
         $this->assertArrayNotHasKey('document_bytes', $approved->toArray());
         $this->actingAs($officer, 'web');
         $path = '/api/v1/district-reports/'.$version->uuid;
-        $html = $this->get($path.'/document')->assertOk()->assertDontSee('PRIVATE FARM NAME')->assertSee('Synthetic Approving Officer')->assertSee('District Mill Officer')->assertSee('12:30 PM')->assertSee('Static Nasugbu');
+        $webOrigin = 'https://web.example.test';
+        config(['caneguard.reports.embed_origins' => ['self', $webOrigin]]);
+        $html = $this->get($path.'/document')
+            ->assertOk()
+            ->assertDontSee('PRIVATE FARM NAME')
+            ->assertSee('Synthetic Approving Officer')
+            ->assertSee('District Mill Officer')
+            ->assertSee('12:30 PM')
+            ->assertSee('Static Nasugbu')
+            ->assertHeaderMissing('X-Frame-Options')
+            ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'self' {$webOrigin}");
+        $contentSecurityPolicy = (string) $html->headers->get('Content-Security-Policy');
+        $this->assertStringNotContainsString('frame-ancestors *', $contentSecurityPolicy);
+        preg_match('/style-src \'self\' \'nonce-([^\']+)\'/i', $contentSecurityPolicy, $cspNonce);
+        preg_match('/<style nonce="([^"]+)">/', $html->getContent(), $styleNonce);
+        $this->assertNotEmpty($cspNonce[1] ?? null);
+        $this->assertSame($cspNonce[1], $styleNonce[1] ?? null);
         $this->assertStringNotContainsString('Downy mildew', $html->getContent());
         $report->update(['review_notes' => 'Later correction', 'lock_version' => 1]);
         $this->travel(3)->days();
@@ -63,7 +79,9 @@ class WeeklyReportPdfTest extends TestCase
         $this->getJson('/api/v1/district-reports')->assertOk()->assertDontSee('PRIVATE APPENDIX NAME');
         Auth::forgetGuards();
         $this->actingAs($reviewer, 'web');
-        $this->get($path.'/document?appendix=1')->assertForbidden();
+        $this->get($path.'/document?appendix=1')
+            ->assertForbidden()
+            ->assertDontSee('PRIVATE APPENDIX NAME');
         $this->get($path.'/pdf')->assertForbidden();
         $this->postJson('/api/v1/district-reports', ['week' => '2026-W40', 'appendix' => true])->assertForbidden();
         $inspector = User::factory()->fieldReporter()->inDistrict($district)->create();

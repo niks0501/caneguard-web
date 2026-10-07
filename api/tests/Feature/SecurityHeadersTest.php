@@ -41,6 +41,17 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString('<style nonce="', $response->getContent());
     }
 
+    public function test_report_preview_allowlist_includes_the_web_origin_and_self_without_wildcards(): void
+    {
+        $frontendOrigin = config('caneguard.frontend_origin');
+        $embedOrigins = config('caneguard.reports.embed_origins');
+
+        $this->assertIsString($frontendOrigin);
+        $this->assertContains('self', $embedOrigins);
+        $this->assertContains($frontendOrigin, $embedOrigins);
+        $this->assertNotContains('*', $embedOrigins);
+    }
+
     public function test_hsts_is_only_added_when_the_request_is_https(): void
     {
         $this->get('https://localhost/up')
