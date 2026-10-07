@@ -36,6 +36,10 @@ export function MonitoringScheduleSummary() {
         <p className="monitoring-schedule-summary__alert" role="alert">
           Schedule summary unavailable. The register queue below is unaffected.
         </p>
+      ) : workload.isPending && !workload.data ? (
+        <p className="monitoring-schedule-summary__loading" role="status">
+          Loading the global schedule summary…
+        </p>
       ) : (
         <>
           {workload.isRefetchError && workload.data ? (
