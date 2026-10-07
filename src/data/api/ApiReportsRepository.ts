@@ -70,6 +70,10 @@ function toQueryParams(
       filters.barangay && filters.barangay !== "all"
         ? filters.barangay
         : undefined,
+    location:
+      filters.location && filters.location !== "all"
+        ? filters.location
+        : undefined,
     case_state:
       filters.caseState && filters.caseState !== "all"
         ? filters.caseState

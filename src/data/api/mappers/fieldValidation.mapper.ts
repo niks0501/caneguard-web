@@ -13,6 +13,7 @@ import { mapReportLifecycle } from "./lifecycle.mapper";
 function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueItem {
   return {
     uuid: dto.uuid,
+    reviewVersion: dto.version,
     referenceCode: dto.reference_code,
     barangay: dto.barangay,
     province: dto.province,
@@ -27,6 +28,8 @@ function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueIte
     assignee: dto.assignee
       ? { uuid: dto.assignee.uuid, name: dto.assignee.name }
       : null,
+    scheduledRevisit: dto.scheduled_revisit ?? false,
+    followUpOutcome: null,
     finalLatitude: dto.final_latitude,
     finalLongitude: dto.final_longitude,
     locationSource: dto.location_source,
@@ -84,6 +87,8 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
       totalCount: dto.metadata.total_count,
       locatedCount: dto.metadata.located_count,
       unlocatedCount: dto.metadata.unlocated_count,
+      needVisitCount: dto.metadata.need_visit_count,
+      overdueCount: dto.metadata.overdue_count,
       limit: dto.metadata.limit,
       returnedCount: dto.metadata.returned_count,
       truncated: dto.metadata.truncated,

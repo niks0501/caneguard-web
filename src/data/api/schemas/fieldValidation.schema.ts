@@ -15,6 +15,7 @@ const nullableLocationSourceSchema = z
 
 const sharedItemFields = {
   uuid: z.string(),
+  version: z.number().int().nonnegative().optional(),
   reference_code: z.string(),
   barangay: z.string(),
   farm_reference: z.string().nullable().optional(),
@@ -99,6 +100,8 @@ export const mapResponseSchema = z.object({
     total_count: z.number().int().nonnegative(),
     located_count: z.number().int().nonnegative(),
     unlocated_count: z.number().int().nonnegative(),
+    need_visit_count: z.number().int().nonnegative().optional(),
+    overdue_count: z.number().int().nonnegative().optional(),
     limit: z.number().int().positive(),
     returned_count: z.number().int().nonnegative(),
     truncated: z.boolean(),

@@ -11,6 +11,7 @@ class FieldValidationQueueResource extends JsonResource
     {
         return [
             'uuid' => $this->uuid,
+            'version' => $this->lock_version,
             'reference_code' => $this->reference_code,
             'barangay' => $this->barangay,
             'farm_reference' => $this->farmer_or_farm_owner_name ?: $this->barangay,

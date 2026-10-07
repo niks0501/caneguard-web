@@ -46,6 +46,7 @@ const workflowStatusSchema = z.enum(workflowStatusValues);
 const reviewerSchema = z.string().trim().min(1).max(120);
 const calendarMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 const dateSchema = z.iso.date();
+const locationSchema = z.enum(["located", "unlocated"]);
 
 export interface ReportListUrlState {
   calendarMonth?: string;
@@ -70,6 +71,7 @@ export function parseReportListUrl(
   const rawBarangay = optionalValue(searchParams, "barangay");
   const rawDateFrom = optionalValue(searchParams, "date_from");
   const rawDateTo = optionalValue(searchParams, "date_to");
+  const rawLocation = optionalValue(searchParams, "location");
   const rawSort = optionalValue(searchParams, "sort");
   const rawCaseState = optionalValue(searchParams, "case_state");
   const rawVerificationOutcome = optionalValue(
@@ -117,6 +119,7 @@ export function parseReportListUrl(
     : null;
   const dateFrom = rawDateFrom ? dateSchema.safeParse(rawDateFrom) : null;
   const dateTo = rawDateTo ? dateSchema.safeParse(rawDateTo) : null;
+  const location = rawLocation ? locationSchema.safeParse(rawLocation) : null;
   const invalid =
     (rawPage !== undefined &&
       (!/^\d+$/.test(rawPage) ||
@@ -138,6 +141,7 @@ export function parseReportListUrl(
     Boolean(calendarMonth && !calendarMonth.success) ||
     Boolean(dateFrom && !dateFrom.success) ||
     Boolean(dateTo && !dateTo.success) ||
+    Boolean(location && !location.success) ||
     Boolean(rawDateFrom && rawDateTo && rawDateTo < rawDateFrom);
 
   return {
@@ -154,6 +158,7 @@ export function parseReportListUrl(
         ? (disease.data as DiseaseKey)
         : undefined,
       barangay: rawBarangay,
+      location: location?.success ? location.data : undefined,
       dateFrom: dateFrom?.success ? dateFrom.data : undefined,
       dateTo: dateTo?.success ? dateTo.data : undefined,
       caseState: caseState?.success ? caseState.data : undefined,
@@ -182,6 +187,7 @@ export function parseReportListUrl(
         rawStatus ||
         rawDisease ||
         rawBarangay ||
+        rawLocation ||
         rawDateFrom ||
         rawDateTo ||
         rawCaseState ||

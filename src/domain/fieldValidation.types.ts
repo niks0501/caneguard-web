@@ -7,6 +7,7 @@ import type {
   MeasurementProvenance,
   ReportLifecycle,
   ReviewStatus,
+  FollowUpOutcome,
 } from "./report.types";
 import type { FieldValidationQueue } from "./operationalQueue";
 
@@ -75,6 +76,8 @@ export interface FieldValidationMapData {
     totalCount: number;
     locatedCount: number;
     unlocatedCount: number;
+    needVisitCount?: number;
+    overdueCount?: number;
     limit: number;
     returnedCount: number;
     truncated: boolean;
@@ -83,6 +86,7 @@ export interface FieldValidationMapData {
 
 export interface FieldValidationQueueItem {
   uuid: string;
+  reviewVersion?: number;
   referenceCode: string;
   barangay: string;
   province: string | null;
@@ -95,6 +99,8 @@ export interface FieldValidationQueueItem {
   lifecycle?: ReportLifecycle;
   targetVisitDate?: string | null;
   assignee?: { uuid: string; name: string } | null;
+  scheduledRevisit?: boolean;
+  followUpOutcome?: FollowUpOutcome | null;
   finalLatitude: number | null;
   finalLongitude: number | null;
   locationSource: LocationSource | null;

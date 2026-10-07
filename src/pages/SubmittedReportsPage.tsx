@@ -56,6 +56,7 @@ type FilterKey =
   | "concern"
   | "predicted_label"
   | "barangay"
+  | "location"
   | "date_from"
   | "date_to"
   | "sort";
@@ -378,6 +379,15 @@ export function SubmittedReportsPage({
               }
             />
           </label>
+          <SelectFilter
+            label="Map location"
+            value={urlState.filters.location ?? ""}
+            onChange={(event) => updateFilter("location", event.target.value)}
+          >
+            <option value="">Any location</option>
+            <option value="located">With a usable location</option>
+            <option value="unlocated">Without a usable location</option>
+          </SelectFilter>
           <label className="select-filter">
             <span>From date</span>
             <input

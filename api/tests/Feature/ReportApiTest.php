@@ -299,6 +299,39 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('meta.total', 3);
     }
 
+    public function test_reports_can_be_filtered_by_map_location_availability(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $located = Report::factory()->create([
+            'final_latitude' => 14.1,
+            'final_longitude' => 120.6,
+            'submitted_at' => CarbonImmutable::parse('2026-07-20T10:00:00Z'),
+        ]);
+        Report::factory()->create([
+            'final_latitude' => null,
+            'final_longitude' => null,
+            'submitted_at' => CarbonImmutable::parse('2026-07-20T09:00:00Z'),
+        ]);
+        Report::factory()->create([
+            'final_latitude' => 91,
+            'final_longitude' => 120.6,
+            'submitted_at' => CarbonImmutable::parse('2026-07-20T08:00:00Z'),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        // The Monitoring Map's No Location handoff reuses the normal case list
+        // filtered to matching reports without a usable coordinate pair.
+        $this->getJson('/api/v1/reports?location=unlocated')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+        $this->getJson('/api/v1/reports?location=located')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $located->uuid);
+        $this->getJson('/api/v1/reports?location=bogus')->assertStatus(422);
+    }
+
     public function test_report_detail_projects_typed_case_history_from_existing_review_sources(): void
     {
         $reviewer = User::factory()->reviewer()->create(['name' => 'Office reviewer']);

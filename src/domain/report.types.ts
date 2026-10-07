@@ -453,6 +453,8 @@ export interface ReportFilters {
   reportedConcern?: "rssi" | "all";
   followUpOutcome?: FollowUpOutcome | "all";
   disease?: DiseaseKey | "all";
+  /** Map handoff: matching reports split by usable coordinate availability. */
+  location?: "located" | "unlocated" | "all";
   barangay?: string | "all";
   dateFrom?: string;
   dateTo?: string;
