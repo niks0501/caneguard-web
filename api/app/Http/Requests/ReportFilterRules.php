@@ -24,6 +24,7 @@ final class ReportFilterRules
                 'after_or_equal:date_from',
             ],
             'case_state' => ['sometimes', Rule::in(Report::caseStates())],
+            'location' => ['sometimes', Rule::in(['located', 'unlocated'])],
             'verification_outcome' => [
                 'sometimes',
                 Rule::in(Report::verificationOutcomes()),

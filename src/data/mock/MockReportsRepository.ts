@@ -122,6 +122,15 @@ export class MockReportsRepository implements ReportsRepository {
           !filters?.barangay ||
           filters.barangay === "all" ||
           report.barangay === filters.barangay;
+        const hasUsableLocation =
+          typeof report.finalLatitude === "number" && Number.isFinite(report.finalLatitude)
+          && report.finalLatitude >= -90 && report.finalLatitude <= 90
+          && typeof report.finalLongitude === "number" && Number.isFinite(report.finalLongitude)
+          && report.finalLongitude >= -180 && report.finalLongitude <= 180;
+        const matchesLocation =
+          !filters?.location ||
+          filters.location === "all" ||
+          (filters.location === "located" ? hasUsableLocation : !hasUsableLocation);
         const submittedDate = manilaDateAt(new Date(report.submittedAt));
         const matchesDateFrom =
           !filters?.dateFrom || submittedDate >= filters.dateFrom;
@@ -136,6 +145,7 @@ export class MockReportsRepository implements ReportsRepository {
           matchesQueue &&
           matchesDisease &&
           matchesBarangay &&
+          matchesLocation &&
           matchesDateFrom &&
           matchesDateTo
         );

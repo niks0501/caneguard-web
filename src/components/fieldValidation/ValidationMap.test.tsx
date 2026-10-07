@@ -1,9 +1,9 @@
-import { createElement, type ReactNode } from "react";
+import { createElement, useState, type ReactNode } from "react";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FieldValidationMapData } from "../../domain/fieldValidation.types";
-import { ValidationMap } from "./ValidationMap";
+import { ValidationMap, type ValidationMapSelection } from "./ValidationMap";
 
 type CapturedMapProps = {
   children?: ReactNode;
@@ -72,12 +72,16 @@ function mapData(coordinates: Array<[number, number]>, totalCount = coordinates.
         gpsAccuracy: 8.5,
         affectedAreaHectares: 2.5,
         affectedPortionPercent: 18,
+        finalLatitude: point[1],
+        finalLongitude: point[0],
       },
     })),
     metadata: {
       totalCount,
       locatedCount: coordinates.length,
       unlocatedCount: totalCount - coordinates.length,
+      needVisitCount: coordinates.length,
+      overdueCount: 0,
       limit: 1000,
       returnedCount: coordinates.length,
       truncated: false,
@@ -85,10 +89,24 @@ function mapData(coordinates: Array<[number, number]>, totalCount = coordinates.
   };
 }
 
-function renderMap(data: FieldValidationMapData, frameKey = "all") {
+/** Holds selection state so onSelect effects (cluster highlight) are observable. */
+function ControlledMap({ data, onSelection }: { data: FieldValidationMapData; onSelection?: (selection: ValidationMapSelection | null) => void }) {
+  const [selection, setSelection] = useState<ValidationMapSelection | null>(null);
+  return (
+    <ValidationMap
+      data={data}
+      selection={selection}
+      onSelect={(next) => { setSelection(next); onSelection?.(next); }}
+      onClearSelection={() => { setSelection(null); onSelection?.(null); }}
+    />
+  );
+}
+
+function renderMap(data: FieldValidationMapData, frameKey = "all", onSelection?: (selection: ValidationMapSelection | null) => void) {
   return render(
     <MemoryRouter>
-      <ValidationMap data={data} frameKey={frameKey} />
+      <ControlledMap data={data} onSelection={onSelection} />
+      <span data-hidden-frame={frameKey} />
     </MemoryRouter>,
   );
 }
@@ -106,20 +124,22 @@ beforeEach(() => {
 });
 
 describe("ValidationMap", () => {
-  it("always clusters server locations and deterministically expands every report at the maximum zoom", async () => {
+  it("always clusters server locations and reports every represented member from a cluster click", async () => {
     const data = mapData([[120.63, 14.07], [120.6301, 14.07]]);
     for (const item of data.features) Object.assign(item.properties, {
       locationGroupKey: "server-group",
       locationGroupSize: 2,
-      locationGroupCoordinates: [120.63, 14.07],
+      locationGroupCoordinates: [120.63, 14.07] as [number, number],
     });
     data.metadata.truncated = true;
-    renderMap(data);
+    const selections: Array<ValidationMapSelection | null> = [];
+    renderMap(data, "all", (selection) => selections.push(selection));
     loadMap();
     expect(mapTestState.sources["validation-reports"].clusterMaxZoom).toBe(22);
     expect(mapTestState.sources["validation-reports"].maxzoom).toBe(24);
     const plotted = mapTestState.sources["validation-reports"].data?.features as Array<{ geometry: { coordinates: number[] } }>;
     expect(plotted.map((item) => item.geometry.coordinates)).toEqual([[120.63, 14.07], [120.63, 14.07]]);
+
     mapTestState.controls.getZoom.mockReturnValue(22);
     mapTestState.controls.getSource.mockReturnValue({
       getClusterExpansionZoom: vi.fn().mockResolvedValue(23),
@@ -131,28 +151,35 @@ describe("ValidationMap", () => {
       lngLat: { lng: 120.63, lat: 14.07 },
     };
     await act(async () => { await mapTestState.latestProps?.onClick?.(click as never); });
-    expect(screen.getByText("2 reports at this location")).toBeInTheDocument();
-    expect(screen.getByText("Within the returned map slice.")).toBeInTheDocument();
-    for (let index = 1; index <= 2; index++) {
-      expect(screen.getByRole("link", { name: `CG-2026-000${index}` })).toHaveAttribute("href", `/reports/report-${index}`);
-    }
-    const first = mapTestState.sources["validation-expanded"].data;
-    await act(async () => { await mapTestState.latestProps?.onClick?.(click as never); });
-    expect(mapTestState.sources["validation-expanded"].data).toEqual(first);
-    expect(new Set((first?.features as Array<{ geometry: { coordinates: number[] } }>).map((item) => item.geometry.coordinates.join(","))).size).toBe(2);
+
+    expect(selections.at(-1)).toEqual({
+      kind: "cluster",
+      clusterKeys: ["server-group"],
+      coordinates: [120.63, 14.07],
+    });
+    // Both same-coordinate members stay individually reachable.
+    const expanded = mapTestState.sources["validation-expanded"].data;
+    expect(new Set((expanded?.features as Array<{ geometry: { coordinates: number[] } }>).map((item) => item.geometry.coordinates.join(","))).size).toBe(2);
   });
 
-  it("opens every server group member from a point and clears inaccessible selection after refetch", async () => {
-    const data = mapData([[120.63, 14.07], [120.6301, 14.07]]);
-    data.features.forEach((item) => Object.assign(item.properties, { locationGroupKey: "server-key", locationGroupSize: 2 }));
-    const { rerender } = renderMap(data);
-    await act(async () => { await mapTestState.latestProps?.onClick?.({
-      features: [{ properties: { uuid: "report-2" } }],
-      lngLat: { lng: 120.63, lat: 14.07 },
-    } as never); });
-    expect(screen.getAllByRole("link")).toHaveLength(2);
-    rerender(<MemoryRouter><ValidationMap data={mapData([])} /></MemoryRouter>);
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  it("opens a single case from an isolated marker click with its identity and coordinates", async () => {
+    const data = mapData([[120.63, 14.07], [120.7301, 14.11]]);
+    const selections: Array<ValidationMapSelection | null> = [];
+    renderMap(data, "all", (selection) => selections.push(selection));
+    loadMap();
+
+    await act(async () => {
+      await mapTestState.latestProps?.onClick?.({
+        features: [{ properties: { uuid: "report-2" } }],
+        lngLat: { lng: 120.7301, lat: 14.11 },
+      } as never);
+    });
+
+    expect(selections.at(-1)).toEqual({
+      kind: "case",
+      caseUuid: "report-2",
+      coordinates: [120.7301, 14.11],
+    });
   });
 
   it("reports a provider error without removing the map boundary", () => {
@@ -162,8 +189,15 @@ describe("ValidationMap", () => {
       mapTestState.latestProps?.onError?.();
     });
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Map provider is unavailable.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Map unavailable.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Reports Without Location");
     expect(screen.getByTestId("map-boundary")).toBeInTheDocument();
+  });
+
+  it("gives every operational case status a distinguishable marker, not colour alone", () => {
+    renderMap(mapData([[120.63, 14.07]]));
+    const markers = ["○", "!", "✓", "?", "•"].map((marker) => screen.getByText(marker));
+    expect(new Set(markers.map((marker) => marker.textContent)).size).toBe(5);
   });
 
   it("frames one located report at a useful local zoom", () => {
@@ -177,37 +211,52 @@ describe("ValidationMap", () => {
     expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
   });
 
-  it("fits worldwide located reports with padding and a maximum zoom", () => {
-    renderMap(mapData([[120.7273218, 13.933159], [122.8, 10.5]]));
+  it("fits local located reports with padding and a maximum zoom", () => {
+    renderMap(mapData([[120.7273218, 13.933159], [120.8, 14.01]]));
     loadMap();
 
     expect(mapTestState.controls.fitBounds).toHaveBeenCalledWith(
-      [[120.7273218, 10.5], [122.8, 13.933159]],
+      [[120.7273218, 13.933159], [120.8, 14.01]],
       { padding: 60, maxZoom: 14 },
     );
   });
 
-  it("starts wide and returns to a worldwide view when there are no located reports", () => {
+  it("falls back to the CaneGuard operating area instead of a world view when there are no located reports", () => {
     renderMap(mapData([], 2));
     expect(mapTestState.latestProps?.initialViewState).toEqual({
-      longitude: 0,
-      latitude: 20,
-      zoom: 1,
+      longitude: 120.65,
+      latitude: 14.09,
+      zoom: 9,
     });
     expect(mapTestState.latestProps?.maxBounds).toBeUndefined();
 
     loadMap();
 
     expect(mapTestState.controls.easeTo).toHaveBeenCalledWith({
-      center: [0, 20],
-      zoom: 1,
+      center: [120.65, 14.09],
+      zoom: 9,
     });
-    expect(screen.getByText("No located reports to plot.")).toBeInTheDocument();
+    expect(screen.getByText("No located cases")).toBeInTheDocument();
+    expect(screen.getByText(/none has a usable coordinate pair/i)).toBeInTheDocument();
+  });
+
+  it("does not present a basemap failure as an empty case result", () => {
+    renderMap(mapData([], 0));
+    loadMap();
+    act(() => {
+      mapTestState.latestProps?.onError?.();
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("Map unavailable.");
+    expect(screen.queryByText("No matching cases")).not.toBeInTheDocument();
   });
 
   it("does not reframe background data refreshes but reframes a new filter context", () => {
     const firstData = mapData([[120.63, 14.07]]);
-    const { rerender } = renderMap(firstData);
+    const { rerender } = render(
+      <MemoryRouter>
+        <ValidationMap data={firstData} frameKey="all" />
+      </MemoryRouter>,
+    );
     loadMap();
     expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
 
@@ -226,18 +275,10 @@ describe("ValidationMap", () => {
     expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(2);
   });
 
-  it("opens the selected report popup and expands clusters", async () => {
-    const data = mapData([[120.63, 14.07]]);
+  it("zooms into a cluster that has not reached the maximum zoom instead of expanding it", async () => {
+    const data = mapData([[120.63, 14.07], [120.6301, 14.07]]);
     renderMap(data);
     loadMap();
-
-    act(() => {
-      mapTestState.latestProps?.onClick?.({
-        features: [{ properties: { uuid: "report-1" } }],
-        lngLat: { lng: 120.63, lat: 14.07 },
-      } as never);
-    });
-    expect(screen.getByRole("link", { name: "CG-2026-0001" })).toHaveAttribute("href", "/reports/report-1");
 
     mapTestState.controls.getSource.mockReturnValue({
       getClusterExpansionZoom: vi.fn().mockResolvedValue(9),

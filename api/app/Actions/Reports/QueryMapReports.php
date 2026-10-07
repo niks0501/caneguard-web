@@ -15,7 +15,7 @@ class QueryMapReports
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return array{reports: Collection<int, Report>, total_count: int, located_count: int, unlocated_count: int, limit: int, returned_count: int, truncated: bool}
+     * @return array{reports: Collection<int, Report>, total_count: int, located_count: int, unlocated_count: int, need_visit_count: int, overdue_count: int, limit: int, returned_count: int, truncated: bool}
      */
     public function handle(array $filters): array
     {
@@ -33,6 +33,14 @@ class QueryMapReports
         }
 
         $totalCount = (clone $query)->count('reports.id');
+        // The Map summary metrics describe the same filtered scope as the
+        // plotted reports, so they are counted here rather than on another read.
+        $needVisitCount = $this->applyOperationalQueueFilter
+            ->handle(clone $query, Report::QUEUE_NEEDS_VISIT)
+            ->count('reports.id');
+        $overdueCount = $this->applyOperationalQueueFilter
+            ->handle(clone $query, Report::QUEUE_FOLLOW_UP_DUE)
+            ->count('reports.id');
         $maxLimit = (int) config('caneguard.map.max_limit', 1000);
         $limit = min(
             $maxLimit,
@@ -88,6 +96,8 @@ class QueryMapReports
             'total_count' => $totalCount,
             'located_count' => $locatedCount,
             'unlocated_count' => $totalCount - $locatedCount,
+            'need_visit_count' => $needVisitCount,
+            'overdue_count' => $overdueCount,
             'limit' => $limit,
             'returned_count' => $reports->count(),
             'truncated' => $truncated,

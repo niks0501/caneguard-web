@@ -1,82 +1,95 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AxiosError } from "axios";
 import { ApiError } from "../api/ApiError";
 import { ZodError } from "zod";
-import type {
-  FieldValidationMapData,
-  FieldValidationQueueData,
-} from "../domain/fieldValidation.types";
-import {
-  useFieldValidationMap,
-  useFieldValidationQueue,
-} from "../hooks/useFieldValidation";
+import type { FieldValidationMapData, FieldValidationMapFeature } from "../domain/fieldValidation.types";
+import { useFieldValidationMap } from "../hooks/useFieldValidation";
 import { FieldValidationMapPage } from "./FieldValidationMapPage";
 
 vi.mock("../hooks/useFieldValidation", () => ({
   useFieldValidationMap: vi.fn(),
-  useFieldValidationQueue: vi.fn(),
 }));
+
+// The page controls disclosure/rendering; only the provider boundary is replaced.
+vi.mock("../components/fieldValidation/ValidationMap", () => ({
+  ValidationMap: ({ data, selection, onSelect, onClearSelection }: {
+    data: FieldValidationMapData;
+    selection: { kind: string } | null;
+    onSelect: (selection: { kind: "case"; caseUuid: string; coordinates: [number, number] } | { kind: "cluster"; clusterKeys: string[]; coordinates: [number, number] }) => void;
+    onClearSelection: () => void;
+  }) => (
+    <div role="region" aria-label="Map provider boundary">
+      {data.features.map((feature) => (
+        <button
+          key={feature.properties.uuid}
+          type="button"
+          onClick={() => onSelect({ kind: "case", caseUuid: feature.properties.uuid, coordinates: feature.geometry.coordinates })}
+        >
+          Select {feature.properties.referenceCode}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => onSelect({
+          kind: "cluster",
+          clusterKeys: data.features.map((feature) => feature.properties.locationGroupKey ?? feature.properties.uuid),
+          coordinates: [120.6, 14.1],
+        })}
+      >
+        Select cluster
+      </button>
+      <button type="button" onClick={onClearSelection}>Clear selection</button>
+      <output data-testid="selection-kind">{selection?.kind ?? "none"}</output>
+    </div>
+  ),
+}));
+
+function feature(uuid: string, referenceCode: string, overrides: Partial<FieldValidationMapFeature["properties"]> = {}): FieldValidationMapFeature {
+  return {
+    type: "Feature",
+    id: uuid,
+    geometry: { type: "Point", coordinates: [120.6039, 14.126] },
+    properties: {
+      uuid,
+      locationGroupKey: uuid,
+      referenceCode,
+      barangay: "Balaytigui",
+      province: "Batangas",
+      municipality: "Nasugbu",
+      farmReference: "Block MBN-14",
+      observedAt: "2026-08-13T10:20:30.000Z",
+      submittedAt: "2026-08-13T11:00:00.000Z",
+      predictedDisease: "rust",
+      confidence: 0.84,
+      reviewStatus: "for_field_validation",
+      lifecycle: { caseState: "open", verificationOutcome: "not_determined", fieldValidationState: "assigned", referralState: "not_referred" },
+      locationSource: "gps",
+      gpsAccuracy: 8.5,
+      affectedAreaHectares: 2.5,
+      affectedPortionPercent: 18,
+      ...overrides,
+    },
+  };
+}
 
 const mapData: FieldValidationMapData = {
   type: "FeatureCollection",
   features: [
-    {
-      type: "Feature",
-      id: "report-1",
-      geometry: { type: "Point", coordinates: [120.6039, 14.126] },
-      properties: {
-        uuid: "report-1",
-        referenceCode: "CG-2026-0001",
-        barangay: "Balaytigui",
-        province: "Batangas",
-        municipality: "Nasugbu",
-        observedAt: "2026-08-13T10:20:30.000Z",
-        submittedAt: "2026-08-13T11:00:00.000Z",
-        predictedDisease: "rust",
-        confidence: 0.84,
-        reviewStatus: "for_field_validation",
-        locationSource: "gps",
-        gpsAccuracy: 8.5,
-        affectedAreaHectares: 2.5,
-        affectedPortionPercent: 18,
-      },
-    },
+    feature("report-1", "CG-2026-0001"),
+    feature("report-2", "CG-2026-0002", { locationGroupKey: "report-1", referenceCode: "CG-2026-0002" }),
   ],
   metadata: {
-    totalCount: 2,
-    locatedCount: 1,
-    unlocatedCount: 1,
+    totalCount: 12,
+    locatedCount: 2,
+    unlocatedCount: 4,
+    needVisitCount: 7,
+    overdueCount: 3,
     limit: 1000,
-    returnedCount: 1,
+    returnedCount: 2,
     truncated: false,
   },
-};
-
-const queueData: FieldValidationQueueData = {
-  queue: "needs_visit",
-  count: 1,
-  oldest: {
-    uuid: "report-1",
-    referenceCode: "CG-2026-0001",
-    barangay: "Balaytigui",
-    province: "Batangas",
-    municipality: "Nasugbu",
-    observedAt: "2026-08-13T10:20:30.000Z",
-    submittedAt: "2026-08-13T11:00:00.000Z",
-    predictedDisease: "rust",
-    confidence: 0.84,
-    reviewStatus: "for_field_validation",
-    finalLatitude: 14.126,
-    finalLongitude: 120.6039,
-    locationSource: "gps",
-    gpsAccuracy: 8.5,
-    affectedAreaHectares: 2.5,
-    affectedPortionPercent: 18,
-  },
-  items: [],
 };
 
 function queryResult(data: unknown, overrides: Record<string, unknown> = {}) {
@@ -87,16 +100,17 @@ function queryResult(data: unknown, overrides: Record<string, unknown> = {}) {
     isFetching: false,
     isPending: false,
     isRefetchError: false,
+    isPlaceholderData: false,
     refetch: vi.fn(),
     ...overrides,
   } as never;
 }
 
 function LocationProbe() {
-  return <output data-testid="location">{useLocation().search}</output>;
+  return <output data-testid="location">{useLocation().pathname}{useLocation().search}</output>;
 }
 
-function renderPage(initialEntry = "/map") {
+function renderPage(initialEntry = "/monitoring?view=map") {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <FieldValidationMapPage />
@@ -105,275 +119,204 @@ function renderPage(initialEntry = "/map") {
   );
 }
 
-function expectRowCountInDisclosure(count: string) {
-  const summary = screen.getByText("Map and located observations").closest("summary") as HTMLElement;
-  expect(summary).toHaveTextContent(count);
+function summaryButton(name: string) {
+  return screen.getByRole("button", { name: new RegExp(name) });
 }
 
 beforeEach(() => {
   vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(mapData));
-  vi.mocked(useFieldValidationQueue).mockReturnValue(queryResult(queueData));
 });
 
-describe("FieldValidationMapPage", () => {
-  it("renders the collapsible map summary, coverage warning, operational queue, and report links", async () => {
+describe("FieldValidationMapPage structure and summary", () => {
+  it("presents the map immediately without an expand action and without an empty sidebar", () => {
+    renderPage();
+    const map = screen.getByRole("region", { name: "Map provider boundary" });
+    expect(map).toBeInTheDocument();
+    const disclosure = map.closest("details");
+    if (disclosure) expect(disclosure).toHaveAttribute("open");
+    expect(screen.queryByRole("heading", { name: "Case Details" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Cases in this Area" })).not.toBeInTheDocument();
+  });
+
+  it("exposes four filtered summary metrics that describe the filtered scope", () => {
+    renderPage();
+    expect(summaryButton("Active Cases")).toHaveTextContent("12");
+    expect(summaryButton("Need Visit")).toHaveTextContent("7");
+    expect(summaryButton("Overdue")).toHaveTextContent("3");
+    expect(summaryButton("No Location")).toHaveTextContent("4");
+  });
+
+  it("applies a reduced primary filter set with a known Barangay choice and recalculates the scope", async () => {
     const user = userEvent.setup();
     renderPage();
+    expect(screen.getByLabelText("Barangay")).toBeInTheDocument();
+    expect(screen.getByLabelText("Case Status")).toBeInTheDocument();
+    expect(screen.getByLabelText("Date Observed from")).toBeInTheDocument();
+    expect(screen.getByLabelText("Date Observed to")).toBeInTheDocument();
 
-    const locationsSummary = screen.getByText("Map and located observations");
-    expect(locationsSummary.closest("details")).not.toHaveAttribute("open");
-    expectRowCountInDisclosure("1 row");
-    await user.click(locationsSummary);
+    const datalist = document.getElementById("known-barangays") as HTMLDataListElement;
+    expect([...datalist.options].map((option) => option.value)).toContain("Balaytigui");
 
-    expect(screen.getByRole("heading", { name: "Field-validation map" })).toBeInTheDocument();
-    expect(screen.getByText("Map provider is not configured.")).toBeInTheDocument();
-    expect(screen.getByText(/1 located, 1 unlocated/)).toBeInTheDocument();
-    expect(screen.getByText(/1 filtered report has no valid coordinate pair/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
-    expect(screen.getAllByText("Needs field validation").length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: "Open Report" })[0]).toHaveAttribute(
-      "href",
-      "/reports/report-1",
-    );
-  });
-
-  it("communicates when the API bounds the map result set", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult({
-        ...mapData,
-        metadata: {
-          ...mapData.metadata,
-          totalCount: 1001,
-          locatedCount: 1001,
-          unlocatedCount: 0,
-          limit: 1000,
-          returnedCount: 1000,
-          truncated: true,
-        },
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByText(/Showing 1000 of 1001 matching reports on the map/)).toBeInTheDocument();
-  });
-
-  it("keeps the queue available when the map request fails", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(undefined, {
-        error: new ApiError("Unavailable", { status: 503 }),
-        isError: true,
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByText(/field-validation map is unavailable/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open Report" })).toHaveAttribute(
-      "href",
-      "/reports/report-1",
-    );
-  });
-
-  it("explains when the monitoring map cannot connect to the API", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(undefined, {
-        error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
-        isError: true,
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByText(/Cannot connect to the CaneGuard API for the field-validation map/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
-  });
-
-  it("keeps cached map and queue data visible during an API connection failure", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(mapData, {
-        error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
-        isError: true,
-        isRefetchError: true,
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByRole("alert")).toHaveTextContent(/Cannot connect to the CaneGuard API/);
-    expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue remain visible/i);
-    expectRowCountInDisclosure("1 row");
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
-  });
-
-  it("keeps map data available when the queue request fails", () => {
-    vi.mocked(useFieldValidationQueue).mockReturnValue(
-      queryResult(undefined, {
-        error: new ApiError("Unavailable", { status: 503 }),
-        isError: true,
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByText(/field-validation queue is unavailable/i)).toBeInTheDocument();
-    expectRowCountInDisclosure("1 row");
-  });
-
-  it("keeps cached map data and the queue usable when the queue refresh fails", () => {
-    vi.mocked(useFieldValidationQueue).mockReturnValue(
-      queryResult(queueData, {
-        error: new ApiError("Unavailable", { status: 503 }),
-        isError: true,
-        isRefetchError: true,
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue/i);
-    expectRowCountInDisclosure("1 row");
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Open Report" })[0]).toHaveAttribute(
-      "href",
-      "/reports/report-1",
-    );
-  });
-
-  it("keeps cached data visible after a refresh error", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(mapData, {
-        error: new ApiError("Unavailable", { status: 503 }),
-        isError: true,
-        isRefetchError: true,
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map and queue/i);
-    expectRowCountInDisclosure("1 row");
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
-  });
-
-  it("distinguishes no matching reports from the located table empty state", () => {
-    const emptyMap: FieldValidationMapData = {
-      type: "FeatureCollection",
-      features: [],
-      metadata: {
-        totalCount: 0,
-        locatedCount: 0,
-        unlocatedCount: 0,
-        limit: 1000,
-        returnedCount: 0,
-        truncated: false,
-      },
-    };
-    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(emptyMap));
-    renderPage();
-
-    expect(screen.getByText("No reports match the applied filters.")).toBeInTheDocument();
-    expectRowCountInDisclosure("0 rows");
-  });
-
-  it("reports when matching reports have no coordinate pair", () => {
-    const unlocatedMap: FieldValidationMapData = {
-      type: "FeatureCollection",
-      features: [],
-      metadata: {
-        totalCount: 2,
-        locatedCount: 0,
-        unlocatedCount: 2,
-        limit: 1000,
-        returnedCount: 0,
-        truncated: false,
-      },
-    };
-    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(unlocatedMap));
-    renderPage();
-
-    expect(screen.getByText(/0 located, 2 unlocated/)).toBeInTheDocument();
-    expect(screen.getByText(/2 filtered reports have no valid coordinate pair/)).toBeInTheDocument();
-  });
-
-  it("reports malformed map data without hiding a healthy queue", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(undefined, {
-        error: new ZodError([]),
-        isError: true,
-      }),
-    );
-    renderPage();
-
-    expect(screen.getByText(/unexpected map format/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
-  });
-
-  it("applies draft filters to the URL without changing the queue scope", async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.selectOptions(screen.getByLabelText("Possible Condition"), "rust");
-    await user.selectOptions(screen.getByLabelText("Map review state"), "for_field_validation");
     await user.type(screen.getByLabelText("Barangay"), "Balaytigui");
+    await user.selectOptions(screen.getByLabelText("Case Status"), "for_field_validation");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
 
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "?status=for_field_validation&predicted_label=rust&barangay=Balaytigui",
-    );
     expect(useFieldValidationMap).toHaveBeenLastCalledWith(
-      expect.objectContaining({ disease: "rust", barangay: "Balaytigui", status: "for_field_validation" }),
+      expect.objectContaining({ barangay: "Balaytigui", status: "for_field_validation" }),
       { enabled: true },
     );
-    expect(useFieldValidationQueue).toHaveBeenLastCalledWith(
-      expect.objectContaining({ disease: "rust", barangay: "Balaytigui", status: "for_field_validation" }),
+    expect(screen.getByTestId("location")).toHaveTextContent("barangay=Balaytigui");
+    expect(screen.getByTestId("location")).toHaveTextContent("status=for_field_validation");
+  });
+
+  it("narrows to Need Visit and Overdue without silently clearing unrelated manual filters", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=map&barangay=Balaytigui");
+    await user.click(summaryButton("Need Visit"));
+    expect(useFieldValidationMap).toHaveBeenLastCalledWith(
+      expect.objectContaining({ queue: "needs_visit", barangay: "Balaytigui" }),
+      { enabled: true },
+    );
+    await user.click(summaryButton("Overdue"));
+    expect(useFieldValidationMap).toHaveBeenLastCalledWith(
+      expect.objectContaining({ queue: "follow_up_due", barangay: "Balaytigui" }),
+      { enabled: true },
+    );
+    await user.click(summaryButton("Active Cases"));
+    expect(useFieldValidationMap).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ queue: expect.anything() }),
       { enabled: true },
     );
   });
 
-  it("preserves the follow-up-due queue in the filtered workspace", () => {
-    vi.mocked(useFieldValidationQueue).mockReturnValue(
-      queryResult({ ...queueData, queue: "follow_up_due" }),
-    );
-    renderPage("/map?queue=follow_up_due");
-
-    expect(screen.getByRole("heading", { name: "Follow-up due workspace" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Follow-up due" })).toBeInTheDocument();
-    expect(useFieldValidationQueue).toHaveBeenCalledWith(
-      expect.objectContaining({ queue: "follow_up_due" }),
-      { enabled: true },
-    );
+  it("hands No Location to the normal case list filtered to matching unlocated reports", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=map&barangay=Balaytigui");
+    await user.click(summaryButton("No Location"));
+    expect(screen.getByTestId("location")).toHaveTextContent("/reports?");
+    expect(screen.getByTestId("location")).toHaveTextContent("location=unlocated");
   });
 
-  it("does not render cached reports after access is revoked", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(mapData, {
-        error: new ApiError("Forbidden", { status: 403 }),
-        isError: true,
-        isRefetchError: true,
-      }),
-    );
+  it("keeps the full case list secondary to the map", () => {
     renderPage();
-    expect(screen.getByText(/does not have access to the field-validation map/i)).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Located observations" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Field validations needed" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cases that cannot be plotted" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View all cases" })).toHaveAttribute("href", "/reports");
+    expect(screen.getByRole("link", { name: "Open Reports Without Location" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("location=unlocated"),
+    );
+  });
+});
+
+describe("FieldValidationMapPage selection workflows", () => {
+  it("opens Case Details for one selected case with the required context and actions", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Select CG-2026-0001" }));
+
+    const sidebar = screen.getByRole("heading", { name: "Case Details" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).getAllByText("CG-2026-0001").length).toBeGreaterThan(0);
+    expect(within(sidebar).getAllByText(/Balaytigui/).length).toBeGreaterThan(0);
+    expect(within(sidebar).getByText("Rust")).toBeInTheDocument();
+    expect(within(sidebar).getByText(/decision support, not a confirmed diagnosis/i)).toBeInTheDocument();
+    expect(within(sidebar).getByText("Assigned")).toBeInTheDocument();
+    expect(within(sidebar).getByRole("link", { name: "Open Case" })).toHaveAttribute("href", "/reports/report-1");
+    expect(within(sidebar).getByRole("link", { name: "Plan Visit" })).toHaveAttribute(
+      "href",
+      "/monitoring?view=field-operations&report=report-1",
+    );
   });
 
-  it("distinguishes an access-denied map from a generic map failure", () => {
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(undefined, {
-        error: new ApiError("Forbidden", { status: 403 }),
-        isError: true,
-      }),
-    );
-    const { rerender } = renderPage();
-    expect(screen.getByText(/does not have access to the field-validation map/i)).toBeInTheDocument();
+  it("opens Cases in this Area with every report represented by the selected cluster", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Select cluster" }));
 
-    vi.mocked(useFieldValidationMap).mockReturnValue(
-      queryResult(undefined, {
-        error: new ApiError("Unavailable", { status: 503 }),
-        isError: true,
-      }),
-    );
-    rerender(
-      <MemoryRouter>
-        <FieldValidationMapPage />
-      </MemoryRouter>,
-    );
-    expect(screen.getByText(/field-validation map is unavailable/i)).toBeInTheDocument();
+    const sidebar = screen.getByRole("heading", { name: "Cases in this Area" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).getAllByText("CG-2026-0001").length).toBeGreaterThan(0);
+    expect(within(sidebar).getAllByText("CG-2026-0002").length).toBeGreaterThan(0);
+    expect(within(sidebar).getByText(/not evidence of spread, severity, or a confirmed disease relationship/i)).toBeInTheDocument();
+  });
+
+  it("moves from a cluster queue entry into focused Case Details and back to the still-valid queue", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Select cluster" }));
+    const queue = screen.getByRole("heading", { name: "Cases in this Area" }).closest("aside") as HTMLElement;
+    await user.click(within(queue).getAllByRole("button", { name: /CG-2026-0002/ })[0]);
+
+    expect(screen.getByRole("heading", { name: "Case Details" })).toBeInTheDocument();
+    expect(screen.getAllByText("CG-2026-0002").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: /Return to Cases in this Area/ }));
+    expect(screen.getByRole("heading", { name: "Cases in this Area" })).toBeInTheDocument();
+  });
+
+  it("preserves a stable deep link to a focused case", async () => {
+    renderPage("/monitoring?view=map&report=report-2");
+    expect(screen.getByRole("heading", { name: "Case Details" })).toBeInTheDocument();
+    expect(screen.getAllByText("CG-2026-0002").length).toBeGreaterThan(0);
+  });
+});
+
+describe("FieldValidationMapPage reliability states", () => {
+  it("distinguishes a basemap or transport failure from an empty result and offers retry", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(undefined, {
+      error: new ApiError("Unavailable", { status: 503 }),
+      isError: true,
+    }));
+    renderPage();
+    expect(screen.getByText(/Monitoring Map is unavailable/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No matching cases/i)).not.toBeInTheDocument();
+  });
+
+  it("distinguishes authorization denial from an empty result and never renders cached data", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(mapData, {
+      error: new ApiError("Forbidden", { status: 403 }),
+      isError: true,
+      isRefetchError: true,
+    }));
+    renderPage();
+    expect(screen.getByText(/does not have access to the Monitoring Map/i)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Map provider boundary" })).not.toBeInTheDocument();
+  });
+
+  it("shows retained data as stale after a failed refresh rather than silently current", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(mapData, {
+      error: new ApiError("Unavailable", { status: 503 }),
+      isError: true,
+      isRefetchError: true,
+    }));
+    renderPage();
+    expect(screen.getByRole("alert")).toHaveTextContent(/most recently loaded map is still shown and may be stale/i);
+    expect(screen.getByRole("region", { name: "Map provider boundary" })).toBeInTheDocument();
+  });
+
+  it("reports malformed map data without presenting it as no cases", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(undefined, {
+      error: new ZodError([]),
+      isError: true,
+    }));
+    renderPage();
+    expect(screen.getByText(/unexpected Map format/i)).toBeInTheDocument();
+  });
+
+  it("distinguishes no matching cases from matching cases with no located coordinates", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult({
+      type: "FeatureCollection",
+      features: [],
+      metadata: { totalCount: 0, locatedCount: 0, unlocatedCount: 0, needVisitCount: 0, overdueCount: 0, limit: 1000, returnedCount: 0, truncated: false },
+    }));
+    const { unmount } = renderPage();
+    expect(screen.getByText("Every matching case has a usable coordinate pair.")).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(useFieldValidationMap).mockReturnValue(queryResult({
+      type: "FeatureCollection",
+      features: [],
+      metadata: { totalCount: 3, locatedCount: 0, unlocatedCount: 3, needVisitCount: 1, overdueCount: 0, limit: 1000, returnedCount: 0, truncated: false },
+    }));
+    renderPage();
+    expect(screen.getByText(/3 matching cases have no usable coordinate pair/i)).toBeInTheDocument();
   });
 });

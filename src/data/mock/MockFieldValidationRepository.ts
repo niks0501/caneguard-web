@@ -37,6 +37,7 @@ function matchesFilters(report: DiseaseReport, filters: FieldValidationFilters) 
 function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
   return {
     uuid: report.uuid,
+    reviewVersion: report.reviewVersion,
     referenceCode: report.referenceCode,
     barangay: report.barangay,
     province: report.province ?? null,
@@ -72,6 +73,12 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           matchesFilters(report, filters),
       );
     const located = reports.filter(hasValidCoordinates);
+    const needVisitCount = reports.filter((report) =>
+      isInOperationalQueue(report, "needs_visit", today),
+    ).length;
+    const overdueCount = reports.filter((report) =>
+      isInOperationalQueue(report, "follow_up_due", today),
+    ).length;
 
     return {
       type: "FeatureCollection",
@@ -104,6 +111,8 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
         totalCount: reports.length,
         locatedCount: located.length,
         unlocatedCount: reports.length - located.length,
+        needVisitCount,
+        overdueCount,
         limit: 1000,
         returnedCount: located.length,
         truncated: false,

@@ -109,6 +109,26 @@ class ApplyReportFilters
                 ),
             )
             ->when(
+                $filters['location'] ?? null,
+                function (Builder $query, string $location): Builder {
+                    if ($location === 'located') {
+                        return $query
+                            ->whereNotNull('final_latitude')
+                            ->whereBetween('final_latitude', [-90, 90])
+                            ->whereNotNull('final_longitude')
+                            ->whereBetween('final_longitude', [-180, 180]);
+                    }
+
+                    return $query->where(function (Builder $query): void {
+                        $query
+                            ->whereNull('final_latitude')
+                            ->orWhereNull('final_longitude')
+                            ->orWhereNotBetween('final_latitude', [-90, 90])
+                            ->orWhereNotBetween('final_longitude', [-180, 180]);
+                    });
+                },
+            )
+            ->when(
                 $filters['predicted_label'] ?? null,
                 fn (Builder $query, string $label) => $query
                     ->where('predicted_label', $label),
