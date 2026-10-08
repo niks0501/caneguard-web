@@ -14,12 +14,6 @@ class EmptyDatabaseSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-    }
-
     public function test_all_report_surfaces_work_with_accounts_and_advisories_but_no_reports(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->create([

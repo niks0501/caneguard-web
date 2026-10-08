@@ -7,6 +7,8 @@ describe("parseEnv", () => {
 
     expect(parsed.dataSource).toBe("api");
     expect(parsed.apiBaseUrl).toBe("http://localhost:8000");
+    expect(parsed.reportRefreshMs).toBe(600_000);
+    expect(parsed.mapTilerKey).toBe("");
   });
 
   it("parses mock mode and removes one trailing slash", () => {
