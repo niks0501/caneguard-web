@@ -204,6 +204,7 @@ describe("ValidationMap", () => {
     renderMap(mapData([[120.63, 14.07]]));
     loadMap();
 
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
     expect(mapTestState.controls.easeTo.mock.calls.at(-1)?.[0]).toMatchObject({
       center: [120.63, 14.07],
       zoom: 13,
@@ -231,10 +232,12 @@ describe("ValidationMap", () => {
 
     loadMap();
 
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
     expect(mapTestState.controls.easeTo.mock.calls.at(-1)?.[0]).toMatchObject({
       center: [120.65, 14.09],
       zoom: 9,
     });
+    expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
     expect(screen.getByText("No located cases")).toBeInTheDocument();
     expect(screen.getByText(/none has a usable coordinate pair/i)).toBeInTheDocument();
   });
