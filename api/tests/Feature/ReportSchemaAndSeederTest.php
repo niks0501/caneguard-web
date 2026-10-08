@@ -423,6 +423,7 @@ class ReportSchemaAndSeederTest extends TestCase
 
         $response = $this->getJson('/api/v1/dashboard/summary?include=counts,queues,recent,monthly')
             ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', $seededReports->count())
             ->assertJsonPath('data.monthly_summary.month', $month)
             ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount)
             ->assertJsonPath('data.monthly_summary.cases_by_barangay', ReportMetricExpectations::groupedCounts($monthReports, 'barangay', 'barangay'))
