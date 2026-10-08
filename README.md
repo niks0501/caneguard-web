@@ -443,7 +443,7 @@ The agent-facing verification shortcuts are:
 
 `npm run check:web` runs Web lint, typecheck, tests, the Vite source-safety test (`npm run test:vite-source-safety`), the security dependency checks (`security:dependency-check` and `test:quality-gate-workflow`), and the production build.
 `npm run check:api` runs the SQLite-backed API feature tests and the Pint format check.
-`npm run check:all` runs `check:web` followed by `check:api` and graph artifact validation.
+`npm run check:all` runs `check:web` followed by `check:api` and graph artifact validation; see [Project Verification Commands](PROJECT_CHECKS.md) for the local Graphify prerequisite.
 `npm run api:test:mysql` runs the separate MySQL suite against `caneguard_test`; use the migrated and seeded disposable database prepared above.
 
 Run the local Web/API lifecycle contract checks when changing an upload, assignment, completion, notification, or lifecycle boundary.

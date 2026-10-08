@@ -84,3 +84,6 @@ graphify-out/.graphify_uncached.txt
 .akidev/tmp/
 .akidev/conflicts/
 # <<< AkiDev project-local runtime <<<
+
+# Generated Graphify outputs (local-only)
+graphify-out/
