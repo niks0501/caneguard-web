@@ -403,41 +403,46 @@ class ReportSchemaAndSeederTest extends TestCase
             'caneguard.demo_users.admin_password' => 'admin-test-password',
         ]);
 
-        $this->seedReportDemoDataset();
-        $this->approveSeededPilotFixtures();
+        CarbonImmutable::setTestNow('2026-10-05T12:00:00Z');
+        try {
+            $this->seedReportDemoDataset();
+            $this->approveSeededPilotFixtures();
 
-        $seededReports = Report::query()->whereNull('canonical_report_id')->get();
-        $monthCounts = $seededReports
-            ->groupBy(fn (Report $report): string => $report->submitted_at->timezone('Asia/Manila')->format('Y-m'))
-            ->map(fn ($reports): int => $reports->count())
-            ->all();
+            $seededReports = Report::query()->whereNull('canonical_report_id')->get();
+            $monthCounts = $seededReports
+                ->groupBy(fn (Report $report): string => $report->submitted_at->timezone('Asia/Manila')->format('Y-m'))
+                ->map(fn ($reports): int => $reports->count())
+                ->all();
 
-        $this->assertNotEmpty($monthCounts);
+            $this->assertNotEmpty($monthCounts);
 
-        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
-        $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
-        $expectedMonthCount = $monthCounts[$month];
-        $monthReports = $seededReports->filter(fn (Report $report): bool =>
-            $report->submitted_at->timezone('Asia/Manila')->format('Y-m') === $month
-        )->values();
+            Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+            $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
+            $expectedMonthCount = $monthCounts[$month];
+            $monthReports = $seededReports->filter(fn (Report $report): bool =>
+                $report->submitted_at->timezone('Asia/Manila')->format('Y-m') === $month
+            )->values();
 
-        $response = $this->getJson('/api/v1/dashboard/summary?include=counts,queues,recent,monthly')
-            ->assertOk()
-            ->assertJsonPath('data.counts.total_submitted', $seededReports->count())
-            ->assertJsonPath('data.monthly_summary.month', $month)
-            ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount)
-            ->assertJsonPath('data.monthly_summary.cases_by_barangay', ReportMetricExpectations::groupedCounts($monthReports, 'barangay', 'barangay'))
-            ->assertJsonPath('data.monthly_summary.cases_by_possible_condition', ReportMetricExpectations::groupedCounts($monthReports, 'predicted_label', 'possible_condition'));
-        foreach (Report::fieldValidationStates() as $state) {
-            $this->assertGreaterThan(
-                0,
-                $response->json("data.monthly_summary.field_validation_counts.{$state}"),
-            );
-        }
-        $response->assertJsonMissingPath('data.monthly_summary.expert_verification');
+            $response = $this->getJson('/api/v1/dashboard/summary?include=counts,queues,recent,monthly')
+                ->assertOk()
+                ->assertJsonPath('data.counts.total_submitted', $seededReports->count())
+                ->assertJsonPath('data.monthly_summary.month', $month)
+                ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount)
+                ->assertJsonPath('data.monthly_summary.cases_by_barangay', ReportMetricExpectations::groupedCounts($monthReports, 'barangay', 'barangay'))
+                ->assertJsonPath('data.monthly_summary.cases_by_possible_condition', ReportMetricExpectations::groupedCounts($monthReports, 'predicted_label', 'possible_condition'));
+            foreach (Report::fieldValidationStates() as $state) {
+                $this->assertGreaterThan(
+                    0,
+                    $response->json("data.monthly_summary.field_validation_counts.{$state}"),
+                );
+            }
+            $response->assertJsonMissingPath('data.monthly_summary.expert_verification');
 
-        foreach (Report::operationalQueues() as $queue) {
-            $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));
+            foreach (Report::operationalQueues() as $queue) {
+                $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));
+            }
+        } finally {
+            CarbonImmutable::setTestNow();
         }
     }
 
