@@ -26,9 +26,10 @@ Expand context only around concrete concerns.
 6. errors/edge cases;
 7. concurrency/idempotency;
 8. meaningful test gaps;
-9. plausible performance regressions;
-10. material maintainability problems;
-11. accidental scope.
+9. unfalsifiable or implementation-mirroring tests;
+10. plausible performance regressions;
+11. material maintainability problems;
+12. accidental scope.
 
 ## Finding quality
 
@@ -42,6 +43,13 @@ Each finding must contain:
 Do not invent findings.
 Do not report style preferences as defects.
 Do not approve from test status alone.
+
+For each test, ask:
+- Which requested behavior does it prove?
+- Would it fail on regression?
+- Are mocks hiding the claimed behavior?
+
+Report tests that are unfalsifiable or mirror implementation as findings.
 
 If no actionable defect exists, say:
 `No actionable findings.`

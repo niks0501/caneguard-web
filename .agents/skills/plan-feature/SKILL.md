@@ -18,7 +18,7 @@ Do not edit tracked project files.
 5. Identify affected interfaces, data, and dependencies.
 6. Load only relevant stack/rule documentation.
 7. Produce the smallest implementation-ready plan.
-8. Map verification to each behavior.
+8. Map each acceptance criterion to the one test that would fail on regression.
 
 ## Decision rules
 
