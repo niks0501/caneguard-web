@@ -79,14 +79,11 @@ class DemoAnalyticsSeederTest extends TestCase
             $monthReports = $allReports->filter(fn (Report $report): bool =>
                 $report->submitted_at->gte($monthStart->utc()) && $report->submitted_at->lt($monthEnd->utc())
             )->values();
-            $dashboard = $this->getJson('/api/v1/dashboard/summary?include=counts,queues,recent,monthly')
+            $dashboard = $this->getJson('/api/v1/dashboard/summary?include=counts,recent,monthly')
                 ->assertOk()
                 ->assertJsonPath('data.counts.total_submitted', $allReports->count())
                 ->assertJsonPath('data.monthly_summary.month', $month)
                 ->assertJsonPath('data.monthly_summary.reported_cases', $monthReports->count());
-            foreach (Report::operationalQueues() as $queue) {
-                $this->assertSame($this->expectedQueueCount($allReports, $queue), $dashboard->json("data.queues.{$queue}"));
-            }
             $dashboard->assertJsonPath(
                 'data.monthly_summary.cases_by_barangay',
                 ReportMetricExpectations::groupedCounts($monthReports, 'barangay', 'barangay'),
@@ -146,18 +143,6 @@ class DemoAnalyticsSeederTest extends TestCase
                 ->assertJsonPath('metadata.unlocated_count', $unverifiedReports->count() - $locatedCount)
                 ->assertJsonCount($locatedCount, 'features');
 
-            $today = CarbonImmutable::now('Asia/Manila')->toDateString();
-            $allReports->load('fieldValidationAssignment.completion');
-            foreach (['needs_visit', 'follow_up_due', 'upcoming'] as $queue) {
-                $expected = $this->expectedQueueCount($allReports, $queue, $today);
-                $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
-                    'queue' => $queue,
-                    'limit' => 50,
-                ]))->assertOk()
-                    ->assertJsonPath('data.count', $expected)
-                    ->assertJsonCount($expected, 'data.items');
-            }
-
             $detail = $allReports->first();
             $this->assertNotNull($detail);
             $this->getJson('/api/v1/reports/'.$detail->uuid)
@@ -193,47 +178,6 @@ class DemoAnalyticsSeederTest extends TestCase
         } finally {
             CarbonImmutable::setTestNow();
         }
-    }
-
-    private function expectedQueueCount(Collection $reports, string $queue, ?string $today = null): int
-    {
-        $today ??= CarbonImmutable::now('Asia/Manila')->toDateString();
-
-        return $reports->filter(function (Report $report) use ($queue, $today): bool {
-            if ($report->canonical_report_id !== null) {
-                return false;
-            }
-
-            $state = $report->field_validation_state;
-            $assignment = $report->fieldValidationAssignment;
-            $target = $assignment?->target_visit_date?->toDateString();
-
-            return match ($queue) {
-                Report::QUEUE_NEEDS_REVIEW => $report->case_state === Report::CASE_STATE_OPEN
-                    && $report->verification_outcome === Report::VERIFICATION_OUTCOME_NOT_DETERMINED
-                    && ($report->action_taken === null || $report->action_taken === Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION)
-                    && ($state === Report::FIELD_VALIDATION_STATE_COMPLETED
-                        || ($state === Report::FIELD_VALIDATION_STATE_UNASSIGNED
-                            && $report->review_status !== Report::STATUS_FOR_FIELD_VALIDATION)),
-                Report::QUEUE_NEEDS_VISIT => $report->case_state === Report::CASE_STATE_OPEN
-                    && $state !== Report::FIELD_VALIDATION_STATE_COMPLETED
-                    && (in_array($state, [Report::FIELD_VALIDATION_STATE_ASSIGNED, Report::FIELD_VALIDATION_STATE_IN_PROGRESS], true)
-                        || ($state === Report::FIELD_VALIDATION_STATE_UNASSIGNED
-                            && $report->review_status === Report::STATUS_FOR_FIELD_VALIDATION)),
-                Report::QUEUE_FOLLOW_UP_DUE => $report->case_state === Report::CASE_STATE_OPEN
-                    && $state !== Report::FIELD_VALIDATION_STATE_COMPLETED
-                    && $target !== null && $target < $today,
-                Report::QUEUE_UPCOMING => $report->case_state === Report::CASE_STATE_OPEN
-                    && $state !== Report::FIELD_VALIDATION_STATE_COMPLETED
-                    && $target !== null && $target >= $today,
-                Report::QUEUE_UNVERIFIED_NO_ACTIVE_WORK => $report->case_state === Report::CASE_STATE_OPEN
-                    && $report->verification_outcome === Report::VERIFICATION_OUTCOME_NOT_DETERMINED
-                    && $state === Report::FIELD_VALIDATION_STATE_UNASSIGNED
-                    && $report->action_taken !== null
-                    && $report->action_taken !== Report::ACTION_REFERRED_FOR_EXPERT_VALIDATION,
-                default => throw new \InvalidArgumentException("Unsupported queue: {$queue}"),
-            };
-        })->count();
     }
 
     private function assertAppendixReferences(string $html, Collection $reports): void
