@@ -28,8 +28,12 @@ class DemoUserSeederTest extends TestCase
 
         $district = District::query()->where('code', 'nasugbu-issuing')->sole();
         $access = app(DistrictAccess::class);
-        foreach (['mao@caneguard.test' => 'reviewer-test-password', 'admin@caneguard.test' => 'admin-test-password'] as $email => $password) {
+        foreach ([
+            'mao@caneguard.test' => ['reviewer-test-password', User::ROLE_REVIEWER],
+            'admin@caneguard.test' => ['admin-test-password', User::ROLE_ADMIN],
+        ] as $email => [$password, $role]) {
             $user = User::query()->where('email', $email)->sole();
+            $this->assertSame($role, $user->role);
             $this->assertDatabaseHas('district_memberships', [
                 'user_id' => $user->id,
                 'district_id' => $district->id,
@@ -38,7 +42,11 @@ class DemoUserSeederTest extends TestCase
             $this->assertTrue($access->office($user));
             $this->postJson('/login', ['email' => $email, 'password' => $password])->assertNoContent();
             $this->assertAuthenticatedAs($user, 'web');
-            $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.is_active', true)->assertJsonMissingPath('data.district_id');
+            $this->getJson('/api/v1/me')
+                ->assertOk()
+                ->assertJsonPath('data.role', $role)
+                ->assertJsonPath('data.is_active', true)
+                ->assertJsonMissingPath('data.district_id');
             $this->getJson('/api/v1/dashboard/summary')->assertOk();
             $this->postJson('/logout')->assertNoContent();
             Auth::forgetGuards();
@@ -46,6 +54,7 @@ class DemoUserSeederTest extends TestCase
         }
 
         $fieldReporter = User::query()->where('email', 'field@caneguard.test')->sole();
+        $this->assertSame(User::ROLE_FIELD_REPORTER, $fieldReporter->role);
         $this->assertFalse($access->office($fieldReporter));
         $this->assertDatabaseMissing('district_memberships', ['user_id' => $fieldReporter->id]);
         $this->postJson('/login', [
