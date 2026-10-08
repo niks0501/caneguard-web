@@ -21,7 +21,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Prefer these scoped commands over reading the full graph or performing broad source searches.
 - If `graphify-out/wiki/index.md` exists, use it for broad repository navigation.
 - Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when `query`, `path`, and `explain` do not provide enough context.
-- Dirty files under `graphify-out/` are expected after hooks or incremental updates and are not a reason to avoid Graphify. Before staging, inspect generated diffs and stage only artifacts required by the task; refreshing Graphify does not by itself justify committing its output. Leave unrelated generated changes unstaged rather than resetting or deleting them.
+- Generated files under `graphify-out/` are ignored local artifacts and do not appear in Git status or diffs; never force-add them.
 - After modifying code, run `npm run graphify:refresh` to keep the graph current and contract-valid.
 - When the user explicitly invokes `/graphify`, follow the installed Graphify skill or instructions before doing anything else.
 

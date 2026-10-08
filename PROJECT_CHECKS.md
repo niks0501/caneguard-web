@@ -29,6 +29,7 @@ Iteration loop: run the focused test for the changed claim while iterating; warm
 ## Broader checks
 
 - complete repository gate: `npm run check:all`
+  - Before running it, generate local Graphify artifacts with `npm run graphify:refresh`; `graphify-out/` is ignored and stays local.
 - E2E: no repository E2E command is defined; use the separate P0F acceptance path only when its verification decision gate is met
 
 ## Manual verification
