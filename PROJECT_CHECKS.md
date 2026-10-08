@@ -9,7 +9,7 @@
 
 `verify:fast` delegates to `npm run check:web`, which runs ESLint, TypeScript, Vitest with React Testing Library and MSW coverage, the Vite source-safety test, the security dependency checks, and the production build. It does not run Playwright, Chrome, browser E2E, or any other E2E flow.
 
-Run targeted tests before `npm run verify:fast`.
+Iteration loop: run the focused test for the changed claim while iterating; warm-up runs are not evidence requirements.
 
 ## Backend/API checks
 
@@ -44,7 +44,7 @@ Browser, device, and full-system workflow checks are separate from the ordinary 
 ## Rules
 
 - Use the strict verification ladder in `.agents/skills/verification/SKILL.md`.
-- Run targeted tests before `npm run verify:fast`, then run only affected backend or contract checks.
+- Gate: run `npm run verify:fast` without re-running the focused test beforehand; then run only affected backend or contract checks.
 - Do not run E2E as part of `npm run verify:fast`.
 - Run only commands that exist in `package.json` or repository scripts.
 - Do not run destructive migrations against shared or production data.
