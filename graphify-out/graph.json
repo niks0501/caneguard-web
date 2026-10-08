@@ -942,7 +942,7 @@
       "file_type": "code",
       "norm_label": "reportschemaandseedertest",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L21"
+      "source_location": "L20"
     },
     {
       "id": "api_tests_feature_securereportimagescommandtest_securereportimagescommandtest",
@@ -1270,69 +1270,43 @@
       "source_location": "L9"
     },
     {
-      "id": "api_app_http_controllers_api_v1_mobilefieldsurveycontroller_mobilefieldsurveycontroller",
-      "label": "MobileFieldSurveyController",
+      "id": "api_app_events_caseattentionchanged_caseattentionchanged",
+      "label": "CaseAttentionChanged",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": "mobilefieldsurveycontroller",
-      "source_file": "api/app/Http/Controllers/Api/V1/MobileFieldSurveyController.php",
-      "source_location": "L13"
+      "norm_label": "caseattentionchanged",
+      "source_file": "api/app/Events/CaseAttentionChanged.php",
+      "source_location": "L11"
     },
     {
-      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest",
-      "label": "StoreFieldSurveyRequest",
+      "id": "api_app_events_newcasesubmitted_newcasesubmitted",
+      "label": "NewCaseSubmitted",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": "storefieldsurveyrequest",
-      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
+      "norm_label": "newcasesubmitted",
+      "source_file": "api/app/Events/NewCaseSubmitted.php",
+      "source_location": "L11"
+    },
+    {
+      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest",
+      "label": "GroupReportLocationsTest",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "groupreportlocationstest",
+      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
       "source_location": "L10"
-    },
-    {
-      "id": "api_app_models_fieldsurvey_fieldsurvey",
-      "label": "FieldSurvey",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": "fieldsurvey",
-      "source_file": "api/app/Models/FieldSurvey.php",
-      "source_location": "L8"
-    },
-    {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest",
-      "label": "MobileFieldSurveyTest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": "mobilefieldsurveytest",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L15"
-    },
-    {
-      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest",
-      "label": "MobileFieldSurveyMySqlTest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": "mobilefieldsurveymysqltest",
-      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
-      "source_location": "L15"
     },
     {
       "id": "scripts_validate_report_lifecycle_v1_lifecyclecontractartifacterror",
@@ -4582,7 +4556,7 @@
       "file_type": "code",
       "norm_label": "demoanalyticsseedertest",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L18"
+      "source_location": "L17"
     },
     {
       "id": "api_tests_mysql_reportmysqlschematest_reportmysqlschematest",
@@ -6847,43 +6821,69 @@
       "source_location": "L1"
     },
     {
-      "id": "api_app_events_caseattentionchanged_caseattentionchanged",
-      "label": "CaseAttentionChanged",
+      "id": "api_app_http_controllers_api_v1_mobilefieldsurveycontroller_mobilefieldsurveycontroller",
+      "label": "MobileFieldSurveyController",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": "caseattentionchanged",
-      "source_file": "api/app/Events/CaseAttentionChanged.php",
-      "source_location": "L11"
+      "norm_label": "mobilefieldsurveycontroller",
+      "source_file": "api/app/Http/Controllers/Api/V1/MobileFieldSurveyController.php",
+      "source_location": "L13"
     },
     {
-      "id": "api_app_events_newcasesubmitted_newcasesubmitted",
-      "label": "NewCaseSubmitted",
+      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest",
+      "label": "StoreFieldSurveyRequest",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": "newcasesubmitted",
-      "source_file": "api/app/Events/NewCaseSubmitted.php",
-      "source_location": "L11"
-    },
-    {
-      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest",
-      "label": "GroupReportLocationsTest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "groupreportlocationstest",
-      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
+      "norm_label": "storefieldsurveyrequest",
+      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
       "source_location": "L10"
+    },
+    {
+      "id": "api_app_models_fieldsurvey_fieldsurvey",
+      "label": "FieldSurvey",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": "fieldsurvey",
+      "source_file": "api/app/Models/FieldSurvey.php",
+      "source_location": "L8"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest",
+      "label": "MobileFieldSurveyTest",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": "mobilefieldsurveytest",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L15"
+    },
+    {
+      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest",
+      "label": "MobileFieldSurveyMySqlTest",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": "mobilefieldsurveymysqltest",
+      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
+      "source_location": "L15"
     },
     {
       "id": "src_components_reports_queuerowcells_queuerowview",
@@ -8825,7 +8825,7 @@
       "file_type": "code",
       "norm_label": "{closure#1}()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L79"
+      "source_location": "L78"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_closure_2",
@@ -8837,7 +8837,7 @@
       "file_type": "code",
       "norm_label": "{closure#2}()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L97"
+      "source_location": "L96"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_closure_3",
@@ -8849,7 +8849,7 @@
       "file_type": "code",
       "norm_label": "{closure#3}()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L112"
+      "source_location": "L111"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_closure_4",
@@ -8861,7 +8861,7 @@
       "file_type": "code",
       "norm_label": "{closure#4}()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L127"
+      "source_location": "L126"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_closure_5",
@@ -8873,7 +8873,7 @@
       "file_type": "code",
       "norm_label": "{closure#5}()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L134"
+      "source_location": "L133"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_closure_6",
@@ -8885,7 +8885,7 @@
       "file_type": "code",
       "norm_label": "{closure#6}()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L150"
+      "source_location": "L149"
     },
     {
       "id": "api_tests_feature_districtmigrationtest_districtmigrationtest_test_forward_access_migration_revokes_credentials_without_inferred_authority_or_history_changes",
@@ -10001,7 +10001,7 @@
       "file_type": "code",
       "norm_label": ".seedreportdemodataset()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L448"
+      "source_location": "L447"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_legacy_report_values_can_leave_new_contract_fields_null",
@@ -10013,7 +10013,7 @@
       "file_type": "code",
       "norm_label": ".test_legacy_report_values_can_leave_new_contract_fields_null()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L197"
+      "source_location": "L196"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_merged_seed_path_populates_the_default_month_and_dashboard_panels",
@@ -10025,7 +10025,7 @@
       "file_type": "code",
       "norm_label": ".test_merged_seed_path_populates_the_default_month_and_dashboard_panels()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L397"
+      "source_location": "L396"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_factory_supports_every_active_and_legacy_classification_value",
@@ -10037,7 +10037,7 @@
       "file_type": "code",
       "norm_label": ".test_report_factory_supports_every_active_and_legacy_classification_value()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L166"
+      "source_location": "L165"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_factory_supports_smart_field_values_and_casts_them",
@@ -10049,7 +10049,7 @@
       "file_type": "code",
       "norm_label": ".test_report_factory_supports_smart_field_values_and_casts_them()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L104"
+      "source_location": "L103"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_referral_factory_preserves_the_handoff_fields",
@@ -10061,7 +10061,7 @@
       "file_type": "code",
       "norm_label": ".test_report_referral_factory_preserves_the_handoff_fields()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L182"
+      "source_location": "L181"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_referrals_cascade_when_their_report_is_deleted",
@@ -10073,7 +10073,7 @@
       "file_type": "code",
       "norm_label": ".test_report_referrals_cascade_when_their_report_is_deleted()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L88"
+      "source_location": "L87"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_report_schema_contains_the_planned_tables_and_columns",
@@ -10085,7 +10085,7 @@
       "file_type": "code",
       "norm_label": ".test_report_schema_contains_the_planned_tables_and_columns()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L25"
+      "source_location": "L24"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeded_reports_are_available_through_mobile_and_report_apis",
@@ -10097,7 +10097,7 @@
       "file_type": "code",
       "norm_label": ".test_seeded_reports_are_available_through_mobile_and_report_apis()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L330"
+      "source_location": "L329"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_completes_an_existing_partial_seed_fixture",
@@ -10109,7 +10109,7 @@
       "file_type": "code",
       "norm_label": ".test_seeder_completes_an_existing_partial_seed_fixture()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L298"
+      "source_location": "L297"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_reportschemaandseedertest_test_seeder_preserves_existing_report_evidence",
@@ -10121,7 +10121,7 @@
       "file_type": "code",
       "norm_label": ".test_seeder_preserves_existing_report_evidence()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L230"
+      "source_location": "L229"
     },
     {
       "id": "api_tests_feature_reviewreporttest_reviewreporttest_test_synchronized_report_evidence_and_nested_observations_are_immutable",
@@ -18560,304 +18560,172 @@
       "source_location": "L6752"
     },
     {
-      "id": "api_app_http_controllers_api_v1_mobilefieldsurveycontroller_mobilefieldsurveycontroller_invoke",
-      "label": ".__invoke()",
+      "id": "api_app_actions_notifications_broadcastnewcasesubmitted_closure_1",
+      "label": "{closure#1}()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".__invoke()",
-      "source_file": "api/app/Http/Controllers/Api/V1/MobileFieldSurveyController.php",
-      "source_location": "L15"
-    },
-    {
-      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest_authorize",
-      "label": ".authorize()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".authorize()",
-      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
+      "norm_label": "{closure#1}()",
+      "source_file": "api/app/Actions/Notifications/BroadcastNewCaseSubmitted.php",
       "source_location": "L19"
     },
     {
-      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest_messages",
-      "label": ".messages()",
+      "id": "api_app_events_caseattentionchanged_caseattentionchanged_broadcastas",
+      "label": ".broadcastAs()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".messages()",
-      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
-      "source_location": "L42"
+      "norm_label": ".broadcastas()",
+      "source_file": "api/app/Events/CaseAttentionChanged.php",
+      "source_location": "L32"
     },
     {
-      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest_prepareforvalidation",
-      "label": ".prepareForValidation()",
+      "id": "api_app_events_caseattentionchanged_caseattentionchanged_broadcaston",
+      "label": ".broadcastOn()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".prepareforvalidation()",
-      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
-      "source_location": "L12"
+      "norm_label": ".broadcaston()",
+      "source_file": "api/app/Events/CaseAttentionChanged.php",
+      "source_location": "L27"
     },
     {
-      "id": "api_app_models_fieldsurvey_fieldsurvey_casts",
-      "label": ".casts()",
+      "id": "api_app_events_caseattentionchanged_caseattentionchanged_broadcastwith",
+      "label": ".broadcastWith()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".casts()",
-      "source_file": "api/app/Models/FieldSurvey.php",
-      "source_location": "L13"
+      "norm_label": ".broadcastwith()",
+      "source_file": "api/app/Events/CaseAttentionChanged.php",
+      "source_location": "L40"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_forbiddenroles",
-      "label": ".forbiddenRoles()",
+      "id": "api_app_events_caseattentionchanged_caseattentionchanged_construct",
+      "label": ".__construct()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".forbiddenroles()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L119"
+      "norm_label": ".__construct()",
+      "source_file": "api/app/Events/CaseAttentionChanged.php",
+      "source_location": "L19"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_invalidfields",
-      "label": ".invalidFields()",
+      "id": "api_app_events_newcasesubmitted_newcasesubmitted_broadcastas",
+      "label": ".broadcastAs()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".invalidfields()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L197"
+      "norm_label": ".broadcastas()",
+      "source_file": "api/app/Events/NewCaseSubmitted.php",
+      "source_location": "L38"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_logininspector",
-      "label": ".loginInspector()",
+      "id": "api_app_events_newcasesubmitted_newcasesubmitted_broadcaston",
+      "label": ".broadcastOn()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".logininspector()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L220"
+      "norm_label": ".broadcaston()",
+      "source_file": "api/app/Events/NewCaseSubmitted.php",
+      "source_location": "L33"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_payload",
-      "label": ".payload()",
+      "id": "api_app_events_newcasesubmitted_newcasesubmitted_broadcastwith",
+      "label": ".broadcastWith()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".payload()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L229"
-    },
-    {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_closed_rings_accept_numeric_equivalence_precise_points_and_holes",
-      "label": ".test_closed_rings_accept_numeric_equivalence_precise_points_and_holes()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_closed_rings_accept_numeric_equivalence_precise_points_and_holes()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "norm_label": ".broadcastwith()",
+      "source_file": "api/app/Events/NewCaseSubmitted.php",
       "source_location": "L48"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_invalid_metadata_is_rejected_per_field",
-      "label": ".test_invalid_metadata_is_rejected_per_field()",
+      "id": "api_app_events_newcasesubmitted_newcasesubmitted_construct",
+      "label": ".__construct()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".test_invalid_metadata_is_rejected_per_field()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L187"
+      "norm_label": ".__construct()",
+      "source_file": "api/app/Events/NewCaseSubmitted.php",
+      "source_location": "L24"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_migration_rollback_and_reapplication_preserve_the_walked_boundary",
-      "label": ".test_migration_rollback_and_reapplication_preserve_the_walked_boundary()",
+      "id": "api_tests_feature_notificationtest_closure_1",
+      "label": "{closure#1}()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".test_migration_rollback_and_reapplication_preserve_the_walked_boundary()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L167"
+      "norm_label": "{closure#1}()",
+      "source_file": "api/tests/Feature/NotificationTest.php",
+      "source_location": "L69"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_non_inspector_roles_have_no_wildcard_or_cookie_bypass",
-      "label": ".test_non_inspector_roles_have_no_wildcard_or_cookie_bypass()",
+      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_point",
+      "label": ".point()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".test_non_inspector_roles_have_no_wildcard_or_cookie_bypass()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L107"
+      "norm_label": ".point()",
+      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
+      "source_location": "L53"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_outside_district_has_a_displayable_field_error_even_on_replay",
-      "label": ".test_outside_district_has_a_displayable_field_error_even_on_replay()",
+      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_test_groups_are_transitive_order_independent_and_anchored_on_lowest_id",
+      "label": ".test_groups_are_transitive_order_independent_and_anchored_on_lowest_id()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".test_outside_district_has_a_displayable_field_error_even_on_replay()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L155"
+      "norm_label": ".test_groups_are_transitive_order_independent_and_anchored_on_lowest_id()",
+      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
+      "source_location": "L12"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_pilot_configuration_and_token_ability_are_fail_closed",
-      "label": ".test_pilot_configuration_and_token_ability_are_fail_closed()",
+      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_test_radius_is_configurable_and_works_across_grid_edges_dateline_and_poles",
+      "label": ".test_radius_is_configurable_and_works_across_grid_edges_dateline_and_poles()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".test_pilot_configuration_and_token_ability_are_fail_closed()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L143"
+      "norm_label": ".test_radius_is_configurable_and_works_across_grid_edges_dateline_and_poles()",
+      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
+      "source_location": "L29"
     },
     {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_real_mobile_login_stores_geometry_measurements_and_server_owned_attribution",
-      "label": ".test_real_mobile_login_stores_geometry_measurements_and_server_owned_attribution()",
+      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_test_the_25_meter_threshold_includes_near_and_excludes_far_pairs",
+      "label": ".test_the_25_meter_threshold_includes_near_and_excludes_far_pairs()",
       "_callable": true,
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": ".test_real_mobile_login_stores_geometry_measurements_and_server_owned_attribution()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L21"
-    },
-    {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_replay_is_owner_bound_and_does_not_disclose_another_inspectors_receipt",
-      "label": ".test_replay_is_owner_bound_and_does_not_disclose_another_inspectors_receipt()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_replay_is_owner_bound_and_does_not_disclose_another_inspectors_receipt()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L75"
-    },
-    {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_required_fields_all_have_displayable_validation_errors",
-      "label": ".test_required_fields_all_have_displayable_validation_errors()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_required_fields_all_have_displayable_validation_errors()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L178"
-    },
-    {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_unauthenticated_invalid_expired_and_revoked_tokens_cannot_ingest",
-      "label": ".test_unauthenticated_invalid_expired_and_revoked_tokens_cannot_ingest()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_unauthenticated_invalid_expired_and_revoked_tokens_cannot_ingest()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L86"
-    },
-    {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_unverified_unassigned_foreign_and_revoked_memberships_are_denied",
-      "label": ".test_unverified_unassigned_foreign_and_revoked_memberships_are_denied()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_unverified_unassigned_foreign_and_revoked_memberships_are_denied()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L124"
-    },
-    {
-      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_valid_replay_keeps_original_record_and_never_updates_measurement_or_shape",
-      "label": ".test_valid_replay_keeps_original_record_and_never_updates_measurement_or_shape()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_valid_replay_keeps_original_record_and_never_updates_measurement_or_shape()",
-      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
-      "source_location": "L60"
-    },
-    {
-      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_payload",
-      "label": ".payload()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".payload()",
-      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
-      "source_location": "L83"
-    },
-    {
-      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_setup",
-      "label": ".setUp()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".setup()",
-      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
-      "source_location": "L19"
-    },
-    {
-      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_test_json_precision_utc_microseconds_and_idempotency_survive_mysql_reload",
-      "label": ".test_json_precision_utc_microseconds_and_idempotency_survive_mysql_reload()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_json_precision_utc_microseconds_and_idempotency_survive_mysql_reload()",
-      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
-      "source_location": "L26"
-    },
-    {
-      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_test_mysql_uuid_collision_and_foreign_scope_never_leak_or_duplicate_a_receipt",
-      "label": ".test_mysql_uuid_collision_and_foreign_scope_never_leak_or_duplicate_a_receipt()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 128,
-      "community_name": "MobileFieldSurveyTest",
-      "file_type": "code",
-      "norm_label": ".test_mysql_uuid_collision_and_foreign_scope_never_leak_or_duplicate_a_receipt()",
-      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
-      "source_location": "L60"
+      "norm_label": ".test_the_25_meter_threshold_includes_near_and_excludes_far_pairs()",
+      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
+      "source_location": "L44"
     },
     {
       "id": "pi_skills_impeccable_scripts_detector_detect_antipatterns_browser_browsercolorsclose",
@@ -27065,7 +26933,7 @@
       "file_type": "code",
       "norm_label": "{closure#1}()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L258"
+      "source_location": "L257"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_closure_2",
@@ -27077,7 +26945,7 @@
       "file_type": "code",
       "norm_label": "{closure#2}()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L283"
+      "source_location": "L282"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_closure_3",
@@ -27089,7 +26957,7 @@
       "file_type": "code",
       "norm_label": "{closure#3}()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L413"
+      "source_location": "L412"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_closure_4",
@@ -27101,7 +26969,7 @@
       "file_type": "code",
       "norm_label": "{closure#4}()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L414"
+      "source_location": "L413"
     },
     {
       "id": "api_tests_feature_reportschemaandseedertest_closure_5",
@@ -27113,7 +26981,7 @@
       "file_type": "code",
       "norm_label": "{closure#5}()",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L422"
+      "source_location": "L421"
     },
     {
       "id": "api_tests_feature_reviewreporttest_closure_1",
@@ -87065,7 +86933,7 @@
       "file_type": "code",
       "norm_label": ".assertappendixreferences()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L179"
+      "source_location": "L178"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest_configuredemopasswords",
@@ -87077,7 +86945,7 @@
       "file_type": "code",
       "norm_label": ".configuredemopasswords()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L212"
+      "source_location": "L211"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest_seedanalyticsprerequisites",
@@ -87089,7 +86957,7 @@
       "file_type": "code",
       "norm_label": ".seedanalyticsprerequisites()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L200"
+      "source_location": "L199"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest_test_analytics_seed_is_idempotent_and_feeds_public_report_surfaces",
@@ -87101,7 +86969,7 @@
       "file_type": "code",
       "norm_label": ".test_analytics_seed_is_idempotent_and_feeds_public_report_surfaces()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L52"
+      "source_location": "L51"
     },
     {
       "id": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest_test_analytics_seeder_restores_missing_dashboard_image_from_tracked_asset",
@@ -87113,7 +86981,7 @@
       "file_type": "code",
       "norm_label": ".test_analytics_seeder_restores_missing_dashboard_image_from_tracked_asset()",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L22"
+      "source_location": "L21"
     },
     {
       "id": "api_tests_mysql_reportmysqlschematest_reportmysqlschematest_assertcolumn",
@@ -123020,172 +122888,304 @@
       "source_location": "L5"
     },
     {
-      "id": "api_app_actions_notifications_broadcastnewcasesubmitted_closure_1",
-      "label": "{closure#1}()",
+      "id": "api_app_http_controllers_api_v1_mobilefieldsurveycontroller_mobilefieldsurveycontroller_invoke",
+      "label": ".__invoke()",
       "_callable": true,
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": "{closure#1}()",
-      "source_file": "api/app/Actions/Notifications/BroadcastNewCaseSubmitted.php",
+      "norm_label": ".__invoke()",
+      "source_file": "api/app/Http/Controllers/Api/V1/MobileFieldSurveyController.php",
+      "source_location": "L15"
+    },
+    {
+      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest_authorize",
+      "label": ".authorize()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".authorize()",
+      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
       "source_location": "L19"
     },
     {
-      "id": "api_app_events_caseattentionchanged_caseattentionchanged_broadcastas",
-      "label": ".broadcastAs()",
+      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest_messages",
+      "label": ".messages()",
       "_callable": true,
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": ".broadcastas()",
-      "source_file": "api/app/Events/CaseAttentionChanged.php",
-      "source_location": "L32"
+      "norm_label": ".messages()",
+      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
+      "source_location": "L42"
     },
     {
-      "id": "api_app_events_caseattentionchanged_caseattentionchanged_broadcaston",
-      "label": ".broadcastOn()",
+      "id": "api_app_http_requests_storefieldsurveyrequest_storefieldsurveyrequest_prepareforvalidation",
+      "label": ".prepareForValidation()",
       "_callable": true,
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": ".broadcaston()",
-      "source_file": "api/app/Events/CaseAttentionChanged.php",
-      "source_location": "L27"
-    },
-    {
-      "id": "api_app_events_caseattentionchanged_caseattentionchanged_broadcastwith",
-      "label": ".broadcastWith()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".broadcastwith()",
-      "source_file": "api/app/Events/CaseAttentionChanged.php",
-      "source_location": "L40"
-    },
-    {
-      "id": "api_app_events_caseattentionchanged_caseattentionchanged_construct",
-      "label": ".__construct()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".__construct()",
-      "source_file": "api/app/Events/CaseAttentionChanged.php",
-      "source_location": "L19"
-    },
-    {
-      "id": "api_app_events_newcasesubmitted_newcasesubmitted_broadcastas",
-      "label": ".broadcastAs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".broadcastas()",
-      "source_file": "api/app/Events/NewCaseSubmitted.php",
-      "source_location": "L38"
-    },
-    {
-      "id": "api_app_events_newcasesubmitted_newcasesubmitted_broadcaston",
-      "label": ".broadcastOn()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".broadcaston()",
-      "source_file": "api/app/Events/NewCaseSubmitted.php",
-      "source_location": "L33"
-    },
-    {
-      "id": "api_app_events_newcasesubmitted_newcasesubmitted_broadcastwith",
-      "label": ".broadcastWith()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".broadcastwith()",
-      "source_file": "api/app/Events/NewCaseSubmitted.php",
-      "source_location": "L48"
-    },
-    {
-      "id": "api_app_events_newcasesubmitted_newcasesubmitted_construct",
-      "label": ".__construct()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".__construct()",
-      "source_file": "api/app/Events/NewCaseSubmitted.php",
-      "source_location": "L24"
-    },
-    {
-      "id": "api_tests_feature_notificationtest_closure_1",
-      "label": "{closure#1}()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "{closure#1}()",
-      "source_file": "api/tests/Feature/NotificationTest.php",
-      "source_location": "L69"
-    },
-    {
-      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_point",
-      "label": ".point()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".point()",
-      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
-      "source_location": "L53"
-    },
-    {
-      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_test_groups_are_transitive_order_independent_and_anchored_on_lowest_id",
-      "label": ".test_groups_are_transitive_order_independent_and_anchored_on_lowest_id()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": ".test_groups_are_transitive_order_independent_and_anchored_on_lowest_id()",
-      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
+      "norm_label": ".prepareforvalidation()",
+      "source_file": "api/app/Http/Requests/StoreFieldSurveyRequest.php",
       "source_location": "L12"
     },
     {
-      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_test_radius_is_configurable_and_works_across_grid_edges_dateline_and_poles",
-      "label": ".test_radius_is_configurable_and_works_across_grid_edges_dateline_and_poles()",
+      "id": "api_app_models_fieldsurvey_fieldsurvey_casts",
+      "label": ".casts()",
       "_callable": true,
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": ".test_radius_is_configurable_and_works_across_grid_edges_dateline_and_poles()",
-      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
-      "source_location": "L29"
+      "norm_label": ".casts()",
+      "source_file": "api/app/Models/FieldSurvey.php",
+      "source_location": "L13"
     },
     {
-      "id": "api_tests_unit_groupreportlocationstest_groupreportlocationstest_test_the_25_meter_threshold_includes_near_and_excludes_far_pairs",
-      "label": ".test_the_25_meter_threshold_includes_near_and_excludes_far_pairs()",
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_forbiddenroles",
+      "label": ".forbiddenRoles()",
       "_callable": true,
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": ".test_the_25_meter_threshold_includes_near_and_excludes_far_pairs()",
-      "source_file": "api/tests/Unit/GroupReportLocationsTest.php",
-      "source_location": "L44"
+      "norm_label": ".forbiddenroles()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L119"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_invalidfields",
+      "label": ".invalidFields()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".invalidfields()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L197"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_logininspector",
+      "label": ".loginInspector()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".logininspector()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L220"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_payload",
+      "label": ".payload()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".payload()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L229"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_closed_rings_accept_numeric_equivalence_precise_points_and_holes",
+      "label": ".test_closed_rings_accept_numeric_equivalence_precise_points_and_holes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_closed_rings_accept_numeric_equivalence_precise_points_and_holes()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L48"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_invalid_metadata_is_rejected_per_field",
+      "label": ".test_invalid_metadata_is_rejected_per_field()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_invalid_metadata_is_rejected_per_field()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L187"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_migration_rollback_and_reapplication_preserve_the_walked_boundary",
+      "label": ".test_migration_rollback_and_reapplication_preserve_the_walked_boundary()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_migration_rollback_and_reapplication_preserve_the_walked_boundary()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L167"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_non_inspector_roles_have_no_wildcard_or_cookie_bypass",
+      "label": ".test_non_inspector_roles_have_no_wildcard_or_cookie_bypass()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_non_inspector_roles_have_no_wildcard_or_cookie_bypass()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L107"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_outside_district_has_a_displayable_field_error_even_on_replay",
+      "label": ".test_outside_district_has_a_displayable_field_error_even_on_replay()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_outside_district_has_a_displayable_field_error_even_on_replay()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L155"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_pilot_configuration_and_token_ability_are_fail_closed",
+      "label": ".test_pilot_configuration_and_token_ability_are_fail_closed()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_pilot_configuration_and_token_ability_are_fail_closed()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L143"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_real_mobile_login_stores_geometry_measurements_and_server_owned_attribution",
+      "label": ".test_real_mobile_login_stores_geometry_measurements_and_server_owned_attribution()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_real_mobile_login_stores_geometry_measurements_and_server_owned_attribution()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L21"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_replay_is_owner_bound_and_does_not_disclose_another_inspectors_receipt",
+      "label": ".test_replay_is_owner_bound_and_does_not_disclose_another_inspectors_receipt()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_replay_is_owner_bound_and_does_not_disclose_another_inspectors_receipt()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L75"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_required_fields_all_have_displayable_validation_errors",
+      "label": ".test_required_fields_all_have_displayable_validation_errors()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_required_fields_all_have_displayable_validation_errors()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L178"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_unauthenticated_invalid_expired_and_revoked_tokens_cannot_ingest",
+      "label": ".test_unauthenticated_invalid_expired_and_revoked_tokens_cannot_ingest()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_unauthenticated_invalid_expired_and_revoked_tokens_cannot_ingest()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L86"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_unverified_unassigned_foreign_and_revoked_memberships_are_denied",
+      "label": ".test_unverified_unassigned_foreign_and_revoked_memberships_are_denied()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_unverified_unassigned_foreign_and_revoked_memberships_are_denied()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L124"
+    },
+    {
+      "id": "api_tests_feature_mobilefieldsurveytest_mobilefieldsurveytest_test_valid_replay_keeps_original_record_and_never_updates_measurement_or_shape",
+      "label": ".test_valid_replay_keeps_original_record_and_never_updates_measurement_or_shape()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_valid_replay_keeps_original_record_and_never_updates_measurement_or_shape()",
+      "source_file": "api/tests/Feature/MobileFieldSurveyTest.php",
+      "source_location": "L60"
+    },
+    {
+      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_payload",
+      "label": ".payload()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".payload()",
+      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
+      "source_location": "L83"
+    },
+    {
+      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_setup",
+      "label": ".setUp()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".setup()",
+      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
+      "source_location": "L19"
+    },
+    {
+      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_test_json_precision_utc_microseconds_and_idempotency_survive_mysql_reload",
+      "label": ".test_json_precision_utc_microseconds_and_idempotency_survive_mysql_reload()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_json_precision_utc_microseconds_and_idempotency_survive_mysql_reload()",
+      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
+      "source_location": "L26"
+    },
+    {
+      "id": "api_tests_mysql_mobilefieldsurveymysqltest_mobilefieldsurveymysqltest_test_mysql_uuid_collision_and_foreign_scope_never_leak_or_duplicate_a_receipt",
+      "label": ".test_mysql_uuid_collision_and_foreign_scope_never_leak_or_duplicate_a_receipt()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 78,
+      "community_name": "MobileFieldSurveyTest",
+      "file_type": "code",
+      "norm_label": ".test_mysql_uuid_collision_and_foreign_scope_never_leak_or_duplicate_a_receipt()",
+      "source_file": "api/tests/MySql/MobileFieldSurveyMySqlTest.php",
+      "source_location": "L60"
     },
     {
       "id": "src_components_dashboard_dashboardrecentreports_dashboardrecentreports",
@@ -136606,15 +136606,152 @@
       "source_location": "L1"
     },
     {
-      "id": "api_app_http_controllers_api_v1_mobilefieldsurveycontroller",
-      "label": "MobileFieldSurveyController.php",
+      "id": "api_app_actions_notifications_broadcastnewcasesubmitted",
+      "label": "BroadcastNewCaseSubmitted.php",
       "_origin": "ast",
       "community": 128,
-      "community_name": "MobileFieldSurveyTest",
+      "community_name": "NewCaseSubmitted",
       "file_type": "code",
-      "norm_label": "mobilefieldsurveycontroller.php",
-      "source_file": "api/app/Http/Controllers/Api/V1/MobileFieldSurveyController.php",
+      "norm_label": "broadcastnewcasesubmitted.php",
+      "source_file": "api/app/Actions/Notifications/BroadcastNewCaseSubmitted.php",
       "source_location": "L1"
+    },
+    {
+      "id": "api_app_events_caseattentionchanged",
+      "label": "CaseAttentionChanged.php",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "caseattentionchanged.php",
+      "source_file": "api/app/Events/CaseAttentionChanged.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "api_app_events_newcasesubmitted",
+      "label": "NewCaseSubmitted.php",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "newcasesubmitted.php",
+      "source_file": "api/app/Events/NewCaseSubmitted.php",
+      "source_location": "L1"
+    },
+    {
+      "id": "illuminate_broadcasting_privatechannel",
+      "label": "Illuminate\\Broadcasting\\PrivateChannel",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "illuminate\\broadcasting\\privatechannel",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "illuminate_contracts_broadcasting_shouldbroadcast",
+      "label": "Illuminate\\Contracts\\Broadcasting\\ShouldBroadcast",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "illuminate\\contracts\\broadcasting\\shouldbroadcast",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "illuminate_contracts_broadcasting_shouldrescue",
+      "label": "Illuminate\\Contracts\\Broadcasting\\ShouldRescue",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "illuminate\\contracts\\broadcasting\\shouldrescue",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "illuminate_foundation_events_dispatchable",
+      "label": "Illuminate\\Foundation\\Events\\Dispatchable",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "illuminate\\foundation\\events\\dispatchable",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "illuminate_queue_serializesmodels",
+      "label": "Illuminate\\Queue\\SerializesModels",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "code",
+      "norm_label": "illuminate\\queue\\serializesmodels",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "docs_testing_web_map_queue_regression_api_map_and_queue_contract",
+      "label": "API map and queue contract",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "api map and queue contract",
+      "source_file": "docs/testing/web-map-queue-regression.md",
+      "source_location": "L41"
+    },
+    {
+      "id": "docs_testing_web_map_queue_regression_behaviors_covered",
+      "label": "Behaviors covered",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "behaviors covered",
+      "source_file": "docs/testing/web-map-queue-regression.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "docs_testing_web_map_queue_regression_map_framing",
+      "label": "Map framing",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "map framing",
+      "source_file": "docs/testing/web-map-queue-regression.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "docs_testing_web_map_queue_regression_queue_refresh_independence",
+      "label": "Queue refresh independence",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "queue refresh independence",
+      "source_file": "docs/testing/web-map-queue-regression.md",
+      "source_location": "L31"
+    },
+    {
+      "id": "docs_testing_web_map_queue_regression_server_owned_same_location_groups",
+      "label": "Server-owned same-location groups",
+      "_origin": "ast",
+      "community": 128,
+      "community_name": "NewCaseSubmitted",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "server-owned same-location groups",
+      "source_file": "docs/testing/web-map-queue-regression.md",
+      "source_location": "L19"
     },
     {
       "id": "agents_skills_database_review_skill",
@@ -187540,152 +187677,15 @@
       "source_location": "L1"
     },
     {
-      "id": "api_app_actions_notifications_broadcastnewcasesubmitted",
-      "label": "BroadcastNewCaseSubmitted.php",
+      "id": "api_app_http_controllers_api_v1_mobilefieldsurveycontroller",
+      "label": "MobileFieldSurveyController.php",
       "_origin": "ast",
       "community": 78,
-      "community_name": "NewCaseSubmitted",
+      "community_name": "MobileFieldSurveyTest",
       "file_type": "code",
-      "norm_label": "broadcastnewcasesubmitted.php",
-      "source_file": "api/app/Actions/Notifications/BroadcastNewCaseSubmitted.php",
+      "norm_label": "mobilefieldsurveycontroller.php",
+      "source_file": "api/app/Http/Controllers/Api/V1/MobileFieldSurveyController.php",
       "source_location": "L1"
-    },
-    {
-      "id": "api_app_events_caseattentionchanged",
-      "label": "CaseAttentionChanged.php",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "caseattentionchanged.php",
-      "source_file": "api/app/Events/CaseAttentionChanged.php",
-      "source_location": "L1"
-    },
-    {
-      "id": "api_app_events_newcasesubmitted",
-      "label": "NewCaseSubmitted.php",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "newcasesubmitted.php",
-      "source_file": "api/app/Events/NewCaseSubmitted.php",
-      "source_location": "L1"
-    },
-    {
-      "id": "illuminate_broadcasting_privatechannel",
-      "label": "Illuminate\\Broadcasting\\PrivateChannel",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "illuminate\\broadcasting\\privatechannel",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "illuminate_contracts_broadcasting_shouldbroadcast",
-      "label": "Illuminate\\Contracts\\Broadcasting\\ShouldBroadcast",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "illuminate\\contracts\\broadcasting\\shouldbroadcast",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "illuminate_contracts_broadcasting_shouldrescue",
-      "label": "Illuminate\\Contracts\\Broadcasting\\ShouldRescue",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "illuminate\\contracts\\broadcasting\\shouldrescue",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "illuminate_foundation_events_dispatchable",
-      "label": "Illuminate\\Foundation\\Events\\Dispatchable",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "illuminate\\foundation\\events\\dispatchable",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "illuminate_queue_serializesmodels",
-      "label": "Illuminate\\Queue\\SerializesModels",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "code",
-      "norm_label": "illuminate\\queue\\serializesmodels",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "docs_testing_web_map_queue_regression_api_map_and_queue_contract",
-      "label": "API map and queue contract",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "api map and queue contract",
-      "source_file": "docs/testing/web-map-queue-regression.md",
-      "source_location": "L41"
-    },
-    {
-      "id": "docs_testing_web_map_queue_regression_behaviors_covered",
-      "label": "Behaviors covered",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "behaviors covered",
-      "source_file": "docs/testing/web-map-queue-regression.md",
-      "source_location": "L7"
-    },
-    {
-      "id": "docs_testing_web_map_queue_regression_map_framing",
-      "label": "Map framing",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "map framing",
-      "source_file": "docs/testing/web-map-queue-regression.md",
-      "source_location": "L9"
-    },
-    {
-      "id": "docs_testing_web_map_queue_regression_queue_refresh_independence",
-      "label": "Queue refresh independence",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "queue refresh independence",
-      "source_file": "docs/testing/web-map-queue-regression.md",
-      "source_location": "L31"
-    },
-    {
-      "id": "docs_testing_web_map_queue_regression_server_owned_same_location_groups",
-      "label": "Server-owned same-location groups",
-      "_origin": "ast",
-      "community": 78,
-      "community_name": "NewCaseSubmitted",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "server-owned same-location groups",
-      "source_file": "docs/testing/web-map-queue-regression.md",
-      "source_location": "L19"
     },
     {
       "id": "react_router",
@@ -249925,7 +249925,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L207",
+      "source_location": "L206",
       "weight": 1
     },
     {
@@ -249937,7 +249937,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L167",
+      "source_location": "L166",
       "weight": 1
     },
     {
@@ -249949,7 +249949,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L56",
+      "source_location": "L55",
       "weight": 1
     },
     {
@@ -249961,7 +249961,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L59",
+      "source_location": "L58",
       "weight": 1
     },
     {
@@ -249973,7 +249973,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L68",
+      "source_location": "L67",
       "weight": 1
     },
     {
@@ -249985,7 +249985,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L89",
+      "source_location": "L88",
       "weight": 1
     },
     {
@@ -249997,7 +249997,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L25",
+      "source_location": "L24",
       "weight": 1
     },
     {
@@ -250009,7 +250009,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L27",
+      "source_location": "L26",
       "weight": 1
     },
     {
@@ -250021,7 +250021,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L30",
+      "source_location": "L29",
       "weight": 1
     },
     {
@@ -250033,7 +250033,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L45",
+      "source_location": "L44",
       "weight": 1
     },
     {
@@ -258013,7 +258013,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L199",
+      "source_location": "L198",
       "weight": 1
     },
     {
@@ -258025,7 +258025,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L408",
+      "source_location": "L407",
       "weight": 1
     },
     {
@@ -258037,7 +258037,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L411",
+      "source_location": "L410",
       "weight": 1
     },
     {
@@ -258049,7 +258049,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L419",
+      "source_location": "L418",
       "weight": 1
     },
     {
@@ -258061,7 +258061,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L430",
+      "source_location": "L429",
       "weight": 1
     },
     {
@@ -258073,7 +258073,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L184",
+      "source_location": "L183",
       "weight": 1
     },
     {
@@ -258085,7 +258085,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L90",
+      "source_location": "L89",
       "weight": 1
     },
     {
@@ -258097,7 +258097,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L91",
+      "source_location": "L90",
       "weight": 1
     },
     {
@@ -258109,7 +258109,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L339",
+      "source_location": "L338",
       "weight": 1
     },
     {
@@ -258121,7 +258121,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L342",
+      "source_location": "L341",
       "weight": 1
     },
     {
@@ -258133,7 +258133,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L347",
+      "source_location": "L346",
       "weight": 1
     },
     {
@@ -258145,7 +258145,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L353",
+      "source_location": "L352",
       "weight": 1
     },
     {
@@ -258157,7 +258157,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L239",
+      "source_location": "L238",
       "weight": 1
     },
     {
@@ -405619,7 +405619,7 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "api_database_seeders_officeadvisoryseeder_officeadvisoryseeder",
+      "target": "illuminate_foundation_testing_refreshdatabase",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -405631,7 +405631,7 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "illuminate_foundation_testing_refreshdatabase",
+      "target": "illuminate_support_collection",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -405643,7 +405643,7 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "illuminate_support_collection",
+      "target": "illuminate_support_facades_storage",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -405655,7 +405655,7 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "illuminate_support_facades_storage",
+      "target": "laravel_sanctum_sanctum",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -405667,7 +405667,7 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "laravel_sanctum_sanctum",
+      "target": "api_tests_support_reportmetricexpectations_reportmetricexpectations",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -405679,18 +405679,6 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "api_tests_support_reportmetricexpectations_reportmetricexpectations",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1,
-      "context": "import",
-      "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L15",
-      "weight": 1
-    },
-    {
-      "source": "api_tests_feature_demoanalyticsseedertest",
       "target": "api_tests_testcase_testcase",
       "relation": "imports",
       "_origin": "ast",
@@ -405698,7 +405686,7 @@
       "confidence_score": 1,
       "context": "import",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L16",
+      "source_location": "L15",
       "weight": 1
     },
     {
@@ -405739,7 +405727,7 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "api_database_seeders_databaseseeder_databaseseeder",
+      "target": "api_database_seeders_demoanalyticsseeder_demoanalyticsseeder",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -405751,7 +405739,7 @@
     },
     {
       "source": "api_tests_feature_demoanalyticsseedertest",
-      "target": "api_database_seeders_demoanalyticsseeder_demoanalyticsseeder",
+      "target": "api_database_seeders_officeadvisoryseeder_officeadvisoryseeder",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409375,7 +409363,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_database_seeders_dashboardreportseeder_dashboardreportseeder",
+      "target": "api_database_seeders_databaseseeder_databaseseeder",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409387,7 +409375,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_database_seeders_databaseseeder_databaseseeder",
+      "target": "api_database_seeders_reportseeder_reportseeder",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409399,7 +409387,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_database_seeders_reportseeder_reportseeder",
+      "target": "illuminate_foundation_testing_refreshdatabase",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409411,7 +409399,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "illuminate_foundation_testing_refreshdatabase",
+      "target": "illuminate_support_facades_db",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409423,7 +409411,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "illuminate_support_facades_db",
+      "target": "illuminate_support_facades_schema",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409435,7 +409423,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "illuminate_support_facades_schema",
+      "target": "illuminate_support_facades_storage",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409447,7 +409435,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "illuminate_support_facades_storage",
+      "target": "laravel_sanctum_sanctum",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409459,7 +409447,7 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "laravel_sanctum_sanctum",
+      "target": "api_tests_support_reportmetricexpectations_reportmetricexpectations",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -409471,18 +409459,6 @@
     },
     {
       "source": "api_tests_feature_reportschemaandseedertest",
-      "target": "api_tests_support_reportmetricexpectations_reportmetricexpectations",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1,
-      "context": "import",
-      "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L18",
-      "weight": 1
-    },
-    {
-      "source": "api_tests_feature_reportschemaandseedertest",
       "target": "api_tests_testcase_testcase",
       "relation": "imports",
       "_origin": "ast",
@@ -409490,7 +409466,7 @@
       "confidence_score": 1,
       "context": "import",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L19",
+      "source_location": "L18",
       "weight": 1
     },
     {
@@ -477265,7 +477241,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L79",
+      "source_location": "L78",
       "weight": 1
     },
     {
@@ -477277,7 +477253,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L97",
+      "source_location": "L96",
       "weight": 1
     },
     {
@@ -477289,7 +477265,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L127",
+      "source_location": "L126",
       "weight": 1
     },
     {
@@ -477301,7 +477277,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L134",
+      "source_location": "L133",
       "weight": 1
     },
     {
@@ -477313,7 +477289,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L179",
+      "source_location": "L178",
       "weight": 1
     },
     {
@@ -477433,7 +477409,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L413",
+      "source_location": "L412",
       "weight": 1
     },
     {
@@ -477445,7 +477421,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L422",
+      "source_location": "L421",
       "weight": 1
     },
     {
@@ -478405,7 +478381,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L112",
+      "source_location": "L111",
       "weight": 1
     },
     {
@@ -478417,7 +478393,7 @@
       "confidence_score": 1,
       "context": "parameter_type",
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L150",
+      "source_location": "L149",
       "weight": 1
     },
     {
@@ -529787,7 +529763,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L112",
+      "source_location": "L111",
       "weight": 1
     },
     {
@@ -529798,7 +529774,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L127",
+      "source_location": "L126",
       "weight": 1
     },
     {
@@ -529809,7 +529785,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L134",
+      "source_location": "L133",
       "weight": 1
     },
     {
@@ -529820,7 +529796,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L150",
+      "source_location": "L149",
       "weight": 1
     },
     {
@@ -529831,7 +529807,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L18",
+      "source_location": "L17",
       "weight": 1
     },
     {
@@ -529842,7 +529818,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L79",
+      "source_location": "L78",
       "weight": 1
     },
     {
@@ -529853,7 +529829,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L97",
+      "source_location": "L96",
       "weight": 1
     },
     {
@@ -530656,7 +530632,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L21",
+      "source_location": "L20",
       "weight": 1
     },
     {
@@ -530667,7 +530643,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L258",
+      "source_location": "L257",
       "weight": 1
     },
     {
@@ -530678,7 +530654,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L283",
+      "source_location": "L282",
       "weight": 1
     },
     {
@@ -530689,7 +530665,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L413",
+      "source_location": "L412",
       "weight": 1
     },
     {
@@ -530700,7 +530676,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L414",
+      "source_location": "L413",
       "weight": 1
     },
     {
@@ -530711,7 +530687,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L422",
+      "source_location": "L421",
       "weight": 1
     },
     {
@@ -625632,7 +625608,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L18",
+      "source_location": "L17",
       "weight": 1
     },
     {
@@ -626039,7 +626015,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L21",
+      "source_location": "L20",
       "weight": 1
     },
     {
@@ -635059,7 +635035,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L179",
+      "source_location": "L178",
       "weight": 1
     },
     {
@@ -635070,18 +635046,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L200",
-      "weight": 1
-    },
-    {
-      "source": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest",
-      "target": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest_configuredemopasswords",
-      "relation": "method",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1,
-      "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L212",
+      "source_location": "L199",
       "weight": 1
     },
     {
@@ -635092,7 +635057,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L22",
+      "source_location": "L21",
+      "weight": 1
+    },
+    {
+      "source": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest",
+      "target": "api_tests_feature_demoanalyticsseedertest_demoanalyticsseedertest_configuredemopasswords",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
+      "source_location": "L211",
       "weight": 1
     },
     {
@@ -635103,7 +635079,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L52",
+      "source_location": "L51",
       "weight": 1
     },
     {
@@ -638898,7 +638874,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L104",
+      "source_location": "L103",
       "weight": 1
     },
     {
@@ -638909,7 +638885,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L166",
+      "source_location": "L165",
       "weight": 1
     },
     {
@@ -638920,7 +638896,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L182",
+      "source_location": "L181",
       "weight": 1
     },
     {
@@ -638931,7 +638907,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L197",
+      "source_location": "L196",
       "weight": 1
     },
     {
@@ -638942,7 +638918,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L230",
+      "source_location": "L229",
       "weight": 1
     },
     {
@@ -638953,7 +638929,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L25",
+      "source_location": "L24",
       "weight": 1
     },
     {
@@ -638964,7 +638940,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L298",
+      "source_location": "L297",
       "weight": 1
     },
     {
@@ -638975,7 +638951,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L330",
+      "source_location": "L329",
       "weight": 1
     },
     {
@@ -638986,7 +638962,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L397",
+      "source_location": "L396",
       "weight": 1
     },
     {
@@ -638997,7 +638973,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L448",
+      "source_location": "L447",
       "weight": 1
     },
     {
@@ -639008,7 +638984,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L88",
+      "source_location": "L87",
       "weight": 1
     },
     {
@@ -642627,7 +642603,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L20",
+      "source_location": "L19",
       "weight": 1
     },
     {
@@ -642990,7 +642966,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L23",
+      "source_location": "L22",
       "weight": 1
     },
     {
@@ -646642,7 +646618,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/DemoAnalyticsSeederTest.php",
-      "source_location": "L119",
+      "source_location": "L118",
       "weight": 1
     },
     {
@@ -646785,7 +646761,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L177",
+      "source_location": "L176",
       "weight": 1
     },
     {
@@ -646796,7 +646772,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L125",
+      "source_location": "L124",
       "weight": 1
     },
     {
@@ -646807,7 +646783,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L311",
+      "source_location": "L310",
       "weight": 1
     },
     {
@@ -646818,7 +646794,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "api/tests/Feature/ReportSchemaAndSeederTest.php",
-      "source_location": "L242",
+      "source_location": "L241",
       "weight": 1
     },
     {
@@ -655290,5 +655266,5 @@
       "source_file": "src/assets/vite.svg"
     }
   ],
-  "built_at_commit": "ed2626da3ec9df06b71ab710b9d676d7e220c853"
+  "built_at_commit": "1e033b0004c044b9328bc1377821abb6b7c718c0"
 }

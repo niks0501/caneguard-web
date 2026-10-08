@@ -1,17 +1,17 @@
 # Graph Report - 01M4DV4W34WEASX1AHFCD485E2  (2026-10-08)
 
 ## Corpus Check
-- 1248 files · ~1,969,906 words
+- 1248 files · ~1,969,902 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 49 file(s) not represented in the graph (top: (none) 25, .toml 5, .example 3)
 
 ## Summary
-- 16162 nodes · 39988 edges · 573 communities (500 shown, 73 thin omitted)
+- 16162 nodes · 39986 edges · 574 communities (500 shown, 74 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 649 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ed2626da`
+- Built from commit: `1e033b00`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -69,8 +69,8 @@
 - P0C — Field-Validation Map Reliability and Failure Diagnostics
 - AkiDev tool routing
 - .agents/skills/impeccable/scripts/live.mjs
-- .pi/skills/impeccable/scripts/lib/impeccable-paths.mjs
-- Carbon\CarbonImmutable
+- MobileReportUploadTest.php
+- AccountsAccessTest
 - .agents/skills/impeccable/scripts/live/insert-ui.mjs
 - .agents/skills/impeccable/scripts/doctor.mjs
 - ref_node_url
@@ -83,7 +83,7 @@
 - injectVariantsFromSource
 - validate-design-spine.mjs
 - .pi/skills/impeccable/scripts/live.mjs
-- The "Mine" filter in the CaneGuard web Monitoring workspace
+- .pi/skills/impeccable/scripts/lib/impeccable-paths.mjs
 - reportListUrlState.ts
 - .opencode/skills/impeccable/scripts/live-server.mjs
 - DashboardPage.tsx
@@ -132,7 +132,7 @@
 - Quick Fix
 - Review Feature
 - .opencode/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
-- MobileFieldSurveyTest
+- The "Mine" filter in the CaneGuard web Monitoring workspace
 - Database Review
 - Security Review
 - .pi/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
@@ -143,8 +143,8 @@
 - deployment.md
 - frontend.md
 - validate-report-lifecycle-v1.mjs
+- DistrictAccessTest
 - .agents/skills/impeccable/scripts/live/manual-edits-buffer.mjs
-- .pi/skills/impeccable/scripts/live/manual-edits-buffer.mjs
 - .opencode/skills/impeccable/scripts/lib/roll-selection.mjs
 - captureElementToBlob
 - ApplyReportFilters
@@ -252,7 +252,7 @@
 - .agents/skills/impeccable/scripts/live/tanstack-adapter.mjs
 - .pi/skills/impeccable/scripts/serve-question.mjs
 - .agents/skills/impeccable/scripts/live-inject.mjs
-- Illuminate\Http\Resources\Json\JsonResource
+- Carbon\CarbonImmutable
 - onAnnotDown
 - qa-open.mjs
 - Illuminate\Database\Eloquent\Builder
@@ -285,7 +285,7 @@
 - Appendix B - Canonical Sources (read these before reinventing)
 - checkHeadingRhythmDOM
 - .pi/skills/impeccable/scripts/live/frameworks/index.mjs
-- .pi/skills/impeccable/scripts/context-signals.mjs
+- .pi/skills/impeccable/scripts/live/manual-edits-buffer.mjs
 - sampleCssBackground
 - 10. Troubleshooting
 - .opencode/skills/impeccable/scripts/embed-prompt.mjs
@@ -342,11 +342,11 @@
 - Persona-Based Design Testing
 - mobile-report-review-status.md
 - Shape
-- checkHtmlPatterns
+- .pi/skills/impeccable/scripts/context-signals.mjs
 - .agents/skills/impeccable/scripts/live/svelte-component.mjs
 - .agents/skills/impeccable/scripts/detector/shared/inline-ignores.mjs
 - syncEditBadgeHitProxies
-- DistrictAccessTest
+- checkHtmlPatterns
 - Generate Report
 - Generate Report
 - Cognitive Load Assessment
@@ -399,7 +399,7 @@
 - .agents/skills/impeccable/scripts/live-copy-edit-agent.mjs
 - .pi/skills/impeccable/scripts/hook.mjs
 - Illuminate\Database\Migrations\Migration
-- Diagnostic Scan
+- .agents/skills/impeccable/scripts/detect-csp.mjs
 - MobileMapTileController.php
 - 0001_01_01_000002_create_jobs_table.php
 - 2026_10_04_000003_add_district_report_versions.php
@@ -442,7 +442,7 @@
 - isScreenReaderOnlyTextStyle
 - isScreenReaderOnlyTextStyle
 - 0001_01_01_000001_create_cache_table.php
-- Impeccable Documenter
+- ReportEvidenceReviewContractTest
 - 2026_09_23_000000_add_expert_finding_review_fields_to_report_referrals.php
 - 2026_09_25_000000_add_external_consult_invite_fields_to_report_referrals.php
 - 2026_10_06_000001_widen_report_reference_code.php
@@ -470,13 +470,13 @@
 - Report documents — implementation status
 - Adaptation Strategies
 - Impeccable Documenter
-- Adaptation Strategies
+- Diagnostic Scan
 - .agents/skills/impeccable/reference/document.md
 - .agents/skills/impeccable/scripts/serve-question.mjs
 - .agents/skills/impeccable/scripts/live/svelte-ast.mjs
 - .agents/skills/impeccable/reference/onboard.md
 - collectBrowserFindings
-- Impeccable Documenter
+- .agents/skills/impeccable/reference/bolder.md
 - .agents/skills/impeccable/scripts/live/sveltekit-adapter.mjs
 - Operate mode depth (and Read notes)
 - The Toolkit
@@ -508,15 +508,15 @@
 - .agents/skills/impeccable/reference/critique.md
 - Simplify the Design
 - Hardening Dimensions
-- stateOf
+- .pi/skills/impeccable/reference/bolder.md
 - .agents/skills/impeccable/reference/clarify.md
 - Nielsen's 10 Heuristics
 - Generate Combined Critique Report
 - New visual work
 - .agents/skills/impeccable/reference/polish.md
 - .agents/skills/impeccable/reference/quieter.md
-- stateOf
-- .agents/skills/impeccable/scripts/detect-csp.mjs
+- Impeccable Documenter
+- Adaptation Strategies
 - .agents/skills/impeccable/scripts/palette.mjs
 - Init flow
 - Context7
@@ -524,7 +524,7 @@
 - iOS platform
 - checkHeadingRhythmDOM
 - MobileReportUploadContract
-- stateOf
+- Impeccable Documenter
 - .opencode/skills/impeccable/scripts/live/frameworks/nuxt.mjs
 - Android platform
 - Persona-Based Design Testing
@@ -535,11 +535,14 @@
 - stateOf
 - StaticElement
 - Extract Flow
+- stateOf
 - Generate Report
 - Generate Report
 - Cognitive Load Assessment
 - Impeccable Finish Reviewer
+- stateOf
 - ref_node_path
+- stateOf
 - live-browser-ignores.js
 - .pi/skills/impeccable/scripts/live-inject.mjs
 - 10. REFERENCE VOCABULARY (Pattern Names the Agent Should Know)
@@ -548,7 +551,6 @@
 - Heuristics Scoring Guide
 - Web #103 live verification — T02 RSSI
 - createLiveBrowserDomHelpers
-- .pi/skills/impeccable/reference/bolder.md
 - checkElementRadialSpotlightDOM
 - extra
 - Controller
@@ -558,7 +560,6 @@
 - 9. AI TELLS (Forbidden Patterns)
 - mobile-field-validation-assignment-v1.md
 - mobile-field-validation-completion-v1.md
-- .agents/skills/impeccable/reference/bolder.md
 - .opencode/skills/impeccable/reference/bolder.md
 - APPENDICES - Real Source-Backed Reference Material
 - 11. REDESIGN PROTOCOL
@@ -602,7 +603,7 @@
 - **React Atomic Symbol Composition** — src_assets_react_logo, src_assets_react_atomic_orbits, src_assets_react_central_nucleus, src_assets_react_cyan_brand_color [INFERRED 0.95]
 - **Vite Visual Identity Composition** — src_assets_vite_lightning_bolt, src_assets_vite_parentheses, src_assets_vite_glow_effect [INFERRED 0.95]
 
-## Communities (573 total, 73 thin omitted)
+## Communities (574 total, 74 thin omitted)
 
 ### Community 0 - "Core Agent Rules"
 Cohesion: 0.40
@@ -629,8 +630,8 @@ Cohesion: 0.10
 Nodes (19): compilerOptions, allowArbitraryExtensions, allowImportingTsExtensions, erasableSyntaxOnly, jsx, lib, module, moduleDetection (+11 more)
 
 ### Community 6 - "Illuminate\Database\Eloquent\Model"
-Cohesion: 0.02
-Nodes (29): {closure#1}(), {closure#1}(), {closure#2}(), {closure#1}(), {closure#1}(), {closure#2}(), DistrictReportEvent, {closure#1}() (+21 more)
+Cohesion: 0.03
+Nodes (27): {closure#1}(), {closure#1}(), {closure#2}(), {closure#1}(), {closure#1}(), {closure#2}(), DistrictReportEvent, {closure#1}() (+19 more)
 
 ### Community 7 - "dependencies"
 Cohesion: 0.13
@@ -645,7 +646,7 @@ Cohesion: 0.04
 Nodes (112): applyGlobalBarLabelState(), applyParamValue(), applyPlaceholderSizingStyles(), bindEditBadgeProxy(), bufferToBase64(), buildCollapsible(), buildColorModels(), buildDesignHeader() (+104 more)
 
 ### Community 10 - "Report"
-Cohesion: 0.02
+Cohesion: 0.01
 Nodes (46): {closure#1}(), {closure#2}(), {closure#3}(), CalibrateReportTriage, {closure#1}(), {closure#2}(), {closure#3}(), {closure#4}() (+38 more)
 
 ### Community 11 - "Social and Navigation Icon Sprite"
@@ -678,7 +679,7 @@ Nodes (41): {closure#1}(), {closure#2}(), {closure#3}(), {closure#4}(), {closure
 
 ### Community 21 - "District"
 Cohesion: 0.03
-Nodes (28): Step 1: Run the pass, AccountAccessFailure, {closure#1}(), {closure#1}(), BackfillLocalReportDistricts, PruneSecurityAudits, ReconcileAccess, {closure#1}() (+20 more)
+Nodes (19): {closure#1}(), FieldReporterListRequest, {closure#1}(), District, DistrictMembership, FieldSurvey, DistrictPolicy, AccountsDirectory (+11 more)
 
 ### Community 22 - "applyEditing"
 Cohesion: 0.07
@@ -804,13 +805,13 @@ Nodes (6): AkiDev tool routing, Android emulator preflight, Choose the smallest 
 Cohesion: 0.14
 Nodes (24): parseCliOptions(), resolveTargetSelection(), parseTargetOptions(), parseTargetPath(), TargetArgError, __dirname, ensureServerRunning(), globToRegex() (+16 more)
 
-### Community 64 - ".pi/skills/impeccable/scripts/lib/impeccable-paths.mjs"
-Cohesion: 0.10
-Nodes (33): resolveProjectRoot(), CRITIQUE_DIR, firstExisting(), getDesignSidecarCandidates(), getDesignSidecarPath(), getImpeccableDir(), getLegacyLiveAnnotationsDir(), getLegacyLiveConfigPath() (+25 more)
+### Community 64 - "MobileReportUploadTest.php"
+Cohesion: 0.05
+Nodes (12): CreateNewCaseNotifications, {closure#1}(), PersistReport, BackfillLocalReportDistricts, PruneSecurityAudits, ReconcileAccess, {closure#1}(), SecureReportImages (+4 more)
 
-### Community 65 - "Carbon\CarbonImmutable"
-Cohesion: 0.04
-Nodes (13): BuildWeeklyReportContent, {closure#1}(), MobileNotificationRequest, {closure#1}(), AuthUrlBuilder, DashboardReportSeeder, DatabaseSeeder, OfficeAdvisorySeeder (+5 more)
+### Community 65 - "AccountsAccessTest"
+Cohesion: 0.10
+Nodes (10): Step 1: Run the pass, AccountAccessFailure, {closure#1}(), {closure#1}(), AccountAccessEvent, AccountReview, AccountsAccessTest, Step 1: Run the pass (+2 more)
 
 ### Community 66 - ".agents/skills/impeccable/scripts/live/insert-ui.mjs"
 Cohesion: 0.07
@@ -860,9 +861,9 @@ Nodes (33): ALLOWED_FONT_WEIGHTS, assertDesignSpine(), assertSolidFill(), blockF
 Cohesion: 0.20
 Nodes (19): resolveTargetSelection(), __dirname, ensureServerRunning(), globToRegex(), acceptInstructions(), bootInstructions(), deferredWrapperInstructions(), generateInstructions() (+11 more)
 
-### Community 78 - "The "Mine" filter in the CaneGuard web Monitoring workspace"
-Cohesion: 0.07
-Nodes (28): 10. Verification actually run, 11. Captain-hold inventory (semantic inventory for the completion gate), 2.1 Live: Monitoring → Field Operations (`MonitoringWorkspacePage` view `field-operations`), 2.2 Dead: `FieldValidationQueuePanel`, 2.3 Also present but never called from the UI, 2. Where the control lives, 3. What "mine" means, 4.1 The two role sets are disjoint by construction (+20 more)
+### Community 78 - ".pi/skills/impeccable/scripts/lib/impeccable-paths.mjs"
+Cohesion: 0.10
+Nodes (33): resolveProjectRoot(), CRITIQUE_DIR, firstExisting(), getDesignSidecarCandidates(), getDesignSidecarPath(), getImpeccableDir(), getLegacyLiveAnnotationsDir(), getLegacyLiveConfigPath() (+25 more)
 
 ### Community 79 - "reportListUrlState.ts"
 Cohesion: 0.05
@@ -970,7 +971,7 @@ Nodes (65): abandonForeignSession(), cancelEditing(), cancelEditingToPicking(), 
 
 ### Community 107 - "bootstrap/app.php"
 Cohesion: 0.03
-Nodes (29): {closure#3}(), {closure#4}(), {closure#5}(), DeprecatedAccountApi, EnsureAccountsAccess, EnsureActiveIdentity, EnsureInspectorAccess, EnsureMobileTokenFresh (+21 more)
+Nodes (30): {closure#3}(), {closure#4}(), {closure#5}(), DeprecatedAccountApi, EnsureAccountsAccess, EnsureActiveIdentity, EnsureInspectorAccess, EnsureMobileTokenFresh (+22 more)
 
 ### Community 108 - "createLiveBrowserSessionState"
 Cohesion: 0.20
@@ -1052,9 +1053,9 @@ Nodes (4): Review, Finding quality, Review Feature, Review priority
 Cohesion: 0.06
 Nodes (57): browserColorsClose(), browserDesignSystemConfig(), browserHasDirectText(), browserPrimaryFont(), browserRadiusTokens(), browserSampleText(), buildSelectorSegment(), checkBrowserDesignSystemSources() (+49 more)
 
-### Community 128 - "MobileFieldSurveyTest"
-Cohesion: 0.17
-Nodes (3): FieldSurvey, MobileFieldSurveyTest, MobileFieldSurveyMySqlTest
+### Community 128 - "The "Mine" filter in the CaneGuard web Monitoring workspace"
+Cohesion: 0.07
+Nodes (28): 10. Verification actually run, 11. Captain-hold inventory (semantic inventory for the completion gate), 2.1 Live: Monitoring → Field Operations (`MonitoringWorkspacePage` view `field-operations`), 2.2 Dead: `FieldValidationQueuePanel`, 2.3 Also present but never called from the UI, 2. Where the control lives, 3. What "mine" means, 4.1 The two role sets are disjoint by construction (+20 more)
 
 ### Community 131 - ".pi/skills/impeccable/scripts/detector/detect-antipatterns-browser.js"
 Cohesion: 0.06
@@ -1068,11 +1069,11 @@ Nodes (63): ACK_EXTS, ADVISORY_RULES, ALLOWED_EXTS, applyConfigSource(), applyDe
 Cohesion: 0.14
 Nodes (22): assertMobileCheckout(), LifecycleProducerContractError, main(), parseArgs(), readRegularFile(), runProducerTest(), safeTestEnvironment(), containsRequiredStates() (+14 more)
 
-### Community 139 - ".agents/skills/impeccable/scripts/live/manual-edits-buffer.mjs"
-Cohesion: 0.19
-Nodes (21): args, buffer, cwd, pageUrlFilter, remaining, compactManualLogText(), summarizeManualApplyFailures(), summarizeManualDiagnostics() (+13 more)
+### Community 139 - "DistrictAccessTest"
+Cohesion: 0.08
+Nodes (17): UserFactory, DistrictAccessTest, 1. Verdict (short), Admin-assisted recovery boundary, Authenticated account security endpoints, CaneGuard Auth v1 Contract, Mobile device/session management, Password policy (+9 more)
 
-### Community 140 - ".pi/skills/impeccable/scripts/live/manual-edits-buffer.mjs"
+### Community 140 - ".agents/skills/impeccable/scripts/live/manual-edits-buffer.mjs"
 Cohesion: 0.19
 Nodes (21): args, buffer, cwd, pageUrlFilter, remaining, compactManualLogText(), summarizeManualApplyFailures(), summarizeManualDiagnostics() (+13 more)
 
@@ -1130,7 +1131,7 @@ Nodes (52): checkBorders(), checkColors(), checkElementAIPaletteDOM(), checkElem
 
 ### Community 154 - "TestCase"
 Cohesion: 0.02
-Nodes (33): ReportDocumentController, {closure#1}(), AuthUrlBuilderTest, {closure#1}(), {closure#2}(), CalendarQueueProjectionAuditTest, DistrictMigrationTest, DistrictReportingSettingsTest (+25 more)
+Nodes (32): ReportDocumentController, {closure#1}(), AuthUrlBuilderTest, {closure#1}(), {closure#2}(), CalendarQueueProjectionAuditTest, DistrictMigrationTest, DistrictReportingSettingsTest (+24 more)
 
 ### Community 155 - "checkReadiness"
 Cohesion: 0.36
@@ -1504,9 +1505,9 @@ Nodes (17): browserOpenCommand(), openSystemBrowser(), answerFile(), esc(), flip
 Cohesion: 0.12
 Nodes (30): describeInjectArtifacts(), frameworkIgnorePatterns(), PATCH_UNDOERS, resolveFramework(), clearInjectJournal(), healArtifact(), healInjectJournal(), INJECT_JOURNAL_RELPATH (+22 more)
 
-### Community 249 - "Illuminate\Http\Resources\Json\JsonResource"
-Cohesion: 0.03
-Nodes (32): {closure#2}(), FindPossibleRecentMatches, MobilePossibleRecentMatchesController, {closure#1}(), ReportPossibleMatchesController, ListNotificationsRequest, {closure#1}(), MobileFieldValidationAssignmentRequest (+24 more)
+### Community 249 - "Carbon\CarbonImmutable"
+Cohesion: 0.02
+Nodes (37): BuildWeeklyReportContent, {closure#2}(), FindPossibleRecentMatches, MobilePossibleRecentMatchesController, {closure#1}(), ReportPossibleMatchesController, ListNotificationsRequest, {closure#1}() (+29 more)
 
 ### Community 250 - "onAnnotDown"
 Cohesion: 0.20
@@ -1533,8 +1534,8 @@ Cohesion: 0.27
 Nodes (13): astro, detectAstroProject(), fileExists(), findConfigFile(), firstExistingFile(), hasAnyDependency(), literalConfigFiles(), readPackageDeps() (+5 more)
 
 ### Community 256 - "Advisory"
-Cohesion: 0.06
-Nodes (11): AdvisoryController, {closure#1}(), {closure#2}(), {closure#3}(), AdvisoryRequest, AdvisoryTransitionRequest, AdvisoryResource, Advisory (+3 more)
+Cohesion: 0.05
+Nodes (16): AdvisoryController, {closure#1}(), {closure#2}(), {closure#3}(), AdvisoryRequest, AdvisoryTransitionRequest, AdvisoryResource, Advisory (+8 more)
 
 ### Community 257 - ".agents/skills/impeccable/scripts/live/frameworks/detect-utils.mjs"
 Cohesion: 0.36
@@ -1636,9 +1637,9 @@ Nodes (16): checkHeadingRhythmDOM(), clusterTop(), edgeAbove(), edgeBelow(), has
 Cohesion: 0.15
 Nodes (12): COMMENT_SYNTAXES, FRAMEWORKS, INJECT_KINDS, PREVIEW_MODES, SOURCE_TRAIT_DEFAULTS, STYLE_MODES, TAG_PATCH_KIND, nextjs (+4 more)
 
-### Community 282 - ".pi/skills/impeccable/scripts/context-signals.mjs"
-Cohesion: 0.21
-Nodes (15): extractPlatform(), hasVisualImplementation(), loadContext(), cli(), COMMON_DEV_PORTS, devServerSignals(), gatherSignals(), gitSignals() (+7 more)
+### Community 282 - ".pi/skills/impeccable/scripts/live/manual-edits-buffer.mjs"
+Cohesion: 0.19
+Nodes (21): args, buffer, cwd, pageUrlFilter, remaining, compactManualLogText(), summarizeManualApplyFailures(), summarizeManualDiagnostics() (+13 more)
 
 ### Community 283 - "sampleCssBackground"
 Cohesion: 0.16
@@ -1860,9 +1861,9 @@ Nodes (7): Mobile report review status implementation notes, Read status snapsho
 Cohesion: 0.22
 Nodes (8): Cadence, Confirm and stop, Phase 1: Discovery interview, Phase 2: Resolve the design direction, Phase 3: Write the brief, Round 1: purpose, people, and outcome, Round 2: material, behavior, and boundaries, Shape
 
-### Community 339 - "checkHtmlPatterns"
-Cohesion: 0.16
-Nodes (16): buildHtmlPatternCorpora(), checkHtmlPatterns(), collectMarqueeKeyframes(), collectPulseKeyframes(), cssLengthToPx(), enclosingCssSelector(), indexInSourceRanges(), infiniteAnimationNames() (+8 more)
+### Community 339 - ".pi/skills/impeccable/scripts/context-signals.mjs"
+Cohesion: 0.21
+Nodes (15): extractPlatform(), hasVisualImplementation(), loadContext(), cli(), COMMON_DEV_PORTS, devServerSignals(), gatherSignals(), gitSignals() (+7 more)
 
 ### Community 340 - ".agents/skills/impeccable/scripts/live/svelte-component.mjs"
 Cohesion: 0.06
@@ -1876,9 +1877,9 @@ Nodes (9): addRules(), applyInlineIgnores(), getSet(), hasDirectives(), isInline
 Cohesion: 0.27
 Nodes (10): bindEditBadgeProxy(), editBadgeProxyTargets(), initEditBadge(), initEditBadgeHitProxies(), positionEditBadge(), proxyMouseEvent(), setImportantStyle(), styleEditBadgeProxy() (+2 more)
 
-### Community 343 - "DistrictAccessTest"
-Cohesion: 0.08
-Nodes (17): UserFactory, DistrictAccessTest, 1. Verdict (short), Admin-assisted recovery boundary, Authenticated account security endpoints, CaneGuard Auth v1 Contract, Mobile device/session management, Password policy (+9 more)
+### Community 343 - "checkHtmlPatterns"
+Cohesion: 0.16
+Nodes (16): buildHtmlPatternCorpora(), checkHtmlPatterns(), collectMarqueeKeyframes(), collectPulseKeyframes(), cssLengthToPx(), enclosingCssSelector(), indexInSourceRanges(), infiniteAnimationNames() (+8 more)
 
 ### Community 344 - "Generate Report"
 Cohesion: 0.13
@@ -2072,9 +2073,9 @@ Nodes (7): allow(), deny(), done(), isStopEvent(), writeAuditLog(), main(), read
 Cohesion: 0.09
 Nodes (4): {closure#1}(), {closure#1}(), {closure#1}(), {closure#1}()
 
-### Community 396 - "Diagnostic Scan"
-Cohesion: 0.33
-Nodes (6): 1. Accessibility (VoiceOver / TalkBack), 2. Performance, 3. Appearance & Theming, 4. Platform Conformance (CRITICAL), 5. Adaptivity, Diagnostic Scan
+### Community 396 - ".agents/skills/impeccable/scripts/detect-csp.mjs"
+Cohesion: 0.20
+Nodes (10): detectCsp(), INLINE_HEADER_SIGNALS, LAYOUT_EXTS, MONOREPO_HELPER_SIGNALS, NUXT_ROUTE_RULES_SIGNALS, NUXT_SECURITY_SIGNALS, SCAN_EXTS, SKIP_DIRS (+2 more)
 
 ### Community 397 - "MobileMapTileController.php"
 Cohesion: 0.14
@@ -2160,10 +2161,6 @@ Nodes (6): clippedByInset(), clippedByRect(), expandBoxShorthand(), firstMetricL
 Cohesion: 0.47
 Nodes (6): clippedByInset(), clippedByRect(), expandBoxShorthand(), firstMetricLengthPx(), isScreenReaderOnlyTextStyle(), metricLengthPx()
 
-### Community 439 - "Impeccable Documenter"
-Cohesion: 0.40
-Nodes (4): Impeccable Documenter, Input Contract, Output Contract, Workflow
-
 ### Community 445 - "context7"
 Cohesion: 0.50
 Nodes (3): npx, @upstash/context7-mcp, context7
@@ -2244,9 +2241,9 @@ Nodes (5): Adaptation Strategies, Orientation & foldables, Phone → Tablet (iPa
 Cohesion: 0.40
 Nodes (4): Impeccable Documenter, Input Contract, Output Contract, Workflow
 
-### Community 468 - "Adaptation Strategies"
-Cohesion: 0.40
-Nodes (5): Adaptation Strategies, Orientation & foldables, Phone → Tablet (iPad / large screens), Platform → platform (iOS ↔ Android), Web → native (porting a website or web app)
+### Community 468 - "Diagnostic Scan"
+Cohesion: 0.33
+Nodes (6): 1. Accessibility (VoiceOver / TalkBack), 2. Performance, 3. Appearance & Theming, 4. Platform Conformance (CRITICAL), 5. Adaptivity, Diagnostic Scan
 
 ### Community 469 - ".agents/skills/impeccable/reference/document.md"
 Cohesion: 0.08
@@ -2268,9 +2265,9 @@ Nodes (22): Assess Onboarding Needs, Context Over Ceremony, Contextual Help, Des
 Cohesion: 0.14
 Nodes (22): browserFindingsFromMap(), checkBorders(), checkEdgeFlushCardsDOM(), checkElementBlinkingCursorDOM(), checkElementBorders(), checkElementBordersDOM(), checkElementPseudoStripeDOM(), checkElementTextOverflowDOM() (+14 more)
 
-### Community 474 - "Impeccable Documenter"
-Cohesion: 0.40
-Nodes (4): Impeccable Documenter, Input Contract, Output Contract, Workflow
+### Community 474 - ".agents/skills/impeccable/reference/bolder.md"
+Cohesion: 0.33
+Nodes (5): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat
 
 ### Community 475 - ".agents/skills/impeccable/scripts/live/sveltekit-adapter.mjs"
 Cohesion: 0.17
@@ -2392,6 +2389,10 @@ Nodes (11): Assess Current State, Code Simplification, Content Simplification, D
 Cohesion: 0.17
 Nodes (11): Accessibility Resilience, Assess Hardening Needs, Edge Cases & Boundary Conditions, Error Handling, Hardening Dimensions, Input Validation & Sanitization, Internationalization (i18n), Performance Resilience (+3 more)
 
+### Community 509 - ".pi/skills/impeccable/reference/bolder.md"
+Cohesion: 0.33
+Nodes (5): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat
+
 ### Community 510 - ".agents/skills/impeccable/reference/clarify.md"
 Cohesion: 0.18
 Nodes (10): Actions and navigation, Audit the language, Errors and permissions, Forms, Help and instructional text, Loading, empty, and success states, Rewrite by function, Set the message hierarchy (+2 more)
@@ -2416,9 +2417,13 @@ Nodes (10): 1. Establish the system, 2. Gather the evidence, 3. Triage, 4. Polis
 Cohesion: 0.18
 Nodes (10): Assess Current State, Color Refinement, Composition Refinement, Motion Reduction, Plan Refinement, Refine the Design, Simplification, Verify Quality (+2 more)
 
-### Community 517 - ".agents/skills/impeccable/scripts/detect-csp.mjs"
-Cohesion: 0.20
-Nodes (10): detectCsp(), INLINE_HEADER_SIGNALS, LAYOUT_EXTS, MONOREPO_HELPER_SIGNALS, NUXT_ROUTE_RULES_SIGNALS, NUXT_SECURITY_SIGNALS, SCAN_EXTS, SKIP_DIRS (+2 more)
+### Community 516 - "Impeccable Documenter"
+Cohesion: 0.40
+Nodes (4): Impeccable Documenter, Input Contract, Output Contract, Workflow
+
+### Community 517 - "Adaptation Strategies"
+Cohesion: 0.40
+Nodes (5): Adaptation Strategies, Orientation & foldables, Phone → Tablet (iPad / large screens), Platform → platform (iOS ↔ Android), Web → native (porting a website or web app)
 
 ### Community 518 - ".agents/skills/impeccable/scripts/palette.mjs"
 Cohesion: 0.24
@@ -2445,8 +2450,12 @@ Cohesion: 0.62
 Nodes (7): checkHeadingRhythmDOM(), clusterTop(), edgeAbove(), edgeBelow(), hasOwnTopBoundary(), isVisibleFlow(), overlapsX()
 
 ### Community 524 - "MobileReportUploadContract"
-Cohesion: 0.06
-Nodes (6): MobileReportUploadContract, MobileReportUploadV2Contract, StoreMobileReportRequest, StoreMobileReportV2Request, MobileReportUploadContractTest, MobileReportUploadV2ContractTest
+Cohesion: 0.08
+Nodes (3): MobileReportUploadContract, StoreMobileReportRequest, MobileReportUploadContractTest
+
+### Community 525 - "Impeccable Documenter"
+Cohesion: 0.40
+Nodes (4): Impeccable Documenter, Input Contract, Output Contract, Workflow
 
 ### Community 526 - ".opencode/skills/impeccable/scripts/live/frameworks/nuxt.mjs"
 Cohesion: 0.31
@@ -2532,10 +2541,6 @@ Nodes (5): Browser Case Review RSSI presentation: PASS, Environment and evidence
 Cohesion: 0.12
 Nodes (16): collectEditableTextRows(), visit(), createLiveBrowserDomHelpers(), cssId(), liveUiRoot(), makeFrozenAnchor(), own(), pickable() (+8 more)
 
-### Community 569 - ".pi/skills/impeccable/reference/bolder.md"
-Cohesion: 0.33
-Nodes (5): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat
-
 ### Community 570 - "checkElementRadialSpotlightDOM"
 Cohesion: 0.67
 Nodes (4): checkElementRadialSpotlight(), checkElementRadialSpotlightDOM(), elementGradientValue(), spotlightLabel()
@@ -2546,7 +2551,7 @@ Nodes (3): extra, laravel, dont-discover
 
 ### Community 581 - "Controller"
 Cohesion: 0.02
-Nodes (70): CheckStepUpPassword, ManageAccounts, ReconcileDistrictAccess, RecordSecurityAudit, ResetPasswordAction, RevokeUserAuthentication, UpdateWebAccount, BroadcastNewCaseSubmitted (+62 more)
+Nodes (67): CheckStepUpPassword, ManageAccounts, ReconcileDistrictAccess, RecordSecurityAudit, ResetPasswordAction, RevokeUserAuthentication, UpdateWebAccount, BroadcastNewCaseSubmitted (+59 more)
 
 ### Community 586 - "Phase 1 lifecycle acceptance"
 Cohesion: 0.33
@@ -2563,10 +2568,6 @@ Nodes (18): borderColorsFromStyle(), borderWidthsFromStyle(), checkElementGptBor
 ### Community 593 - "9. AI TELLS (Forbidden Patterns)"
 Cohesion: 0.25
 Nodes (8): 9.A Visual & CSS, 9. AI TELLS (Forbidden Patterns), 9.B Typography, 9.C Layout & Spacing, 9.D Content & Data ("Jane Doe" Effect), 9.E External Resources & Components, 9.F Production-Test Tells (banned outright), 9.G EM-DASH BAN (the single most-violated Tell)
-
-### Community 608 - ".agents/skills/impeccable/reference/bolder.md"
-Cohesion: 0.33
-Nodes (5): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat
 
 ### Community 612 - ".opencode/skills/impeccable/reference/bolder.md"
 Cohesion: 0.33
@@ -2607,16 +2608,16 @@ Nodes (4): 7. DIAL DEFINITIONS (Technical Reference), DESIGN_VARIANCE (Level 1-1
 ## Knowledge Gaps
 - **3056 isolated node(s):** `here`, `API_BASE`, `API_TIMEOUT_MS`, `localStates`, `PING_KINDS` (+3051 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 4116 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **73 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **74 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `artifact()` connect `District` to `run-mobile-field-validation-assignment-producer-contract.mjs`, `validate-mobile-report-upload-v1.mjs`?**
+- **Why does `artifact()` connect `AccountsAccessTest` to `run-mobile-field-validation-assignment-producer-contract.mjs`, `validate-mobile-report-upload-v1.mjs`?**
   _High betweenness centrality (0.230) - this node is a cross-community bridge._
-- **Why does `User` connect `User` to `Advisory`, `MobileFieldSurveyTest`, `Illuminate\Database\Eloquent\Model`, `Report`, `MobileReportUploadContract`, `MobileMapTileController.php`, `Accounts and keys — accounts-access-v1`, `Illuminate\Http\Request`, `District`, `TestCase`, `ApiFormRequest`, `Illuminate\Support\Facades\Schema`, `Carbon\CarbonImmutable`, `Controller`, `NotificationTest.php`, `The "Mine" filter in the CaneGuard web Monitoring workspace`, `DistrictAccessTest`, `BuildReportDocument`, `bootstrap/app.php`, `Illuminate\Support\Collection`, `Illuminate\Http\Resources\Json\JsonResource`, `Illuminate\Database\Eloquent\Builder`?**
+- **Why does `User` connect `User` to `Advisory`, `The "Mine" filter in the CaneGuard web Monitoring workspace`, `Illuminate\Database\Eloquent\Model`, `Report`, `DistrictAccessTest`, `MobileReportUploadContract`, `MobileMapTileController.php`, `Accounts and keys — accounts-access-v1`, `Illuminate\Http\Request`, `District`, `TestCase`, `ApiFormRequest`, `ReportEvidenceReviewContractTest`, `Illuminate\Support\Facades\Schema`, `MobileReportUploadTest.php`, `AccountsAccessTest`, `Controller`, `NotificationTest.php`, `BuildReportDocument`, `bootstrap/app.php`, `Illuminate\Support\Collection`, `Carbon\CarbonImmutable`, `Illuminate\Database\Eloquent\Builder`?**
   _High betweenness centrality (0.166) - this node is a cross-community bridge._
-- **Why does `Step 1: Run the pass` connect `District` to `.agents/skills/impeccable/SKILL.md`?**
+- **Why does `Step 1: Run the pass` connect `AccountsAccessTest` to `.agents/skills/impeccable/SKILL.md`?**
   _High betweenness centrality (0.088) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `User` (e.g. with `{closure#2}()` and `{closure#1}()`) actually correct?**
   _`User` has 3 INFERRED edges - model-reasoned connections that need verification._

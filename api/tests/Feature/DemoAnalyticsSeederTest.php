@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoAnalyticsSeeder;
 use Database\Seeders\OfficeAdvisorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

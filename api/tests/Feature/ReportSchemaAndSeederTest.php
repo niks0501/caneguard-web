@@ -7,7 +7,6 @@ use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

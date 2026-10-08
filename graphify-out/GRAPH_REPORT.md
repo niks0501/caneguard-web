@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 16162 nodes · 39838 edges · 575 communities (498 shown, 77 thin omitted)
+- 16162 nodes · 39836 edges · 575 communities (498 shown, 77 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 649 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ed2626da`
+- Built from commit: `1e033b00`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -81,7 +81,7 @@
 - injectVariantsFromSource
 - validate-design-spine.mjs
 - .pi/skills/impeccable/scripts/live.mjs
-- NewCaseSubmitted
+- MobileFieldSurveyTest
 - reportListUrlState.ts
 - .opencode/skills/impeccable/scripts/live-server.mjs
 - OperationalSnapshot.tsx
@@ -130,7 +130,7 @@
 - Quick Fix
 - Review Feature
 - .opencode/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
-- MobileFieldSurveyTest
+- NewCaseSubmitted
 - Database Review
 - Security Review
 - .pi/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
@@ -581,6 +581,8 @@
 10. `DistrictAccess` - 65 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `N1 — Smut as an AI Possible Condition series` --references--> `ReportSeeder`  [INFERRED]
+  data/cg-analytics-charts-plan-20260921/report.md → api/database/seeders/ReportSeeder.php
 - `Transaction, versions and retry` --references--> `User`  [INFERRED]
   docs/contracts/accounts-access-v1.md → api/app/Models/User.php
 - `1.2 Where a UUID could come from — exhaustive` --references--> `FindPossibleRecentMatches`  [INFERRED]
@@ -589,8 +591,6 @@
   data/cg-mine-filter-20261007/report.md → src/auth/auth.api.ts
 - `2.1 What is collected (verified in the schema and models)` --references--> `ReviewReportController`  [INFERRED]
   data/cg-analytics-charts-plan-20260921/report.md → api/app/Http/Controllers/Api/V1/ReviewReportController.php
-- `5.2 Optional small backend addition` --references--> `ReportListResource`  [INFERRED]
-  data/cg-web-duplicate-link-ux-20260921/report.md → api/app/Http/Resources/ReportListResource.php
 
 ## Import Cycles
 - None detected.
@@ -859,9 +859,9 @@ Nodes (32): ALLOWED_FONT_WEIGHTS, assertDesignSpine(), assertSolidFill(), blockF
 Cohesion: 0.14
 Nodes (24): parseCliOptions(), resolveTargetSelection(), parseTargetOptions(), parseTargetPath(), TargetArgError, __dirname, ensureServerRunning(), globToRegex() (+16 more)
 
-### Community 78 - "NewCaseSubmitted"
-Cohesion: 0.10
-Nodes (10): {closure#1}(), CaseAttentionChanged, NewCaseSubmitted, {closure#1}(), GroupReportLocationsTest, API map and queue contract, Behaviors covered, Map framing (+2 more)
+### Community 78 - "MobileFieldSurveyTest"
+Cohesion: 0.12
+Nodes (5): MobileFieldSurveyController, StoreFieldSurveyRequest, FieldSurvey, MobileFieldSurveyTest, MobileFieldSurveyMySqlTest
 
 ### Community 79 - "reportListUrlState.ts"
 Cohesion: 0.05
@@ -1051,9 +1051,9 @@ Nodes (4): Review, Finding quality, Review Feature, Review priority
 Cohesion: 0.06
 Nodes (56): browserColorsClose(), browserDesignSystemConfig(), browserHasDirectText(), browserPrimaryFont(), browserRadiusTokens(), browserSampleText(), buildSelectorSegment(), checkBrowserDesignSystemSources() (+48 more)
 
-### Community 128 - "MobileFieldSurveyTest"
-Cohesion: 0.12
-Nodes (5): MobileFieldSurveyController, StoreFieldSurveyRequest, FieldSurvey, MobileFieldSurveyTest, MobileFieldSurveyMySqlTest
+### Community 128 - "NewCaseSubmitted"
+Cohesion: 0.10
+Nodes (10): {closure#1}(), CaseAttentionChanged, NewCaseSubmitted, {closure#1}(), GroupReportLocationsTest, API map and queue contract, Behaviors covered, Map framing (+2 more)
 
 ### Community 131 - ".pi/skills/impeccable/scripts/detector/detect-antipatterns-browser.js"
 Cohesion: 0.06
@@ -2604,11 +2604,11 @@ Nodes (4): 7. DIAL DEFINITIONS (Technical Reference), DESIGN_VARIANCE (Level 1-1
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `artifact()` connect `DistrictAccess` to `run-mobile-field-validation-assignment-producer-contract.mjs`, `validate-mobile-report-upload-v1.mjs`?**
-  _High betweenness centrality (0.213) - this node is a cross-community bridge._
-- **Why does `User` connect `User` to `Advisory`, `MobileFieldSurveyTest`, `TableQueueSurfacePayloadContractTest`, `Illuminate\Database\Eloquent\Model`, `Report`, `MobileReportUploadContract`, `MobileMapTileTest`, `TableQueueRegressionTest`, `Accounts and keys — accounts-access-v1`, `Illuminate\Http\JsonResponse`, `DistrictAccess`, `TestCase`, `MobileAuthController.php`, `TableQueueFilterContractTest`, `ReportResource.php`, `Controller`, `CreateLifecycleNotifications.php`, `NewCaseSubmitted`, `BuildReportDocument`, `Illuminate\Http\Request`, `TableQueueUnderReviewPersistenceContractTest`, `Illuminate\Support\Collection`, `Illuminate\Http\Resources\Json\JsonResource`, `Illuminate\Database\Eloquent\Builder`?**
-  _High betweenness centrality (0.183) - this node is a cross-community bridge._
+  _High betweenness centrality (0.205) - this node is a cross-community bridge._
+- **Why does `User` connect `User` to `NewCaseSubmitted`, `Advisory`, `TableQueueSurfacePayloadContractTest`, `Illuminate\Database\Eloquent\Model`, `Report`, `MobileReportUploadContract`, `MobileMapTileTest`, `TableQueueRegressionTest`, `Accounts and keys — accounts-access-v1`, `Illuminate\Http\JsonResponse`, `DistrictAccess`, `TestCase`, `MobileAuthController.php`, `TableQueueFilterContractTest`, `ReportResource.php`, `Controller`, `CreateLifecycleNotifications.php`, `MobileFieldSurveyTest`, `BuildReportDocument`, `Illuminate\Http\Request`, `TableQueueUnderReviewPersistenceContractTest`, `Illuminate\Support\Collection`, `Illuminate\Http\Resources\Json\JsonResource`, `Illuminate\Database\Eloquent\Builder`?**
+  _High betweenness centrality (0.159) - this node is a cross-community bridge._
 - **Why does `yaml` connect `ref_node_assert` to `package.json`?**
-  _High betweenness centrality (0.089) - this node is a cross-community bridge._
+  _High betweenness centrality (0.088) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `User` (e.g. with `{closure#2}()` and `{closure#1}()`) actually correct?**
   _`User` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `ReportPickerProps`, `ReportPickerSelection`, `NextAction` to the rest of the system?**
