@@ -66,11 +66,7 @@ Assess native-runtime freshness first so a stale development build is deferred i
 
 ## Test quality
 
-Never add a test whose only evidence is that it opens, reads, greps, parses, or snapshots implementation source code and finds or omits particular strings, tokens, lines, commands, function names, prompt phrases, regex matches, AST shapes, or incidental snapshots. Matching text can be dead or commented out, and behavior-preserving refactors can change it without changing behavior.
-
-Instead, execute a public or executable interface and assert observable behavior, state, output, side effects, and failure modes. For machine-consumed declarative artifacts, invoke the real consumer when feasible or parse a typed or normalized semantic model and assert meaning; a raw substring or regex is still the anti-pattern.
-
-Reading a file is legitimate when it is itself generated public output, a serialized protocol, persisted state, an intentional snapshot, or another explicitly owned text or byte contract. Name that contract, and do not use its contents as a proxy that unrelated code works. A natural-language prompt or instruction is not proven effective because its source contains a sentence.
+Follow the authoritative [testing rule](../../rules/testing.md) for test evidence and implementation-mirroring tests.
 
 ## Principles
 

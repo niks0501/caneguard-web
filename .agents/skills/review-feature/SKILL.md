@@ -44,12 +44,7 @@ Do not invent findings.
 Do not report style preferences as defects.
 Do not approve from test status alone.
 
-For each test, ask:
-- Which requested behavior does it prove?
-- Would it fail on regression?
-- Are mocks hiding the claimed behavior?
-
-Report tests that are unfalsifiable or mirror implementation as findings.
+Apply the test-quality questions and reporting criteria in [the review rule](../../rules/review.md).
 
 If no actionable defect exists, say:
 `No actionable findings.`
