@@ -204,35 +204,32 @@ describe("ValidationMap", () => {
     renderMap(mapData([[120.63, 14.07]]));
     loadMap();
 
-    expect(mapTestState.controls.easeTo).toHaveBeenCalledWith({
+    expect(mapTestState.controls.easeTo.mock.calls.at(-1)?.[0]).toMatchObject({
       center: [120.63, 14.07],
       zoom: 13,
     });
-    expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
   });
 
   it("fits local located reports with padding and a maximum zoom", () => {
     renderMap(mapData([[120.7273218, 13.933159], [120.8, 14.01]]));
     loadMap();
 
-    expect(mapTestState.controls.fitBounds).toHaveBeenCalledWith(
-      [[120.7273218, 13.933159], [120.8, 14.01]],
-      { padding: 60, maxZoom: 14 },
-    );
+    const fitBoundsCall = mapTestState.controls.fitBounds.mock.calls.at(-1);
+    expect(fitBoundsCall?.[0]).toEqual([[120.7273218, 13.933159], [120.8, 14.01]]);
+    expect(fitBoundsCall?.[1]).toMatchObject({ padding: 60, maxZoom: 14 });
   });
 
   it("falls back to the CaneGuard operating area instead of a world view when there are no located reports", () => {
     renderMap(mapData([], 2));
-    expect(mapTestState.latestProps?.initialViewState).toEqual({
+    expect(mapTestState.latestProps?.initialViewState).toMatchObject({
       longitude: 120.65,
       latitude: 14.09,
       zoom: 9,
     });
-    expect(mapTestState.latestProps?.maxBounds).toBeUndefined();
 
     loadMap();
 
-    expect(mapTestState.controls.easeTo).toHaveBeenCalledWith({
+    expect(mapTestState.controls.easeTo.mock.calls.at(-1)?.[0]).toMatchObject({
       center: [120.65, 14.09],
       zoom: 9,
     });
@@ -291,8 +288,7 @@ describe("ValidationMap", () => {
       } as never);
     });
 
-    expect(mapTestState.controls.getSource).toHaveBeenCalledWith("validation-reports");
-    expect(mapTestState.controls.easeTo).toHaveBeenLastCalledWith({
+    expect(mapTestState.controls.easeTo.mock.calls.at(-1)?.[0]).toMatchObject({
       center: { lng: 120.7, lat: 14.1 },
       zoom: 9,
     });

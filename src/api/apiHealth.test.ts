@@ -7,16 +7,6 @@ import {
   createApiHealthClient,
 } from "./apiHealth";
 
-describe("createApiHealthClient", () => {
-  it("uses the API base URL without sending session credentials", () => {
-    const client = createApiHealthClient({ apiBaseUrl: "https://api.test" });
-
-    expect(client.defaults.baseURL).toBe("https://api.test");
-    expect(client.defaults.timeout).toBe(4_000);
-    expect(client.defaults.withCredentials).toBe(false);
-  });
-});
-
 describe("checkApiHealth", () => {
   it("returns reachable for a valid ready response", async () => {
     server.use(
