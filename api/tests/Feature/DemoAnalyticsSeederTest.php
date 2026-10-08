@@ -71,23 +71,87 @@ class DemoAnalyticsSeederTest extends TestCase
                 ->assertJsonPath('data.counts.total_submitted', $total)
                 ->assertJsonPath('data.monthly_summary.month', '2026-09');
             $this->assertGreaterThan(0, $dashboard->json('data.monthly_summary.reported_cases'));
+            foreach (Report::operationalQueues() as $queue) {
+                $this->assertGreaterThan(0, $dashboard->json("data.queues.{$queue}"), $queue);
+            }
 
-            $this->getJson('/api/v1/reports/analytics?'.http_build_query([
+            $analytics = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
                 'from' => '2026-05-01',
                 'to' => '2026-09-30',
                 'granularity' => 'week',
-            ]))
-                ->assertOk()
-                ->assertJsonPath('data.total_submitted', $total);
+            ]))->assertOk();
+            $rangeStart = CarbonImmutable::parse('2026-05-01', 'Asia/Manila')->startOfDay()->utc();
+            $rangeEnd = CarbonImmutable::parse('2026-09-30', 'Asia/Manila')->endOfDay()->utc();
+            $rangeCount = Report::query()->whereBetween('submitted_at', [$rangeStart, $rangeEnd])->count();
+            $analytics->assertJsonPath('data.total_submitted', $rangeCount);
+            $analyticsPayload = json_decode($analytics->getContent(), false, 512, JSON_THROW_ON_ERROR);
+            $this->assertIsObject($analyticsPayload->data->filters);
+            $this->assertSame([], (array) $analyticsPayload->data->filters);
 
-            $this->getJson('/api/v1/reports/map')
-                ->assertOk()
-                ->assertJsonPath('type', 'FeatureCollection')
-                ->assertJsonPath('metadata.total_count', $total);
+            $filteredCount = Report::query()
+                ->whereBetween('submitted_at', [$rangeStart, $rangeEnd])
+                ->where('review_status', Report::STATUS_FOR_FIELD_VALIDATION)
+                ->whereHas('fieldValidationAssignment.completion', fn ($query) => $query->where('follow_up_outcome', 'worsened'))
+                ->count();
+            $filteredAnalytics = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
+                'from' => '2026-05-01',
+                'to' => '2026-09-30',
+                'granularity' => 'week',
+                'status' => Report::STATUS_FOR_FIELD_VALIDATION,
+                'follow_up_outcome' => 'worsened',
+            ]))->assertOk()->assertJsonPath('data.total_submitted', $filteredCount);
+            $filteredPayload = json_decode($filteredAnalytics->getContent(), false, 512, JSON_THROW_ON_ERROR);
+            $this->assertIsObject($filteredPayload->data->filters);
+            $this->assertSame(Report::STATUS_FOR_FIELD_VALIDATION, $filteredPayload->data->filters->status);
+            $this->assertSame('worsened', $filteredPayload->data->filters->follow_up_outcome);
 
-            $document = $this->get('/api/v1/reports/documents/report?period_type=custom&from=2026-05-01&to=2026-09-30')
+            $improvedCount = Report::query()
+                ->whereHas('fieldValidationAssignment.completion', fn ($query) => $query->where('follow_up_outcome', 'improved'))
+                ->count();
+            $this->getJson('/api/v1/reports?follow_up_outcome=improved&per_page=100')
+                ->assertOk()
+                ->assertJsonPath('meta.total', $improvedCount);
+
+            $mapReports = Report::query()->where('review_status', Report::STATUS_SUBMITTED_UNVERIFIED)->get();
+            $locatedCount = $mapReports->filter(fn (Report $report): bool => $report->final_latitude !== null && $report->final_longitude !== null)->count();
+            $map = $this->getJson('/api/v1/reports/map?status='.Report::STATUS_SUBMITTED_UNVERIFIED)->assertOk();
+            $map->assertJsonPath('metadata.total_count', $mapReports->count())
+                ->assertJsonPath('metadata.located_count', $locatedCount)
+                ->assertJsonPath('metadata.unlocated_count', $mapReports->count() - $locatedCount)
+                ->assertJsonCount($locatedCount, 'features');
+
+            foreach (['needs_visit', 'follow_up_due', 'upcoming'] as $queue) {
+                $queueResponse = $this->getJson('/api/v1/reports/field-validation-queue?'.http_build_query([
+                    'queue' => $queue,
+                    'limit' => 50,
+                ]))->assertOk();
+                $this->assertSame(count($queueResponse->json('data.items')), $queueResponse->json('data.count'));
+                $this->assertGreaterThan(0, $queueResponse->json('data.count'));
+            }
+
+            $detail = Report::query()->withCount('classScores')->firstOrFail();
+            $this->getJson('/api/v1/reports/'.$detail->uuid)
+                ->assertOk()
+                ->assertJsonPath('data.identity.uuid', $detail->uuid)
+                ->assertJsonPath('data.model.predicted_label', $detail->predicted_label)
+                ->assertJsonCount($detail->class_scores_count, 'data.model.class_scores');
+
+            $document = $this->get('/api/v1/reports/documents/report?'.http_build_query([
+                'period_type' => 'custom',
+                'from' => '2026-05-01',
+                'to' => '2026-09-30',
+                'appendix' => true,
+            ]))->assertOk();
+            $this->assertStringContainsString('class="metric-value">'.$rangeCount.'</span>', $document->getContent());
+            $this->assertStringContainsString(DemoAnalyticsSeeder::REFERENCE_PREFIX, $document->getContent());
+
+            $monthStart = CarbonImmutable::parse('2026-09-01', 'Asia/Manila')->startOfDay()->utc();
+            $monthEnd = CarbonImmutable::parse('2026-09-30', 'Asia/Manila')->endOfDay()->utc();
+            $monthCount = Report::query()->whereBetween('submitted_at', [$monthStart, $monthEnd])->count();
+            $monthlyDocument = $this->get('/api/v1/reports/documents/report?period_type=monthly&month=2026-09&appendix=1')
                 ->assertOk();
-            $this->assertStringNotContainsString('No submitted reports in this period.', $document->getContent());
+            $this->assertStringContainsString('class="metric-value">'.$monthCount.'</span>', $monthlyDocument->getContent());
+            $this->assertStringContainsString(DemoAnalyticsSeeder::REFERENCE_PREFIX, $monthlyDocument->getContent());
         } finally {
             CarbonImmutable::setTestNow();
         }

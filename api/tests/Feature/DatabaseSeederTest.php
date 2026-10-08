@@ -9,6 +9,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -30,17 +31,23 @@ class DatabaseSeederTest extends TestCase
             'caneguard.pilot_district_code' => 'demo-pilot',
         ]);
 
-        $this->seed(DatabaseSeeder::class);
-        $pilotId = District::query()->where('code', 'demo-pilot')->sole()->id;
-        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->sole());
-        $this->getJson('/api/v1/dashboard/summary?include=counts')->assertOk();
-        $identities = $this->identities();
-        DB::table('reports')->update(['district_id' => null]);
+        CarbonImmutable::setTestNow('2026-10-05T12:00:00Z');
+        try {
+            $this->seed(DatabaseSeeder::class);
+            $pilotId = District::query()->where('code', 'demo-pilot')->sole()->id;
+            Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->sole());
+            $this->assertDashboardCounts();
+            $identities = $this->identities();
+            DB::table('reports')->update(['district_id' => null]);
 
-        $this->seed(DatabaseSeeder::class);
+            $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame($identities, $this->identities());
-        $this->assertSame(Report::query()->count(), Report::query()->where('district_id', $pilotId)->count());
+            $this->assertSame($identities, $this->identities());
+            $this->assertSame(Report::query()->count(), Report::query()->where('district_id', $pilotId)->count());
+            $this->assertDashboardCounts();
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_full_seed_preserves_unrelated_rows_and_evidence(): void
@@ -72,6 +79,27 @@ class DatabaseSeederTest extends TestCase
         }
         $this->assertSame($evidence, $this->evidence($report));
         $this->assertSame('unrelated evidence', Storage::disk('local')->get($report->image_path));
+    }
+
+    private function assertDashboardCounts(): void
+    {
+        $total = Report::query()->count();
+        $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
+        $monthCount = Report::query()
+            ->whereBetween('submitted_at', [
+                CarbonImmutable::now('Asia/Manila')->startOfMonth()->utc(),
+                CarbonImmutable::now('Asia/Manila')->endOfMonth()->utc(),
+            ])
+            ->count();
+
+        $this->getJson('/api/v1/dashboard/summary?include=counts')
+            ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', $total);
+        $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,monthly')
+            ->assertOk()
+            ->assertJsonPath('data.counts.total_submitted', $total)
+            ->assertJsonPath('data.monthly_summary.month', $month)
+            ->assertJsonPath('data.monthly_summary.reported_cases', $monthCount);
     }
 
     private function identities(): array

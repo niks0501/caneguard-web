@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MobileFieldValidationAssignmentContract;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -341,8 +343,47 @@ class ReportSchemaAndSeederTest extends TestCase
             ->assertOk()
             ->json('data');
         $this->assertNotEmpty($assignments);
+        $assignmentContract = MobileFieldValidationAssignmentContract::definition();
+        foreach ($assignments as $assignment) {
+            $this->assertSame(array_keys($assignmentContract['fields']), array_keys($assignment));
+            $this->assertSame($assignmentContract['fields']['case']['required_keys'], array_keys($assignment['case']));
+        }
 
+        $unlocated = Report::query()->where('reference_code', 'BGO-20260702-0915')->firstOrFail();
         Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+        $this->getJson('/api/v1/reports?search='.urlencode($unlocated->farmer_or_farm_owner_name))
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $unlocated->uuid)
+            ->assertJsonPath('data.0.location_unavailable', true)
+            ->assertJsonPath('data.0.location_unavailable_reason', $unlocated->location_unavailable_reason)
+            ->assertJsonPath('data.0.affected_area_measurement', $unlocated->affected_area_measurement)
+            ->assertJsonPath('data.0.affected_portion_measurement', $unlocated->affected_portion_measurement);
+        $this->getJson('/api/v1/reports/'.$unlocated->uuid)
+            ->assertOk()
+            ->assertJsonPath('data.observations.location_source', $unlocated->location_source)
+            ->assertJsonPath('data.observations.reported_severity', $unlocated->reported_severity)
+            ->assertJsonPath('data.timestamps.observed_at', $unlocated->observed_at?->utc()->toISOString());
+
+        $located = Report::query()->where('reference_code', 'BGO-20260703-1015')->firstOrFail();
+        $originalLocation = $located->only(['final_latitude', 'final_longitude', 'municipality']);
+        $followUp = Report::query()->where('reference_code', 'BGO-20260916-0745')->firstOrFail();
+        $completion = $followUp->fieldValidationAssignment?->completion;
+        $this->assertNotNull($completion);
+        $originalGps = $completion->only(['gps_latitude', 'gps_longitude']);
+        DB::table('reports')->where('id', $located->id)->update([
+            'final_latitude' => 0,
+            'final_longitude' => 0,
+            'municipality' => 'Bago',
+        ]);
+        DB::table('field_validation_completions')->where('id', $completion->id)->update([
+            'gps_latitude' => 0,
+            'gps_longitude' => 0,
+        ]);
+        $this->seedReportDemoDataset();
+        $this->assertSame($located->id, Report::query()->where('reference_code', $located->reference_code)->value('id'));
+        $this->assertSame($originalLocation, Report::query()->findOrFail($located->id)->only(array_keys($originalLocation)));
+        $this->assertSame($originalGps, $completion->fresh()->only(array_keys($originalGps)));
+
         $reports = $this->getJson('/api/v1/reports?per_page=10')->assertOk();
         $reportUuid = $reports->json('data.0.uuid');
         $this->assertNotEmpty($reportUuid);
