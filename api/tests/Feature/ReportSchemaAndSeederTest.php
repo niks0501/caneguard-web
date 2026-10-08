@@ -13,6 +13,7 @@ use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -405,8 +406,8 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->seedReportDemoDataset();
         $this->approveSeededPilotFixtures();
 
-        $monthCounts = Report::query()
-            ->get(['submitted_at'])
+        $seededReports = Report::query()->whereNull('canonical_report_id')->get();
+        $monthCounts = $seededReports
             ->groupBy(fn (Report $report): string => $report->submitted_at->timezone('Asia/Manila')->format('Y-m'))
             ->map(fn ($reports): int => $reports->count())
             ->all();
@@ -416,11 +417,16 @@ class ReportSchemaAndSeederTest extends TestCase
         Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
         $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
         $expectedMonthCount = $monthCounts[$month];
+        $monthReports = $seededReports->filter(fn (Report $report): bool =>
+            $report->submitted_at->timezone('Asia/Manila')->format('Y-m') === $month
+        )->values();
 
         $response = $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,queues,recent,monthly')
             ->assertOk()
             ->assertJsonPath('data.monthly_summary.month', $month)
-            ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount);
+            ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount)
+            ->assertJsonPath('data.monthly_summary.cases_by_barangay', $this->expectedGroups($monthReports, 'barangay', 'barangay'))
+            ->assertJsonPath('data.monthly_summary.cases_by_possible_condition', $this->expectedGroups($monthReports, 'predicted_label', 'possible_condition'));
         foreach (Report::fieldValidationStates() as $state) {
             $this->assertGreaterThan(
                 0,
@@ -432,6 +438,27 @@ class ReportSchemaAndSeederTest extends TestCase
         foreach (Report::operationalQueues() as $queue) {
             $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));
         }
+    }
+
+    private function expectedGroups(Collection $reports, string $field, string $key): array
+    {
+        $counts = [];
+        foreach ($reports as $report) {
+            $value = $report->getAttribute($field);
+            $groupKey = $value ?? '';
+            $counts[$groupKey] = ($counts[$groupKey] ?? 0) + 1;
+        }
+
+        $groups = [];
+        foreach ($counts as $value => $count) {
+            $groups[] = [$key => $value === '' ? null : $value, 'reported_cases' => $count];
+        }
+        usort($groups, fn (array $left, array $right): int =>
+            ($right['reported_cases'] <=> $left['reported_cases'])
+            ?: strcmp((string) $left[$key], (string) $right[$key])
+        );
+
+        return $groups;
     }
 
     private function seedReportDemoDataset(): void
