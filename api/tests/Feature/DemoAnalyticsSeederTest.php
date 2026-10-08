@@ -76,8 +76,8 @@ class DemoAnalyticsSeederTest extends TestCase
             $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
             $monthStart = CarbonImmutable::parse($month.'-01', 'Asia/Manila')->startOfMonth();
             $monthEnd = $monthStart->addMonth();
-            $monthReports = $allReports->filter(fn (Report $report): bool =>
-                $report->submitted_at->gte($monthStart->utc()) && $report->submitted_at->lt($monthEnd->utc())
+            $monthReports = $allReports->filter(fn (Report $report): bool => $report->submitted_at->gte($monthStart->utc())
+                && $report->submitted_at->lt($monthEnd->utc())
             )->values();
             $dashboard = $this->getJson('/api/v1/dashboard/summary?include=counts,recent,monthly')
                 ->assertOk()
@@ -94,8 +94,8 @@ class DemoAnalyticsSeederTest extends TestCase
 
             $rangeStart = CarbonImmutable::parse('2026-05-01', 'Asia/Manila')->startOfDay();
             $rangeEnd = CarbonImmutable::parse('2026-10-01', 'Asia/Manila')->startOfDay();
-            $rangeReports = $allReports->filter(fn (Report $report): bool =>
-                $report->submitted_at->gte($rangeStart->utc()) && $report->submitted_at->lt($rangeEnd->utc())
+            $rangeReports = $allReports->filter(fn (Report $report): bool => $report->submitted_at->gte($rangeStart->utc())
+                && $report->submitted_at->lt($rangeEnd->utc())
             )->values();
             $analytics = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
                 'from' => '2026-05-01',
@@ -109,8 +109,7 @@ class DemoAnalyticsSeederTest extends TestCase
             $this->assertIsObject($analyticsPayload->data->filters);
             $this->assertSame([], (array) $analyticsPayload->data->filters);
 
-            $filteredReports = $rangeReports->filter(fn (Report $report): bool =>
-                $report->review_status === Report::STATUS_FOR_FIELD_VALIDATION
+            $filteredReports = $rangeReports->filter(fn (Report $report): bool => $report->review_status === Report::STATUS_FOR_FIELD_VALIDATION
                 && $report->fieldValidationAssignment?->completion?->follow_up_outcome === 'worsened'
             )->values();
             $filteredAnalytics = $this->getJson('/api/v1/reports/analytics?'.http_build_query([
@@ -125,16 +124,14 @@ class DemoAnalyticsSeederTest extends TestCase
             $this->assertSame(Report::STATUS_FOR_FIELD_VALIDATION, $filteredPayload->data->filters->status);
             $this->assertSame('worsened', $filteredPayload->data->filters->follow_up_outcome);
 
-            $improvedCount = $allReports->filter(fn (Report $report): bool =>
-                $report->fieldValidationAssignment?->completion?->follow_up_outcome === 'improved'
+            $improvedCount = $allReports->filter(fn (Report $report): bool => $report->fieldValidationAssignment?->completion?->follow_up_outcome === 'improved'
             )->count();
             $this->getJson('/api/v1/reports?follow_up_outcome=improved&per_page=100')
                 ->assertOk()
                 ->assertJsonPath('meta.total', $improvedCount);
 
             $unverifiedReports = $allReports->where('review_status', Report::STATUS_SUBMITTED_UNVERIFIED)->values();
-            $locatedCount = $unverifiedReports->filter(fn (Report $report): bool =>
-                $report->final_latitude !== null && $report->final_longitude !== null
+            $locatedCount = $unverifiedReports->filter(fn (Report $report): bool => $report->final_latitude !== null && $report->final_longitude !== null
             )->count();
             $this->getJson('/api/v1/reports/map?status='.Report::STATUS_SUBMITTED_UNVERIFIED)
                 ->assertOk()
@@ -150,8 +147,7 @@ class DemoAnalyticsSeederTest extends TestCase
                 ->assertJsonPath('data.identity.uuid', $detail->uuid)
                 ->assertJsonPath('data.model.predicted_label', $detail->predicted_label)
                 ->assertJsonCount($detail->classScores()->count(), 'data.model.class_scores');
-            $advisoryCase = $allReports->first(fn (Report $report): bool =>
-                $report->action_taken === Report::ACTION_ADVISORY_PROVIDED
+            $advisoryCase = $allReports->first(fn (Report $report): bool => $report->action_taken === Report::ACTION_ADVISORY_PROVIDED
             );
             $this->assertNotNull($advisoryCase);
             $this->getJson('/api/v1/reports/'.$advisoryCase->uuid)
@@ -182,7 +178,7 @@ class DemoAnalyticsSeederTest extends TestCase
 
     private function assertAppendixReferences(string $html, Collection $reports): void
     {
-        $document = new \DOMDocument();
+        $document = new \DOMDocument;
         $previousLibxmlState = libxml_use_internal_errors(true);
         try {
             $document->loadHTML($html);

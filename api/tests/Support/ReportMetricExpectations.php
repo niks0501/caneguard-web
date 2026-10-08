@@ -19,8 +19,7 @@ final class ReportMetricExpectations
         foreach ($counts as $value => $count) {
             $groups[] = [$key => $value === '' ? null : $value, 'reported_cases' => $count];
         }
-        usort($groups, fn (array $left, array $right): int =>
-            ($right['reported_cases'] <=> $left['reported_cases'])
+        usort($groups, fn (array $left, array $right): int => ($right['reported_cases'] <=> $left['reported_cases'])
             ?: strcmp((string) $left[$key], (string) $right[$key])
         );
 

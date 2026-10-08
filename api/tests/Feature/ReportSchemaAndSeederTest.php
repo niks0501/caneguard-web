@@ -419,8 +419,7 @@ class ReportSchemaAndSeederTest extends TestCase
             Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
             $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
             $expectedMonthCount = $monthCounts[$month];
-            $monthReports = $seededReports->filter(fn (Report $report): bool =>
-                $report->submitted_at->timezone('Asia/Manila')->format('Y-m') === $month
+            $monthReports = $seededReports->filter(fn (Report $report): bool => $report->submitted_at->timezone('Asia/Manila')->format('Y-m') === $month
             )->values();
 
             $response = $this->getJson('/api/v1/dashboard/summary?include=counts,queues,recent,monthly')
