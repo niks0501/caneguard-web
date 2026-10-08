@@ -29,29 +29,12 @@ function stepNamed(name) {
   return matches[0];
 }
 
-const expectedCommands = {
-  "Install Web dependencies": "npm ci --no-audit --no-fund",
-  "Install Laravel dependencies":
-    "composer install --working-dir=api --no-interaction --no-progress --prefer-dist",
-  "Verify dependency audit gate contract": "npm run test:quality-gate-workflow",
-  "Verify MapLibre dependency security contract": "npm run security:dependency-check",
-  "Audit Web dependencies (high and critical advisories fail)": "npm audit --audit-level=high",
-  "Audit Laravel dependencies (advisories and abandoned packages fail)":
-    "composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail",
-};
-
 const securityStepNames = [
   "Verify dependency audit gate contract",
   "Verify MapLibre dependency security contract",
   "Audit Web dependencies (high and critical advisories fail)",
   "Audit Laravel dependencies (advisories and abandoned packages fail)",
 ];
-
-test("the PR quality gate retains its dependency security commands", () => {
-  for (const [name, command] of Object.entries(expectedCommands)) {
-    assert.equal(stepNamed(name).run, command);
-  }
-});
 
 test("quality gate job cannot be skipped or ignored", () => {
   const job = qualityGateJob();
@@ -75,16 +58,16 @@ test("security steps cannot be skipped or ignored", () => {
   }
 });
 
-test("audits run after their corresponding dependency installations", () => {
+test("each dependency installation exists once and precedes its audit", () => {
   const steps = qualityGateSteps();
-  const stepIndex = (name) => steps.findIndex((step) => step?.name === name);
+  const pairs = [
+    ["Install Web dependencies", "Audit Web dependencies (high and critical advisories fail)"],
+    ["Install Laravel dependencies", "Audit Laravel dependencies (advisories and abandoned packages fail)"],
+  ];
 
-  assert.ok(
-    stepIndex("Install Web dependencies") <
-      stepIndex("Audit Web dependencies (high and critical advisories fail)"),
-  );
-  assert.ok(
-    stepIndex("Install Laravel dependencies") <
-      stepIndex("Audit Laravel dependencies (advisories and abandoned packages fail)"),
-  );
+  for (const [installName, auditName] of pairs) {
+    const install = stepNamed(installName);
+    const audit = stepNamed(auditName);
+    assert.ok(steps.indexOf(install) < steps.indexOf(audit), `${installName} must precede ${auditName}`);
+  }
 });

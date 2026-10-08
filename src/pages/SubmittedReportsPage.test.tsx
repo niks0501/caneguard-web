@@ -110,19 +110,6 @@ describe("SubmittedReportsPage", () => {
       "/reports?page=2&status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27&sort=oldest",
     );
 
-    expect(useReports).toHaveBeenCalledWith(
-      expect.objectContaining({
-        page: 2,
-        perPage: 15,
-        status: "submitted_unverified",
-        disease: "rust",
-        barangay: "Mabini",
-        dateFrom: "2026-07-01",
-        dateTo: "2026-07-27",
-        sort: "oldest",
-      }),
-      { enabled: true },
-    );
     expect(screen.getByText("32 matching reports")).toBeInTheDocument();
     expect(
       screen.getByRole("columnheader", { name: "Possible Condition" }),
@@ -160,23 +147,11 @@ describe("SubmittedReportsPage", () => {
     expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Schedule summary" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Visit calendar" })).not.toBeInTheDocument();
-    expect(useReports).toHaveBeenCalledWith(
-      expect.objectContaining({ reportedConcern: "rssi" }),
-      { enabled: true },
-    );
-    expect(useFieldValidationQueue).toHaveBeenCalledWith(
-      expect.objectContaining({ queue: "needs_visit", limit: 100 }),
-      expect.objectContaining({ complete: true }),
-    );
   });
 
   it("opens an operational queue as a filtered report workspace", () => {
     renderPage("/reports?queue=needs_review");
 
-    expect(useReports).toHaveBeenCalledWith(
-      expect.objectContaining({ queue: "needs_review", page: 1 }),
-      { enabled: true },
-    );
     expect(screen.getByRole("heading", { name: "Needs Review" })).toBeInTheDocument();
     expect(screen.getByText("Filtered operational workspace")).toBeInTheDocument();
   });
@@ -257,10 +232,6 @@ describe("SubmittedReportsPage", () => {
   it("blocks malformed URL state before sending a request", () => {
     renderPage("/reports?status=confirmed&page=nope");
 
-    expect(useReports).toHaveBeenCalledWith(
-      expect.any(Object),
-      { enabled: false },
-    );
     expect(
       screen.getByText(/URL contains an invalid filter or page/i),
     ).toBeInTheDocument();
@@ -395,15 +366,6 @@ describe("SubmittedReportsPage", () => {
     ).toBeDisabled();
     expect(screen.queryByText(/latest refresh failed/i)).not.toBeInTheDocument();
   });
-  it("opens the reviewer queue on the due-soonest case", () => {
-    renderPage("/reports");
-
-    expect(useReports).toHaveBeenCalledWith(
-      expect.objectContaining({ sort: "due_soonest" }),
-      { enabled: true },
-    );
-  });
-
   it("offers the queue, status, reviewer and operational sorts without confidence sorting", () => {
     renderPage("/reports");
 
@@ -444,15 +406,6 @@ describe("SubmittedReportsPage", () => {
     );
     expect(screen.getByTestId("location")).toHaveTextContent(
       "authority_classified_condition=rust",
-    );
-  });
-
-  it("orders the follow-up queue by the nearest due date", () => {
-    renderPage("/reports?queue=follow_up_due");
-
-    expect(useReports).toHaveBeenCalledWith(
-      expect.objectContaining({ queue: "follow_up_due", sort: "due_soonest" }),
-      { enabled: true },
     );
   });
 

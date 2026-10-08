@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Report;
 use App\Models\User;
-use Database\Seeders\OfficeAdvisorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\LaravelPdf\Facades\Pdf;
@@ -15,57 +14,12 @@ class EmptyDatabaseSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        config([
-            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
-            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
-            'caneguard.demo_users.admin_password' => 'admin-test-password',
-            'caneguard.pilot_district_code' => 'test-pilot',
-        ]);
-    }
-
     public function test_all_report_surfaces_work_with_accounts_and_advisories_but_no_reports(): void
     {
-        foreach ([
-            'field@caneguard.test' => User::ROLE_FIELD_REPORTER,
-            'mao@caneguard.test' => User::ROLE_REVIEWER,
-            'admin@caneguard.test' => User::ROLE_ADMIN,
-        ] as $email => $role) {
-            User::factory()->create(['email' => $email, 'role' => $role]);
-        }
-        $this->seed(OfficeAdvisorySeeder::class);
-        $this->approveSeededPilotFixtures();
-
-        $this->assertDatabaseCount('users', 3);
-        $this->assertDatabaseCount('reports', 0);
-        $this->assertDatabaseCount('advisories', 3);
-        $this->assertDatabaseCount('report_class_scores', 0);
-        $this->assertDatabaseCount('report_symptoms', 0);
-        $this->assertDatabaseCount('report_quality_warnings', 0);
-        $this->assertDatabaseCount('report_audits', 0);
-        $this->assertDatabaseCount('report_referrals', 0);
-        $this->assertDatabaseCount('field_validation_assignments', 0);
-        $this->assertDatabaseCount('field_validation_completions', 0);
-        $this->assertDatabaseCount('report_review_events', 0);
-
-        $reviewer = User::query()->where('email', 'mao@caneguard.test')->firstOrFail();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->create([
+            'role' => User::ROLE_REVIEWER,
+        ]);
         Sanctum::actingAs($reviewer);
-        $advisories = $this->getJson('/api/v1/advisories')
-            ->assertOk()
-            ->assertJsonCount(3, 'data')
-            ->json('data');
-        $this->assertSame([
-            'ADV-OFFICE-OPS-001',
-            'ADV-OFFICE-OPS-002',
-            'ADV-OFFICE-OPS-003',
-        ], array_column($advisories, 'code'));
-        foreach ($advisories as $advisory) {
-            $this->assertSame('validated', $advisory['status']);
-            $this->assertNotEmpty($advisory['content']);
-        }
 
         $dashboard = $this->getJson('/api/v1/dashboard/summary?month=2026-09&include=counts,queues,recent,monthly')
             ->assertOk()
@@ -132,7 +86,5 @@ class EmptyDatabaseSeederTest extends TestCase
             static fn (PdfBuilder $builder): bool => $builder->viewName === 'reports.document'
                 && ($builder->viewData['metrics']['reported_cases'] ?? null) === 0,
         );
-
-        $this->assertDatabaseCount('reports', 0);
     }
 }

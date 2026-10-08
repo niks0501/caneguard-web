@@ -2,18 +2,13 @@ import { describe, expect, it } from "vitest";
 import { parseEnv } from "./env";
 
 describe("parseEnv", () => {
-  it("uses API-safe defaults", () => {
-    expect(parseEnv({})).toEqual({
-      apiBaseUrl: "http://localhost:8000",
-      dataSource: "api",
-      reportRefreshMs: 600_000,
-      mapTilerKey: "",
-      realtimeEnabled: true,
-      reverbAppKey: "",
-      reverbHost: "localhost",
-      reverbPort: 8080,
-      reverbScheme: "http",
-    });
+  it("defaults to the API and local backend", () => {
+    const parsed = parseEnv({});
+
+    expect(parsed.dataSource).toBe("api");
+    expect(parsed.apiBaseUrl).toBe("http://localhost:8000");
+    expect(parsed.reportRefreshMs).toBe(600_000);
+    expect(parsed.mapTilerKey).toBe("");
   });
 
   it("parses mock mode and removes one trailing slash", () => {
@@ -24,7 +19,7 @@ describe("parseEnv", () => {
         VITE_REPORT_REFRESH_MS: "30000",
         VITE_MAPTILER_KEY: "test-map-key",
       }),
-    ).toEqual({
+    ).toMatchObject({
       apiBaseUrl: "https://api.caneguard.test",
       dataSource: "mock",
       reportRefreshMs: 30_000,

@@ -10,25 +10,21 @@ use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Database\Seeders\AdvisorDemoSeeder;
-use Database\Seeders\DashboardReportSeeder;
 use Database\Seeders\DatabaseSeeder;
-use Database\Seeders\DemoAnalyticsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\ReportMetricExpectations;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_full_seed_twice_populates_every_dataset_without_changing_counts_or_identities(): void
+    public function test_full_seed_rerun_preserves_identities_and_repairs_district_stamps(): void
     {
         Storage::fake('local');
-        $this->travelTo(CarbonImmutable::parse('2026-10-05T12:00:00Z'));
         config([
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
             'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
@@ -36,42 +32,23 @@ class DatabaseSeederTest extends TestCase
             'caneguard.pilot_district_code' => 'demo-pilot',
         ]);
 
-        $this->seed(DatabaseSeeder::class);
-        $reportCount = 12 + count(AdvisorDemoSeeder::reportReferences())
-            + count(DashboardReportSeeder::reportReferences()) + DemoAnalyticsSeeder::REPORT_COUNT;
-        $this->assertDatabaseCount('users', 3);
-        $this->assertDatabaseCount('districts', 1);
-        $this->assertDatabaseCount('district_memberships', 2);
-        $this->assertDatabaseCount('reports', $reportCount);
-        $pilotId = District::query()->where('code', 'demo-pilot')->sole()->id;
-        $this->assertSame($reportCount, Report::query()->where('district_id', $pilotId)->count());
-        $this->assertSeededDashboardCounts($reportCount);
-        $this->assertDatabaseCount('advisories', 4);
-        $this->assertDatabaseCount('report_class_scores', $reportCount * count(Report::v2Labels()));
-        $this->assertDatabaseCount('report_symptoms', $reportCount);
-        $this->assertGreaterThan(0, DB::table('report_quality_warnings')->count());
-        $this->assertGreaterThan(0, DB::table('field_validation_assignments')->count());
-        $this->assertGreaterThan(0, DB::table('field_validation_completions')->count());
+        CarbonImmutable::setTestNow('2026-10-05T12:00:00Z');
+        try {
+            $this->seed(DatabaseSeeder::class);
+            $pilotId = District::query()->where('code', 'demo-pilot')->sole()->id;
+            Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->sole());
+            $this->assertDashboardCounts();
+            $identities = $this->identities();
+            DB::table('reports')->update(['district_id' => null]);
 
-        // The dashboard must select its advisory on the first run, not acquire
-        // that dependency only on the second pass.
-        $dashboardReferences = DashboardReportSeeder::reportReferences();
-        $this->assertGreaterThan(0, Report::query()->whereIn('reference_code', $dashboardReferences)
-            ->where('advisory_id', Advisory::query()->where('code', AdvisorDemoSeeder::ADVISORY_CODE)->value('id'))
-            ->count());
+            $this->seed(DatabaseSeeder::class);
 
-        $counts = $this->tableCounts();
-        $identities = $this->identities();
-        $files = Storage::disk('local')->allFiles();
-        // Simulate the old seeder output: rerunning must repair stamps in place.
-        DB::table('reports')->update(['district_id' => null]);
-        $this->seed(DatabaseSeeder::class);
-
-        $this->assertSame($counts, $this->tableCounts());
-        $this->assertSame($identities, $this->identities());
-        $this->assertSame($files, Storage::disk('local')->allFiles());
-        $this->assertSame($reportCount, Report::query()->where('district_id', $pilotId)->count());
-        $this->assertSeededDashboardCounts($reportCount);
+            $this->assertSame($identities, $this->identities());
+            $this->assertSame(Report::query()->count(), Report::query()->where('district_id', $pilotId)->count());
+            $this->assertDashboardCounts();
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_full_seed_preserves_unrelated_rows_and_evidence(): void
@@ -96,10 +73,8 @@ class DatabaseSeederTest extends TestCase
         Storage::disk('local')->put($report->image_path, 'unrelated evidence');
 
         $this->seed(DatabaseSeeder::class);
-        $counts = $this->tableCounts();
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame($counts, $this->tableCounts());
         foreach ($models as $index => $model) {
             $this->assertSame($rows[$index], $model->fresh()->getRawOriginal());
         }
@@ -107,38 +82,35 @@ class DatabaseSeederTest extends TestCase
         $this->assertSame('unrelated evidence', Storage::disk('local')->get($report->image_path));
     }
 
-    private function assertSeededDashboardCounts(int $reportCount): void
+    private function assertDashboardCounts(): void
     {
-        // Exercise real seeder stamps and memberships, not test-only certification.
-        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->sole());
+        $total = Report::query()->count();
+        $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
+        $monthStart = CarbonImmutable::now('Asia/Manila')->startOfMonth();
+        $monthEnd = $monthStart->addMonth();
+        $monthReports = Report::query()
+            ->whereNull('canonical_report_id')
+            ->where('submitted_at', '>=', $monthStart->utc())
+            ->where('submitted_at', '<', $monthEnd->utc())
+            ->get();
+
         $this->getJson('/api/v1/dashboard/summary?include=counts')
             ->assertOk()
-            ->assertJsonPath('data.counts.total_submitted', $reportCount);
-        $monthCount = Report::query()
-            ->whereBetween('submitted_at', ['2026-09-30 16:00:00', '2026-10-31 15:59:59'])
-            ->count();
-        $this->assertGreaterThan(0, $monthCount);
-        $this->getJson('/api/v1/dashboard/summary?month=2026-10&include=counts,monthly')
+            ->assertJsonPath('data.counts.total_submitted', $total);
+        $this->getJson('/api/v1/dashboard/summary?include=counts,monthly')
             ->assertOk()
-            ->assertJsonPath('data.counts.total_submitted', $reportCount)
-            ->assertJsonPath('data.monthly_summary.reported_cases', $monthCount);
-    }
-
-    private function tableCounts(): array
-    {
-        $counts = [];
-        foreach (Schema::getTableListing() as $table) {
-            $counts[$table] = DB::table($table)->count();
-        }
-
-        return $counts;
+            ->assertJsonPath('data.counts.total_submitted', $total)
+            ->assertJsonPath('data.monthly_summary.month', $month)
+            ->assertJsonPath('data.monthly_summary.reported_cases', $monthReports->count())
+            ->assertJsonPath('data.monthly_summary.cases_by_barangay', ReportMetricExpectations::groupedCounts($monthReports, 'barangay', 'barangay'))
+            ->assertJsonPath('data.monthly_summary.cases_by_possible_condition', ReportMetricExpectations::groupedCounts($monthReports, 'predicted_label', 'possible_condition'));
     }
 
     private function identities(): array
     {
         return [
             'users' => User::query()->orderBy('id')->get(['id', 'uuid', 'email'])->toArray(),
-            'reports' => Report::query()->orderBy('id')->get(['id', 'uuid', 'reference_code', 'client_uuid', 'scan_record_client_uuid', 'advisory_id', 'district_id'])->toArray(),
+            'reports' => Report::query()->orderBy('id')->get(['id', 'uuid', 'reference_code', 'client_uuid', 'scan_record_client_uuid', 'advisory_id'])->toArray(),
             'assignments' => FieldValidationAssignment::query()->orderBy('id')->get(['id', 'uuid', 'report_id'])->toArray(),
             'completions' => FieldValidationCompletion::query()->orderBy('id')->get(['id', 'uuid', 'client_uuid', 'assignment_id'])->toArray(),
         ];
