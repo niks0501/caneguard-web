@@ -4,10 +4,15 @@ namespace Tests\Feature;
 
 use App\Models\Report;
 use App\Models\ReportReferral;
+use App\Models\User;
 use Carbon\CarbonImmutable;
+use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\ReportSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ReportSchemaAndSeederTest extends TestCase
@@ -217,5 +222,180 @@ class ReportSchemaAndSeederTest extends TestCase
         ] as $field) {
             $this->assertNull($report->{$field}, "Expected {$field} to remain nullable.");
         }
+    }
+
+    public function test_seeder_preserves_existing_report_evidence(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reference_code' => 'CUSTOM-REPORT-001',
+            'predicted_label' => Report::LABEL_RUST,
+            'confidence' => 0.7312345,
+            'model_version' => 'caneguard-mobile-v1.0.0',
+            'review_status' => Report::STATUS_RESOLVED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+            'reviewer_id' => $reviewer->id,
+            'reviewed_at' => CarbonImmutable::parse('2026-07-20 12:00:00', 'UTC'),
+        ]);
+        $originalReport = (array) DB::table('reports')
+            ->where('id', $report->id)
+            ->first();
+        $originalEvidence = [
+            'class_scores' => DB::table('report_class_scores')
+                ->where('report_id', $report->id)
+                ->orderBy('label')
+                ->get(['label', 'score'])
+                ->map(fn ($score) => ['label' => $score->label, 'score' => $score->score])
+                ->all(),
+            'symptoms' => DB::table('report_symptoms')
+                ->where('report_id', $report->id)
+                ->orderBy('symptom_key')
+                ->pluck('symptom_key')
+                ->all(),
+            'quality_warnings' => DB::table('report_quality_warnings')
+                ->where('report_id', $report->id)
+                ->orderBy('warning_key')
+                ->pluck('warning_key')
+                ->all(),
+        ];
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(
+            $originalReport,
+            (array) DB::table('reports')->where('id', $report->id)->first(),
+        );
+        $this->assertSame($originalEvidence, [
+            'class_scores' => DB::table('report_class_scores')
+                ->where('report_id', $report->id)
+                ->orderBy('label')
+                ->get(['label', 'score'])
+                ->map(fn ($score) => ['label' => $score->label, 'score' => $score->score])
+                ->all(),
+            'symptoms' => DB::table('report_symptoms')
+                ->where('report_id', $report->id)
+                ->orderBy('symptom_key')
+                ->pluck('symptom_key')
+                ->all(),
+            'quality_warnings' => DB::table('report_quality_warnings')
+                ->where('report_id', $report->id)
+                ->orderBy('warning_key')
+                ->pluck('warning_key')
+                ->all(),
+        ]);
+    }
+
+    public function test_seeder_completes_an_existing_partial_seed_fixture(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reference_code' => 'BGO-20260702-0915',
+            'client_uuid' => 'c93939fc-601e-42b3-8d30-c786b2402f78',
+            'image_path' => 'reports/2026-07/bgo-20260702-0915.png',
+            'predicted_label' => Report::LABEL_SMUT,
+            'confidence' => 0.7312345,
+            'model_version' => 'v1.0-mobilenetv2',
+            'review_status' => Report::STATUS_RESOLVED,
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_DOWNY_MILDEW,
+        ]);
+        DB::table('report_class_scores')->where('report_id', $report->id)->delete();
+        DB::table('report_symptoms')->where('report_id', $report->id)->delete();
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(ReportSeeder::class);
+
+        $seededReport = Report::query()->findOrFail($report->id);
+        $this->assertNotEmpty(DB::table('report_class_scores')
+            ->where('report_id', $report->id)
+            ->get());
+        $this->assertNotEmpty(DB::table('report_symptoms')->where('report_id', $report->id)->get());
+        Storage::disk('local')->assertExists('reports/2026-07/bgo-20260702-0915.png');
+    }
+
+    public function test_seeded_reports_are_available_through_mobile_and_report_apis(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $this->seedReportDemoDataset();
+        $this->approveSeededPilotFixtures();
+
+        Sanctum::actingAs(User::query()->where('email', 'field@caneguard.test')->firstOrFail(), ['assignment:read']);
+        $assignments = $this->getJson('/api/v1/mobile/assignments')
+            ->assertOk()
+            ->json('data');
+        $this->assertNotEmpty($assignments);
+
+        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+        $reports = $this->getJson('/api/v1/reports?per_page=10')->assertOk();
+        $reportUuid = $reports->json('data.0.uuid');
+        $this->assertNotEmpty($reportUuid);
+        $this->getJson('/api/v1/reports/'.$reportUuid)
+            ->assertOk()
+            ->assertJsonPath('data.identity.uuid', $reportUuid);
+        $this->getJson('/api/v1/reports/summary?month=2026-09')->assertOk();
+    }
+
+    public function test_merged_seed_path_populates_the_default_month_and_dashboard_panels(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+        ]);
+
+        $this->seedReportDemoDataset();
+        $this->approveSeededPilotFixtures();
+
+        $monthCounts = Report::query()
+            ->get(['submitted_at'])
+            ->groupBy(fn (Report $report): string => $report->submitted_at->timezone('Asia/Manila')->format('Y-m'))
+            ->map(fn ($reports): int => $reports->count())
+            ->all();
+
+        $this->assertNotEmpty($monthCounts);
+
+        Sanctum::actingAs(User::query()->where('email', 'mao@caneguard.test')->firstOrFail());
+        $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
+        $expectedMonthCount = $monthCounts[$month];
+
+        $response = $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,queues,recent,monthly')
+            ->assertOk()
+            ->assertJsonPath('data.monthly_summary.month', $month)
+            ->assertJsonPath('data.monthly_summary.reported_cases', $expectedMonthCount);
+        foreach (Report::fieldValidationStates() as $state) {
+            $this->assertGreaterThan(
+                0,
+                $response->json("data.monthly_summary.field_validation_counts.{$state}"),
+            );
+        }
+        $response->assertJsonMissingPath('data.monthly_summary.expert_verification');
+
+        foreach (Report::operationalQueues() as $queue) {
+            $this->assertGreaterThan(0, $response->json("data.queues.{$queue}"));
+        }
+    }
+
+    private function seedReportDemoDataset(): void
+    {
+        config(['caneguard.pilot_district_code' => 'test-pilot']);
+        $this->seed(DatabaseSeeder::class);
     }
 }
