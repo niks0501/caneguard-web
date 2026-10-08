@@ -208,6 +208,7 @@ describe("ValidationMap", () => {
       center: [120.63, 14.07],
       zoom: 13,
     });
+    expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
   });
 
   it("fits local located reports with padding and a maximum zoom", () => {
@@ -226,6 +227,7 @@ describe("ValidationMap", () => {
       latitude: 14.09,
       zoom: 9,
     });
+    expect(mapTestState.latestProps?.maxBounds).toBeUndefined();
 
     loadMap();
 
