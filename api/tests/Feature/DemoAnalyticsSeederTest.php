@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\ReportMetricExpectations;
 use Tests\TestCase;
 
 class DemoAnalyticsSeederTest extends TestCase
@@ -72,13 +73,13 @@ class DemoAnalyticsSeederTest extends TestCase
             $reportsResponse->assertJsonPath('meta.total', $allReports->count())
                 ->assertJsonCount($allReports->count(), 'data');
 
-            $month = '2026-09';
+            $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
             $monthStart = CarbonImmutable::parse($month.'-01', 'Asia/Manila')->startOfMonth();
             $monthEnd = $monthStart->addMonth();
             $monthReports = $allReports->filter(fn (Report $report): bool =>
                 $report->submitted_at->gte($monthStart->utc()) && $report->submitted_at->lt($monthEnd->utc())
             )->values();
-            $dashboard = $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,queues,recent,monthly')
+            $dashboard = $this->getJson('/api/v1/dashboard/summary?include=counts,queues,recent,monthly')
                 ->assertOk()
                 ->assertJsonPath('data.counts.total_submitted', $allReports->count())
                 ->assertJsonPath('data.monthly_summary.month', $month)
@@ -88,10 +89,10 @@ class DemoAnalyticsSeederTest extends TestCase
             }
             $dashboard->assertJsonPath(
                 'data.monthly_summary.cases_by_barangay',
-                $this->expectedGroups($monthReports, 'barangay', 'barangay'),
+                ReportMetricExpectations::groupedCounts($monthReports, 'barangay', 'barangay'),
             )->assertJsonPath(
                 'data.monthly_summary.cases_by_possible_condition',
-                $this->expectedGroups($monthReports, 'predicted_label', 'possible_condition'),
+                ReportMetricExpectations::groupedCounts($monthReports, 'predicted_label', 'possible_condition'),
             );
 
             $rangeStart = CarbonImmutable::parse('2026-05-01', 'Asia/Manila')->startOfDay();
@@ -105,8 +106,8 @@ class DemoAnalyticsSeederTest extends TestCase
                 'granularity' => 'week',
             ]))->assertOk()
                 ->assertJsonPath('data.total_submitted', $rangeReports->count())
-                ->assertJsonPath('data.cases_by_barangay', $this->expectedGroups($rangeReports, 'barangay', 'barangay'))
-                ->assertJsonPath('data.cases_by_possible_condition', $this->expectedGroups($rangeReports, 'predicted_label', 'possible_condition'));
+                ->assertJsonPath('data.cases_by_barangay', ReportMetricExpectations::groupedCounts($rangeReports, 'barangay', 'barangay'))
+                ->assertJsonPath('data.cases_by_possible_condition', ReportMetricExpectations::groupedCounts($rangeReports, 'predicted_label', 'possible_condition'));
             $analyticsPayload = json_decode($analytics->getContent(), false, 512, JSON_THROW_ON_ERROR);
             $this->assertIsObject($analyticsPayload->data->filters);
             $this->assertSame([], (array) $analyticsPayload->data->filters);
@@ -184,7 +185,7 @@ class DemoAnalyticsSeederTest extends TestCase
             $this->assertStringContainsString('class="metric-value">'.$rangeReports->count().'</span>', $customHtml);
             $this->assertAppendixReferences($customHtml, $customReports);
 
-            $monthlyDocument = $this->get('/api/v1/reports/documents/report?period_type=monthly&month=2026-09&appendix=1')
+            $monthlyDocument = $this->get('/api/v1/reports/documents/report?period_type=monthly&month='.$month.'&appendix=1')
                 ->assertOk();
             $monthlyHtml = $monthlyDocument->getContent();
             $this->assertStringContainsString('class="metric-value">'.$monthReports->count().'</span>', $monthlyHtml);
@@ -192,27 +193,6 @@ class DemoAnalyticsSeederTest extends TestCase
         } finally {
             CarbonImmutable::setTestNow();
         }
-    }
-
-    private function expectedGroups(Collection $reports, string $field, string $key): array
-    {
-        $counts = [];
-        foreach ($reports as $report) {
-            $value = $report->getAttribute($field);
-            $groupKey = $value ?? '';
-            $counts[$groupKey] = ($counts[$groupKey] ?? 0) + 1;
-        }
-
-        $groups = [];
-        foreach ($counts as $value => $count) {
-            $groups[] = [$key => $value === '' ? null : $value, 'reported_cases' => $count];
-        }
-        usort($groups, fn (array $left, array $right): int =>
-            ($right['reported_cases'] <=> $left['reported_cases'])
-            ?: strcmp((string) $left[$key], (string) $right[$key])
-        );
-
-        return $groups;
     }
 
     private function expectedQueueCount(Collection $reports, string $queue, ?string $today = null): int
@@ -258,9 +238,17 @@ class DemoAnalyticsSeederTest extends TestCase
 
     private function assertAppendixReferences(string $html, Collection $reports): void
     {
-        foreach ($reports as $report) {
-            $this->assertSame(1, substr_count($html, $report->reference_code), $report->reference_code);
+        $document = new \DOMDocument();
+        $document->loadHTML($html);
+        $references = (new \DOMXPath($document))->query('//section[@aria-labelledby="appendix"]//tbody/tr/td[1]');
+        $actual = [];
+        foreach ($references as $reference) {
+            $actual[] = trim($reference->textContent);
         }
+        $expected = $reports->pluck('reference_code')->all();
+        sort($actual);
+        sort($expected);
+        $this->assertSame($expected, $actual);
     }
 
     private function seedAnalyticsPrerequisites(): void

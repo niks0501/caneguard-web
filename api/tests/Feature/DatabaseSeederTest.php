@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\ReportMetricExpectations;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase
@@ -85,21 +86,24 @@ class DatabaseSeederTest extends TestCase
     {
         $total = Report::query()->count();
         $month = CarbonImmutable::now('Asia/Manila')->format('Y-m');
-        $monthCount = Report::query()
-            ->whereBetween('submitted_at', [
-                CarbonImmutable::now('Asia/Manila')->startOfMonth()->utc(),
-                CarbonImmutable::now('Asia/Manila')->endOfMonth()->utc(),
-            ])
-            ->count();
+        $monthStart = CarbonImmutable::now('Asia/Manila')->startOfMonth();
+        $monthEnd = $monthStart->addMonth();
+        $monthReports = Report::query()
+            ->whereNull('canonical_report_id')
+            ->where('submitted_at', '>=', $monthStart->utc())
+            ->where('submitted_at', '<', $monthEnd->utc())
+            ->get();
 
         $this->getJson('/api/v1/dashboard/summary?include=counts')
             ->assertOk()
             ->assertJsonPath('data.counts.total_submitted', $total);
-        $this->getJson('/api/v1/dashboard/summary?month='.$month.'&include=counts,monthly')
+        $this->getJson('/api/v1/dashboard/summary?include=counts,monthly')
             ->assertOk()
             ->assertJsonPath('data.counts.total_submitted', $total)
             ->assertJsonPath('data.monthly_summary.month', $month)
-            ->assertJsonPath('data.monthly_summary.reported_cases', $monthCount);
+            ->assertJsonPath('data.monthly_summary.reported_cases', $monthReports->count())
+            ->assertJsonPath('data.monthly_summary.cases_by_barangay', ReportMetricExpectations::groupedCounts($monthReports, 'barangay', 'barangay'))
+            ->assertJsonPath('data.monthly_summary.cases_by_possible_condition', ReportMetricExpectations::groupedCounts($monthReports, 'predicted_label', 'possible_condition'));
     }
 
     private function identities(): array

@@ -58,16 +58,16 @@ test("security steps cannot be skipped or ignored", () => {
   }
 });
 
-test("audits run after their corresponding dependency installations", () => {
+test("each dependency installation exists once and precedes its audit", () => {
   const steps = qualityGateSteps();
-  const stepIndex = (name) => steps.findIndex((step) => step?.name === name);
+  const pairs = [
+    ["Install Web dependencies", "Audit Web dependencies (high and critical advisories fail)"],
+    ["Install Laravel dependencies", "Audit Laravel dependencies (advisories and abandoned packages fail)"],
+  ];
 
-  assert.ok(
-    stepIndex("Install Web dependencies") <
-      stepIndex("Audit Web dependencies (high and critical advisories fail)"),
-  );
-  assert.ok(
-    stepIndex("Install Laravel dependencies") <
-      stepIndex("Audit Laravel dependencies (advisories and abandoned packages fail)"),
-  );
+  for (const [installName, auditName] of pairs) {
+    const install = stepNamed(installName);
+    const audit = stepNamed(auditName);
+    assert.ok(steps.indexOf(install) < steps.indexOf(audit), `${installName} must precede ${auditName}`);
+  }
 });
