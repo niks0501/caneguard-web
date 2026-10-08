@@ -15,7 +15,7 @@ Use for normal implementation work.
 4. Inspect existing relevant patterns.
 5. Plan proportionally.
 6. Implement the smallest cohesive change.
-7. Add/update tests when behavior changes.
+7. State the acceptance claim; add or update a test only if no existing test proves it.
 8. Run narrow verification first.
 9. Broaden verification when risk/surface justifies it.
 10. Review the diff against acceptance criteria.

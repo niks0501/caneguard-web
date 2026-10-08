@@ -21,7 +21,7 @@ Do not force a complex issue into this workflow.
 3. Inspect the focused code path and nearest test.
 4. Identify root cause.
 5. Make the smallest complete fix.
-6. Add/update a regression test when behavior warrants it.
+6. Add or update a regression test when warranted: reproduce the failure or describe it concretely. State the acceptance claim; reuse an existing test if it already proves the regression behavior.
 7. Run the narrowest meaningful check.
 8. Inspect the final diff for accidental scope.
 9. Report cause, change, evidence, and residual risk.

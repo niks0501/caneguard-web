@@ -9,10 +9,18 @@ Prioritize:
 4. compatibility regressions;
 5. error and edge-case behavior;
 6. missing meaningful tests;
-7. performance issues with plausible impact;
-8. maintainability problems that materially raise future defect risk.
+7. unfalsifiable or implementation-mirroring tests;
+8. performance issues with plausible impact;
+9. maintainability problems that materially raise future defect risk.
 
 Do not report subjective style preferences as defects when they follow project conventions.
+
+For each test, ask:
+- Which requested behavior does it prove?
+- Would it fail on regression?
+- Are mocks hiding the claimed behavior?
+
+Report tests that are unfalsifiable or mirror implementation as findings.
 
 Every finding should identify:
 - severity;
