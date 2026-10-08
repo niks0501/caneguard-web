@@ -183,7 +183,13 @@ class DemoAnalyticsSeederTest extends TestCase
     private function assertAppendixReferences(string $html, Collection $reports): void
     {
         $document = new \DOMDocument();
-        $document->loadHTML($html);
+        $previousLibxmlState = libxml_use_internal_errors(true);
+        try {
+            $document->loadHTML($html);
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousLibxmlState);
+        }
         $references = (new \DOMXPath($document))->query('//section[@aria-labelledby="appendix"]//tbody/tr/td[1]');
         $actual = [];
         foreach ($references as $reference) {
