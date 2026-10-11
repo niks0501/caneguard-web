@@ -5,6 +5,13 @@ description: Choose and execute evidence through the strict test ladder, includi
 
 # Verification
 
+## Fresh-copy dependency preflight
+
+- Before running checks in a fresh copy, verify that dependencies are installed and match the checked-in manifests and lockfiles.
+- Missing packages in a fresh copy are setup blockers, not evidence of a code failure. Follow the README's one-time Web/API setup (`npm ci` and `npm run api:install`), subject to permissions.
+- Root npm scripts and `api/composer.json` serve different packages; do not confuse the root Web package with API dependencies.
+- Do not add or upgrade dependencies to repair an install.
+
 ## Strict ladder
 
 Use this ladder in order when the changed behavior needs each level:
