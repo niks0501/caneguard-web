@@ -4,9 +4,11 @@
 - Before using an unfamiliar CLI subcommand or flag, check that CLI's help; do not assume compatibility with another tool's syntax.
 - Prefer the simplest complete solution and avoid unnecessary abstractions or dependencies.
 - Keep changes focused, readable, deterministic, and maintainable.
+- Before staging, inspect generated and tool-maintained artifact diffs; stage only explicit task-required files and review `git diff --cached` before committing. Keep generated Graphify output out of commits.
 - Preserve unrelated user work and never overwrite, reset, stash, delete, or rewrite unrelated changes.
 - Treat secrets, credentials, tokens, environment values, production data, and personal data as sensitive.
 - Do not expose sensitive values in output, logs, commits, examples, or generated files.
+- Tool-call arguments are logged too: never embed literal passwords or tokens in shell commands, even for local tests. Use an authorized local credential mechanism without printing its values.
 - Ask before destructive actions, production changes, deployments, publishing, force operations, dependency changes, credential access, or other externally consequential actions. Permission to push or open a PR does not authorize a force-push, including `--force-with-lease`; ask separately.
 - Resolve facts that can be discovered from the repository before asking the user.
 - Ask only when a genuine product decision, missing credential, destructive behavior, or material tradeoff requires user input.
@@ -23,6 +25,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when `query`, `path`, and `explain` do not provide enough context.
 - Generated files under `graphify-out/` are ignored local artifacts and do not appear in Git status or diffs; never force-add them.
 - After modifying code, run `npm run graphify:refresh` to keep the graph current and contract-valid.
+- Include that refresh in the completion checklist: `graphify update .` alone omits normalization and clustering. Report a failed or unavailable refresh rather than silently skipping it.
 - When the user explicitly invokes `/graphify`, follow the installed Graphify skill or instructions before doing anything else.
 
 ## Verification
@@ -62,6 +65,7 @@ E2E validation belongs to the implementation phase and must not be repeated by n
 ## Completion
 
 - Report what changed, what verification actually ran, and any remaining meaningful risks or gaps.
+- When reporting a PR, state whether required CI checks passed, failed, or remain pending; explicitly say when no checks are configured or their status is unknown. Local test results do not establish CI success.
 - Keep reports proportional to the task.
 
 ## Maintaining this file
