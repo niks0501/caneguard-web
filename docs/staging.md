@@ -298,7 +298,7 @@ Replace angle-bracket values with local values and never commit the file.
 | `VITE_API_BASE_URL` | The same exact value as `QA_PUBLIC_URL`. Browser API paths use the Web proxy to reach the private API. |
 | `VITE_DATA_SOURCE` | Keep `api`. |
 | `VITE_REPORT_REFRESH_MS` | Keep `600000`. |
-| `VITE_MAPTILER_KEY` | Keep empty when no MapTiler key is available. The map page shows its accessible provider fallback. |
+| `VITE_MAPTILER_KEY` | Keep empty when no MapTiler key is available. The map page then draws the provider-free local basemap. |
 
 The public-origin values must all match exactly.
 The API and Web hosts must remain `127.0.0.1`.
@@ -641,7 +641,7 @@ Use `npm run staging -- stop` when the session is no longer needed.
 
 ### The map provider is not configured
 
-An empty `VITE_MAPTILER_KEY` intentionally renders the accessible map fallback and leaves the report table and validation queue available.
+An empty `VITE_MAPTILER_KEY` intentionally draws the provider-free local basemap and leaves the report table and validation queue available.
 The Web confidence check also forces an empty map key so the test suite does not depend on a real MapTiler credential.
 A map provider key is not required for `CONFIDENCE PASS`.
 

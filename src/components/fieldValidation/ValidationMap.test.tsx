@@ -8,11 +8,14 @@ import { ValidationMap, type ValidationMapSelection } from "./ValidationMap";
 type CapturedMapProps = {
   children?: ReactNode;
   initialViewState?: { longitude: number; latitude: number; zoom: number };
+  mapStyle?: string | { version: number };
   maxBounds?: [[number, number], [number, number]];
   onClick?: (event: never) => Promise<void>;
   onError?: () => void;
   onLoad?: (event: never) => void;
 };
+
+const envState = vi.hoisted(() => ({ mapTilerKey: "test-map-key" }));
 
 const mapTestState = vi.hoisted(() => ({
   controls: {
@@ -27,9 +30,7 @@ const mapTestState = vi.hoisted(() => ({
   sources: {} as Record<string, { clusterMaxZoom?: number; maxzoom?: number; data?: { features: unknown[] } }>,
 }));
 
-vi.mock("../../config/env", () => ({
-  env: { mapTilerKey: "test-map-key" },
-}));
+vi.mock("../../config/env", () => ({ env: envState }));
 
 vi.mock("react-map-gl/maplibre", () => {
   const Boundary = (props: CapturedMapProps) => {
@@ -119,6 +120,7 @@ function loadMap() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  envState.mapTilerKey = "test-map-key";
   mapTestState.latestProps = undefined;
   mapTestState.controls.getZoom.mockReturnValue(8);
 });
@@ -240,6 +242,16 @@ describe("ValidationMap", () => {
     expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
     expect(screen.getByText("No located cases")).toBeInTheDocument();
     expect(screen.getByText(/none has a usable coordinate pair/i)).toBeInTheDocument();
+  });
+
+  it("draws the provider-free local basemap in development when no key is configured", () => {
+    envState.mapTilerKey = "";
+
+    renderMap(mapData([[120.63, 14.07]]));
+
+    expect(mapTestState.latestProps?.mapStyle).toMatchObject({ version: 8 });
+    expect(screen.queryByText("Map unavailable.")).not.toBeInTheDocument();
+    expect(screen.getByTestId("map-boundary")).toBeInTheDocument();
   });
 
   it("does not present a basemap failure as an empty case result", () => {
