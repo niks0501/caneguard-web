@@ -2,9 +2,15 @@
 
 This document records the executable Web/API evidence for the resolved field-validation map behavior.
 
-It covers data-aware framing, server-owned location groups, every-report popups, and map/queue refresh independence.
+It covers the development basemap fallback, data-aware framing, server-owned location groups, every-report popups, and map/queue refresh independence.
 
 ## Behaviors covered
+
+### Development basemap fallback
+
+Without a MapTiler key, development uses a provider-free style so map layers remain interactive; non-development builds keep the explicit unavailable state. The style references no hosted resources, and genuine basemap load failures still show `Map unavailable`.
+
+`localBasemap.test.ts` and `ValidationMap.test.tsx` cover the fallback selection, no-key production behavior, and provider-error state.
 
 ### Map framing
 
@@ -49,7 +55,7 @@ The API coverage includes GeoJSON coordinates, located and unlocated metadata, o
 From the repository root, run the focused Web regression tests:
 
 ```bash
-npm test -- --run src/components/fieldValidation/ValidationMap.test.tsx src/pages/FieldValidationMapPage.test.tsx
+npm test -- --run src/components/fieldValidation/localBasemap.test.ts src/components/fieldValidation/ValidationMap.test.tsx src/pages/FieldValidationMapPage.test.tsx
 ```
 
 Run the focused API map and queue contract tests:
