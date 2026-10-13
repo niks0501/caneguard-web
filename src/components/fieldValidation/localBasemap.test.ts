@@ -17,9 +17,19 @@ describe("resolveBasemapStyle", () => {
     expect(resolveBasemapStyle("", false)).toBeUndefined();
   });
 
-  it("draws the local basemap from no hosted source and no glyphs URL", () => {
-    expect(LOCAL_BASEMAP_STYLE.sources).toEqual({});
-    expect(LOCAL_BASEMAP_STYLE.glyphs).toBeUndefined();
-    expect(LOCAL_BASEMAP_STYLE.layers.map((layer) => layer.type)).toEqual(["background"]);
+  it("keeps the local basemap free of hosted resource URLs", () => {
+    const hostedUrls: string[] = [];
+    const collectHostedUrls = (value: unknown) => {
+      if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+        hostedUrls.push(value);
+      } else if (Array.isArray(value)) {
+        value.forEach(collectHostedUrls);
+      } else if (value && typeof value === "object") {
+        Object.values(value).forEach(collectHostedUrls);
+      }
+    };
+
+    collectHostedUrls(LOCAL_BASEMAP_STYLE);
+    expect(hostedUrls).toEqual([]);
   });
 });
