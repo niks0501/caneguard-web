@@ -13,12 +13,9 @@ import type { FieldValidationMapData, FieldValidationMapFeature } from "../../do
 import { reviewStatusLabels } from "../../domain/report.metadata";
 import type { ReviewStatus } from "../../domain/report.types";
 import { env } from "../../config/env";
+import { resolveBasemapStyle } from "./localBasemap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
-
-const mapTilerStyle = env.mapTilerKey
-  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(env.mapTilerKey)}`
-  : undefined;
 
 /**
  * CaneGuard's operating area replaces the superseded world-level fallback so
@@ -159,6 +156,9 @@ export function ValidationMap({
   const [providerState, setProviderState] = useState<MapProviderState>("loading");
   const mapRef = useRef<MapRef | null>(null);
   const fittedFrameKey = useRef<string | null>(null);
+  // Resolved per render so tests and runtime configuration can both change the
+  // basemap without reloading the module.
+  const basemapStyle = resolveBasemapStyle(env.mapTilerKey, import.meta.env.DEV);
 
   const expandedFeatures = selection?.kind === "cluster" && expanded
     && expanded.keys === (selection.clusterKeys ?? []).join("|")
@@ -288,12 +288,12 @@ export function ValidationMap({
         <span>{data.metadata.returnedCount} shown</span>
       </div>
       <div className="validation-map" aria-label="Map of submitted report locations">
-        {mapTilerStyle ? (
+        {basemapStyle ? (
           <>
             <Map
               ref={mapRef}
               initialViewState={OPERATING_AREA_VIEW}
-              mapStyle={mapTilerStyle}
+              mapStyle={basemapStyle}
               maxZoom={LOCATION_MAP_MAX_ZOOM}
               interactiveLayerIds={["validation-clusters", "validation-points", "validation-expanded-points"]}
               onClick={handleClick}

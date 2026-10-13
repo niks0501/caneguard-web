@@ -134,6 +134,7 @@ VITE_REVERB_SCHEME=http
 The default browser URLs use `localhost`: serve the Web app at `http://localhost:5173` and keep `VITE_API_BASE_URL=http://localhost:8000`. The API process binds to loopback, but do not mix `127.0.0.1` into either browser-facing URL; the browser treats it as a separate cookie/CSRF origin.
 
 `VITE_MAPTILER_KEY` is optional browser configuration for the hosted basemap.
+With no key, the Vite dev server draws a provider-free local basemap so markers, clusters and the case queue stay interactive; production builds keep the explicit `Map unavailable` state.
 All `VITE_*` values are public browser configuration and must never contain API passwords or tokens.
 
 ### Configure the API environment

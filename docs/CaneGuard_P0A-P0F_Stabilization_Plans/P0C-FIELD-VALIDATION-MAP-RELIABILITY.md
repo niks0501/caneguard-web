@@ -41,11 +41,9 @@ src/components/fieldValidation/ValidationMap.tsx
 
 Current behavior:
 
-- builds a MapTiler style URL only when the key is non-empty;
-- otherwise renders `Interactive map unavailable`;
-- starts with a fixed broad viewport around longitude `122.5`, latitude `10.5`, zoom `6`;
-- does not currently expose a clear provider load/error state;
-- already keeps a report-table fallback below the map.
+- builds a MapTiler style URL when the key is non-empty;
+- without a key, development uses a provider-free local basemap, while non-development builds show `Map unavailable`;
+- keeps the report-table fallback below the map and shows `Map unavailable` for genuine basemap load failures.
 
 ### Workspace page
 
@@ -92,10 +90,12 @@ flowchart TD
     E -- No --> F[No reports match filters]
     E -- Yes --> G[Reports exist but no valid coordinates]
     D -- Yes --> H{MapTiler configured?}
-    H -- No --> I[Basemap not configured; table/queue still available]
-    H -- Yes --> J{Basemap loads?}
-    J -- No --> K[Provider/network error; table/queue still available]
-    J -- Yes --> L[Interactive map ready]
+    H -- No --> I{Development build?}
+    I -- Yes --> J[Provider-free local basemap; interactive map ready]
+    I -- No --> K[Explicit unavailable state; table/queue still available]
+    H -- Yes --> L{Basemap loads?}
+    L -- No --> M[Provider/network error; table/queue still available]
+    L -- Yes --> N[Interactive map ready]
 ```
 
 These are different causes and should not collapse into one generic empty state.
@@ -106,28 +106,30 @@ These are different causes and should not collapse into one generic empty state.
 
 On the actual development machine:
 
-1. Inspect local `.env.local`/environment without printing the key into logs.
-2. Confirm `VITE_MAPTILER_KEY` exists.
+1. Inspect local `.env.local`/environment without printing any key into logs.
+2. Note whether `VITE_MAPTILER_KEY` is configured; it is optional for the development fallback.
 3. Open the map and inspect the browser network/console.
-4. Confirm whether MapTiler style/tile requests are successful.
+4. With a key, confirm whether MapTiler style/tile requests are successful; without one, confirm the local fallback makes no hosted resource requests.
 5. Call the map API through the normal authenticated web flow and inspect:
    - total count;
    - located count;
    - unlocated count;
    - feature count.
 
-Do not patch MapLibre if the only issue is an unset key.
+Do not require a MapTiler key for local development; use the provider-free fallback when it is absent.
 
 ### Phase 2 — Keep configuration explicit
 
 Keep the key in local/environment configuration; never hard-code it into source.
 
-Improve the existing unavailable state so it says exactly what is wrong:
+For non-development builds without a key, improve the existing unavailable state so it says exactly what is wrong:
 
 ```text
 Map provider is not configured.
 The report table and validation queue remain available.
 ```
+
+A development build without a key uses the provider-free local basemap instead; genuine basemap load failures remain unavailable.
 
 Do not present configuration guidance meant for developers to end users in production if the app has a production error boundary. In development it may mention `VITE_MAPTILER_KEY`; in production prefer neutral language.
 
@@ -220,9 +222,10 @@ Backend should not need a change unless Phase 1 proves map metadata is wrong.
 
 Cover:
 
-- no MapTiler key → explicit unavailable state;
+- no MapTiler key in development → provider-free local basemap with interactive map layers;
+- no MapTiler key outside development → explicit unavailable state;
+- genuine provider error state remains unavailable without hiding report data;
 - map data remains represented through table/coverage even without basemap;
-- provider error state does not hide report data;
 - one feature produces a one-point framing call;
 - multiple features produce `fitBounds`;
 - background data refetch does not continuously reset viewport;
@@ -280,7 +283,7 @@ With a valid local MapTiler key:
 4. Confirm popup opens the correct report.
 5. Apply a barangay/date/status filter and confirm viewport frames the filtered data.
 6. Pan manually; wait through at least one later P0D refresh and confirm the map does not unexpectedly snap back.
-7. Temporarily remove the local MapTiler key and restart Vite; confirm table/queue remain available.
+7. Temporarily remove the local MapTiler key and restart Vite; confirm the local basemap, marker/cluster and glyph interactions, and table/queue remain available.
 8. Restore the key.
 
 Do not commit the key during this test.
@@ -288,7 +291,7 @@ Do not commit the key during this test.
 ## Acceptance criteria
 
 - [ ] Local MapTiler configuration has been verified before code changes.
-- [ ] Missing key is distinguishable from report API failure.
+- [ ] A missing key outside development is distinguishable from report API failure; development uses the local fallback.
 - [ ] Provider load failure is distinguishable from zero located reports.
 - [ ] Located/unlocated counts remain truthful.
 - [ ] Zero points defaults to a Nasugbu-oriented view.
