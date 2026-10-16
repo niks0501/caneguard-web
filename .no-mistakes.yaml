@@ -1,0 +1,75 @@
+
+protected_paths:
+  - ".no-mistakes.yaml"
+  - "api/database/migrations/**"
+  - ".github/workflows/**"
+
+document:
+  instructions: |
+    README.md owns setup and onboarding.
+    PROJECT_CHECKS.md owns verification commands.
+    PROJECT_STACK.md owns architecture guidance.
+    docs/ owns detailed workflows and integration contracts.
+    api/docs/ owns backend-specific documentation.
+    Keep documentation aligned with actual API behavior.
+    Update existing owners instead of duplicating content.
+
+review:
+  path_instructions:
+    - path: "api/app/Http/**"
+      instructions: |
+        Check authorization, input validation,
+        error responses, and permission boundaries.
+
+    - path: "api/database/migrations/**"
+      instructions: |
+        Check data preservation, schema compatibility,
+        migration safety, and existing records.
+
+    - path: "api/routes/**"
+      instructions: |
+        Check API contracts, route permissions,
+        backward compatibility, and HTTP semantics.
+
+    - path: "src/auth/**"
+      instructions: |
+        Check session security, role enforcement,
+        protected routing, and unauthorized access.
+
+    - path: "src/api/**"
+      instructions: |
+        Check request handling, error states,
+        authentication, retries, and API compatibility.
+
+test:
+  instructions: |
+    Follow PROJECT_CHECKS.md.
+    Run relevant fast automated tests.
+
+    Use chrome-devtools-axi exclusively for live
+    browser verification.
+
+    Assign a unique CHROME_DEVTOOLS_AXI_SESSION per run,
+    derived from the run or isolated worktree identity.
+    Reuse that session throughout verification.
+    Use AXI's default isolated Chrome launch mode.
+    Never attach to another worker's browser.
+    Do not set a shared CHROME_DEVTOOLS_AXI_PORT.
+    Start the application on an available worktree-owned port.
+
+    Verify affected workflows interactively.
+    Inspect browser output, console errors,
+    network activity, and API responses.
+
+    For API-dependent workflows, start an isolated
+    backend with disposable test data when available.
+    Never access production or shared databases.
+
+    Never use agent-device, phones, emulators, or ADB.
+    Do not require saved or replayable E2E scripts.
+
+    Report actual defects as no-go with evidence.
+    Report unavailable or unsupported live validation
+    as inconclusive with manual verification steps.
+    Never mark unverified behavior as passed.
+    Clean up only resources owned by this run.
