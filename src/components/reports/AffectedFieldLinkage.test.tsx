@@ -136,6 +136,9 @@ describe("AffectedFieldLinkage", () => {
     expect(screen.queryByText(/combined area|total area|server area/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("checkbox", { name: "Link boundary 123" }));
+    expect(screen.getByText("Enter a rate from 0 to 100.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Office loss rate for boundary 123 (percent)")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeDisabled();
     await user.clear(screen.getByLabelText("Office loss rate for boundary 123 (percent)"));
     await user.type(screen.getByLabelText("Office loss rate for boundary 123 (percent)"), "18.5");
     await user.click(screen.getByRole("checkbox", { name: "Link boundary 124" }));

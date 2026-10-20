@@ -235,7 +235,7 @@ export function AffectedFieldLinkage({
                   const key = String(choice.id);
                   const checked = Object.hasOwn(draft, key);
                   const rateId = `${idPrefix}-rate-${choice.id}`;
-                  const rateInvalid = submitted && checked && lossRate(draft[key] ?? "") === null;
+                  const rateInvalid = checked && lossRate(draft[key] ?? "") === null;
                   return (
                     <tr key={choice.id}>
                       <td>

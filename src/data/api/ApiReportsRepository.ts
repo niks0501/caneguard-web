@@ -21,6 +21,7 @@ import type {
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
 import {
   mapPaginationMeta,
+  mapReportAffectedField,
   mapReportDetail,
   mapReportListItem,
 } from "./mappers/report.mapper";
@@ -302,15 +303,7 @@ export class ApiReportsRepository implements ReportsRepository {
     const data = updateAffectedFieldsResponseSchema.parse(response.data).data;
 
     return {
-      affectedFields: data.affected_fields.map((field) => ({
-        fieldSurveyId: field.field_survey_id,
-        geometry: field.geometry,
-        capturedAt: field.captured_at,
-        areaSqm: field.area_sqm,
-        areaSource: field.area_source,
-        inspector: field.inspector,
-        lossRatePercent: field.loss_rate_percent,
-      })),
+      affectedFields: data.affected_fields.map(mapReportAffectedField),
       version: data.version,
       updatedAt: data.updated_at,
     };
