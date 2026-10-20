@@ -86,3 +86,5 @@ validation is not a topology, self-intersection or area-accuracy certification.
 No reporting, email, exports or production rollout are enabled here.
 The additive migration retains survey data on rollback; deleting walked
 boundaries requires a separate explicit data-removal decision.
+
+Office read: see [Field surveys read contract v1](field-surveys-read-v1.md).

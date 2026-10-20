@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['client_uuid', 'inspector_id', 'district_id', 'polygon', 'area_sqm', 'captured_at'])]
 class FieldSurvey extends Model
@@ -17,5 +18,10 @@ class FieldSurvey extends Model
             'area_sqm' => 'double',
             'captured_at' => 'immutable_datetime',
         ];
+    }
+
+    public function inspector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'inspector_id');
     }
 }
