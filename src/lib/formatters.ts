@@ -96,8 +96,10 @@ export function formatDueState(
 }
 
 /**
- * Affected Area queue cell: the measured hectares when a measurement exists,
- * otherwise an em dash so an unmeasured case never reads as zero.
+ * Area label shared by the validation queue and the boundary viewer: the
+ * hectares when a measurement exists, otherwise an em dash so an unmeasured
+ * case never reads as zero. Ordinary values keep two decimals; a small
+ * positive area keeps enough to avoid printing a false `0 ha`.
  */
 export function formatAffectedArea(
   hectares: number | null | undefined,
@@ -106,9 +108,11 @@ export function formatAffectedArea(
   if (measurement === "not_measured") return "—";
   if (typeof hectares !== "number" || !Number.isFinite(hectares)) return "—";
 
-  const formatted = new Intl.NumberFormat("en-PH", {
-    maximumFractionDigits: 2,
-  }).format(hectares);
+  const fractionDigits = hectares > 0 && hectares < 0.005 ? Math.ceil(-Math.log10(hectares)) + 1 : 2;
+  const options: Intl.NumberFormatOptions = fractionDigits <= 20
+    ? { maximumFractionDigits: Math.max(2, fractionDigits) }
+    : { notation: "scientific", maximumSignificantDigits: 3 };
+  const formatted = new Intl.NumberFormat("en-PH", options).format(hectares);
 
   return `${formatted} ha`;
 }
