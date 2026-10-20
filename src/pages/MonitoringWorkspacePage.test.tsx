@@ -22,7 +22,7 @@ describe("MonitoringWorkspacePage", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: 0, total: 0, items: [], oldest: null }));
   });
 
-  it("exposes the four consolidated monitoring views and the separate submitted reports entry", () => {
+  it("exposes the five consolidated monitoring views and the separate submitted reports entry", () => {
     render(
       <QueryClientProvider client={createQueryClient()}>
         <MemoryRouter initialEntries={["/monitoring"]}><MonitoringWorkspacePage /></MemoryRouter>
@@ -33,5 +33,6 @@ describe("MonitoringWorkspacePage", () => {
     expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/monitoring?view=calendar");
     expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/monitoring?view=map");
     expect(screen.getByRole("link", { name: "Field Operations" })).toHaveAttribute("href", "/monitoring?view=field-operations");
+    expect(screen.getByRole("link", { name: "Field boundaries" })).toHaveAttribute("href", "/monitoring?view=boundaries");
   });
 });

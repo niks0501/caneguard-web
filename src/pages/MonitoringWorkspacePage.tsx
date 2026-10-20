@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, MapPinned, Table2 } from "lucide-react";
+import { CalendarDays, ClipboardList, LandPlot, MapPinned, Table2 } from "lucide-react";
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -12,18 +12,22 @@ import { FieldOperationsPage } from "./FieldOperationsPage";
 const FieldValidationMapPage = lazy(() =>
   import("./FieldValidationMapPage").then(({ FieldValidationMapPage: Page }) => ({ default: Page })),
 );
+const BoundariesPage = lazy(() =>
+  import("./BoundariesPage").then(({ BoundariesPage: Page }) => ({ default: Page })),
+);
 
-type MonitoringView = "register" | "calendar" | "map" | "field-operations";
+type MonitoringView = "register" | "calendar" | "map" | "field-operations" | "boundaries";
 
 const views: Array<{ key: MonitoringView; label: string; icon: ReactNode }> = [
   { key: "register", label: "Register", icon: <Table2 aria-hidden="true" /> },
   { key: "calendar", label: "Calendar", icon: <CalendarDays aria-hidden="true" /> },
   { key: "map", label: "Map", icon: <MapPinned aria-hidden="true" /> },
   { key: "field-operations", label: "Field Operations", icon: <ClipboardList aria-hidden="true" /> },
+  { key: "boundaries", label: "Field boundaries", icon: <LandPlot aria-hidden="true" /> },
 ];
 
 function viewFromUrl(value: string | null): MonitoringView {
-  return value === "calendar" || value === "map" || value === "field-operations" ? value : "register";
+  return value === "calendar" || value === "map" || value === "field-operations" || value === "boundaries" ? value : "register";
 }
 
 export function MonitoringWorkspacePage() {
@@ -55,6 +59,11 @@ export function MonitoringWorkspacePage() {
         </Suspense>
       ) : null}
       {view === "field-operations" ? <FieldOperationsPage embedded /> : null}
+      {view === "boundaries" ? (
+        <Suspense fallback={<LoadingState message="Loading field boundaries..." />}>
+          <BoundariesPage embedded />
+        </Suspense>
+      ) : null}
     </PageContent>
   );
 }

@@ -4,6 +4,7 @@ import {
   formatClockTime,
   formatClockTimeWithSeconds,
   formatDateTime,
+  formatAreaSqm,
 } from "./formatters";
 
 /**
@@ -12,6 +13,14 @@ import {
  * be impossible to produce from these helpers.
  */
 const TWENTY_FOUR_HOUR = /\b(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?!:)\b(?!\s*[AP]\.?M)/i;
+
+describe("field-survey area formatting", () => {
+  it("formats device-reported square metres and hectares without changing the source value", () => {
+    expect(formatAreaSqm(6075.123)).toBe("6,075 m² · 0.61 ha");
+    expect(formatAreaSqm(10_000)).toBe("10,000 m² · 1 ha");
+    expect(formatAreaSqm(-1)).toBe("—");
+  });
+});
 
 describe("12-hour operational time formatting", () => {
   it("declares Asia/Manila as the single operational time zone", () => {
