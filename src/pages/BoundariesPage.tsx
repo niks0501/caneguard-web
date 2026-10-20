@@ -7,7 +7,7 @@ import { BoundariesMap } from "../components/boundaries/BoundariesMap";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
-import type { FieldSurveyPosition } from "../domain/fieldSurvey.types";
+import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyPosition } from "../domain/fieldSurvey.types";
 import { useFieldSurveys } from "../hooks/fieldSurveys";
 import { useSearchParams } from "react-router";
 
@@ -34,7 +34,7 @@ function errorMessage(error: unknown) {
 
 export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const query = useFieldSurveys();
+  const query = useFieldSurveys(FIELD_SURVEYS_MAX_LIMIT);
   const [popupSelection, setPopupSelection] = useState<{ id: string; coordinates: FieldSurveyPosition } | null>(null);
   const accessDenied = isAccessDeniedError(query.error);
   const unauthenticated = isUnauthorizedError(query.error);
@@ -45,6 +45,15 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
   const selectedFeature = boundaryParam && data
     ? data.features.find((feature) => String(feature.properties.id) === boundaryParam) ?? null
     : null;
+  const boundaryUnavailable = Boolean(
+    boundaryParam
+      && data
+      && query.isSuccess
+      && !query.isFetching
+      && !query.isError
+      && !query.isRefetchError
+      && !selectedFeature,
+  );
   const selectedBoundaryId = selectedFeature ? boundaryParam : null;
   const popupCoordinates = selectedBoundaryId && popupSelection?.id === selectedBoundaryId
     ? popupSelection.coordinates
@@ -97,6 +106,11 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
             : isApiConnectionError(query.error)
               ? "Cannot connect to the CaneGuard API. The most recently loaded boundaries are still shown and may be stale."
               : "The latest boundary refresh failed. The most recently loaded boundaries are still shown and may be stale."}
+        </p>
+      ) : null}
+      {boundaryUnavailable ? (
+        <p className="queue-refresh-status" role="status">
+          The requested boundary is not available in the loaded field boundaries.
         </p>
       ) : null}
       {query.isPending && !data ? <LoadingState message="Loading field boundaries..." /> : null}
