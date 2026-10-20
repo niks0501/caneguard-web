@@ -96,8 +96,10 @@ export function formatDueState(
 }
 
 /**
- * Affected Area queue cell: the measured hectares when a measurement exists,
- * otherwise an em dash so an unmeasured case never reads as zero.
+ * Area label shared by the validation queue and the boundary viewer: the
+ * hectares when a measurement exists, otherwise an em dash so an unmeasured
+ * case never reads as zero. Ordinary values keep two decimals; a small
+ * positive area keeps enough to avoid printing a false `0 ha`.
  */
 export function formatAffectedArea(
   hectares: number | null | undefined,

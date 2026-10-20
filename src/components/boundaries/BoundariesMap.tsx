@@ -172,6 +172,9 @@ export function BoundariesMap({
     setProviderState("error");
   };
 
+  // MapLibre reports a basemap source's metadata as `sourceDataType: "content"`
+  // and a settled `idle` even when tiles failed, so only a real tile event from
+  // a non-boundary source proves recovery and clears the transient notice.
   const handleSourceData = (event: { sourceId?: string; tile?: unknown }) => {
     if (!hasLoadedMap.current || !event.tile || !event.sourceId) return;
     if (event.sourceId.startsWith("field-boundaries")) return;
