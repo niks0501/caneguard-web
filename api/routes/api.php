@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\DistrictAccessController;
 use App\Http\Controllers\Api\V1\DistrictReportController;
 use App\Http\Controllers\Api\V1\DistrictReportingSettingsController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
+use App\Http\Controllers\Api\V1\FieldSurveyMapController;
 use App\Http\Controllers\Api\V1\FieldValidationPhotoController;
 use App\Http\Controllers\Api\V1\FieldValidationQueueController;
 use App\Http\Controllers\Api\V1\LinkDuplicateReportController;
@@ -130,6 +131,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
             ->name('api.v1.reports.analytics');
         Route::get('/reports/map', MapReportController::class)
             ->name('api.v1.reports.map');
+        Route::get('/field-surveys', FieldSurveyMapController::class)
+            ->middleware('throttle:30,1')
+            ->name('api.v1.field-surveys.index');
         Route::get('/reports/field-validation-queue', FieldValidationQueueController::class)
             ->name('api.v1.reports.field-validation-queue');
         Route::get('/reports/{report}/image', ReportImageController::class)

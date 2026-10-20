@@ -165,6 +165,10 @@ return [
         'max_limit' => 1000,
         'location_group_radius_meters' => max(1, (float) env('CANEGUARD_MAP_LOCATION_GROUP_RADIUS_METERS', 25)),
     ],
+    'surveys' => [
+        'read_default_limit' => 100,
+        'read_max_limit' => 250,
+    ],
     'duplicate_assistance' => [
         'recent_window_hours' => 72,
         'location_radius_meters' => 100,
