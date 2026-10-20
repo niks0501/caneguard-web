@@ -95,15 +95,6 @@ export function formatDueState(
   };
 }
 
-/** Formats a device-reported area in square metres and hectares. */
-export function formatAreaSqm(areaSqm: number): string {
-  if (!Number.isFinite(areaSqm) || areaSqm < 0) return "—";
-
-  const squareMetres = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 }).format(areaSqm);
-  const hectares = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(areaSqm / 10_000);
-  return `${squareMetres} m² · ${hectares} ha`;
-}
-
 /**
  * Affected Area queue cell: the measured hectares when a measurement exists,
  * otherwise an em dash so an unmeasured case never reads as zero.
@@ -115,9 +106,11 @@ export function formatAffectedArea(
   if (measurement === "not_measured") return "—";
   if (typeof hectares !== "number" || !Number.isFinite(hectares)) return "—";
 
-  const formatted = new Intl.NumberFormat("en-PH", {
-    maximumFractionDigits: 2,
-  }).format(hectares);
+  const fractionDigits = hectares > 0 && hectares < 0.005 ? Math.ceil(-Math.log10(hectares)) + 1 : 2;
+  const options: Intl.NumberFormatOptions = fractionDigits <= 20
+    ? { maximumFractionDigits: Math.max(2, fractionDigits) }
+    : { notation: "scientific", maximumSignificantDigits: 3 };
+  const formatted = new Intl.NumberFormat("en-PH", options).format(hectares);
 
   return `${formatted} ha`;
 }

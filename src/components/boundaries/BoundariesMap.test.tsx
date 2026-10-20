@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from "react";
+import { createElement, useEffect, type ReactNode } from "react";
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FieldSurveyBoundariesData, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
@@ -12,12 +12,13 @@ type CapturedMapProps = {
   onClick?: (event: never) => void;
   onError?: () => void;
   onLoad?: (event: never) => void;
-  onSourceData?: (event: { sourceId?: string; sourceDataType?: string }) => void;
+  onSourceData?: (event: { sourceId?: string; tile?: unknown }) => void;
 };
 
 const envState = vi.hoisted(() => ({ mapTilerKey: "test-map-key" }));
 const styleState = vi.hoisted(() => ({ value: "test-style" as string | undefined }));
 const mapTestState = vi.hoisted(() => ({
+  mountCount: 0,
   controls: {
     easeTo: vi.fn(),
     fitBounds: vi.fn(),
@@ -32,6 +33,9 @@ vi.mock("../fieldValidation/localBasemap", () => ({ resolveBasemapStyle: () => s
 vi.mock("react-map-gl/maplibre", () => {
   const Boundary = (props: CapturedMapProps) => {
     mapTestState.latestProps = props;
+    useEffect(() => {
+      mapTestState.mountCount += 1;
+    }, []);
     return createElement("div", { "data-testid": "map-boundary" }, props.children);
   };
   const Child = ({ children }: { children?: ReactNode }) => createElement("div", null, children);
@@ -84,6 +88,7 @@ beforeEach(() => {
   envState.mapTilerKey = "test-map-key";
   styleState.value = "test-style";
   mapTestState.latestProps = undefined;
+  mapTestState.mountCount = 0;
   mapTestState.sources = {};
   mapTestState.layers = {};
 });
@@ -120,6 +125,7 @@ describe("BoundariesMap", () => {
       paint: { "line-color": "#b8ad73", "line-width": 3 },
     });
     expect(screen.getByRole("dialog", { name: "Field boundary" })).toHaveTextContent("device-reported");
+    expect(screen.getByRole("dialog", { name: "Field boundary" })).toHaveTextContent("0.61 ha");
     expect(screen.getByRole("button", { name: "Close boundary details" })).toBeInTheDocument();
   });
 
@@ -173,7 +179,7 @@ describe("BoundariesMap", () => {
     expect(screen.getByText("Selected boundary")).toBeInTheDocument();
   });
 
-  it("keeps a loaded map interactive until successful basemap content arrives", () => {
+  it("keeps a loaded map interactive until a successful basemap tile arrives", () => {
     const data = boundaryData();
     const onSelect = vi.fn();
     const { rerender } = render(<BoundariesMap data={data} onSelect={onSelect} />);
@@ -202,14 +208,14 @@ describe("BoundariesMap", () => {
     expect(onSelect).toHaveBeenCalledWith("123", [122.9505, 10.7005]);
 
     act(() => {
-      mapTestState.latestProps?.onSourceData?.({ sourceId: "field-boundaries", sourceDataType: "content" });
-      mapTestState.latestProps?.onSourceData?.({ sourceId: "field-boundaries-selected", sourceDataType: "content" });
-      mapTestState.latestProps?.onSourceData?.({ sourceId: "basemap", sourceDataType: "metadata" });
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "basemap", tile: undefined });
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "field-boundaries", tile: {} });
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "field-boundaries-selected", tile: {} });
     });
     expect(screen.getByRole("status")).toHaveTextContent("Map tiles are temporarily unavailable.");
 
     act(() => {
-      mapTestState.latestProps?.onSourceData?.({ sourceId: "basemap", sourceDataType: "content" });
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "basemap", tile: {} });
     });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
@@ -217,6 +223,7 @@ describe("BoundariesMap", () => {
   it("retries the map by loading a fresh instance", () => {
     render(<BoundariesMap data={boundaryData()} />);
     loadMap();
+    const mountCount = mapTestState.mountCount;
 
     act(() => {
       mapTestState.latestProps?.onError?.();
@@ -225,6 +232,7 @@ describe("BoundariesMap", () => {
       screen.getByRole("button", { name: "Retry map" }).click();
     });
 
+    expect(mapTestState.mountCount).toBe(mountCount + 1);
     expect(screen.getByRole("status")).toHaveTextContent("Loading map...");
     loadMap();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();

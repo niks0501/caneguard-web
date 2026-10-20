@@ -196,7 +196,7 @@ describe("BoundariesPage", () => {
     expect(screen.getByText(/Showing the newest 100 of 120 boundaries\. The rest are not on this map\./)).toHaveAttribute("role", "status");
     expect(screen.getByRole("columnheader", { name: /Area, device-reported/ })).toBeInTheDocument();
     expect(screen.getAllByText("Oct 4, 2026, 10:30 AM")).toHaveLength(100);
-    expect(screen.getByText("6,075 m² · 0.61 ha")).toBeInTheDocument();
+    expect(screen.getAllByText("0.61 ha").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /^Show boundary 1 captured Oct 4, 2026, 10:30 AM by Maria Santos on map$/ })).toBeInTheDocument();
   });
 

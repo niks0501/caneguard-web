@@ -4,7 +4,7 @@ import {
   formatClockTime,
   formatClockTimeWithSeconds,
   formatDateTime,
-  formatAreaSqm,
+  formatAffectedArea,
 } from "./formatters";
 
 /**
@@ -14,11 +14,18 @@ import {
  */
 const TWENTY_FOUR_HOUR = /\b(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?!:)\b(?!\s*[AP]\.?M)/i;
 
-describe("field-survey area formatting", () => {
-  it("formats device-reported square metres and hectares without changing the source value", () => {
-    expect(formatAreaSqm(6075.123)).toBe("6,075 m² · 0.61 ha");
-    expect(formatAreaSqm(10_000)).toBe("10,000 m² · 1 ha");
-    expect(formatAreaSqm(-1)).toBe("—");
+describe("affected-area formatting", () => {
+  it("preserves the established two-decimal hectare output for ordinary values", () => {
+    expect(formatAffectedArea(0.6075123)).toBe("0.61 ha");
+    expect(formatAffectedArea(1)).toBe("1 ha");
+    expect(formatAffectedArea(2.4)).toBe("2.4 ha");
+    expect(formatAffectedArea(0.015)).toBe("0.02 ha");
+  });
+
+  it("keeps positive small hectare values distinguishable from zero", () => {
+    expect(formatAffectedArea(49 / 10_000)).toBe("0.0049 ha");
+    expect(formatAffectedArea(0.4 / 10_000)).toBe("0.00004 ha");
+    expect(formatAffectedArea(Number.MIN_VALUE)).not.toBe("0 ha");
   });
 });
 

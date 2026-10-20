@@ -1,7 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
 import { Button } from "../ui/Button";
-import { formatAreaSqm, formatDateTime } from "../../lib/formatters";
+import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
 
 function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
   return `boundary ${feature.properties.id} captured ${formatDateTime(feature.properties.capturedAt)} by ${feature.properties.inspector.name}`;
@@ -80,7 +80,7 @@ export function BoundariesList({
                         <time dateTime={feature.properties.capturedAt}>{formatDateTime(feature.properties.capturedAt)}</time>
                       </button>
                     </td>
-                    <td>{formatAreaSqm(feature.properties.areaSqm)}</td>
+                    <td>{formatAffectedArea(feature.properties.areaSqm / 10_000)}</td>
                     <td>{feature.properties.inspector.name}</td>
                     <td className="field-validation-table__action-cell">
                       <button

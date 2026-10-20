@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Map, NavigationControl, Popup, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
 import { X } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
-import { formatAreaSqm, formatDateTime } from "../../lib/formatters";
+import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
 import { env } from "../../config/env";
 import { resolveBasemapStyle } from "../fieldValidation/localBasemap";
 
@@ -172,9 +172,9 @@ export function BoundariesMap({
     setProviderState("error");
   };
 
-  const handleSourceData = (event: { sourceId?: string; sourceDataType?: string }) => {
-    if (!hasLoadedMap.current || event.sourceDataType !== "content") return;
-    if (event.sourceId === "field-boundaries" || event.sourceId === "field-boundaries-selected") return;
+  const handleSourceData = (event: { sourceId?: string; tile?: unknown }) => {
+    if (!hasLoadedMap.current || !event.tile || !event.sourceId) return;
+    if (event.sourceId.startsWith("field-boundaries")) return;
     setTransientError(false);
   };
 
@@ -256,7 +256,7 @@ export function BoundariesMap({
                     </div>
                     <dl>
                       <div><dt>Captured</dt><dd>{formatDateTime(selectedFeature.properties.capturedAt)}</dd></div>
-                      <div><dt>Area · device-reported</dt><dd>{formatAreaSqm(selectedFeature.properties.areaSqm)}</dd></div>
+                      <div><dt>Area · device-reported</dt><dd>{formatAffectedArea(selectedFeature.properties.areaSqm / 10_000)}</dd></div>
                       <div><dt>Inspector</dt><dd>{selectedFeature.properties.inspector.name}</dd></div>
                     </dl>
                   </div>

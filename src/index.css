@@ -3200,7 +3200,7 @@ body:has(.login-page--portal)::before {
 }
 
 .boundaries-map__transient-status {
-  inset: 16px 16px auto auto;
+  inset: 16px auto auto 16px;
   display: flex;
   width: min(460px, calc(100% - 32px));
   align-items: center;
