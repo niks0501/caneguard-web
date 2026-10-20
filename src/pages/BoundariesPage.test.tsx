@@ -172,8 +172,8 @@ describe("BoundariesPage", () => {
     }));
     renderPage();
 
-    const notice = screen.getByRole("status");
-    expect(notice).toHaveTextContent("Showing the newest 100 boundaries. More exist beyond this view.");
+    const notice = screen.getByText("Showing the newest 100 boundaries. More exist beyond this view.");
+    expect(notice).toHaveAttribute("role", "status");
     expect(notice).not.toHaveTextContent("of 100");
   });
 

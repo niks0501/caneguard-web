@@ -9338,10 +9338,6 @@ button.monitoring-calendar__day-number:focus-visible {
   border: 3px solid var(--color-accent-dark);
 }
 
-.boundaries-map__popup {
-  min-width: min(280px, calc(100vw - 60px));
-}
-
 .boundaries-map__popup-heading {
   display: flex;
   align-items: flex-start;
