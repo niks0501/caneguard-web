@@ -54,18 +54,25 @@ export const fieldSurveyBoundariesResponseSchema = z.object({
       message: "returned_count must match the number of features.",
     });
   }
-  if (metadata.returned_count > metadata.total_count || metadata.returned_count > metadata.limit) {
+  if (metadata.returned_count > metadata.limit) {
     context.addIssue({
       code: "custom",
-      path: ["metadata"],
-      message: "Returned feature count cannot exceed the total count or limit.",
+      path: ["metadata", "returned_count"],
+      message: "returned_count cannot exceed the response limit.",
     });
   }
-  if (metadata.truncated !== (metadata.returned_count < metadata.total_count)) {
+  if (metadata.truncated && metadata.returned_count !== metadata.limit) {
     context.addIssue({
       code: "custom",
       path: ["metadata", "truncated"],
-      message: "truncated must reflect whether the response omits scoped features.",
+      message: "Truncated responses must fill the requested limit.",
+    });
+  }
+  if (!metadata.truncated && metadata.returned_count < Math.min(metadata.total_count, metadata.limit)) {
+    context.addIssue({
+      code: "custom",
+      path: ["metadata", "truncated"],
+      message: "Untruncated responses must include all available rows up to the limit.",
     });
   }
 });

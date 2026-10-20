@@ -3199,6 +3199,15 @@ body:has(.login-page--portal)::before {
   line-height: 1.55;
 }
 
+.boundaries-map__transient-status {
+  inset: 16px 16px auto auto;
+  width: min(390px, calc(100% - 32px));
+  padding: 12px 16px;
+  pointer-events: none;
+  text-align: left;
+  transform: none;
+}
+
 .validation-map__legend {
   display: flex;
   align-items: flex-start;
@@ -9287,13 +9296,6 @@ button.monitoring-calendar__day-number:focus-visible {
   min-width: 0;
 }
 
-.boundaries-map-card__heading h2 {
-  margin: 0;
-  color: var(--color-primary-dark);
-  font-family: var(--font-heading);
-  font-size: var(--text-section-title);
-}
-
 .boundaries-map {
   height: 460px;
 }
@@ -9395,7 +9397,15 @@ button.monitoring-calendar__day-number:focus-visible {
   margin: 0;
 }
 
-.boundaries-list__heading > span {
+.boundaries-list__heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.boundaries-list__heading-actions > span {
   color: var(--color-muted);
   font-size: var(--text-body-sm);
 }

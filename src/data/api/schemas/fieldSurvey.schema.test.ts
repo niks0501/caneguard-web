@@ -101,7 +101,54 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
     })).success).toBe(false);
   });
 
-  it("rejects metadata that misstates whether the collection was truncated", () => {
+  it("accepts count/get races while preserving the returned feature count", () => {
+    const feature = response().features[0];
+    const features = Array.from({ length: 43 }, (_, index) => ({
+      ...feature,
+      id: String(index + 1),
+      properties: { ...feature.properties, id: index + 1 },
+    }));
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features,
+      metadata: { total_count: 42, returned_count: 43, limit: 100, truncated: false },
+    })).success).toBe(true);
+
+    const limitFeatures = Array.from({ length: 100 }, (_, index) => ({
+      ...feature,
+      id: String(index + 1),
+      properties: { ...feature.properties, id: index + 1 },
+    }));
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: limitFeatures,
+      metadata: { total_count: 100, returned_count: 100, limit: 100, truncated: true },
+    })).success).toBe(true);
+  });
+
+  it("rejects inconsistent returned counts and incomplete truncation states", () => {
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      metadata: { total_count: 1, returned_count: 2, limit: 100, truncated: false },
+    })).success).toBe(false);
+
+    const twoFeatures = Array.from({ length: 2 }, (_, index) => ({
+      ...response().features[0],
+      id: String(index + 1),
+      properties: { ...response().features[0].properties, id: index + 1 },
+    }));
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: twoFeatures,
+      metadata: { total_count: 2, returned_count: 2, limit: 1, truncated: false },
+    })).success).toBe(false);
+
+    const features = Array.from({ length: 99 }, (_, index) => ({
+      ...response().features[0],
+      id: String(index + 1),
+      properties: { ...response().features[0].properties, id: index + 1 },
+    }));
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features,
+      metadata: { total_count: 101, returned_count: 99, limit: 100, truncated: true },
+    })).success).toBe(false);
+
     expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
       metadata: { total_count: 2, returned_count: 1, limit: 100, truncated: false },
     })).success).toBe(false);

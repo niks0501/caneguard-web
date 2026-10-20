@@ -65,10 +65,10 @@ function LocationProbe() {
   return <output data-testid="location">{location.pathname}{location.search}</output>;
 }
 
-function renderPage(initialEntry = "/monitoring?view=boundaries") {
+function renderPage(initialEntry = "/monitoring?view=boundaries", embedded = true) {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
-      <BoundariesPage embedded />
+      <BoundariesPage embedded={embedded} />
       <LocationProbe />
     </MemoryRouter>,
   );
@@ -79,6 +79,26 @@ beforeEach(() => {
 });
 
 describe("BoundariesPage", () => {
+  it("keeps the embedded view free of a page heading and exposes refresh in the records card", async () => {
+    const refetch = vi.fn();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary, { refetch }));
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    const refresh = screen.getByRole("button", { name: "Refresh boundaries" });
+    expect(screen.getByRole("heading", { name: "Boundary records" }).parentElement).toContainElement(refresh);
+    await user.click(refresh);
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the page heading and refresh action when rendered standalone", () => {
+    renderPage("/monitoring", false);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Field boundaries" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh boundaries" })).toBeInTheDocument();
+  });
+
   it("shows the loading state while boundary data is pending", () => {
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(undefined, { isPending: true }));
     renderPage();

@@ -11,6 +11,7 @@ type CapturedMapProps = {
   interactiveLayerIds?: string[];
   onClick?: (event: never) => void;
   onError?: () => void;
+  onIdle?: () => void;
   onLoad?: (event: never) => void;
 };
 
@@ -170,5 +171,50 @@ describe("BoundariesMap", () => {
     expect(screen.getByRole("region", { name: "Map of recorded field boundaries" })).toHaveTextContent("Map unavailable.");
     expect(screen.getByText("Recorded field boundary")).toBeInTheDocument();
     expect(screen.getByText("Selected boundary")).toBeInTheDocument();
+  });
+
+  it("keeps a loaded map interactive after a tile error and clears its notice on idle", () => {
+    const data = boundaryData();
+    const onSelect = vi.fn();
+    const { rerender } = render(<BoundariesMap data={data} onSelect={onSelect} />);
+    loadMap();
+
+    act(() => {
+      mapTestState.latestProps?.onError?.();
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Map tiles are temporarily unavailable.");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    rerender(<BoundariesMap data={data} selectedBoundaryId="123" onSelect={onSelect} />);
+    expect(mapTestState.controls.fitBounds).toHaveBeenLastCalledWith(
+      [[122.95, 10.7], [122.951, 10.701]],
+      { padding: 80, maxZoom: 15 },
+    );
+
+    act(() => {
+      mapTestState.latestProps?.onClick?.({
+        features: [{ properties: { boundary_id: "123" } }],
+        lngLat: { lng: 122.9505, lat: 10.7005 },
+      } as never);
+    });
+    expect(onSelect).toHaveBeenCalledWith("123", [122.9505, 10.7005]);
+
+    act(() => {
+      mapTestState.latestProps?.onIdle?.();
+    });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("shows a pre-load map failure until the style successfully loads", () => {
+    render(<BoundariesMap data={boundaryData()} />);
+
+    act(() => {
+      mapTestState.latestProps?.onError?.();
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("Map unavailable.");
+
+    loadMap();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

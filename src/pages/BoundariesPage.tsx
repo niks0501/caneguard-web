@@ -73,21 +73,23 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
   };
 
   return (
-    <PageContent className={`page-content--field-boundaries${embedded ? " page-content--embedded" : ""}`}>
-      <PageHeader
-        title="Field boundaries"
-        description="Recorded plot outlines, newest first."
-        actions={(
-          <Button
-            variant="secondary"
-            icon={<RefreshCw aria-hidden="true" className={query.isFetching ? "spin" : undefined} />}
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-          >
-            {query.isFetching ? "Refreshing boundaries" : "Refresh boundaries"}
-          </Button>
-        )}
-      />
+    <PageContent className={embedded ? "page-content--embedded" : ""}>
+      {!embedded ? (
+        <PageHeader
+          title="Field boundaries"
+          description="Recorded plot outlines, newest first."
+          actions={(
+            <Button
+              variant="secondary"
+              icon={<RefreshCw aria-hidden="true" className={query.isFetching ? "spin" : undefined} />}
+              disabled={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              {query.isFetching ? "Refreshing boundaries" : "Refresh boundaries"}
+            </Button>
+          )}
+        />
+      ) : null}
       {query.isRefetchError && hasCachedData && !cannotDisplayCachedData ? (
         <p className="queue-refresh-warning" role="alert">
           {query.error instanceof ZodError
@@ -110,7 +112,13 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
             onSelect={selectFromMap}
             onClearSelection={clearSelection}
           />
-          <BoundariesList data={data} selectedBoundaryId={selectedBoundaryId} onSelect={selectFromList} />
+          <BoundariesList
+            data={data}
+            selectedBoundaryId={selectedBoundaryId}
+            onSelect={selectFromList}
+            isFetching={query.isFetching}
+            onRefresh={embedded ? () => void query.refetch() : undefined}
+          />
         </div>
       ) : null}
     </PageContent>

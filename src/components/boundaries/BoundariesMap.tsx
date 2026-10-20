@@ -36,8 +36,16 @@ function boundsCenter(feature: FieldSurveyBoundaryFeature): FieldSurveyPosition 
   return [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2];
 }
 
-function MapProviderStatus({ state }: { state: MapProviderState }) {
-  if (state === "ready") return null;
+function MapProviderStatus({ state, transientError }: { state: MapProviderState; transientError: boolean }) {
+  if (state === "ready") {
+    if (!transientError) return null;
+    return (
+      <div className="validation-map__provider-status boundaries-map__transient-status" role="status">
+        <strong>Map tiles are temporarily unavailable.</strong>
+        <p>The map remains interactive. This notice clears when loading recovers.</p>
+      </div>
+    );
+  }
   if (state === "error") {
     return (
       <div className="validation-map__provider-status validation-map__provider-status--error" role="alert">
@@ -79,7 +87,9 @@ export function BoundariesMap({
   onClearSelection?: () => void;
 }) {
   const [providerState, setProviderState] = useState<MapProviderState>("loading");
+  const [transientError, setTransientError] = useState(false);
   const mapRef = useRef<MapRef | null>(null);
+  const hasLoadedMap = useRef(false);
   const hasFittedInitialData = useRef(false);
   const lastFittedSelection = useRef<string | null>(null);
   const basemapStyle = resolveBasemapStyle(env.mapTilerKey, import.meta.env.DEV);
@@ -134,7 +144,21 @@ export function BoundariesMap({
 
   const handleMapLoad = (event: { target: unknown }) => {
     mapRef.current = event.target as MapRef;
+    hasLoadedMap.current = true;
+    setTransientError(false);
     setProviderState("ready");
+  };
+
+  const handleMapError = () => {
+    if (hasLoadedMap.current) {
+      setTransientError(true);
+      return;
+    }
+    setProviderState("error");
+  };
+
+  const handleMapIdle = () => {
+    if (hasLoadedMap.current) setTransientError(false);
   };
 
   const handleClick = (event: MapLayerMouseEvent) => {
@@ -162,7 +186,8 @@ export function BoundariesMap({
               interactiveLayerIds={["field-boundaries-fill", "field-boundaries-outline"]}
               onClick={handleClick}
               onLoad={handleMapLoad}
-              onError={() => setProviderState("error")}
+              onError={handleMapError}
+              onIdle={handleMapIdle}
               reuseMaps
             >
               <NavigationControl position="top-right" showCompass={false} />
@@ -211,7 +236,7 @@ export function BoundariesMap({
                 </Popup>
               ) : null}
             </Map>
-            <MapProviderStatus state={providerState} />
+            <MapProviderStatus state={providerState} transientError={transientError} />
           </>
         ) : (
           <div className="validation-map__unavailable" role="alert">

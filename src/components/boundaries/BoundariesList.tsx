@@ -1,4 +1,6 @@
+import { RefreshCw } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
+import { Button } from "../ui/Button";
 import { formatAreaSqm, formatDateTime } from "../../lib/formatters";
 
 function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
@@ -9,18 +11,33 @@ export function BoundariesList({
   data,
   selectedBoundaryId,
   onSelect,
+  isFetching = false,
+  onRefresh,
 }: {
   data: FieldSurveyBoundariesData;
   selectedBoundaryId: string | null;
   onSelect: (boundaryId: string) => void;
+  isFetching?: boolean;
+  onRefresh?: () => void;
 }) {
   return (
     <section className="field-validation-table-card boundaries-list-card" aria-labelledby="boundaries-list-heading">
       <div className="workspace-heading boundaries-list__heading">
-        <div>
-          <h2 id="boundaries-list-heading">Boundary records</h2>
+        <h2 id="boundaries-list-heading">Boundary records</h2>
+        <div className="boundaries-list__heading-actions">
+          <span>{data.metadata.returnedCount} shown</span>
+          {onRefresh ? (
+            <Button
+              variant="secondary"
+              className="boundaries-list__refresh"
+              icon={<RefreshCw aria-hidden="true" className={isFetching ? "spin" : undefined} />}
+              disabled={isFetching}
+              onClick={onRefresh}
+            >
+              {isFetching ? "Refreshing boundaries" : "Refresh boundaries"}
+            </Button>
+          ) : null}
         </div>
-        <span>{data.metadata.returnedCount} shown</span>
       </div>
       {data.metadata.truncated ? (
         <p className="boundaries-list__truncated" role="status">
