@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { ApiError } from "../../api/ApiError";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPolygon, ReportAffectedField } from "../../domain/fieldSurvey.types";
 import type { DiseaseReport } from "../../domain/report.types";
@@ -48,6 +49,7 @@ function queryResult(features: FieldSurveyBoundaryFeature[] = [], overrides: Rec
     error: null,
     isError: false,
     isPending: false,
+    isSuccess: true,
     isFetching: false,
     isRefetchError: false,
     refetch: vi.fn(),
@@ -181,5 +183,132 @@ describe("AffectedFieldLinkage", () => {
       "/monitoring?view=boundaries",
     );
     expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeDisabled();
+  });
+
+  it("does not claim the archive is empty while boundaries are loading", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([], {
+      data: undefined,
+      isPending: true,
+      isSuccess: false,
+      isFetching: true,
+    }));
+
+    renderLinkage();
+
+    expect(screen.getByText("Loading field boundaries…")).toBeInTheDocument();
+    expect(screen.queryByText("No recorded field boundaries are available to link.")).not.toBeInTheDocument();
+  });
+
+  it("does not claim the archive is empty when its initial request fails", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([], {
+      data: undefined,
+      isError: true,
+      isSuccess: false,
+    }));
+
+    renderLinkage();
+
+    expect(screen.getByText(/Field boundary choices are unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText("No recorded field boundaries are available to link.")).not.toBeInTheDocument();
+  });
+
+  it("does not claim the archive is empty after a failed refresh", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([], {
+      isError: true,
+      isSuccess: false,
+      isRefetchError: true,
+    }));
+
+    renderLinkage();
+
+    expect(screen.getByText(/boundary archive could not be refreshed/)).toBeInTheDocument();
+    expect(screen.queryByText("No recorded field boundaries are available to link.")).not.toBeInTheDocument();
+  });
+
+  it("keeps the draft version through refreshes and advances it only when replacing the draft", async () => {
+    const user = userEvent.setup();
+    const originalField = affectedField(123, 6075.12, 18.5);
+    const concurrentField = affectedField(999, 8000, 12);
+    const refreshedReport = report({ reviewVersion: 5, affectedFields: [originalField, concurrentField] });
+    const savedFields = [affectedField(123, 6075.12, 21), concurrentField];
+    let mutationError: unknown = null;
+    const reset = vi.fn(() => {
+      mutationError = null;
+    });
+    const save = vi.fn()
+      .mockImplementationOnce(async () => {
+        mutationError = new ApiError("Stale version", { status: 409 });
+        throw mutationError;
+      })
+      .mockResolvedValueOnce({ affectedFields: savedFields, version: 6, updatedAt: "2026-10-04T04:00:00.000Z" })
+      .mockResolvedValueOnce({
+        affectedFields: [affectedField(123, 6075.12, 22), concurrentField],
+        version: 7,
+        updatedAt: "2026-10-04T05:00:00.000Z",
+      });
+    const mutation = {
+      get error() { return mutationError; },
+      get isError() { return mutationError !== null; },
+      isPending: false,
+      mutateAsync: save,
+      reset,
+    } as unknown as ReturnType<typeof useUpdateReportAffectedFields>;
+    vi.mocked(useUpdateReportAffectedFields).mockReturnValue(mutation);
+
+    const onRefresh = vi.fn().mockResolvedValue({ data: refreshedReport });
+    const view = renderLinkage(report({ affectedFields: [originalField], reviewVersion: 4 }), onRefresh);
+    const rate = screen.getByLabelText("Office loss rate for boundary 123 (percent)");
+    await user.clear(rate);
+    await user.type(rate, "21");
+
+    view.rerender(
+      <MemoryRouter>
+        <AffectedFieldLinkage report={refreshedReport} onRefresh={onRefresh} />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole("button", { name: "Save affected boundaries" }));
+
+    expect(save).toHaveBeenNthCalledWith(1, {
+      expectedVersion: 4,
+      affectedFields: [{ fieldSurveyId: 123, lossRatePercent: 21 }],
+    });
+    view.rerender(
+      <MemoryRouter>
+        <AffectedFieldLinkage report={refreshedReport} onRefresh={onRefresh} />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole("button", { name: "Refresh case and discard draft changes" }));
+    expect(onRefresh).toHaveBeenCalledOnce();
+
+    const refreshedRate = screen.getByLabelText("Office loss rate for boundary 123 (percent)");
+    await user.clear(refreshedRate);
+    await user.type(refreshedRate, "21");
+    await user.click(screen.getByRole("button", { name: "Save affected boundaries" }));
+    expect(save).toHaveBeenNthCalledWith(2, {
+      expectedVersion: 5,
+      affectedFields: [
+        { fieldSurveyId: 123, lossRatePercent: 21 },
+        { fieldSurveyId: 999, lossRatePercent: 12 },
+      ],
+    });
+    expect(await screen.findByText("Affected field boundaries saved.")).toBeInTheDocument();
+
+    const savedReport = report({ reviewVersion: 6, affectedFields: savedFields });
+    view.rerender(
+      <MemoryRouter>
+        <AffectedFieldLinkage report={savedReport} onRefresh={onRefresh} />
+      </MemoryRouter>,
+    );
+    const savedRate = screen.getByLabelText("Office loss rate for boundary 123 (percent)");
+    await user.clear(savedRate);
+    await user.type(savedRate, "22");
+    await user.click(screen.getByRole("button", { name: "Save affected boundaries" }));
+    expect(save).toHaveBeenNthCalledWith(3, {
+      expectedVersion: 6,
+      affectedFields: [
+        { fieldSurveyId: 123, lossRatePercent: 22 },
+        { fieldSurveyId: 999, lossRatePercent: 12 },
+      ],
+    });
   });
 });

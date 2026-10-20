@@ -89,6 +89,7 @@ export function AffectedFieldLinkage({
   const surveysQuery = useFieldSurveys(FIELD_SURVEYS_MAX_LIMIT);
   const updateMutation = useUpdateReportAffectedFields(report.uuid);
   const [draft, setDraft] = useState<RateDraft>(() => ratesFor(report.affectedFields));
+  const [draftVersion, setDraftVersion] = useState<number | undefined>(() => report.reviewVersion);
   const [draftChoices, setDraftChoices] = useState<BoundaryChoice[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
@@ -98,6 +99,12 @@ export function AffectedFieldLinkage({
     linkedFields,
     draftChoices,
   );
+  const archiveIsEmpty = surveysQuery.isSuccess
+    && !surveysQuery.isFetching
+    && !surveysQuery.isError
+    && !surveysQuery.isRefetchError
+    && linkedFields.length === 0
+    && choices.length === 0;
   const selectedIds = Object.keys(draft);
   const parsedFields = selectedIds.map((id) => ({
     fieldSurveyId: Number(id),
@@ -135,17 +142,18 @@ export function AffectedFieldLinkage({
     event.preventDefault();
     setSubmitted(true);
     setSavedNotice(null);
-    if (!ratesValid || unchanged || report.reviewVersion === undefined) return;
+    if (!ratesValid || unchanged || draftVersion === undefined) return;
 
     try {
       const result = await updateMutation.mutateAsync({
-        expectedVersion: report.reviewVersion,
+        expectedVersion: draftVersion,
         affectedFields: parsedFields.map((field) => ({
           fieldSurveyId: field.fieldSurveyId,
           lossRatePercent: field.lossRatePercent as number,
         })),
       });
       setDraft(ratesFor(result.affectedFields));
+      setDraftVersion(result.version);
       setDraftChoices([]);
       setSubmitted(false);
       setSavedNotice("Affected field boundaries saved.");
@@ -159,6 +167,7 @@ export function AffectedFieldLinkage({
       const result = await onRefresh();
       if (result.data && !result.isError) {
         setDraft(ratesFor(result.data.affectedFields));
+        setDraftVersion(result.data.reviewVersion);
         setDraftChoices([]);
         updateMutation.reset();
         setSubmitted(false);
@@ -208,7 +217,7 @@ export function AffectedFieldLinkage({
 
       <form onSubmit={(event) => void save(event)}>
         {choices.length === 0 ? (
-          <p className="field-validation-table-card__empty">No recorded field boundaries are available to link.</p>
+          archiveIsEmpty && <p className="field-validation-table-card__empty">No recorded field boundaries are available to link.</p>
         ) : (
           <div className="affected-field-linkage__table-scroll">
             <table className="field-validation-table affected-field-linkage__table">
@@ -289,7 +298,7 @@ export function AffectedFieldLinkage({
         {submitted && !ratesValid ? (
           <p className="form-error" role="alert">Enter an office loss rate from 0 to 100 for each linked boundary.</p>
         ) : null}
-        {submitted && report.reviewVersion === undefined ? (
+        {submitted && draftVersion === undefined ? (
           <p className="form-error" role="alert">Refresh this case before saving affected boundaries.</p>
         ) : null}
         {mutationError ? (
