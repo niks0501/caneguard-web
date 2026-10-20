@@ -23,7 +23,7 @@ const boundariesDto = {
       inspector: { uuid: "inspector-1", name: "Maria Santos" },
     },
   }],
-  metadata: { total_count: 2, returned_count: 1, limit: 100, truncated: true },
+  metadata: { total_count: 1, returned_count: 1, limit: 100, truncated: false },
 };
 
 describe("ApiFieldSurveysRepository", () => {
@@ -49,7 +49,7 @@ describe("ApiFieldSurveysRepository", () => {
         inspector: { uuid: "inspector-1", name: "Maria Santos" },
       },
     });
-    expect(result.metadata).toEqual({ totalCount: 2, returnedCount: 1, limit: 100, truncated: true });
+    expect(result.metadata).toEqual({ totalCount: 1, returnedCount: 1, limit: 100, truncated: false });
   });
 
   it("uses the requested limit and surfaces an unexpected response as a ZodError", async () => {

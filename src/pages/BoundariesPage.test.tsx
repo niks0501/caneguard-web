@@ -160,6 +160,23 @@ describe("BoundariesPage", () => {
     expect(screen.getByText("Maria Santos")).toBeInTheDocument();
   });
 
+  it("does not imply the raced total is complete when the truncated count is not greater", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult({
+      ...oneBoundary,
+      features: Array.from({ length: 100 }, (_, index) => ({
+        ...oneBoundary.features[0],
+        id: String(index + 1),
+        properties: { ...oneBoundary.features[0].properties, id: index + 1 },
+      })),
+      metadata: { totalCount: 100, returnedCount: 100, limit: 100, truncated: true },
+    }));
+    renderPage();
+
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveTextContent("Showing the newest 100 boundaries. More exist beyond this view.");
+    expect(notice).not.toHaveTextContent("of 100");
+  });
+
   it("shows the truncated status, Manila time, area provenance, and accessible row actions", () => {
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult({
       ...oneBoundary,

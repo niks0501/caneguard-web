@@ -36,21 +36,35 @@ function boundsCenter(feature: FieldSurveyBoundaryFeature): FieldSurveyPosition 
   return [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2];
 }
 
-function MapProviderStatus({ state, transientError }: { state: MapProviderState; transientError: boolean }) {
+function MapProviderStatus({
+  state,
+  transientError,
+  onRetry,
+}: {
+  state: MapProviderState;
+  transientError: boolean;
+  onRetry: () => void;
+}) {
   if (state === "ready") {
     if (!transientError) return null;
     return (
-      <div className="validation-map__provider-status boundaries-map__transient-status" role="status">
-        <strong>Map tiles are temporarily unavailable.</strong>
-        <p>The map remains interactive. This notice clears when loading recovers.</p>
+      <div className="validation-map__provider-status boundaries-map__transient-status">
+        <div role="status">
+          <strong>Map tiles are temporarily unavailable.</strong>
+          <p>The map remains interactive.</p>
+        </div>
+        <button type="button" className="button button--secondary" onClick={onRetry}>Retry map</button>
       </div>
     );
   }
   if (state === "error") {
     return (
-      <div className="validation-map__provider-status validation-map__provider-status--error" role="alert">
-        <strong>Map unavailable.</strong>
-        <p>Field boundaries remain available in the list.</p>
+      <div className="validation-map__provider-status validation-map__provider-status--error">
+        <div role="alert">
+          <strong>Map unavailable.</strong>
+          <p>Field boundaries remain available in the list.</p>
+        </div>
+        <button type="button" className="button button--secondary" onClick={onRetry}>Retry map</button>
       </div>
     );
   }
@@ -88,6 +102,7 @@ export function BoundariesMap({
 }) {
   const [providerState, setProviderState] = useState<MapProviderState>("loading");
   const [transientError, setTransientError] = useState(false);
+  const [mapInstanceKey, setMapInstanceKey] = useState(0);
   const mapRef = useRef<MapRef | null>(null);
   const hasLoadedMap = useRef(false);
   const hasFittedInitialData = useRef(false);
@@ -157,8 +172,20 @@ export function BoundariesMap({
     setProviderState("error");
   };
 
-  const handleMapIdle = () => {
-    if (hasLoadedMap.current) setTransientError(false);
+  const handleSourceData = (event: { sourceId?: string; sourceDataType?: string }) => {
+    if (!hasLoadedMap.current || event.sourceDataType !== "content") return;
+    if (event.sourceId === "field-boundaries" || event.sourceId === "field-boundaries-selected") return;
+    setTransientError(false);
+  };
+
+  const handleRetryMap = () => {
+    hasLoadedMap.current = false;
+    hasFittedInitialData.current = false;
+    lastFittedSelection.current = null;
+    mapRef.current = null;
+    setTransientError(false);
+    setProviderState("loading");
+    setMapInstanceKey((key) => key + 1);
   };
 
   const handleClick = (event: MapLayerMouseEvent) => {
@@ -180,6 +207,7 @@ export function BoundariesMap({
         {basemapStyle ? (
           <>
             <Map
+              key={mapInstanceKey}
               ref={mapRef}
               initialViewState={OPERATING_AREA_VIEW}
               mapStyle={basemapStyle}
@@ -187,8 +215,7 @@ export function BoundariesMap({
               onClick={handleClick}
               onLoad={handleMapLoad}
               onError={handleMapError}
-              onIdle={handleMapIdle}
-              reuseMaps
+              onSourceData={handleSourceData}
             >
               <NavigationControl position="top-right" showCompass={false} />
               <Source id="field-boundaries" type="geojson" data={sourceData}>
@@ -236,7 +263,7 @@ export function BoundariesMap({
                 </Popup>
               ) : null}
             </Map>
-            <MapProviderStatus state={providerState} transientError={transientError} />
+            <MapProviderStatus state={providerState} transientError={transientError} onRetry={handleRetryMap} />
           </>
         ) : (
           <div className="validation-map__unavailable" role="alert">

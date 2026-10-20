@@ -41,7 +41,9 @@ export function BoundariesList({
       </div>
       {data.metadata.truncated ? (
         <p className="boundaries-list__truncated" role="status">
-          Showing the newest {data.metadata.returnedCount} of {data.metadata.totalCount} boundaries. The rest are not on this map.
+          {data.metadata.totalCount > data.metadata.returnedCount
+            ? `Showing the newest ${data.metadata.returnedCount} of ${data.metadata.totalCount} boundaries. The rest are not on this map.`
+            : `Showing the newest ${data.metadata.returnedCount} boundaries. More exist beyond this view.`}
         </p>
       ) : null}
       {data.features.length === 0 ? (

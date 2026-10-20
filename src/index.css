@@ -3201,11 +3201,28 @@ body:has(.login-page--portal)::before {
 
 .boundaries-map__transient-status {
   inset: 16px 16px auto auto;
-  width: min(390px, calc(100% - 32px));
+  display: flex;
+  width: min(460px, calc(100% - 32px));
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   padding: 12px 16px;
   pointer-events: none;
   text-align: left;
   transform: none;
+}
+
+.boundaries-map__transient-status > [role="status"] {
+  min-width: 0;
+}
+
+.boundaries-map__transient-status > .button {
+  flex: 0 0 auto;
+  pointer-events: auto;
+}
+
+.validation-map__provider-status > .button {
+  margin-top: var(--space-3);
 }
 
 .validation-map__legend {

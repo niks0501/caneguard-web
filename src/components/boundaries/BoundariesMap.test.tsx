@@ -11,8 +11,8 @@ type CapturedMapProps = {
   interactiveLayerIds?: string[];
   onClick?: (event: never) => void;
   onError?: () => void;
-  onIdle?: () => void;
   onLoad?: (event: never) => void;
+  onSourceData?: (event: { sourceId?: string; sourceDataType?: string }) => void;
 };
 
 const envState = vi.hoisted(() => ({ mapTilerKey: "test-map-key" }));
@@ -173,7 +173,7 @@ describe("BoundariesMap", () => {
     expect(screen.getByText("Selected boundary")).toBeInTheDocument();
   });
 
-  it("keeps a loaded map interactive after a tile error and clears its notice on idle", () => {
+  it("keeps a loaded map interactive until successful basemap content arrives", () => {
     const data = boundaryData();
     const onSelect = vi.fn();
     const { rerender } = render(<BoundariesMap data={data} onSelect={onSelect} />);
@@ -185,6 +185,7 @@ describe("BoundariesMap", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Map tiles are temporarily unavailable.");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry map" })).toBeInTheDocument();
 
     rerender(<BoundariesMap data={data} selectedBoundaryId="123" onSelect={onSelect} />);
     expect(mapTestState.controls.fitBounds).toHaveBeenLastCalledWith(
@@ -201,9 +202,33 @@ describe("BoundariesMap", () => {
     expect(onSelect).toHaveBeenCalledWith("123", [122.9505, 10.7005]);
 
     act(() => {
-      mapTestState.latestProps?.onIdle?.();
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "field-boundaries", sourceDataType: "content" });
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "field-boundaries-selected", sourceDataType: "content" });
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "basemap", sourceDataType: "metadata" });
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Map tiles are temporarily unavailable.");
+
+    act(() => {
+      mapTestState.latestProps?.onSourceData?.({ sourceId: "basemap", sourceDataType: "content" });
     });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("retries the map by loading a fresh instance", () => {
+    render(<BoundariesMap data={boundaryData()} />);
+    loadMap();
+
+    act(() => {
+      mapTestState.latestProps?.onError?.();
+    });
+    act(() => {
+      screen.getByRole("button", { name: "Retry map" }).click();
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading map...");
+    loadMap();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(mapTestState.controls.fitBounds).toHaveBeenCalledTimes(2);
   });
 
   it("shows a pre-load map failure until the style successfully loads", () => {
