@@ -79,7 +79,7 @@ Rate limiting returns **429**. None of these failures creates a survey.
 
 ## Scope and persistence
 
-This is receive-only pilot storage, separate from disease reports. District
+This contract is receive-only pilot storage, separate from disease reports. District
 scope uses the existing district/membership model, not a spatial district
 boundary test (that model contains no boundary geometry). Structural ring
 validation is not a topology, self-intersection or area-accuracy certification.
