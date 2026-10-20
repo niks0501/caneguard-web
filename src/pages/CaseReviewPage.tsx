@@ -14,6 +14,7 @@ import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
+import { AffectedFieldLinkage } from "../components/reports/AffectedFieldLinkage";
 import { ReviewDecisionForm } from "../components/reports/ReviewDecisionForm";
 import { reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
@@ -748,6 +749,8 @@ function CaseReviewContent() {
             </section>
           </details>
         </section>
+
+        <AffectedFieldLinkage key={report.uuid} report={report} onRefresh={() => reportQuery.refetch()} />
 
                 {report.fieldValidationAssignment?.completion ? (
                   <section

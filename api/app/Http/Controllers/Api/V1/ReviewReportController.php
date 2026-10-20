@@ -271,6 +271,7 @@ class ReviewReportController extends Controller
             'canonicalReport',
             'fieldValidationAssignment.assignee',
             'fieldValidationAssignment.assignedBy',
+            'affectedFieldSurveys.inspector',
             'classScores',
             'symptoms',
             'qualityWarnings',

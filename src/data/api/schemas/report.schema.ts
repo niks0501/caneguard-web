@@ -4,6 +4,7 @@ import {
   paginationMetaSchema,
   userSchema,
 } from "./common.schema";
+import { fieldSurveyPolygonSchema } from "./fieldSurvey.schema";
 
 export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
 export const authorityClassifiedConditionSchema = z.enum([
@@ -74,6 +75,15 @@ export const duplicateLinkageSchema = z.object({
   linked_by: userSchema.pick({ uuid: true, name: true }).nullable(),
   linked_at: z.iso.datetime({ offset: true }).nullable(),
   reason: z.string().nullable(),
+});
+export const reportAffectedFieldSchema = z.object({
+  field_survey_id: z.number().int().positive(),
+  geometry: fieldSurveyPolygonSchema,
+  captured_at: z.iso.datetime({ offset: true }),
+  area_sqm: z.number().nonnegative(),
+  area_source: z.literal("device_reported"),
+  inspector: userSchema.pick({ uuid: true, name: true }),
+  loss_rate_percent: z.number().min(0).max(100),
 });
 export const possibleMatchBasisSchema = z.enum([
   "same_condition",
@@ -474,6 +484,7 @@ export const reportDetailSchema = z.object({
     reviewed_at: z.iso.datetime({ offset: true }).nullable(),
   }),
   duplicate_linkage: duplicateLinkageSchema.optional(),
+  affected_fields: z.array(reportAffectedFieldSchema).optional(),
   audit: z.object({
     metadata_corrections: z.array(
       z.object({
@@ -523,6 +534,13 @@ export const reportDetailResponseSchema = z.object({
 });
 
 export const reviewResponseSchema = reportDetailResponseSchema;
+export const updateAffectedFieldsResponseSchema = z.object({
+  data: z.object({
+    affected_fields: z.array(reportAffectedFieldSchema),
+    version: z.number().int().nonnegative(),
+    updated_at: z.iso.datetime({ offset: true }),
+  }),
+});
 
 export type ReportLifecycleDto = z.infer<typeof reportLifecycleSchema>;
 export type ReportListItemDto = z.infer<typeof reportListItemSchema>;

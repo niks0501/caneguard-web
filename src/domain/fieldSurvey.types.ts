@@ -35,3 +35,32 @@ export interface FieldSurveyBoundariesData {
     truncated: boolean;
   };
 }
+
+export interface ReportAffectedField {
+  fieldSurveyId: number;
+  geometry: FieldSurveyPolygon;
+  capturedAt: string;
+  areaSqm: number;
+  areaSource: "device_reported";
+  inspector: {
+    uuid: string;
+    name: string;
+  };
+  lossRatePercent: number;
+}
+
+export interface AffectedFieldLinkInput {
+  fieldSurveyId: number;
+  lossRatePercent: number;
+}
+
+export interface UpdateAffectedFieldsInput {
+  expectedVersion: number;
+  affectedFields: AffectedFieldLinkInput[];
+}
+
+export interface UpdateAffectedFieldsResult {
+  affectedFields: ReportAffectedField[];
+  version: number;
+  updatedAt: string;
+}

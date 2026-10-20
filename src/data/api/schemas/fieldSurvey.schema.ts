@@ -17,13 +17,15 @@ const linearRingSchema = z.array(positionSchema).min(4).superRefine((positions, 
   }
 });
 
+export const fieldSurveyPolygonSchema = z.object({
+  type: z.literal("Polygon"),
+  coordinates: z.array(linearRingSchema).min(1),
+});
+
 export const fieldSurveyFeatureSchema = z.object({
   type: z.literal("Feature"),
   id: z.string().min(1),
-  geometry: z.object({
-    type: z.literal("Polygon"),
-    coordinates: z.array(linearRingSchema).min(1),
-  }),
+  geometry: fieldSurveyPolygonSchema,
   properties: z.object({
     id: z.number().int().positive(),
     captured_at: z.iso.datetime({ offset: true }),

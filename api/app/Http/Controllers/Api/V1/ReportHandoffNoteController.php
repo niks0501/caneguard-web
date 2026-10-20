@@ -32,7 +32,7 @@ class ReportHandoffNoteController extends Controller
         });
 
         return new ReportResource($report->refresh()->load([
-            'reporter', 'reviewer', 'advisory', 'classScores', 'symptoms', 'qualityWarnings',
+            'reporter', 'reviewer', 'advisory', 'affectedFieldSurveys.inspector', 'classScores', 'symptoms', 'qualityWarnings',
             'audits.actor', 'referral.officeReviewer', 'referrals', 'handoffNotes',
         ]));
     }

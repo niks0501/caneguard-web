@@ -148,6 +148,41 @@ describe("report mappers", () => {
     expect(report.reviewVersion).toBe(0);
   });
 
+  it("maps linked field surveys without recalculating their device-reported area", () => {
+    const report = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          affected_fields: [{
+            field_survey_id: 123,
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[122.95, 10.7], [122.951, 10.7], [122.95, 10.701], [122.95, 10.7]]],
+            },
+            captured_at: "2026-10-04T02:30:12.123456Z",
+            area_sqm: 6075.12,
+            area_source: "device_reported",
+            inspector: { uuid: "inspector-1", name: "Field Inspector" },
+            loss_rate_percent: 18.5,
+          }],
+        },
+      }).data,
+    );
+
+    expect(report.affectedFields).toEqual([{
+      fieldSurveyId: 123,
+      geometry: {
+        type: "Polygon",
+        coordinates: [[[122.95, 10.7], [122.951, 10.7], [122.95, 10.701], [122.95, 10.7]]],
+      },
+      capturedAt: "2026-10-04T02:30:12.123456Z",
+      areaSqm: 6075.12,
+      areaSource: "device_reported",
+      inspector: { uuid: "inspector-1", name: "Field Inspector" },
+      lossRatePercent: 18.5,
+    }]);
+  });
+
   it("preserves RSSI as reporter observation evidence while keeping the model result unchanged", () => {
     const rssi = mapReportDetail(
       reportDetailResponseSchema.parse({

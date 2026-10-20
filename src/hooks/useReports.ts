@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
+import type { UpdateAffectedFieldsInput } from "../domain/fieldSurvey.types";
 import type {
   DuplicateLinkInput,
   DuplicateUnlinkInput,
@@ -107,4 +108,27 @@ export function useUnlinkDuplicateReport(reportId: string) {
     reportId,
     (input) => reportsRepository.unlinkDuplicate(reportId, input),
   );
+}
+
+export function useUpdateReportAffectedFields(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateAffectedFieldsInput) =>
+      reportsRepository.updateAffectedFields(reportId, input),
+    onSuccess: async (result) => {
+      queryClient.setQueryData<DiseaseReport | null>(
+        reportKeys.detail(reportId),
+        (current) => current
+          ? {
+              ...current,
+              affectedFields: result.affectedFields,
+              reviewVersion: result.version,
+              updatedAt: result.updatedAt,
+            }
+          : current,
+      );
+      await invalidateReportDependentQueries(queryClient, { reportId });
+    },
+  });
 }

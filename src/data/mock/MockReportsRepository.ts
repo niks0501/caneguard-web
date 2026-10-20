@@ -1,5 +1,6 @@
 import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
+import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -35,6 +36,14 @@ const cloneReport = (report: DiseaseReport): DiseaseReport => ({
         actor: event.actor ? { ...event.actor } : null,
       }))
     : [],
+  affectedFields: report.affectedFields?.map((field) => ({
+    ...field,
+    geometry: {
+      type: "Polygon",
+      coordinates: field.geometry.coordinates.map((ring) => ring.map(([longitude, latitude]) => [longitude, latitude])),
+    },
+    inspector: { ...field.inspector },
+  })) ?? [],
   referral: report.referral
     ? {
         ...report.referral,
@@ -428,6 +437,43 @@ export class MockReportsRepository implements ReportsRepository {
     };
     this.reports[duplicateIndex] = updated;
     return cloneReport(updated);
+  }
+
+  async updateAffectedFields(
+    reportId: string,
+    input: UpdateAffectedFieldsInput,
+  ): Promise<UpdateAffectedFieldsResult> {
+    const index = this.reports.findIndex((report) => report.uuid === reportId);
+    if (index === -1) throw new Error(`Report ${reportId} was not found.`);
+
+    const current = this.reports[index];
+    if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new Error("The report changed while affected fields were being saved.");
+    }
+
+    const currentFields = current.affectedFields ?? [];
+    const currentById = new Map(currentFields.map((field) => [field.fieldSurveyId, field]));
+    const affectedFields = input.affectedFields.map((field) => {
+      const existing = currentById.get(field.fieldSurveyId);
+      if (!existing) throw new Error("The selected field boundary was not found.");
+      return { ...existing, lossRatePercent: field.lossRatePercent };
+    });
+    const unchanged = currentFields.length === affectedFields.length
+      && currentFields.every((field, position) =>
+        field.fieldSurveyId === affectedFields[position]?.fieldSurveyId
+        && field.lossRatePercent === affectedFields[position]?.lossRatePercent,
+      );
+    const updatedAt = unchanged ? current.updatedAt ?? current.submittedAt : new Date().toISOString();
+    const version = unchanged ? input.expectedVersion : input.expectedVersion + 1;
+
+    this.reports[index] = {
+      ...current,
+      affectedFields,
+      reviewVersion: version,
+      updatedAt,
+    };
+
+    return { affectedFields: cloneReport(this.reports[index]).affectedFields ?? [], version, updatedAt };
   }
 
   async unlinkDuplicate(

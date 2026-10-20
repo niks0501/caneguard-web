@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable(['client_uuid', 'inspector_id', 'district_id', 'polygon', 'area_sqm', 'captured_at'])]
 class FieldSurvey extends Model
@@ -23,5 +24,15 @@ class FieldSurvey extends Model
     public function inspector(): BelongsTo
     {
         return $this->belongsTo(User::class, 'inspector_id');
+    }
+
+    /**
+     * @return BelongsToMany<Report, $this>
+     */
+    public function affectedReports(): BelongsToMany
+    {
+        return $this->belongsToMany(Report::class, 'report_affected_field_surveys')
+            ->withPivot('loss_rate_percent')
+            ->withTimestamps();
     }
 }

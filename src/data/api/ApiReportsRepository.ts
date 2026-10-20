@@ -4,6 +4,7 @@ import { ApiError } from "../../api/ApiError";
 import { axiosClient } from "../../api/axiosClient";
 import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
+import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -30,6 +31,7 @@ import {
   reportDetailResponseSchema,
   reportListResponseSchema,
   reviewResponseSchema,
+  updateAffectedFieldsResponseSchema,
 } from "./schemas/report.schema";
 import { monthlyReportSummaryResponseSchema } from "./schemas/reporting.schema";
 
@@ -281,6 +283,37 @@ export class ApiReportsRepository implements ReportsRepository {
     );
 
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);
+  }
+
+  async updateAffectedFields(
+    reportId: string,
+    input: UpdateAffectedFieldsInput,
+  ): Promise<UpdateAffectedFieldsResult> {
+    const response = await this.client.put(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/affected-fields`,
+      {
+        expected_version: input.expectedVersion,
+        affected_fields: input.affectedFields.map((field) => ({
+          field_survey_id: field.fieldSurveyId,
+          loss_rate_percent: field.lossRatePercent,
+        })),
+      },
+    );
+    const data = updateAffectedFieldsResponseSchema.parse(response.data).data;
+
+    return {
+      affectedFields: data.affected_fields.map((field) => ({
+        fieldSurveyId: field.field_survey_id,
+        geometry: field.geometry,
+        capturedAt: field.captured_at,
+        areaSqm: field.area_sqm,
+        areaSource: field.area_source,
+        inspector: field.inspector,
+        lossRatePercent: field.loss_rate_percent,
+      })),
+      version: data.version,
+      updatedAt: data.updated_at,
+    };
   }
 
   async unlinkDuplicate(
