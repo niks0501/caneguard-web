@@ -46,33 +46,35 @@ review:
 
 test:
   instructions: |
-    Follow PROJECT_CHECKS.md.
-    Run relevant fast automated tests.
+    Follow PROJECT_CHECKS.md. Classify task intent and critical paths, then declare
+    the validation tier in exactly one line in the report and status (for example,
+    "Tier: T1-fast" or "Tier: T3-high-stakes").
 
-    Use chrome-devtools-axi exclusively for live
-    browser verification.
+    Validation Tiers:
+    - T0 (Docs-Only): Markdown (*.md), docs/**, or documentation comments only.
+      Confirm documentation ownership and run git diff --check; no Markdown linter
+      is configured. Zero test suite or browser overhead (~10s).
+    - T1 (Fast Lane): Copy, non-critical config, styling, or dead code.
+      Run npm run lint, npm run typecheck, and npm test -- --run <test-file>.
+      No browser check or server startup (~45s).
+    - T2 (Feature): Standard non-critical features and business logic.
+      Run npm run verify:fast. Use exactly one targeted live check only if
+      user-visible UI or a live HTTP contract changed (~2-4m).
+    - T3 (High-Stakes): Authentication, authorization, database migrations,
+      critical API contracts, or other protected paths. Run the complete T3
+      gate from PROJECT_CHECKS.md, plus isolated adversarial review. Human-owned
+      tests are the sole proof; agent-written tests are notes. Unverified
+      behavior is NO-GO, never passed (~8-15m).
 
-    Assign a unique CHROME_DEVTOOLS_AXI_SESSION per run,
-    derived from the run or isolated worktree identity.
-    Reuse that session throughout verification.
-    Use AXI's default isolated Chrome launch mode.
-    Never attach to another worker's browser.
-    Do not set a shared CHROME_DEVTOOLS_AXI_PORT.
-    Start the application on an available worktree-owned port.
-
-    Verify affected workflows interactively.
-    Inspect browser output, console errors,
-    network activity, and API responses.
-
-    For API-dependent workflows, start an isolated
-    backend with disposable test data when available.
-    Never access production or shared databases.
-
-    Never use agent-device, phones, emulators, or ADB.
-    Do not require saved or replayable E2E scripts.
-
-    Report actual defects as no-go with evidence.
-    Report unavailable or unsupported live validation
-    as inconclusive with manual verification steps.
-    Never mark unverified behavior as passed.
-    Clean up only resources owned by this run.
+    Live Verification & Environment Rules:
+    - Use exactly one targeted chrome-devtools-axi check only when user-visible
+      UI or a live HTTP contract changed. Never launch a browser for backend-only
+      work, docs, or migrations.
+    - Device emulators, ADB, agent-device, and staging evidence are allowed only
+      when the task brief explicitly names them.
+    - Ambiguous intent: report and wait via needs-decision; never silently change
+      tiers. Scope creep: escalate immediately and prefer simplification.
+    - Never access production or shared databases. Use only isolated test data.
+    - Report actual defects as no-go with evidence. Report unavailable or
+      unsupported validation as inconclusive with manual verification steps.
+    - Clean up only resources owned by this run.

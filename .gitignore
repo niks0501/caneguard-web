@@ -70,7 +70,6 @@ graphify-out/.graphify_uncached.txt
 # QA staging runtime, credentials, worktree, service state, and logs
 /.qa-staging/*
 !/.qa-staging/staging.env.example
-.no-mistakes.yaml
 
 
 

@@ -62,6 +62,7 @@
     "check:api": "npm run api:test && npm run api:format:check",
     "verify:fast": "npm run check:web",
     "verify:backend": "npm run check:api && npm run api:test:mysql",
+    "verify:contract:consumer": "npm run contract:artifact && npm run contract:v2:artifact && npm run contract:status-v3-artifact && npm run contract:assignment-artifact && npm run contract:completion-artifact && npm run contract:notification-artifact && npm run contract:lifecycle-artifact && npm run contract:config && npm run contract:test && npm run contract:consumer && npm run contract:assignment-consumer && npm run contract:completion-consumer && npm run contract:notification-consumer && npm run contract:lifecycle-consumer",
     "verify:contract": "npm run contract:gate",
     "check:all": "npm run check:web && npm run check:api && npm run graphify:validate"
   },
