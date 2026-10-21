@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\V1\ReportHandoffNoteController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
+use App\Http\Controllers\Api\V1\UpdateReportAffectedFieldsController;
 use App\Http\Controllers\Api\V1\WebAccountsController;
 use App\Http\Controllers\Api\V2\AccountsController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
@@ -150,6 +151,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::get('/reports/{report}/possible-matches', ReportPossibleMatchesController::class)
             ->name('api.v1.reports.possible-matches');
         Route::get('/reports/{report}', [ReportController::class, 'show']);
+        Route::put('/reports/{report}/affected-fields', UpdateReportAffectedFieldsController::class)
+            ->name('api.v1.reports.affected-fields.update');
         Route::patch('/reports/{report}/review', ReviewReportController::class);
         Route::post('/reports/{report}/open', OpenReportController::class)
             ->name('api.v1.reports.open');

@@ -1,3 +1,4 @@
+import type { ReportAffectedField } from "./fieldSurvey.types";
 import type { OperationalQueue } from "./operationalQueue";
 import type { WorkflowStatus } from "./workflowStatus";
 
@@ -400,6 +401,7 @@ export interface DiseaseReport {
   updatedAt?: string;
   metadataCorrectionAudits?: ReportAudit[];
   canonicalLinkage?: CanonicalCaseLink;
+  affectedFields?: ReportAffectedField[];
   advisory?: (Advisory & {
     selectedAt?: string | null;
     deliveryState?: AdvisoryDeliveryState;

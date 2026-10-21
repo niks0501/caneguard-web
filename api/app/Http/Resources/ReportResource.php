@@ -136,6 +136,11 @@ class ReportResource extends JsonResource
                 ] : null,
             ),
             'duplicate_linkage' => $this->duplicateLinkage(),
+            'affected_fields' => $this->when(
+                $this->relationLoaded('affectedFieldSurveys'),
+                fn () => ReportAffectedFieldResource::collection($this->affectedFieldSurveys)
+                    ->resolve($request),
+            ),
             'field_validation_assignment' => $this->when(
                 $this->relationLoaded('fieldValidationAssignment'),
                 fn () => $this->fieldValidationAssignment

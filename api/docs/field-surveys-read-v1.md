@@ -75,3 +75,6 @@ Responses use `Cache-Control: private, no-store`. The route is separate from
 `GET /api/v1/reports/map`; boundaries are not report points and do not enter the
 validation queue. This endpoint adds no schema, mobile, role, or write-path
 changes.
+
+Linking these boundaries to a disease case is a separate write contract: see
+[Report affected fields contract v1](report-affected-fields-v1.md).

@@ -4,6 +4,7 @@ import type {
   PaginationMeta,
   ReportCaseHistory,
 } from "../../../domain/report.types";
+import type { ReportAffectedField } from "../../../domain/fieldSurvey.types";
 import type {
   ReportDetailDto,
   ReportListItemDto,
@@ -165,6 +166,20 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
     followUp: dto.follow_up
       ? { dueOn: dto.follow_up.due_on, overdue: dto.follow_up.overdue }
       : undefined,
+  };
+}
+
+export function mapReportAffectedField(
+  dto: NonNullable<ReportDetailDto["affected_fields"]>[number],
+): ReportAffectedField {
+  return {
+    fieldSurveyId: dto.field_survey_id,
+    geometry: dto.geometry,
+    capturedAt: dto.captured_at,
+    areaSqm: dto.area_sqm,
+    areaSource: dto.area_source,
+    inspector: dto.inspector,
+    lossRatePercent: dto.loss_rate_percent,
   };
 }
 
@@ -369,6 +384,7 @@ export function mapReportDetail(
       createdAt: audit.created_at,
       reason: audit.reason,
     })),
+    affectedFields: dto.affected_fields?.map(mapReportAffectedField) ?? [],
     canonicalLinkage: dto.duplicate_linkage
       ? {
           isDuplicate: dto.duplicate_linkage.is_duplicate,

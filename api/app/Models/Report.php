@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -581,6 +582,16 @@ class Report extends Model
     public function duplicateReports(): HasMany
     {
         return $this->hasMany(self::class, 'canonical_report_id');
+    }
+
+    /**
+     * @return BelongsToMany<FieldSurvey, $this>
+     */
+    public function affectedFieldSurveys(): BelongsToMany
+    {
+        return $this->belongsToMany(FieldSurvey::class, 'report_affected_field_surveys')
+            ->withPivot('loss_rate_percent')
+            ->withTimestamps();
     }
 
     /**

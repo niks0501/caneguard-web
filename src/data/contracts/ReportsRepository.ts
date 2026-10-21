@@ -1,4 +1,5 @@
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
+import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
 import type {
   Advisory,
   DiseaseReport,
@@ -35,5 +36,9 @@ export interface ReportsRepository {
     reportId: string,
     input: DuplicateUnlinkInput,
   ): Promise<DiseaseReport>;
+  updateAffectedFields(
+    reportId: string,
+    input: UpdateAffectedFieldsInput,
+  ): Promise<UpdateAffectedFieldsResult>;
 }
 

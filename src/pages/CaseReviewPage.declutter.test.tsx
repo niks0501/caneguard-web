@@ -6,6 +6,7 @@ import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
 import { reportDetailDto } from "../test/fixtures";
 import { useFieldReporters } from "../hooks/useFieldReporters";
+import { useFieldSurveys } from "../hooks/fieldSurveys";
 import {
   useAdvisories,
   useRecordHandoffNote,
@@ -15,6 +16,7 @@ import {
   useUnlinkDuplicateReport,
   useReport,
   useUpdateReportReview,
+  useUpdateReportAffectedFields,
 } from "../hooks/useReports";
 import { CaseReviewPage } from "./CaseReviewPage";
 
@@ -28,7 +30,10 @@ vi.mock("../hooks/useReports", () => ({
   useOpenCase: vi.fn(() => ({ mutate: vi.fn() })),
   useReport: vi.fn(),
   useUpdateReportReview: vi.fn(),
+  useUpdateReportAffectedFields: vi.fn(),
 }));
+
+vi.mock("../hooks/fieldSurveys", () => ({ useFieldSurveys: vi.fn() }));
 
 vi.mock("../hooks/useFieldReporters", () => ({
   useFieldReporters: vi.fn(() => ({ data: [], isError: false })),
@@ -61,8 +66,19 @@ function renderPage(reportData = baseReport) {
   );
 }
 
+function mockAffectedFieldHooks() {
+  vi.mocked(useFieldSurveys).mockReturnValue({
+    data: { type: "FeatureCollection", features: [], metadata: { totalCount: 0, returnedCount: 0, limit: 250, truncated: false } },
+    error: null, isError: false, isPending: false, isFetching: false, isRefetchError: false, refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useFieldSurveys>);
+  vi.mocked(useUpdateReportAffectedFields).mockReturnValue({
+    error: null, isError: false, isPending: false, mutateAsync: vi.fn(), reset: vi.fn(),
+  } as unknown as ReturnType<typeof useUpdateReportAffectedFields>);
+}
+
 describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
   beforeEach(() => {
+    mockAffectedFieldHooks();
     vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
     vi.mocked(useRecordHandoffNote).mockReturnValue({ mutateAsync: vi.fn(), isPending: false, isError: false } as unknown as ReturnType<typeof useRecordHandoffNote>);
     vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
@@ -168,6 +184,7 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
 
 describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
   beforeEach(() => {
+    mockAffectedFieldHooks();
     vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
     vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
     vi.mocked(usePossibleRecentMatches).mockReturnValue({
