@@ -266,25 +266,27 @@ export function AffectedFieldLinkage({
                       <td>{formatAffectedArea(choice.areaSqm / 10_000)}</td>
                       <td>
                         {checked ? (
-                          <label className="affected-field-linkage__rate" htmlFor={rateId}>
-                            <span className="sr-only">Office loss rate for boundary {choice.id} (percent)</span>
-                            <input
-                              id={rateId}
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              value={draft[key] ?? ""}
-                              aria-invalid={rateInvalid}
-                              aria-describedby={rateInvalid ? `${rateId}-error` : undefined}
-                              onChange={(event) => {
-                                setDraft((current) => ({ ...current, [key]: event.target.value }));
-                                setSavedNotice(null);
-                                updateMutation.reset();
-                              }}
-                            />
+                          <div className="affected-field-linkage__rate">
+                            <label htmlFor={rateId}>
+                              <span className="sr-only">Office loss rate for boundary {choice.id} (percent)</span>
+                              <input
+                                id={rateId}
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value={draft[key] ?? ""}
+                                aria-invalid={rateInvalid}
+                                aria-describedby={rateInvalid ? `${rateId}-error` : undefined}
+                                onChange={(event) => {
+                                  setDraft((current) => ({ ...current, [key]: event.target.value }));
+                                  setSavedNotice(null);
+                                  updateMutation.reset();
+                                }}
+                              />
+                            </label>
                             {rateInvalid ? <span id={`${rateId}-error`} className="form-error">Enter a rate from 0 to 100.</span> : null}
-                          </label>
+                          </div>
                         ) : <span aria-hidden="true">—</span>}
                       </td>
                     </tr>

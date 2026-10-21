@@ -79,8 +79,11 @@ Rate limiting returns **429**. None of these failures creates a survey.
 
 ## Scope and persistence
 
-This contract is receive-only pilot storage, separate from disease reports. District
-scope uses the existing district/membership model, not a spatial district
+This contract is receive-only pilot storage; it never creates or mutates disease
+reports. Office reviewers can separately link stored surveys to disease cases as
+affected field boundaries, which stores only an office loss rate and never
+changes the survey geometry or phone-measured area. District scope uses the
+existing district/membership model, not a spatial district
 boundary test (that model contains no boundary geometry). Structural ring
 validation is not a topology, self-intersection or area-accuracy certification.
 No reporting, email, exports or production rollout are enabled here.
@@ -88,3 +91,4 @@ The additive migration retains survey data on rollback; deleting walked
 boundaries requires a separate explicit data-removal decision.
 
 Office read: see [Field surveys read contract v1](field-surveys-read-v1.md).
+Office case linkage: see [Report affected fields contract v1](report-affected-fields-v1.md).

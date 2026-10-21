@@ -253,7 +253,7 @@ describe("BoundariesPage", () => {
   it("announces an unavailable deep-linked boundary after a successful lookup", () => {
     renderPage("/monitoring?view=boundaries&boundary=999");
 
-    expect(screen.getByRole("status")).toHaveTextContent("The requested boundary is not available in the loaded field boundaries.");
+    expect(screen.getByText("The requested boundary is not available in the loaded field boundaries.")).toHaveAttribute("role", "status");
     expect(screen.getByTestId("map-selection")).toHaveTextContent("none");
   });
 
