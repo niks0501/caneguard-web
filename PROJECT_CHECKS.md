@@ -17,18 +17,31 @@ Iteration loop: run the focused test for the changed claim while iterating; warm
 - MySQL integration suite: `npm run api:test:mysql`
 - agent-facing backend gate: `npm run verify:backend`
 
-`verify:backend` composes `npm run check:api` and `npm run api:test:mysql`. The MySQL suite requires the disposable `caneguard_test` database described in the README.
+`verify:backend` composes `npm run check:api` and `npm run api:test:mysql`. The MySQL suite requires a disposable, migrated `firstmate_` database without application seed data; its tests create their own fixtures. The local PHPUnit default is `firstmate_cg_test`; the pull-request workflow provisions an isolated `firstmate_ci_mysql` service and migrates it before running the suite.
 
 ## Contract checks
 
-- local artifact and helper tests: `npm run contract:test`
-- full local and cross-repository contract gate: `npm run verify:contract`
+- consumer-only artifact, helper, and Laravel boundary gate: `npm run verify:contract:consumer`
+- full local and cross-repository producer gate: `npm run verify:contract`
 
-`verify:contract` delegates to `npm run contract:gate`, which validates the Web-owned artifacts, Laravel consumers, and the exact clean Mobile producer revision when `MOBILE_REPO_DIR` is configured. See [the contract gate guide](docs/testing/mobile-report-upload-contract-gate.md).
+`verify:contract:consumer` validates Web-owned artifacts, gate configuration, helper tests, and Laravel consumers. It does not check out Mobile or use a private token, so it is safe in pull-request workflows.
+
+`verify:contract` delegates to `contract:gate` and also runs Mobile producer suites. It requires a clean checkout of the exact pinned Mobile revision through `MOBILE_REPO_DIR` and the matching `MOBILE_REF`; the private checkout and token are reserved for the trusted main-branch workflow. See [the contract gate guide](docs/testing/mobile-report-upload-contract-gate.md).
+
+## Adaptive validation tiers
+
+Record the selected tier in exactly one line in the report and task status, such as `Tier: T1-fast` or `Tier: T3-high-stakes`.
+
+- **T0 — Docs-only:** Markdown (`*.md`), `docs/**`, or documentation comments only. Confirm the documentation owner and run `git diff --check`; no Markdown linter is configured. No test suite or browser check (~10s).
+- **T1 — Fast lane:** Copy, non-critical configuration, styling, or dead-code changes. Run `npm run lint && npm run typecheck && npm test -- --run <test-file>`. No browser or server startup (~45s).
+- **T2 — Feature:** Standard non-critical behavior. Run `npm run verify:fast`; run exactly one targeted `chrome-devtools-axi` check only when user-visible UI or a live HTTP contract changed (~2–4m).
+- **T3 — High-stakes:** Authentication, authorization, database migrations, critical API contracts, or other protected paths. Run `npm run verify:fast && npm run verify:backend && npm run verify:contract:consumer`, then conduct isolated adversarial review. Human-owned tests are the sole proof; agent-written tests are notes. No private Mobile checkout is used in pull requests; producer checks run only in the trusted main-branch workflow (~8–15m).
+
+The pull-request quality gate runs `npm run check:web`, `npm run check:api`, `npm run api:test:mysql` against an isolated migrated MySQL service with no demo seed data, and `npm run verify:contract:consumer`.
 
 ## Broader checks
 
-- complete repository gate: `npm run check:all`
+- local Web, SQLite API, formatting, and Graphify gate: `npm run check:all` (does not include MySQL or contract checks)
   - Before running it, generate local Graphify artifacts with `npm run graphify:refresh`; `graphify-out/` is ignored and stays local.
 - E2E: no repository E2E command is defined; use the separate P0F acceptance path only when its verification decision gate is met
 
@@ -40,12 +53,12 @@ Browser, device, and full-system workflow checks are separate from the ordinary 
 
 - schema/integration validation: `npm run api:test:mysql`
 - migration dry-run or safe check: no repository command is defined
-- database test strategy: run Laravel Feature tests against in-memory SQLite; run the MySQL suite only against the disposable, migrated, and seeded `caneguard_test` database
+- database test strategy: run Laravel Feature tests against in-memory SQLite; run the MySQL suite only against a disposable, migrated, unseeded database with a `firstmate_` prefix
 
 ## Rules
 
 - Use the strict verification ladder in `.agents/skills/verification/SKILL.md`.
-- Gate: run `npm run verify:fast` without re-running the focused test beforehand; then run only affected backend or contract checks.
+- Local gate: run `npm run verify:fast` without re-running the focused test beforehand; then run affected backend or consumer-contract checks. The pull-request quality gate also runs the full MySQL suite and consumer-only contract gate listed above.
 - Do not run E2E as part of `npm run verify:fast`.
 - Run only commands that exist in `package.json` or repository scripts.
 - Do not run destructive migrations against shared or production data.

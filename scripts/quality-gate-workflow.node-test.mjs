@@ -10,6 +10,9 @@ const workflow = parse(
     "utf8",
   ),
 );
+const packageJson = JSON.parse(
+  readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8"),
+);
 
 function qualityGateJob() {
   const job = workflow?.jobs?.["quality-gate"];
@@ -34,6 +37,9 @@ const securityStepNames = [
   "Verify MapLibre dependency security contract",
   "Audit Web dependencies (high and critical advisories fail)",
   "Audit Laravel dependencies (advisories and abandoned packages fail)",
+  "Prepare MySQL integration database",
+  "Run MySQL integration suite",
+  "Run consumer contract suite",
 ];
 
 test("quality gate job cannot be skipped or ignored", () => {
@@ -70,4 +76,49 @@ test("each dependency installation exists once and precedes its audit", () => {
     const audit = stepNamed(auditName);
     assert.ok(steps.indexOf(install) < steps.indexOf(audit), `${installName} must precede ${auditName}`);
   }
+});
+
+test("pull request gate runs isolated MySQL and consumer-only contract checks", () => {
+  const job = qualityGateJob();
+  const mysqlService = job.services?.mysql;
+  assert.equal(mysqlService?.image, "mysql:8.4");
+  assert.equal(mysqlService?.env?.MYSQL_DATABASE, "firstmate_ci_mysql");
+  assert.equal(mysqlService?.env?.MYSQL_ALLOW_EMPTY_PASSWORD, "yes");
+  assert.equal(mysqlService?.env?.MYSQL_ROOT_HOST, "%");
+  assert.ok(mysqlService?.ports?.includes("3306:3306"));
+
+  const steps = qualityGateSteps();
+  const prepare = stepNamed("Prepare MySQL integration database");
+  const mysql = stepNamed("Run MySQL integration suite");
+  const contract = stepNamed("Run consumer contract suite");
+  assert.match(prepare.run, /php api\/artisan migrate --force/);
+  assert.doesNotMatch(prepare.run, /db:seed/);
+  assert.equal(prepare.env?.DB_DATABASE, mysqlService.env.MYSQL_DATABASE);
+  assert.equal(mysql.env?.DB_DATABASE, mysqlService.env.MYSQL_DATABASE);
+  assert.equal(mysql.run, "npm run api:test:mysql");
+  assert.equal(contract.run, "npm run verify:contract:consumer");
+  assert.ok(steps.indexOf(prepare) < steps.indexOf(mysql));
+  assert.ok(steps.indexOf(mysql) < steps.indexOf(contract));
+
+  const consumerGate = packageJson.scripts?.["verify:contract:consumer"];
+  assert.ok(typeof consumerGate === "string", "consumer contract gate script must exist");
+  for (const command of [
+    "contract:artifact",
+    "contract:v2:artifact",
+    "contract:status-v3-artifact",
+    "contract:assignment-artifact",
+    "contract:completion-artifact",
+    "contract:notification-artifact",
+    "contract:lifecycle-artifact",
+    "contract:config",
+    "contract:test",
+    "contract:consumer",
+    "contract:assignment-consumer",
+    "contract:completion-consumer",
+    "contract:notification-consumer",
+    "contract:lifecycle-consumer",
+  ]) {
+    assert.ok(consumerGate.includes(`npm run ${command}`), `${command} must be part of the consumer gate`);
+  }
+  assert.doesNotMatch(consumerGate, /producer/);
 });
