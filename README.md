@@ -413,8 +413,8 @@ The seeder intentionally refuses to create seeded users with empty passwords.
 
 ### MySQL validation tests fail because tables are missing
 
-The MySQL suite needs a disposable test database with its latest migrations and no application demo seed data; the tests create their own fixtures.
-Run `DB_DATABASE=caneguard_test php api/artisan migrate --force`, then rerun the suite. Keep demo seed data in a separate local demo database.
+The MySQL suite needs a disposable `firstmate_` test database with its latest migrations and no application demo seed data; the tests create their own fixtures.
+Run `DB_DATABASE=firstmate_cg_test php api/artisan migrate --force`, then rerun the suite. Keep demo seed data in a separate local demo database.
 Do not point the MySQL suite at a shared or production database.
 
 ### Metro or the native runtime is stale

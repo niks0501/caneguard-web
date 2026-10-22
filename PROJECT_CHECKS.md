@@ -17,7 +17,7 @@ Iteration loop: run the focused test for the changed claim while iterating; warm
 - MySQL integration suite: `npm run api:test:mysql`
 - agent-facing backend gate: `npm run verify:backend`
 
-`verify:backend` composes `npm run check:api` and `npm run api:test:mysql`. The MySQL suite requires a disposable, migrated test database without application seed data; its tests create their own fixtures. The pull-request workflow provisions an isolated MySQL service and migrates it before running the suite.
+`verify:backend` composes `npm run check:api` and `npm run api:test:mysql`. The MySQL suite requires a disposable, migrated `firstmate_` database without application seed data; its tests create their own fixtures. The local PHPUnit default is `firstmate_cg_test`; the pull-request workflow provisions an isolated `firstmate_ci_mysql` service and migrates it before running the suite.
 
 ## Contract checks
 
@@ -53,7 +53,7 @@ Browser, device, and full-system workflow checks are separate from the ordinary 
 
 - schema/integration validation: `npm run api:test:mysql`
 - migration dry-run or safe check: no repository command is defined
-- database test strategy: run Laravel Feature tests against in-memory SQLite; run the MySQL suite only against a disposable, migrated, unseeded test database
+- database test strategy: run Laravel Feature tests against in-memory SQLite; run the MySQL suite only against a disposable, migrated, unseeded database with a `firstmate_` prefix
 
 ## Rules
 

@@ -82,7 +82,7 @@ test("pull request gate runs isolated MySQL and consumer-only contract checks", 
   const job = qualityGateJob();
   const mysqlService = job.services?.mysql;
   assert.equal(mysqlService?.image, "mysql:8.4");
-  assert.equal(mysqlService?.env?.MYSQL_DATABASE, "caneguard_test");
+  assert.equal(mysqlService?.env?.MYSQL_DATABASE, "firstmate_ci_mysql");
   assert.equal(mysqlService?.env?.MYSQL_ALLOW_EMPTY_PASSWORD, "yes");
   assert.equal(mysqlService?.env?.MYSQL_ROOT_HOST, "%");
   assert.ok(mysqlService?.ports?.includes("3306:3306"));
@@ -93,6 +93,8 @@ test("pull request gate runs isolated MySQL and consumer-only contract checks", 
   const contract = stepNamed("Run consumer contract suite");
   assert.match(prepare.run, /php api\/artisan migrate --force/);
   assert.doesNotMatch(prepare.run, /db:seed/);
+  assert.equal(prepare.env?.DB_DATABASE, mysqlService.env.MYSQL_DATABASE);
+  assert.equal(mysql.env?.DB_DATABASE, mysqlService.env.MYSQL_DATABASE);
   assert.equal(mysql.run, "npm run api:test:mysql");
   assert.equal(contract.run, "npm run verify:contract:consumer");
   assert.ok(steps.indexOf(prepare) < steps.indexOf(mysql));
