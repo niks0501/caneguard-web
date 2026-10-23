@@ -63,9 +63,9 @@ test:
     - T3 (High-Stakes): Authentication, authorization, database migrations,
       critical API contracts, or other protected paths. Run the complete T3
       gate from PROJECT_CHECKS.md, plus isolated adversarial review. Human-owned
-      tests remain authoritative for T3 generally. For API, migration, and
-      contract-gate suites, the sole proof is a human-owned or secondmate-blessed
-      test; worker-written tests stay supplemental until secondmate blessing is
+      tests remain the sole proof for T3 generally. For API, migration, and
+      contract-gate suites, secondmate-blessed tests are also sole proof;
+      worker-written tests stay supplemental until secondmate blessing is
       recorded. Frozen golden suites named by the frozen
       matrix are immutable: do not edit, weaken, delete, skip, or rebaseline them
       without explicit captain sign-off. Unverified behavior is NO-GO, never
