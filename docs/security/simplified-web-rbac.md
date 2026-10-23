@@ -4,7 +4,26 @@ Implements [issue #252](https://github.com/niks0501/caneguard-web/issues/252).
 
 **Authentication → active account → web role → resource Policy → action**
 
-The web roles are `reviewer` and `admin`. Both receive Dashboard, Reports, Case Review, Monitoring/Map and normal Settings. Admin additionally receives User Management, Report Approval and Admin Settings. District/barangay/farm/report locations are domain data, not a second Web authorization hierarchy. Existing field-reporter Mobile membership/ownership checks are unchanged.
+The web roles are `reviewer` and `admin`. District/barangay/farm/report locations are domain data, not a second Web authorization hierarchy. Existing field-reporter Mobile membership/ownership checks are unchanged.
+
+## Role and action matrix
+
+This table is the single maintained authority matrix. It is asserted by `npm run test:auth-doc-consistency` against the Web route guards and the API policies, so a doc or guard change that disagrees fails the fast gate.
+
+| Action | Reviewer | Admin |
+| --- | --- | --- |
+| Dashboard | Yes | Yes |
+| Reports / Register and case review | Yes | Yes |
+| Monitoring, Map and Field Operations | Yes | Yes |
+| Normal Settings (own account security) | Yes | Yes |
+| Prepare an official weekly version | Yes | Yes |
+| Approve or send an official weekly version | No | Yes |
+| User Management (role and status changes) | No | Yes |
+| Report Approval surface | No | Yes |
+| Admin Settings | No | Yes |
+| Self-service staff sign-up | No | No |
+
+Named `staff:manage`, `report:approve` and `report:send` grant rows are legacy compatibility storage. They neither grant nor withhold any row above.
 
 ## Supported account API
 
@@ -37,8 +56,8 @@ Legacy input formats, password confirmation, version/idempotency checks and lega
 
 ## Report approval and settings
 
-Weekly-report Policies allow an active verified Admin to approve/send, without named keys or separation-of-duties. Immutable report evidence, current-version checks, recipient contracts, sealed PDFs, idempotent send intents and delivery launch gates remain business rules. Pending delivery rechecks current account authority and report evidence.
+Weekly-report Policies allow an active verified Admin to approve/send (`DistrictReportVersionPolicy::approve` and `::send` require `isActiveAdmin`), without named keys or separation-of-duties. Immutable report evidence, current-version checks, recipient contracts, sealed PDFs, idempotent send intents and delivery launch gates remain business rules. Pending delivery rechecks current account authority and report evidence.
 
 Admin Settings is a separate guarded surface. Reviewers who follow an administrative URL return to Dashboard with **That section needs an Admin account.** Server routes independently deny Reviewer writes/reads where applicable.
 
-Farmer registration has no public entry. Direct registration requests return 403 regardless of retired rollout flags. Existing account-recovery and verification endpoints remain available.
+Public registration is disabled for every identity kind. Farmer registration has no public entry, and direct registration requests return `403 REGISTRATION_DISABLED` unconditionally. The retired rollout flags do not enable them. New staff identities come from the authorized operator provisioning process, not from public registration. Existing account-recovery and verification endpoints remain available.

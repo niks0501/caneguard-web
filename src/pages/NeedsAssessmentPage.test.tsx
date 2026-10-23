@@ -1,11 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiseaseReport, FollowUpOutcome } from "../domain/report.types";
-import { useReports } from "../hooks/useReports";
+import type { BoundedQueueRead } from "../hooks/reportQueries";
+import { useReportsQueue } from "../hooks/useReports";
 import { NeedsAssessmentPage } from "./NeedsAssessmentPage";
 
-vi.mock("../hooks/useReports", () => ({ useReports: vi.fn() }));
+vi.mock("../hooks/useReports", () => ({ useReportsQueue: vi.fn() }));
 
 function report(uuid: string, outcome: FollowUpOutcome | null, state: "completed" | "unassigned"): DiseaseReport {
   return {
@@ -33,9 +34,18 @@ function report(uuid: string, outcome: FollowUpOutcome | null, state: "completed
   };
 }
 
-function result(data: DiseaseReport[], overrides: Record<string, unknown> = {}) {
+function result(
+  data: DiseaseReport[],
+  overrides: Record<string, unknown> = {},
+  meta: { total?: number; truncated?: boolean } = {},
+) {
   return {
-    data: { reports: data, meta: { total: data.length } },
+    data: {
+      reports: data,
+      total: meta.total ?? data.length,
+      truncated: meta.truncated ?? false,
+      loadedPages: 1,
+    } satisfies BoundedQueueRead,
     error: null,
     isError: false,
     isFetching: false,
@@ -48,42 +58,86 @@ function result(data: DiseaseReport[], overrides: Record<string, unknown> = {}) 
 
 describe("NeedsAssessmentPage", () => {
   beforeEach(() => {
-    vi.mocked(useReports).mockImplementation((filters) => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
       return result([
         report("worsened", "worsened", "completed"),
         report("unable", "unable_to_determine", "completed"),
+        report("fresh", null, "unassigned"),
       ]);
     });
   });
 
-  it("separates attention outcomes and overdue visits while handing unassigned work to the planner", () => {
+  it("separates completed visits, unvisited observations, attention, unassigned and overdue work", () => {
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
 
     expect(screen.queryByText("To check")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Needs assessment" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
-    expect(screen.getAllByRole("heading", { name: "Needs assessment" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Visits awaiting a decision" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "New observations" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Unassigned visits" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overdue visits" })).toBeInTheDocument();
     expect(screen.getAllByText("Worsened").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Unable to determine").length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: "Assign visit" })[0]).toHaveAttribute(
+
+    // A never-visited observation is not described as a completed visit.
+    const newObservations = screen.getByRole("region", { name: "New observations" });
+    expect(within(newObservations).getByText("CG-fresh")).toBeInTheDocument();
+    const awaiting = screen.getByRole("region", { name: "Visits awaiting a decision" });
+    expect(within(awaiting).queryByText("CG-fresh")).not.toBeInTheDocument();
+
+    const unassigned = screen.getByRole("region", { name: "Unassigned visits" });
+    expect(within(unassigned).getByRole("link", { name: "Assign visit" })).toHaveAttribute(
       "href",
       "/monitoring?view=field-operations&report=unassigned",
     );
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
   });
 
-  it("displays refreshing state on the action button when refetching", () => {
-    vi.mocked(useReports).mockImplementation((filters) => {
+  it("uses the server total and says plainly when a queue read stops at its page boundary", () => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
       return result(
-        [report("worsened", "worsened", "completed")],
-        { isFetching: true },
+        [report("worsened", "worsened", "completed"), report("fresh", null, "unassigned")],
+        {},
+        { total: 137, truncated: true },
       );
+    });
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    const awaiting = screen.getByRole("region", { name: "Visits awaiting a decision" });
+    expect(within(awaiting).getByText("1 of 137")).toBeInTheDocument();
+    expect(
+      within(awaiting).getByText(/Showing the first 1 of 137 matching cases/),
+    ).toBeInTheDocument();
+  });
+
+  it("does not report an unavailable queue as zero work", () => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "needs_review") {
+        return result([], { isError: true, data: undefined }, { total: 0 });
+      }
+      return result([report("unassigned", null, "unassigned")]);
+    });
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    const summary = screen.getByLabelText("Needs assessment summary");
+    expect(within(summary).getAllByText("Unavailable")).toHaveLength(2);
+    expect(within(summary).queryByText("0")).not.toBeInTheDocument();
+    expect(within(summary).getAllByText("1")).toHaveLength(2);
+  });
+
+  it("displays refreshing state on the action button when refetching", () => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
+      if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
+      return result([report("worsened", "worsened", "completed")], { isFetching: true });
     });
 
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
@@ -93,13 +147,10 @@ describe("NeedsAssessmentPage", () => {
   });
 
   it("displays refetch warning when refreshing fails", () => {
-    vi.mocked(useReports).mockImplementation((filters) => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
-      return result(
-        [report("worsened", "worsened", "completed")],
-        { isRefetchError: true },
-      );
+      return result([report("worsened", "worsened", "completed")], { isRefetchError: true });
     });
 
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
@@ -109,7 +160,7 @@ describe("NeedsAssessmentPage", () => {
   });
 
   it("displays loading state with simplified wording", () => {
-    vi.mocked(useReports).mockReturnValue({
+    vi.mocked(useReportsQueue).mockReturnValue({
       data: undefined,
       error: null,
       isError: false,
@@ -122,11 +173,14 @@ describe("NeedsAssessmentPage", () => {
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
 
     expect(screen.getByText("Loading...")).toBeInTheDocument();
+    const summary = screen.getByLabelText("Needs assessment summary");
+    expect(within(summary).getAllByText("—").length).toBeGreaterThan(0);
+    expect(within(summary).queryByText("0")).not.toBeInTheDocument();
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
   });
 
   it("displays error state with simplified wording", () => {
-    vi.mocked(useReports).mockReturnValue({
+    vi.mocked(useReportsQueue).mockReturnValue({
       data: undefined,
       error: new Error("Network error"),
       isError: true,

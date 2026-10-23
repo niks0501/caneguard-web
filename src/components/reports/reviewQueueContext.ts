@@ -8,6 +8,8 @@ export interface ReviewQueueContext {
   reviewedIds: string[];
   /** Non-report-list surfaces carry their exact displayed queue snapshot. */
   snapshotOnly?: boolean;
+  /** The displayed snapshot stops before the server's authoritative total. */
+  snapshotTruncated?: boolean;
 }
 
 export function reviewQueueContext(value: unknown): ReviewQueueContext | null {

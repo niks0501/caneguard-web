@@ -96,7 +96,7 @@ beforeEach(() => {
 });
 
 describe("queue contract - filter bar (FILTERS)", () => {
-  it("FILTERS: exposes Status, Barangay, both condition controls, dates, Reviewer and Sort", async () => {
+  it("FILTERS: exposes Status, Barangay, both condition controls, dates, Field Inspector and Sort", async () => {
     renderPage();
     await waitFor(() => expect(listRequests.length).toBeGreaterThan(0));
 
@@ -106,7 +106,7 @@ describe("queue contract - filter bar (FILTERS)", () => {
     expect(screen.getByLabelText("Staff-classified condition")).toBeInTheDocument();
     expect(screen.getByLabelText("From date")).toBeInTheDocument();
     expect(screen.getByLabelText("To date")).toBeInTheDocument();
-    expect(screen.getByLabelText("Reviewer")).toBeInTheDocument();
+    expect(screen.getByLabelText("Field Inspector")).toBeInTheDocument();
     expect(screen.getByLabelText("Sort by")).toBeInTheDocument();
   });
 
@@ -129,12 +129,16 @@ describe("queue contract - filter bar (FILTERS)", () => {
     expect(screen.queryByLabelText("Field validation state")).not.toBeInTheDocument();
   });
 
-  it("FILTERS: Reviewer defaults to anyone and lists the office field reporters", async () => {
+  it("FILTERS: the visit-assignee filter defaults to any Field Inspector and lists field reporters", async () => {
     renderPage();
     await waitFor(() => expect(listRequests.length).toBeGreaterThan(0));
 
-    const reviewer = screen.getByLabelText("Reviewer");
-    expect(within(reviewer).getByRole("option", { name: /anyone/i })).toBeInTheDocument();
+    // W05: the control names visit assignment ownership, never the office
+    // reviewer who made the finding. The wire parameter stays `reviewer` so
+    // bookmarked URLs keep their meaning.
+    const reviewer = screen.getByLabelText("Field Inspector");
+    expect(within(reviewer).getByRole("option", { name: "Any Field Inspector" })).toBeInTheDocument();
+    expect(within(reviewer).queryByRole("option", { name: /office reviewer/i })).not.toBeInTheDocument();
 
     await waitFor(() => expect(fieldReporterRequests).toBeGreaterThan(0));
     expect(within(reviewer).getByRole("option", { name: "Field Officer" })).toBeInTheDocument();
@@ -152,12 +156,12 @@ describe("queue contract - filter bar (FILTERS)", () => {
     );
   });
 
-  it("FILTERS: choosing a Reviewer sends the reviewer parameter (A3)", async () => {
+  it("FILTERS: choosing a Field Inspector sends the reviewer parameter (A3)", async () => {
     const user = userEvent.setup();
     renderPage();
     await waitFor(() => expect(listRequests.length).toBeGreaterThan(0));
 
-    await user.selectOptions(screen.getByLabelText("Reviewer"), "officer-1");
+    await user.selectOptions(screen.getByLabelText("Field Inspector"), "officer-1");
 
     await waitFor(() =>
       expect(listRequests.some((url) => url.includes("reviewer=officer-1"))).toBe(true),

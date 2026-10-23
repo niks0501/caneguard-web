@@ -197,6 +197,22 @@ describe("FieldValidationMapPage structure and summary", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("location=unlocated");
   });
 
+  it("carries the Overdue queue into the register and no-location list", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=map&barangay=Bucay&queue=follow_up_due");
+    await user.click(summaryButton("No Location"));
+    expect(screen.getByTestId("location")).toHaveTextContent("/reports?");
+    expect(screen.getByTestId("location")).toHaveTextContent("queue=follow_up_due");
+    expect(screen.getByTestId("location")).toHaveTextContent("barangay=Bucay");
+    expect(screen.getByTestId("location")).toHaveTextContent("location=unlocated");
+
+    const withoutLocation = screen.getByRole("link", { name: "Open Reports Without Location" });
+    expect(withoutLocation).toHaveAttribute("href", expect.stringContaining("queue=follow_up_due"));
+    const allCases = screen.getByRole("link", { name: "View all cases" });
+    expect(allCases).toHaveAttribute("href", expect.stringContaining("queue=follow_up_due"));
+    expect(allCases.getAttribute("href")).not.toContain("location=");
+  });
+
   it("keeps the full case list secondary to the map", () => {
     renderPage();
     expect(screen.getByRole("heading", { name: "Cases that cannot be plotted" })).toBeInTheDocument();

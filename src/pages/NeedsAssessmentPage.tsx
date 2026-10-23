@@ -1,4 +1,4 @@
-import { ClipboardCheck, RefreshCw, TriangleAlert } from "lucide-react";
+import { ClipboardCheck, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
@@ -6,7 +6,7 @@ import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { followUpOutcomeLabels } from "../domain/report.metadata";
 import type { DiseaseReport, FollowUpOutcome } from "../domain/report.types";
-import { useReports } from "../hooks/useReports";
+import { useReportsQueue } from "../hooks/useReports";
 import { routes } from "../app/routes";
 import { formatDateTime } from "../lib/formatters";
 
@@ -14,6 +14,19 @@ const attentionOutcomes: FollowUpOutcome[] = ["worsened", "unable_to_determine"]
 
 function outcomeLabel(outcome: FollowUpOutcome | null | undefined) {
   return outcome ? followUpOutcomeLabels[outcome] : "Outcome not recorded";
+}
+
+function fieldValidationStateOf(report: DiseaseReport) {
+  return report.lifecycle?.fieldValidationState ?? "unassigned";
+}
+
+type QueueRead = ReturnType<typeof useReportsQueue>;
+
+/** Loading, unavailable and a genuine zero are three different answers. */
+function countValue(read: QueueRead, value: number): number | string {
+  if (read.data) return value;
+  if (read.isError) return "Unavailable";
+  return "—";
 }
 
 function AssessmentRow({ report, attention = false, queueContext }: { report: DiseaseReport; attention?: boolean; queueContext: ReviewQueueContext }) {
@@ -48,44 +61,70 @@ function ReportSection({
   reports,
   empty,
   attention = false,
+  truncated = false,
+  total,
 }: {
   title: string;
   description: string;
   reports: DiseaseReport[];
   empty: string;
   attention?: boolean;
+  truncated?: boolean;
+  total?: number;
 }) {
   const location = useLocation();
+  const headingId = `${title.toLowerCase().replaceAll(" ", "-")}-heading`;
   return (
-    <section className={`needs-assessment-section${attention ? " needs-assessment-section--attention" : ""}`} aria-labelledby={`${title.toLowerCase().replaceAll(" ", "-")}-heading`}>
+    <section className={`needs-assessment-section${attention ? " needs-assessment-section--attention" : ""}`} aria-labelledby={headingId}>
       <div className="workspace-heading">
-        <div><h2 id={`${title.toLowerCase().replaceAll(" ", "-")}-heading`}>{title}</h2><p>{description}</p></div>
-        <strong className="needs-assessment-count">{reports.length}</strong>
+        <div><h2 id={headingId}>{title}</h2><p>{description}</p></div>
+        <strong className="needs-assessment-count">
+          {reports.length}
+          {truncated && total !== undefined ? ` of ${total}` : ""}
+        </strong>
       </div>
+      {truncated ? (
+        <p className="queue-refresh-warning" role="status">
+          Showing the first {reports.length} of {total ?? "more"} matching cases. Narrow the queue to reach the rest; Review Next stops at this boundary.
+        </p>
+      ) : null}
       {reports.length > 0 ? <div className="needs-assessment-list">{reports.map((report) => <AssessmentRow key={report.uuid} report={report} attention={attention} queueContext={{
         returnTo: `${location.pathname}${location.search}`, filters: {},
         remainingIds: reports.slice(reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
         reviewedIds: [], snapshotOnly: true,
+        ...(truncated ? { snapshotTruncated: true } : {}),
       }} />)}</div> : <p className="needs-assessment-empty">{empty}</p>}
     </section>
   );
 }
 
 export function NeedsAssessmentPage() {
-  const assessmentQuery = useReports({ queue: "needs_review", perPage: 100, sort: "oldest" }, { enabled: true });
-  const visitQuery = useReports({ queue: "needs_visit", perPage: 100, sort: "oldest" }, { enabled: true });
-  const overdueQuery = useReports({ queue: "follow_up_due", perPage: 100, sort: "due_soonest" }, { enabled: true });
-  const completedReports = assessmentQuery.data?.reports ?? [];
+  // Complete bounded reads: a queue is never described by its first page alone.
+  const awaitingQuery = useReportsQueue({ queue: "needs_review", sort: "oldest" });
+  const visitQuery = useReportsQueue({ queue: "needs_visit", sort: "oldest" });
+  const overdueQuery = useReportsQueue({ queue: "follow_up_due", sort: "due_soonest" });
+
+  // Canonical lifecycle predicates, never a new status: needs_review holds both
+  // completed visits awaiting a decision and untouched unassigned observations.
+  const needsReview = awaitingQuery.data?.reports ?? [];
+  const completedVisits = needsReview.filter((report) => fieldValidationStateOf(report) === "completed");
+  const newObservations = needsReview.filter((report) => fieldValidationStateOf(report) !== "completed");
+  const attention = completedVisits.filter((report) => attentionOutcomes.includes(report.latestValidation?.followUpOutcome ?? "improved"));
   const unassignedVisits = (visitQuery.data?.reports ?? []).filter(
-    (report) => (report.lifecycle?.fieldValidationState ?? "unassigned") === "unassigned",
+    (report) => fieldValidationStateOf(report) === "unassigned",
   );
-  const reports = [...completedReports, ...unassignedVisits];
-  const attention = completedReports.filter((report) => attentionOutcomes.includes(report.latestValidation?.followUpOutcome ?? "improved"));
   const overdue = overdueQuery.data?.reports ?? [];
-  const isLoading = assessmentQuery.isPending || visitQuery.isPending || overdueQuery.isPending;
-  const hasInitialError = (assessmentQuery.isError && !assessmentQuery.data)
+
+  const awaitingTruncated = awaitingQuery.data?.truncated ?? false;
+  const visitTruncated = visitQuery.data?.truncated ?? false;
+  const overdueTruncated = overdueQuery.data?.truncated ?? false;
+
+  const isLoading = awaitingQuery.isPending || visitQuery.isPending || overdueQuery.isPending;
+  const hasInitialError = (awaitingQuery.isError && !awaitingQuery.data)
     || (visitQuery.isError && !visitQuery.data)
     || (overdueQuery.isError && !overdueQuery.data);
+  const isRefreshing = awaitingQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching;
+  const unavailable = awaitingQuery.isError || visitQuery.isError || overdueQuery.isError;
 
   return (
     <PageContent>
@@ -94,30 +133,34 @@ export function NeedsAssessmentPage() {
         actions={(
           <Button
             variant="secondary"
-            icon={<RefreshCw aria-hidden="true" className={assessmentQuery.isFetching || overdueQuery.isFetching ? "spin" : undefined} />}
-            disabled={assessmentQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching}
-            onClick={() => void Promise.all([assessmentQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
+            icon={<RefreshCw aria-hidden="true" className={isRefreshing ? "spin" : undefined} />}
+            disabled={isRefreshing}
+            onClick={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
           >
-            {assessmentQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching ? "Refreshing" : "Refresh"}
+            {isRefreshing ? "Refreshing" : "Refresh"}
           </Button>
         )}
       />
       <div className="needs-assessment-summary" aria-label="Needs assessment summary">
-        <div><ClipboardCheck aria-hidden="true" /><strong>{reports.length}</strong><span>Needs assessment</span></div>
-        <div className="needs-assessment-summary__attention"><TriangleAlert aria-hidden="true" /><strong>{attention.length}</strong><span>Needs attention</span></div>
-        <div className="needs-assessment-summary__overdue"><RefreshCw aria-hidden="true" /><strong>{overdue.length}</strong><span>Overdue visits</span></div>
+        <div><ClipboardCheck aria-hidden="true" /><strong>{countValue(awaitingQuery, completedVisits.length)}</strong><span>Visits awaiting a decision</span></div>
+        <div><ClipboardCheck aria-hidden="true" /><strong>{countValue(awaitingQuery, newObservations.length)}</strong><span>New observations</span></div>
+        <div><ClipboardCheck aria-hidden="true" /><strong>{countValue(visitQuery, unassignedVisits.length)}</strong><span>Unassigned visits</span></div>
+        <div className="needs-assessment-summary__overdue"><RefreshCw aria-hidden="true" /><strong>{countValue(overdueQuery, overdue.length)}</strong><span>Overdue visits</span></div>
       </div>
-      {assessmentQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError ? <p className="queue-refresh-warning" role="alert">New updates could not load. Showing the list from before.</p> : null}
-      {isLoading && !assessmentQuery.data ? <LoadingState message="Loading..." /> : null}
-      {hasInitialError ? <ErrorState message="This list could not be loaded. Please try again." onRetry={() => void Promise.all([assessmentQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])} /> : null}
-      {!hasInitialError && assessmentQuery.data && visitQuery.data ? (
+      {unavailable && !hasInitialError ? <p className="queue-refresh-warning" role="alert">Some counts could not be loaded. Values marked Unavailable are not zero.</p> : null}
+      {awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError ? <p className="queue-refresh-warning" role="alert">New updates could not load. Showing the list from before.</p> : null}
+      {isLoading && !awaitingQuery.data ? <LoadingState message="Loading..." /> : null}
+      {hasInitialError ? <ErrorState message="This list could not be loaded. Please try again." onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])} /> : null}
+      {!hasInitialError && awaitingQuery.data && visitQuery.data ? (
         <>
-          <ReportSection title="Needs assessment" description="Completed visits are ready for an office decision; unassigned open visits can be handed to the planner from here." reports={reports} empty="No completed field visits or unassigned visits are waiting for assessment." />
-          <ReportSection title="Needs attention" description="Worsened and Unable to determine are grouped here. Overdue visits remain a separate count below." reports={attention} attention empty="No Worsened or Unable to determine outcomes are waiting for attention." />
-          <ReportSection title="Overdue visits" description="Open visits past their target date are counted separately from outcome attention." reports={overdue} empty="No open visits are overdue." />
+          <ReportSection title="Visits awaiting a decision" description="Field visits are complete and need an office disposition." reports={completedVisits} truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No completed field visits are waiting for a decision." />
+          <ReportSection title="Needs attention" description="Worsened and Unable to determine outcomes inside the completed visits above." reports={attention} attention truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No completed visit recorded Worsened or Unable to determine." />
+          <ReportSection title="New observations" description="Observations that have never been visited. They are not completed visits." reports={newObservations} truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No unvisited observations are waiting." />
+          <ReportSection title="Unassigned visits" description="Open cases with a visit request but no Field Inspector yet." reports={unassignedVisits} truncated={visitTruncated} total={visitQuery.data.total} empty="No unassigned visit requests are waiting." />
+          <ReportSection title="Overdue visits" description="Open visits past their target date, counted separately from outcome attention." reports={overdue} truncated={overdueTruncated} total={overdueQuery.data.total} empty="No open visits are overdue." />
         </>
       ) : null}
-      {assessmentQuery.data?.reports.some((report) => report.latestValidation?.followUpOutcome === "unchanged") ? (
+      {completedVisits.some((report) => report.latestValidation?.followUpOutcome === "unchanged") ? (
         <p className="needs-assessment-note" role="note">Unchanged outcomes remain in Needs assessment until an office reviewer records the next action.</p>
       ) : null}
     </PageContent>

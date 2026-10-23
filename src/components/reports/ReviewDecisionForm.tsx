@@ -212,7 +212,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         returnTo, filters: context?.filters ?? {}, remainingIds: remainingIds.slice(1), reviewedIds,
         ...(context?.snapshotOnly ? { snapshotOnly: true } : {}),
       } } });
-      else setNextMessage("No more cases in this queue.");
+      else setNextMessage(context?.snapshotTruncated
+          ? "Review Next covers this section's loaded cases only. Return to the list and narrow the queue to reach the rest."
+          : "No more cases in this queue.");
     } catch { setNextMessage("The next case could not be loaded. Try again or return to the queue."); }
     finally { setNextPending(false); }
   };

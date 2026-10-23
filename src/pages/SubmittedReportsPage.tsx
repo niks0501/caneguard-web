@@ -411,11 +411,11 @@ export function SubmittedReportsPage({
             />
           </label>
           <SelectFilter
-            label="Reviewer"
+            label="Field Inspector"
             value={urlState.filters.reviewer ?? ""}
             onChange={(event) => updateFilter("reviewer", event.target.value)}
           >
-            <option value="">Anyone</option>
+            <option value="">Any Field Inspector</option>
             {(fieldReporters.data ?? []).map((reporter) => (
               <option value={reporter.uuid} key={reporter.uuid}>{reporter.name}</option>
             ))}

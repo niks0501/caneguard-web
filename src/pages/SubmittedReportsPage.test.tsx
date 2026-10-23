@@ -380,7 +380,7 @@ describe("SubmittedReportsPage", () => {
     ]);
     expect(screen.getByLabelText("Queue")).toBeInTheDocument();
     expect(screen.getByLabelText("Status")).toBeInTheDocument();
-    expect(screen.getByLabelText("Reviewer")).toBeInTheDocument();
+    expect(screen.getByLabelText("Field Inspector")).toBeInTheDocument();
     expect(
       screen.getByLabelText("Staff-classified condition"),
     ).toBeInTheDocument();
@@ -395,7 +395,7 @@ describe("SubmittedReportsPage", () => {
       "?workflow_status=field_validation",
     );
 
-    await user.selectOptions(screen.getByLabelText("Reviewer"), "officer-1");
+    await user.selectOptions(screen.getByLabelText("Field Inspector"), "officer-1");
     expect(screen.getByTestId("location")).toHaveTextContent(
       "reviewer=officer-1",
     );

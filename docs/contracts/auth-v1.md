@@ -14,7 +14,7 @@ AI output remains decision support and is never an authority finding or diagnosi
 
 The supported persisted roles are `farmer`, `field_reporter` (inspector wire identity), `reviewer`, and `admin` (District Mill Officer). Guests have no staff identity and read public education without signing in. Farmer scans and own-result retention belong to the Mobile app; farmers cannot submit official field reports or enter the office workspace.
 
-Public registration creates only a `farmer` account. Existing `field_reporter` identities retain their UUID, verification state and history; verification alone does not infer district membership or named grants. Official authority also requires an explicitly provisioned membership in the single configured pilot district. Unverified, disabled and retired-expert identities remain denied. See [district access and weekly workflow](district-access-v1.md) for provisioning and launch gates.
+Public registration is disabled unconditionally: `POST /register` always returns `403 REGISTRATION_DISABLED` and the Web `/register` route redirects to sign-in. Staff identities are provisioned by an authorized office operator, never by self-service sign-up and never with a public staff role choice; see [simplified Web RBAC](../security/simplified-web-rbac.md) for the maintained role/action matrix and [district access and weekly workflow](district-access-v1.md) for provisioning. Existing `field_reporter` identities retain their UUID, verification state and history; verification alone does not infer district membership or named grants. Official authority also requires an explicitly provisioned membership in the single configured pilot district. Unverified, disabled and retired-expert identities remain denied.
 
 The registration payload does not have a role, phone, or barangay field.
 
@@ -34,7 +34,7 @@ The Web client requests `/sanctum/csrf-cookie` before each unauthenticated state
 
 | Method | Path | Request fields | Success |
 | --- | --- | --- | --- |
-| POST | `/register` | `name`, `email`, `password`, optional `password_confirmation` | Default: `403 REGISTRATION_DISABLED`; opt-in: `201 REGISTRATION_CREATED` |
+| POST | `/register` | `name`, `email`, `password`, optional `password_confirmation` | Always `403 REGISTRATION_DISABLED` |
 | POST | `/login` | `email`, `password` | `204` |
 | POST | `/logout` | none | `204` |
 | GET | `/email/verify/{id}/{hash}` | Laravel temporary signature query | `200 EMAIL_VERIFIED` |
@@ -42,7 +42,7 @@ The Web client requests `/sanctum/csrf-cookie` before each unauthenticated state
 | POST | `/forgot-password` | `email` | `202 PASSWORD_RESET_LINK_SENT` |
 | POST | `/reset-password` | `email`, `token`, `password`, optional `password_confirmation` | `200 PASSWORD_RESET` |
 
-Public self-registration is disabled by default. The API returns this response before validation or account creation unless **both** `CANEGUARD_SELF_REGISTRATION_ENABLED=true` and `CANEGUARD_PILOT_ROSTER_CERTIFIED=true`:
+Public self-registration is disabled unconditionally. The API returns this response before validation or account creation, and no configuration value re-enables it:
 
 ```json
 {
@@ -51,23 +51,9 @@ Public self-registration is disabled by default. The API returns this response b
 }
 ```
 
-Only after office-owned roster certification, opt in with both API switches and `VITE_CANEGUARD_SELF_REGISTRATION_ENABLED=true` for the Web build. The API setting remains authoritative and rejects direct HTTP requests while disabled. The Web build setting controls whether the `/register` form and login link are exposed.
+The retired `CANEGUARD_SELF_REGISTRATION_ENABLED` and `CANEGUARD_PILOT_ROSTER_CERTIFIED` values are not read by the registration middleware and do not enable sign-up. The Web `/register` route redirects to sign-in regardless of build configuration.
 
-When enabled, registration returns this non-sensitive shape and never starts a session:
-
-```json
-{
-  "message": "Account created. Verify your email address before signing in.",
-  "code": "REGISTRATION_CREATED",
-  "user": {
-    "uuid": "<user-uuid>",
-    "name": "<user-name>",
-    "email": "<user-email>",
-    "role": "farmer",
-    "email_verified": false
-  }
-}
-```
+Historical context, not current instructions: an earlier contract offered an opt-in farmer registration response (`201 REGISTRATION_CREATED`) whose payload carried no role, phone or barangay field and always created an unverified account. That path is retired. It was never a staff provisioning route and must not be restored as one.
 
 The generic verification response is `{ "message": "If the address is eligible, a verification link will be sent.", "code": "VERIFICATION_LINK_SENT" }`.
 
@@ -118,9 +104,9 @@ These endpoints use the existing `auth:sanctum` cookie or bearer boundary and re
 
 Wrong step-up credentials return `422 STEP_UP_REQUIRED`.
 
-Role changes require a named `staff:manage` grant in the pilot district, a verified office-cookie session, and password step-up; they cannot target the acting administrator. An `admin` role alone confers no management, approval or send grant. The gated [accounts-access-v1](accounts-access-v1.md) v2 contract adds scoped signup discovery and documented admission/triage/transfer without changing farmer authentication or verification. V1 roles/access and the console share its singleton, revision and durable-history reconciliation path; v1 responses remain compatible and v1 still cannot admit unassigned identities. `/api/v1/me` exposes optional `accounts_enabled: true` only when the new gate is enabled; old gate-off auth fixtures are unchanged.
+Role and status changes require an active verified `admin` Web role, an office-cookie session, and password step-up; they cannot target the acting administrator. The `admin` role is the authority for user management, weekly approval and send: [simplified Web RBAC](../security/simplified-web-rbac.md) is the single maintained role/action matrix. Legacy `staff:manage`, `report:approve` and `report:send` grant rows are compatibility storage; they are not required for role changes and do not confer or withhold approval/send authority. The gated [accounts-access-v1](accounts-access-v1.md) v2 contract adds scoped signup discovery and documented admission/triage/transfer without changing farmer authentication or verification. V1 roles/access and the console share its singleton, revision and durable-history reconciliation path; v1 responses remain compatible and v1 still cannot admit unassigned identities. `/api/v1/me` exposes optional `accounts_enabled: true` only when the new gate is enabled; old gate-off auth fixtures are unchanged.
 
-A role change revokes the target user's sessions, bearer tokens and named grants. District membership/grant changes also revoke credentials and invalidate pending weekly authority.
+A role change revokes the target user's sessions, bearer tokens and legacy named-grant rows. District membership changes also revoke credentials and invalidate pending weekly authority.
 
 Password changes, email changes, biometric disablement, and password resets revoke active sessions and all personal access tokens as appropriate to the changed account.
 

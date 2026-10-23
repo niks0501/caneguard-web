@@ -14,6 +14,7 @@ import {
   possibleRecentMatchesQueryOptions,
   reportKeys,
   reportQueryOptions,
+  reportQueueReadQueryOptions,
   reportsQueryOptions,
 } from "./reportQueries";
 import { invalidateReportDependentQueries } from "./reportInvalidation";
@@ -31,6 +32,17 @@ export function useReports(
   options: { enabled?: boolean } = {},
 ) {
   return useQuery(reportsQueryOptions(filters, options));
+}
+
+/**
+ * Complete bounded queue read: every matching page up to a hard cap, with the
+ * server's authoritative total and an explicit truncation flag.
+ */
+export function useReportsQueue(
+  filters: ReportFilters = {},
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery(reportQueueReadQueryOptions(filters, options));
 }
 
 export function useExportReports() {

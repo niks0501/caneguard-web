@@ -148,8 +148,11 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
     setSearchParams(writeWorkspaceUrl({ ...appliedFilters, queue }));
   };
 
+  // The work scope travels with the reviewer: an Overdue map opens an Overdue
+  // register, not an unfiltered one that merely looks like the same workflow.
   const registerUrl = (location: "located" | "unlocated" | null) => {
     const params = new URLSearchParams();
+    if (appliedFilters.queue) params.set("queue", appliedFilters.queue);
     if (appliedFilters.barangay) params.set("barangay", appliedFilters.barangay);
     if (appliedFilters.disease) params.set("predicted_label", appliedFilters.disease);
     if (appliedFilters.dateFrom) params.set("date_from", appliedFilters.dateFrom);
