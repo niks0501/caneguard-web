@@ -184,6 +184,29 @@ describe("ReportDocumentBuilder document scope", () => {
     expect(iframe.getAttribute("src")).toContain("queue=unverified_no_active_work");
   });
 
+  it("persists only the builder fields it restores", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "unreachable", reason: "network" });
+    renderBuilderWithScope({
+      filters: {
+        queue: "needs_review",
+        predicted_label: "",
+        barangay: "Bacoor",
+        case_state: "",
+        verification_outcome: "",
+        field_validation_state: "",
+        authority_classified_condition: "",
+      },
+      removed: [],
+    });
+
+    await screen.findByLabelText("Printable report scope");
+    const stored = JSON.parse(window.sessionStorage.getItem("caneguard-report-builder-filters") ?? "{}");
+
+    expect(stored).toMatchObject({ periodType: expect.any(String), week: expect.any(String) });
+    expect(stored).not.toHaveProperty("filters");
+    expect(stored).not.toHaveProperty("appendix");
+  });
+
   it("starts from the work scope that is current when the builder opens", async () => {
     vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
     const user = userEvent.setup();

@@ -42,10 +42,12 @@ type BuilderState = {
 
 type BuilderMode = "printable" | "official";
 
-function readStoredState(): Partial<BuilderState> {
+type StoredBuilderState = Pick<BuilderState, "periodType" | "week" | "month" | "from" | "to">;
+
+function readStoredState(): Partial<StoredBuilderState> {
   try {
     const value = sessionStorage.getItem(storageKey);
-    return value ? JSON.parse(value) as Partial<BuilderState> : {};
+    return value ? JSON.parse(value) as Partial<StoredBuilderState> : {};
   } catch {
     return {};
   }
@@ -160,7 +162,14 @@ export function ReportDocumentBuilder({
   useEffect(() => {
     if (!open) return;
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify({ ...state, appendix: false }));
+      const stored: StoredBuilderState = {
+        periodType: state.periodType,
+        week: state.week,
+        month: state.month,
+        from: state.from,
+        to: state.to,
+      };
+      sessionStorage.setItem(storageKey, JSON.stringify(stored));
     } catch {
       // Session persistence is an enhancement; the builder remains usable.
     }

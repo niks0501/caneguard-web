@@ -66,10 +66,9 @@ export const fieldSurveyBoundariesResponseSchema = z.object({
     });
   }
 
-  // Bounded paging: the server clamps the page to the count it took, while the
-  // counted total and the fetched window can disagree by a concurrent capture
-  // or delete. Only window-internal facts are asserted here: a page that says
-  // rows remain must be full, and a page position is never past the count.
+  // Bounded paging: the server clamps the page to the count it took. Field-survey
+  // evidence is only ever appended, so the counted remainder is a lower bound on
+  // what this page must hold; a page that says rows remain must be full.
   const page = metadata.page ?? 1;
   const pageCount = metadata.page_count ?? Math.max(1, Math.ceil(metadata.total_count / metadata.limit));
   if (page > pageCount) {
@@ -79,12 +78,23 @@ export const fieldSurveyBoundariesResponseSchema = z.object({
       message: "page cannot be beyond the last page.",
     });
   }
-  if (metadata.truncated && metadata.returned_count !== metadata.limit) {
-    context.addIssue({
-      code: "custom",
-      path: ["metadata", "truncated"],
-      message: "truncated requires a full page of rows.",
-    });
+  if (metadata.truncated) {
+    if (metadata.returned_count !== metadata.limit) {
+      context.addIssue({
+        code: "custom",
+        path: ["metadata", "truncated"],
+        message: "truncated requires a full page of rows.",
+      });
+    }
+  } else {
+    const offset = (page - 1) * metadata.limit;
+    if (metadata.returned_count < Math.min(metadata.limit, metadata.total_count - offset)) {
+      context.addIssue({
+        code: "custom",
+        path: ["metadata", "returned_count"],
+        message: "An untruncated page must include every remaining row.",
+      });
+    }
   }
 });
 

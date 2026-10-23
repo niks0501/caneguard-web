@@ -153,7 +153,7 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
     })).success).toBe(false);
   });
 
-  it("accepts a window that drifted from the counted total by one concurrent capture or delete", () => {
+  it("accepts a window that grew past the counted total by one concurrent capture", () => {
     const feature = response().features[0];
     const pageOf = (count: number) => Array.from({ length: count }, (_, index) => ({
       ...feature,
@@ -167,16 +167,25 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
       features: pageOf(250),
       metadata: { total_count: 250, returned_count: 250, limit: 250, truncated: true, page: 1, page_count: 1 },
     })).success).toBe(true);
+  });
 
-    // The count said two pages remained, but a delete shortened this page.
-    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
-      features: pageOf(249),
-      metadata: { total_count: 301, returned_count: 249, limit: 250, truncated: false, page: 1, page_count: 2 },
-    })).success).toBe(true);
+  it("rejects a page that is shorter than the counted remainder", () => {
+    const feature = response().features[0];
+    const pageOf = (count: number) => Array.from({ length: count }, (_, index) => ({
+      ...feature,
+      id: String(index + 1),
+      properties: { ...feature.properties, id: index + 1 },
+    }));
 
     expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
       metadata: { total_count: 2, returned_count: 1, limit: 100, truncated: false },
-    })).success).toBe(true);
+    })).success).toBe(false);
+
+    // Untruncated but the counted remainder is larger than this page.
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(249),
+      metadata: { total_count: 301, returned_count: 249, limit: 250, truncated: false, page: 1, page_count: 2 },
+    })).success).toBe(false);
   });
 
   it("rejects inconsistent returned counts and incomplete truncation states", () => {
