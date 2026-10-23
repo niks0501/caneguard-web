@@ -14,6 +14,8 @@ import {
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
+import { env } from "../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { MonitoringScheduleSummary } from "../components/reports/MonitoringScheduleSummary";
 import { ReportTable } from "../components/reports/ReportTable";
@@ -445,7 +447,7 @@ export function SubmittedReportsPage({
               : malformedData
                 ? "The latest response had an unexpected format. The previous queue remains visible."
                 : connectionError
-                  ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous queue remains visible."
+                  ? serviceUnreachableWhileShowingData
                   : "The latest refresh failed. Showing the most recently loaded queue."}
           </p>
         ) : null}
@@ -474,7 +476,8 @@ export function SubmittedReportsPage({
         ) : null}
         {!urlState.invalid && showInitialError && connectionError ? (
           <ErrorState
-            message="Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+            message={serviceUnreachableMessage}
+            detail={apiEndpointDetail(env.apiBaseUrl)}
             onRetry={() => reportsQuery.refetch()}
           />
         ) : null}

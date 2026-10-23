@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router";
 import { ZodError } from "zod";
@@ -241,6 +241,26 @@ describe("SubmittedReportsPage", () => {
     expect(screen.queryByText("32 matching reports")).not.toBeInTheDocument();
   });
 
+  it("keeps developer diagnostics out of the staff-facing connection message", () => {
+    vi.mocked(useReports).mockReturnValue(
+      reportsResult({
+        data: undefined,
+        error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+        isError: true,
+        isSuccess: false,
+      }),
+    );
+    renderPage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Check your connection");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(alert).not.toHaveTextContent("VITE_API_BASE_URL");
+    expect(alert).not.toHaveTextContent("Start the API server");
+    expect(within(alert).getByText("Technical details")).toBeInTheDocument();
+    expect(within(alert).getByText(/sends requests to http/)).toBeInTheDocument();
+  });
+
   it("distinguishes empty data from no filter matches", () => {
     vi.mocked(useReports).mockReturnValue(
       reportsResult({
@@ -272,7 +292,7 @@ describe("SubmittedReportsPage", () => {
       },
       {
         error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
-        message: "Cannot connect to the CaneGuard API",
+        message: "CaneGuard cannot be reached right now",
       },
       {
         error: new ApiError("Unavailable", { status: 503 }),

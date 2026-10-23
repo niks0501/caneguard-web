@@ -21,6 +21,7 @@ import {
   usePossibleRecentMatches,
   useReports,
   useUnlinkDuplicateReport,
+  useOpenCase,
   useReport,
   useUpdateReportReview,
   useUpdateReportAffectedFields,
@@ -1193,6 +1194,30 @@ describe("CaseReviewPage", () => {
       await within(modal).findByRole("button", { name: "Try loading the latest version again" }),
     );
     expect(refetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("offers a first-open status retry without blocking the evidence", async () => {
+    const user = userEvent.setup();
+    const mutate = vi.fn();
+    const reset = vi.fn();
+    vi.mocked(useOpenCase).mockReturnValue({
+      mutate,
+      reset,
+      isError: true,
+      isPending: false,
+    } as never);
+    renderPage();
+
+    expect(screen.getByRole("heading", { level: 1, name: report.referenceCode })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Evidence Summary" })).toBeInTheDocument();
+    const alert = screen.getByText(/first-review status was not recorded/i).closest("[role='alert']") as HTMLElement;
+    expect(alert).not.toHaveTextContent(/review lock version/i);
+
+    const attemptsBeforeRetry = mutate.mock.calls.length;
+    await user.click(within(alert).getByRole("button", { name: "Retry status update" }));
+
+    expect(reset).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledTimes(attemptsBeforeRetry + 1);
   });
 
   it("disables the inline decision controls while saving and sends one request", async () => {

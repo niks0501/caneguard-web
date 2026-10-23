@@ -5,6 +5,7 @@ import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DASHBOARD_TIMEZONE_LABEL } from "../components/dashboard/analyticsCopy";
+import { serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
 import { OperationalSnapshot } from "../components/dashboard/OperationalSnapshot";
 import { ScopeRuler } from "../components/dashboard/ScopeRuler";
@@ -95,14 +96,14 @@ export function DashboardPage() {
       : isMalformed
         ? "CaneGuard returned dashboard data in an unexpected format. Try again after the service is corrected."
         : isConnectionError
-          ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+          ? serviceUnreachableMessage
           : "The dashboard could not be loaded from CaneGuard.";
   const refreshErrorMessage = isRateLimited
     ? "The latest refresh was rate limited. Wait a moment before trying again; the previous dashboard remains visible."
     : isMalformed
       ? "The latest response had an unexpected format. The previous dashboard remains visible."
       : isConnectionError
-        ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous dashboard remains visible."
+        ? serviceUnreachableWhileShowingData
         : "The latest refresh failed. Showing the most recently loaded dashboard.";
 
   return (

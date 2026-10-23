@@ -73,9 +73,12 @@ export function NoResultsState({ onClear }: { onClear: () => void }) {
 export function ErrorState({
   message = "The reports could not be loaded. Please try again.",
   onRetry,
+  detail,
 }: {
   message?: string;
   onRetry?: () => void;
+  /** Developer detail, kept out of the staff-facing message. */
+  detail?: string;
 }) {
   return (
     <StatePanel
@@ -84,11 +87,19 @@ export function ErrorState({
       message={message}
       role="alert"
       action={
-        onRetry ? (
-          <Button type="button" variant="secondary" onClick={onRetry}>
-            Try again
-          </Button>
-        ) : undefined
+        <>
+          {onRetry ? (
+            <Button type="button" variant="secondary" onClick={onRetry}>
+              Try again
+            </Button>
+          ) : null}
+          {detail ? (
+            <details className="state-panel__detail">
+              <summary>Technical details</summary>
+              <p>{detail}</p>
+            </details>
+          ) : null}
+        </>
       }
     />
   );

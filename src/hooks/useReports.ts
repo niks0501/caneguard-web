@@ -58,14 +58,16 @@ export function useReport(reportId: string) {
 /**
  * Opening a case stamps the first-reviewed signal through the dedicated
  * idempotent endpoint (Q8). The stamp never bumps `lock_version`, so the
- * cached detail keeps the version the reviewer already loaded.
+ * cached detail keeps the version the reviewer already loaded. Queue status and
+ * first-reviewed reporting are reconciled on success, but only when the server
+ * acknowledges the stamp.
  */
 export function useOpenCase(reportId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => reportsRepository.openCase(reportId),
-    onSuccess: ({ firstReviewedAt }) => {
+    onSuccess: async ({ firstReviewedAt }) => {
       queryClient.setQueryData<DiseaseReport | null>(
         reportKeys.detail(reportId),
         (current) =>
@@ -73,6 +75,8 @@ export function useOpenCase(reportId: string) {
             ? { ...current, firstReviewedAt: firstReviewedAt ?? current.firstReviewedAt }
             : current,
       );
+      // The detail stays as loaded; only dependent queues/reporting re-read.
+      await invalidateReportDependentQueries(queryClient);
     },
   });
 }

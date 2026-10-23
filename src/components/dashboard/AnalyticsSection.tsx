@@ -13,6 +13,7 @@ import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { useAnalytics } from "../../hooks/useAnalytics";
 import { manilaDateAt } from "../../domain/reportingTime";
 import { ErrorState, LoadingState } from "../ui/States";
+import { serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../../lib/serviceMessages";
 import {
   ANALYTICS_EMPTY_STATE,
   analyticsCopy,
@@ -714,7 +715,7 @@ export function AnalyticsSection() {
 
   if (!query.data) {
     const message = isApiConnectionError(query.error)
-      ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+      ? serviceUnreachableMessage
       : "Report analytics could not be loaded.";
     return (
       <section
@@ -736,7 +737,7 @@ export function AnalyticsSection() {
       {query.isRefetchError ? (
         <p className="dashboard-refresh-warning" role="alert">
           {isApiConnectionError(query.error)
-            ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous analytics remain visible."
+            ? serviceUnreachableWhileShowingData
             : "The latest analytics refresh failed. Showing the most recently loaded results."}
         </p>
       ) : null}

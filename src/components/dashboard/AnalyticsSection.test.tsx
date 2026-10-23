@@ -214,8 +214,9 @@ describe("AnalyticsSection", () => {
     } as unknown as ReturnType<typeof useAnalytics>);
     const { rerender } = render(<AnalyticsSection />);
 
-    expect(screen.getByText(/Cannot connect to the CaneGuard API/)).toBeInTheDocument();
-    expect(screen.getByText(/VITE_API_BASE_URL/)).toBeInTheDocument();
+    // Staff get a recovery step; the build variable is not their instruction.
+    expect(screen.getByText(/CaneGuard cannot be reached right now/)).toBeInTheDocument();
+    expect(screen.queryByText(/VITE_API_BASE_URL/)).not.toBeInTheDocument();
 
     vi.mocked(useAnalytics).mockReturnValue({
       data: analytics,
@@ -227,7 +228,7 @@ describe("AnalyticsSection", () => {
     } as unknown as ReturnType<typeof useAnalytics>);
     rerender(<AnalyticsSection />);
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/previous analytics remain visible/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/last loaded data stays visible/i);
     expect(screen.getByRole("heading", { name: "Submitted reports over time" })).toBeInTheDocument();
   });
 });

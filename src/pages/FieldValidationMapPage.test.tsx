@@ -146,6 +146,47 @@ describe("FieldValidationMapPage structure and summary", () => {
     expect(summaryButton("No Location")).toHaveTextContent("4");
   });
 
+  it("never reports unknown map counts as zero", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, { isPending: true }),
+    );
+    const { unmount } = renderPage();
+
+    expect(summaryButton("Active Cases")).toHaveTextContent("—");
+    expect(summaryButton("Overdue")).toHaveTextContent("—");
+    expect(summaryButton("Active Cases")).not.toHaveTextContent("0");
+    unmount();
+
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, {
+        error: new Error("Network unavailable"),
+        isError: true,
+        refetch: vi.fn(),
+      }),
+    );
+    renderPage();
+
+    expect(summaryButton("Active Cases")).toHaveTextContent("Unavailable");
+    expect(summaryButton("Need Visit")).toHaveTextContent("Unavailable");
+  });
+
+  it("gives staff a recovery step instead of developer instructions when the API is unreachable", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, {
+        error: { isAxiosError: true, code: "ERR_NETWORK", response: undefined, config: {}, isApiConnectionError: true },
+        isError: true,
+        refetch: vi.fn(),
+      }),
+    );
+    renderPage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now");
+    expect(alert).not.toHaveTextContent("VITE_API_BASE_URL");
+    expect(alert).not.toHaveTextContent("Start the API server");
+    expect(within(alert).getByText("Technical details")).toBeInTheDocument();
+  });
+
   it("applies a reduced primary filter set with a known Barangay choice and recalculates the scope", async () => {
     const user = userEvent.setup();
     renderPage();

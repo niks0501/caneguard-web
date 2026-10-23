@@ -908,8 +908,9 @@ describe("DashboardPage", () => {
     );
     renderDashboard();
 
-    expect(screen.getByText(/Cannot connect to the CaneGuard API/)).toBeInTheDocument();
-    expect(screen.getByText(/VITE_API_BASE_URL/)).toBeInTheDocument();
+    // Staff get a recovery step; the build variable is not their instruction.
+    expect(screen.getByText(/CaneGuard cannot be reached right now/)).toBeInTheDocument();
+    expect(screen.queryByText(/VITE_API_BASE_URL/)).not.toBeInTheDocument();
   });
 
   it("distinguishes rate limits and malformed dashboard data", () => {
