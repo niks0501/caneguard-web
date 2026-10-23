@@ -237,6 +237,8 @@ describe("AffectedFieldLinkage", () => {
     const preview = screen.getByRole("group", { name: "Boundary 123 shape" });
     expect(within(preview).getByRole("img", { name: "Stored shape of boundary 123" })).toBeInTheDocument();
     expect(within(preview).getByText("18.5%")).toBeInTheDocument();
+    // The stored shape's centroid places the boundary without leaving the case.
+    expect(within(preview).getByText("10.70033° N, 122.95033° E")).toBeInTheDocument();
     expect(within(preview).getByText("Device-reported area")).toBeInTheDocument();
     // The draft loss rate is untouched by looking at the shape.
     expect(screen.getByLabelText(/Office loss rate for boundary 123/)).toHaveValue(18.5);

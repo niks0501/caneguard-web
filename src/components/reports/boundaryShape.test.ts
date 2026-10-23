@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boundaryOutline } from "./boundaryShape";
+import { boundaryCentroid, boundaryOutline } from "./boundaryShape";
 import type { FieldSurveyPolygon } from "../../domain/fieldSurvey.types";
 
 const square: FieldSurveyPolygon = {
@@ -47,6 +47,22 @@ describe("boundaryOutline", () => {
     expect(yNorth).toBeLessThan(ySouth);
     // The taller span is constrained by the box height, not stretched to it.
     expect(boundaryOutline(tall, 200, 140).points).not.toBe(boundaryOutline(square, 200, 140).points);
+  });
+
+  it("places the stored ring with an area-weighted centroid", () => {
+    const centroid = boundaryCentroid(square);
+
+    expect(centroid?.longitude).toBeCloseTo(122.9505, 6);
+    expect(centroid?.latitude).toBeCloseTo(10.7005, 6);
+  });
+
+  it("has no centroid for a ring that encloses no area", () => {
+    expect(boundaryCentroid(undefined)).toBeNull();
+    expect(boundaryCentroid({ type: "Polygon", coordinates: [[]] })).toBeNull();
+    expect(boundaryCentroid({
+      type: "Polygon",
+      coordinates: [[[122.95, 10.7], [122.951, 10.7], [122.952, 10.7], [122.95, 10.7]]],
+    })).toBeNull();
   });
 
   it("refuses to invent a shape for a degenerate or missing ring", () => {

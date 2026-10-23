@@ -51,3 +51,43 @@ export function boundaryOutline(
 
   return { points, drawable: true };
 }
+
+export interface BoundaryCentroid {
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * Area-weighted centroid of the stored outer ring, so an older boundary can be
+ * placed in context without leaving the case. A ring that encloses no area has
+ * no centroid.
+ */
+export function boundaryCentroid(
+  geometry: FieldSurveyPolygon | undefined,
+): BoundaryCentroid | null {
+  const positions = ring(geometry);
+  if (positions.length < 3) return null;
+
+  const [originLongitude, originLatitude] = positions[0];
+  let twiceArea = 0;
+  let weightedLongitude = 0;
+  let weightedLatitude = 0;
+  for (const [index, [longitude, latitude]] of positions.entries()) {
+    const [nextLongitude, nextLatitude] = positions[(index + 1) % positions.length];
+    const x = longitude - originLongitude;
+    const y = latitude - originLatitude;
+    const nextX = nextLongitude - originLongitude;
+    const nextY = nextLatitude - originLatitude;
+    const cross = x * nextY - nextX * y;
+    twiceArea += cross;
+    weightedLongitude += (x + nextX) * cross;
+    weightedLatitude += (y + nextY) * cross;
+  }
+  if (twiceArea === 0) return null;
+
+  const longitude = originLongitude + weightedLongitude / (3 * twiceArea);
+  const latitude = originLatitude + weightedLatitude / (3 * twiceArea);
+  return Number.isFinite(latitude) && Number.isFinite(longitude)
+    ? { latitude, longitude }
+    : null;
+}

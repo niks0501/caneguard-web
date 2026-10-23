@@ -18,7 +18,7 @@ import { Pagination } from "../ui/Pagination";
 import { Skeleton } from "../ui/States";
 import { DetailField } from "../layout/Page";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
-import { boundaryOutline } from "./boundaryShape";
+import { boundaryCentroid, boundaryOutline } from "./boundaryShape";
 
 type BoundaryChoice = {
   id: number;
@@ -39,6 +39,10 @@ function ratesFor(fields: ReportAffectedField[] | undefined): RateDraft {
     String(field.fieldSurveyId),
     String(field.lossRatePercent),
   ]));
+}
+
+function coordinateLabel(value: number, positive: string, negative: string) {
+  return `${Math.abs(value).toFixed(5)}° ${value < 0 ? negative : positive}`;
 }
 
 function lossRate(value: string): number | null {
@@ -133,6 +137,7 @@ export function AffectedFieldLinkage({
   const metadata = surveysQuery.data?.metadata;
   const previewChoice = choices.find((choice) => choice.id === previewId) ?? null;
   const previewOutline = boundaryOutline(previewChoice?.geometry);
+  const previewCentroid = boundaryCentroid(previewChoice?.geometry);
   const readReturnedNoRows = surveysQuery.isSuccess
     && !surveysQuery.isFetching
     && !surveysQuery.isError
@@ -302,6 +307,11 @@ export function AffectedFieldLinkage({
             <DetailField label="Captured">{formatDateTime(previewChoice.capturedAt)}</DetailField>
             <DetailField label="Device-reported area">{formatAffectedArea(previewChoice.areaSqm / 10_000)}</DetailField>
             <DetailField label="Inspector">{previewChoice.inspectorName}</DetailField>
+            {previewCentroid ? (
+              <DetailField label="Location">
+                {`${coordinateLabel(previewCentroid.latitude, "N", "S")}, ${coordinateLabel(previewCentroid.longitude, "E", "W")}`}
+              </DetailField>
+            ) : null}
             <DetailField label="Office loss rate">
               {Object.hasOwn(draft, String(previewChoice.id)) && draft[String(previewChoice.id)] !== ""
                 ? `${draft[String(previewChoice.id)]}%`
