@@ -172,7 +172,7 @@ describe("AffectedFieldLinkage", () => {
 
     const lookup = screen.getByRole("status");
     expect(lookup).toHaveTextContent("300 matching boundaries · page 1 of 2");
-    expect(lookup).toHaveTextContent("Linked boundaries stay selectable even when they are not on this page.");
+    expect(lookup).toHaveTextContent("of 2. Linked boundaries stay selectable even when they are not on this page.");
     expect(screen.getByRole("checkbox", { name: "Link boundary 9" })).toBeChecked();
     expect(screen.getByText("Linked from an earlier boundary list")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Show on Field boundaries" })
@@ -191,7 +191,7 @@ describe("AffectedFieldLinkage", () => {
 
     renderLinkage();
 
-    const notice = screen.getByText(/This read stopped before the last matching boundary/);
+    const notice = screen.getByText(/boundaries\. This read stopped before the last matching boundary/);
     expect(notice).toHaveTextContent("250 matching boundaries");
     expect(notice).not.toHaveTextContent("page 1 of 1");
   });
