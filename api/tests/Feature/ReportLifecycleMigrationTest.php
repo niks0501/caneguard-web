@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 class ReportLifecycleMigrationTest extends TestCase
 {
-    public function test_lifecycle_migration_maps_legacy_records_without_losing_evidence(): void
+    public function test_lifecycle_migration_maps_legacy_records_preserves_evidence_and_rolls_back_schema(): void
     {
         $connectionName = 'lifecycle_migration_sqlite';
         $originalDefault = config('database.default');
@@ -117,6 +117,19 @@ class ReportLifecycleMigrationTest extends TestCase
                     'authority_classified_condition' => null,
                     'reviewed_at' => '2026-08-21 12:00:00.000',
                 ],
+                [
+                    'uuid' => '10000000-0000-4000-8000-000000000006',
+                    'reference_code' => 'CG-LEGACY-0006',
+                    'reporter_id' => 106,
+                    'reviewer_id' => null,
+                    'barangay' => 'San Isidro',
+                    'client_uuid' => '11000000-0000-4000-8000-000000000006',
+                    'scan_record_client_uuid' => null,
+                    'review_status' => 'legacy_unknown_status',
+                    'review_notes' => 'Preserve unrecognized historical state.',
+                    'authority_classified_condition' => null,
+                    'reviewed_at' => null,
+                ],
             ];
             $capturedAt = CarbonImmutable::parse('2026-08-20T08:00:00.000Z');
             $submittedAt = CarbonImmutable::parse('2026-08-20T09:00:00.000Z');
@@ -166,6 +179,8 @@ class ReportLifecycleMigrationTest extends TestCase
                 'field_validation_state',
                 'referral_state',
             ]));
+            $this->assertTrue($schema->hasIndex('reports', 'reports_case_state_submitted_at_index'));
+            $this->assertTrue($schema->hasIndex('reports', 'reports_field_validation_state_submitted_at_index'));
 
             $expectedLifecycle = [
                 'submitted_unverified' => [
@@ -198,7 +213,43 @@ class ReportLifecycleMigrationTest extends TestCase
                     'field_validation_state' => 'unassigned',
                     'referral_state' => 'not_referred',
                 ],
+                'legacy_unknown_status' => [
+                    'case_state' => 'closed',
+                    'verification_outcome' => 'not_determined',
+                    'field_validation_state' => 'unassigned',
+                    'referral_state' => 'not_referred',
+                ],
             ];
+
+            $postMigrationUuid = '10000000-0000-4000-8000-000000000007';
+            DB::connection($connectionName)->table('reports')->insert([
+                'uuid' => $postMigrationUuid,
+                'reference_code' => 'CG-LEGACY-0007',
+                'reporter_id' => 107,
+                'reviewer_id' => null,
+                'barangay' => 'Mabini',
+                'client_uuid' => '11000000-0000-4000-8000-000000000007',
+                'scan_record_client_uuid' => null,
+                'image_path' => 'reports/post-migration.jpg',
+                'predicted_label' => 'rust',
+                'confidence' => 0.75,
+                'captured_at' => $capturedAt->format('Y-m-d H:i:s.v'),
+                'submitted_at' => $submittedAt->format('Y-m-d H:i:s.v'),
+                'review_status' => 'submitted_unverified',
+            ]);
+            $postMigrationRecord = DB::connection($connectionName)
+                ->table('reports')
+                ->where('uuid', $postMigrationUuid)
+                ->first();
+            $this->assertSame(
+                $expectedLifecycle['submitted_unverified'],
+                [
+                    'case_state' => $postMigrationRecord->case_state,
+                    'verification_outcome' => $postMigrationRecord->verification_outcome,
+                    'field_validation_state' => $postMigrationRecord->field_validation_state,
+                    'referral_state' => $postMigrationRecord->referral_state,
+                ],
+            );
 
             $after = DB::connection($connectionName)
                 ->table('reports')
@@ -227,6 +278,40 @@ class ReportLifecycleMigrationTest extends TestCase
                     ],
                 );
             }
+
+            $migration->down();
+            $migrated = false;
+            $this->assertFalse($schema->hasColumns('reports', [
+                'case_state',
+                'verification_outcome',
+                'field_validation_state',
+                'referral_state',
+            ]));
+            $this->assertFalse($schema->hasIndex('reports', 'reports_case_state_submitted_at_index'));
+            $this->assertFalse($schema->hasIndex('reports', 'reports_field_validation_state_submitted_at_index'));
+            $rolledBack = DB::connection($connectionName)
+                ->table('reports')
+                ->get()
+                ->keyBy('uuid');
+            $this->assertCount(count($before) + 1, $rolledBack);
+
+            foreach ($before as $uuid => $original) {
+                $rolledBackRecord = $rolledBack->get($uuid);
+                $this->assertNotNull($rolledBackRecord);
+
+                foreach ($original as $field => $value) {
+                    $this->assertSame(
+                        $value,
+                        $rolledBackRecord->{$field},
+                        "Rollback changed {$field} for {$uuid}.",
+                    );
+                }
+            }
+
+            $this->assertSame(
+                'CG-LEGACY-0007',
+                $rolledBack->get($postMigrationUuid)?->reference_code,
+            );
         } finally {
             if (
                 $migrated

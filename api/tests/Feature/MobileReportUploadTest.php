@@ -650,7 +650,7 @@ class MobileReportUploadTest extends TestCase
         ]);
     }
 
-    public function test_idempotent_resubmission_preserves_existing_review_snapshot_and_version(): void
+    public function test_idempotent_resubmission_preserves_existing_evidence_review_snapshot_and_version(): void
     {
         Storage::fake('local');
         $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
@@ -663,6 +663,9 @@ class MobileReportUploadTest extends TestCase
             'reporter_id' => $reporter,
             'client_uuid' => $clientUuid,
             'image_path' => $imagePath,
+            'predicted_label' => Report::LABEL_MOSAIC,
+            'confidence' => 0.37,
+            'model_version' => 'preserved-model-v1',
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'review_notes' => 'Keep this current snapshot.',
             'reviewer_id' => $reviewer,
@@ -670,7 +673,21 @@ class MobileReportUploadTest extends TestCase
             'lock_version' => 4,
         ]);
         Storage::disk('local')->put($imagePath, 'existing-image');
+        $report->qualityWarnings()->create(['warning_key' => 'too-dark']);
         $before = $report->fresh();
+        $beforeClassScores = $before->classScores()
+            ->orderBy('label')
+            ->pluck('score', 'label')
+            ->map(fn (string $score): float => (float) $score)
+            ->all();
+        $beforeSymptoms = $before->symptoms()
+            ->orderBy('symptom_key')
+            ->pluck('symptom_key')
+            ->all();
+        $beforeQualityWarnings = $before->qualityWarnings()
+            ->orderBy('warning_key')
+            ->pluck('warning_key')
+            ->all();
 
         $this->withToken($token)
             ->withHeader('Accept', 'application/json')
@@ -681,7 +698,10 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.review.status', $before->review_status)
             ->assertJsonPath('data.review.notes', $before->review_notes)
             ->assertJsonPath('data.review.reviewer.uuid', $reviewer->uuid)
-            ->assertJsonPath('data.version', $before->lock_version);
+            ->assertJsonPath('data.version', $before->lock_version)
+            ->assertJsonPath('data.model.predicted_label', $before->predicted_label)
+            ->assertJsonPath('data.model.model_version', $before->model_version)
+            ->assertJsonCount(3, 'data.model.class_scores');
 
         $after = $report->fresh();
         $this->assertSame($before->uuid, $after->uuid);
@@ -693,6 +713,30 @@ class MobileReportUploadTest extends TestCase
             $after->reviewed_at?->toISOString(),
         );
         $this->assertSame($before->lock_version, $after->lock_version);
+        $this->assertSame($before->image_path, $after->image_path);
+        $this->assertSame($before->predicted_label, $after->predicted_label);
+        $this->assertSame($before->model_version, $after->model_version);
+        $this->assertSame((float) $before->confidence, (float) $after->confidence);
+        $this->assertSame(
+            $beforeClassScores,
+            $after->classScores()
+                ->orderBy('label')
+                ->pluck('score', 'label')
+                ->map(fn (string $score): float => (float) $score)
+                ->all(),
+        );
+        $this->assertSame(
+            $beforeSymptoms,
+            $after->symptoms()->orderBy('symptom_key')->pluck('symptom_key')->all(),
+        );
+        $this->assertSame(
+            $beforeQualityWarnings,
+            $after->qualityWarnings()->orderBy('warning_key')->pluck('warning_key')->all(),
+        );
+        $this->assertDatabaseCount('reports', 1);
+        $this->assertDatabaseCount('report_class_scores', 3);
+        $this->assertDatabaseCount('report_symptoms', 1);
+        $this->assertDatabaseCount('report_quality_warnings', 1);
         Storage::disk('local')->assertExists($imagePath);
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
     }
@@ -745,6 +789,15 @@ class MobileReportUploadTest extends TestCase
             'client_uuid' => $clientUuid,
             'reporter_id' => $spoofedReporter->getKey(),
         ]);
+
+        $stored = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertNotSame('spoofed', $stored->uuid);
+        $this->assertNotSame('spoofed', $stored->reference_code);
+        $this->assertSame('image/png', $stored->image_mime_type);
+        $this->assertGreaterThan(0, $stored->image_size_bytes);
+        $this->assertNotNull($stored->submitted_at);
+        $this->assertNotNull($stored->created_at);
+        $this->assertNotNull($stored->updated_at);
     }
 
     public function test_upload_rejects_reviewer_role(): void
