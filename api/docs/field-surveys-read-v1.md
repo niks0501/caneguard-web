@@ -28,8 +28,10 @@ inspector name. Invalid values return **422** with the standard API envelope:
 ```
 
 A capture-date search matches the calendar day in Asia/Manila, the same day the
-office screens display, and never the undisclosed UTC day. Name matching escapes
-`%` and `_`, so a search term is never treated as a wildcard pattern.
+office screens display, and never the undisclosed UTC day. A date that does not
+exist, such as `2026-06-31`, matches nothing instead of shifting to another day.
+Name matching escapes `%` and `_`, so a search term is never treated as a wildcard
+pattern.
 
 ## Response
 

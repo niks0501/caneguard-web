@@ -244,6 +244,34 @@ class FieldSurveyReadTest extends TestCase
         $this->assertSame(0, $previousDay->json('metadata.total_count'));
     }
 
+    public function test_an_impossible_capture_date_matches_nothing_instead_of_rolling_into_another_day(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create(['name' => 'Rosa Inspector']);
+        // 2026-07-01T04:00:00Z is 12:00 on 1 July in Asia/Manila.
+        $firstOfJuly = $this->storeSurvey($district, $inspector, [
+            'captured_at' => CarbonImmutable::parse('2026-07-01T04:00:00Z'),
+        ]);
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $realDate = $this->getJson(self::ENDPOINT.'?search=2026-07-01')->assertOk();
+        $this->assertContains(
+            $firstOfJuly->id,
+            array_map(static fn (array $feature): int => $feature['properties']['id'], $realDate->json('features')),
+        );
+
+        // 31 June does not exist; PHP would otherwise read it as 1 July.
+        $this->getJson(self::ENDPOINT.'?search=2026-06-31')
+            ->assertOk()
+            ->assertJsonCount(0, 'features')
+            ->assertJsonPath('metadata.total_count', 0);
+        $this->getJson(self::ENDPOINT.'?search=2026-13-45')
+            ->assertOk()
+            ->assertJsonCount(0, 'features')
+            ->assertJsonPath('metadata.total_count', 0);
+    }
+
     public function test_search_terms_cannot_inject_like_wildcards(): void
     {
         $district = $this->pilotDistrict();
