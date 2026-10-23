@@ -32,6 +32,12 @@ vi.mock("../hooks/useFieldValidation", () => ({
   useFieldValidationMap: vi.fn(),
 }));
 
+// The report builder checks API reachability when it opens; the dashboard tests
+// never need that request, so it stays pending instead of hitting the network.
+vi.mock("../api/apiHealth", () => ({
+  checkApiHealth: vi.fn(() => new Promise(() => {})),
+}));
+
 const summary = {
   totalSubmitted: 8,
   queues: {
@@ -769,6 +775,30 @@ describe("DashboardPage", () => {
       screen.getByRole("button", { name: "Refresh dashboard" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
+  });
+
+  it("opens the printable report on the dashboard's own window with its scope summary and Reset", () => {
+    vi.useRealTimers();
+    renderDashboard();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
+    fireEvent.change(screen.getByLabelText("Scope start date"), { target: { value: "2026-08-01" } });
+    fireEvent.change(screen.getByLabelText("Scope end date"), { target: { value: "2026-08-31" } });
+    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Generate report" });
+    expect(within(dialog).getByLabelText("Period")).toHaveValue("custom");
+    expect(within(dialog).getByLabelText("From")).toHaveValue("2026-08-01");
+    expect(within(dialog).getByLabelText("To")).toHaveValue("2026-08-31");
+    const scopeLine = within(dialog).getByLabelText("Printable report scope");
+    expect(scopeLine).toHaveTextContent("2026-08-01 to 2026-08-31");
+    expect(scopeLine).toHaveTextContent("All work queues");
+
+    fireEvent.change(within(dialog).getByLabelText("Barangay"), { target: { value: "Bacoor" } });
+    expect(scopeLine).toHaveTextContent("Barangay: Bacoor");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reset to the current work scope" }));
+    expect(within(dialog).getByLabelText("Barangay")).toHaveValue("");
+    expect(within(dialog).getByLabelText("From")).toHaveValue("2026-08-01");
   });
 
   it("keeps dashboard copy within the forbidden-word contract", () => {

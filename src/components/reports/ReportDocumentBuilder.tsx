@@ -19,7 +19,6 @@ import {
   verificationOutcomeLabels,
 } from "../../domain/report.metadata";
 import {
-  emptyBuilderFilters,
   printableScopeIsApplied,
   printableScopeSummary,
   type BuilderFilters,
@@ -56,17 +55,16 @@ function defaultWeek() {
   return previousManilaIsoWeekAt();
 }
 
-function initialState(scope?: PrintableBuilderScope): BuilderState {
+function initialState(scope: PrintableBuilderScope): BuilderState {
   const stored = readStoredState();
   return {
-    periodType: scope?.customPeriod ? "custom" : stored.periodType ?? "weekly",
+    periodType: scope.customPeriod ? "custom" : stored.periodType ?? "weekly",
     week: stored.week ?? defaultWeek(),
     month: stored.month ?? "",
-    from: scope?.customPeriod?.from ?? stored.from ?? "",
-    to: scope?.customPeriod?.to ?? stored.to ?? "",
+    from: scope.customPeriod?.from ?? stored.from ?? "",
+    to: scope.customPeriod?.to ?? stored.to ?? "",
     appendix: false,
-    // D01: the current work scope wins over a remembered builder filter set.
-    filters: scope ? { ...scope.filters } : { ...emptyBuilderFilters, ...(stored.filters ?? {}) },
+    filters: { ...scope.filters },
   };
 }
 
@@ -139,7 +137,7 @@ export function ReportDocumentBuilder({
 }: {
   open: boolean;
   onClose: () => void;
-  scope?: PrintableBuilderScope;
+  scope: PrintableBuilderScope;
 }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<BuilderMode>("printable");
@@ -155,7 +153,7 @@ export function ReportDocumentBuilder({
   // Every open starts from the work scope that is current at that moment, not
   // from the scope captured when this builder first mounted.
   useEffect(() => {
-    if (open && !wasOpen.current && scope) setState((current) => withScope(current, scope));
+    if (open && !wasOpen.current) setState((current) => withScope(current, scope));
     wasOpen.current = open;
   }, [open, scope]);
 
@@ -272,13 +270,12 @@ export function ReportDocumentBuilder({
   }
 
   function resetToWorkScope() {
-    if (!scope) return;
     setState((current) => withScope(current, scope));
   }
 
   if (!open) return null;
 
-  const scopeChanged = scope ? !printableScopeIsApplied(state, scope) : false;
+  const scopeChanged = !printableScopeIsApplied(state, scope);
 
   return (
     <Modal
@@ -334,19 +331,17 @@ export function ReportDocumentBuilder({
         <label className="report-builder__check"><input type="checkbox" checked={state.appendix} onChange={(event) => update("appendix", event.target.checked)} /><span>Include farmer/farm identifier appendix</span></label>
       </div>
 
-      {scope ? (
-        <div className="report-builder__scope" aria-label="Printable report scope">
-          <p>
-            <strong>Scope:</strong> {printableScopeSummary(state.filters, periodLabel(state))} · all matching cases in this period
-          </p>
-          {scope.removed.length > 0 ? (
-            <p role="status">Not carried into this document: {scope.removed.join(", ")}.</p>
-          ) : null}
-          {scopeChanged ? (
-            <Button type="button" variant="secondary" onClick={resetToWorkScope}>Reset to the current work scope</Button>
-          ) : null}
-        </div>
-      ) : null}
+      <div className="report-builder__scope" aria-label="Printable report scope">
+        <p>
+          <strong>Scope:</strong> {printableScopeSummary(state.filters, periodLabel(state))} · all matching cases in this period
+        </p>
+        {scope.removed.length > 0 ? (
+          <p role="status">Not carried into this document: {scope.removed.join(", ")}.</p>
+        ) : null}
+        {scopeChanged ? (
+          <Button type="button" variant="secondary" onClick={resetToWorkScope}>Reset to the current work scope</Button>
+        ) : null}
+      </div>
 
       {state.appendix ? <p className="report-builder__warning" role="note">Farmer and farm references are included when the appendix is enabled.</p> : null}
       {mode === "official" ? (

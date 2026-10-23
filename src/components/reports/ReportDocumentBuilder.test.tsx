@@ -26,12 +26,25 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const noFilterScope = {
+  filters: {
+    queue: "",
+    predicted_label: "",
+    barangay: "",
+    case_state: "",
+    verification_outcome: "",
+    field_validation_state: "",
+    authority_classified_condition: "",
+  },
+  removed: [],
+};
+
 function renderBuilder(onClose: () => void = vi.fn()) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
     <MemoryRouter initialEntries={["/reports"]}>
       <Routes>
-        <Route path="/reports" element={<ReportDocumentBuilder open onClose={onClose} />} />
+        <Route path="/reports" element={<ReportDocumentBuilder open onClose={onClose} scope={noFilterScope} />} />
         <Route path="/dashboard" element={<p>Dashboard home</p>} />
       </Routes>
     </MemoryRouter>
@@ -346,7 +359,7 @@ function dispatchReportClose(origin: string, source: unknown) {
   window.dispatchEvent(event);
 }
 
-function renderBuilderWithScope(scope?: Parameters<typeof ReportDocumentBuilder>[0]["scope"]) {
+function renderBuilderWithScope(scope: Parameters<typeof ReportDocumentBuilder>[0]["scope"] = noFilterScope) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={["/reports"]}>
@@ -365,7 +378,7 @@ function renderLauncher() {
     return (
       <>
         <button type="button" onClick={() => setOpen(true)}>Generate report</button>
-        <ReportDocumentBuilder open={open} onClose={() => setOpen(false)} />
+        <ReportDocumentBuilder open={open} onClose={() => setOpen(false)} scope={noFilterScope} />
       </>
     );
   }

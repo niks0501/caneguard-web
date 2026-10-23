@@ -18,7 +18,7 @@ export type BuilderFilters = {
   authority_classified_condition: string;
 };
 
-export const emptyBuilderFilters: BuilderFilters = {
+const emptyBuilderFilters: BuilderFilters = {
   queue: "",
   predicted_label: "",
   barangay: "",

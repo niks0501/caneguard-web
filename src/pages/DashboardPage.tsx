@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { FileStack, RefreshCw, Rows3 } from "lucide-react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
@@ -21,6 +21,7 @@ import {
   type ScopeSelection,
 } from "../components/dashboard/dashboardScope";
 import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
+import { printableScopeFromReportFilters } from "../components/reports/reportBuilderScope";
 import { PageContent } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
@@ -82,6 +83,10 @@ export function DashboardPage() {
   const summary = dashboard.data;
   const asOf = formatAsOfTime(dashboard.dataUpdatedAt);
   const scopeLabel = `${formatWindow(scope.from, scope.to)}${scope.comparison ? " · month to date" : ""}`;
+  const printableScope = useMemo(
+    () => printableScopeFromReportFilters({ dateFrom: scope.from, dateTo: scope.to }),
+    [scope.from, scope.to],
+  );
 
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
@@ -311,6 +316,7 @@ export function DashboardPage() {
       <ReportDocumentBuilder
         open={reportBuilderOpen}
         onClose={() => setReportBuilderOpen(false)}
+        scope={printableScope}
       />
     </PageContent>
   );
