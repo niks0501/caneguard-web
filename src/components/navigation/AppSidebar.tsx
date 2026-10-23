@@ -46,7 +46,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
         >
           <SquareCheck aria-hidden="true" />
-          <span>Case Review</span>
+          <span>Needs assessment</span>
           <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
         </NavLink>
         <NavLink
