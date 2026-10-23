@@ -25,9 +25,9 @@ function auth(role: "reviewer" | "admin", _legacyCapabilities: string[]) {
   } as ReturnType<typeof useAuth>);
 }
 
-function renderApproval(onRequestClose: () => void = vi.fn()) {
+function renderApproval() {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
-    <WeeklyReportApproval week="2026-W40" onRequestClose={onRequestClose} />
+    <WeeklyReportApproval week="2026-W40" />
   </QueryClientProvider>);
 }
 
@@ -132,40 +132,4 @@ describe("weekly district approval", () => {
     await user.click(screen.getByRole("button", { name: "Approve version" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Prepare a new version and review it again");
   });
-
-  it("lets the embedded version ask the hosting dialog to close, from its own frame and origin only", async () => {
-    const onRequestClose = vi.fn();
-    renderApproval(onRequestClose);
-    const iframe = await screen.findByTitle("Official weekly report version 1") as HTMLIFrameElement;
-    const frameWindow = iframe.contentWindow;
-
-    dispatchClose("https://attacker.test", frameWindow);
-    dispatchClose(new URL(base).origin, null);
-    await Promise.resolve();
-    expect(onRequestClose).not.toHaveBeenCalled();
-
-    dispatchClose(new URL(base).origin, frameWindow);
-    expect(onRequestClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders the official version on a surface with no hosting dialog to close", async () => {
-    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <WeeklyReportApproval week="2026-W40" />
-    </QueryClientProvider>);
-    const iframe = await screen.findByTitle("Official weekly report version 1") as HTMLIFrameElement;
-
-    dispatchClose(new URL(base).origin, iframe.contentWindow);
-
-    expect(screen.getByTitle("Official weekly report version 1")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Prepare district version" })).toBeInTheDocument();
-  });
 });
-
-function dispatchClose(origin: string, source: unknown) {
-  const event = new MessageEvent("message", {
-    data: { type: "caneguard-report-close" },
-    origin,
-  });
-  Object.defineProperty(event, "source", { value: source });
-  window.dispatchEvent(event);
-}

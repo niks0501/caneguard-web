@@ -108,17 +108,5 @@ Prepared by {{ $version->prepared_name }} · {{ $version->created_at?->timezone(
 @foreach ($content['appendix'] as $row)<tr><td>{{ $row['reference'] }}</td><td>{{ $row['barangay'] }}</td><td>{{ $row['farmer_or_farm_reference'] }}</td><td>{{ $row['disease'] ?? 'Unclassified' }} / {{ str_replace('_', ' ', $row['status']) }}</td></tr>@endforeach
 </tbody></table></section>
 @endif
-<script nonce="{{ request()->attributes->get('csp_nonce') }}">
-    (() => {
-        // Escape inside the embedded document closes the Web dialog that hosts
-        // it; the parent window is only ever addressed at the configured origin.
-        const webOrigin = @json($web_origin) === 'self' ? window.location.origin : @json($web_origin);
-        window.addEventListener('keydown', (event) => {
-            if (event.key !== 'Escape') return;
-            event.preventDefault();
-            window.parent.postMessage({ type: 'caneguard-report-close' }, webOrigin);
-        });
-    })();
-</script>
 </body>
 </html>

@@ -81,8 +81,24 @@ final class BuildReportDocument
                 : null,
             'appendix' => $reports,
             'appendix_capped' => count($reports) >= 1000,
-            'web_origin' => ReportEmbedOrigin::resolve(),
+            'web_origin' => $this->webOrigin(),
         ];
+    }
+
+    /**
+     * The embedding Web origin, taken from the configured report embed
+     * allowlist. Never a wildcard: the document message channel accepts exactly
+     * this origin.
+     */
+    private function webOrigin(): string
+    {
+        foreach ((array) config('caneguard.reports.embed_origins', ['self']) as $origin) {
+            if (is_string($origin) && $origin !== '' && $origin !== 'self') {
+                return rtrim($origin, '/');
+            }
+        }
+
+        return 'self';
     }
 
     /**

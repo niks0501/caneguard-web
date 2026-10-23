@@ -193,7 +193,8 @@ describe("Modal with an embedded document", () => {
 
     // The close button is the first control in the panel.
     expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
-    // The document never takes the keyboard, so Escape always reaches the dialog.
+    // The frame stays out of the Tab cycle, so Tab and Shift+Tab only ever move
+    // between the dialog's own controls.
     expect(frame).not.toHaveFocus();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

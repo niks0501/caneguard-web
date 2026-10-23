@@ -78,9 +78,7 @@ class DistrictReportWorkflowTest extends TestCase
         $stored = DistrictReportTransmission::findOrFail($intent['id']);
         $this->assertTrue(app(DistrictReportWorkflow::class)->checkPending($stored));
         $this->assertSame(['authorized@example.test'], DistrictRecipientSet::findOrFail($stored->district_recipient_set_id)->recipients);
-        $this->get($path.'/document')->assertOk()
-            ->assertHeader('cache-control', 'no-store, private')
-            ->assertSee('caneguard-report-close');
+        $this->get($path.'/document')->assertOk()->assertHeader('cache-control', 'no-store, private');
         Mail::assertNothingSent();
         Mail::assertNothingQueued();
     }

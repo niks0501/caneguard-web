@@ -354,7 +354,7 @@ export function ReportDocumentBuilder({
           <h3>Official weekly report</h3>
           <p>One sealed district version for the selected ISO week. It is not filtered by the work queue above.</p>
           <label><span>Week</span><input type="week" value={state.week} onChange={(event) => update("week", event.target.value)} /></label>
-          <WeeklyReportApproval key={state.week} week={state.week} onRequestClose={onClose} />
+          <WeeklyReportApproval key={state.week} week={state.week} />
         </section>
       ) : null}
       {apiAvailability === "unavailable" ? (

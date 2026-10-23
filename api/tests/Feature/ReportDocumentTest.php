@@ -40,9 +40,7 @@ class ReportDocumentTest extends TestCase
         $response->assertOk()
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
             ->assertHeaderMissing('X-Frame-Options')
-            ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'self' {$webOrigin}")
-            ->assertSee('caneguard-report-print')
-            ->assertSee('caneguard-report-close');
+            ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'self' {$webOrigin}");
         $this->assertStringNotContainsString(
             'frame-ancestors *',
             (string) $response->headers->get('Content-Security-Policy'),

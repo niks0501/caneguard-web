@@ -27,7 +27,7 @@ const listSchema = z.object({
 });
 const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RSSI"], ["mosaic", "Sugarcane Mosaic"], ["rust", "Sugarcane Rust"], ["smut", "Sugarcane Smut"]];
 
-export function WeeklyReportApproval({ week, onRequestClose }: { week: string; onRequestClose?: () => void }) {
+export function WeeklyReportApproval({ week }: { week: string }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -79,21 +79,6 @@ export function WeeklyReportApproval({ week, onRequestClose }: { week: string; o
   const params = new URLSearchParams({ ...(disease ? { disease } : {}), ...(appendix && versions.data?.meta.appendix_allowed ? { appendix: "1" } : {}) });
   const path = latest ? `${env.apiBaseUrl}/api/v1/district-reports/${latest.uuid}` : "";
   const query = params.toString();
-  const frame = useRef<HTMLIFrameElement | null>(null);
-
-  // The embedded version may ask the hosting dialog to close from inside the
-  // cross-origin document; only that frame at the configured origin may ask.
-  useEffect(() => {
-    if (!onRequestClose) return;
-    const apiOrigin = new URL(env.apiBaseUrl).origin;
-    const handle = (event: MessageEvent) => {
-      if (event.origin !== apiOrigin) return;
-      if (event.source !== frame.current?.contentWindow) return;
-      if (event.data?.type === "caneguard-report-close") onRequestClose();
-    };
-    window.addEventListener("message", handle);
-    return () => window.removeEventListener("message", handle);
-  }, [onRequestClose]);
 
   if (env.dataSource !== "api") return null;
 
@@ -129,7 +114,7 @@ export function WeeklyReportApproval({ week, onRequestClose }: { week: string; o
         </div>
         {latest.document_sha256 ? <p>Approved document SHA-256: <span className="machine-text">{latest.document_sha256}</span></p> : null}
         <div className="report-builder__preview">
-          {online ? <iframe ref={frame} title={`Official weekly report version ${latest.version}`} src={`${path}/document${query ? `?${query}` : ""}`} tabIndex={-1} /> : null}
+          {online ? <iframe title={`Official weekly report version ${latest.version}`} src={`${path}/document${query ? `?${query}` : ""}`} tabIndex={-1} /> : null}
         </div>
       </> : null}
     </section>

@@ -26,7 +26,6 @@ final class RenderWeeklyReport
             'content' => $content, 'version' => $version, 'disease' => $disease,
             'charts' => $this->graphics->charts($content, $disease), 'map' => $this->graphics->map($content),
             'logo' => 'data:image/svg+xml;base64,'.base64_encode(file_get_contents(base_path('../brand/CaneGuard_logo_flat.svg'))),
-            'web_origin' => ReportEmbedOrigin::resolve(),
         ];
     }
 
