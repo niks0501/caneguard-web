@@ -234,6 +234,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       if (next) navigate(routes.reportDetail(next), { state: { reviewQueue: {
         returnTo, filters: context?.filters ?? {}, remainingIds: remainingIds.slice(1), reviewedIds,
         ...(context?.snapshotOnly ? { snapshotOnly: true } : {}),
+        ...(context?.snapshotTruncated ? { snapshotTruncated: true } : {}),
       } } });
       else setNextMessage(context?.snapshotTruncated
           ? "Review Next covers this section's loaded cases only. Return to the list and narrow the queue to reach the rest."

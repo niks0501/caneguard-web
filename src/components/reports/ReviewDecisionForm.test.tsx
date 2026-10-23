@@ -269,6 +269,28 @@ describe("Progressive review resilience", () => {
     expect(reportsRepository.listReports).not.toHaveBeenCalled();
   });
 
+  it("keeps stating the snapshot boundary after Review Next moves to the next loaded case", async () => {
+    const user = userEvent.setup();
+    const next = { ...base, uuid: "next-case", referenceCode: "CG-NEXT" };
+    render(<MemoryRouter initialEntries={[{ pathname: `/reports/${base.uuid}`, state: { reviewQueue: {
+      returnTo: "/needs-assessment", filters: {}, remainingIds: [next.uuid], reviewedIds: [],
+      snapshotOnly: true, snapshotTruncated: true,
+    } } }]}><Routes>
+      <Route path={`/reports/${base.uuid}`} element={<ReviewDecisionForm report={base} onRefresh={vi.fn()} />} />
+      <Route path={`/reports/${next.uuid}`} element={<ReviewDecisionForm report={next} onRefresh={vi.fn()} />} />
+    </Routes></MemoryRouter>);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
+
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
+    expect(await screen.findByText(/Review Next covers this section's loaded cases only/)).toBeInTheDocument();
+    expect(screen.queryByText("No more cases in this queue.")).not.toBeInTheDocument();
+    expect(reportsRepository.listReports).not.toHaveBeenCalled();
+  });
+
   it("rescans only the same context at a page boundary, skipping already reviewed cases", async () => {
     const user = userEvent.setup();
     const context = { returnTo: "/monitoring?queue=upcoming&sort=due_soonest", filters: { queue: "upcoming", sort: "due_soonest" }, remainingIds: [], reviewedIds: [] };
