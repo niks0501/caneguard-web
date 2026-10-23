@@ -63,8 +63,13 @@ test:
     - T3 (High-Stakes): Authentication, authorization, database migrations,
       critical API contracts, or other protected paths. Run the complete T3
       gate from PROJECT_CHECKS.md, plus isolated adversarial review. Human-owned
-      tests are the sole proof; agent-written tests are notes. Unverified
-      behavior is NO-GO, never passed (~8-15m).
+      tests remain authoritative for T3 generally. For API, migration, and
+      contract-gate suites, the sole proof is a human-owned or secondmate-blessed
+      test; worker-written tests stay supplemental until secondmate blessing is
+      recorded. Frozen golden suites named by the frozen
+      matrix are immutable: do not edit, weaken, delete, skip, or rebaseline them
+      without explicit captain sign-off. Unverified behavior is NO-GO, never
+      passed (~8-15m).
 
     Live Verification & Environment Rules:
     - Use exactly one targeted chrome-devtools-axi check only when user-visible
