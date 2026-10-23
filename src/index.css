@@ -9696,6 +9696,17 @@ button.monitoring-calendar__day-number:focus-visible {
   padding: 0;
 }
 
+/* Inside the scrolling body only the preview flexes; every control row keeps
+   its natural height so no input is clipped. */
+.report-builder-modal .modal-body > * {
+  flex-shrink: 0;
+}
+
+.report-builder-modal .modal-body > .report-builder__preview {
+  flex: 1 1 auto;
+  min-height: 320px;
+}
+
 @media (max-width: 600px) {
   .report-builder-modal .modal-panel {
     width: 100%;
