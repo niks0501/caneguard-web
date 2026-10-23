@@ -78,6 +78,26 @@ export function WeeklyReportApproval({ week }: { week: string }) {
   const blockedSend = receipt && ["pending", "delivering", "sent"].includes(receipt.state);
   const params = new URLSearchParams({ ...(disease ? { disease } : {}), ...(appendix && versions.data?.meta.appendix_allowed ? { appendix: "1" } : {}) });
   const path = latest ? `${env.apiBaseUrl}/api/v1/district-reports/${latest.uuid}` : "";
+  const query = params.toString();
+  const weeklyFrame = useRef<HTMLIFrameElement | null>(null);
+
+  // The embedded district document posts its own origin; accept only that
+  // origin and that exact frame, then download the sealed PDF.
+  useEffect(() => {
+    const apiOrigin = new URL(env.apiBaseUrl).origin;
+    const handle = (event: MessageEvent) => {
+      if (event.origin !== apiOrigin) return;
+      if (event.source !== weeklyFrame.current?.contentWindow) return;
+      if (event.data?.type !== "caneguard-report-download" || !path) return;
+      const link = document.createElement("a");
+      link.href = `${path}/pdf${query ? `?${query}` : ""}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+    window.addEventListener("message", handle);
+    return () => window.removeEventListener("message", handle);
+  }, [path, query]);
 
   if (env.dataSource !== "api") return null;
 
@@ -113,7 +133,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
         </div>
         {latest.document_sha256 ? <p>Approved document SHA-256: <span className="machine-text">{latest.document_sha256}</span></p> : null}
         <div className="report-builder__preview">
-          {online ? <iframe title={`Official weekly report version ${latest.version}`} src={`${path}/document${params.size ? `?${params}` : ""}`} /> : null}
+          {online ? <iframe ref={weeklyFrame} title={`Official weekly report version ${latest.version}`} src={`${path}/document${query ? `?${query}` : ""}`} /> : null}
         </div>
       </> : null}
     </section>

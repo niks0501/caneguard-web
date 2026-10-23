@@ -161,3 +161,36 @@ describe("Modal", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });
+
+describe("Modal with an embedded document", () => {
+  function EmbedHarness() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>Open dialog</button>
+        <Modal
+          title="Document preview"
+          open={open}
+          onClose={() => setOpen(false)}
+          footer={<button type="button">Last action</button>}
+        >
+          <iframe title="Embedded document" srcDoc="<p>preview</p>" />
+          <label>After the document<input type="text" /></label>
+        </Modal>
+      </>
+    );
+  }
+
+  it("keeps the embedded document inside the Tab loop", async () => {
+    const user = userEvent.setup();
+    render(<EmbedHarness />);
+    await user.click(screen.getByRole("button", { name: "Open dialog" }));
+
+    const lastAction = screen.getByRole("button", { name: "Last action" });
+    lastAction.focus();
+    await user.tab();
+
+    // The close button is the first control in the panel.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+  });
+});

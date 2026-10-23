@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router";
 import { ZodError } from "zod";
@@ -50,6 +50,7 @@ function reportsResult(
     isPending: false,
     isRefetchError: false,
     isSuccess: true,
+    dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3),
     refetch: vi.fn(),
     ...overrides,
   } as unknown as ReturnType<typeof useReports>;
@@ -171,7 +172,14 @@ describe("SubmittedReportsPage", () => {
     renderPage(
       "/reports?status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27",
     );
-    await user.click(screen.getByRole("button", { name: "Export CSV" }));
+    await user.click(screen.getByRole("button", { name: "Case CSV" }));
+
+    // The export step states the scope, the whole-match rule and the identifiers.
+    const dialog = await screen.findByRole("dialog", { name: "Download the case CSV?" });
+    expect(within(dialog).getByText(/Every matching case is included, not just the visible page/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/includes farmer and farm references/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Barangay: Mabini/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Download Case CSV" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       page: 1,
@@ -183,6 +191,11 @@ describe("SubmittedReportsPage", () => {
       dateTo: "2026-07-27",
     }));
     expect(createObjectUrl).toHaveBeenCalledOnce();
+    // A scope- and date-aware filename, not a generic export name.
+    expect(clickLink.mock.instances[0]).toHaveProperty(
+      "download",
+      "caneguard-cases-mabini-2026-07-01_to_2026-07-27.csv",
+    );
     expect(screen.getByRole("heading", { name: "Recent submissions" })).toBeInTheDocument();
     createObjectUrl.mockRestore();
     revokeObjectUrl.mockRestore();
@@ -239,6 +252,64 @@ describe("SubmittedReportsPage", () => {
       screen.queryByRole("link", { name: /Open CG-/ }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("32 matching reports")).not.toBeInTheDocument();
+  });
+
+  it("keeps the primary queue controls in front and every applied filter removable", async () => {
+    const user = userEvent.setup();
+    renderPage("/reports?queue=needs_review&barangay=Mabini&reviewer=officer-1");
+    await waitFor(() => expect(useReports).toHaveBeenCalled());
+
+    const primary = screen.getByLabelText("Queue").closest(".filter-bar") as HTMLElement;
+    expect(within(primary).getByLabelText("Search reports")).toBeInTheDocument();
+    expect(within(primary).getByLabelText("Sort by")).toBeInTheDocument();
+    // Less common filters stay available without crowding the primary row.
+    expect(within(primary).queryByLabelText("Field Inspector")).not.toBeInTheDocument();
+
+    const chips = screen.getByRole("group", { name: /Applied:/ });
+    expect(within(chips).getByText("Queue: Needs Review")).toBeInTheDocument();
+    expect(within(chips).getByText("Barangay: Mabini")).toBeInTheDocument();
+    expect(within(chips).getByText("Field Inspector: Field Officer")).toBeInTheDocument();
+
+    await user.click(within(chips).getByRole("button", { name: /Remove Barangay: Mabini/ }));
+    expect(screen.getByTestId("location")).not.toHaveTextContent("barangay=Mabini");
+    expect(screen.getByTestId("location")).toHaveTextContent("queue=needs_review");
+  });
+
+  it("never presents a filtered view as All submitted reports", async () => {
+    const { unmount } = renderPage("/reports");
+    const saved = screen.getByRole("navigation", { name: "Report saved views" });
+    expect(within(saved).getByRole("link", { name: "All submitted reports" })).toHaveAttribute("aria-current", "page");
+    unmount();
+
+    renderPage("/reports?queue=needs_review");
+    const filtered = screen.getByRole("navigation", { name: "Report saved views" });
+    expect(within(filtered).getByRole("link", { name: "All submitted reports" })).not.toHaveAttribute("aria-current");
+    expect(within(filtered).getByText("Filtered view")).toHaveAttribute("aria-current", "page");
+  });
+
+  it("clears every filter back to the documented default view", async () => {
+    const user = userEvent.setup();
+    renderPage("/reports?queue=needs_review&barangay=Mabini&sort=oldest&page=2");
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(/^$/);
+    expect(screen.getByLabelText("Sort by")).toHaveValue("due_soonest");
+  });
+
+  it("stamps queue freshness in 12-hour Manila time and marks stale data", async () => {
+    const { unmount } = renderPage();
+    const freshness = screen.getByText("Last updated").closest("p") as HTMLElement;
+    expect(freshness).toHaveTextContent(/\d{1,2}:\d{2}:\d{2}\s?(AM|PM)/);
+    expect(within(freshness).getByText(/, read from the server/)).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(useReports).mockReturnValue(
+      reportsResult({ isRefetchError: true }),
+    );
+    renderPage();
+    const stale = screen.getByText("Showing data from").closest("p") as HTMLElement;
+    expect(stale).not.toHaveTextContent("Last updated");
+    expect(within(stale).getByRole("button", { name: "Retry" })).toBeInTheDocument();
   });
 
   it("keeps developer diagnostics out of the staff-facing connection message", () => {

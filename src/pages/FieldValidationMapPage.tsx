@@ -8,6 +8,7 @@ import { CaseDetailsPanel, ClusterQueuePanel } from "../components/fieldValidati
 import { ValidationMap, type ValidationMapSelection } from "../components/fieldValidation/ValidationMap";
 import { locationGroupMembers } from "../components/fieldValidation/locationGroups";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { diseaseLabels, reviewStatusLabels } from "../domain/report.metadata";
@@ -318,6 +319,12 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
         />
         <FilterChips filters={appliedFilters} onRemove={removeFilter} />
       </section>
+      <WorkspaceFreshness
+        updatedAt={mapQuery.dataUpdatedAt}
+        fetching={mapQuery.isFetching && hasCachedData}
+        refreshFailed={Boolean(mapQuery.isRefetchError)}
+        onRetry={() => void mapQuery.refetch()}
+      />
 
       {urlState.invalid ? (
         <ErrorState

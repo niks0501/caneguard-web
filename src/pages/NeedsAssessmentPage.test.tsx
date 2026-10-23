@@ -51,6 +51,7 @@ function result(
     isFetching: false,
     isPending: false,
     isRefetchError: false,
+    dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3),
     refetch: vi.fn(),
     ...overrides,
   } as never;
@@ -131,6 +132,20 @@ describe("NeedsAssessmentPage", () => {
     expect(within(summary).getAllByText("Unavailable")).toHaveLength(2);
     expect(within(summary).queryByText("0")).not.toBeInTheDocument();
     expect(within(summary).getAllByText("1")).toHaveLength(2);
+  });
+
+  it("shows the oldest queue read as the workspace freshness stamp", () => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")], { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 20, 0) });
+      if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")], { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 18, 0) });
+      return result([report("worsened", "worsened", "completed")], { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3) });
+    });
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    const freshness = screen.getByText("Last updated").closest("p") as HTMLElement;
+    // 13:14:03 UTC is 9:14:03 PM in Asia/Manila.
+    expect(within(freshness).getByText("9:14:03 PM")).toBeInTheDocument();
   });
 
   it("displays refreshing state on the action button when refetching", () => {
