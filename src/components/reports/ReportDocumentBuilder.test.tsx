@@ -144,9 +144,57 @@ describe("ReportDocumentBuilder document scope", () => {
     const summary = await screen.findByLabelText("Printable report scope");
     expect(summary).toHaveTextContent("Queue: Needs Review");
     expect(summary).toHaveTextContent("Barangay: Bacoor");
+    expect(summary).toHaveTextContent("Possible Condition: Rust");
     expect(summary).toHaveTextContent("Not carried into this document: Field Inspector, Map location");
     expect(screen.getByLabelText("Operational queue")).toHaveValue("needs_review");
     expect(screen.getByLabelText("Barangay")).toHaveValue("Bacoor");
+  });
+
+  it("starts from the work scope that is current when the builder opens", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
+    const user = userEvent.setup();
+    const empty = {
+      filters: {
+        queue: "",
+        predicted_label: "",
+        barangay: "",
+        case_state: "",
+        verification_outcome: "",
+        field_validation_state: "",
+        authority_classified_condition: "",
+      },
+      removed: [],
+    };
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      const [scope, setScope] = useState(empty);
+      return (
+        <>
+          <button type="button" onClick={() => setScope({ ...scope, filters: { ...scope.filters, queue: "needs_review", barangay: "Bacoor" } })}>Filter the queue</button>
+          <button type="button" onClick={() => setOpen(true)}>Generate report</button>
+          <ReportDocumentBuilder open={open} onClose={() => setOpen(false)} scope={scope} />
+        </>
+      );
+    }
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={["/reports"]}>
+          <Routes>
+            <Route path="/reports" element={<Harness />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Filter the queue" }));
+    await user.click(screen.getByRole("button", { name: "Generate report" }));
+
+    expect(screen.getByLabelText("Operational queue")).toHaveValue("needs_review");
+    expect(screen.getByLabelText("Barangay")).toHaveValue("Bacoor");
+    expect(screen.getByLabelText("Printable report scope")).toHaveTextContent("Queue: Needs Review");
+    const iframe = await screen.findByTitle("Live report preview") as HTMLIFrameElement;
+    expect(iframe.getAttribute("src")).toContain("queue=needs_review");
+    expect(iframe.getAttribute("src")).toContain("barangay=Bacoor");
   });
 
   it("restores the arriving scope instead of leaving an edited filter in place", async () => {
@@ -158,6 +206,8 @@ describe("ReportDocumentBuilder document scope", () => {
     const queue = screen.getByLabelText("Operational queue");
     await user.selectOptions(queue, "follow_up_due");
     expect(queue).toHaveValue("follow_up_due");
+    // The scope summary follows the filters the document is built from.
+    expect(screen.getByLabelText("Printable report scope")).toHaveTextContent("Queue: Follow-up Due");
 
     await user.click(screen.getByRole("button", { name: "Reset to the current work scope" }));
     expect(queue).toHaveValue("needs_review");
@@ -229,6 +279,8 @@ describe("ReportDocumentBuilder keyboard behaviour", () => {
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
     expect(dialog).toHaveAttribute("aria-modal", "true");
     expect(screen.getByLabelText("Period")).toHaveFocus();
+    // The embedded preview never takes the keyboard, so Escape is always heard.
+    expect(await screen.findByTitle("Live report preview")).toHaveAttribute("tabindex", "-1");
 
     await user.keyboard("{Escape}");
 

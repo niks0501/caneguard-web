@@ -36,6 +36,7 @@ import {
 import {
   authorityClassifiedConditionLabels,
   diseaseLabels,
+  reviewStatusLabels,
 } from "../domain/report.metadata";
 import {
   workflowStatusLabels,
@@ -112,6 +113,9 @@ function appliedFilterChips(
   if (filters.reportedConcern) add("concern", "concern", "Reported concern: RSSI");
   if (filters.workflowStatus && filters.workflowStatus !== "all") {
     add("workflow_status", "workflow_status", `Status: ${workflowStatusLabels[filters.workflowStatus]}`);
+  }
+  if (filters.status && filters.status !== "all") {
+    add("status", "status", `Review status: ${reviewStatusLabels[filters.status]}`);
   }
   if (filters.disease && filters.disease !== "all") {
     add("predicted_label", "predicted_label", `Condition: ${diseaseLabels[filters.disease]}`);

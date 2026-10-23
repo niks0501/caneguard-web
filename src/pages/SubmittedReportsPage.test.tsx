@@ -179,6 +179,7 @@ describe("SubmittedReportsPage", () => {
     expect(within(dialog).getByText(/Every matching case is included, not just the visible page/)).toBeInTheDocument();
     expect(within(dialog).getByText(/includes farmer and farm references/)).toBeInTheDocument();
     expect(within(dialog).getByText(/Barangay: Mabini/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Review status: Needs review/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Download Case CSV" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
@@ -273,6 +274,27 @@ describe("SubmittedReportsPage", () => {
     await user.click(within(chips).getByRole("button", { name: /Remove Barangay: Mabini/ }));
     expect(screen.getByTestId("location")).not.toHaveTextContent("barangay=Mabini");
     expect(screen.getByTestId("location")).toHaveTextContent("queue=needs_review");
+  });
+
+  it("names a filter the document cannot carry once, even when two URL keys mean Status", async () => {
+    const user = userEvent.setup();
+    renderPage("/reports?status=submitted_unverified&workflow_status=field_validation");
+
+    await user.click(screen.getByRole("button", { name: "Filtered printable report" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
+    expect(within(dialog).getByText("Not carried into this document: Status.")).toBeInTheDocument();
+  });
+
+  it("names a bookmarked review-status filter as an applied, removable filter", async () => {
+    const user = userEvent.setup();
+    renderPage("/reports?status=submitted_unverified");
+
+    const chips = screen.getByRole("group", { name: /Applied:/ });
+    expect(within(chips).getByText("Review status: Needs review")).toBeInTheDocument();
+
+    await user.click(within(chips).getByRole("button", { name: /Remove Review status: Needs review/ }));
+    expect(screen.getByTestId("location")).not.toHaveTextContent("status=");
   });
 
   it("never presents a filtered view as All submitted reports", async () => {

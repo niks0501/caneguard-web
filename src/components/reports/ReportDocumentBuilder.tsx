@@ -70,6 +70,17 @@ function initialState(scope?: PrintableBuilderScope): BuilderState {
   };
 }
 
+/** The one rule for adopting the arriving work scope, shared by open and Reset. */
+function withScope(current: BuilderState, scope: PrintableBuilderScope): BuilderState {
+  return {
+    ...current,
+    periodType: scope.customPeriod ? "custom" : current.periodType,
+    from: scope.customPeriod?.from ?? current.from,
+    to: scope.customPeriod?.to ?? current.to,
+    filters: { ...scope.filters },
+  };
+}
+
 async function readPdfErrorCode(error: unknown) {
   const axiosError = axios.isAxiosError(error)
     ? error
@@ -139,6 +150,14 @@ export function ReportDocumentBuilder({
   const [pdfPending, setPdfPending] = useState(false);
   const previewFrame = useRef<HTMLIFrameElement | null>(null);
   const apiOrigin = useMemo(() => new URL(env.apiBaseUrl).origin, []);
+  const wasOpen = useRef(open);
+
+  // Every open starts from the work scope that is current at that moment, not
+  // from the scope captured when this builder first mounted.
+  useEffect(() => {
+    if (open && !wasOpen.current && scope) setState((current) => withScope(current, scope));
+    wasOpen.current = open;
+  }, [open, scope]);
 
   useEffect(() => {
     if (!open) return;
@@ -253,13 +272,7 @@ export function ReportDocumentBuilder({
 
   function resetToWorkScope() {
     if (!scope) return;
-    setState((current) => ({
-      ...current,
-      periodType: scope.customPeriod ? "custom" : current.periodType,
-      from: scope.customPeriod?.from ?? current.from,
-      to: scope.customPeriod?.to ?? current.to,
-      filters: { ...scope.filters },
-    }));
+    setState((current) => withScope(current, scope));
   }
 
   if (!open) return null;
@@ -323,7 +336,7 @@ export function ReportDocumentBuilder({
       {scope ? (
         <div className="report-builder__scope" aria-label="Printable report scope">
           <p>
-            <strong>Scope:</strong> {printableScopeSummary(scope, periodLabel(state))} · all matching cases in this period
+            <strong>Scope:</strong> {printableScopeSummary(state.filters, periodLabel(state))} · all matching cases in this period
           </p>
           {scope.removed.length > 0 ? (
             <p role="status">Not carried into this document: {scope.removed.join(", ")}.</p>
@@ -352,7 +365,7 @@ export function ReportDocumentBuilder({
       {pdfError ? <div className="report-builder__error" role="alert">{pdfError}</div> : null}
       {mode === "printable" ? (
         <div className="report-builder__preview" aria-label="Live report preview">
-          {apiAvailability === "checking" ? <p>Checking the CaneGuard API connection...</p> : previewUrl ? <iframe ref={previewFrame} title="Live report preview" src={previewUrl} /> : apiAvailability === "available" ? <p>Preparing the report preview...</p> : null}
+          {apiAvailability === "checking" ? <p>Checking the CaneGuard API connection...</p> : previewUrl ? <iframe ref={previewFrame} title="Live report preview" src={previewUrl} tabIndex={-1} /> : apiAvailability === "available" ? <p>Preparing the report preview...</p> : null}
         </div>
       ) : null}
     </Modal>

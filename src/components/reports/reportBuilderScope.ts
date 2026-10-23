@@ -1,4 +1,11 @@
 import type { ReportFilters } from "../../domain/report.types";
+import {
+  authorityClassifiedConditionLabels,
+  caseStateLabels,
+  diseaseLabels,
+  fieldValidationStateLabels,
+  verificationOutcomeLabels,
+} from "../../domain/report.metadata";
 
 /** Filters the printable document endpoint understands. */
 export type BuilderFilters = {
@@ -71,7 +78,7 @@ export function printableScopeFromReportFilters(filters: ReportFilters): Printab
     removed.push("To date");
   }
 
-  return { filters: next, customPeriod, removed };
+  return { filters: next, customPeriod, removed: [...new Set(removed)] };
 }
 
 export function printableScopeIsApplied(
@@ -87,12 +94,24 @@ export function printableScopeIsApplied(
     && state.to === scope.customPeriod.to;
 }
 
+function named(map: Partial<Record<string, string>>, value: string) {
+  return map[value] ?? value;
+}
+
+/** Names the filters the document is actually built from, never the arriving ones. */
 export function printableScopeSummary(
-  scope: PrintableBuilderScope,
+  filters: BuilderFilters,
   periodLabel: string,
 ): string {
-  const parts = [periodLabel];
-  parts.push(scope.filters.queue ? `Queue: ${queueLabels[scope.filters.queue] ?? scope.filters.queue}` : "All work queues");
-  if (scope.filters.barangay) parts.push(`Barangay: ${scope.filters.barangay}`);
+  const parts = [
+    periodLabel,
+    filters.queue ? `Queue: ${named(queueLabels, filters.queue)}` : "All work queues",
+  ];
+  if (filters.barangay) parts.push(`Barangay: ${filters.barangay}`);
+  if (filters.predicted_label) parts.push(named(diseaseLabels, filters.predicted_label));
+  if (filters.case_state) parts.push(`Case state: ${named(caseStateLabels, filters.case_state)}`);
+  if (filters.verification_outcome) parts.push(`Verification: ${named(verificationOutcomeLabels, filters.verification_outcome)}`);
+  if (filters.field_validation_state) parts.push(`Field validation: ${named(fieldValidationStateLabels, filters.field_validation_state)}`);
+  if (filters.authority_classified_condition) parts.push(`Staff condition: ${named(authorityClassifiedConditionLabels, filters.authority_classified_condition)}`);
   return parts.join(" · ");
 }

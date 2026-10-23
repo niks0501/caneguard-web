@@ -57,9 +57,6 @@ export function Modal({
       "input:not([disabled])",
       "select:not([disabled])",
       "textarea:not([disabled])",
-      // An embedded document is keyboard focusable; it must stay inside the
-      // trap so Tab can enter and leave it without leaving the dialog.
-      "iframe",
       "[tabindex]:not([tabindex=\"-1\"])",
     ].join(",");
 
