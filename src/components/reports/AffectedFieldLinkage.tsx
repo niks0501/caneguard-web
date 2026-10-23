@@ -25,7 +25,10 @@ type BoundaryChoice = {
   capturedAt: string;
   areaSqm: number;
   inspectorName: string;
+  /** The Field boundaries viewer can resolve this boundary by id. */
   inArchive: boolean;
+  /** This boundary is already linked from the report's earlier saved list. */
+  linked: boolean;
   geometry?: FieldSurveyPolygon;
 };
 
@@ -48,6 +51,7 @@ function boundaryChoices(
   features: FieldSurveyBoundaryFeature[],
   linkedFields: ReportAffectedField[],
   draftChoices: BoundaryChoice[],
+  archivePage: boolean,
 ): BoundaryChoice[] {
   const choices = new Map<number, BoundaryChoice>();
   for (const feature of features) {
@@ -56,7 +60,8 @@ function boundaryChoices(
       capturedAt: feature.properties.capturedAt,
       areaSqm: feature.properties.areaSqm,
       inspectorName: feature.properties.inspector.name,
-      inArchive: true,
+      inArchive: archivePage,
+      linked: false,
       geometry: feature.geometry,
     });
   }
@@ -68,6 +73,7 @@ function boundaryChoices(
         areaSqm: field.areaSqm,
         inspectorName: field.inspector.name,
         inArchive: false,
+        linked: true,
         geometry: field.geometry,
       });
     }
@@ -115,10 +121,14 @@ export function AffectedFieldLinkage({
   const [submitted, setSubmitted] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const linkedFields = report.affectedFields ?? [];
+  // The Field boundaries viewer loads the newest page only, so only that page's
+  // rows can be resolved by the link this table offers.
+  const archivePage = !surveysQuery.isPlaceholderData && lookupPage === 1 && lookupSearch === "";
   const choices = boundaryChoices(
     surveysQuery.data?.features ?? [],
     linkedFields,
     draftChoices,
+    archivePage,
   );
   const metadata = surveysQuery.data?.metadata;
   const previewChoice = choices.find((choice) => choice.id === previewId) ?? null;
@@ -341,9 +351,9 @@ export function AffectedFieldLinkage({
                           >
                             Show on Field boundaries
                           </Link>
-                        ) : (
+                        ) : choice.linked ? (
                           <span className="affected-field-linkage__unavailable">Linked from an earlier boundary list</span>
-                        )}
+                        ) : null}
                         {choice.geometry ? (
                           <button
                             type="button"

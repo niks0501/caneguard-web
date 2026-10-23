@@ -147,6 +147,18 @@ describe("weekly district approval", () => {
     dispatchClose(new URL(base).origin, frameWindow);
     expect(onRequestClose).toHaveBeenCalledTimes(1);
   });
+
+  it("renders the official version on a surface with no hosting dialog to close", async () => {
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <WeeklyReportApproval week="2026-W40" />
+    </QueryClientProvider>);
+    const iframe = await screen.findByTitle("Official weekly report version 1") as HTMLIFrameElement;
+
+    dispatchClose(new URL(base).origin, iframe.contentWindow);
+
+    expect(screen.getByTitle("Official weekly report version 1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Prepare district version" })).toBeInTheDocument();
+  });
 });
 
 function dispatchClose(origin: string, source: unknown) {

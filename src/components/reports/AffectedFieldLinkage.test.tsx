@@ -196,12 +196,17 @@ describe("AffectedFieldLinkage", () => {
     await user.click(screen.getByRole("button", { name: "Search" }));
 
     expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ search: "Mateo", page: 1 });
+    // Rows found beyond the viewer's loaded page cannot be opened there.
+    expect(screen.queryByRole("link", { name: "Show on Field boundaries" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Linked from an earlier boundary list")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Go to page 2" }));
     expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ page: 2 });
+    expect(screen.queryByRole("link", { name: "Show on Field boundaries" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Clear search" }));
     expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ search: "", page: 1 });
+    expect(screen.getAllByRole("link", { name: "Show on Field boundaries" }).length).toBeGreaterThan(0);
   });
 
   it("previews a boundary shape without disturbing the draft", async () => {

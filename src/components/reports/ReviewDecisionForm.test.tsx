@@ -173,6 +173,24 @@ describe("Progressive review resilience", () => {
     expect(save.mock.calls[1][0]).not.toHaveProperty("advisoryUuid");
   });
 
+  it("treats a failed comparison read as a failed read, never as the latest saved record", async () => {
+    const user = userEvent.setup();
+    // TanStack refetch() resolves with the cached record when the read fails.
+    const onRefresh = vi.fn().mockResolvedValue({ data: base, isError: true });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    expect(await screen.findByText(/The latest saved version could not be loaded/)).toBeInTheDocument();
+    expect(screen.queryByText(/already matches the latest saved values/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm Review" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Try loading the latest version again" }));
+    expect(onRefresh).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps a stale draft blocked even when its notes are edited", async () => {
     const user = userEvent.setup();
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));

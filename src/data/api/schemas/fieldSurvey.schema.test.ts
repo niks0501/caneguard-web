@@ -140,22 +140,43 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
       features: pageOf(50),
       metadata: { total_count: 350, returned_count: 50, limit: 100, truncated: false, page: 4, page_count: 4 },
     })).success).toBe(true);
-    // A middle page that is short of its limit is not a complete page.
+    // A page that claims more rows remain must be full.
     expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
       features: pageOf(99),
       metadata: { total_count: 300, returned_count: 99, limit: 100, truncated: true, page: 2, page_count: 3 },
     })).success).toBe(false);
 
-    // Claiming the end while two pages remain is dishonest.
-    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
-      features: pageOf(100),
-      metadata: { total_count: 300, returned_count: 100, limit: 100, truncated: false, page: 1, page_count: 3 },
-    })).success).toBe(false);
     // A page beyond the last one is not a valid read.
     expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
       features: pageOf(1),
       metadata: { total_count: 300, returned_count: 1, limit: 100, truncated: false, page: 4, page_count: 3 },
     })).success).toBe(false);
+  });
+
+  it("accepts a window that drifted from the counted total by one concurrent capture or delete", () => {
+    const feature = response().features[0];
+    const pageOf = (count: number) => Array.from({ length: count }, (_, index) => ({
+      ...feature,
+      id: String(index + 1),
+      properties: { ...feature.properties, id: index + 1 },
+    }));
+
+    // The count said the archive ended here, but a capture arrived before the
+    // fetch, so the window still had rows after this full page.
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(250),
+      metadata: { total_count: 250, returned_count: 250, limit: 250, truncated: true, page: 1, page_count: 1 },
+    })).success).toBe(true);
+
+    // The count said two pages remained, but a delete shortened this page.
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(249),
+      metadata: { total_count: 301, returned_count: 249, limit: 250, truncated: false, page: 1, page_count: 2 },
+    })).success).toBe(true);
+
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      metadata: { total_count: 2, returned_count: 1, limit: 100, truncated: false },
+    })).success).toBe(true);
   });
 
   it("rejects inconsistent returned counts and incomplete truncation states", () => {
@@ -181,10 +202,6 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
     expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
       features,
       metadata: { total_count: 101, returned_count: 99, limit: 100, truncated: true },
-    })).success).toBe(false);
-
-    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
-      metadata: { total_count: 2, returned_count: 1, limit: 100, truncated: false },
     })).success).toBe(false);
   });
 });

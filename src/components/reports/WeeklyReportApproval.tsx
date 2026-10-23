@@ -27,7 +27,7 @@ const listSchema = z.object({
 });
 const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RSSI"], ["mosaic", "Sugarcane Mosaic"], ["rust", "Sugarcane Rust"], ["smut", "Sugarcane Smut"]];
 
-export function WeeklyReportApproval({ week, onRequestClose }: { week: string; onRequestClose: () => void }) {
+export function WeeklyReportApproval({ week, onRequestClose }: { week: string; onRequestClose?: () => void }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -84,6 +84,7 @@ export function WeeklyReportApproval({ week, onRequestClose }: { week: string; o
   // The embedded version may ask the hosting dialog to close from inside the
   // cross-origin document; only that frame at the configured origin may ask.
   useEffect(() => {
+    if (!onRequestClose) return;
     const apiOrigin = new URL(env.apiBaseUrl).origin;
     const handle = (event: MessageEvent) => {
       if (event.origin !== apiOrigin) return;

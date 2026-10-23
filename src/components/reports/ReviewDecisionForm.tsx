@@ -35,7 +35,7 @@ const actions: { value: NextAction; label: string }[] = [
 
 export function ReviewDecisionForm({ report, onRefresh }: {
   report: DiseaseReport;
-  onRefresh: () => Promise<{ data?: DiseaseReport | null }> | void;
+  onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }> | void;
 }) {
   const lifecycle = report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus);
   const mutation = useUpdateReportReview(report.uuid);
@@ -162,7 +162,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     setConflictError(null);
     try {
       const refreshed = await onRefresh();
-      if (refreshed?.data) setConflictLatest(refreshed.data);
+      if (refreshed?.data && !refreshed.isError) setConflictLatest(refreshed.data);
       else setConflictError("The latest saved version could not be loaded. Check the connection and try again.");
     } catch {
       setConflictError("The latest saved version could not be loaded. Check the connection and try again.");
