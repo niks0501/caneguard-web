@@ -13,7 +13,6 @@ import {
 import { diseaseLabels } from "../../domain/report.metadata";
 import { useUpdateReportReview } from "../../hooks/useReports";
 import { Button } from "../ui/Button";
-import { confirmDiscardUnsavedChanges } from "../ui/confirmDiscard";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { formatValidationDate } from "./fieldValidation.format";
 
@@ -57,10 +56,9 @@ export function FieldOperationsEditor({
 
   const hasChanges = assigneeUuid !== currentAssigneeUuid || targetDate !== currentTargetDate;
   const unsavedChanges = hasChanges && !saved;
+  // Closing or switching visits is a URL navigation, so the shared unsaved-work
+  // guard owns the single Stay / Discard prompt (never two prompts).
   useUnsavedWorkGuard(unsavedChanges);
-  const closeEditor = () => {
-    if (confirmDiscardUnsavedChanges(unsavedChanges)) onClose();
-  };
   const hasLocation = hasUsableReportLocation(item);
   const reason = deriveReasonForVisit(item);
   const timing = relativeVisitTiming(item.targetVisitDate, officeDate);
@@ -89,7 +87,7 @@ export function FieldOperationsEditor({
           <p className="eyebrow">{item.referenceCode}</p>
           <h2 id="field-operations-editor-heading">Assign / Edit Visit</h2>
         </div>
-        <button type="button" className="icon-button" onClick={closeEditor} aria-label="Close visit editor">
+        <button type="button" className="icon-button" onClick={onClose} aria-label="Close visit editor">
           <X aria-hidden="true" />
         </button>
       </div>

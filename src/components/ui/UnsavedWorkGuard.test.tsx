@@ -95,6 +95,33 @@ describe("unsaved work guard", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("blocks switching between records that only change the query string", async () => {
+    const user = userEvent.setup();
+    const router = createMemoryRouter(
+      [
+        {
+          element: (
+            <UnsavedWorkProvider>
+              <Outlet />
+            </UnsavedWorkProvider>
+          ),
+          children: [
+            { path: "/case", element: <DraftForm /> },
+            { path: "/next", element: <p>Next workspace</p> },
+          ],
+        },
+      ],
+      { initialEntries: ["/case?report=one"] },
+    );
+    render(<RouterProvider router={router} />);
+
+    await user.type(screen.getByRole("textbox", { name: "Note" }), "Assigning this visit");
+    await router.navigate("/case?report=two");
+
+    expect(await screen.findByRole("dialog", { name: "Discard unsaved changes?" })).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?report=one");
+  });
+
   it("blocks browser Back while the draft is dirty", async () => {
     const user = userEvent.setup();
     const router = createMemoryRouter(
