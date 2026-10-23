@@ -106,6 +106,49 @@ beforeEach(() => {
   vi.mocked(useUpdateReportReview).mockReturnValue(result(undefined, { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false }));
 });
 
+describe("FieldOperationsPage workload freshness", () => {
+  it("stamps the oldest successful workload read in 12-hour Manila time", () => {
+    vi.mocked(useReports).mockReturnValue(result(
+      { reports: [], meta: { total: 0 } },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 20, 0) },
+    ));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(
+      { queue: "needs_visit", count: matrix.length, total: matrix.length, oldest: null, items: matrix },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3) },
+    ));
+
+    renderPage();
+
+    const freshness = screen.getByText("Last updated").closest("p") as HTMLElement;
+    // 13:14:03 UTC is 9:14:03 PM in Asia/Manila.
+    expect(within(freshness).getByText("9:14:03 PM")).toBeInTheDocument();
+    expect(within(freshness).getByText(/, read from the server/)).toBeInTheDocument();
+  });
+
+  it("keeps the prior stamp and offers a workload retry when a refresh fails", async () => {
+    const user = userEvent.setup();
+    const reportsRefetch = vi.fn();
+    const queueRefetch = vi.fn();
+    vi.mocked(useReports).mockReturnValue(result(
+      { reports: [], meta: { total: 0 } },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 20, 0), isRefetchError: true, refetch: reportsRefetch },
+    ));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(
+      { queue: "needs_visit", count: matrix.length, total: matrix.length, oldest: null, items: matrix },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3), refetch: queueRefetch },
+    ));
+
+    renderPage();
+
+    const stale = screen.getByText("Showing data from").closest("p") as HTMLElement;
+    expect(within(stale).getByText("9:14:03 PM")).toBeInTheDocument();
+    expect(stale).not.toHaveTextContent("Last updated");
+    await user.click(within(stale).getByRole("button", { name: "Retry" }));
+    expect(reportsRefetch).toHaveBeenCalled();
+    expect(queueRefetch).toHaveBeenCalled();
+  });
+});
+
 describe("FieldOperationsPage default workload", () => {
   it("separates Overdue, Unassigned, and Upcoming with each active visit in at most one section", () => {
     renderPage();

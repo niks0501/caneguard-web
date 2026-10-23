@@ -3,6 +3,8 @@ import { ClipboardList, RefreshCw } from "lucide-react";
 import { useSearchParams } from "react-router";
 import { ApiError } from "../api/ApiError";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
+import { oldestServerReadAt } from "../hooks/oldestServerRead";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { FieldOperationsEditor } from "../components/fieldValidation/FieldOperationsEditor";
@@ -171,6 +173,13 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
           )}
         />
       ) : null}
+
+      <WorkspaceFreshness
+        updatedAt={oldestServerReadAt([reportsQuery, queueQuery])}
+        fetching={(reportsQuery.isFetching || queueQuery.isFetching) && Boolean(reportsQuery.data || queueQuery.data)}
+        refreshFailed={Boolean(reportsQuery.isRefetchError) || queueQuery.isError}
+        onRetry={refresh}
+      />
 
       <section className="field-operations-card" aria-labelledby="field-operations-heading">
         <div className="workspace-heading">

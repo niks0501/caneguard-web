@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
+import { oldestServerReadAt } from "../hooks/oldestServerRead";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { followUpOutcomeLabels } from "../domain/report.metadata";
@@ -24,18 +25,6 @@ function fieldValidationStateOf(report: DiseaseReport) {
 type QueueRead = ReturnType<typeof useReportsQueue>;
 
 /** Loading, unavailable and a genuine zero are three different answers. */
-/**
- * A page is only as fresh as its oldest part: report the earliest successful
- * read among the queues that make up this workspace.
- */
-function oldestReadAt(reads: QueueRead[]): number | undefined {
-  const stamps = reads
-    .filter((read) => read.data)
-    .map((read) => read.dataUpdatedAt)
-    .filter((stamp) => Number.isFinite(stamp) && stamp > 0);
-  return stamps.length ? Math.min(...stamps) : undefined;
-}
-
 function countValue(read: QueueRead, value: number): number | string {
   if (read.data) return value;
   if (read.isError) return "Unavailable";
@@ -168,7 +157,7 @@ export function NeedsAssessmentPage() {
         <div className="needs-assessment-summary__overdue"><RefreshCw aria-hidden="true" /><strong>{countValue(overdueQuery, overdue.length)}</strong><span>Overdue visits</span></div>
       </div>
       <WorkspaceFreshness
-        updatedAt={oldestReadAt([awaitingQuery, visitQuery, overdueQuery])}
+        updatedAt={oldestServerReadAt([awaitingQuery, visitQuery, overdueQuery])}
         fetching={isRefreshing && Boolean(awaitingQuery.data)}
         refreshFailed={awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError}
         onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}

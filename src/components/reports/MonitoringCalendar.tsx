@@ -15,6 +15,8 @@ import {
 } from "../../domain/monitoringSchedule";
 import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
 import { useFieldValidationQueue } from "../../hooks/useFieldValidation";
+import { WorkspaceFreshness } from "../layout/WorkspaceFreshness";
+import { oldestServerReadAt } from "../../hooks/oldestServerRead";
 import { ErrorState, LoadingState } from "../ui/States";
 import { activeVisitWorkloadFilters } from "./monitoringWorkload";
 
@@ -136,6 +138,13 @@ export function MonitoringCalendar() {
           Today
         </button>
       </div>
+
+      <WorkspaceFreshness
+        updatedAt={oldestServerReadAt([workload])}
+        fetching={workload.isFetching && Boolean(workload.data)}
+        refreshFailed={Boolean(workload.isRefetchError)}
+        onRetry={() => void workload.refetch()}
+      />
 
       {workload.isRefetchError && workload.data ? (
         <p className="queue-refresh-warning" role="alert">

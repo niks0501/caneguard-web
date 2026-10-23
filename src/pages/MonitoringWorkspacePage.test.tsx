@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +34,30 @@ describe("MonitoringWorkspacePage", () => {
     expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/monitoring?view=map");
     expect(screen.getByRole("link", { name: "Field Operations" })).toHaveAttribute("href", "/monitoring?view=field-operations");
     expect(screen.getByRole("link", { name: "Field boundaries" })).toHaveAttribute("href", "/monitoring?view=boundaries");
+  });
+});
+
+describe("MonitoringWorkspacePage calendar freshness", () => {
+  it("stamps the calendar's server read in 12-hour Manila time", () => {
+    vi.mocked(useFieldValidationQueue).mockReturnValue({
+      data: { queue: "needs_visit", count: 0, total: 0, items: [], oldest: null },
+      error: null,
+      isError: false,
+      isFetching: false,
+      isPending: false,
+      isRefetchError: false,
+      dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3),
+      refetch: vi.fn(),
+    } as never);
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/monitoring?view=calendar"]}><MonitoringWorkspacePage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const freshness = screen.getByText("Last updated").closest("p") as HTMLElement;
+    // 13:14:03 UTC is 9:14:03 PM in Asia/Manila.
+    expect(within(freshness).getByText("9:14:03 PM")).toBeInTheDocument();
   });
 });
 
