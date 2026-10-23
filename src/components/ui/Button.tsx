@@ -1,10 +1,12 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 type ButtonVariant = "primary" | "secondary" | "quiet" | "danger";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   icon?: ReactNode;
+  /** React 19 passes `ref` as a prop; declare it so buttons stay focusable by ref. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export function Button({

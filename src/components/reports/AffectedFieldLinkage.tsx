@@ -10,6 +10,7 @@ import { useUpdateReportAffectedFields } from "../../hooks/useReports";
 import { routes } from "../../app/routes";
 import { Button } from "../ui/Button";
 import { Skeleton } from "../ui/States";
+import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 
 type BoundaryChoice = {
   id: number;
@@ -115,6 +116,7 @@ export function AffectedFieldLinkage({
   const unchanged = selectedIds.length === linkedFields.length
     && parsedFields.every((field) => existingById.get(field.fieldSurveyId) === field.lossRatePercent);
   const canSave = !unchanged && ratesValid && !updateMutation.isPending;
+  useUnsavedWorkGuard(!unchanged || draftChoices.length > 0);
   const mutationError = updateMutation.error;
   const staleVersion = mutationError instanceof ApiError && mutationError.status === 409;
 

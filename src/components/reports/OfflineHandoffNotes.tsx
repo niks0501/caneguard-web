@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import type { DiseaseReport } from "../../domain/report.types";
 import { useRecordHandoffNote } from "../../hooks/useReports";
 import { env } from "../../config/env";
 import { DetailField } from "../layout/Page";
 import { Button } from "../ui/Button";
 import { TextArea } from "../ui/FormControls";
+import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { formatDate } from "../../lib/formatters";
 
 export function OfflineHandoffNotes({ report }: { report: DiseaseReport }) {
@@ -18,13 +19,7 @@ export function OfflineHandoffNotes({ report }: { report: DiseaseReport }) {
   const summaryUrl = `${env.apiBaseUrl.replace(/\/$/, "")}/api/v1/reports/${encodeURIComponent(report.uuid)}/referral/summary`;
 
   const dirty = Boolean(destination || reference || sentDate || note || advice);
-  useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      if (dirty) { event.preventDefault(); event.returnValue = ""; }
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  useUnsavedWorkGuard(dirty);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

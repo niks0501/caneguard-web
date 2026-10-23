@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../../api/ApiError";
@@ -6,6 +6,7 @@ import { routes } from "../../app/routes";
 import { DetailField } from "../layout/Page";
 import { Button } from "../ui/Button";
 import { SelectFilter, TextArea } from "../ui/FormControls";
+import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { activeAuthorityClassifiedConditions, authorityClassifiedConditionLabels, caseStateLabels, diseaseLabels, isLegacyAuthorityClassifiedCondition, verificationOutcomeLabels } from "../../domain/report.metadata";
 import type { AuthorityClassifiedCondition, DiseaseReport, VerificationOutcome } from "../../domain/report.types";
 import type { ReportReviewInput } from "../../domain/review.types";
@@ -13,6 +14,12 @@ import { legacyLifecycleForReviewStatus } from "../../data/api/mappers/lifecycle
 import { useFieldReporters } from "../../hooks/useFieldReporters";
 import { useAdvisories, useUpdateReportReview } from "../../hooks/useReports";
 import { reportsRepository } from "../../services/reports.service";
+import { ReviewConflictPanel } from "./ReviewConflictPanel";
+import {
+  draftReviewSnapshot,
+  savedReviewSnapshot,
+  type ConflictChoices,
+} from "./reviewConflict";
 import { reviewQueueContext } from "./reviewQueueContext";
 
 type NextAction = "field" | "support" | "close";
@@ -52,6 +59,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [stale, setStale] = useState(false);
   const [nextPending, setNextPending] = useState(false);
   const [nextMessage, setNextMessage] = useState("");
+  const [conflictLatest, setConflictLatest] = useState<DiseaseReport | null>(null);
+  const [conflictLoading, setConflictLoading] = useState(false);
+  const [conflictError, setConflictError] = useState<string | null>(null);
   const saving = useRef(false);
   const currentClosed = lifecycle.caseState === "closed";
   const activeValidation = lifecycle.fieldValidationState === "assigned" || lifecycle.fieldValidationState === "in_progress";
@@ -78,13 +88,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
   const conflict = stale || apiError?.status === 409;
   const changed = () => { setDirty(true); setSaved(false); mutation.reset(); };
-  useEffect(() => {
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (dirty) { event.preventDefault(); event.returnValue = ""; }
-    };
-    window.addEventListener("beforeunload", beforeUnload);
-    return () => window.removeEventListener("beforeunload", beforeUnload);
-  }, [dirty]);
+  useUnsavedWorkGuard(dirty);
   useEffect(() => {
     document.title = `${submitted && invalid ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
   }, [submitted, invalid, report.referenceCode]);
@@ -114,12 +118,76 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       const updated = await mutation.mutateAsync(input);
       setExpectedVersion(updated?.reviewVersion ?? expectedVersion + 1);
       setDirty(false); setSaved(true); setSubmitted(false);
+      setConflictLatest(null); setConflictError(null);
       onRefresh();
     } catch (error) {
       // Keep the draft intact; a stale draft needs an explicit version refresh.
-      if (error instanceof ApiError && error.status === 409) setStale(true);
+      if (error instanceof ApiError && error.status === 409) {
+        setStale(true);
+        void loadLatestVersion();
+      }
     }
     finally { saving.current = false; }
+  };
+
+  const latestReadInFlight = useRef(false);
+  const loadLatestVersion = useCallback(async () => {
+    if (latestReadInFlight.current) return;
+    latestReadInFlight.current = true;
+    setConflictLoading(true);
+    setConflictError(null);
+    try {
+      const refreshed = await onRefresh();
+      if (refreshed?.data) setConflictLatest(refreshed.data);
+      else setConflictError("The latest saved version could not be loaded. Check the connection and try again.");
+    } catch {
+      setConflictError("The latest saved version could not be loaded. Check the connection and try again.");
+    } finally {
+      latestReadInFlight.current = false;
+      setConflictLoading(false);
+    }
+  }, [onRefresh]);
+
+  // A 409 starts one automatic read of the latest saved record; a failure stays
+  // visible with an explicit retry instead of retrying in a loop.
+  const autoCompareRequested = useRef(false);
+  useEffect(() => {
+    if (!conflict) {
+      autoCompareRequested.current = false;
+      return;
+    }
+    if (conflictLatest || conflictLoading || conflictError || autoCompareRequested.current) return;
+    autoCompareRequested.current = true;
+    void loadLatestVersion();
+  }, [conflict, conflictLatest, conflictLoading, conflictError, loadLatestVersion]);
+
+  // Reconciliation never updates only the concurrency token: every field either
+  // takes the latest saved value or keeps the reviewer's own draft value.
+  const applyConflictChoices = (choices: ConflictChoices) => {
+    if (!conflictLatest) return;
+    const saved = savedReviewSnapshot(conflictLatest);
+    const resolved = {
+      classification: choices.classification === "latest" ? saved.classification : (classification ?? ""),
+      verification: choices.verification === "latest" ? saved.verification : verification,
+      action: choices.action === "latest" ? saved.action : (action ?? ""),
+      notes: choices.notes === "latest" ? saved.notes : notes.trim(),
+      inspector: choices.inspector === "latest" ? saved.inspector : inspectorUuid,
+      targetDate: choices.targetDate === "latest" ? saved.targetDate : targetDate,
+    };
+    setClassification((resolved.classification || null) as AuthorityClassifiedCondition | null);
+    setVerification(resolved.verification as VerificationOutcome);
+    setAction(resolved.action ? resolved.action as NextAction : null);
+    setNotes(resolved.notes);
+    setInspectorUuid(resolved.inspector);
+    setTargetDate(resolved.targetDate);
+    setExpectedVersion(conflictLatest.reviewVersion);
+    setStale(false);
+    setSubmitted(false);
+    setConflictLatest(null);
+    setConflictError(null);
+    mutation.reset();
+    setDirty((Object.keys(resolved) as (keyof typeof resolved)[])
+      .some((field) => resolved[field] !== saved[field]));
   };
 
   const reviewNext = async () => {
@@ -240,11 +308,19 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         <DetailField label="Resulting case state">{caseStateLabels[resultingState]}</DetailField>
         <DetailField label="Notes">{notes.trim() ? "Included" : "None"}</DetailField>
       </dl>
-      {conflict ? <div className="review-conflict" role="alert"><p>This report changed after you opened it. Refresh the case before saving again.</p>
-        <Button type="button" variant="secondary" onClick={async () => {
-          const refreshed = await onRefresh();
-          if (refreshed?.data) { setExpectedVersion(refreshed.data.reviewVersion); setStale(false); mutation.reset(); }
-        }}>Refresh report</Button></div> : null}
+      {conflict ? <ReviewConflictPanel
+        latest={conflictLatest}
+        draft={draftReviewSnapshot({ classification, verification, action, notes, inspectorUuid, targetDate })}
+        inspectorNames={Object.fromEntries((inspectors.data ?? []).map((item) => [item.uuid, item.name]))}
+        loading={conflictLoading}
+        error={conflictError}
+        onLoadLatest={() => void loadLatestVersion()}
+        onApply={applyConflictChoices}
+        onReloadAll={() => applyConflictChoices({
+          classification: "latest", verification: "latest", action: "latest",
+          notes: "latest", inspector: "latest", targetDate: "latest",
+        })}
+      /> : null}
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
       <Button type="submit" disabled={mutation.isPending || conflict || saved || expectedVersion === undefined}>{mutation.isPending ? "Confirming review..." : "Confirm Review"}</Button>

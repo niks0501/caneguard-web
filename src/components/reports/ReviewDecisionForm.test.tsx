@@ -86,22 +86,56 @@ describe("Progressive review resilience", () => {
     expect(save.mock.calls[1][0]).toEqual(save.mock.calls[0][0]);
   });
 
-  it("blocks stale retry until an explicit refresh returns a new version; keeps the draft", async () => {
+  it("reconciles a stale draft field by field and never refreshes only the version", async () => {
     const user = userEvent.setup();
-    const onRefresh = vi.fn().mockResolvedValue({ data: { ...base, reviewVersion: base.reviewVersion! + 2 } });
-    const { rerender } = renderForm(base, onRefresh);
+    const latest = { ...base, reviewVersion: base.reviewVersion! + 2, reviewNotes: "Updated by the other reviewer." };
+    const onRefresh = vi.fn().mockResolvedValue({ data: latest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
     await technical(user);
-    vi.mocked(useUpdateReportReview).mockReturnValue(mutation(new ApiError("Conflict", { status: 409 })));
-    rerender(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={onRefresh} /></MemoryRouter>);
-    expect(screen.getByRole("button", { name: "Confirm Review" })).toBeDisabled();
-    expect(screen.getByText(/Refresh the case before saving again/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Refresh report" }));
-    expect(onRefresh).toHaveBeenCalledOnce();
-    vi.mocked(useUpdateReportReview).mockReturnValue(mutation());
-    rerender(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={onRefresh} /></MemoryRouter>);
-    expect(screen.getByRole("textbox")).toHaveValue("Delivered practical field assistance.");
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: base.reviewVersion! + 2 }));
+
+    // The second save is refused, and the draft itself is preserved.
+    expect(await screen.findByText(/Another reviewer saved this report/)).toBeInTheDocument();
+    expect(await screen.findByRole("table", { name: "Fields that changed on the server" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm Review" })).toBeDisabled();
+    expect(screen.getByRole("textbox")).toHaveValue("Delivered practical field assistance.");
+    expect(save).toHaveBeenCalledTimes(1);
+
+    // Latest saved and local values are distinguishable before reconciliation.
+    const conflictTable = screen.getByRole("table", { name: "Fields that changed on the server" });
+    expect(within(conflictTable).getByText("Updated by the other reviewer.")).toBeInTheDocument();
+    expect(within(conflictTable).getByText("Delivered practical field assistance.")).toBeInTheDocument();
+    expect(within(conflictTable).getByText("No action selected")).toBeInTheDocument();
+
+    // Keep the reviewer's notes and action; take nothing else from the server.
+    await user.click(within(conflictTable).getAllByRole("radio", { name: "Mine" })[0]);
+    await user.click(within(conflictTable).getAllByRole("radio", { name: "Mine" })[1]);
+    await user.click(screen.getByRole("button", { name: "Apply these choices" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    // The retained changes submit against the latest version, not the old one.
+    expect(save.mock.calls[1][0]).toMatchObject({
+      expectedVersion: base.reviewVersion! + 2,
+      notes: "Delivered practical field assistance.",
+      actionTaken: "technical_assistance_provided",
+    });
+  });
+
+  it("reloads every field when the reviewer discards the draft after a conflict", async () => {
+    const user = userEvent.setup();
+    const latest = { ...base, reviewVersion: base.reviewVersion! + 3, reviewNotes: "Updated by the other reviewer." };
+    const onRefresh = vi.fn().mockResolvedValue({ data: latest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    await user.click(await screen.findByRole("button", { name: "Reload and discard my changes" }));
+
+    expect(screen.getByRole("textbox")).toHaveValue("Updated by the other reviewer.");
+    expect(screen.queryByRole("radio", { name: "Technical Assistance" })).not.toBeInTheDocument();
+    expect(save).toHaveBeenCalledTimes(1);
   });
 
   it("keeps a stale draft blocked even when its notes are edited", async () => {
@@ -110,7 +144,7 @@ describe("Progressive review resilience", () => {
     renderForm();
     await technical(user);
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
-    expect(await screen.findByRole("button", { name: "Refresh report" })).toBeInTheDocument();
+    expect(await screen.findByText(/Another reviewer saved this report/)).toBeInTheDocument();
     await user.type(screen.getByRole("textbox"), " More context.");
     expect(screen.getByRole("button", { name: "Confirm Review" })).toBeDisabled();
     expect(save).toHaveBeenCalledTimes(1);

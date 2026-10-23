@@ -1,5 +1,11 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { lazy, Suspense, useState } from "react";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+  type RouteObject,
+} from "react-router";
 import { RequireAuth } from "../auth/RequireAuth";
 import { RequireAdmin } from "../auth/RequireAdmin";
 import { RequireWebRole } from "../auth/RequireWebRole";
@@ -11,6 +17,7 @@ import { AppShell } from "../components/layout/AppShell";
 import { CaseReviewPage } from "../pages/CaseReviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LoadingState } from "../components/ui/States";
+import { UnsavedWorkProvider } from "../components/ui/UnsavedWorkGuard";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { SubmittedReportsPage } from "../pages/SubmittedReportsPage";
 import { MonitoringWorkspacePage } from "../pages/MonitoringWorkspacePage";
@@ -28,47 +35,69 @@ const FieldValidationMapPage = lazy(() =>
   })),
 );
 
+/**
+ * A data router (not `<BrowserRouter>`) is required for `useBlocker`, which is
+ * what makes the unsaved-work guard cover browser Back as well as in-app links.
+ * `UnsavedWorkProvider` sits above every route so one dialog serves every draft.
+ */
+const appRoutes: RouteObject[] = [
+  {
+    element: (
+      <UnsavedWorkProvider>
+        <Outlet />
+      </UnsavedWorkProvider>
+    ),
+    children: [
+      { path: "login", element: <LoginPage /> },
+      { path: "register", element: <Navigate replace to={routes.login} /> },
+      { path: "verify-email", element: <VerifyEmailPage /> },
+      { path: "forgot-password", element: <ForgotPasswordPage /> },
+      { path: "reset-password", element: <ResetPasswordPage /> },
+      {
+        element: <RequireAuth />,
+        children: [
+          { index: true, element: <Navigate replace to={routes.dashboard} /> },
+          {
+            element: <RequireWebRole />,
+            children: [
+              {
+                element: <AppShell />,
+                children: [
+                  { path: "dashboard", element: <DashboardPage /> },
+                  {
+                    path: "map",
+                    element: (
+                      <Suspense fallback={<LoadingState message="Loading the field-validation workspace..." />}>
+                        <FieldValidationMapPage />
+                      </Suspense>
+                    ),
+                  },
+                  { path: "reports", element: <SubmittedReportsPage /> },
+                  { path: "monitoring", element: <MonitoringWorkspacePage /> },
+                  { path: "needs-assessment", element: <NeedsAssessmentPage /> },
+                  { path: "reports/:reportId", element: <CaseReviewPage /> },
+                  { path: "settings", element: <SettingsPage /> },
+                  {
+                    element: <RequireAdmin />,
+                    children: [
+                      { path: "report-approval", element: <ReportApprovalPage /> },
+                      { path: "admin-settings", element: <AdminSettingsPage /> },
+                      { path: "accounts", element: <AccountsPage /> },
+                      { path: "accounts/:uuid", element: <AccountDetailPage /> },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { path: "*", element: <NotFoundPage /> },
+    ],
+  },
+];
+
 export function AppRouter() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="login" element={<LoginPage />} />
-        <Route
-          path="register"
-          element={<Navigate replace to={routes.login} />}
-        />
-        <Route path="verify-email" element={<VerifyEmailPage />} />
-        <Route path="forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="reset-password" element={<ResetPasswordPage />} />
-        <Route element={<RequireAuth />}>
-          <Route index element={<Navigate replace to={routes.dashboard} />} />
-          <Route element={<RequireWebRole />}>
-            <Route element={<AppShell />}>
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route
-                path="map"
-                element={(
-                  <Suspense fallback={<LoadingState message="Loading the field-validation workspace..." />}>
-                    <FieldValidationMapPage />
-                  </Suspense>
-                )}
-              />
-              <Route path="reports" element={<SubmittedReportsPage />} />
-              <Route path="monitoring" element={<MonitoringWorkspacePage />} />
-              <Route path="needs-assessment" element={<NeedsAssessmentPage />} />
-              <Route path="reports/:reportId" element={<CaseReviewPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route element={<RequireAdmin />}>
-                <Route path="report-approval" element={<ReportApprovalPage />} />
-                <Route path="admin-settings" element={<AdminSettingsPage />} />
-                <Route path="accounts" element={<AccountsPage />} />
-                <Route path="accounts/:uuid" element={<AccountDetailPage />} />
-              </Route>
-            </Route>
-          </Route>
-        </Route>
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  const [router] = useState(() => createBrowserRouter(appRoutes));
+  return <RouterProvider router={router} />;
 }

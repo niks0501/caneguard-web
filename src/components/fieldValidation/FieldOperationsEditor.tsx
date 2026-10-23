@@ -13,6 +13,8 @@ import {
 import { diseaseLabels } from "../../domain/report.metadata";
 import { useUpdateReportReview } from "../../hooks/useReports";
 import { Button } from "../ui/Button";
+import { confirmDiscardUnsavedChanges } from "../ui/confirmDiscard";
+import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { formatValidationDate } from "./fieldValidation.format";
 
 function saveErrorMessage(error: unknown) {
@@ -54,6 +56,11 @@ export function FieldOperationsEditor({
   const mutation = useUpdateReportReview(item.uuid);
 
   const hasChanges = assigneeUuid !== currentAssigneeUuid || targetDate !== currentTargetDate;
+  const unsavedChanges = hasChanges && !saved;
+  useUnsavedWorkGuard(unsavedChanges);
+  const closeEditor = () => {
+    if (confirmDiscardUnsavedChanges(unsavedChanges)) onClose();
+  };
   const hasLocation = hasUsableReportLocation(item);
   const reason = deriveReasonForVisit(item);
   const timing = relativeVisitTiming(item.targetVisitDate, officeDate);
@@ -82,7 +89,7 @@ export function FieldOperationsEditor({
           <p className="eyebrow">{item.referenceCode}</p>
           <h2 id="field-operations-editor-heading">Assign / Edit Visit</h2>
         </div>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Close visit editor">
+        <button type="button" className="icon-button" onClick={closeEditor} aria-label="Close visit editor">
           <X aria-hidden="true" />
         </button>
       </div>
