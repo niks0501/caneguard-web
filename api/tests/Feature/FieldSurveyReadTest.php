@@ -215,6 +215,35 @@ class FieldSurveyReadTest extends TestCase
             ->assertOk()->assertJsonCount(0, 'features')->assertJsonPath('metadata.total_count', 0);
     }
 
+    public function test_capture_date_search_uses_the_manila_calendar_day_reviewers_see(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create(['name' => 'Rosa Inspector']);
+        // 2026-08-11T20:00:00Z is 04:00 on 12 August in Asia/Manila.
+        $afterMidnight = $this->storeSurvey($district, $inspector, [
+            'captured_at' => CarbonImmutable::parse('2026-08-11T20:00:00Z'),
+        ]);
+        // 2026-08-12T15:00:00Z is 23:00 on 12 August in Asia/Manila.
+        $lateEvening = $this->storeSurvey($district, $inspector, [
+            'captured_at' => CarbonImmutable::parse('2026-08-12T15:00:00Z'),
+        ]);
+        // 2026-08-12T16:30:00Z is 00:30 on 13 August in Asia/Manila.
+        $nextManilaDay = $this->storeSurvey($district, $inspector, [
+            'captured_at' => CarbonImmutable::parse('2026-08-12T16:30:00Z'),
+        ]);
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $onShownDate = $this->getJson(self::ENDPOINT.'?search=2026-08-12')->assertOk();
+        $found = array_map(static fn (array $feature): int => $feature['properties']['id'], $onShownDate->json('features'));
+        $this->assertContains($afterMidnight->id, $found);
+        $this->assertContains($lateEvening->id, $found);
+        $this->assertNotContains($nextManilaDay->id, $found);
+
+        $previousDay = $this->getJson(self::ENDPOINT.'?search=2026-08-11')->assertOk();
+        $this->assertSame(0, $previousDay->json('metadata.total_count'));
+    }
+
     public function test_search_terms_cannot_inject_like_wildcards(): void
     {
         $district = $this->pilotDistrict();

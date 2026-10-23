@@ -87,8 +87,13 @@ describe("NeedsAssessmentPage", () => {
     // A never-visited observation is not described as a completed visit.
     const newObservations = screen.getByRole("region", { name: "New observations" });
     expect(within(newObservations).getByText("CG-fresh")).toBeInTheDocument();
+    expect(within(newObservations).getByText("Not visited")).toBeInTheDocument();
+    expect(within(newObservations).getByText(/No field visit has been recorded/)).toBeInTheDocument();
+    expect(within(newObservations).queryByText(/Field evidence is ready/)).not.toBeInTheDocument();
+    expect(within(newObservations).queryByText("Outcome not recorded")).not.toBeInTheDocument();
     const awaiting = screen.getByRole("region", { name: "Visits awaiting a decision" });
     expect(within(awaiting).queryByText("CG-fresh")).not.toBeInTheDocument();
+    expect(within(awaiting).queryByText("Not visited")).not.toBeInTheDocument();
 
     const unassigned = screen.getByRole("region", { name: "Unassigned visits" });
     expect(within(unassigned).getByRole("link", { name: "Assign visit" })).toHaveAttribute(

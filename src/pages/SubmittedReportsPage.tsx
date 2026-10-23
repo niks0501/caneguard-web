@@ -35,8 +35,11 @@ import {
 } from "../components/ui/States";
 import {
   authorityClassifiedConditionLabels,
+  caseStateLabels,
   diseaseLabels,
+  fieldValidationStateLabels,
   reviewStatusLabels,
+  verificationOutcomeLabels,
 } from "../domain/report.metadata";
 import {
   workflowStatusLabels,
@@ -116,6 +119,15 @@ function appliedFilterChips(
   }
   if (filters.status && filters.status !== "all") {
     add("status", "status", `Review status: ${reviewStatusLabels[filters.status]}`);
+  }
+  if (filters.caseState && filters.caseState !== "all") {
+    add("case_state", "case_state", `Case state: ${caseStateLabels[filters.caseState]}`);
+  }
+  if (filters.verificationOutcome && filters.verificationOutcome !== "all") {
+    add("verification_outcome", "verification_outcome", `Verification: ${verificationOutcomeLabels[filters.verificationOutcome]}`);
+  }
+  if (filters.fieldValidationState && filters.fieldValidationState !== "all") {
+    add("field_validation_state", "field_validation_state", `Field validation: ${fieldValidationStateLabels[filters.fieldValidationState]}`);
   }
   if (filters.disease && filters.disease !== "all") {
     add("predicted_label", "predicted_label", `Condition: ${diseaseLabels[filters.disease]}`);

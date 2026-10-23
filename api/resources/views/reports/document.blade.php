@@ -150,6 +150,11 @@
             if (event.origin !== webOrigin || event.source !== window.parent) return;
             if (event.data && event.data.type === 'caneguard-report-print') window.print();
         });
+        window.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            window.parent.postMessage({ type: 'caneguard-report-close' }, webOrigin);
+        });
     })();
 </script>
 </body>

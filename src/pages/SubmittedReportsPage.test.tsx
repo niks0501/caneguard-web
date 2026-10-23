@@ -286,6 +286,20 @@ describe("SubmittedReportsPage", () => {
     expect(within(dialog).getByText("Not carried into this document: Status.")).toBeInTheDocument();
   });
 
+  it("names every supported filter it sends to the server", async () => {
+    const user = userEvent.setup();
+    renderPage("/reports?case_state=closed&verification_outcome=verified&field_validation_state=completed");
+
+    const chips = screen.getByRole("group", { name: /Applied:/ });
+    expect(within(chips).getByText("Case state: Closed")).toBeInTheDocument();
+    expect(within(chips).getByText("Verification: Verified")).toBeInTheDocument();
+    expect(within(chips).getByText("Field validation: Completed")).toBeInTheDocument();
+
+    await user.click(within(chips).getByRole("button", { name: /Remove Case state: Closed/ }));
+    expect(screen.getByTestId("location")).not.toHaveTextContent("case_state=");
+    expect(screen.getByTestId("location")).toHaveTextContent("verification_outcome=verified");
+  });
+
   it("names a bookmarked review-status filter as an applied, removable filter", async () => {
     const user = userEvent.setup();
     renderPage("/reports?status=submitted_unverified");

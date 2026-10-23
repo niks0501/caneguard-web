@@ -44,6 +44,7 @@ function countValue(read: QueueRead, value: number): number | string {
 
 function AssessmentRow({ report, attention = false, queueContext }: { report: DiseaseReport; attention?: boolean; queueContext: ReviewQueueContext }) {
   const outcome = report.latestValidation?.followUpOutcome;
+  const visited = Boolean(report.latestValidation) || report.lifecycle?.fieldValidationState === "completed";
   return (
     <article className={`needs-assessment-row${attention ? " needs-assessment-row--attention" : ""}`}>
       <div className="needs-assessment-row__identity">
@@ -54,10 +55,12 @@ function AssessmentRow({ report, attention = false, queueContext }: { report: Di
         <span className="table-secondary">{report.barangay}{report.municipality ? ` · ${report.municipality}` : ""}</span>
       </div>
       <div className="needs-assessment-row__outcome">
-        <span className={`outcome-pill outcome-pill--${outcome ?? "missing"}`}>{outcomeLabel(outcome)}</span>
+        <span className={`outcome-pill outcome-pill--${outcome ?? "missing"}`}>{visited ? outcomeLabel(outcome) : "Not visited"}</span>
         {report.latestValidation?.visitedAt ? <span className="table-secondary">Visited {formatDateTime(report.latestValidation.visitedAt)}</span> : null}
       </div>
-      <p>{report.latestValidation?.finding ?? "Field evidence is ready for office assessment."}</p>
+      <p>{report.latestValidation?.finding ?? (visited
+        ? "Field evidence is ready for office assessment."
+        : "No field visit has been recorded for this observation yet.")}</p>
       <div className="needs-assessment-row__actions">
         <Link className="button button--secondary button--small" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>Review evidence</Link>
         {report.lifecycle?.fieldValidationState !== "completed" ? (

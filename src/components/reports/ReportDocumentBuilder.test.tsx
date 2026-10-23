@@ -150,6 +150,27 @@ describe("ReportDocumentBuilder document scope", () => {
     expect(screen.getByLabelText("Barangay")).toHaveValue("Bacoor");
   });
 
+  it("offers the register's unverified queue instead of a blank control", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
+    renderBuilderWithScope({
+      filters: {
+        queue: "unverified_no_active_work",
+        predicted_label: "",
+        barangay: "",
+        case_state: "",
+        verification_outcome: "",
+        field_validation_state: "",
+        authority_classified_condition: "",
+      },
+      removed: [],
+    });
+
+    expect(screen.getByLabelText("Operational queue")).toHaveValue("unverified_no_active_work");
+    expect(screen.getByLabelText("Printable report scope")).toHaveTextContent("Queue: Unverified, no active work");
+    const iframe = await screen.findByTitle("Live report preview") as HTMLIFrameElement;
+    expect(iframe.getAttribute("src")).toContain("queue=unverified_no_active_work");
+  });
+
   it("starts from the work scope that is current when the builder opens", async () => {
     vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
     const user = userEvent.setup();
@@ -265,6 +286,23 @@ describe("ReportDocumentBuilder cross-origin document actions", () => {
       { responseType: "blob" },
     ));
   });
+
+  it("closes the dialog when the embedded document asks to, and only from its own frame at the API origin", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
+    const onClose = vi.fn();
+    renderBuilder(onClose);
+
+    const iframe = await screen.findByTitle("Live report preview") as HTMLIFrameElement;
+    const frameWindow = iframe.contentWindow;
+
+    dispatchReportClose("https://attacker.test", frameWindow);
+    dispatchReportClose(apiOrigin, null);
+    await Promise.resolve();
+    expect(onClose).not.toHaveBeenCalled();
+
+    dispatchReportClose(apiOrigin, frameWindow);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("ReportDocumentBuilder keyboard behaviour", () => {
@@ -279,7 +317,8 @@ describe("ReportDocumentBuilder keyboard behaviour", () => {
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
     expect(dialog).toHaveAttribute("aria-modal", "true");
     expect(screen.getByLabelText("Period")).toHaveFocus();
-    // The embedded preview never takes the keyboard, so Escape is always heard.
+    // The preview is out of the sequential tab order; Escape inside it is
+    // forwarded by the document itself as a close intent.
     expect(await screen.findByTitle("Live report preview")).toHaveAttribute("tabindex", "-1");
 
     await user.keyboard("{Escape}");
@@ -292,6 +331,15 @@ describe("ReportDocumentBuilder keyboard behaviour", () => {
 function dispatchReportDownload(origin: string, source: unknown) {
   const event = new MessageEvent("message", {
     data: { type: "caneguard-report-download" },
+    origin,
+  });
+  Object.defineProperty(event, "source", { value: source });
+  window.dispatchEvent(event);
+}
+
+function dispatchReportClose(origin: string, source: unknown) {
+  const event = new MessageEvent("message", {
+    data: { type: "caneguard-report-close" },
     origin,
   });
   Object.defineProperty(event, "source", { value: source });

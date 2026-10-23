@@ -56,6 +56,21 @@ describe("workspace scope", () => {
     expect(link.removed).toEqual(["Queue"]);
   });
 
+  it("names a queue the map cannot represent instead of sending an invalid filter", () => {
+    const link = monitoringViewLink("map", new URLSearchParams("queue=needs_review&barangay=Bucana"));
+
+    expect(link.to).toBe("/monitoring?barangay=Bucana&view=map");
+    expect(link.removed).toEqual(["Queue"]);
+    expect(scopeNoticeMessage(link.removed)).toBe("Not applied in this view: Queue.");
+  });
+
+  it("keeps the register's own queues, including the unverified gap", () => {
+    const link = monitoringViewLink("register", new URLSearchParams("queue=unverified_no_active_work"));
+
+    expect(link.to).toBe("/monitoring?queue=unverified_no_active_work");
+    expect(link.removed).toEqual([]);
+  });
+
   it("carries the register's own filters back into the register view", () => {
     const params = new URLSearchParams(
       "view=map&queue=follow_up_due&search=bucana&case_state=open&workflow_status=needs_visit&reviewer=abc&sort=oldest",

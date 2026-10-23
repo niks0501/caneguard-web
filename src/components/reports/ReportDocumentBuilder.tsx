@@ -247,10 +247,11 @@ export function ReportDocumentBuilder({
       if (event.origin !== apiOrigin) return;
       if (event.source !== previewFrame.current?.contentWindow) return;
       if (event.data?.type === "caneguard-report-download") void downloadRef.current();
+      if (event.data?.type === "caneguard-report-close") onClose();
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [apiOrigin]);
+  }, [apiOrigin, onClose]);
 
   function retryApiConnection() {
     setApiAvailability("checking");
@@ -329,7 +330,7 @@ export function ReportDocumentBuilder({
         <label><span>Verification</span><select value={state.filters.verification_outcome} onChange={(event) => updateFilter("verification_outcome", event.target.value)}><option value="">All outcomes</option>{Object.entries(verificationOutcomeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label><span>Field validation</span><select value={state.filters.field_validation_state} onChange={(event) => updateFilter("field_validation_state", event.target.value)}><option value="">All states</option>{Object.entries(fieldValidationStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label><span>Staff condition</span><select value={state.filters.authority_classified_condition} onChange={(event) => updateFilter("authority_classified_condition", event.target.value)}><option value="">All classifications</option>{Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label><span>Operational queue</span><select value={state.filters.queue} onChange={(event) => updateFilter("queue", event.target.value)}><option value="">All queues</option><option value="needs_review">Needs review</option><option value="needs_visit">Needs visit</option><option value="follow_up_due">Follow-up due</option><option value="upcoming">Upcoming visits</option></select></label>
+        <label><span>Operational queue</span><select value={state.filters.queue} onChange={(event) => updateFilter("queue", event.target.value)}><option value="">All queues</option><option value="needs_review">Needs review</option><option value="needs_visit">Needs visit</option><option value="follow_up_due">Follow-up due</option><option value="upcoming">Upcoming visits</option><option value="unverified_no_active_work">Unverified, no active work</option></select></label>
         <label className="report-builder__check"><input type="checkbox" checked={state.appendix} onChange={(event) => update("appendix", event.target.checked)} /><span>Include farmer/farm identifier appendix</span></label>
       </div>
 
@@ -353,7 +354,7 @@ export function ReportDocumentBuilder({
           <h3>Official weekly report</h3>
           <p>One sealed district version for the selected ISO week. It is not filtered by the work queue above.</p>
           <label><span>Week</span><input type="week" value={state.week} onChange={(event) => update("week", event.target.value)} /></label>
-          <WeeklyReportApproval key={state.week} week={state.week} />
+          <WeeklyReportApproval key={state.week} week={state.week} onRequestClose={onClose} />
         </section>
       ) : null}
       {apiAvailability === "unavailable" ? (

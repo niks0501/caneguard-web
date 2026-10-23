@@ -4,11 +4,14 @@ namespace App\Actions\Surveys;
 
 use App\Models\FieldSurvey;
 use App\Security\DistrictAccess;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class QueryFieldSurveys
 {
+    private const TIMEZONE = 'Asia/Manila';
+
     public function __construct(private readonly DistrictAccess $districtAccess) {}
 
     /**
@@ -77,7 +80,12 @@ class QueryFieldSurveys
         }
 
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $search) === 1) {
-            $query->whereDate('captured_at', $search);
+            // Capture dates are shown in Asia/Manila but stored in UTC.
+            $startOfDay = CarbonImmutable::createFromFormat('!Y-m-d', $search, self::TIMEZONE)
+                ->startOfDay()
+                ->utc();
+            $query->where('captured_at', '>=', $startOfDay)
+                ->where('captured_at', '<', $startOfDay->addDay());
 
             return;
         }

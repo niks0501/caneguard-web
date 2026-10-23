@@ -1,5 +1,8 @@
 import { routes } from "../app/routes";
-import { operationalQueueValues } from "../domain/operationalQueue";
+import {
+  fieldValidationQueueValues,
+  operationalQueueValues,
+} from "../domain/operationalQueue";
 
 /**
  * One work scope shared by the monitoring views. Moving between Register, Map
@@ -48,8 +51,18 @@ const registerOnlyFilterLabels: Record<string, string> = {
 const viewStateKeys = ["calendar_month", "calendar_date"];
 
 const queueValues = new Set<string>(operationalQueueValues);
+const mapQueueValues = new Set<string>(fieldValidationQueueValues);
 
-function scopeKeptByView(view: WorkspaceView, key: WorkspaceScopeUrlKey) {
+function scopeKeptByView(
+  view: WorkspaceView,
+  key: WorkspaceScopeUrlKey,
+  value: string,
+) {
+  // A queue value only travels to a view whose own URL schema accepts it.
+  if (key === "queue") {
+    if (!queueValues.has(value)) return false;
+    if (view === "map" && !mapQueueValues.has(value)) return false;
+  }
   if (view === "register") return true;
   if (view === "map") return key !== "location";
   return false;
@@ -70,12 +83,11 @@ export function monitoringViewLink(
   for (const key of workspaceScopeUrlKeys) {
     const value = searchParams.get(key)?.trim();
     if (!value) continue;
-    if (key === "queue" && !queueValues.has(value)) {
+    if (!scopeKeptByView(view, key, value)) {
       removed.push(workspaceScopeLabels[key]);
       continue;
     }
-    if (scopeKeptByView(view, key)) params.set(key, value);
-    else removed.push(workspaceScopeLabels[key]);
+    params.set(key, value);
   }
 
   for (const [key, label] of Object.entries(registerOnlyFilterLabels)) {
