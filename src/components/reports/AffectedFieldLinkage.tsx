@@ -307,11 +307,11 @@ export function AffectedFieldLinkage({
             <DetailField label="Captured">{formatDateTime(previewChoice.capturedAt)}</DetailField>
             <DetailField label="Device-reported area">{formatAffectedArea(previewChoice.areaSqm / 10_000)}</DetailField>
             <DetailField label="Inspector">{previewChoice.inspectorName}</DetailField>
-            {previewCentroid ? (
-              <DetailField label="Location">
-                {`${coordinateLabel(previewCentroid.latitude, "N", "S")}, ${coordinateLabel(previewCentroid.longitude, "E", "W")}`}
-              </DetailField>
-            ) : null}
+            <DetailField label="Location">
+              {previewCentroid
+                ? `${coordinateLabel(previewCentroid.latitude, "N", "S")}, ${coordinateLabel(previewCentroid.longitude, "E", "W")}`
+                : "Location unavailable"}
+            </DetailField>
             <DetailField label="Office loss rate">
               {Object.hasOwn(draft, String(previewChoice.id)) && draft[String(previewChoice.id)] !== ""
                 ? `${draft[String(previewChoice.id)]}%`

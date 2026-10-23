@@ -244,6 +244,30 @@ describe("AffectedFieldLinkage", () => {
     expect(screen.getByLabelText(/Office loss rate for boundary 123/)).toHaveValue(18.5);
   });
 
+  it("states that a boundary with no usable location has none", async () => {
+    const user = userEvent.setup();
+    const crossing: FieldSurveyBoundaryFeature = {
+      ...boundary(123, 6075.12),
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [122.95113, 10.70153], [122.95155, 10.7005], [122.95096, 10.70157],
+          [122.95134, 10.70043], [122.95029, 10.70179], [122.95061, 10.70068],
+          [122.95113, 10.70153],
+        ]],
+      },
+    };
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([crossing]));
+
+    renderLinkage();
+
+    await user.click(screen.getByRole("button", { name: "Preview shape" }));
+
+    const preview = screen.getByRole("group", { name: "Boundary 123 shape" });
+    expect(within(preview).getByText("Location unavailable")).toBeInTheDocument();
+    expect(within(preview).queryByText(/° [NS], /)).not.toBeInTheDocument();
+  });
+
   it("reports a zero office loss rate as 0% in the shape preview", async () => {
     const user = userEvent.setup();
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult([boundary(123, 6075.12)]));

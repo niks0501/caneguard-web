@@ -11,6 +11,18 @@ function ring(geometry: FieldSurveyPolygon | undefined): FieldSurveyPosition[] {
   return geometry?.coordinates[0] ?? [];
 }
 
+function ringBounds(positions: FieldSurveyPosition[]) {
+  const longitudes = positions.map(([longitude]) => longitude);
+  const latitudes = positions.map(([, latitude]) => latitude);
+
+  return {
+    minLongitude: Math.min(...longitudes),
+    maxLongitude: Math.max(...longitudes),
+    minLatitude: Math.min(...latitudes),
+    maxLatitude: Math.max(...latitudes),
+  };
+}
+
 /**
  * Project a stored boundary ring into a small SVG box so the reviewer can
  * compare the shape in context. Longitude is scaled and latitude flipped; the
@@ -25,12 +37,7 @@ export function boundaryOutline(
   const positions = ring(geometry);
   if (positions.length < 3) return { points: "", drawable: false };
 
-  const longitudes = positions.map(([longitude]) => longitude);
-  const latitudes = positions.map(([, latitude]) => latitude);
-  const minLongitude = Math.min(...longitudes);
-  const maxLongitude = Math.max(...longitudes);
-  const minLatitude = Math.min(...latitudes);
-  const maxLatitude = Math.max(...latitudes);
+  const { minLongitude, maxLongitude, minLatitude, maxLatitude } = ringBounds(positions);
   const spanLongitude = maxLongitude - minLongitude;
   const spanLatitude = maxLatitude - minLatitude;
   if (spanLongitude <= 0 || spanLatitude <= 0) return { points: "", drawable: false };
@@ -59,14 +66,17 @@ export interface BoundaryCentroid {
 
 /**
  * Area-weighted centroid of the stored outer ring, so an older boundary can be
- * placed in context without leaving the case. A ring that encloses no area has
- * no centroid.
+ * placed in context without leaving the case. A ring that encloses no area, or
+ * whose centroid falls outside its own extents, has no usable location.
  */
 export function boundaryCentroid(
   geometry: FieldSurveyPolygon | undefined,
 ): BoundaryCentroid | null {
   const positions = ring(geometry);
   if (positions.length < 3) return null;
+
+  const { minLongitude, maxLongitude, minLatitude, maxLatitude } = ringBounds(positions);
+  if (minLongitude === maxLongitude || minLatitude === maxLatitude) return null;
 
   const [originLongitude, originLatitude] = positions[0];
   let twiceArea = 0;
@@ -87,7 +97,10 @@ export function boundaryCentroid(
 
   const longitude = originLongitude + weightedLongitude / (3 * twiceArea);
   const latitude = originLatitude + weightedLatitude / (3 * twiceArea);
-  return Number.isFinite(latitude) && Number.isFinite(longitude)
-    ? { latitude, longitude }
-    : null;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+  if (latitude < minLatitude || latitude > maxLatitude) return null;
+  if (longitude < minLongitude || longitude > maxLongitude) return null;
+
+  return { latitude, longitude };
 }
