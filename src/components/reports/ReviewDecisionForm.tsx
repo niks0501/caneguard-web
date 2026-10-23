@@ -13,6 +13,7 @@ import type { ReportReviewInput } from "../../domain/review.types";
 import { legacyLifecycleForReviewStatus } from "../../data/api/mappers/lifecycle.mapper";
 import { useFieldReporters } from "../../hooks/useFieldReporters";
 import { useAdvisories, useUpdateReportReview } from "../../hooks/useReports";
+import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { reportsRepository } from "../../services/reports.service";
 import { ReviewConflictPanel } from "./ReviewConflictPanel";
 import {
@@ -62,6 +63,26 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [conflictLatest, setConflictLatest] = useState<DiseaseReport | null>(null);
   const [conflictLoading, setConflictLoading] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const online = useOnlineStatus();
+  // Online-only writes: a draft is never queued for replay after an outage.
+  const [offlineResumed, setOfflineResumed] = useState(false);
+  const wasOffline = useRef(!online);
+  useEffect(() => {
+    const handleOffline = () => {
+      wasOffline.current = true;
+      setOfflineResumed(false);
+    };
+    const handleOnline = () => {
+      if (wasOffline.current) setOfflineResumed(true);
+      wasOffline.current = false;
+    };
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
   const saving = useRef(false);
   const currentClosed = lifecycle.caseState === "closed";
   const activeValidation = lifecycle.fieldValidationState === "assigned" || lifecycle.fieldValidationState === "in_progress";
@@ -87,7 +108,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const invalid = Object.values(errors).some(Boolean);
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
   const conflict = stale || apiError?.status === 409;
-  const changed = () => { setDirty(true); setSaved(false); mutation.reset(); };
+  const changed = () => { setDirty(true); setSaved(false); setOfflineResumed(false); mutation.reset(); };
   useUnsavedWorkGuard(dirty);
   useEffect(() => {
     document.title = `${submitted && invalid ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
@@ -97,7 +118,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
 
   const confirm = async () => {
     setSubmitted(true);
-    if (invalid || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
+    if (!online || invalid || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
     const input: ReportReviewInput = {
       authorityClassifiedCondition: classification,
       verificationOutcome: fieldSelected ? "not_determined" : verification,
@@ -310,6 +331,16 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         <DetailField label="Resulting case state">{caseStateLabels[resultingState]}</DetailField>
         <DetailField label="Notes">{notes.trim() ? "Included" : "None"}</DetailField>
       </dl>
+      {!online ? (
+        <div className="review-offline" role="alert">
+          <p>Not saved. CaneGuard is offline, so this review cannot be confirmed. Your draft stays in this tab and is not queued to send later.</p>
+        </div>
+      ) : null}
+      {online && offlineResumed && dirty ? (
+        <div className="review-offline review-offline--resumed" role="status">
+          <p>You are back online. Check the latest evidence before confirming; nothing was sent while you were offline.</p>
+        </div>
+      ) : null}
       {conflict ? <ReviewConflictPanel
         latest={conflictLatest}
         draft={draftReviewSnapshot({ classification, verification, action, notes, inspectorUuid, targetDate })}
@@ -325,7 +356,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       /> : null}
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
-      <Button type="submit" disabled={mutation.isPending || conflict || saved || expectedVersion === undefined}>{mutation.isPending ? "Confirming review..." : "Confirm Review"}</Button>
+      <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined}>{mutation.isPending ? "Confirming review..." : "Confirm Review"}</Button>
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
         <Button type="button" variant="secondary" disabled={nextPending} onClick={() => void reviewNext()}>Review Next Case</Button>
         <Link to={returnTo}>Return to Queue</Link>

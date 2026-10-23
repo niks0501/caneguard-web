@@ -73,7 +73,7 @@ function boundaryData(): FieldSurveyBoundariesData {
         inspector: { uuid: "inspector-1", name: "Maria Santos" },
       },
     }],
-    metadata: { totalCount: 1, returnedCount: 1, limit: 100, truncated: false },
+    metadata: { totalCount: 1, returnedCount: 1, limit: 100, truncated: false, page: 1, pageCount: 1 },
   };
 }
 
@@ -162,7 +162,7 @@ describe("BoundariesMap", () => {
     const empty: FieldSurveyBoundariesData = {
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 0, returnedCount: 0, limit: 100, truncated: false },
+      metadata: { totalCount: 0, returnedCount: 0, limit: 100, truncated: false, page: 1, pageCount: 1 },
     };
     render(<BoundariesMap data={empty} />);
     loadMap();

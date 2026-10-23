@@ -186,7 +186,7 @@ describe("ReportDocumentBuilder cross-origin document actions", () => {
     vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
     renderBuilderWithScope();
 
-    const iframe = await screen.findByTitle("Live report preview");
+    const iframe = await screen.findByTitle("Live report preview") as HTMLIFrameElement;
     const postMessage = vi.fn();
     Object.defineProperty(iframe, "contentWindow", { configurable: true, value: { postMessage } });
 
@@ -201,7 +201,7 @@ describe("ReportDocumentBuilder cross-origin document actions", () => {
     const get = vi.spyOn(axiosClient, "get");
     renderBuilderWithScope();
 
-    const iframe = await screen.findByTitle("Live report preview");
+    const iframe = await screen.findByTitle("Live report preview") as HTMLIFrameElement;
     const frameWindow = iframe.contentWindow;
 
     dispatchReportDownload("https://attacker.test", frameWindow);

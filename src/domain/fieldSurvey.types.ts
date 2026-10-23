@@ -1,6 +1,13 @@
 export const FIELD_SURVEYS_DEFAULT_LIMIT = 100;
 export const FIELD_SURVEYS_MAX_LIMIT = 250;
 
+/** Bounded boundary lookup: never an unbounded archive download. */
+export interface FieldSurveysQuery {
+  limit?: number;
+  page?: number;
+  search?: string;
+}
+
 export type FieldSurveyPosition = [longitude: number, latitude: number];
 export type FieldSurveyLinearRing = FieldSurveyPosition[];
 
@@ -33,6 +40,9 @@ export interface FieldSurveyBoundariesData {
     returnedCount: number;
     limit: number;
     truncated: boolean;
+    /** 1-based page of the bounded boundary lookup. */
+    page: number;
+    pageCount: number;
   };
 }
 

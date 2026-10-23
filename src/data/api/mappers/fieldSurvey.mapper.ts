@@ -25,6 +25,9 @@ export function mapFieldSurveyBoundaries(
       returnedCount: response.metadata.returned_count,
       limit: response.metadata.limit,
       truncated: response.metadata.truncated,
+      page: response.metadata.page ?? 1,
+      pageCount: response.metadata.page_count
+        ?? Math.max(1, Math.ceil(response.metadata.total_count / response.metadata.limit)),
     },
   };
 }

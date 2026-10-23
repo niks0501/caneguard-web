@@ -231,3 +231,38 @@ describe("Progressive review resilience", () => {
     expect(await screen.findByText("Next case")).toBeInTheDocument();
   });
 });
+
+describe("online-only review writes", () => {
+  it("refuses to confirm an offline review and never claims a saved draft", async () => {
+    const user = userEvent.setup();
+    const online = vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+    renderForm();
+
+    await technical(user);
+
+    expect(screen.getByText(/CaneGuard is offline/)).toBeInTheDocument();
+    expect(screen.getByText(/not queued to send later/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm Review" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Review confirmed/)).not.toBeInTheDocument();
+    online.mockRestore();
+  });
+
+  it("asks the reviewer to check the latest evidence after reconnecting", async () => {
+    const online = vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(true);
+    const user = userEvent.setup();
+    renderForm();
+
+    await technical(user);
+    online.mockReturnValue(false);
+    act(() => { window.dispatchEvent(new Event("offline")); });
+    online.mockReturnValue(true);
+    act(() => { window.dispatchEvent(new Event("online")); });
+
+    expect(screen.getByText(/You are back online/)).toBeInTheDocument();
+    expect(screen.getByText(/nothing was sent while you were offline/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm Review" })).toBeEnabled();
+    online.mockRestore();
+  });
+});

@@ -60,6 +60,8 @@ class FieldSurveyReadTest extends TestCase
             'returned_count' => 1,
             'limit' => 100,
             'truncated' => false,
+            'page' => 1,
+            'page_count' => 1,
         ], $response->json('metadata'));
         $this->assertStringContainsString('private', strtolower((string) $response->headers->get('Cache-Control')));
         $this->assertStringContainsString('no-store', strtolower((string) $response->headers->get('Cache-Control')));
@@ -119,6 +121,8 @@ class FieldSurveyReadTest extends TestCase
             'returned_count' => 2,
             'limit' => 2,
             'truncated' => true,
+            'page' => 1,
+            'page_count' => 2,
         ], $response->json('metadata'));
         $this->assertGreaterThan($tieFirst->id, $tieSecond->id);
         $this->assertGreaterThan($old->id, $tieFirst->id);
@@ -148,6 +152,94 @@ class FieldSurveyReadTest extends TestCase
             ->assertJsonPath('metadata.returned_count', 101)
             ->assertJsonPath('metadata.limit', 250)
             ->assertJsonPath('metadata.truncated', false);
+    }
+
+    public function test_paging_reaches_a_boundary_beyond_the_first_page_without_widening_the_read(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create(['name' => 'Rosa Inspector']);
+        $oldest = null;
+        for ($index = 0; $index < 101; $index++) {
+            $survey = $this->storeSurvey($district, $inspector, [
+                'captured_at' => CarbonImmutable::parse('2026-09-01T00:00:00Z')->addSeconds($index),
+            ]);
+            $oldest = $index === 0 ? $survey : $oldest;
+        }
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $first = $this->getJson(self::ENDPOINT.'?limit=100')->assertOk();
+        $first->assertJsonCount(100, 'features')
+            ->assertJsonPath('metadata.page', 1)
+            ->assertJsonPath('metadata.page_count', 2)
+            ->assertJsonPath('metadata.truncated', true);
+
+        $second = $this->getJson(self::ENDPOINT.'?limit=100&page=2')->assertOk();
+        $second->assertJsonCount(1, 'features')
+            ->assertJsonPath('metadata.page', 2)
+            ->assertJsonPath('metadata.truncated', false);
+        $this->assertSame($oldest->id, $second->json('features.0.properties.id'));
+
+        // A page past the end is clamped rather than returning an empty window.
+        $this->getJson(self::ENDPOINT.'?limit=100&page=99')->assertOk()
+            ->assertJsonPath('metadata.page', 2)
+            ->assertJsonCount(1, 'features');
+    }
+
+    public function test_search_finds_an_older_boundary_by_id_date_or_inspector_name(): void
+    {
+        $district = $this->pilotDistrict();
+        $rosa = User::factory()->inDistrict($district)->create(['name' => 'Rosa Inspector']);
+        $mateo = User::factory()->inDistrict($district)->create(['name' => 'Mateo Inspector']);
+        $target = $this->storeSurvey($district, $mateo, [
+            'captured_at' => CarbonImmutable::parse('2026-08-11T04:00:00Z'),
+        ]);
+        for ($index = 0; $index < 120; $index++) {
+            $this->storeSurvey($district, $rosa, [
+                'captured_at' => CarbonImmutable::parse('2026-10-01T00:00:00Z')->addSeconds($index),
+            ]);
+        }
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $byId = $this->getJson(self::ENDPOINT.'?search='.$target->id)->assertOk();
+        $byId->assertJsonCount(1, 'features')->assertJsonPath('features.0.properties.id', $target->id);
+
+        $byName = $this->getJson(self::ENDPOINT.'?'.http_build_query(['search' => 'Mateo']))->assertOk();
+        $byName->assertJsonCount(1, 'features')->assertJsonPath('features.0.properties.id', $target->id);
+
+        $byDate = $this->getJson(self::ENDPOINT.'?search=2026-08-11')->assertOk();
+        $byDate->assertJsonCount(1, 'features')->assertJsonPath('metadata.total_count', 1);
+
+        $this->getJson(self::ENDPOINT.'?'.http_build_query(['search' => 'nobody']))
+            ->assertOk()->assertJsonCount(0, 'features')->assertJsonPath('metadata.total_count', 0);
+    }
+
+    public function test_search_terms_cannot_inject_like_wildcards(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create(['name' => 'Rosa Inspector']);
+        $this->storeSurvey($district, $inspector);
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $this->getJson(self::ENDPOINT.'?'.http_build_query(['search' => '%']))
+            ->assertOk()->assertJsonPath('metadata.total_count', 0);
+        $this->getJson(self::ENDPOINT.'?'.http_build_query(['search' => '_']))
+            ->assertOk()->assertJsonPath('metadata.total_count', 0);
+    }
+
+    public function test_invalid_page_and_search_use_the_standard_validation_envelope(): void
+    {
+        $district = $this->pilotDistrict();
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $this->getJson(self::ENDPOINT.'?page=0')->assertUnprocessable()
+            ->assertJsonStructure(['message', 'code', 'errors' => ['page']]);
+        $this->getJson(self::ENDPOINT.'?'.http_build_query(['search' => str_repeat('a', 61)]))
+            ->assertUnprocessable()
+            ->assertJsonStructure(['message', 'code', 'errors' => ['search']]);
     }
 
     #[DataProvider('invalidLimits')]

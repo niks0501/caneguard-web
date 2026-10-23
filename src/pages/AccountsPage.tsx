@@ -22,6 +22,20 @@ export function AccountsPage() {
   const result = query.data;
   return <PageContent className="accounts-page">
     <PageHeader title="User Management" />
+    <section className="accounts-provisioning" aria-labelledby="accounts-provisioning-heading">
+      <h2 id="accounts-provisioning-heading">New office accounts</h2>
+      <p>
+        This screen changes the role or status of an existing Web user. It does not
+        create accounts and there is no self-service staff sign-up.
+      </p>
+      <p>
+        A new Reviewer or Admin account is issued by an authorized CaneGuard operator.
+        Send the person&apos;s full name, work email, required role and the office
+        reference for the request through the district office&rsquo;s approved access
+        request channel. The account is verified and provisioned before the person
+        signs in here.
+      </p>
+    </section>
     <div className="accounts-filters">
       <label className="settings-field"><span>Search name or email</span><input type="search" maxLength={160} value={search} onChange={event => { setSearch(event.target.value); setParams({ page: "1" }); }} /></label>
     </div>

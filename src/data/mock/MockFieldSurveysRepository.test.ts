@@ -8,7 +8,7 @@ describe("MockFieldSurveysRepository", () => {
     expect(result).toEqual({
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 0, returnedCount: 0, limit: 100, truncated: false },
+      metadata: { totalCount: 0, returnedCount: 0, limit: 100, truncated: false, page: 1, pageCount: 1 },
     });
   });
 

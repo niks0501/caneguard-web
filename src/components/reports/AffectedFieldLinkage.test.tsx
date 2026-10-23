@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { ApiError } from "../../api/ApiError";
@@ -42,6 +42,8 @@ function queryResult(features: FieldSurveyBoundaryFeature[] = [], overrides: Rec
       returnedCount: features.length,
       limit: 250,
       truncated: false,
+      page: 1,
+      pageCount: 1,
     },
   };
   return {
@@ -155,24 +157,88 @@ describe("AffectedFieldLinkage", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Affected field boundaries saved.");
   });
 
-  it("keeps saved links visible when they are older than the selectable archive window", () => {
+  it("keeps saved links selectable while paging through older boundary pages", () => {
     const linked = affectedField(9, 5000, 25);
     const available = Array.from({ length: 250 }, (_, index) => boundary(300 - index, 5000));
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(available, {
       data: {
         type: "FeatureCollection",
         features: available,
-        metadata: { totalCount: 300, returnedCount: 250, limit: 250, truncated: true },
+        metadata: { totalCount: 300, returnedCount: 250, limit: 250, truncated: true, page: 1, pageCount: 2 },
       },
     }));
 
     renderLinkage(report({ affectedFields: [linked] }));
 
-    expect(screen.getByText("Showing the newest 250 of 300 boundaries; older boundaries are not available to link here.")).toBeInTheDocument();
+    const lookup = screen.getByRole("status");
+    expect(lookup).toHaveTextContent("300 matching boundaries · page 1 of 2");
+    expect(lookup).toHaveTextContent("Linked boundaries stay selectable even when they are not on this page.");
     expect(screen.getByRole("checkbox", { name: "Link boundary 9" })).toBeChecked();
-    expect(screen.getByText("Not available in the loaded boundary list")).toBeInTheDocument();
+    expect(screen.getByText("Linked from an earlier boundary list")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Show on Field boundaries" })
       .some((link) => link.getAttribute("href") === "/monitoring?view=boundaries&boundary=9")).toBe(false);
+  });
+
+  it("searches and pages the server lookup instead of widening the download", async () => {
+    const user = userEvent.setup();
+    const available = [boundary(300, 5000), boundary(299, 5000)];
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(available, {
+      data: {
+        type: "FeatureCollection",
+        features: available,
+        metadata: { totalCount: 300, returnedCount: 2, limit: 250, truncated: true, page: 1, pageCount: 2 },
+      },
+    }));
+
+    renderLinkage();
+
+    await user.type(screen.getByRole("searchbox", { name: "Find an older boundary" }), "Mateo");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ search: "Mateo", page: 1 });
+
+    await user.click(screen.getByRole("button", { name: "Go to page 2" }));
+    expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ page: 2 });
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ search: "", page: 1 });
+  });
+
+  it("previews a boundary shape without disturbing the draft", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([boundary(123, 6075.12)]));
+
+    renderLinkage(report({ affectedFields: [affectedField(123, 6075.12, 18.5)] }));
+
+    await user.click(screen.getByRole("button", { name: "Preview shape" }));
+
+    const preview = screen.getByRole("group", { name: "Boundary 123 shape" });
+    expect(within(preview).getByRole("img", { name: "Stored shape of boundary 123" })).toBeInTheDocument();
+    expect(within(preview).getByText("18.5%")).toBeInTheDocument();
+    expect(within(preview).getByText("Device-reported area")).toBeInTheDocument();
+    // The draft loss rate is untouched by looking at the shape.
+    expect(screen.getByLabelText(/Office loss rate for boundary 123/)).toHaveValue(18.5);
+  });
+
+  it("keeps loss rates finite and inside 0 to 100", async () => {
+    const user = userEvent.setup();
+    const save = vi.fn();
+    vi.mocked(useUpdateReportAffectedFields).mockReturnValue({
+      mutateAsync: save, reset: vi.fn(), isPending: false, isError: false, error: null,
+    } as unknown as ReturnType<typeof useUpdateReportAffectedFields>);
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([boundary(123, 6075.12)]));
+
+    renderLinkage(report({ affectedFields: [affectedField(123, 6075.12, 18.5)] }));
+
+    const rate = screen.getByLabelText(/Office loss rate for boundary 123/);
+    await user.clear(rate);
+    await user.type(rate, "101");
+
+    // Out-of-range and unknown rates block the save; unknown is never treated as 0.
+    expect(rate).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Enter a rate from 0 to 100.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeDisabled();
+    expect(save).not.toHaveBeenCalled();
   });
 
   it("shows an honest empty state when no phone boundaries have been captured", () => {

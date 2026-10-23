@@ -120,8 +120,42 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
     }));
     expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
       features: limitFeatures,
-      metadata: { total_count: 100, returned_count: 100, limit: 100, truncated: true },
+      metadata: { total_count: 100, returned_count: 100, limit: 100, truncated: false, page: 1, page_count: 1 },
     })).success).toBe(true);
+  });
+
+  it("validates bounded paging: a full page says more rows remain, a short last page ends the list", () => {
+    const feature = response().features[0];
+    const pageOf = (count: number) => Array.from({ length: count }, (_, index) => ({
+      ...feature,
+      id: String(index + 1),
+      properties: { ...feature.properties, id: index + 1 },
+    }));
+
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(100),
+      metadata: { total_count: 300, returned_count: 100, limit: 100, truncated: true, page: 2, page_count: 3 },
+    })).success).toBe(true);
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(50),
+      metadata: { total_count: 350, returned_count: 50, limit: 100, truncated: false, page: 4, page_count: 4 },
+    })).success).toBe(true);
+    // A middle page that is short of its limit is not a complete page.
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(99),
+      metadata: { total_count: 300, returned_count: 99, limit: 100, truncated: true, page: 2, page_count: 3 },
+    })).success).toBe(false);
+
+    // Claiming the end while two pages remain is dishonest.
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(100),
+      metadata: { total_count: 300, returned_count: 100, limit: 100, truncated: false, page: 1, page_count: 3 },
+    })).success).toBe(false);
+    // A page beyond the last one is not a valid read.
+    expect(fieldSurveyBoundariesResponseSchema.safeParse(response({
+      features: pageOf(1),
+      metadata: { total_count: 300, returned_count: 1, limit: 100, truncated: false, page: 4, page_count: 3 },
+    })).success).toBe(false);
   });
 
   it("rejects inconsistent returned counts and incomplete truncation states", () => {

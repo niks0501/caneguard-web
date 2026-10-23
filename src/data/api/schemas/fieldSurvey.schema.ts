@@ -46,6 +46,8 @@ export const fieldSurveyBoundariesResponseSchema = z.object({
     returned_count: z.number().int().nonnegative(),
     limit: z.number().int().positive().max(FIELD_SURVEYS_MAX_LIMIT),
     truncated: z.boolean(),
+    page: z.number().int().positive().optional(),
+    page_count: z.number().int().positive().optional(),
   }),
 }).superRefine((response, context) => {
   const { features, metadata } = response;
@@ -63,18 +65,40 @@ export const fieldSurveyBoundariesResponseSchema = z.object({
       message: "returned_count cannot exceed the response limit.",
     });
   }
-  if (metadata.truncated && metadata.returned_count !== metadata.limit) {
+
+  // Bounded paging: `truncated` means rows remain after this page. A concurrent
+  // insert can make returned_count differ from the counted total, so tolerance
+  // is kept there; the page position itself must stay consistent.
+  const page = metadata.page ?? 1;
+  const pageCount = metadata.page_count ?? Math.max(1, Math.ceil(metadata.total_count / metadata.limit));
+  if (page > pageCount) {
     context.addIssue({
       code: "custom",
-      path: ["metadata", "truncated"],
-      message: "Truncated responses must fill the requested limit.",
+      path: ["metadata", "page"],
+      message: "page cannot be beyond the last page.",
     });
   }
-  if (!metadata.truncated && metadata.returned_count < Math.min(metadata.total_count, metadata.limit)) {
+  if (metadata.truncated !== page < pageCount) {
     context.addIssue({
       code: "custom",
       path: ["metadata", "truncated"],
-      message: "Untruncated responses must include all available rows up to the limit.",
+      message: "truncated must say whether rows remain after this page.",
+    });
+  }
+  const offset = (page - 1) * metadata.limit;
+  const expectedOnPage = Math.max(0, Math.min(metadata.limit, metadata.total_count - offset));
+  if (page < pageCount && metadata.returned_count !== metadata.limit) {
+    context.addIssue({
+      code: "custom",
+      path: ["metadata", "returned_count"],
+      message: "Every page before the last must be full.",
+    });
+  }
+  if (page === pageCount && metadata.returned_count < expectedOnPage) {
+    context.addIssue({
+      code: "custom",
+      path: ["metadata", "returned_count"],
+      message: "The last page must include the remaining rows.",
     });
   }
 });

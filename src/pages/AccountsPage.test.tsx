@@ -33,6 +33,21 @@ describe("User Management", () => {
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.getAllByRole("columnheader").map(node => node.textContent)).toEqual(["Name", "Email", "Role", "Status", "Action"]);
   });
+  it("distinguishes account creation from role changes and states the authorized next step", async () => {
+    renderPage();
+    await screen.findByRole("link", { name: "Alex Sample" });
+
+    const provisioning = screen.getByRole("region", { name: "New office accounts" });
+    expect(provisioning).toHaveTextContent(/does not\s+create accounts/i);
+    expect(provisioning).toHaveTextContent(/authorized CaneGuard operator/i);
+    expect(provisioning).toHaveTextContent(/full name, work email, required role/i);
+    expect(provisioning).not.toHaveTextContent(/@/);
+
+    expect(screen.getByText(/Role and status changes only/)).toHaveTextContent(
+      "A role change signs the person out",
+    );
+  });
+
   it("keeps search personal data out of URL state and debounces requests", async () => {
     const user = userEvent.setup();
     renderPage("/accounts?page=3&grants=anything");

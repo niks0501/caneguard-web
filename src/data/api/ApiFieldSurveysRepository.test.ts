@@ -49,7 +49,7 @@ describe("ApiFieldSurveysRepository", () => {
         inspector: { uuid: "inspector-1", name: "Maria Santos" },
       },
     });
-    expect(result.metadata).toEqual({ totalCount: 1, returnedCount: 1, limit: 100, truncated: false });
+    expect(result.metadata).toEqual({ totalCount: 1, returnedCount: 1, limit: 100, truncated: false, page: 1, pageCount: 1 });
   });
 
   it("uses the requested limit and surfaces an unexpected response as a ZodError", async () => {

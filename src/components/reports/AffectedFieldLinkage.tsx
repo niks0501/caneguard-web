@@ -2,15 +2,23 @@ import { useId, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../../api/ApiError";
-import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyBoundaryFeature, type ReportAffectedField } from "../../domain/fieldSurvey.types";
+import {
+  FIELD_SURVEYS_MAX_LIMIT,
+  type FieldSurveyBoundaryFeature,
+  type FieldSurveyPolygon,
+  type ReportAffectedField,
+} from "../../domain/fieldSurvey.types";
 import type { DiseaseReport } from "../../domain/report.types";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
 import { useFieldSurveys } from "../../hooks/fieldSurveys";
 import { useUpdateReportAffectedFields } from "../../hooks/useReports";
 import { routes } from "../../app/routes";
 import { Button } from "../ui/Button";
+import { Pagination } from "../ui/Pagination";
 import { Skeleton } from "../ui/States";
+import { DetailField } from "../layout/Page";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
+import { boundaryOutline } from "./boundaryShape";
 
 type BoundaryChoice = {
   id: number;
@@ -18,6 +26,7 @@ type BoundaryChoice = {
   areaSqm: number;
   inspectorName: string;
   inArchive: boolean;
+  geometry?: FieldSurveyPolygon;
 };
 
 type RateDraft = Record<string, string>;
@@ -48,6 +57,7 @@ function boundaryChoices(
       areaSqm: feature.properties.areaSqm,
       inspectorName: feature.properties.inspector.name,
       inArchive: true,
+      geometry: feature.geometry,
     });
   }
   for (const field of linkedFields) {
@@ -58,6 +68,7 @@ function boundaryChoices(
         areaSqm: field.areaSqm,
         inspectorName: field.inspector.name,
         inArchive: false,
+        geometry: field.geometry,
       });
     }
   }
@@ -87,7 +98,16 @@ export function AffectedFieldLinkage({
   onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }>;
 }) {
   const idPrefix = useId();
-  const surveysQuery = useFieldSurveys(FIELD_SURVEYS_MAX_LIMIT);
+  const [lookupDraft, setLookupDraft] = useState("");
+  const [lookupSearch, setLookupSearch] = useState("");
+  const [lookupPage, setLookupPage] = useState(1);
+  const [previewId, setPreviewId] = useState<number | null>(null);
+  // Bounded server lookup: a search or page change never downloads the archive.
+  const surveysQuery = useFieldSurveys({
+    limit: FIELD_SURVEYS_MAX_LIMIT,
+    page: lookupPage,
+    search: lookupSearch,
+  });
   const updateMutation = useUpdateReportAffectedFields(report.uuid);
   const [draft, setDraft] = useState<RateDraft>(() => ratesFor(report.affectedFields));
   const [draftVersion, setDraftVersion] = useState<number | undefined>(() => report.reviewVersion);
@@ -100,6 +120,9 @@ export function AffectedFieldLinkage({
     linkedFields,
     draftChoices,
   );
+  const metadata = surveysQuery.data?.metadata;
+  const previewChoice = choices.find((choice) => choice.id === previewId) ?? null;
+  const previewOutline = boundaryOutline(previewChoice?.geometry);
   const archiveIsEmpty = surveysQuery.isSuccess
     && !surveysQuery.isFetching
     && !surveysQuery.isError
@@ -211,10 +234,67 @@ export function AffectedFieldLinkage({
           The boundary archive could not be refreshed. Previously loaded choices remain visible and may be stale.
         </p>
       ) : null}
-      {surveysQuery.data?.metadata.truncated ? (
+      <form
+        className="affected-field-linkage__lookup"
+        role="search"
+        aria-label="Boundary lookup"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setLookupPage(1);
+          setLookupSearch(lookupDraft.trim());
+        }}
+      >
+        <label>
+          <span>Find an older boundary</span>
+          <input
+            type="search"
+            maxLength={60}
+            value={lookupDraft}
+            placeholder="Boundary ID, inspector name or capture date"
+            onChange={(event) => setLookupDraft(event.target.value)}
+          />
+        </label>
+        <Button type="submit" variant="secondary">Search</Button>
+        {lookupSearch ? (
+          <Button
+            type="button"
+            variant="quiet"
+            onClick={() => { setLookupDraft(""); setLookupSearch(""); setLookupPage(1); }}
+          >
+            Clear search
+          </Button>
+        ) : null}
+      </form>
+      {metadata && (lookupSearch || metadata.pageCount > 1) ? (
         <p className="affected-field-linkage__truncated" role="status">
-          Showing the newest {surveysQuery.data.metadata.returnedCount} of {surveysQuery.data.metadata.totalCount} boundaries; older boundaries are not available to link here.
+          {lookupSearch ? `Searching for "${lookupSearch}" · ` : ""}
+          {metadata.totalCount} matching {metadata.totalCount === 1 ? "boundary" : "boundaries"}
+          {metadata.pageCount > 1 ? ` · page ${metadata.page} of ${metadata.pageCount}` : ""}.
+          Linked boundaries stay selectable even when they are not on this page.
         </p>
+      ) : null}
+
+      {previewChoice ? (
+        <div className="affected-field-linkage__preview" role="group" aria-label={`Boundary ${previewChoice.id} shape`}>
+          {previewOutline.drawable ? (
+            <svg viewBox="0 0 200 140" role="img" aria-label={`Stored shape of boundary ${previewChoice.id}`}>
+              <polygon points={previewOutline.points} />
+            </svg>
+          ) : (
+            <p className="form-error" role="alert">This boundary has no stored shape to preview.</p>
+          )}
+          <dl className="detail-list">
+            <DetailField label="Boundary">{previewChoice.id}</DetailField>
+            <DetailField label="Captured">{formatDateTime(previewChoice.capturedAt)}</DetailField>
+            <DetailField label="Device-reported area">{formatAffectedArea(previewChoice.areaSqm / 10_000)}</DetailField>
+            <DetailField label="Inspector">{previewChoice.inspectorName}</DetailField>
+            <DetailField label="Office loss rate">
+              {Object.hasOwn(draft, String(previewChoice.id)) && draft[String(previewChoice.id)]
+                ? `${draft[String(previewChoice.id)]}%`
+                : "Not entered"}
+            </DetailField>
+          </dl>
+        </div>
       ) : null}
 
       <form onSubmit={(event) => void save(event)}>
@@ -262,8 +342,18 @@ export function AffectedFieldLinkage({
                             Show on Field boundaries
                           </Link>
                         ) : (
-                          <span className="affected-field-linkage__unavailable">Not available in the loaded boundary list</span>
+                          <span className="affected-field-linkage__unavailable">Linked from an earlier boundary list</span>
                         )}
+                        {choice.geometry ? (
+                          <button
+                            type="button"
+                            className="table-action"
+                            onClick={() => setPreviewId(choice.id === previewId ? null : choice.id)}
+                            aria-expanded={choice.id === previewId}
+                          >
+                            {choice.id === previewId ? "Hide shape" : "Preview shape"}
+                          </button>
+                        ) : null}
                       </td>
                       <td>{formatAffectedArea(choice.areaSqm / 10_000)}</td>
                       <td>
@@ -298,6 +388,16 @@ export function AffectedFieldLinkage({
             </table>
           </div>
         )}
+
+        {metadata && metadata.pageCount > 1 ? (
+          <Pagination
+            currentPage={metadata.page}
+            pageCount={metadata.pageCount}
+            itemCount={metadata.totalCount}
+            itemLabel="boundaries"
+            onPageChange={setLookupPage}
+          />
+        ) : null}
 
         {submitted && !ratesValid ? (
           <p className="form-error" role="alert">Enter an office loss rate from 0 to 100 for each linked boundary.</p>

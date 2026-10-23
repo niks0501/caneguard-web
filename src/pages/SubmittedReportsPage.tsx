@@ -110,14 +110,20 @@ function appliedFilterChips(
   if (filters.queue) add("queue", "queue", `Queue: ${queueLabels[filters.queue]}`);
   if (filters.search?.trim()) add("search", "search", `Search: ${filters.search.trim()}`);
   if (filters.reportedConcern) add("concern", "concern", "Reported concern: RSSI");
-  if (filters.workflowStatus) add("workflow_status", "workflow_status", `Status: ${workflowStatusLabels[filters.workflowStatus]}`);
-  if (filters.disease) add("predicted_label", "predicted_label", `Condition: ${diseaseLabels[filters.disease]}`);
-  if (filters.staffClassifiedCondition) {
+  if (filters.workflowStatus && filters.workflowStatus !== "all") {
+    add("workflow_status", "workflow_status", `Status: ${workflowStatusLabels[filters.workflowStatus]}`);
+  }
+  if (filters.disease && filters.disease !== "all") {
+    add("predicted_label", "predicted_label", `Condition: ${diseaseLabels[filters.disease]}`);
+  }
+  if (filters.staffClassifiedCondition && filters.staffClassifiedCondition !== "all") {
     add("authority_classified_condition", "authority_classified_condition",
       `Staff-classified: ${authorityClassifiedConditionLabels[filters.staffClassifiedCondition]}`);
   }
   if (filters.barangay?.trim()) add("barangay", "barangay", `Barangay: ${filters.barangay.trim()}`);
-  if (filters.location) add("location", "location", locationLabels[filters.location]);
+  if (filters.location && filters.location !== "all") {
+    add("location", "location", locationLabels[filters.location]);
+  }
   if (filters.dateFrom) add("date_from", "date_from", `From ${filters.dateFrom}`);
   if (filters.dateTo) add("date_to", "date_to", `To ${filters.dateTo}`);
   if (filters.reviewer) {

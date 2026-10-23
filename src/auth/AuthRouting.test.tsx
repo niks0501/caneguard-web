@@ -190,7 +190,7 @@ describe("authenticated routing", () => {
 
     expect(
       await screen.findByText(
-        "This account is not authorized for the SRA Don Pedro Web workspace.",
+        "This account is not authorized for the SRA Don Pedro Web workspace. Ask your district office administrator to request office access from the CaneGuard operator.",
       ),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/login");

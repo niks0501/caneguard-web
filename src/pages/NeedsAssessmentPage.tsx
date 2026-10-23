@@ -176,7 +176,7 @@ export function NeedsAssessmentPage() {
           <ReportSection title="Needs attention" description="Worsened and Unable to determine outcomes inside the completed visits above." reports={attention} attention truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No completed visit recorded Worsened or Unable to determine." />
           <ReportSection title="New observations" description="Observations that have never been visited. They are not completed visits." reports={newObservations} truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No unvisited observations are waiting." />
           <ReportSection title="Unassigned visits" description="Open cases with a visit request but no Field Inspector yet." reports={unassignedVisits} truncated={visitTruncated} total={visitQuery.data.total} empty="No unassigned visit requests are waiting." />
-          <ReportSection title="Overdue visits" description="Open visits past their target date, counted separately from outcome attention." reports={overdue} truncated={overdueTruncated} total={overdueQuery.data.total} empty="No open visits are overdue." />
+          <ReportSection title="Overdue visits" description="Open visits past their target date, counted separately from outcome attention." reports={overdue} truncated={overdueTruncated} total={overdueQuery.data?.total ?? overdue.length} empty="No open visits are overdue." />
         </>
       ) : null}
       {completedVisits.some((report) => report.latestValidation?.followUpOutcome === "unchanged") ? (

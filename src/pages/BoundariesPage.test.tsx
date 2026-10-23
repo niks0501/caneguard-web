@@ -44,7 +44,7 @@ const oneBoundary: FieldSurveyBoundariesData = {
       inspector: { uuid: "inspector-1", name: "Maria Santos" },
     },
   }],
-  metadata: { totalCount: 1, returnedCount: 1, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false },
+  metadata: { totalCount: 1, returnedCount: 1, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false, page: 1, pageCount: 1 },
 };
 
 function queryResult(data: FieldSurveyBoundariesData | undefined, overrides: Record<string, unknown> = {}) {
@@ -111,7 +111,7 @@ describe("BoundariesPage", () => {
     const empty: FieldSurveyBoundariesData = {
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 0, returnedCount: 0, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false },
+      metadata: { totalCount: 0, returnedCount: 0, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false, page: 1, pageCount: 1 },
     };
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(empty));
     renderPage();
@@ -177,6 +177,8 @@ describe("BoundariesPage", () => {
         returnedCount: FIELD_SURVEYS_MAX_LIMIT,
         limit: FIELD_SURVEYS_MAX_LIMIT,
         truncated: true,
+        page: 1,
+        pageCount: 2,
       },
     }));
     renderPage();
@@ -203,6 +205,8 @@ describe("BoundariesPage", () => {
         returnedCount: FIELD_SURVEYS_MAX_LIMIT,
         limit: FIELD_SURVEYS_MAX_LIMIT,
         truncated: true,
+        page: 1,
+        pageCount: 2,
       },
     }));
     renderPage();
@@ -239,6 +243,8 @@ describe("BoundariesPage", () => {
         returnedCount: FIELD_SURVEYS_MAX_LIMIT,
         limit: FIELD_SURVEYS_MAX_LIMIT,
         truncated: true,
+        page: 1,
+        pageCount: 2,
       },
     }));
 
