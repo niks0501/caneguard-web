@@ -12,7 +12,17 @@ export const documentationFiles = {
   auth: "docs/contracts/auth-v1.md",
   rbac: "docs/security/simplified-web-rbac.md",
   district: "docs/contracts/district-access-v1.md",
+  accounts: "docs/contracts/accounts-access-v1.md",
+  weekly: "api/docs/weekly-report-content-v1.md",
+  webEnv: ".env.example",
+  apiEnv: "api/.env.example",
 };
+
+/** Guides that describe Web authority; every named grant must stay historical. */
+const authorityDocs = ["auth", "rbac", "district", "accounts", "weekly"];
+
+/** Guides and environment examples that must not revive registration. */
+const registrationDocs = ["auth", "district", "accounts", "weekly", "webEnv", "apiEnv"];
 
 export function readRepositoryFile(relativePath) {
   return fs.readFileSync(path.join(repositoryRoot, relativePath), "utf8");
@@ -25,9 +35,9 @@ export function readConsistencyInputs() {
 }
 
 function assertRegistrationIsDocumentedAsDisabled(docs) {
-  for (const [name, text] of Object.entries(docs)) {
+  for (const name of registrationDocs) {
     assert.match(
-      text,
+      docs[name],
       /[Pp]ublic (self-)?registration is disabled/,
       `${documentationFiles[name]} must state that public registration is disabled`,
     );
@@ -35,7 +45,8 @@ function assertRegistrationIsDocumentedAsDisabled(docs) {
 }
 
 function assertNoRetiredRegistrationInstructions(docs) {
-  for (const [name, text] of Object.entries(docs)) {
+  for (const name of registrationDocs) {
+    const text = docs[name];
     const file = documentationFiles[name];
     for (const forbidden of [
       "can be enabled with both",
@@ -48,19 +59,24 @@ function assertNoRetiredRegistrationInstructions(docs) {
         `${file} must not present a retired registration path as current: ${forbidden}`,
       );
     }
-    // A retired control may be mentioned only when the same line says so.
-    for (const match of text.matchAll(/^.*\b(CANEGUARD_SELF_REGISTRATION_ENABLED|CANEGUARD_PILOT_ROSTER_CERTIFIED|REGISTRATION_CREATED)\b.*$/gm)) {
-      const line = match[0].toLowerCase();
+    // A retired control may be named only where its own line, or the comment
+    // directly above it, marks it retired.
+    const lines = text.split("\n");
+    for (const [index, line] of lines.entries()) {
+      if (!/\b(CANEGUARD_SELF_REGISTRATION_ENABLED|CANEGUARD_PILOT_ROSTER_CERTIFIED|REGISTRATION_CREATED|VITE_CANEGUARD_SELF_REGISTRATION_ENABLED)\b/.test(line)) continue;
+      const marked = [line, lines[index - 1] ?? ""]
+        .join(" ")
+        .toLowerCase();
       assert.ok(
-        line.includes("retired") || line.includes("not read") || line.includes("historical"),
-        `${file} refers to a retired registration control without marking it retired: ${match[0].trim()}`,
+        marked.includes("retired") || marked.includes("not read") || marked.includes("historical"),
+        `${file} refers to a retired registration control without marking it retired: ${line.trim()}`,
       );
     }
   }
 }
 
 function assertNamedGrantsAreNotAuthority(docs) {
-  for (const name of ["auth", "district"]) {
+  for (const name of authorityDocs) {
     const text = docs[name];
     for (const match of text.matchAll(/^.*\b(staff:manage|report:approve|report:send)\b.*$/gm)) {
       const line = match[0].toLowerCase();
@@ -69,6 +85,7 @@ function assertNamedGrantsAreNotAuthority(docs) {
           || line.includes("compatibility")
           || line.includes("bookkeeping")
           || line.includes("historical")
+          || line.includes("retired")
           || line.includes("stored for"),
         `${documentationFiles[name]} presents a legacy named grant as current authority: ${match[0].trim()}`,
       );

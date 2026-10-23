@@ -5,7 +5,7 @@ import {
   validateAuthDocumentationConsistency,
 } from "./validate-auth-doc-consistency.mjs";
 
-test("current auth, RBAC and district documentation agree with each other", () => {
+test("current auth, RBAC, accounts, weekly and environment guidance agree with each other", () => {
   validateAuthDocumentationConsistency(readConsistencyInputs());
 });
 
@@ -25,6 +25,38 @@ test("rejects a contract that tells operators the retired flags enable sign-up",
   docs.district = docs.district.replace(
     "Public registration is disabled unconditionally in this release and no flag re-enables it;",
     "Set CANEGUARD_SELF_REGISTRATION_ENABLED=true to enable registration;",
+  );
+  assert.throws(() => validateAuthDocumentationConsistency(docs));
+});
+
+test("rejects the weekly guide restoring a named grant as approval authority", () => {
+  const docs = inputs();
+  docs.weekly = docs.weekly.replace(
+    "- Reviewers prepare; only an active verified `admin` approves the exact displayed hash.",
+    "- Reviewers prepare; only an `admin` with `report:approve` approves the exact displayed hash.",
+  );
+  assert.throws(() => validateAuthDocumentationConsistency(docs));
+});
+
+test("rejects an accounts guide that requires a named staff:manage grant", () => {
+  const docs = inputs();
+  docs.accounts = docs.accounts
+    .replace("In the retired interface every endpoint required", "Every endpoint requires")
+    .replace("that grant requirement is historical and no current endpoint reads", "every endpoint reads");
+  assert.throws(() => validateAuthDocumentationConsistency(docs));
+});
+
+test("rejects an accounts guide that drops the disabled-registration statement", () => {
+  const docs = inputs();
+  docs.accounts = docs.accounts.replace("Public registration is disabled unconditionally; ", "");
+  assert.throws(() => validateAuthDocumentationConsistency(docs));
+});
+
+test("rejects an environment example that presents the retired switch as effective", () => {
+  const docs = inputs();
+  docs.apiEnv = docs.apiEnv.replace(
+    "# Public registration is disabled unconditionally; this retired switch is not read.",
+    "# Registration needs BOTH switches; set this one to enable sign-up.",
   );
   assert.throws(() => validateAuthDocumentationConsistency(docs));
 });
