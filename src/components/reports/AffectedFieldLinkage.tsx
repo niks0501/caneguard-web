@@ -133,7 +133,7 @@ export function AffectedFieldLinkage({
   const metadata = surveysQuery.data?.metadata;
   const previewChoice = choices.find((choice) => choice.id === previewId) ?? null;
   const previewOutline = boundaryOutline(previewChoice?.geometry);
-  const archiveIsEmpty = surveysQuery.isSuccess
+  const readReturnedNoRows = surveysQuery.isSuccess
     && !surveysQuery.isFetching
     && !surveysQuery.isError
     && !surveysQuery.isRefetchError
@@ -303,7 +303,7 @@ export function AffectedFieldLinkage({
             <DetailField label="Device-reported area">{formatAffectedArea(previewChoice.areaSqm / 10_000)}</DetailField>
             <DetailField label="Inspector">{previewChoice.inspectorName}</DetailField>
             <DetailField label="Office loss rate">
-              {Object.hasOwn(draft, String(previewChoice.id)) && draft[String(previewChoice.id)]
+              {Object.hasOwn(draft, String(previewChoice.id)) && draft[String(previewChoice.id)] !== ""
                 ? `${draft[String(previewChoice.id)]}%`
                 : "Not entered"}
             </DetailField>
@@ -313,7 +313,15 @@ export function AffectedFieldLinkage({
 
       <form onSubmit={(event) => void save(event)}>
         {choices.length === 0 ? (
-          archiveIsEmpty && <p className="field-validation-table-card__empty">No recorded field boundaries are available to link.</p>
+          readReturnedNoRows && (
+            <p className="field-validation-table-card__empty">
+              {lookupSearch
+                ? "No boundaries match this search. Clear the search to see the newest boundaries."
+                : lookupPage > 1
+                  ? "No boundaries are on this page. Return to page 1 to see the newest boundaries."
+                  : "No recorded field boundaries are available to link."}
+            </p>
+          )
         ) : (
           <div className="affected-field-linkage__table-scroll">
             <table className="field-validation-table affected-field-linkage__table">

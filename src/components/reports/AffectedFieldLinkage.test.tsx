@@ -242,6 +242,19 @@ describe("AffectedFieldLinkage", () => {
     expect(screen.getByLabelText(/Office loss rate for boundary 123/)).toHaveValue(18.5);
   });
 
+  it("reports a zero office loss rate as 0% in the shape preview", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([boundary(123, 6075.12)]));
+
+    renderLinkage(report({ affectedFields: [affectedField(123, 6075.12, 0)] }));
+
+    await user.click(screen.getByRole("button", { name: "Preview shape" }));
+
+    const preview = screen.getByRole("group", { name: "Boundary 123 shape" });
+    expect(within(preview).getByText("0%")).toBeInTheDocument();
+    expect(within(preview).queryByText("Not entered")).not.toBeInTheDocument();
+  });
+
   it("keeps loss rates finite and inside 0 to 100", async () => {
     const user = userEvent.setup();
     const save = vi.fn();
@@ -274,6 +287,37 @@ describe("AffectedFieldLinkage", () => {
       "/monitoring?view=boundaries",
     );
     expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeDisabled();
+  });
+
+  it("says a search matched nothing instead of calling the archive empty", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult());
+
+    renderLinkage();
+
+    await user.type(screen.getByRole("searchbox", { name: "Find an older boundary" }), "nobody");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(screen.getByText(/No boundaries match this search/)).toBeInTheDocument();
+    expect(screen.queryByText("No recorded field boundaries are available to link.")).not.toBeInTheDocument();
+  });
+
+  it("says a page is empty instead of calling the archive empty", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([], {
+      data: {
+        type: "FeatureCollection",
+        features: [],
+        metadata: { totalCount: 300, returnedCount: 0, limit: 250, truncated: false, page: 1, pageCount: 2 },
+      },
+    }));
+
+    renderLinkage();
+
+    await user.click(screen.getByRole("button", { name: "Go to page 2" }));
+
+    expect(screen.getByText(/No boundaries are on this page/)).toBeInTheDocument();
+    expect(screen.queryByText("No recorded field boundaries are available to link.")).not.toBeInTheDocument();
   });
 
   it("does not claim the archive is empty while boundaries are loading", () => {
