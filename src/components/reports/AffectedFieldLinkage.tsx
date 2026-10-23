@@ -275,12 +275,16 @@ export function AffectedFieldLinkage({
           </Button>
         ) : null}
       </form>
-      {metadata && (lookupSearch || metadata.pageCount > 1) ? (
+      {metadata && (lookupSearch || metadata.pageCount > 1 || metadata.truncated) ? (
         <p className="affected-field-linkage__truncated" role="status">
           {lookupSearch ? `Searching for "${lookupSearch}" · ` : ""}
           {metadata.totalCount} matching {metadata.totalCount === 1 ? "boundary" : "boundaries"}
           {metadata.pageCount > 1 ? ` · page ${metadata.page} of ${metadata.pageCount}` : ""}.
-          Linked boundaries stay selectable even when they are not on this page.
+          {metadata.pageCount > 1
+            ? "Linked boundaries stay selectable even when they are not on this page."
+            : metadata.truncated
+              ? "This read stopped before the last matching boundary; refresh to load the rest."
+              : null}
         </p>
       ) : null}
 

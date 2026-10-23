@@ -179,6 +179,23 @@ describe("AffectedFieldLinkage", () => {
       .some((link) => link.getAttribute("href") === "/monitoring?view=boundaries&boundary=9")).toBe(false);
   });
 
+  it("states a truncated single-page read instead of showing a complete-looking list", () => {
+    const available = [boundary(300, 5000), boundary(299, 5000)];
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(available, {
+      data: {
+        type: "FeatureCollection",
+        features: available,
+        metadata: { totalCount: 250, returnedCount: 2, limit: 250, truncated: true, page: 1, pageCount: 1 },
+      },
+    }));
+
+    renderLinkage();
+
+    const notice = screen.getByText(/This read stopped before the last matching boundary/);
+    expect(notice).toHaveTextContent("250 matching boundaries");
+    expect(notice).not.toHaveTextContent("page 1 of 1");
+  });
+
   it("searches and pages the server lookup instead of widening the download", async () => {
     const user = userEvent.setup();
     const available = [boundary(300, 5000), boundary(299, 5000)];

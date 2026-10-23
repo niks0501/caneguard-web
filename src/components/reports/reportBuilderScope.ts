@@ -28,6 +28,19 @@ const emptyBuilderFilters: BuilderFilters = {
   authority_classified_condition: "",
 };
 
+/** The document endpoint's ceiling for one custom period, in inclusive days. */
+const printablePeriodMaxDays = 366;
+
+function customPeriodProblem(from: string, to: string): string | null {
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const end = Date.parse(`${to}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "From and To dates";
+  const days = Math.round((end - start) / 86_400_000) + 1;
+  if (days < 1) return "Date range ending before it starts";
+  if (days > printablePeriodMaxDays) return `Date range over ${printablePeriodMaxDays} days`;
+  return null;
+}
+
 const queueLabels: Record<string, string> = {
   needs_review: "Needs Review",
   needs_visit: "Needs Visit",
@@ -71,7 +84,9 @@ export function printableScopeFromReportFilters(filters: ReportFilters): Printab
 
   let customPeriod: { from: string; to: string } | undefined;
   if (filters.dateFrom && filters.dateTo) {
-    customPeriod = { from: filters.dateFrom, to: filters.dateTo };
+    const problem = customPeriodProblem(filters.dateFrom, filters.dateTo);
+    if (problem) removed.push(problem);
+    else customPeriod = { from: filters.dateFrom, to: filters.dateTo };
   } else if (filters.dateFrom) {
     removed.push("From date");
   } else if (filters.dateTo) {
