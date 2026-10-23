@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   monitoringViewLink,
   scopeNoticeMessage,
-  scopeParamsFrom,
 } from "./workspaceScope";
 
 describe("workspace scope", () => {
@@ -57,9 +56,25 @@ describe("workspace scope", () => {
     expect(link.removed).toEqual(["Queue"]);
   });
 
-  it("copies only scope keys into a shared scope", () => {
-    const scope = scopeParamsFrom(new URLSearchParams("queue=needs_visit&sort=newest&page=2&barangay=Bucana"));
+  it("carries the register's own filters back into the register view", () => {
+    const params = new URLSearchParams(
+      "view=map&queue=follow_up_due&search=bucana&case_state=open&workflow_status=needs_visit&reviewer=abc&sort=oldest",
+    );
 
-    expect(scope.toString()).toBe("queue=needs_visit&barangay=Bucana");
+    const link = monitoringViewLink("register", params);
+
+    expect(link.removed).toEqual([]);
+    expect(link.to).toBe(
+      "/monitoring?queue=follow_up_due&search=bucana&case_state=open&workflow_status=needs_visit&reviewer=abc&sort=oldest",
+    );
+  });
+
+  it("names a removed filter once even when two URL keys mean Status", () => {
+    const link = monitoringViewLink(
+      "field-operations",
+      new URLSearchParams("status=for_field_validation&workflow_status=needs_visit"),
+    );
+
+    expect(link.removed).toEqual(["Status"]);
   });
 });

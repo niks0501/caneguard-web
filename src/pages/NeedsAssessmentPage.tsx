@@ -74,16 +74,15 @@ function ReportSection({
   reports,
   empty,
   attention = false,
-  truncated = false,
-  total,
+  read,
 }: {
   title: string;
   description: string;
   reports: DiseaseReport[];
   empty: string;
   attention?: boolean;
-  truncated?: boolean;
-  total?: number;
+  /** The bounded queue read behind this section, when it stopped at its boundary. */
+  read?: { loaded: number; total: number };
 }) {
   const location = useLocation();
   const headingId = `${title.toLowerCase().replaceAll(" ", "-")}-heading`;
@@ -91,21 +90,18 @@ function ReportSection({
     <section className={`needs-assessment-section${attention ? " needs-assessment-section--attention" : ""}`} aria-labelledby={headingId}>
       <div className="workspace-heading">
         <div><h2 id={headingId}>{title}</h2><p>{description}</p></div>
-        <strong className="needs-assessment-count">
-          {reports.length}
-          {truncated && total !== undefined ? ` of ${total}` : ""}
-        </strong>
+        <strong className="needs-assessment-count">{reports.length}</strong>
       </div>
-      {truncated ? (
+      {read ? (
         <p className="queue-refresh-warning" role="status">
-          Showing the first {reports.length} of {total ?? "more"} matching cases. Narrow the queue to reach the rest; Review Next stops at this boundary.
+          This queue has {read.total} matching cases and only the first {read.loaded} are loaded, so these lists may be incomplete. Narrow the queue to reach the rest; Review Next stops at this boundary.
         </p>
       ) : null}
       {reports.length > 0 ? <div className="needs-assessment-list">{reports.map((report) => <AssessmentRow key={report.uuid} report={report} attention={attention} queueContext={{
         returnTo: `${location.pathname}${location.search}`, filters: {},
         remainingIds: reports.slice(reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
         reviewedIds: [], snapshotOnly: true,
-        ...(truncated ? { snapshotTruncated: true } : {}),
+        ...(read ? { snapshotTruncated: true } : {}),
       }} />)}</div> : <p className="needs-assessment-empty">{empty}</p>}
     </section>
   );
@@ -128,9 +124,17 @@ export function NeedsAssessmentPage() {
   );
   const overdue = overdueQuery.data?.reports ?? [];
 
-  const awaitingTruncated = awaitingQuery.data?.truncated ?? false;
-  const visitTruncated = visitQuery.data?.truncated ?? false;
-  const overdueTruncated = overdueQuery.data?.truncated ?? false;
+  // A truncated read is reported once per queue, attributed to that queue: a
+  // section row count is never paired with a denominator it does not match.
+  const awaitingTruncation = awaitingQuery.data?.truncated
+    ? { loaded: needsReview.length, total: awaitingQuery.data.total }
+    : undefined;
+  const visitTruncation = visitQuery.data?.truncated
+    ? { loaded: visitQuery.data.reports.length, total: visitQuery.data.total }
+    : undefined;
+  const overdueTruncation = overdueQuery.data?.truncated
+    ? { loaded: overdue.length, total: overdueQuery.data.total }
+    : undefined;
 
   const isLoading = awaitingQuery.isPending || visitQuery.isPending || overdueQuery.isPending;
   const hasInitialError = (awaitingQuery.isError && !awaitingQuery.data)
@@ -172,11 +176,11 @@ export function NeedsAssessmentPage() {
       {hasInitialError ? <ErrorState message="This list could not be loaded. Please try again." onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])} /> : null}
       {!hasInitialError && awaitingQuery.data && visitQuery.data ? (
         <>
-          <ReportSection title="Visits awaiting a decision" description="Field visits are complete and need an office disposition." reports={completedVisits} truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No completed field visits are waiting for a decision." />
-          <ReportSection title="Needs attention" description="Worsened and Unable to determine outcomes inside the completed visits above." reports={attention} attention truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No completed visit recorded Worsened or Unable to determine." />
-          <ReportSection title="New observations" description="Observations that have never been visited. They are not completed visits." reports={newObservations} truncated={awaitingTruncated} total={awaitingQuery.data.total} empty="No unvisited observations are waiting." />
-          <ReportSection title="Unassigned visits" description="Open cases with a visit request but no Field Inspector yet." reports={unassignedVisits} truncated={visitTruncated} total={visitQuery.data.total} empty="No unassigned visit requests are waiting." />
-          <ReportSection title="Overdue visits" description="Open visits past their target date, counted separately from outcome attention." reports={overdue} truncated={overdueTruncated} total={overdueQuery.data?.total ?? overdue.length} empty="No open visits are overdue." />
+          <ReportSection title="Visits awaiting a decision" description="Field visits are complete and need an office disposition." reports={completedVisits} read={awaitingTruncation} empty="No completed field visits are waiting for a decision." />
+          <ReportSection title="Needs attention" description="Worsened and Unable to determine outcomes inside the completed visits above." reports={attention} attention read={awaitingTruncation} empty="No completed visit recorded Worsened or Unable to determine." />
+          <ReportSection title="New observations" description="Observations that have never been visited. They are not completed visits." reports={newObservations} read={awaitingTruncation} empty="No unvisited observations are waiting." />
+          <ReportSection title="Unassigned visits" description="Open cases with a visit request but no Field Inspector yet." reports={unassignedVisits} read={visitTruncation} empty="No unassigned visit requests are waiting." />
+          <ReportSection title="Overdue visits" description="Open visits past their target date, counted separately from outcome attention." reports={overdue} read={overdueTruncation} empty="No open visits are overdue." />
         </>
       ) : null}
       {completedVisits.some((report) => report.latestValidation?.followUpOutcome === "unchanged") ? (

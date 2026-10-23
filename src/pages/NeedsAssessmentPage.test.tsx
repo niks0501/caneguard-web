@@ -98,7 +98,7 @@ describe("NeedsAssessmentPage", () => {
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
   });
 
-  it("uses the server total and says plainly when a queue read stops at its page boundary", () => {
+  it("attributes a truncated read to its queue instead of pairing a section count with the queue total", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
@@ -112,10 +112,15 @@ describe("NeedsAssessmentPage", () => {
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
 
     const awaiting = screen.getByRole("region", { name: "Visits awaiting a decision" });
-    expect(within(awaiting).getByText("1 of 137")).toBeInTheDocument();
+    expect(within(awaiting).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
+    expect(within(awaiting).queryByText(/1 of 137/)).not.toBeInTheDocument();
     expect(
-      within(awaiting).getByText(/Showing the first 1 of 137 matching cases/),
+      within(awaiting).getByText(/This queue has 137 matching cases and only the first 2 are loaded/),
     ).toBeInTheDocument();
+    // A subset of a subset is never given the queue's denominator.
+    const attention = screen.getByRole("region", { name: "Needs attention" });
+    expect(within(attention).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
+    expect(within(attention).queryByText(/1 of 137/)).not.toBeInTheDocument();
   });
 
   it("does not report an unavailable queue as zero work", () => {

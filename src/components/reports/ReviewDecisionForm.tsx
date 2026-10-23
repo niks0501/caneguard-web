@@ -17,9 +17,12 @@ import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { reportsRepository } from "../../services/reports.service";
 import { ReviewConflictPanel } from "./ReviewConflictPanel";
 import {
+  conflictFields,
   draftReviewSnapshot,
+  parseActionToken,
   savedReviewSnapshot,
   type ConflictChoices,
+  type ConflictSnapshot,
 } from "./reviewConflict";
 import { reviewQueueContext } from "./reviewQueueContext";
 
@@ -187,17 +190,16 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const applyConflictChoices = (choices: ConflictChoices) => {
     if (!conflictLatest) return;
     const saved = savedReviewSnapshot(conflictLatest);
-    const resolved = {
-      classification: choices.classification === "latest" ? saved.classification : (classification ?? ""),
-      verification: choices.verification === "latest" ? saved.verification : verification,
-      action: choices.action === "latest" ? saved.action : (action ?? ""),
-      notes: choices.notes === "latest" ? saved.notes : notes.trim(),
-      inspector: choices.inspector === "latest" ? saved.inspector : inspectorUuid,
-      targetDate: choices.targetDate === "latest" ? saved.targetDate : targetDate,
-    };
+    const mine = draftReviewSnapshot({ classification, verification, action, support, advisoryUuid, notes, inspectorUuid, targetDate });
+    const resolved = Object.fromEntries(
+      conflictFields.map((field) => [field, choices[field] === "latest" ? saved[field] : mine[field]]),
+    ) as ConflictSnapshot;
+    const selection = parseActionToken(resolved.action);
     setClassification((resolved.classification || null) as AuthorityClassifiedCondition | null);
     setVerification(resolved.verification as VerificationOutcome);
-    setAction(resolved.action ? resolved.action as NextAction : null);
+    setAction(selection.action ? selection.action as NextAction : null);
+    setSupport(selection.support);
+    setAdvisoryUuid(selection.advisoryUuid);
     setNotes(resolved.notes);
     setInspectorUuid(resolved.inspector);
     setTargetDate(resolved.targetDate);
@@ -343,8 +345,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       ) : null}
       {conflict ? <ReviewConflictPanel
         latest={conflictLatest}
-        draft={draftReviewSnapshot({ classification, verification, action, notes, inspectorUuid, targetDate })}
+        draft={draftReviewSnapshot({ classification, verification, action, support, advisoryUuid, notes, inspectorUuid, targetDate })}
         inspectorNames={Object.fromEntries((inspectors.data ?? []).map((item) => [item.uuid, item.name]))}
+        advisoryNames={Object.fromEntries(validated.map((item) => [item.uuid, `${item.code} - ${item.title}`]))}
         loading={conflictLoading}
         error={conflictError}
         onLoadLatest={() => void loadLatestVersion()}

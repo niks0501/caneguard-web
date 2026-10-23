@@ -11,6 +11,7 @@ import {
 import { Button } from "../ui/Button";
 import {
   conflictFields,
+  parseActionToken,
   savedReviewSnapshot,
   type ConflictChoices,
   type ConflictField,
@@ -36,6 +37,7 @@ function displayValue(
   field: ConflictField,
   value: string,
   inspectorNames: Record<string, string>,
+  advisoryNames: Record<string, string>,
 ) {
   switch (field) {
     case "classification":
@@ -44,8 +46,15 @@ function displayValue(
         : "Not classified";
     case "verification":
       return verificationOutcomeLabels[value as VerificationOutcome] ?? value;
-    case "action":
-      return actionLabels[value] ?? "No action selected";
+    case "action": {
+      const selection = parseActionToken(value);
+      const action = actionLabels[selection.action] ?? "No action selected";
+      if (selection.action !== "support") return action;
+      if (selection.support === "technical") return `${action} — Technical Assistance`;
+      const advisory = advisoryNames[selection.advisoryUuid]
+        ?? (selection.advisoryUuid ? "Selected advisory" : "No advisory selected");
+      return `${action} — Advisory Guidance · ${advisory}`;
+    }
     case "notes":
       return value ? value : "No notes";
     case "inspector":
@@ -68,6 +77,7 @@ export function ReviewConflictPanel({
   latest,
   draft,
   inspectorNames,
+  advisoryNames,
   loading,
   error,
   onLoadLatest,
@@ -77,6 +87,7 @@ export function ReviewConflictPanel({
   latest: DiseaseReport | null;
   draft: ConflictSnapshot;
   inspectorNames: Record<string, string>;
+  advisoryNames: Record<string, string>;
   loading: boolean;
   error: string | null;
   onLoadLatest: () => void;
@@ -128,8 +139,8 @@ export function ReviewConflictPanel({
               {differing.map((field) => (
                 <tr key={field}>
                   <th scope="row">{fieldLabels[field]}</th>
-                  <td>{displayValue(field, saved[field], inspectorNames)}</td>
-                  <td>{displayValue(field, draft[field], inspectorNames)}</td>
+                  <td>{displayValue(field, saved[field], inspectorNames, advisoryNames)}</td>
+                  <td>{displayValue(field, draft[field], inspectorNames, advisoryNames)}</td>
                   <td>
                     <fieldset className="review-conflict__choice">
                       <legend className="sr-only">Keep which value for {fieldLabels[field]}</legend>

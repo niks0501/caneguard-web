@@ -14,50 +14,17 @@ export const documentationFiles = {
   district: "docs/contracts/district-access-v1.md",
 };
 
-export const sourceFiles = {
-  router: "src/app/router.tsx",
-  versionPolicy: "api/app/Policies/DistrictReportVersionPolicy.php",
-  accountsGate: "api/app/Http/Middleware/EnsureAccountsAccess.php",
-  registrationGate: "api/app/Http/Middleware/EnsurePublicRegistrationEnabled.php",
-};
-
 export function readRepositoryFile(relativePath) {
   return fs.readFileSync(path.join(repositoryRoot, relativePath), "utf8");
 }
 
 export function readConsistencyInputs() {
-  const docs = Object.fromEntries(
+  return Object.fromEntries(
     Object.entries(documentationFiles).map(([key, file]) => [key, readRepositoryFile(file)]),
   );
-  const sources = Object.fromEntries(
-    Object.entries(sourceFiles).map(([key, file]) => [key, readRepositoryFile(file)]),
-  );
-  return { docs, sources };
 }
 
-/** Admin-only Web surfaces; every one must sit under the routes' RequireAdmin guard. */
-export const adminOnlyRoutes = ["report-approval", "admin-settings", "accounts"];
-
-/** Surfaces both office roles receive. */
-export const sharedRoutes = [
-  "dashboard",
-  "reports",
-  "monitoring",
-  "needs-assessment",
-  "settings",
-];
-
-function assertRegistrationIsDocumentedAsDisabled(docs, sources) {
-  assert.match(
-    sources.registrationGate,
-    /REGISTRATION_DISABLED/,
-    "Registration middleware must deny with REGISTRATION_DISABLED",
-  );
-  assert.doesNotMatch(
-    sources.registrationGate,
-    /\$next\(/,
-    "Registration middleware must not continue the request pipeline",
-  );
+function assertRegistrationIsDocumentedAsDisabled(docs) {
   for (const [name, text] of Object.entries(docs)) {
     assert.match(
       text,
@@ -119,44 +86,7 @@ function assertNamedGrantsAreNotAuthority(docs) {
   );
 }
 
-function assertRoleMatrixMatchesGuards(docs, sources) {
-  const matrix = docs.rbac;
-  const adminGuardAt = sources.router.indexOf("<RequireAdmin />");
-  assert.ok(adminGuardAt > 0, "The Web router must guard admin surfaces with RequireAdmin");
-
-  for (const route of adminOnlyRoutes) {
-    const at = sources.router.indexOf(`path: "${route}"`);
-    assert.ok(at > 0, `The Web router must define the ${route} route`);
-    assert.ok(
-      at > adminGuardAt,
-      `The ${route} route must sit under RequireAdmin`,
-    );
-  }
-  for (const route of sharedRoutes) {
-    const at = sources.router.indexOf(`path: "${route}"`);
-    assert.ok(at > 0, `The Web router must define the ${route} route`);
-    assert.ok(
-      at < adminGuardAt,
-      `The ${route} route must stay available to reviewer and admin`,
-    );
-  }
-
-  assert.match(
-    sources.versionPolicy,
-    /function approve\(User \$user[^{]*\{[^}]*isActiveAdmin\(\)/s,
-    "Weekly versions must be approved by an active Admin",
-  );
-  assert.match(
-    sources.versionPolicy,
-    /function send\(User \$user[^{]*\{[^}]*isActiveAdmin\(\)/s,
-    "Weekly versions must be sent by an active Admin",
-  );
-  assert.match(
-    sources.accountsGate,
-    /isActiveAdmin\(\)/,
-    "User management must be gated on an active Admin",
-  );
-
+function assertRoleMatrixDocumentsAuthority(docs) {
   const requiredRows = [
     ["Dashboard", "Yes", "Yes"],
     ["Reports / Register and case review", "Yes", "Yes"],
@@ -174,13 +104,13 @@ function assertRoleMatrixMatchesGuards(docs, sources) {
       `^\\| ${action.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\| ${reviewer} \\| ${admin} \\|$`,
       "m",
     );
-    assert.match(matrix, row, `The role matrix row for "${action}" must be Reviewer ${reviewer} / Admin ${admin}`);
+    assert.match(docs.rbac, row, `The role matrix row for "${action}" must be Reviewer ${reviewer} / Admin ${admin}`);
   }
 }
 
-export function validateAuthDocumentationConsistency(docs, sources) {
-  assertRegistrationIsDocumentedAsDisabled(docs, sources);
+export function validateAuthDocumentationConsistency(docs) {
+  assertRegistrationIsDocumentedAsDisabled(docs);
   assertNoRetiredRegistrationInstructions(docs);
   assertNamedGrantsAreNotAuthority(docs);
-  assertRoleMatrixMatchesGuards(docs, sources);
+  assertRoleMatrixDocumentsAuthority(docs);
 }

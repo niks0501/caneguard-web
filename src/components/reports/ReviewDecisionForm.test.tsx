@@ -138,6 +138,41 @@ describe("Progressive review resilience", () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
+  it("discards the draft support sub-type and advisory when reloading the latest record", async () => {
+    const user = userEvent.setup();
+    const latest = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 2,
+      actionTaken: "technical_assistance_provided" as const,
+      reviewNotes: "Theirs",
+    };
+    const onRefresh = vi.fn().mockResolvedValue({ data: latest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await user.type(screen.getByRole("textbox"), "Mine");
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    // The support sub-type is part of the action, so it is a visible difference.
+    const conflictTable = await screen.findByRole("table", { name: "Fields that changed on the server" });
+    expect(within(conflictTable).getByRole("rowheader", { name: "Next action" })).toBeInTheDocument();
+    expect(within(conflictTable).getAllByText(/Technical Assistance/).length).toBeGreaterThan(0);
+    expect(within(conflictTable).getAllByText(/Validated guidance/).length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
+
+    expect(screen.getByRole("radio", { name: "Technical Assistance" })).toBeChecked();
+    expect(screen.queryByLabelText("Validated advisory")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[1][0]).toMatchObject({
+      expectedVersion: latest.reviewVersion,
+      actionTaken: "technical_assistance_provided",
+      notes: "Theirs",
+    });
+    expect(save.mock.calls[1][0]).not.toHaveProperty("advisoryUuid");
+  });
+
   it("keeps a stale draft blocked even when its notes are edited", async () => {
     const user = userEvent.setup();
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));

@@ -9,14 +9,6 @@ import { operationalQueueValues } from "../domain/operationalQueue";
  */
 export type WorkspaceView = "register" | "calendar" | "map" | "field-operations" | "boundaries";
 
-export const workspaceViewKeys: WorkspaceView[] = [
-  "register",
-  "calendar",
-  "map",
-  "field-operations",
-  "boundaries",
-];
-
 /** URL keys that describe the work scope (as opposed to view state). */
 export const workspaceScopeUrlKeys = [
   "queue",
@@ -40,7 +32,7 @@ export const workspaceScopeLabels: Record<WorkspaceScopeUrlKey, string> = {
   location: "Map location",
 };
 
-/** Register-only filters that the Map cannot honor. */
+/** Register-only filters that the other views cannot honor. */
 const registerOnlyFilterLabels: Record<string, string> = {
   search: "Search",
   concern: "Reported concern",
@@ -56,18 +48,6 @@ const registerOnlyFilterLabels: Record<string, string> = {
 const viewStateKeys = ["calendar_month", "calendar_date"];
 
 const queueValues = new Set<string>(operationalQueueValues);
-
-/** Scope values that are safe to place in a URL the target view will accept. */
-export function scopeParamsFrom(searchParams: URLSearchParams): URLSearchParams {
-  const next = new URLSearchParams();
-  for (const key of workspaceScopeUrlKeys) {
-    const value = searchParams.get(key)?.trim();
-    if (!value) continue;
-    if (key === "queue" && !queueValues.has(value)) continue;
-    next.set(key, value);
-  }
-  return next;
-}
 
 function scopeKeptByView(view: WorkspaceView, key: WorkspaceScopeUrlKey) {
   if (view === "register") return true;
@@ -99,7 +79,10 @@ export function monitoringViewLink(
   }
 
   for (const [key, label] of Object.entries(registerOnlyFilterLabels)) {
-    if (searchParams.get(key)?.trim()) removed.push(label);
+    const value = searchParams.get(key)?.trim();
+    if (!value) continue;
+    if (view === "register") params.set(key, value);
+    else removed.push(label);
   }
 
   // The calendar owns its own month/date state.
@@ -114,7 +97,7 @@ export function monitoringViewLink(
   const query = params.toString();
   return {
     to: query ? `${routes.monitoring}?${query}` : routes.monitoring,
-    removed,
+    removed: [...new Set(removed)],
   };
 }
 

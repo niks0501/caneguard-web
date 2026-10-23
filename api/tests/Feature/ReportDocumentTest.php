@@ -75,6 +75,26 @@ class ReportDocumentTest extends TestCase
             ->assertDontSee('CG-PHT-OUT');
     }
 
+    public function test_document_renders_when_the_embed_allowlist_has_no_configured_origin(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reference_code' => 'CG-SELF-ONLY',
+            'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
+        ]);
+        Sanctum::actingAs($reviewer);
+        config(['caneguard.reports.embed_origins' => ['self']]);
+
+        $response = $this->get('/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]));
+
+        $response->assertOk()
+            ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'self'")
+            ->assertSee('Operational summary');
+    }
+
     public function test_appendix_is_explicit_and_warns_about_farmer_references(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();

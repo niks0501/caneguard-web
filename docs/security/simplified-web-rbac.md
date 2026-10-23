@@ -8,7 +8,7 @@ The web roles are `reviewer` and `admin`. District/barangay/farm/report location
 
 ## Role and action matrix
 
-This table is the single maintained authority matrix. It is asserted by `npm run test:auth-doc-consistency` against the Web route guards and the API policies, so a doc or guard change that disagrees fails the fast gate.
+This table is the single maintained authority matrix. `npm run test:auth-doc-consistency` asserts these rows against the auth, RBAC and district guides, and the API and Web guard tests assert the same authority as behaviour.
 
 | Action | Reviewer | Admin |
 | --- | --- | --- |

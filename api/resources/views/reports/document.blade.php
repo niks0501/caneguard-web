@@ -141,7 +141,7 @@
     (() => {
         // The embedding Web application is a different origin in the documented
         // local setup. Both directions use this exact server-configured origin.
-        const webOrigin = @json($web_origin === 'self' ? window.location.origin : $web_origin);
+        const webOrigin = @json($web_origin) === 'self' ? window.location.origin : @json($web_origin);
         document.getElementById('print-report')?.addEventListener('click', () => window.print());
         document.getElementById('download-report')?.addEventListener('click', () => {
             window.parent.postMessage({ type: 'caneguard-report-download' }, webOrigin);
