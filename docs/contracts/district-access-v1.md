@@ -46,7 +46,7 @@ Versions seal the HTML, SHA-256 content hash, week, district, source report UUID
 
 Sending requires `CANEGUARD_WEEKLY_SEND_ENABLED=true` and an explicitly office-approved, active, immutable `DistrictRecipientSet`. No recipient set is inferred or seeded by production migrations. Revise recipients by retiring the old set and creating a new approved version, never editing the sealed contract. In-flight intents bind the immutable recipient-set ID and will cancel if it is retired.
 
-**This change does not deliver mail.** Send requests record an idempotent pending intent, not a transmission success. There is no queue job, SMTP transport or “sent” claim. The gate defaults closed. A future delivery integration must call `DistrictReportWorkflow::checkPending()` immediately before transport, honor a false/cancelled result, and implement its own approved delivery/receipt contract. Roster certification, recipient-contract approval and actual weekly email delivery are not completed by this PR.
+Delivery transport, send receipts and their explicit launch gates are specified in [official weekly reporting content v1](../../api/docs/weekly-report-content-v1.md). Roster certification and recipient-contract approval remain external launch work.
 
 ## Verification authority
 

@@ -16,10 +16,6 @@ The supported persisted roles are `farmer`, `field_reporter` (inspector wire ide
 
 Public registration is disabled unconditionally: `POST /register` always returns `403 REGISTRATION_DISABLED` and the Web `/register` route redirects to sign-in. Staff identities are provisioned by an authorized office operator, never by self-service sign-up and never with a public staff role choice; see [simplified Web RBAC](../security/simplified-web-rbac.md) for the maintained role/action matrix and [district access and weekly workflow](district-access-v1.md) for provisioning. Existing `field_reporter` identities retain their UUID, verification state and history; verification alone does not infer district membership or named grants. Official authority also requires an explicitly provisioned membership in the single configured pilot district. Unverified, disabled and retired-expert identities remain denied.
 
-The registration payload does not have a role, phone, or barangay field.
-
-Every newly registered account starts with an unverified email address.
-
 Web and Mobile password login reject an unverified account with `403 EMAIL_NOT_VERIFIED`.
 
 Seeded demo accounts are explicitly written with a verified email timestamp.
@@ -83,7 +79,7 @@ Passwords accept at least 64 characters and the implementation default is 128 ch
 
 There are no composition requirements.
 
-Registration, reset, and authenticated password changes use the same policy.
+Reset and authenticated password changes use the same policy.
 
 The compromise check is offline-safe and compares SHA-1 values against the configured local breach list.
 
