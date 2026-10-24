@@ -301,7 +301,7 @@ export function AffectedFieldLinkage({
           {metadata.pageCount > 1
             ? " Linked boundaries stay selectable even when they are not on this page."
             : null}
-          {metadata.truncated
+          {metadata.truncated && metadata.page >= metadata.pageCount
             ? " This read stopped before the last matching boundary; refresh to load the rest."
             : null}
         </p>

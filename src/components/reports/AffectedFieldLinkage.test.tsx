@@ -174,6 +174,8 @@ describe("AffectedFieldLinkage", () => {
     const lookup = screen.getByRole("status");
     expect(lookup).toHaveTextContent("300 matching boundaries · page 1 of 2");
     expect(lookup).toHaveTextContent("of 2. Linked boundaries stay selectable even when they are not on this page.");
+    expect(lookup).not.toHaveTextContent("This read stopped before the last matching boundary");
+    expect(screen.getByRole("button", { name: "Go to page 2" })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Link boundary 9" })).toBeChecked();
     expect(screen.getByText("Linked from an earlier boundary list")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Show on Field boundaries" })
@@ -232,6 +234,7 @@ describe("AffectedFieldLinkage", () => {
     await user.click(screen.getByRole("button", { name: "Search" }));
 
     expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ search: "Mateo", page: 1 });
+    expect(screen.getByRole("status")).not.toHaveTextContent("This read stopped before the last matching boundary");
     // Rows found beyond the viewer's loaded page cannot be opened there.
     expect(screen.queryByRole("link", { name: "Show on Field boundaries" })).not.toBeInTheDocument();
     expect(screen.queryByText("Linked from an earlier boundary list")).not.toBeInTheDocument();
