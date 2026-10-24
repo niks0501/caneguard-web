@@ -101,49 +101,49 @@ const locationLabels = {
   unlocated: "Without a usable location",
 } as const;
 
-type AppliedFilterChipWithParam = AppliedFilterChip & { param: FilterKey };
+type ReportFilterChip = Omit<AppliedFilterChip, "key"> & { key: FilterKey };
 
 /** Filters that are applied but not visible in the primary control row. */
 function appliedFilterChips(
   filters: ReportFilters,
   inspectorName: (uuid: string) => string | undefined,
-): AppliedFilterChipWithParam[] {
-  const chips: AppliedFilterChipWithParam[] = [];
-  const add = (param: FilterKey, key: string, label: string) => chips.push({ param, key, label });
+): ReportFilterChip[] {
+  const chips: ReportFilterChip[] = [];
+  const add = (key: FilterKey, label: string) => chips.push({ key, label });
 
-  if (filters.queue) add("queue", "queue", `Queue: ${queueLabels[filters.queue]}`);
-  if (filters.search?.trim()) add("search", "search", `Search: ${filters.search.trim()}`);
-  if (filters.reportedConcern) add("concern", "concern", "Reported concern: RSSI");
+  if (filters.queue) add("queue", `Queue: ${queueLabels[filters.queue]}`);
+  if (filters.search?.trim()) add("search", `Search: ${filters.search.trim()}`);
+  if (filters.reportedConcern) add("concern", "Reported concern: RSSI");
   if (filters.workflowStatus && filters.workflowStatus !== "all") {
-    add("workflow_status", "workflow_status", `Status: ${workflowStatusLabels[filters.workflowStatus]}`);
+    add("workflow_status", `Status: ${workflowStatusLabels[filters.workflowStatus]}`);
   }
   if (filters.status && filters.status !== "all") {
-    add("status", "status", `Review status: ${reviewStatusLabels[filters.status]}`);
+    add("status", `Review status: ${reviewStatusLabels[filters.status]}`);
   }
   if (filters.caseState && filters.caseState !== "all") {
-    add("case_state", "case_state", `Case state: ${caseStateLabels[filters.caseState]}`);
+    add("case_state", `Case state: ${caseStateLabels[filters.caseState]}`);
   }
   if (filters.verificationOutcome && filters.verificationOutcome !== "all") {
-    add("verification_outcome", "verification_outcome", `Verification: ${verificationOutcomeLabels[filters.verificationOutcome]}`);
+    add("verification_outcome", `Verification: ${verificationOutcomeLabels[filters.verificationOutcome]}`);
   }
   if (filters.fieldValidationState && filters.fieldValidationState !== "all") {
-    add("field_validation_state", "field_validation_state", `Field validation: ${fieldValidationStateLabels[filters.fieldValidationState]}`);
+    add("field_validation_state", `Field validation: ${fieldValidationStateLabels[filters.fieldValidationState]}`);
   }
   if (filters.disease && filters.disease !== "all") {
-    add("predicted_label", "predicted_label", `Condition: ${diseaseLabels[filters.disease]}`);
+    add("predicted_label", `Condition: ${diseaseLabels[filters.disease]}`);
   }
   if (filters.staffClassifiedCondition && filters.staffClassifiedCondition !== "all") {
-    add("authority_classified_condition", "authority_classified_condition",
+    add("authority_classified_condition",
       `Staff-classified: ${authorityClassifiedConditionLabels[filters.staffClassifiedCondition]}`);
   }
-  if (filters.barangay?.trim()) add("barangay", "barangay", `Barangay: ${filters.barangay.trim()}`);
+  if (filters.barangay?.trim()) add("barangay", `Barangay: ${filters.barangay.trim()}`);
   if (filters.location && filters.location !== "all") {
-    add("location", "location", locationLabels[filters.location]);
+    add("location", locationLabels[filters.location]);
   }
-  if (filters.dateFrom) add("date_from", "date_from", `From ${filters.dateFrom}`);
-  if (filters.dateTo) add("date_to", "date_to", `To ${filters.dateTo}`);
+  if (filters.dateFrom) add("date_from", `From ${filters.dateFrom}`);
+  if (filters.dateTo) add("date_to", `To ${filters.dateTo}`);
   if (filters.reviewer) {
-    add("reviewer", "reviewer", `Field Inspector: ${inspectorName(filters.reviewer) ?? "Selected inspector"}`);
+    add("reviewer", `Field Inspector: ${inspectorName(filters.reviewer) ?? "Selected inspector"}`);
   }
   return chips;
 }
@@ -548,7 +548,7 @@ export function SubmittedReportsPage({
             chips={appliedChips}
             onRemove={(key) => {
               const chip = appliedChips.find((item) => item.key === key);
-              if (chip) updateFilter(chip.param, "");
+              if (chip) updateFilter(chip.key, "");
             }}
             onClear={clearFilters}
           />
