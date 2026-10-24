@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { AxiosError } from "axios";
 import { ApiError } from "../../api/ApiError";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPolygon, ReportAffectedField } from "../../domain/fieldSurvey.types";
@@ -358,6 +359,68 @@ describe("AffectedFieldLinkage", () => {
 
     expect(screen.getByText("Loading field boundaries…")).toBeInTheDocument();
     expect(screen.queryByText("No recorded field boundaries are available to link.")).not.toBeInTheDocument();
+  });
+
+  it("uses staff guidance when the boundary lookup cannot connect", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([], {
+      data: undefined,
+      error,
+      isError: true,
+      isSuccess: false,
+    }));
+
+    renderLinkage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(alert).toHaveTextContent("Saved links remain shown below.");
+    expect(alert).not.toHaveTextContent("API connection");
+  });
+
+  it("uses staff guidance when saving boundary links cannot connect", async () => {
+    const user = userEvent.setup();
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    let mutationError: unknown = null;
+    const mutateAsync = vi.fn().mockImplementation(async () => {
+      mutationError = error;
+      throw error;
+    });
+    vi.mocked(useUpdateReportAffectedFields).mockReturnValue({
+      get error() { return mutationError; },
+      get isError() { return mutationError !== null; },
+      isPending: false,
+      mutateAsync,
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof useUpdateReportAffectedFields>);
+
+    renderLinkage();
+
+    await user.click(screen.getByRole("checkbox", { name: "Link boundary 123" }));
+    await user.type(screen.getByLabelText("Office loss rate for boundary 123 (percent)"), "18.5");
+    await user.click(screen.getByRole("button", { name: "Save affected boundaries" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(mutateAsync).toHaveBeenCalledOnce();
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(alert).not.toHaveTextContent("API connection");
+  });
+
+  it("uses stale-data guidance when a boundary lookup refresh fails", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([boundary(123, 6075.12)], {
+      error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+      isError: true,
+      isRefetchError: true,
+    }));
+
+    renderLinkage();
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(warning).toHaveTextContent("contact your office administrator");
+    expect(screen.getByRole("checkbox", { name: "Link boundary 123" })).toBeInTheDocument();
   });
 
   it("does not claim the archive is empty when its initial request fails", () => {

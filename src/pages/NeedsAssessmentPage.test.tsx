@@ -1,5 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
+import { AxiosError } from "axios";
 import { MemoryRouter } from "react-router";
+import { ApiError } from "../api/ApiError";
+import { env } from "../config/env";
+import { apiEndpointDetail } from "../lib/serviceMessages";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiseaseReport, FollowUpOutcome } from "../domain/report.types";
 import type { BoundedQueueRead } from "../hooks/reportQueries";
@@ -202,6 +206,48 @@ describe("NeedsAssessmentPage", () => {
     expect(within(summary).getAllByText("—").length).toBeGreaterThan(0);
     expect(within(summary).queryByText("0")).not.toBeInTheDocument();
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
+  });
+
+  it("uses staff-facing connection guidance and collapsed endpoint detail on first-read failure", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useReportsQueue).mockReturnValue({
+      data: undefined,
+      error,
+      isError: true,
+      isFetching: false,
+      isPending: false,
+      isRefetchError: false,
+      refetch: vi.fn(),
+    } as never);
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(within(alert).getByText(/CaneGuard cannot be reached right now/)).not.toHaveTextContent(env.apiBaseUrl);
+    const details = within(alert).getByText("Technical details").closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details as HTMLElement).getByText(apiEndpointDetail(env.apiBaseUrl))).toBeInTheDocument();
+  });
+
+  it("uses stale-data guidance when a queue refresh fails", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      const data = filters?.queue === "follow_up_due"
+        ? [report("overdue", null, "unassigned")]
+        : filters?.queue === "needs_visit"
+          ? [report("unassigned", null, "unassigned")]
+          : [report("worsened", "worsened", "completed")];
+      return result(data, { isError: true, isRefetchError: true, error }) as never;
+    });
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    const alerts = screen.getAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(alerts[0]).toHaveTextContent("contact your office administrator");
   });
 
   it("displays error state with simplified wording", () => {

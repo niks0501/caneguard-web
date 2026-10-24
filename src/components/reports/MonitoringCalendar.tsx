@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router";
-import { ApiError } from "../../api/ApiError";
+import { ApiError, isApiConnectionError } from "../../api/ApiError";
 import { routes } from "../../app/routes";
 import type { FieldValidationQueueItem } from "../../domain/fieldValidation.types";
 import {
@@ -14,6 +14,8 @@ import {
   shiftScheduleMonth,
 } from "../../domain/monitoringSchedule";
 import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
+import { env } from "../../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../../lib/serviceMessages";
 import { useFieldValidationQueue } from "../../hooks/useFieldValidation";
 import { WorkspaceFreshness } from "../layout/WorkspaceFreshness";
 import { oldestServerReadAt } from "../../hooks/oldestServerRead";
@@ -41,6 +43,7 @@ function calendarErrorMessage(error: unknown) {
   if (error instanceof ApiError && error.status === 429) {
     return "The visit calendar is receiving too many requests. Wait a moment, then try again.";
   }
+  if (isApiConnectionError(error)) return serviceUnreachableMessage;
   return "The visit calendar could not be loaded. Please try again.";
 }
 
@@ -148,7 +151,9 @@ export function MonitoringCalendar() {
 
       {workload.isRefetchError && workload.data ? (
         <p className="queue-refresh-warning" role="alert">
-          The latest calendar refresh failed. Showing the most recently loaded visits.
+          {isApiConnectionError(workload.error)
+            ? serviceUnreachableWhileShowingData
+            : "The latest calendar refresh failed. Showing the most recently loaded visits."}
         </p>
       ) : null}
       {workload.isPending && !workload.data ? (
@@ -157,6 +162,7 @@ export function MonitoringCalendar() {
       {showInitialError ? (
         <ErrorState
           message={calendarErrorMessage(workload.error)}
+          detail={isApiConnectionError(workload.error) ? apiEndpointDetail(env.apiBaseUrl) : undefined}
           onRetry={() => void workload.refetch()}
         />
       ) : null}

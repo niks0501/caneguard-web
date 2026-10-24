@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ClipboardList, RefreshCw } from "lucide-react";
 import { useSearchParams } from "react-router";
-import { ApiError } from "../api/ApiError";
+import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
 import { oldestServerReadAt } from "../hooks/oldestServerRead";
@@ -25,6 +25,8 @@ import {
 } from "../domain/fieldOperations";
 import { manilaDateAt } from "../domain/reportingTime";
 import { useFieldReporters } from "../hooks/useFieldReporters";
+import { env } from "../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { useReports } from "../hooks/useReports";
 import { useFieldValidationQueue } from "../hooks/useFieldValidation";
 
@@ -37,6 +39,7 @@ function fieldOperationsError(error: unknown) {
   if (error instanceof ApiError && error.status === 429) {
     return "Field Operations is receiving too many requests. Wait a moment, then try again.";
   }
+  if (isApiConnectionError(error)) return serviceUnreachableMessage;
   return "Field Operations could not be loaded. Please try again.";
 }
 
@@ -257,14 +260,32 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
         </div>
 
         {reportsQuery.isRefetchError && reportsQuery.data
-          ? <p className="queue-refresh-warning" role="alert">The latest workload refresh failed. Showing the most recently loaded visits; refresh again to converge.</p>
+          ? (
+            <p className="queue-refresh-warning" role="alert">
+              {isApiConnectionError(reportsQuery.error)
+                ? serviceUnreachableWhileShowingData
+                : "The latest workload refresh failed. Showing the most recently loaded visits; refresh again to converge."}
+            </p>
+          )
           : null}
         {queueQuery.isError && reportsQuery.data
-          ? <p className="queue-refresh-warning" role="alert">The complete workload read failed, so counts and search may cover only the first page. Refresh to restore completeness.</p>
+          ? (
+            <p className="queue-refresh-warning" role="alert">
+              {isApiConnectionError(queueQuery.error)
+                ? `${serviceUnreachableWhileShowingData} The complete workload read failed, so counts and search may cover only the first page. Refresh to restore completeness.`
+                : "The complete workload read failed, so counts and search may cover only the first page. Refresh to restore completeness."}
+            </p>
+          )
           : null}
 
         {isLoading ? <LoadingState message="Loading active visits..." /> : null}
-        {initialError ? <ErrorState message={fieldOperationsError(reportsQuery.error)} onRetry={() => void reportsQuery.refetch()} /> : null}
+        {initialError ? (
+          <ErrorState
+            message={fieldOperationsError(reportsQuery.error)}
+            detail={isApiConnectionError(reportsQuery.error) ? apiEndpointDetail(env.apiBaseUrl) : undefined}
+            onRetry={() => void reportsQuery.refetch()}
+          />
+        ) : null}
         {!initialError && !isLoading && reportersQuery.isError && !reportersQuery.data
           ? <p className="queue-refresh-warning" role="alert">Eligible Field Inspectors could not be loaded. Assigning a visit is unavailable until the list loads.</p>
           : null}

@@ -10,6 +10,7 @@ import {
 } from "../../domain/fieldSurvey.types";
 import type { DiseaseReport } from "../../domain/report.types";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
+import { serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../../lib/serviceMessages";
 import { useFieldSurveys } from "../../hooks/fieldSurveys";
 import { useUpdateReportAffectedFields } from "../../hooks/useReports";
 import { routes } from "../../app/routes";
@@ -96,7 +97,7 @@ function errorMessage(error: unknown): string {
     if (error.status === 429) return "Boundary links are receiving too many requests. Wait a moment, then try again.";
   }
   if (error instanceof ZodError) return "CaneGuard returned affected-boundary data in an unexpected format. Refresh the case after the service is corrected.";
-  if (isApiConnectionError(error)) return "Cannot connect to CaneGuard. Check the API connection, then try again.";
+  if (isApiConnectionError(error)) return serviceUnreachableMessage;
   return "Affected field boundaries could not be saved. No change was confirmed.";
 }
 
@@ -241,12 +242,16 @@ export function AffectedFieldLinkage({
       ) : null}
       {surveysQuery.isError && !surveysQuery.data ? (
         <p className="form-error" role="alert">
-          Field boundary choices are unavailable. Saved links remain shown below; retry after access is restored.
+          {isApiConnectionError(surveysQuery.error)
+            ? `${serviceUnreachableMessage} Saved links remain shown below.`
+            : "Field boundary choices are unavailable. Saved links remain shown below; retry after access is restored."}
         </p>
       ) : null}
       {surveysQuery.isRefetchError && surveysQuery.data ? (
         <p className="queue-refresh-warning" role="alert">
-          The boundary archive could not be refreshed. Previously loaded choices remain visible and may be stale.
+          {isApiConnectionError(surveysQuery.error)
+            ? serviceUnreachableWhileShowingData
+            : "The boundary archive could not be refreshed. Previously loaded choices remain visible and may be stale."}
         </p>
       ) : null}
       <form

@@ -1,8 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
+import { AxiosError } from "axios";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createQueryClient } from "../app/queryClient";
+import { ApiError } from "../api/ApiError";
+import { env } from "../config/env";
+import { apiEndpointDetail } from "../lib/serviceMessages";
 import { mockReports } from "../data/mock/mockReports";
 import { useFieldValidationQueue } from "../hooks/useFieldValidation";
 import { useExportReports, useReports } from "../hooks/useReports";
@@ -11,8 +15,8 @@ import { MonitoringWorkspacePage } from "./MonitoringWorkspacePage";
 vi.mock("../hooks/useFieldValidation", () => ({ useFieldValidationQueue: vi.fn() }));
 vi.mock("../hooks/useReports", () => ({ useReports: vi.fn(), useExportReports: vi.fn() }));
 
-function result<T>(data: T) {
-  return { data, error: null, isError: false, isFetching: false, isPending: false, isRefetchError: false, refetch: vi.fn() } as never;
+function result<T>(data: T, overrides: Record<string, unknown> = {}) {
+  return { data, error: null, isError: false, isFetching: false, isPending: false, isRefetchError: false, refetch: vi.fn(), ...overrides } as never;
 }
 
 describe("MonitoringWorkspacePage", () => {
@@ -38,6 +42,43 @@ describe("MonitoringWorkspacePage", () => {
 });
 
 describe("MonitoringWorkspacePage calendar freshness", () => {
+  it("uses staff-facing connection guidance and collapsed endpoint detail on first-read failure", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { error, isError: true }));
+
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/monitoring?view=calendar"]}><MonitoringWorkspacePage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(within(alert).getByText(/CaneGuard cannot be reached right now/)).not.toHaveTextContent(env.apiBaseUrl);
+    const details = within(alert).getByText("Technical details").closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details as HTMLElement).getByText(apiEndpointDetail(env.apiBaseUrl))).toBeInTheDocument();
+  });
+
+  it("uses stale-data guidance when the calendar refresh fails", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(
+      { queue: "needs_visit", count: 1, total: 1, items: [], oldest: null },
+      { error, isError: true, isRefetchError: true },
+    ));
+
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/monitoring?view=calendar"]}><MonitoringWorkspacePage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(warning).toHaveTextContent("contact your office administrator");
+  });
+
   it("stamps the calendar's server read in 12-hour Manila time", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue({
       data: { queue: "needs_visit", count: 0, total: 0, items: [], oldest: null },

@@ -1,4 +1,5 @@
 import { ClipboardCheck, RefreshCw } from "lucide-react";
+import { isApiConnectionError } from "../api/ApiError";
 import { Link, useLocation } from "react-router";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
@@ -11,6 +12,8 @@ import type { DiseaseReport, FollowUpOutcome } from "../domain/report.types";
 import { useReportsQueue } from "../hooks/useReports";
 import { routes } from "../app/routes";
 import { formatDateTime } from "../lib/formatters";
+import { env } from "../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 
 const attentionOutcomes: FollowUpOutcome[] = ["worsened", "unable_to_determine"];
 
@@ -134,6 +137,12 @@ export function NeedsAssessmentPage() {
     || (overdueQuery.isError && !overdueQuery.data);
   const isRefreshing = awaitingQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching;
   const unavailable = awaitingQuery.isError || visitQuery.isError || overdueQuery.isError;
+  const initialConnectionError = (awaitingQuery.isError && !awaitingQuery.data && isApiConnectionError(awaitingQuery.error))
+    || (visitQuery.isError && !visitQuery.data && isApiConnectionError(visitQuery.error))
+    || (overdueQuery.isError && !overdueQuery.data && isApiConnectionError(overdueQuery.error));
+  const refetchConnectionError = (awaitingQuery.isRefetchError && isApiConnectionError(awaitingQuery.error))
+    || (visitQuery.isRefetchError && isApiConnectionError(visitQuery.error))
+    || (overdueQuery.isRefetchError && isApiConnectionError(overdueQuery.error));
 
   return (
     <PageContent>
@@ -162,10 +171,22 @@ export function NeedsAssessmentPage() {
         refreshFailed={awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError}
         onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
       />
-      {unavailable && !hasInitialError ? <p className="queue-refresh-warning" role="alert">Some counts could not be loaded. Values marked Unavailable are not zero.</p> : null}
-      {awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError ? <p className="queue-refresh-warning" role="alert">New updates could not load. Showing the list from before.</p> : null}
+      {unavailable && !hasInitialError && !refetchConnectionError ? (
+        <p className="queue-refresh-warning" role="alert">
+          Some counts could not be loaded. Values marked Unavailable are not zero.
+        </p>
+      ) : null}
+      {awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError
+        ? <p className="queue-refresh-warning" role="alert">{refetchConnectionError ? serviceUnreachableWhileShowingData : "New updates could not load. Showing the list from before."}</p>
+        : null}
       {isLoading && !awaitingQuery.data ? <LoadingState message="Loading..." /> : null}
-      {hasInitialError ? <ErrorState message="This list could not be loaded. Please try again." onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])} /> : null}
+      {hasInitialError ? (
+        <ErrorState
+          message={initialConnectionError ? serviceUnreachableMessage : "This list could not be loaded. Please try again."}
+          detail={initialConnectionError ? apiEndpointDetail(env.apiBaseUrl) : undefined}
+          onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
+        />
+      ) : null}
       {!hasInitialError && awaitingQuery.data && visitQuery.data ? (
         <>
           <ReportSection title="Visits awaiting a decision" description="Field visits are complete and need an office disposition." reports={completedVisits} read={awaitingTruncation} empty="No completed field visits are waiting for a decision." />

@@ -1,6 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { AxiosError } from "axios";
+import { ApiError } from "../api/ApiError";
+import { env } from "../config/env";
+import { apiEndpointDetail } from "../lib/serviceMessages";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthContext } from "../auth/auth.context";
 import type { FieldValidationQueueItem } from "../domain/fieldValidation.types";
@@ -358,6 +362,48 @@ describe("FieldOperationsPage failure and deep-link behavior", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
     renderPage();
     expect(screen.getByRole("alert")).toHaveTextContent(/could not be loaded/i);
+  });
+
+  it("uses staff-facing connection guidance and collapsed endpoint detail on first-read failure", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useReports).mockReturnValue(result(undefined, { isError: true, error }));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { isError: true, error }));
+    renderPage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(within(alert).getByText(/CaneGuard cannot be reached right now/)).not.toHaveTextContent(env.apiBaseUrl);
+    const details = within(alert).getByText("Technical details").closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details as HTMLElement).getByText(apiEndpointDetail(env.apiBaseUrl))).toBeInTheDocument();
+  });
+
+  it("uses stale-data guidance when a report refresh fails", () => {
+    vi.mocked(useReports).mockReturnValue(result(
+      { reports: [], meta: { total: 0 } },
+      { isError: true, isRefetchError: true, error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }) },
+    ));
+    renderPage();
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(warning).toHaveTextContent("contact your office administrator");
+  });
+
+  it("keeps completeness guidance when the complete queue read fails", () => {
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, {
+      isError: true,
+      error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+    }));
+    vi.mocked(useReports).mockReturnValue(result({ reports: [], meta: { total: 0 } }));
+    renderPage();
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(warning).toHaveTextContent("complete workload read failed");
+    expect(warning).toHaveTextContent("Refresh to restore completeness");
+    expect(warning).toHaveTextContent("contact your office administrator");
   });
 
   it("focuses a case supplied through the stable deep link", () => {
