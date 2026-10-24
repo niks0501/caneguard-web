@@ -197,6 +197,24 @@ describe("AffectedFieldLinkage", () => {
     expect(notice).not.toHaveTextContent("page 1 of 1");
   });
 
+  it("reports truncation even on the last declared page", () => {
+    const available = Array.from({ length: 250 }, (_, index) => boundary(500 - index, 5000));
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(available, {
+      data: {
+        type: "FeatureCollection",
+        features: available,
+        metadata: { totalCount: 500, returnedCount: 250, limit: 250, truncated: true, page: 2, pageCount: 2 },
+      },
+    }));
+
+    renderLinkage();
+
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveTextContent("500 matching boundaries · page 2 of 2");
+    expect(notice).toHaveTextContent("Linked boundaries stay selectable even when they are not on this page.");
+    expect(notice).toHaveTextContent("This read stopped before the last matching boundary; refresh to load the rest.");
+  });
+
   it("searches and pages the server lookup instead of widening the download", async () => {
     const user = userEvent.setup();
     const available = [boundary(300, 5000), boundary(299, 5000)];

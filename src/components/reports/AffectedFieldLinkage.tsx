@@ -292,9 +292,10 @@ export function AffectedFieldLinkage({
           {metadata.pageCount > 1 ? ` · page ${metadata.page} of ${metadata.pageCount}` : ""}.
           {metadata.pageCount > 1
             ? " Linked boundaries stay selectable even when they are not on this page."
-            : metadata.truncated
-              ? " This read stopped before the last matching boundary; refresh to load the rest."
-              : null}
+            : null}
+          {metadata.truncated
+            ? " This read stopped before the last matching boundary; refresh to load the rest."
+            : null}
         </p>
       ) : null}
 
