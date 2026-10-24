@@ -208,6 +208,46 @@ describe("NeedsAssessmentPage", () => {
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
   });
 
+  it("gives bounded retry guidance when an initial queue read is rate limited", () => {
+    const error = new ApiError("Slow down", { status: 429 });
+    vi.mocked(useReportsQueue).mockReturnValue({
+      data: undefined,
+      error,
+      isError: true,
+      isFetching: false,
+      isPending: false,
+      isRefetchError: false,
+      refetch: vi.fn(),
+    } as never);
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Needs assessment is receiving too many requests.");
+    expect(alert).toHaveTextContent("Wait a moment, then try again.");
+    expect(within(alert).queryByText("Technical details")).not.toBeInTheDocument();
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
+  it("gives bounded retry guidance when a queue refresh is rate limited", () => {
+    const error = new ApiError("Slow down", { status: 429 });
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      const data = filters?.queue === "follow_up_due"
+        ? [report("overdue", null, "unassigned")]
+        : filters?.queue === "needs_visit"
+          ? [report("unassigned", null, "unassigned")]
+          : [report("worsened", "worsened", "completed")];
+      return result(data, { isError: true, isRefetchError: true, error }) as never;
+    });
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("refresh was rate limited");
+    expect(alert).toHaveTextContent("Wait a moment before trying again");
+    expect(alert).toHaveTextContent("previous queues remain visible");
+  });
+
   it("uses staff-facing connection guidance and collapsed endpoint detail on first-read failure", () => {
     const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
     vi.mocked(useReportsQueue).mockReturnValue({

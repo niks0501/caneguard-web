@@ -397,6 +397,37 @@ describe("AffectedFieldLinkage", () => {
     expect(alert).not.toHaveTextContent("API connection");
   });
 
+  it("gives bounded retry guidance when the boundary lookup is rate limited", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([], {
+      data: undefined,
+      error: new ApiError("Slow down", { status: 429 }),
+      isError: true,
+      isSuccess: false,
+    }));
+
+    renderLinkage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Boundary lookup is receiving too many requests.");
+    expect(alert).toHaveTextContent("Wait a moment, then try again.");
+    expect(alert).toHaveTextContent("Saved links remain shown below.");
+  });
+
+  it("gives bounded retry guidance when the boundary lookup refresh is rate limited", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([boundary(123, 6075.12)], {
+      error: new ApiError("Slow down", { status: 429 }),
+      isError: true,
+      isRefetchError: true,
+    }));
+
+    renderLinkage();
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("refresh was rate limited");
+    expect(warning).toHaveTextContent("Wait a moment before trying again");
+    expect(warning).toHaveTextContent("previously loaded choices remain visible");
+  });
+
   it("uses staff guidance when saving boundary links cannot connect", async () => {
     const user = userEvent.setup();
     const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });

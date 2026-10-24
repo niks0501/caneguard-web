@@ -52,6 +52,10 @@ function lossRate(value: string): number | null {
   return Number.isFinite(number) && number >= 0 && number <= 100 ? number : null;
 }
 
+function isRateLimitedError(error: unknown) {
+  return error instanceof ApiError && error.status === 429;
+}
+
 function boundaryChoices(
   features: FieldSurveyBoundaryFeature[],
   linkedFields: ReportAffectedField[],
@@ -94,7 +98,7 @@ function errorMessage(error: unknown): string {
     if (error.status === 409) return "This case changed while the boundary links were being saved. Refresh the case before trying again.";
     if (error.status === 403) return "Your account no longer has permission to update affected boundaries.";
     if (error.status === 422) return "The service rejected one or more boundaries or loss rates. Review the entries and try again.";
-    if (error.status === 429) return "Boundary links are receiving too many requests. Wait a moment, then try again.";
+    if (isRateLimitedError(error)) return "Boundary links are receiving too many requests. Wait a moment, then try again.";
   }
   if (error instanceof ZodError) return "CaneGuard returned affected-boundary data in an unexpected format. Refresh the case after the service is corrected.";
   if (isApiConnectionError(error)) return serviceUnreachableMessage;
@@ -244,14 +248,18 @@ export function AffectedFieldLinkage({
         <p className="form-error" role="alert">
           {isApiConnectionError(surveysQuery.error)
             ? `${serviceUnreachableMessage} Saved links remain shown below.`
-            : "Field boundary choices are unavailable. Saved links remain shown below; retry after access is restored."}
+            : isRateLimitedError(surveysQuery.error)
+              ? "Boundary lookup is receiving too many requests. Wait a moment, then try again. Saved links remain shown below."
+              : "Field boundary choices are unavailable. Saved links remain shown below; retry after access is restored."}
         </p>
       ) : null}
       {surveysQuery.isRefetchError && surveysQuery.data ? (
         <p className="queue-refresh-warning" role="alert">
           {isApiConnectionError(surveysQuery.error)
             ? serviceUnreachableWhileShowingData
-            : "The boundary archive could not be refreshed. Previously loaded choices remain visible and may be stale."}
+            : isRateLimitedError(surveysQuery.error)
+              ? "The boundary lookup refresh was rate limited. Wait a moment before trying again; previously loaded choices remain visible."
+              : "The boundary archive could not be refreshed. Previously loaded choices remain visible and may be stale."}
         </p>
       ) : null}
       <form

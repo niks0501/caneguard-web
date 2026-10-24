@@ -1,5 +1,5 @@
 import { ClipboardCheck, RefreshCw } from "lucide-react";
-import { isApiConnectionError } from "../api/ApiError";
+import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { Link, useLocation } from "react-router";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
@@ -23,6 +23,10 @@ function outcomeLabel(outcome: FollowUpOutcome | null | undefined) {
 
 function fieldValidationStateOf(report: DiseaseReport) {
   return report.lifecycle?.fieldValidationState ?? "unassigned";
+}
+
+function isRateLimitedError(error: unknown) {
+  return error instanceof ApiError && error.status === 429;
 }
 
 type QueueRead = ReturnType<typeof useReportsQueue>;
@@ -140,9 +144,15 @@ export function NeedsAssessmentPage() {
   const initialConnectionError = (awaitingQuery.isError && !awaitingQuery.data && isApiConnectionError(awaitingQuery.error))
     || (visitQuery.isError && !visitQuery.data && isApiConnectionError(visitQuery.error))
     || (overdueQuery.isError && !overdueQuery.data && isApiConnectionError(overdueQuery.error));
+  const initialRateLimitedError = (awaitingQuery.isError && !awaitingQuery.data && isRateLimitedError(awaitingQuery.error))
+    || (visitQuery.isError && !visitQuery.data && isRateLimitedError(visitQuery.error))
+    || (overdueQuery.isError && !overdueQuery.data && isRateLimitedError(overdueQuery.error));
   const refetchConnectionError = (awaitingQuery.isRefetchError && isApiConnectionError(awaitingQuery.error))
     || (visitQuery.isRefetchError && isApiConnectionError(visitQuery.error))
     || (overdueQuery.isRefetchError && isApiConnectionError(overdueQuery.error));
+  const refetchRateLimitedError = (awaitingQuery.isRefetchError && isRateLimitedError(awaitingQuery.error))
+    || (visitQuery.isRefetchError && isRateLimitedError(visitQuery.error))
+    || (overdueQuery.isRefetchError && isRateLimitedError(overdueQuery.error));
 
   return (
     <PageContent>
@@ -171,18 +181,30 @@ export function NeedsAssessmentPage() {
         refreshFailed={awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError}
         onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
       />
-      {unavailable && !hasInitialError && !refetchConnectionError ? (
+      {unavailable && !hasInitialError && !refetchConnectionError && !refetchRateLimitedError ? (
         <p className="queue-refresh-warning" role="alert">
           Some counts could not be loaded. Values marked Unavailable are not zero.
         </p>
       ) : null}
       {awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError
-        ? <p className="queue-refresh-warning" role="alert">{refetchConnectionError ? serviceUnreachableWhileShowingData : "New updates could not load. Showing the list from before."}</p>
+        ? (
+          <p className="queue-refresh-warning" role="alert">
+            {refetchConnectionError
+              ? serviceUnreachableWhileShowingData
+              : refetchRateLimitedError
+                ? "The Needs assessment refresh was rate limited. Wait a moment before trying again; the previous queues remain visible."
+                : "New updates could not load. Showing the list from before."}
+          </p>
+        )
         : null}
       {isLoading && !awaitingQuery.data ? <LoadingState message="Loading..." /> : null}
       {hasInitialError ? (
         <ErrorState
-          message={initialConnectionError ? serviceUnreachableMessage : "This list could not be loaded. Please try again."}
+          message={initialConnectionError
+            ? serviceUnreachableMessage
+            : initialRateLimitedError
+              ? "Needs assessment is receiving too many requests. Wait a moment, then try again."
+              : "This list could not be loaded. Please try again."}
           detail={initialConnectionError ? apiEndpointDetail(env.apiBaseUrl) : undefined}
           onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
         />
