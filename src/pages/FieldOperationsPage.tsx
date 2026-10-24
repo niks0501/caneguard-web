@@ -153,6 +153,13 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
   const isLoading = !reportsQuery.data && !queueQuery.data
     && (reportsQuery.isPending || queueQuery.isPending);
   const initialError = !reportsQuery.data && reportsQuery.isError;
+  const hasSummaryRead = reportsQuery.data !== undefined || completeQueueItems !== null;
+  const summaryState: "loading" | "unavailable" | "ready" = hasSummaryRead
+    ? "ready"
+    : isLoading ? "loading" : "unavailable";
+  const summaryCount = (value: number) => summaryState === "ready"
+    ? value
+    : summaryState === "unavailable" ? "Unavailable" : "—";
 
   const content = (
     <>
@@ -188,16 +195,18 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
             <h2 id="field-operations-heading">Active visits</h2>
           </div>
           <span>
-            {summary.total} active {summary.total === 1 ? "visit" : "visits"}
-            {completeQueueItems ? "" : " (partial read)"}
+            {summaryState === "ready"
+              ? `${summary.total} active ${summary.total === 1 ? "visit" : "visits"}`
+              : `${summaryCount(summary.total)} active visits`}
+            {summaryState === "ready" && completeQueueItems === null ? " (partial read)" : ""}
           </span>
         </div>
 
         <ul className="field-operations-summary" aria-label="Field Operations workload summary">
-          <li><span className="field-operations-summary__label">Overdue</span><strong>{summary.overdue}</strong></li>
-          <li><span className="field-operations-summary__label">Unassigned</span><strong>{summary.unassigned}</strong></li>
-          <li><span className="field-operations-summary__label">Upcoming</span><strong>{summary.upcoming}</strong></li>
-          <li><span className="field-operations-summary__label">Assigned</span><strong>{summary.assigned}</strong></li>
+          <li><span className="field-operations-summary__label">Overdue</span><strong>{summaryCount(summary.overdue)}</strong></li>
+          <li><span className="field-operations-summary__label">Unassigned</span><strong>{summaryCount(summary.unassigned)}</strong></li>
+          <li><span className="field-operations-summary__label">Upcoming</span><strong>{summaryCount(summary.upcoming)}</strong></li>
+          <li><span className="field-operations-summary__label">Assigned</span><strong>{summaryCount(summary.assigned)}</strong></li>
         </ul>
 
         <div className="field-operations-toolbar">

@@ -340,6 +340,19 @@ describe("FieldOperationsPage search, grouping, and completeness", () => {
 });
 
 describe("FieldOperationsPage failure and deep-link behavior", () => {
+  it("shows unavailable summary counts when neither workload read has succeeded", () => {
+    vi.mocked(useReports).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
+    renderPage();
+
+    expect(screen.getByText("Unavailable active visits")).toBeInTheDocument();
+    expect(screen.queryByText(/partial read/)).not.toBeInTheDocument();
+    const summary = screen.getByRole("list", { name: "Field Operations workload summary" });
+    expect(within(summary).getAllByText("Unavailable")).toHaveLength(4);
+    expect(within(summary).queryByText("0")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be loaded/i);
+  });
+
   it("shows an explicit retry state when the workload cannot load", () => {
     vi.mocked(useReports).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
     vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
