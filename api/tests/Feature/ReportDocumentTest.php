@@ -112,7 +112,7 @@ class ReportDocumentTest extends TestCase
         $this->withHeaders(['Referer' => 'https://b.example/cases/1'])->get($path)->assertOk();
         $this->assertSame('https://b.example', $this->documentPayload()['web_origin']);
 
-        $this->withHeaders(['Referer' => 'http://localhost/cases/1'])->get($path)->assertOk();
+        $this->withHeaders(['Referer' => url('/cases/1')])->get($path)->assertOk();
         $this->assertSame('self', $this->documentPayload()['web_origin']);
 
         $this->withHeaders(['Referer' => 'https://attacker.test/cases/1'])->get($path)->assertOk();
