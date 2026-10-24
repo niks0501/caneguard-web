@@ -1,4 +1,7 @@
 
+commands:
+  test: "npm test -- --run src/auth/auth.api.test.ts"
+
 ignore_patterns:
   - "graphify-out/**"
 
@@ -9,77 +12,27 @@ protected_paths:
 
 document:
   instructions: |
-    README.md owns setup and onboarding.
-    PROJECT_CHECKS.md owns verification commands.
+    README.md owns setup; PROJECT_CHECKS.md owns verification commands.
     PROJECT_STACK.md owns architecture guidance.
-    docs/ owns detailed workflows and integration contracts.
+    docs/ owns workflows and integration contracts.
     api/docs/ owns backend-specific documentation.
-    Keep documentation aligned with actual API behavior.
-    Update existing owners instead of duplicating content.
 
 review:
+  conversation: false
   path_instructions:
     - path: "api/app/Http/**"
-      instructions: |
-        Check authorization, input validation,
-        error responses, and permission boundaries.
-
-    - path: "api/database/migrations/**"
-      instructions: |
-        Check data preservation, schema compatibility,
-        migration safety, and existing records.
-
+      instructions: "Enforce server-side authorization and validation; preserve error and response contracts."
     - path: "api/routes/**"
-      instructions: |
-        Check API contracts, route permissions,
-        backward compatibility, and HTTP semantics.
-
+      instructions: "Preserve route permissions, HTTP semantics and existing API consumers."
+    - path: "api/database/migrations/**"
+      instructions: "Preserve existing records and schema compatibility; flag destructive migrations."
     - path: "src/auth/**"
-      instructions: |
-        Check session security, role enforcement,
-        protected routing, and unauthorized access.
-
-    - path: "src/api/**"
-      instructions: |
-        Check request handling, error states,
-        authentication, retries, and API compatibility.
+      instructions: "Preserve session restoration, logout and role-gated routing; client guards do not replace server authorization."
 
 test:
   instructions: |
-    Follow PROJECT_CHECKS.md. Classify task intent and critical paths, then declare
-    the validation tier in exactly one line in the report and status (for example,
-    "Tier: T1-fast" or "Tier: T3-high-stakes").
-
-    Validation Tiers:
-    - T0 (Docs-Only): Markdown (*.md), docs/**, or documentation comments only.
-      Confirm documentation ownership and run git diff --check; no Markdown linter
-      is configured. Zero test suite or browser overhead (~10s).
-    - T1 (Fast Lane): Copy, non-critical config, styling, or dead code.
-      Run npm run lint, npm run typecheck, and npm test -- --run <test-file>.
-      No browser check or server startup (~45s).
-    - T2 (Feature): Standard non-critical features and business logic.
-      Run npm run verify:fast. Use exactly one targeted live check only if
-      user-visible UI or a live HTTP contract changed (~2-4m).
-    - T3 (High-Stakes): Authentication, authorization, database migrations,
-      critical API contracts, or other protected paths. Run the complete T3
-      gate from PROJECT_CHECKS.md, plus isolated adversarial review. Human-owned
-      tests remain the sole proof for T3 generally. For API, migration, and
-      contract-gate suites, secondmate-blessed tests are also sole proof;
-      worker-written tests stay supplemental until secondmate blessing is
-      recorded. Frozen golden suites named by the frozen
-      matrix are immutable: do not edit, weaken, delete, skip, or rebaseline them
-      without explicit captain sign-off. Unverified behavior is NO-GO, never
-      passed (~8-15m).
-
-    Live Verification & Environment Rules:
-    - Use exactly one targeted chrome-devtools-axi check only when user-visible
-      UI or a live HTTP contract changed. Never launch a browser for backend-only
-      work, docs, or migrations.
-    - Device emulators, ADB, agent-device, and staging evidence are allowed only
-      when the task brief explicitly names them.
-    - Ambiguous intent: report and wait via needs-decision; never silently change
-      tiers. Scope creep: escalate immediately and prefer simplification.
-    - Never access production or shared databases. Use only isolated test data.
-    - Report actual defects as no-go with evidence. Report unavailable or
-      unsupported validation as inconclusive with manual verification steps.
-    - Clean up only resources owned by this run.
+    Use PROJECT_CHECKS.md to select affected Vitest, Laravel or consumer-contract tests; full suites belong in CI.
+    No interactive checks in no-mistakes; explicitly authorized browser acceptance uses npm run dev -- --host 127.0.0.1 --port <free-port> --strictPort.
+    For authorized live API acceptance, start Laravel per README.md with isolated firstmate_ test data; never production/shared databases.
+    Browser-compatible Web/HTTP evidence cannot prove Mobile native behavior; backend-only changes need no browser.
+    Record revision, commands and actual evidence; unavailable required evidence is inconclusive, defects are no-go.
