@@ -1,6 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { AxiosError } from "axios";
+import { ApiError } from "../api/ApiError";
+import { env } from "../config/env";
+import { apiEndpointDetail } from "../lib/serviceMessages";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthContext } from "../auth/auth.context";
 import type { FieldValidationQueueItem } from "../domain/fieldValidation.types";
@@ -104,6 +108,49 @@ beforeEach(() => {
   vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: matrix.length, total: matrix.length, oldest: null, items: matrix }));
   vi.mocked(useFieldReporters).mockReturnValue(result([inspectorOne, inspectorTwo]));
   vi.mocked(useUpdateReportReview).mockReturnValue(result(undefined, { mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false }));
+});
+
+describe("FieldOperationsPage workload freshness", () => {
+  it("stamps the oldest successful workload read in 12-hour Manila time", () => {
+    vi.mocked(useReports).mockReturnValue(result(
+      { reports: [], meta: { total: 0 } },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 20, 0) },
+    ));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(
+      { queue: "needs_visit", count: matrix.length, total: matrix.length, oldest: null, items: matrix },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3) },
+    ));
+
+    renderPage();
+
+    const freshness = screen.getByText("Last updated").closest("p") as HTMLElement;
+    // 13:14:03 UTC is 9:14:03 PM in Asia/Manila.
+    expect(within(freshness).getByText("9:14:03 PM")).toBeInTheDocument();
+    expect(within(freshness).getByText(/, read from the server/)).toBeInTheDocument();
+  });
+
+  it("keeps the prior stamp and offers a workload retry when a refresh fails", async () => {
+    const user = userEvent.setup();
+    const reportsRefetch = vi.fn();
+    const queueRefetch = vi.fn();
+    vi.mocked(useReports).mockReturnValue(result(
+      { reports: [], meta: { total: 0 } },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 20, 0), isRefetchError: true, refetch: reportsRefetch },
+    ));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(
+      { queue: "needs_visit", count: matrix.length, total: matrix.length, oldest: null, items: matrix },
+      { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3), refetch: queueRefetch },
+    ));
+
+    renderPage();
+
+    const stale = screen.getByText("Showing data from").closest("p") as HTMLElement;
+    expect(within(stale).getByText("9:14:03 PM")).toBeInTheDocument();
+    expect(stale).not.toHaveTextContent("Last updated");
+    await user.click(within(stale).getByRole("button", { name: "Retry" }));
+    expect(reportsRefetch).toHaveBeenCalled();
+    expect(queueRefetch).toHaveBeenCalled();
+  });
 });
 
 describe("FieldOperationsPage default workload", () => {
@@ -297,11 +344,66 @@ describe("FieldOperationsPage search, grouping, and completeness", () => {
 });
 
 describe("FieldOperationsPage failure and deep-link behavior", () => {
+  it("shows unavailable summary counts when neither workload read has succeeded", () => {
+    vi.mocked(useReports).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
+    renderPage();
+
+    expect(screen.getByText("Unavailable active visits")).toBeInTheDocument();
+    expect(screen.queryByText(/partial read/)).not.toBeInTheDocument();
+    const summary = screen.getByRole("list", { name: "Field Operations workload summary" });
+    expect(within(summary).getAllByText("Unavailable")).toHaveLength(4);
+    expect(within(summary).queryByText("0")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be loaded/i);
+  });
+
   it("shows an explicit retry state when the workload cannot load", () => {
     vi.mocked(useReports).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
     vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { isError: true, error: new Error("boom") }));
     renderPage();
     expect(screen.getByRole("alert")).toHaveTextContent(/could not be loaded/i);
+  });
+
+  it("uses staff-facing connection guidance and collapsed endpoint detail on first-read failure", () => {
+    const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
+    vi.mocked(useReports).mockReturnValue(result(undefined, { isError: true, error }));
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, { isError: true, error }));
+    renderPage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(within(alert).getByText(/CaneGuard cannot be reached right now/)).not.toHaveTextContent(env.apiBaseUrl);
+    const details = within(alert).getByText("Technical details").closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details as HTMLElement).getByText(apiEndpointDetail(env.apiBaseUrl))).toBeInTheDocument();
+  });
+
+  it("uses stale-data guidance when a report refresh fails", () => {
+    vi.mocked(useReports).mockReturnValue(result(
+      { reports: [], meta: { total: 0 } },
+      { isError: true, isRefetchError: true, error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }) },
+    ));
+    renderPage();
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(warning).toHaveTextContent("contact your office administrator");
+  });
+
+  it("keeps completeness guidance when the complete queue read fails", () => {
+    vi.mocked(useFieldValidationQueue).mockReturnValue(result(undefined, {
+      isError: true,
+      error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+    }));
+    vi.mocked(useReports).mockReturnValue(result({ reports: [], meta: { total: 0 } }));
+    renderPage();
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(warning).toHaveTextContent("complete workload read failed");
+    expect(warning).toHaveTextContent("Refresh to restore completeness");
+    expect(warning).toHaveTextContent("contact your office administrator");
   });
 
   it("focuses a case supplied through the stable deep link", () => {

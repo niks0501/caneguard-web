@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { ClipboardList, RefreshCw } from "lucide-react";
 import { useSearchParams } from "react-router";
-import { ApiError } from "../api/ApiError";
+import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
+import { oldestServerReadAt } from "../hooks/oldestServerRead";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { FieldOperationsEditor } from "../components/fieldValidation/FieldOperationsEditor";
@@ -23,6 +25,8 @@ import {
 } from "../domain/fieldOperations";
 import { manilaDateAt } from "../domain/reportingTime";
 import { useFieldReporters } from "../hooks/useFieldReporters";
+import { env } from "../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { useReports } from "../hooks/useReports";
 import { useFieldValidationQueue } from "../hooks/useFieldValidation";
 
@@ -35,6 +39,7 @@ function fieldOperationsError(error: unknown) {
   if (error instanceof ApiError && error.status === 429) {
     return "Field Operations is receiving too many requests. Wait a moment, then try again.";
   }
+  if (isApiConnectionError(error)) return serviceUnreachableMessage;
   return "Field Operations could not be loaded. Please try again.";
 }
 
@@ -151,6 +156,13 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
   const isLoading = !reportsQuery.data && !queueQuery.data
     && (reportsQuery.isPending || queueQuery.isPending);
   const initialError = !reportsQuery.data && reportsQuery.isError;
+  const hasSummaryRead = reportsQuery.data !== undefined || completeQueueItems !== null;
+  const summaryState: "loading" | "unavailable" | "ready" = hasSummaryRead
+    ? "ready"
+    : isLoading ? "loading" : "unavailable";
+  const summaryCount = (value: number) => summaryState === "ready"
+    ? value
+    : summaryState === "unavailable" ? "Unavailable" : "—";
 
   const content = (
     <>
@@ -172,6 +184,13 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
         />
       ) : null}
 
+      <WorkspaceFreshness
+        updatedAt={oldestServerReadAt([reportsQuery, queueQuery])}
+        fetching={(reportsQuery.isFetching || queueQuery.isFetching) && Boolean(reportsQuery.data || queueQuery.data)}
+        refreshFailed={Boolean(reportsQuery.isRefetchError) || queueQuery.isError}
+        onRetry={refresh}
+      />
+
       <section className="field-operations-card" aria-labelledby="field-operations-heading">
         <div className="workspace-heading">
           <div>
@@ -179,16 +198,18 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
             <h2 id="field-operations-heading">Active visits</h2>
           </div>
           <span>
-            {summary.total} active {summary.total === 1 ? "visit" : "visits"}
-            {completeQueueItems ? "" : " (partial read)"}
+            {summaryState === "ready"
+              ? `${summary.total} active ${summary.total === 1 ? "visit" : "visits"}`
+              : `${summaryCount(summary.total)} active visits`}
+            {summaryState === "ready" && completeQueueItems === null ? " (partial read)" : ""}
           </span>
         </div>
 
         <ul className="field-operations-summary" aria-label="Field Operations workload summary">
-          <li><span className="field-operations-summary__label">Overdue</span><strong>{summary.overdue}</strong></li>
-          <li><span className="field-operations-summary__label">Unassigned</span><strong>{summary.unassigned}</strong></li>
-          <li><span className="field-operations-summary__label">Upcoming</span><strong>{summary.upcoming}</strong></li>
-          <li><span className="field-operations-summary__label">Assigned</span><strong>{summary.assigned}</strong></li>
+          <li><span className="field-operations-summary__label">Overdue</span><strong>{summaryCount(summary.overdue)}</strong></li>
+          <li><span className="field-operations-summary__label">Unassigned</span><strong>{summaryCount(summary.unassigned)}</strong></li>
+          <li><span className="field-operations-summary__label">Upcoming</span><strong>{summaryCount(summary.upcoming)}</strong></li>
+          <li><span className="field-operations-summary__label">Assigned</span><strong>{summaryCount(summary.assigned)}</strong></li>
         </ul>
 
         <div className="field-operations-toolbar">
@@ -239,14 +260,32 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
         </div>
 
         {reportsQuery.isRefetchError && reportsQuery.data
-          ? <p className="queue-refresh-warning" role="alert">The latest workload refresh failed. Showing the most recently loaded visits; refresh again to converge.</p>
+          ? (
+            <p className="queue-refresh-warning" role="alert">
+              {isApiConnectionError(reportsQuery.error)
+                ? serviceUnreachableWhileShowingData
+                : "The latest workload refresh failed. Showing the most recently loaded visits; refresh again to converge."}
+            </p>
+          )
           : null}
         {queueQuery.isError && reportsQuery.data
-          ? <p className="queue-refresh-warning" role="alert">The complete workload read failed, so counts and search may cover only the first page. Refresh to restore completeness.</p>
+          ? (
+            <p className="queue-refresh-warning" role="alert">
+              {isApiConnectionError(queueQuery.error)
+                ? `${serviceUnreachableWhileShowingData} The complete workload read failed, so counts and search may cover only the first page. Refresh to restore completeness.`
+                : "The complete workload read failed, so counts and search may cover only the first page. Refresh to restore completeness."}
+            </p>
+          )
           : null}
 
         {isLoading ? <LoadingState message="Loading active visits..." /> : null}
-        {initialError ? <ErrorState message={fieldOperationsError(reportsQuery.error)} onRetry={() => void reportsQuery.refetch()} /> : null}
+        {initialError ? (
+          <ErrorState
+            message={fieldOperationsError(reportsQuery.error)}
+            detail={isApiConnectionError(reportsQuery.error) ? apiEndpointDetail(env.apiBaseUrl) : undefined}
+            onRetry={() => void reportsQuery.refetch()}
+          />
+        ) : null}
         {!initialError && !isLoading && reportersQuery.isError && !reportersQuery.data
           ? <p className="queue-refresh-warning" role="alert">Eligible Field Inspectors could not be loaded. Assigning a visit is unavailable until the list loads.</p>
           : null}

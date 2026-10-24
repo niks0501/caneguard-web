@@ -8,12 +8,15 @@ import { CaseDetailsPanel, ClusterQueuePanel } from "../components/fieldValidati
 import { ValidationMap, type ValidationMapSelection } from "../components/fieldValidation/ValidationMap";
 import { locationGroupMembers } from "../components/fieldValidation/locationGroups";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { diseaseLabels, reviewStatusLabels } from "../domain/report.metadata";
 import type { FieldValidationMapFeature, FieldValidationFilters } from "../domain/fieldValidation.types";
 import { useFieldValidationMap } from "../hooks/useFieldValidation";
 import { routes } from "../app/routes";
+import { env } from "../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { parseMapUrl, writeMapUrl } from "./mapUrlState";
 
 function isAccessDeniedError(error: unknown) {
@@ -39,7 +42,7 @@ function errorMessage(error: unknown) {
     return "CaneGuard returned an unexpected Map format. Refresh after the service is corrected.";
   }
   if (isApiConnectionError(error)) {
-    return "Cannot connect to the CaneGuard API for the Monitoring Map. Verify the API is reachable; case information may still be available in the Register.";
+    return serviceUnreachableMessage;
   }
   return "The Monitoring Map is unavailable. Please try again.";
 }
@@ -148,8 +151,11 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
     setSearchParams(writeWorkspaceUrl({ ...appliedFilters, queue }));
   };
 
+  // The work scope travels with the reviewer: an Overdue map opens an Overdue
+  // register, not an unfiltered one that merely looks like the same workflow.
   const registerUrl = (location: "located" | "unlocated" | null) => {
     const params = new URLSearchParams();
+    if (appliedFilters.queue) params.set("queue", appliedFilters.queue);
     if (appliedFilters.barangay) params.set("barangay", appliedFilters.barangay);
     if (appliedFilters.disease) params.set("predicted_label", appliedFilters.disease);
     if (appliedFilters.dateFrom) params.set("date_from", appliedFilters.dateFrom);
@@ -227,6 +233,19 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
     noLocation: mapData?.metadata.unlocatedCount ?? 0,
   }), [mapData]);
 
+  // Loading, unavailable and a genuine zero are different answers. A count is
+  // never rendered as 0 before a successful read.
+  const summaryState: "loading" | "unavailable" | "ready" = mapData
+    ? "ready"
+    : mapInitialError ? "unavailable" : "loading";
+  const summaryCount = (value: number) => summaryState === "ready"
+    ? value
+    : summaryState === "unavailable" ? "Unavailable" : "—";
+
+  const mapErrorDetail = isApiConnectionError(mapQuery.error)
+    ? apiEndpointDetail(env.apiBaseUrl)
+    : undefined;
+
   const sidebar = (() => {
     if (selection?.kind === "cluster") {
       return (
@@ -300,6 +319,12 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
         />
         <FilterChips filters={appliedFilters} onRemove={removeFilter} />
       </section>
+      <WorkspaceFreshness
+        updatedAt={mapQuery.dataUpdatedAt}
+        fetching={mapQuery.isFetching && hasCachedData}
+        refreshFailed={Boolean(mapQuery.isRefetchError)}
+        onRetry={() => void mapQuery.refetch()}
+      />
 
       {urlState.invalid ? (
         <ErrorState
@@ -313,7 +338,7 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
           {mapQuery.isRefetchError && hasCachedData ? (
             <p className="queue-refresh-warning" role="alert">
               {isApiConnectionError(mapQuery.error)
-                ? "Cannot connect to the CaneGuard API. The most recently loaded map is still shown and may be stale."
+                ? serviceUnreachableWhileShowingData
                 : "The latest Map refresh failed. The most recently loaded map is still shown and may be stale."}
             </p>
           ) : null}
@@ -322,25 +347,25 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
             <li>
               <button type="button" className={`map-summary__action${appliedFilters.queue === undefined ? " is-active" : ""}`} onClick={() => applyQueueScope(undefined)}>
                 <span className="map-summary__label">Active Cases</span>
-                <strong>{summary.activeCases}</strong>
+                <strong>{summaryCount(summary.activeCases)}</strong>
               </button>
             </li>
             <li>
               <button type="button" className={`map-summary__action${appliedFilters.queue === "needs_visit" ? " is-active" : ""}`} onClick={() => applyQueueScope("needs_visit")}>
                 <span className="map-summary__label">Need Visit</span>
-                <strong>{summary.needVisit}</strong>
+                <strong>{summaryCount(summary.needVisit)}</strong>
               </button>
             </li>
             <li>
               <button type="button" className={`map-summary__action${appliedFilters.queue === "follow_up_due" ? " is-active" : ""}`} onClick={() => applyQueueScope("follow_up_due")}>
                 <span className="map-summary__label">Overdue</span>
-                <strong>{summary.overdue}</strong>
+                <strong>{summaryCount(summary.overdue)}</strong>
               </button>
             </li>
             <li>
               <button type="button" className="map-summary__action" onClick={() => navigate(registerUrl("unlocated"))}>
                 <span className="map-summary__label">No Location</span>
-                <strong>{summary.noLocation}</strong>
+                <strong>{summaryCount(summary.noLocation)}</strong>
               </button>
             </li>
           </ul>
@@ -358,7 +383,7 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
                 />
               ) : mapInitialError ? (
                 <div className="validation-workspace__error">
-                  <ErrorState message={errorMessage(mapQuery.error)} onRetry={() => void mapQuery.refetch()} />
+                  <ErrorState message={errorMessage(mapQuery.error)} detail={mapErrorDetail} onRetry={() => void mapQuery.refetch()} />
                 </div>
               ) : (
                 <LoadingState message="Loading the Monitoring Map..." />

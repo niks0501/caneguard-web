@@ -46,6 +46,8 @@ export const fieldSurveyBoundariesResponseSchema = z.object({
     returned_count: z.number().int().nonnegative(),
     limit: z.number().int().positive().max(FIELD_SURVEYS_MAX_LIMIT),
     truncated: z.boolean(),
+    page: z.number().int().positive().optional(),
+    page_count: z.number().int().positive().optional(),
   }),
 }).superRefine((response, context) => {
   const { features, metadata } = response;
@@ -63,19 +65,36 @@ export const fieldSurveyBoundariesResponseSchema = z.object({
       message: "returned_count cannot exceed the response limit.",
     });
   }
-  if (metadata.truncated && metadata.returned_count !== metadata.limit) {
+
+  // Bounded paging: the server clamps the page to the count it took. Field-survey
+  // evidence is only ever appended, so the counted remainder is a lower bound on
+  // what this page must hold; a page that says rows remain must be full.
+  const page = metadata.page ?? 1;
+  const pageCount = metadata.page_count ?? Math.max(1, Math.ceil(metadata.total_count / metadata.limit));
+  if (page > pageCount) {
     context.addIssue({
       code: "custom",
-      path: ["metadata", "truncated"],
-      message: "Truncated responses must fill the requested limit.",
+      path: ["metadata", "page"],
+      message: "page cannot be beyond the last page.",
     });
   }
-  if (!metadata.truncated && metadata.returned_count < Math.min(metadata.total_count, metadata.limit)) {
-    context.addIssue({
-      code: "custom",
-      path: ["metadata", "truncated"],
-      message: "Untruncated responses must include all available rows up to the limit.",
-    });
+  if (metadata.truncated) {
+    if (metadata.returned_count !== metadata.limit) {
+      context.addIssue({
+        code: "custom",
+        path: ["metadata", "truncated"],
+        message: "truncated requires a full page of rows.",
+      });
+    }
+  } else {
+    const offset = (page - 1) * metadata.limit;
+    if (metadata.returned_count < Math.min(metadata.limit, metadata.total_count - offset)) {
+      context.addIssue({
+        code: "custom",
+        path: ["metadata", "returned_count"],
+        message: "An untruncated page must include every remaining row.",
+      });
+    }
   }
 });
 

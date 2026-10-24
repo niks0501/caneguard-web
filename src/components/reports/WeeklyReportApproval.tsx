@@ -78,6 +78,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
   const blockedSend = receipt && ["pending", "delivering", "sent"].includes(receipt.state);
   const params = new URLSearchParams({ ...(disease ? { disease } : {}), ...(appendix && versions.data?.meta.appendix_allowed ? { appendix: "1" } : {}) });
   const path = latest ? `${env.apiBaseUrl}/api/v1/district-reports/${latest.uuid}` : "";
+  const query = params.toString();
 
   if (env.dataSource !== "api") return null;
 
@@ -113,7 +114,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
         </div>
         {latest.document_sha256 ? <p>Approved document SHA-256: <span className="machine-text">{latest.document_sha256}</span></p> : null}
         <div className="report-builder__preview">
-          {online ? <iframe title={`Official weekly report version ${latest.version}`} src={`${path}/document${params.size ? `?${params}` : ""}`} /> : null}
+          {online ? <iframe title={`Official weekly report version ${latest.version}`} src={`${path}/document${query ? `?${query}` : ""}`} tabIndex={-1} /> : null}
         </div>
       </> : null}
     </section>

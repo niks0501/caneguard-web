@@ -161,3 +161,42 @@ describe("Modal", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });
+
+describe("Modal with an embedded document", () => {
+  function EmbedHarness() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>Open dialog</button>
+        <Modal
+          title="Document preview"
+          open={open}
+          onClose={() => setOpen(false)}
+          footer={<button type="button">Last action</button>}
+        >
+          <iframe title="Embedded document" srcDoc="<p>preview</p>" tabIndex={-1} />
+          <label>After the document<input type="text" /></label>
+        </Modal>
+      </>
+    );
+  }
+
+  it("keeps Tab inside the dialog when an embedded document is present", async () => {
+    const user = userEvent.setup();
+    render(<EmbedHarness />);
+    await user.click(screen.getByRole("button", { name: "Open dialog" }));
+
+    const frame = screen.getByTitle("Embedded document");
+    const lastAction = screen.getByRole("button", { name: "Last action" });
+    lastAction.focus();
+    await user.tab();
+
+    // The close button is the first control in the panel.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    // The frame stays out of the Tab cycle, so Tab and Shift+Tab only ever move
+    // between the dialog's own controls.
+    expect(frame).not.toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});

@@ -146,6 +146,47 @@ describe("FieldValidationMapPage structure and summary", () => {
     expect(summaryButton("No Location")).toHaveTextContent("4");
   });
 
+  it("never reports unknown map counts as zero", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, { isPending: true }),
+    );
+    const { unmount } = renderPage();
+
+    expect(summaryButton("Active Cases")).toHaveTextContent("—");
+    expect(summaryButton("Overdue")).toHaveTextContent("—");
+    expect(summaryButton("Active Cases")).not.toHaveTextContent("0");
+    unmount();
+
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, {
+        error: new Error("Network unavailable"),
+        isError: true,
+        refetch: vi.fn(),
+      }),
+    );
+    renderPage();
+
+    expect(summaryButton("Active Cases")).toHaveTextContent("Unavailable");
+    expect(summaryButton("Need Visit")).toHaveTextContent("Unavailable");
+  });
+
+  it("gives staff a recovery step instead of developer instructions when the API is unreachable", () => {
+    vi.mocked(useFieldValidationMap).mockReturnValue(
+      queryResult(undefined, {
+        error: { isAxiosError: true, code: "ERR_NETWORK", response: undefined, config: {}, isApiConnectionError: true },
+        isError: true,
+        refetch: vi.fn(),
+      }),
+    );
+    renderPage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now");
+    expect(alert).not.toHaveTextContent("VITE_API_BASE_URL");
+    expect(alert).not.toHaveTextContent("Start the API server");
+    expect(within(alert).getByText("Technical details")).toBeInTheDocument();
+  });
+
   it("applies a reduced primary filter set with a known Barangay choice and recalculates the scope", async () => {
     const user = userEvent.setup();
     renderPage();
@@ -195,6 +236,22 @@ describe("FieldValidationMapPage structure and summary", () => {
     await user.click(summaryButton("No Location"));
     expect(screen.getByTestId("location")).toHaveTextContent("/reports?");
     expect(screen.getByTestId("location")).toHaveTextContent("location=unlocated");
+  });
+
+  it("carries the Overdue queue into the register and no-location list", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=map&barangay=Bucay&queue=follow_up_due");
+    await user.click(summaryButton("No Location"));
+    expect(screen.getByTestId("location")).toHaveTextContent("/reports?");
+    expect(screen.getByTestId("location")).toHaveTextContent("queue=follow_up_due");
+    expect(screen.getByTestId("location")).toHaveTextContent("barangay=Bucay");
+    expect(screen.getByTestId("location")).toHaveTextContent("location=unlocated");
+
+    const withoutLocation = screen.getByRole("link", { name: "Open Reports Without Location" });
+    expect(withoutLocation).toHaveAttribute("href", expect.stringContaining("queue=follow_up_due"));
+    const allCases = screen.getByRole("link", { name: "View all cases" });
+    expect(allCases).toHaveAttribute("href", expect.stringContaining("queue=follow_up_due"));
+    expect(allCases.getAttribute("href")).not.toContain("location=");
   });
 
   it("keeps the full case list secondary to the map", () => {

@@ -75,6 +75,59 @@ class ReportDocumentTest extends TestCase
             ->assertDontSee('CG-PHT-OUT');
     }
 
+    public function test_document_renders_when_the_embed_allowlist_has_no_configured_origin(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reference_code' => 'CG-SELF-ONLY',
+            'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
+        ]);
+        Sanctum::actingAs($reviewer);
+        config(['caneguard.reports.embed_origins' => ['self']]);
+
+        $response = $this->get('/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]));
+
+        $response->assertOk()
+            ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'self'")
+            ->assertSee('Operational summary');
+    }
+
+    public function test_the_document_channel_follows_the_embedding_parent_inside_the_allowlist(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reference_code' => 'CG-MULTI-ORIGIN',
+            'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
+        ]);
+        Sanctum::actingAs($reviewer);
+        config(['caneguard.reports.embed_origins' => ['self', 'https://a.example', 'https://b.example']]);
+        $path = '/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]);
+
+        $this->withHeaders(['Referer' => 'https://b.example/cases/1'])->get($path)->assertOk();
+        $this->assertSame('https://b.example', $this->documentPayload()['web_origin']);
+
+        $this->withHeaders(['Referer' => url('/cases/1')])->get($path)->assertOk();
+        $this->assertSame('self', $this->documentPayload()['web_origin']);
+
+        $this->withHeaders(['Referer' => 'https://attacker.test/cases/1'])->get($path)->assertOk();
+        $this->assertSame('https://a.example', $this->documentPayload()['web_origin']);
+    }
+
+    /** @return array<string, mixed> */
+    private function documentPayload(): array
+    {
+        return app(BuildReportDocument::class)->handle([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]);
+    }
+
     public function test_appendix_is_explicit_and_warns_about_farmer_references(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();

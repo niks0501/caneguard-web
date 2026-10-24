@@ -1,10 +1,11 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { FileStack, RefreshCw, Rows3 } from "lucide-react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DASHBOARD_TIMEZONE_LABEL } from "../components/dashboard/analyticsCopy";
+import { serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
 import { OperationalSnapshot } from "../components/dashboard/OperationalSnapshot";
 import { ScopeRuler } from "../components/dashboard/ScopeRuler";
@@ -20,6 +21,7 @@ import {
   type ScopeSelection,
 } from "../components/dashboard/dashboardScope";
 import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
+import { printableScopeFromReportFilters } from "../components/reports/reportBuilderScope";
 import { PageContent } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
@@ -81,6 +83,10 @@ export function DashboardPage() {
   const summary = dashboard.data;
   const asOf = formatAsOfTime(dashboard.dataUpdatedAt);
   const scopeLabel = `${formatWindow(scope.from, scope.to)}${scope.comparison ? " · month to date" : ""}`;
+  const printableScope = useMemo(
+    () => printableScopeFromReportFilters({ dateFrom: scope.from, dateTo: scope.to }),
+    [scope.from, scope.to],
+  );
 
   const isForbidden =
     dashboard.error instanceof ApiError && dashboard.error.status === 403;
@@ -95,14 +101,14 @@ export function DashboardPage() {
       : isMalformed
         ? "CaneGuard returned dashboard data in an unexpected format. Try again after the service is corrected."
         : isConnectionError
-          ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+          ? serviceUnreachableMessage
           : "The dashboard could not be loaded from CaneGuard.";
   const refreshErrorMessage = isRateLimited
     ? "The latest refresh was rate limited. Wait a moment before trying again; the previous dashboard remains visible."
     : isMalformed
       ? "The latest response had an unexpected format. The previous dashboard remains visible."
       : isConnectionError
-        ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous dashboard remains visible."
+        ? serviceUnreachableWhileShowingData
         : "The latest refresh failed. Showing the most recently loaded dashboard.";
 
   return (
@@ -310,6 +316,7 @@ export function DashboardPage() {
       <ReportDocumentBuilder
         open={reportBuilderOpen}
         onClose={() => setReportBuilderOpen(false)}
+        scope={printableScope}
       />
     </PageContent>
   );

@@ -1,5 +1,5 @@
-import type { FieldSurveyBoundariesData } from "../../domain/fieldSurvey.types";
+import type { FieldSurveyBoundariesData, FieldSurveysQuery } from "../../domain/fieldSurvey.types";
 
 export interface FieldSurveysRepository {
-  listFieldSurveys(limit?: number): Promise<FieldSurveyBoundariesData>;
+  listFieldSurveys(query?: FieldSurveysQuery | number): Promise<FieldSurveyBoundariesData>;
 }

@@ -9,6 +9,8 @@ import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyPosition } from "../domain/fieldSurvey.types";
 import { useFieldSurveys } from "../hooks/fieldSurveys";
+import { env } from "../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { useSearchParams } from "react-router";
 
 function isAccessDeniedError(error: unknown) {
@@ -28,7 +30,7 @@ function errorMessage(error: unknown) {
   if (isUnauthorizedError(error)) return "Your office session has expired. Sign in to view field boundaries.";
   if (isRateLimitedError(error)) return "Field boundaries are receiving too many requests. Wait a moment, then try again.";
   if (error instanceof ZodError) return "CaneGuard returned an unexpected boundary format. Refresh after the service is corrected.";
-  if (isApiConnectionError(error)) return "Cannot connect to the CaneGuard API for field boundaries. Verify the API is reachable, then try again.";
+  if (isApiConnectionError(error)) return serviceUnreachableMessage;
   return "Field boundaries are unavailable. Please try again.";
 }
 
@@ -104,7 +106,7 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
           {query.error instanceof ZodError
             ? "CaneGuard returned an unexpected boundary format. Refresh after the service is corrected. The most recently loaded boundaries are still shown and may be stale."
             : isApiConnectionError(query.error)
-              ? "Cannot connect to the CaneGuard API. The most recently loaded boundaries are still shown and may be stale."
+              ? serviceUnreachableWhileShowingData
               : "The latest boundary refresh failed. The most recently loaded boundaries are still shown and may be stale."}
         </p>
       ) : null}
@@ -115,7 +117,11 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
       ) : null}
       {query.isPending && !data ? <LoadingState message="Loading field boundaries..." /> : null}
       {query.isError && !data ? (
-        <ErrorState message={errorMessage(query.error)} onRetry={() => void query.refetch()} />
+        <ErrorState
+          message={errorMessage(query.error)}
+          detail={isApiConnectionError(query.error) ? apiEndpointDetail(env.apiBaseUrl) : undefined}
+          onRetry={() => void query.refetch()}
+        />
       ) : null}
       {data ? (
         <div className="boundaries-workspace">

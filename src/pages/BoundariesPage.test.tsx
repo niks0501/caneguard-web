@@ -1,8 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError } from "axios";
 import { MemoryRouter, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
+import { env } from "../config/env";
+import { apiEndpointDetail } from "../lib/serviceMessages";
 import { ZodError } from "zod";
 import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyBoundariesData } from "../domain/fieldSurvey.types";
 import { useFieldSurveys } from "../hooks/fieldSurveys";
@@ -44,7 +47,7 @@ const oneBoundary: FieldSurveyBoundariesData = {
       inspector: { uuid: "inspector-1", name: "Maria Santos" },
     },
   }],
-  metadata: { totalCount: 1, returnedCount: 1, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false },
+  metadata: { totalCount: 1, returnedCount: 1, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false, page: 1, pageCount: 1 },
 };
 
 function queryResult(data: FieldSurveyBoundariesData | undefined, overrides: Record<string, unknown> = {}) {
@@ -111,7 +114,7 @@ describe("BoundariesPage", () => {
     const empty: FieldSurveyBoundariesData = {
       type: "FeatureCollection",
       features: [],
-      metadata: { totalCount: 0, returnedCount: 0, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false },
+      metadata: { totalCount: 0, returnedCount: 0, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false, page: 1, pageCount: 1 },
     };
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(empty));
     renderPage();
@@ -132,6 +135,37 @@ describe("BoundariesPage", () => {
     expect(screen.queryByText("The requested boundary is not available in the loaded field boundaries.")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it("uses staff-facing connection guidance and keeps endpoint diagnostics collapsed", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(undefined, {
+      error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+      isError: true,
+    }));
+    renderPage();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(alert).toHaveTextContent("contact your office administrator");
+    expect(alert).not.toHaveTextContent("Verify the API is reachable");
+    const details = within(alert).getByText("Technical details").closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details as HTMLElement).getByText(apiEndpointDetail(env.apiBaseUrl))).toBeInTheDocument();
+  });
+
+  it("uses staff recovery guidance when a refresh fails but cached boundaries remain", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary, {
+      error: new ApiError("Network Error", { cause: new AxiosError("Network Error") }),
+      isError: true,
+      isRefetchError: true,
+    }));
+    renderPage();
+
+    const warning = screen.getByRole("alert");
+    expect(warning).toHaveTextContent("CaneGuard cannot be reached right now.");
+    expect(warning).toHaveTextContent("last loaded data stays visible and may be stale");
+    expect(warning).toHaveTextContent("contact your office administrator");
+    expect(warning).not.toHaveTextContent(env.apiBaseUrl);
   });
 
   it("asks the office user to sign in again after an expired session", () => {
@@ -177,6 +211,8 @@ describe("BoundariesPage", () => {
         returnedCount: FIELD_SURVEYS_MAX_LIMIT,
         limit: FIELD_SURVEYS_MAX_LIMIT,
         truncated: true,
+        page: 1,
+        pageCount: 2,
       },
     }));
     renderPage();
@@ -203,6 +239,8 @@ describe("BoundariesPage", () => {
         returnedCount: FIELD_SURVEYS_MAX_LIMIT,
         limit: FIELD_SURVEYS_MAX_LIMIT,
         truncated: true,
+        page: 1,
+        pageCount: 2,
       },
     }));
     renderPage();
@@ -239,6 +277,8 @@ describe("BoundariesPage", () => {
         returnedCount: FIELD_SURVEYS_MAX_LIMIT,
         limit: FIELD_SURVEYS_MAX_LIMIT,
         truncated: true,
+        page: 1,
+        pageCount: 2,
       },
     }));
 

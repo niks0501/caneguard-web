@@ -81,7 +81,55 @@ final class BuildReportDocument
                 : null,
             'appendix' => $reports,
             'appendix_capped' => count($reports) >= 1000,
+            'web_origin' => $this->webOrigin(),
         ];
+    }
+
+    /**
+     * The Web origin an embedded report may talk to. The actual embedding parent
+     * wins when the configured allowlist admits it, so the message channel and
+     * `frame-ancestors` enforce the same set. Never a wildcard.
+     */
+    private function webOrigin(): string
+    {
+        $allowed = array_values(array_filter(array_map(
+            static fn ($origin): string => is_string($origin) ? rtrim($origin, '/') : '',
+            (array) config('caneguard.reports.embed_origins', ['self']),
+        )));
+
+        $parent = $this->parentOrigin();
+        if ($parent !== null) {
+            if ($parent === strtolower(request()->getSchemeAndHttpHost())) {
+                return 'self';
+            }
+            if (in_array($parent, $allowed, true)) {
+                return $parent;
+            }
+        }
+
+        foreach ($allowed as $origin) {
+            if ($origin !== 'self') {
+                return $origin;
+            }
+        }
+
+        return 'self';
+    }
+
+    private function parentOrigin(): ?string
+    {
+        $referer = (string) request()->headers->get('referer', '');
+        if ($referer === '') {
+            return null;
+        }
+
+        $parts = parse_url($referer);
+        if (! is_array($parts) || ! isset($parts['scheme'], $parts['host'])) {
+            return null;
+        }
+
+        return strtolower($parts['scheme']).'://'.strtolower($parts['host'])
+            .(isset($parts['port']) ? ':'.$parts['port'] : '');
     }
 
     /**

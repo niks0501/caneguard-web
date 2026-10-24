@@ -138,8 +138,24 @@
     <footer class="document-footer">CaneGuard · {{ $period['label'] }} · {{ $period['timezone_label'] }} · Generated {{ $generated_at }} · Page numbers appear in the print footer.</footer>
 </main>
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
-    document.getElementById('print-report')?.addEventListener('click', () => window.print());
-    document.getElementById('download-report')?.addEventListener('click', () => { window.parent.postMessage({ type: 'caneguard-report-download' }, window.location.origin); });
+    (() => {
+        // The embedding Web application is a different origin in the documented
+        // local setup. Both directions use this exact server-configured origin.
+        const webOrigin = @json($web_origin) === 'self' ? window.location.origin : @json($web_origin);
+        document.getElementById('print-report')?.addEventListener('click', () => window.print());
+        document.getElementById('download-report')?.addEventListener('click', () => {
+            window.parent.postMessage({ type: 'caneguard-report-download' }, webOrigin);
+        });
+        window.addEventListener('message', (event) => {
+            if (event.origin !== webOrigin || event.source !== window.parent) return;
+            if (event.data && event.data.type === 'caneguard-report-print') window.print();
+        });
+        window.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            window.parent.postMessage({ type: 'caneguard-report-close' }, webOrigin);
+        });
+    })();
 </script>
 </body>
 </html>

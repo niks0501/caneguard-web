@@ -426,7 +426,13 @@ describe("Visit Calendar contract", () => {
       expect(within(screen.getByRole("grid")).getByText("CG-SCHED-001")).toBeInTheDocument(),
     );
     expect(screen.queryByRole("button", { name: /add visit/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i)).not.toBeInTheDocument();
+    // The workspace freshness stamp carries a server-read clock time; the
+    // calendar itself must still expose no appointment-time UI.
+    const calendarBody = document.querySelector(".monitoring-calendar__body");
+    expect(calendarBody).not.toBeNull();
+    expect(
+      within(calendarBody as HTMLElement).queryByText(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i),
+    ).not.toBeInTheDocument();
   });
 
   it("AUTHORIZATION FAILURE: does not misrepresent forbidden schedule access as an empty month", async () => {

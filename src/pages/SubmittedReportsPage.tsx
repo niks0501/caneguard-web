@@ -14,11 +14,17 @@ import {
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
+import { env } from "../config/env";
+import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
+import { AppliedFilterChips, type AppliedFilterChip } from "../components/reports/AppliedFilterChips";
 import { MonitoringScheduleSummary } from "../components/reports/MonitoringScheduleSummary";
 import { ReportTable } from "../components/reports/ReportTable";
 import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
+import { printableScopeFromReportFilters } from "../components/reports/reportBuilderScope";
 import { Button } from "../components/ui/Button";
+import { Modal } from "../components/ui/Modal";
 import { SearchInput, SelectFilter } from "../components/ui/FormControls";
 import { Pagination } from "../components/ui/Pagination";
 import {
@@ -29,13 +35,18 @@ import {
 } from "../components/ui/States";
 import {
   authorityClassifiedConditionLabels,
+  caseStateLabels,
   diseaseLabels,
+  fieldValidationStateLabels,
+  reviewStatusLabels,
+  verificationOutcomeLabels,
 } from "../domain/report.metadata";
 import {
   workflowStatusLabels,
   workflowStatusValues,
 } from "../domain/workflowStatus";
 import type { ReportFilters } from "../domain/report.types";
+import { manilaDateAt } from "../domain/reportingTime";
 import { reportKeys } from "../hooks/reportQueries";
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import { useExportReports, useReports } from "../hooks/useReports";
@@ -85,6 +96,70 @@ const queueLabels = {
   unverified_no_active_work: "Unverified, no active work",
 } as const;
 
+const locationLabels = {
+  located: "With a usable location",
+  unlocated: "Without a usable location",
+} as const;
+
+type ReportFilterChip = Omit<AppliedFilterChip, "key"> & { key: FilterKey };
+
+/** Filters that are applied but not visible in the primary control row. */
+function appliedFilterChips(
+  filters: ReportFilters,
+  inspectorName: (uuid: string) => string | undefined,
+): ReportFilterChip[] {
+  const chips: ReportFilterChip[] = [];
+  const add = (key: FilterKey, label: string) => chips.push({ key, label });
+
+  if (filters.queue) add("queue", `Queue: ${queueLabels[filters.queue]}`);
+  if (filters.search?.trim()) add("search", `Search: ${filters.search.trim()}`);
+  if (filters.reportedConcern) add("concern", "Reported concern: RSSI");
+  if (filters.workflowStatus && filters.workflowStatus !== "all") {
+    add("workflow_status", `Status: ${workflowStatusLabels[filters.workflowStatus]}`);
+  }
+  if (filters.status && filters.status !== "all") {
+    add("status", `Review status: ${reviewStatusLabels[filters.status]}`);
+  }
+  if (filters.caseState && filters.caseState !== "all") {
+    add("case_state", `Case state: ${caseStateLabels[filters.caseState]}`);
+  }
+  if (filters.verificationOutcome && filters.verificationOutcome !== "all") {
+    add("verification_outcome", `Verification: ${verificationOutcomeLabels[filters.verificationOutcome]}`);
+  }
+  if (filters.fieldValidationState && filters.fieldValidationState !== "all") {
+    add("field_validation_state", `Field validation: ${fieldValidationStateLabels[filters.fieldValidationState]}`);
+  }
+  if (filters.disease && filters.disease !== "all") {
+    add("predicted_label", `Condition: ${diseaseLabels[filters.disease]}`);
+  }
+  if (filters.staffClassifiedCondition && filters.staffClassifiedCondition !== "all") {
+    add("authority_classified_condition",
+      `Staff-classified: ${authorityClassifiedConditionLabels[filters.staffClassifiedCondition]}`);
+  }
+  if (filters.barangay?.trim()) add("barangay", `Barangay: ${filters.barangay.trim()}`);
+  if (filters.location && filters.location !== "all") {
+    add("location", locationLabels[filters.location]);
+  }
+  if (filters.dateFrom) add("date_from", `From ${filters.dateFrom}`);
+  if (filters.dateTo) add("date_to", `To ${filters.dateTo}`);
+  if (filters.reviewer) {
+    add("reviewer", `Field Inspector: ${inspectorName(filters.reviewer) ?? "Selected inspector"}`);
+  }
+  return chips;
+}
+
+/** A scope- and date-aware CSV filename; the server writes every matching row. */
+function caseExportFilename(filters: ReportFilters): string {
+  const parts = ["caneguard-cases"];
+  if (filters.queue) parts.push(filters.queue);
+  if (filters.barangay?.trim()) parts.push(filters.barangay.trim().toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replaceAll(/^-|-$/g, ""));
+  if (filters.dateFrom && filters.dateTo) parts.push(`${filters.dateFrom}_to_${filters.dateTo}`);
+  else if (filters.dateFrom) parts.push(`from_${filters.dateFrom}`);
+  else if (filters.dateTo) parts.push(`to_${filters.dateTo}`);
+  else parts.push(`as-of_${manilaDateAt()}`);
+  return `${parts.filter(Boolean).join("-")}.csv`;
+}
+
 export function SubmittedReportsPage({
   workspace = "reports",
   embedded = false,
@@ -94,6 +169,7 @@ export function SubmittedReportsPage({
 }) {
   const isMonitoring = workspace === "monitoring";
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
+  const [csvConfirmOpen, setCsvConfirmOpen] = useState(false);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -128,6 +204,14 @@ export function SubmittedReportsPage({
   const activeQueueLabel = urlState.filters.queue
       ? queueLabels[urlState.filters.queue]
       : undefined;
+  const printableScope = useMemo(
+    () => printableScopeFromReportFilters(urlState.filters),
+    [urlState.filters],
+  );
+  const appliedChips = appliedFilterChips(
+    urlState.filters,
+    (uuid) => (fieldReporters.data ?? []).find((reporter) => reporter.uuid === uuid)?.name,
+  );
 
   useEffect(() => {
     if (
@@ -178,7 +262,7 @@ export function SubmittedReportsPage({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "caneguard-case-export.csv";
+      link.download = caseExportFilename(exportFilters);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -218,7 +302,7 @@ export function SubmittedReportsPage({
             icon={<ClipboardCheck aria-hidden="true" />}
             onClick={() => setReportBuilderOpen(true)}
           >
-            Generate report
+            Filtered printable report
           </Button>
           <Button
             variant="secondary"
@@ -229,9 +313,9 @@ export function SubmittedReportsPage({
               urlState.invalid ||
               !hasDisplayableData
             }
-            onClick={() => void handleExport()}
+            onClick={() => setCsvConfirmOpen(true)}
           >
-            {exportReports.isPending ? "Preparing CSV" : "Export CSV"}
+            {exportReports.isPending ? "Preparing CSV" : "Case CSV"}
           </Button>
           <Button
             variant="secondary"
@@ -261,13 +345,32 @@ export function SubmittedReportsPage({
           <Link to={`${routes.monitoring}?concern=rssi`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI</Link>
           <Link to={`${routes.monitoring}?queue=follow_up_due`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
           <Link to={`${routes.monitoring}?queue=upcoming`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
+          {urlState.hasActiveFilters ? (
+            <span className="monitoring-saved-views__active" aria-current="page">Filtered view</span>
+          ) : null}
         </nav>
       ) : (
         <nav className="monitoring-saved-views" aria-label="Report saved views">
           <span className="monitoring-saved-views__label">Saved views</span>
-          <Link to={routes.reports} className="is-active">All submitted reports</Link>
+          <Link
+            to={routes.reports}
+            className={urlState.hasActiveFilters ? undefined : "is-active"}
+            aria-current={urlState.hasActiveFilters ? undefined : "page"}
+          >
+            All submitted reports
+          </Link>
+          {urlState.hasActiveFilters ? (
+            <span className="monitoring-saved-views__active" aria-current="page">Filtered view</span>
+          ) : null}
         </nav>
       )}
+
+      <WorkspaceFreshness
+        updatedAt={reportsQuery.dataUpdatedAt}
+        fetching={reportsQuery.isFetching && hasDisplayableData}
+        refreshFailed={Boolean(reportsQuery.isRefetchError)}
+        onRetry={refreshQueue}
+      />
 
       {reviewNotice ? (
         <div className="success-banner" role="status">
@@ -319,6 +422,22 @@ export function SubmittedReportsPage({
               <option value={value} key={value}>{label}</option>
             ))}
           </SelectFilter>
+          <SelectFilter
+            label="Sort by"
+            value={urlState.filters.sort ?? "due_soonest"}
+            onChange={(event) =>
+              updateFilter("sort", event.target.value)
+            }
+          >
+            <option value="due_soonest">Due soonest</option>
+            <option value="oldest">Oldest submitted first</option>
+            <option value="newest">Newest submitted first</option>
+          </SelectFilter>
+        </div>
+
+        <details className="more-filters">
+          <summary>More filters</summary>
+          <div className="filter-bar">
           <SelectFilter
             label="Reported concern"
             value={urlState.filters.reportedConcern ?? ""}
@@ -411,27 +530,29 @@ export function SubmittedReportsPage({
             />
           </label>
           <SelectFilter
-            label="Reviewer"
+            label="Field Inspector"
             value={urlState.filters.reviewer ?? ""}
             onChange={(event) => updateFilter("reviewer", event.target.value)}
           >
-            <option value="">Anyone</option>
+            <option value="">Any Field Inspector</option>
             {(fieldReporters.data ?? []).map((reporter) => (
               <option value={reporter.uuid} key={reporter.uuid}>{reporter.name}</option>
             ))}
           </SelectFilter>
-          <SelectFilter
-            label="Sort by"
-            value={urlState.filters.sort ?? "due_soonest"}
-            onChange={(event) =>
-              updateFilter("sort", event.target.value)
-            }
-          >
-            <option value="due_soonest">Due soonest</option>
-            <option value="oldest">Oldest submitted first</option>
-            <option value="newest">Newest submitted first</option>
-          </SelectFilter>
-        </div>
+          </div>
+        </details>
+
+        {appliedChips.length > 0 ? (
+          <AppliedFilterChips
+            label="Report filters"
+            chips={appliedChips}
+            onRemove={(key) => {
+              const chip = appliedChips.find((item) => item.key === key);
+              if (chip) updateFilter(chip.key, "");
+            }}
+            onClear={clearFilters}
+          />
+        ) : null}
 
         {reportsQuery.isFetching && hasDisplayableData ? (
           <p className="queue-refresh-status" role="status">
@@ -445,7 +566,7 @@ export function SubmittedReportsPage({
               : malformedData
                 ? "The latest response had an unexpected format. The previous queue remains visible."
                 : connectionError
-                  ? "Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL; the previous queue remains visible."
+                  ? serviceUnreachableWhileShowingData
                   : "The latest refresh failed. Showing the most recently loaded queue."}
           </p>
         ) : null}
@@ -474,7 +595,8 @@ export function SubmittedReportsPage({
         ) : null}
         {!urlState.invalid && showInitialError && connectionError ? (
           <ErrorState
-            message="Cannot connect to the CaneGuard API. Start the API server and verify VITE_API_BASE_URL points to the same host and port as this Web preview."
+            message={serviceUnreachableMessage}
+            detail={apiEndpointDetail(env.apiBaseUrl)}
             onRetry={() => reportsQuery.refetch()}
           />
         ) : null}
@@ -522,9 +644,33 @@ export function SubmittedReportsPage({
         ) : null}
         {isMonitoring && !urlState.invalid ? <MonitoringScheduleSummary /> : null}
       </section>
+      <Modal
+        id="case-csv-scope"
+        title="Download the case CSV?"
+        description="This file contains case records, not the official weekly report."
+        open={csvConfirmOpen}
+        onClose={() => setCsvConfirmOpen(false)}
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setCsvConfirmOpen(false)}>Cancel</Button>
+            <Button
+              type="button"
+              disabled={exportReports.isPending}
+              onClick={() => { setCsvConfirmOpen(false); void handleExport(); }}
+            >
+              {exportReports.isPending ? "Preparing CSV" : "Download Case CSV"}
+            </Button>
+          </>
+        }
+      >
+        <p><strong>Scope:</strong> {appliedChips.length > 0 ? appliedChips.map((chip) => chip.label).join(" · ") : "All submitted cases"}.</p>
+        <p>Every matching case is included, not just the visible page.</p>
+        <p className="report-builder__warning" role="note">This export includes farmer and farm references.</p>
+      </Modal>
       <ReportDocumentBuilder
         open={reportBuilderOpen}
         onClose={() => setReportBuilderOpen(false)}
+        scope={printableScope}
       />
     </PageContent>
   );

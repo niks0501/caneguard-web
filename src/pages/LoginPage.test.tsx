@@ -257,7 +257,7 @@ describe("LoginPage", () => {
     ]);
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "This account is not authorized for the SRA Don Pedro Web workspace.",
+      "This account is not authorized for the SRA Don Pedro Web workspace. Ask your district office administrator to request office access from the CaneGuard operator.",
     );
   });
 

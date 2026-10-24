@@ -4,6 +4,7 @@ import type {
   ReviewStatus,
 } from "../domain/report.types";
 import type { FieldValidationFilters } from "../domain/fieldValidation.types";
+import { fieldValidationQueueValues } from "../domain/operationalQueue";
 
 const statusSchema = z.enum([
   "submitted_unverified",
@@ -12,7 +13,7 @@ const statusSchema = z.enum([
   "unable_to_verify",
   "resolved",
 ]);
-const queueSchema = z.enum(["needs_visit", "follow_up_due", "upcoming"]);
+const queueSchema = z.enum(fieldValidationQueueValues);
 const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
 const dateSchema = z.iso.date();
 

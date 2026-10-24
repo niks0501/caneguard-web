@@ -25,6 +25,8 @@ class FieldSurveyMapController extends Controller
                 'returned_count' => $result['returned_count'],
                 'limit' => $result['limit'],
                 'truncated' => $result['truncated'],
+                'page' => $result['page'],
+                'page_count' => $result['page_count'],
             ],
         ])->header('Cache-Control', 'private, no-store');
     }

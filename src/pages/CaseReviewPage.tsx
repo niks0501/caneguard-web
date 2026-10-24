@@ -622,6 +622,25 @@ function CaseReviewContent() {
           </Button>
         </div>
       ) : null}
+      {openCaseMutation.isError ? (
+        <div className="detail-refresh-warning" role="alert">
+          <span>
+            This case is open, but its first-review status was not recorded. Evidence stays readable.
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={openCaseMutation.isPending}
+            onClick={() => {
+              // The stamp is idempotent server-side; retrying never duplicates it.
+              openCaseMutation.reset();
+              openCase();
+            }}
+          >
+            Retry status update
+          </Button>
+        </div>
+      ) : null}
 
       {/* 1. Case status with plain-language attention notices */}
       <section className="review-status-chips" aria-label="Case status">

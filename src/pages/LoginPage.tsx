@@ -99,7 +99,7 @@ export function LoginPage() {
       : routeState.reason === "account_disabled"
         ? "Account disabled — contact your administrator."
       : routeState.reason === "access_denied"
-        ? "This account is not authorized for the SRA Don Pedro Web workspace."
+        ? "This account is not authorized for the SRA Don Pedro Web workspace. Ask your district office administrator to request office access from the CaneGuard operator."
         : null;
 
   return (
@@ -124,6 +124,11 @@ export function LoginPage() {
           </p>
           <p className="login-visual__access">
             SRA Don Pedro staff only — sign in with your office-issued credentials. New inspectors request access through the district office.
+          </p>
+          <p className="login-visual__access">
+            No office account yet? Ask your district office administrator to request one
+            from the CaneGuard operator; provide your full name, work email and the role
+            you need. Public sign-up is not available.
           </p>
         </div>
       </aside>

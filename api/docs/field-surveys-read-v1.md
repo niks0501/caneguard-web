@@ -13,7 +13,11 @@ mobile bearer token, or other non-office identity returns **403**. Requests are
 limited to 30 per minute (**429**).
 
 The optional `limit` query parameter must be an integer from 1 through 250. Its
-default is 100. Invalid limits return **422** with the standard API envelope:
+default is 100. The optional `page` parameter must be an integer from 1 through
+10000 and defaults to 1; a page beyond the last one is answered with the last
+page. The optional `search` parameter is at most 60 characters and accepts a
+boundary id (digits only), a capture date as `YYYY-MM-DD`, or part of an
+inspector name. Invalid values return **422** with the standard API envelope:
 
 ```json
 {
@@ -22,6 +26,12 @@ default is 100. Invalid limits return **422** with the standard API envelope:
   "errors": { "limit": ["The limit field must be at least 1."] }
 }
 ```
+
+A capture-date search matches the calendar day in Asia/Manila, the same day the
+office screens display, and never the undisclosed UTC day. A date that does not
+exist, such as `2026-06-31`, matches nothing instead of shifting to another day.
+Name matching escapes `%` and `_`, so a search term is never treated as a wildcard
+pattern.
 
 ## Response
 
@@ -52,7 +62,9 @@ A successful response is a GeoJSON `FeatureCollection`, newest capture first
     "total_count": 1,
     "returned_count": 1,
     "limit": 100,
-    "truncated": false
+    "truncated": false,
+    "page": 1,
+    "page_count": 1
   }
 }
 ```
@@ -65,11 +77,14 @@ microseconds. `area_sqm` is the phone-supplied value and is explicitly labelled
 area. The inspector object contains only UUID and name. The response omits the
 survey `client_uuid`, waypoints, and inspector email.
 
-`total_count` is the number of surveys in the pilot district, while
-`returned_count` is the number in `features`. When more rows exist than fit in
-the requested limit, `truncated` is `true`; the endpoint returns only the newest
-rows. A missing or unknown pilot-district configuration returns an empty
-collection and never widens the query to other districts.
+`total_count` is the number of surveys in the pilot district that match the
+search, while `returned_count` is the number in `features` on this page and never
+exceeds `limit`. `page` is the answered page and `page_count` is
+`max(1, ceil(total_count / limit))`. `truncated` is `true` when matching rows
+remain after this page, so a page that reports `truncated: true` is always full.
+No request returns the whole archive: paging or a search is the only way to reach
+older boundaries. A missing or unknown pilot-district configuration returns an
+empty collection and never widens the query to other districts.
 
 Responses use `Cache-Control: private, no-store`. The route is separate from
 `GET /api/v1/reports/map`; boundaries are not report points and do not enter the

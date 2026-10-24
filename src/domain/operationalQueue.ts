@@ -8,4 +8,11 @@ export const operationalQueueValues = [
 
 export type OperationalQueue = (typeof operationalQueueValues)[number];
 
-export type FieldValidationQueue = Exclude<OperationalQueue, "needs_review" | "unverified_no_active_work">;
+/** The Map is a field-validation surface, so it only accepts these queues. */
+export const fieldValidationQueueValues = [
+  "needs_visit",
+  "follow_up_due",
+  "upcoming",
+] as const satisfies readonly OperationalQueue[];
+
+export type FieldValidationQueue = (typeof fieldValidationQueueValues)[number];

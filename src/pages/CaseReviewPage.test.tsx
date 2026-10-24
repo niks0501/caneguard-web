@@ -21,6 +21,7 @@ import {
   usePossibleRecentMatches,
   useReports,
   useUnlinkDuplicateReport,
+  useOpenCase,
   useReport,
   useUpdateReportReview,
   useUpdateReportAffectedFields,
@@ -1123,10 +1124,11 @@ describe("CaseReviewPage", () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(within(modal).getByText(/changed after you opened it/i)).toBeInTheDocument();
+    expect(within(modal).getByText(/Another reviewer saved this report/i)).toBeInTheDocument();
 
-    await user.click(within(modal).getByRole("button", { name: "Refresh report" }));
-    expect(refetch).toHaveBeenCalledOnce();
+    // A failed comparison read keeps the draft and offers an explicit retry.
+    await user.click(await within(modal).findByRole("button", { name: "Try loading the latest version again" }));
+    expect(refetch).toHaveBeenCalledTimes(2);
   });
 
   it("prevents a duplicate save while a review is pending", async () => {
@@ -1166,7 +1168,7 @@ describe("CaseReviewPage", () => {
     expect(screen.getByRole("form", { name: "Report Evidence Review" })).toBeInTheDocument();
   });
 
-  it("shows a stale-review conflict with explicit refresh inline", async () => {
+  it("shows a stale-review conflict with explicit reconciliation inline", async () => {
     const user = userEvent.setup();
     const refetch = vi.fn();
     vi.mocked(useReport).mockReturnValue(queryResult({ refetch }));
@@ -1182,10 +1184,40 @@ describe("CaseReviewPage", () => {
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
 
     expect(
-      within(modal).getByText(/changed after you opened it/i),
+      within(modal).getByText(/Another reviewer saved this report/i),
     ).toBeInTheDocument();
-    await user.click(within(modal).getByRole("button", { name: "Refresh report" }));
-    expect(refetch).toHaveBeenCalledOnce();
+    // The stale draft cannot be resubmitted against a merely refreshed token.
+    expect(
+      within(modal).getByRole("button", { name: "Confirm Review" }),
+    ).toBeDisabled();
+    await user.click(
+      await within(modal).findByRole("button", { name: "Try loading the latest version again" }),
+    );
+    expect(refetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("offers a first-open status retry without blocking the evidence", async () => {
+    const user = userEvent.setup();
+    const mutate = vi.fn();
+    const reset = vi.fn();
+    vi.mocked(useOpenCase).mockReturnValue({
+      mutate,
+      reset,
+      isError: true,
+      isPending: false,
+    } as never);
+    renderPage();
+
+    expect(screen.getByRole("heading", { level: 1, name: report.referenceCode })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Evidence Summary" })).toBeInTheDocument();
+    const alert = screen.getByText(/first-review status was not recorded/i).closest("[role='alert']") as HTMLElement;
+    expect(alert).not.toHaveTextContent(/review lock version/i);
+
+    const attemptsBeforeRetry = mutate.mock.calls.length;
+    await user.click(within(alert).getByRole("button", { name: "Retry status update" }));
+
+    expect(reset).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledTimes(attemptsBeforeRetry + 1);
   });
 
   it("disables the inline decision controls while saving and sends one request", async () => {

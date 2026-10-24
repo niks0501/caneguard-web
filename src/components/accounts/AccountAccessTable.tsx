@@ -13,6 +13,11 @@ export function AccountAccessTable({ accounts, onSaved }: { accounts: Account[];
   const [notice, setNotice] = useState("");
   return <>
     {notice ? <p role="status">{notice}</p> : null}
+    <p className="accounts-table__note">
+      Role and status changes only. A role change signs the person out; a disabled
+      account needs a fresh sign-in after it is re-enabled. Creating an account is
+      an operator task, not an Admin action here.
+    </p>
     <table className="report-table accounts-table">
       <caption className="sr-only">Web user access</caption>
       <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
@@ -78,7 +83,10 @@ function AccountRow({ account, onSaved, onNotice }: { account: Account; onSaved:
         <form className="settings-form" onSubmit={submit}>
           <p><strong>{account.name}</strong> · {account.email}</p>
           <p>{roleLabels[account.role]} → {roleLabels[role]} · {account.is_active ? "Active" : "Disabled"} → {active ? "Active" : "Disabled"}</p>
-          <p>This account will be signed out. A fresh login is required after re-enabling.</p>
+          <p>
+          This account will be signed out. A role change ends the current session, and a
+          disabled account needs a fresh login after it is re-enabled.
+        </p>
           {error ? <p id={`${id}-error`} role="alert">{error}</p> : null}
           <label className="settings-field"><span>Your current password</span>
             <input type="password" autoComplete="current-password" value={password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => setPassword(event.target.value)} />

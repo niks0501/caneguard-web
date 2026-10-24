@@ -1,13 +1,17 @@
 import { CalendarDays, ClipboardList, LandPlot, MapPinned, Table2 } from "lucide-react";
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
-import { Link, useSearchParams } from "react-router";
-import { routes } from "../app/routes";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { MonitoringCalendar } from "../components/reports/MonitoringCalendar";
 import { LoadingState } from "../components/ui/States";
 import { SubmittedReportsPage } from "./SubmittedReportsPage";
 import { FieldOperationsPage } from "./FieldOperationsPage";
+import {
+  monitoringViewLink,
+  scopeNoticeMessage,
+  type WorkspaceView,
+} from "./workspaceScope";
 
 const FieldValidationMapPage = lazy(() =>
   import("./FieldValidationMapPage").then(({ FieldValidationMapPage: Page }) => ({ default: Page })),
@@ -16,9 +20,7 @@ const BoundariesPage = lazy(() =>
   import("./BoundariesPage").then(({ BoundariesPage: Page }) => ({ default: Page })),
 );
 
-type MonitoringView = "register" | "calendar" | "map" | "field-operations" | "boundaries";
-
-const views: Array<{ key: MonitoringView; label: string; icon: ReactNode }> = [
+const views: Array<{ key: WorkspaceView; label: string; icon: ReactNode }> = [
   { key: "register", label: "Register", icon: <Table2 aria-hidden="true" /> },
   { key: "calendar", label: "Calendar", icon: <CalendarDays aria-hidden="true" /> },
   { key: "map", label: "Map", icon: <MapPinned aria-hidden="true" /> },
@@ -26,31 +28,42 @@ const views: Array<{ key: MonitoringView; label: string; icon: ReactNode }> = [
   { key: "boundaries", label: "Field boundaries", icon: <LandPlot aria-hidden="true" /> },
 ];
 
-function viewFromUrl(value: string | null): MonitoringView {
+function viewFromUrl(value: string | null): WorkspaceView {
   return value === "calendar" || value === "map" || value === "field-operations" || value === "boundaries" ? value : "register";
 }
 
 export function MonitoringWorkspacePage() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const view = viewFromUrl(searchParams.get("view"));
+  // Navigation state survives Back/Forward, so the removed-filter notice lasts
+  // exactly as long as the scope change it explains.
+  const scopeNotice = scopeNoticeMessage(
+    (location.state as { scopeNotice?: string[] } | null)?.scopeNotice ?? [],
+  );
 
   return (
     <PageContent>
       <PageHeader title="Monitoring workspace" />
       <nav className="monitoring-workspace-tabs" aria-label="Monitoring workspace views">
         <span className="monitoring-workspace-tabs__label">Workspace views</span>
-        {views.map(({ key, label, icon }) => (
-          <Link
-            key={key}
-            to={key === "register" ? routes.monitoring : `${routes.monitoring}?view=${key}`}
-            className={view === key ? "is-active" : undefined}
-            aria-current={view === key ? "page" : undefined}
-          >
-            {icon}<span>{label}</span>
-          </Link>
-        ))}
-        <Link className="monitoring-workspace-tabs__saved" to={routes.needsAssessment}>Needs assessment</Link>
+        {views.map(({ key, label, icon }) => {
+          const link = monitoringViewLink(key, searchParams);
+          return (
+            <Link
+              key={key}
+              to={link.to}
+              state={link.removed.length > 0 ? { scopeNotice: link.removed } : undefined}
+              className={view === key ? "is-active" : undefined}
+              aria-current={view === key ? "page" : undefined}
+            >
+              {icon}<span>{label}</span>
+            </Link>
+          );
+        })}
+        <Link className="monitoring-workspace-tabs__saved" to="/needs-assessment">Needs assessment</Link>
       </nav>
+      {scopeNotice ? <p className="queue-refresh-warning" role="status">{scopeNotice}</p> : null}
       {view === "register" ? <SubmittedReportsPage workspace="monitoring" embedded /> : null}
       {view === "calendar" ? <MonitoringCalendar /> : null}
       {view === "map" ? (
