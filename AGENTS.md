@@ -4,7 +4,7 @@
 - Before using an unfamiliar CLI subcommand or flag, check that CLI's help; do not assume compatibility with another tool's syntax.
 - Prefer the simplest complete solution and avoid unnecessary abstractions or dependencies.
 - Keep changes focused, readable, deterministic, and maintainable.
-- Before staging, inspect generated and tool-maintained artifact diffs; stage only explicit task-required files and review `git diff --cached` before committing. Keep generated Graphify output out of commits.
+- Before staging, inspect generated and tool-maintained artifact diffs; stage only explicit task-required files and review `git diff --cached` before committing. A `--stat` summary alone is not a staged-diff review. Keep generated Graphify output out of commits.
 - Preserve unrelated user work and never overwrite, reset, stash, delete, or rewrite unrelated changes.
 - Treat secrets, credentials, tokens, environment values, production data, and personal data as sensitive.
 - Do not expose sensitive values in output, logs, commits, examples, or generated files.
@@ -17,7 +17,7 @@
 
 When `graphify-out/graph.json` exists, use Graphify as the first source for understanding repository structure and relationships.
 
-- For codebase questions, start with `graphify query "<question>"`.
+- For codebase questions, start with `graphify query "<question>"`. Run it before source searches, not after them.
 - Use `graphify path "<A>" "<B>"` to understand relationships between components.
 - Use `graphify explain "<concept>"` for focused explanations of a component or concept.
 - Prefer these scoped commands over reading the full graph or performing broad source searches.
