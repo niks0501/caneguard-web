@@ -24,6 +24,13 @@ flock -n 9 || { echo "Another deployment is running" >&2; exit 1; }
 
 [[ -L "$current" && -d "$current/api" ]] || { echo "Current release is missing" >&2; exit 1; }
 [[ -f "$shared/.env" && -d "$shared/storage" ]] || { echo "Shared Laravel state is missing" >&2; exit 1; }
+# The ACL package must be installed on Lightsail before running this workflow.
+for tool in setfacl getfacl; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "Missing $tool on Lightsail; ubuntu must install the 'acl' package" >&2
+    exit 1
+  }
+done
 [[ -f "$archive" ]] || { echo "Release archive missing" >&2; exit 1; }
 [[ ! -e "$new" ]] || { echo "Release already exists" >&2; exit 1; }
 printf '%s  %s\n' "$expected_hash" "$archive" | sha256sum -c -
@@ -63,22 +70,20 @@ php artisan optimize:clear
 php artisan config:cache
 php artisan view:cache
 
-# Composer may create 0640 deploy:deploy files despite setgid parent directories.
-# Give PHP-FPM (www-data) read access before changing the live release symlink.
-# find -P does not follow the shared api/.env or api/storage symlinks.
-find -P "$new" -type d -exec chgrp www-data {} +
-find -P "$new" -type f -exec chgrp www-data {} +
-find -P "$new" -type d -exec chmod g+rx {} +
-find -P "$new" -type f -exec chmod g+r {} +
+# Composer may extract 0640 deploy:deploy files despite setgid parents.
+# Give only the PHP-FPM identity read/traverse access without exposing files to
+# other accounts or requiring deploy to change file ownership/group.
+# -P prevents following shared .env/storage symlinks into persistent state.
+setfacl -R -P -m u:www-data:rX "$new"
 
-bad_directory="$(find -P "$new" -type d \( ! -group www-data -o ! -perm -g+rx \) -print -quit)"
-bad_file="$(find -P "$new" -type f \( ! -group www-data -o ! -perm -g+r \) -print -quit)"
-if [[ -n "$bad_directory" || -n "$bad_file" ]]; then
-  echo "Release permissions are not readable by www-data; refusing activation" >&2
-  [[ -z "$bad_directory" ]] || printf 'Directory: %s\n' "$bad_directory" >&2
-  [[ -z "$bad_file" ]] || printf 'File: %s\n' "$bad_file" >&2
-  exit 1
-fi
+# A fail-closed check for Composer and application entry points.
+for path in "$new/api/vendor/autoload.php" "$new/api/public/index.php"; do
+  [[ -f "$path" ]] || { echo "Required release file missing: $path" >&2; exit 1; }
+  getfacl -cp "$path" | grep -q '^user:www-data:r' || {
+    echo "PHP-FPM read ACL missing on $path; refusing activation" >&2
+    exit 1
+  }
+done
 
 # Only non-destructive, backward-compatible migrations may be released.
 # Take an out-of-band MySQL backup before deployments with schema changes.
