@@ -9,6 +9,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -78,6 +79,48 @@ class MobileFieldSurveyMySqlTest extends TestCase
         $this->withToken($foreignInspector->createToken('foreign', ['*'])->plainTextToken);
         $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertForbidden();
         $this->assertSame(1, FieldSurvey::query()->where('client_uuid', $payload['client_uuid'])->count());
+    }
+
+    public function test_affected_area_evidence_survives_mysql_json_and_decimal_storage(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create();
+        $payload = $this->payload();
+        $payload['affected_area_polygons'] = [
+            ['type' => 'Polygon', 'coordinates' => [[
+                [122.9501, 10.7001], [122.9502, 10.7001], [122.9501, 10.7002], [122.9501, 10.7001],
+            ]]],
+        ];
+        $payload['affected_area_sqm'] = 6986.1235;
+        $payload['measurement_provenance'] = [
+            'method' => 'wgs84-ellipsoid-geodesic',
+            'source_polygon_count' => 1,
+            'overlap_removed' => false,
+            'affected_area_waypoint_provenance' => [[
+                [
+                    'latitude' => 10.7001,
+                    'longitude' => 122.9501,
+                    'source' => 'gps',
+                    'accuracy_meters' => 4.5,
+                    'captured_at' => '2026-10-04T10:30:10.123456+08:00',
+                ],
+            ]],
+        ];
+        $this->withToken($inspector->createToken('survey-affected', ['report:submit'])->plainTextToken);
+
+        $receipt = $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertCreated()
+            ->assertJsonPath('status', 'kept');
+        $id = $receipt->json('id');
+        $this->assertIsString($id);
+        $this->assertNotSame('', $id);
+        $survey = FieldSurvey::findOrFail($id)->refresh();
+
+        $this->assertEquals($payload['affected_area_polygons'], $survey->affected_area_polygons);
+        $this->assertSame('6986.1235', $survey->affected_area_sqm);
+        $this->assertEquals($payload['measurement_provenance'], $survey->measurement_provenance);
+        $this->assertSame('json', Schema::getColumnType('field_surveys', 'affected_area_polygons'));
+        $this->assertSame('decimal', Schema::getColumnType('field_surveys', 'affected_area_sqm'));
+        $this->assertSame('json', Schema::getColumnType('field_surveys', 'measurement_provenance'));
     }
 
     private function payload(): array

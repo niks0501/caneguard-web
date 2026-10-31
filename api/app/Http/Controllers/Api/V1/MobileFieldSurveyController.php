@@ -23,6 +23,9 @@ class MobileFieldSurveyController extends Controller
             'district_id' => $districtId,
             'polygon' => $data['polygon'],
             'area_sqm' => $data['area_sqm'],
+            'affected_area_polygons' => $data['affected_area_polygons'] ?? null,
+            'affected_area_sqm' => $data['affected_area_sqm'] ?? null,
+            'measurement_provenance' => $data['measurement_provenance'] ?? null,
             'captured_at' => CarbonImmutable::parse($data['captured_at'])->utc(),
         ]);
 
@@ -33,6 +36,7 @@ class MobileFieldSurveyController extends Controller
             ]);
         }
 
-        return response()->json(['id' => $survey->getKey(), 'status' => 'kept'], 201);
+        // The phone only accepts a string receipt id.
+        return response()->json(['id' => (string) $survey->getKey(), 'status' => 'kept'], 201);
     }
 }
