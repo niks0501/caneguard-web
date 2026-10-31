@@ -1,0 +1,118 @@
+name: Deploy CaneGuard Web (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type deploy-caneguard to authorize production deployment"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: caneguard-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Verify, package and deploy
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'deploy-caneguard'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+
+    env:
+      DEPLOY_HOST: caneguard.online
+      RELEASE_ID: release-${{ github.run_number }}-${{ github.sha }}
+      VITE_API_BASE_URL: https://caneguard.online
+      VITE_DATA_SOURCE: api
+      VITE_REALTIME_ENABLED: "false"
+
+    steps:
+      - name: Checkout exact approved revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_mysql
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          composer install --working-dir=api --no-interaction --no-progress --prefer-dist
+
+      - name: Check dependency advisories
+        run: |
+          npm audit --audit-level=high
+          composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail
+
+      - name: Prepare isolated Laravel test configuration
+        run: |
+          cp api/.env.example api/.env
+          php api/artisan key:generate --force --no-interaction
+
+      - name: Verify Web and Laravel
+        run: |
+          npm run check:web
+          npm run check:api
+
+      - name: Package tracked source and built React assets
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/caneguard-package/api/public"
+          git archive --format=tar HEAD | tar -xf - -C "$RUNNER_TEMP/caneguard-package"
+          cp -a dist/. "$RUNNER_TEMP/caneguard-package/api/public/"
+          test -s "$RUNNER_TEMP/caneguard-package/api/public/index.html"
+          test -s "$RUNNER_TEMP/caneguard-package/api/public/index.php"
+          test ! -e "$RUNNER_TEMP/caneguard-package/api/.env"
+          tar -czf "$RUNNER_TEMP/caneguard-release.tar.gz" -C "$RUNNER_TEMP/caneguard-package" .
+          echo "PACKAGE_SHA256=$(sha256sum "$RUNNER_TEMP/caneguard-release.tar.gz" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+
+      - name: Configure pinned SSH host key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CANEGUARD_DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.CANEGUARD_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          mkdir -p "$RUNNER_TEMP/caneguard-ssh"
+          chmod 700 "$RUNNER_TEMP/caneguard-ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/caneguard-ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/caneguard-ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/caneguard-ssh/"*
+          ssh-keygen -lf "$RUNNER_TEMP/caneguard-ssh/known_hosts" >/dev/null
+          grep -q '^caneguard\.online ssh-ed25519 ' "$RUNNER_TEMP/caneguard-ssh/known_hosts"
+
+      - name: Transfer archive to restricted deploy account
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
+            -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" "true"
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
+            -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "$RUNNER_TEMP/caneguard-release.tar.gz" \
+            "deploy@$DEPLOY_HOST:/var/www/caneguard/releases/.upload-$RELEASE_ID.tar.gz"
+
+      - name: Prepare release, migrate and atomically activate
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
+            -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" \
+            "bash -s -- '$RELEASE_ID' '$PACKAGE_SHA256'" < scripts/deploy-production.sh
+
+      - name: Record deployed revision
+        run: echo "Deployed commit $GITHUB_SHA to https://caneguard.online"
