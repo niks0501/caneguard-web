@@ -61,7 +61,6 @@ cd "$new/api"
 composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
 php artisan optimize:clear
 php artisan config:cache
-php artisan route:cache
 php artisan view:cache
 
 # Only non-destructive, backward-compatible migrations may be released.
