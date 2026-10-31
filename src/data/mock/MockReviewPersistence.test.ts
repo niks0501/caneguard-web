@@ -46,4 +46,46 @@ describe("mock review persistence", () => {
     expect(saved?.reviewEvents?.[0].notes).toBe("Advice provided to the grower");
     expect(saved?.reviewVersion).toBe(updated.reviewVersion);
   });
+
+  it("rejects stale handoff notes, boundary links and duplicate links with a conflict", async () => {
+    const repository = new MockReportsRepository();
+    const [first, second] = (await repository.listReports()).reports;
+    const version = first.reviewVersion ?? 0;
+    const staleVersion = version - 1;
+
+    await expect(repository.recordHandoffNote(first.uuid, {
+      expectedVersion: staleVersion,
+      destination: "District office",
+      sentDate: "2026-12-02",
+    })).rejects.toMatchObject({ name: "ApiError", status: 409 });
+
+    await expect(repository.updateAffectedFields(first.uuid, {
+      expectedVersion: staleVersion,
+      affectedFields: [],
+    })).rejects.toMatchObject({ status: 409 });
+
+    await expect(repository.linkDuplicate(first.uuid, {
+      canonicalReportUuid: second.uuid,
+      expectedVersion: staleVersion,
+    })).rejects.toMatchObject({ status: 409 });
+
+    const linked = await repository.linkDuplicate(first.uuid, {
+      canonicalReportUuid: second.uuid,
+      expectedVersion: version,
+    });
+    await expect(repository.linkDuplicate(first.uuid, {
+      canonicalReportUuid: second.uuid,
+      expectedVersion: version,
+    })).rejects.toMatchObject({ status: 409 });
+
+    await expect(repository.unlinkDuplicate(first.uuid, {
+      expectedVersion: version,
+    })).rejects.toMatchObject({ status: 409 });
+
+    const unlinked = await repository.unlinkDuplicate(first.uuid, {
+      expectedVersion: linked.reviewVersion ?? 0,
+    });
+    expect(unlinked.canonicalLinkage?.isDuplicate).toBe(false);
+    expect(unlinked.reviewVersion).toBe((linked.reviewVersion ?? 0) + 1);
+  });
 });

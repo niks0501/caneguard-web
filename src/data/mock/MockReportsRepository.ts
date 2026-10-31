@@ -389,7 +389,10 @@ export class MockReportsRepository implements ReportsRepository {
 
   async recordHandoffNote(reportId: string, input: HandoffNoteInput): Promise<DiseaseReport> {
     const report = this.reports.find((item) => item.uuid === reportId);
-    if (!report || report.reviewVersion !== input.expectedVersion) throw new Error("Refresh the case before saving.");
+    if (!report) throw new Error(`Report ${reportId} was not found.`);
+    if ((report.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new ApiError("The report changed while the handoff note was being saved.", { status: 409 });
+    }
     report.handoffNotes = [{
       id: (report.handoffNotes?.length ?? 0) + 1,
       destination: input.destination.trim(),
@@ -415,6 +418,9 @@ export class MockReportsRepository implements ReportsRepository {
     }
 
     const current = this.reports[duplicateIndex];
+    if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new ApiError("The report changed while the duplicate link was being saved.", { status: 409 });
+    }
     if (current.canonicalLinkage?.isDuplicate) {
       return cloneReport(current);
     }
@@ -452,7 +458,7 @@ export class MockReportsRepository implements ReportsRepository {
 
     const current = this.reports[index];
     if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
-      throw new Error("The report changed while affected fields were being saved.");
+      throw new ApiError("The report changed while affected fields were being saved.", { status: 409 });
     }
 
     const currentFields = current.affectedFields ?? [];
@@ -491,7 +497,7 @@ export class MockReportsRepository implements ReportsRepository {
 
     const current = this.reports[duplicateIndex];
     if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
-      throw new Error("The report changed while the duplicate link was being removed.");
+      throw new ApiError("The report changed while the duplicate link was being removed.", { status: 409 });
     }
     if (!current.canonicalLinkage?.isDuplicate) {
       return cloneReport(current);
