@@ -28,4 +28,8 @@ export const cloneMockReport = (report: DiseaseReport): DiseaseReport => ({
     : report.referral,
 });
 
+// One mutable copy of the mock fixtures, shared by every mock repository that
+// reads or writes review state. Review writes and the queue projections that
+// supply `expectedVersion` must read this array so both sides agree on
+// `reviewVersion`; hand callers `cloneMockReport` so they cannot mutate it.
 export const mockReportStore: DiseaseReport[] = mockReports.map(cloneMockReport);
