@@ -18,6 +18,7 @@ import { useFieldValidationMap } from "../../hooks/useFieldValidation";
 import { Skeleton } from "../ui/States";
 import { dashboardChartCopy } from "./chartCopy";
 import { chartTheme } from "./chartTheme";
+import { reportCount } from "./countUnits";
 import {
   readDashboardPreferences,
   saveDashboardMapLayer,
@@ -317,7 +318,12 @@ export function ReportLocationMap({
                         ["get", "barangay"],
                         " (",
                         ["to-string", ["get", "submitted"]],
-                        " reports)",
+                        [
+                          "case",
+                          ["==", ["get", "submitted"], 1],
+                          " report)",
+                          " reports)",
+                        ],
                       ],
                       "text-size": 12,
                       "text-offset": [0, 1.2],
@@ -375,8 +381,8 @@ export function ReportLocationMap({
                           {selected.barangay}
                         </strong>
                         <p className="decision-map__popup-counts">
-                          {selected.submitted} submitted reports · {selected.open} reports in open
-                          validation
+                          {reportCount(selected.submitted, "submitted")} ·{" "}
+                          {reportCount(selected.open, "in open validation")}
                         </p>
                         <Link
                           className="decision-map__popup-link"
@@ -389,7 +395,7 @@ export function ReportLocationMap({
                     ) : (
                       <>
                         <strong className="decision-map__popup-title">
-                          {selectedReports.length} reports at this point
+                          {reportCount(selectedReports.length)} at this point
                         </strong>
                         {gps.data?.metadata.truncated ? <p>Within the returned map slice.</p> : null}
                         <ul className="location-group-reports">
@@ -421,7 +427,7 @@ export function ReportLocationMap({
         ) : null}
         {layer === "gps" && inView && gps.data ? (
           <p className="decision-chart-card__hint">
-            {gps.data.metadata.returnedCount} reports shown at {gpsGroups.length} locations (limit {GPS_LIMIT})
+            {reportCount(gps.data.metadata.returnedCount)} shown at {gpsGroups.length} locations (limit {GPS_LIMIT})
             {gps.data.metadata.truncated ? "; a sample only" : ""}.
           </p>
         ) : null}
@@ -449,7 +455,8 @@ export function ReportLocationMap({
                 >
                   <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
                   <span className="decision-chart__barangay-count">
-                    {row.submitted} submitted reports · {row.open} reports in open validation
+                    {reportCount(row.submitted, "submitted")} ·{" "}
+                    {reportCount(row.open, "in open validation")}
                   </span>
                 </Link>
               </li>
@@ -459,7 +466,7 @@ export function ReportLocationMap({
             <details className="decision-chart__barangay-remainder">
               <summary className="decision-chart__barangay-remainder-summary">
                 <span>
-                  +{remainderBarangays.length} more barangays ({remainderSubmitted} submitted reports · {remainderOpen} reports in open validation)
+                  +{remainderBarangays.length} more barangays ({reportCount(remainderSubmitted, "submitted")} · {reportCount(remainderOpen, "in open validation")})
                 </span>
               </summary>
               <ul className="decision-chart__barangay-list decision-chart__barangay-list--remainder">
@@ -471,7 +478,8 @@ export function ReportLocationMap({
                     >
                       <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
                       <span className="decision-chart__barangay-count">
-                        {row.submitted} submitted reports · {row.open} reports in open validation
+                        {reportCount(row.submitted, "submitted")} ·{" "}
+                        {reportCount(row.open, "in open validation")}
                       </span>
                     </Link>
                   </li>

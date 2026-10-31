@@ -206,6 +206,7 @@ describe("ValidationMap", () => {
     renderMap(mapData([[120.63, 14.07]]));
     loadMap();
 
+    expect(screen.getByText("1 report shown")).toBeInTheDocument();
     expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
     expect(mapTestState.controls.easeTo.mock.calls.at(-1)?.[0]).toMatchObject({
       center: [120.63, 14.07],

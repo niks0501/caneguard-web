@@ -388,6 +388,43 @@ describe("BarangayValidationBars", () => {
       expect(row.pastTargetDate + row.scheduled + row.unscheduled).toBe(row.open);
     }
   });
+
+  it("prints single-report narrow rows with singular units", () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }) as unknown as typeof window.matchMedia;
+    try {
+      renderWithRouter(
+        <BarangayValidationBars
+          analytics={{
+            ...analytics,
+            validationByBarangay: [
+              {
+                barangay: "Balaytigui",
+                submitted: 1,
+                open: 1,
+                pastTargetDate: 1,
+                scheduled: 0,
+                unscheduled: 0,
+              },
+            ],
+          } as ReportAnalytics}
+          scopeLabel={scopeLabel}
+        />,
+      );
+
+      expect(
+        screen.getByText(
+          "1 report submitted · 1 report past target date · 0 reports scheduled ahead · 0 reports unscheduled",
+        ),
+      ).toBeInTheDocument();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
 });
 
 describe("ReportLocationMap", () => {
@@ -407,7 +444,7 @@ describe("ReportLocationMap", () => {
       screen.getByRole("button", { name: "Barangay circles" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByRole("link", { name: /Balaytigui 8 submitted/ }),
+      screen.getByRole("link", { name: /Balaytigui 8 reports submitted/ }),
     ).toHaveAttribute("href", "/reports?barangay=Balaytigui");
 
     await user.click(screen.getByRole("button", { name: "GPS points" }));

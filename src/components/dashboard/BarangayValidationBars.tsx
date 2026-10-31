@@ -188,9 +188,10 @@ export function BarangayValidationBars({
             <Link to={`/reports?barangay=${encodeURIComponent(row.barangay)}`}>
               <strong>{row.barangay}</strong>
               <span>
-                {row.submitted} submitted reports · {row.pastTargetDate} reports past target
-                date · {row.scheduled} reports scheduled ahead · {row.unscheduled}{" "}
-                unscheduled reports
+                {reportCount(row.submitted, "submitted")} ·{" "}
+                {reportCount(row.pastTargetDate, "past target date")} ·{" "}
+                {reportCount(row.scheduled, "scheduled ahead")} ·{" "}
+                {reportCount(row.unscheduled, "unscheduled")}
               </span>
             </Link>
           </li>
