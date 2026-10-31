@@ -8,9 +8,12 @@ This workflow deploys **only** the Web/Laravel application to the existing Light
 - The existing persistent `/var/www/caneguard/shared/api/.env` and `shared/api/storage` must exist, have correct restrictive access, and remain outside releases.
 - PHP 8.3+, Composer 2, PHP extensions, Nginx, MySQL, and DNS/HTTPS must already be operational.
 - `/var/www/caneguard/current/api/public` must be the Nginx document root.
-- The server's `deploy` account must have `flock`, `tar`, `sha256sum`, `curl` and `php`.
+- The server's `deploy` account must have `flock`, `tar`, `sha256sum`, `curl`, `id` and PHP 8.3+ CLI with `proc_open` enabled.
 - On the VPS, `ubuntu` must install the `acl` package (`sudo apt-get update && sudo apt-get install -y acl`). This provides `setfacl` and `getfacl` to the `deploy` account.
-- `deploy` must own release files created by the deployment. After Composer installs dependencies, the script grants PHP-FPM user `www-data` read/traverse ACL permissions on the new release and verifies entrypoint ACLs before migrations and activation. It does not follow the persistent `.env` or `storage` symlinks. No recursive `chgrp`, no broad `other` read access, and no sudo grant to `deploy`.
+- `deploy` must own release files created by the deployment. After Composer and Laravel cache preparation, the script grants PHP-FPM user `www-data` read/traverse ACL permissions on the new release using a physical (`-P`) walk. Permission changes never follow the persistent `.env` or `storage` symlinks. No recursive `chgrp`, no broad `other` read access, and no sudo grant to `deploy`.
+- The FPM pool must run as `www-data` with the primary/supplementary groups reported by `id -G www-data`. The read-only preflight evaluates numeric POSIX access ACLs (including masks, owner/named-user precedence and matching groups) for that identity, not the deploying account. It checks ancestor traversal, release/application/vendor/frontend readability, generated `bootstrap/cache/config.php` and compiled views, shared `.env` readability, and read/write/search on shared runtime directories plus read/write on existing runtime files. Missing artifacts or denied/unknown metadata abort before migrations and activation, without printing file contents or changing shared permissions.
+- An administrator must provision restrictive shared runtime permissions (including inheritance for newly compiled views and logs), confirm the FPM identity/group baseline, and review release-parent default ACLs. `setfacl` recalculates masks and can unmask pre-existing named/group permissions; this workflow does not guarantee isolation from unexpected inherited ACL entries.
+- These are filesystem entrypoint/artifact checks, not proof that PHP-FPM or Nginx can serve the release. They assume ordinary Linux POSIX ACL semantics and stable filesystem/identity metadata during deployment; they do not test service configuration, MAC policies, read-only mounts, quotas or OPcache. The post-activation HTTPS readiness checks remain required.
 - Before first run, verify the archive destination and shared state permissions. The workflow does not change host configuration.
 
 ## SSH credentials, configured manually
@@ -44,6 +47,8 @@ The workflow refuses unknown host keys. Do not use `ssh-keyscan` as an unverifie
 
 ## Manual operation
 GitHub > Actions > Deploy CaneGuard Web (manual) > Run workflow > branch `main` > enter `deploy-caneguard`.
+
+After a deployment fix is merged, start a **new** dispatch and verify its SHA contains the fix. Do not rerun an old failed run: reruns reuse the old revision and release identity, which can collide with retained failed-release directories.
 
 The workflow needs the dedicated `deploy` key; your personal workstation SSH key is not needed. View Actions logs after each run. A passed deployment should show `PASS: Active release`.
 
