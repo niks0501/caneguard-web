@@ -55,7 +55,7 @@ The API coverage includes GeoJSON coordinates, located and unlocated metadata, o
 From the repository root, run the focused Web regression tests:
 
 ```bash
-npm test -- --run src/components/fieldValidation/localBasemap.test.ts src/components/fieldValidation/ValidationMap.test.tsx src/pages/FieldValidationMapPage.test.tsx
+npm test -- --run src/components/fieldValidation/localBasemap.test.ts src/components/fieldValidation/ValidationMap.test.tsx src/components/dashboard/ReportLocationMap.test.tsx src/pages/FieldValidationMapPage.test.tsx
 ```
 
 Run the focused API map and queue contract tests:

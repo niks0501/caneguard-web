@@ -102,7 +102,10 @@ function useInView(): [React.RefObject<HTMLDivElement | null>, boolean] {
  * small summary popup anchored on the map with the essential counts and a
  * link through to the barangay reports register or the single report. The
  * barangay list below is a real list of links and stays the keyboard route
- * to those destinations, so the map is never the only way through.
+ * to those destinations, so the map is never the only way through. The GPS
+ * layer repeats that guarantee for shared locations: its details list links
+ * every returned report, so a member hidden behind a shared dot is still one
+ * click away.
  */
 export function ReportLocationMap({
   rows,
