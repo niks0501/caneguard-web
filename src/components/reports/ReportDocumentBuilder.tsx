@@ -10,6 +10,7 @@ import { checkApiHealth } from "../../api/apiHealth";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { WeeklyReportApproval } from "./WeeklyReportApproval";
+import { WeeklyRssiExport } from "./WeeklyRssiExport";
 import { previousManilaIsoWeekAt } from "../../domain/reportingTime";
 import {
   authorityClassifiedConditionLabels,
@@ -40,7 +41,7 @@ type BuilderState = {
   filters: BuilderFilters;
 };
 
-type BuilderMode = "printable" | "official";
+type BuilderMode = "printable" | "official" | "rssi";
 
 type StoredBuilderState = Pick<BuilderState, "periodType" | "week" | "month" | "from" | "to">;
 
@@ -195,7 +196,7 @@ export function ReportDocumentBuilder({
 
   const params = useMemo(() => queryFor(state), [state]);
   useEffect(() => {
-    if (!open) return;
+    if (!open || mode === "rssi") return;
     const timer = window.setTimeout(() => {
       if (apiAvailability === "available") {
         setPreviewUrl(`${env.apiBaseUrl}${documentPath}?${params.toString()}`);
@@ -205,7 +206,7 @@ export function ReportDocumentBuilder({
       }
     }, apiAvailability === "available" ? 250 : 0);
     return () => window.clearTimeout(timer);
-  }, [apiAvailability, open, params]);
+  }, [apiAvailability, mode, open, params]);
 
   const update = <K extends keyof BuilderState>(key: K, value: BuilderState[K]) =>
     setState((current) => ({ ...current, [key]: value }));
@@ -291,7 +292,9 @@ export function ReportDocumentBuilder({
       id="report-builder"
       className="report-builder-modal"
       title="Generate report"
-      description="Preview the printable document before saving it."
+      description={mode === "rssi"
+        ? "Download the weekly RSSI report for the selected period."
+        : "Preview the printable document before saving it."}
       open={open}
       onClose={onClose}
       footer={
@@ -323,6 +326,14 @@ export function ReportDocumentBuilder({
         >
           Official weekly report
         </Button>
+        <Button
+          type="button"
+          variant={mode === "rssi" ? "primary" : "secondary"}
+          aria-pressed={mode === "rssi"}
+          onClick={() => setMode("rssi")}
+        >
+          Weekly RSSI report
+        </Button>
       </div>
 
       <div className="report-builder__controls">
@@ -330,6 +341,7 @@ export function ReportDocumentBuilder({
         {state.periodType === "weekly" ? <label><span>Week</span><input type="week" value={state.week} onChange={(event) => update("week", event.target.value)} /></label> : null}
         {state.periodType === "monthly" ? <label><span>Month</span><input type="month" value={state.month} onChange={(event) => update("month", event.target.value)} /></label> : null}
         {state.periodType === "custom" ? <><label><span>From</span><input type="date" value={state.from} onChange={(event) => update("from", event.target.value)} /></label><label><span>To</span><input type="date" value={state.to} onChange={(event) => update("to", event.target.value)} /></label></> : null}
+        {mode === "rssi" ? null : <>
         <label><span>Barangay</span><input type="text" value={state.filters.barangay} placeholder="All barangays" onChange={(event) => updateFilter("barangay", event.target.value)} /></label>
         <label><span>Possible Condition</span><select value={state.filters.predicted_label} onChange={(event) => updateFilter("predicted_label", event.target.value)}><option value="">All conditions</option>{Object.entries(diseaseLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label><span>Case state</span><select value={state.filters.case_state} onChange={(event) => updateFilter("case_state", event.target.value)}><option value="">All case states</option>{Object.entries(caseStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -338,21 +350,38 @@ export function ReportDocumentBuilder({
         <label><span>Staff condition</span><select value={state.filters.authority_classified_condition} onChange={(event) => updateFilter("authority_classified_condition", event.target.value)}><option value="">All classifications</option>{Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label><span>Operational queue</span><select value={state.filters.queue} onChange={(event) => updateFilter("queue", event.target.value)}><option value="">All queues</option><option value="needs_review">Needs review</option><option value="needs_visit">Needs visit</option><option value="follow_up_due">Follow-up due</option><option value="upcoming">Upcoming visits</option><option value="unverified_no_active_work">Unverified, no active work</option></select></label>
         <label className="report-builder__check"><input type="checkbox" checked={state.appendix} onChange={(event) => update("appendix", event.target.checked)} /><span>Include farmer/farm identifier appendix</span></label>
+        </>}
       </div>
 
-      <div className="report-builder__scope" aria-label="Printable report scope">
-        <p>
-          <strong>Scope:</strong> {printableScopeSummary(state.filters, periodLabel(state))} · all matching cases in this period
-        </p>
-        {scope.removed.length > 0 ? (
-          <p role="status">Not carried into this document: {scope.removed.join(", ")}.</p>
-        ) : null}
-        {scopeChanged ? (
-          <Button type="button" variant="secondary" onClick={resetToWorkScope}>Reset to the current work scope</Button>
-        ) : null}
-      </div>
+      {mode === "rssi" ? null : (
+        <>
+          <div className="report-builder__scope" aria-label="Printable report scope">
+            <p>
+              <strong>Scope:</strong> {printableScopeSummary(state.filters, periodLabel(state))} · all matching cases in this period
+            </p>
+            {scope.removed.length > 0 ? (
+              <p role="status">Not carried into this document: {scope.removed.join(", ")}.</p>
+            ) : null}
+            {scopeChanged ? (
+              <Button type="button" variant="secondary" onClick={resetToWorkScope}>Reset to the current work scope</Button>
+            ) : null}
+          </div>
+          {state.appendix ? <p className="report-builder__warning" role="note">Farmer and farm references are included when the appendix is enabled.</p> : null}
+        </>
+      )}
 
-      {state.appendix ? <p className="report-builder__warning" role="note">Farmer and farm references are included when the appendix is enabled.</p> : null}
+      {mode === "rssi" ? (
+        <WeeklyRssiExport
+          period={{
+            periodType: state.periodType,
+            week: state.week,
+            month: state.month,
+            from: state.from,
+            to: state.to,
+          }}
+          disabled={apiAvailability !== "available"}
+        />
+      ) : null}
       {mode === "official" ? (
         <section className="report-builder__official" aria-label="Official weekly version">
           <h3>Official weekly report</h3>
@@ -367,7 +396,7 @@ export function ReportDocumentBuilder({
           <Button type="button" variant="secondary" onClick={retryApiConnection}>Retry connection</Button>
         </div>
       ) : null}
-      {pdfError ? <div className="report-builder__error" role="alert">{pdfError}</div> : null}
+      {pdfError && mode === "printable" ? <div className="report-builder__error" role="alert">{pdfError}</div> : null}
       {mode === "printable" ? (
         <div className="report-builder__preview" aria-label="Live report preview">
           {apiAvailability === "checking" ? <p>Checking the CaneGuard API connection...</p> : previewUrl ? <iframe ref={previewFrame} title="Live report preview" src={previewUrl} tabIndex={-1} /> : apiAvailability === "available" ? <p>Preparing the report preview...</p> : null}

@@ -8881,6 +8881,11 @@ button.monitoring-calendar__day-number:focus-visible {
   margin: var(--space-3) var(--space-6);
 }
 
+.report-builder__rssi .report-builder__actions {
+  justify-content: flex-start;
+  background: transparent;
+}
+
 .report-builder__weekly .report-builder__actions {
   flex-wrap: wrap;
   align-items: center;
