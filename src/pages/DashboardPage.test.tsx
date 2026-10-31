@@ -256,7 +256,7 @@ describe("DashboardPage", () => {
     expect(screen.getByLabelText("This month to date")).toBeInTheDocument();
     expect(screen.queryByLabelText("This month")).not.toBeInTheDocument();
     expect(screen.queryByText(/Month to date; compared with/)).not.toBeInTheDocument();
-    expect(screen.getByText("+3 vs previous period · month to date")).toBeInTheDocument();
+    expect(screen.getByText("+3 reports vs previous period · month to date")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Scope month"), {
       target: { value: "2026-08" },
@@ -282,9 +282,9 @@ describe("DashboardPage", () => {
     // A closed month is not month to date, and KPI 1 stops saying so.
     expect(screen.getByLabelText("This month")).toBeInTheDocument();
     expect(screen.queryByLabelText("This month to date")).not.toBeInTheDocument();
-    expect(screen.getByText("+3 vs previous period")).toBeInTheDocument();
+    expect(screen.getByText("+3 reports vs previous period")).toBeInTheDocument();
     expect(
-      screen.queryByText("+3 vs previous period · month to date"),
+      screen.queryByText("+3 reports vs previous period · month to date"),
     ).not.toBeInTheDocument();
   });
 
@@ -294,7 +294,7 @@ describe("DashboardPage", () => {
     // The retired header note explained the comparison in visible prose; the
     // definition now lives in exactly one tooltip on KPI 1's supporting line.
     const card = screen.getByText("Submitted reports").closest("article")!;
-    const support = within(card).getByText("+3 vs previous period · month to date");
+    const support = within(card).getByText("+3 reports vs previous period · month to date");
     expect(support).toHaveClass("kpi-card__support--annotated");
 
     const tooltip = within(card).getByRole("tooltip");
@@ -349,7 +349,7 @@ describe("DashboardPage", () => {
     const card = screen.getByText("Reports awaiting review").closest("article")!;
     expect(within(card).getByText("1")).toBeInTheDocument();
     expect(within(card).getByText("Oldest: 2 days")).toBeInTheDocument();
-    expect(within(card).getByRole("img", { name: "Waiting age: 0–2 days waiting 1" })).toBeInTheDocument();
+    expect(within(card).getByRole("img", { name: "Waiting age: 0–2 days waiting 1 report" })).toBeInTheDocument();
   });
 
   it("labels an empty or unmeasurable waiting backlog honestly", () => {
@@ -422,12 +422,12 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
     expect(
       snapshot.getByRole("img", {
-        name: "Waiting age: 0–2 days waiting 1, 3–6 days waiting 2",
+        name: "Waiting age: 0–2 days waiting 1 report, 3–6 days waiting 2 reports",
       }),
     ).toBeInTheDocument();
     expect(
       snapshot.getByRole("img", {
-        name: "Field-validation schedule: Past target date 1, Scheduled ahead 2, Unscheduled 1",
+        name: "Field-validation schedule: Past target date 1 report, Scheduled ahead 2 reports, Unscheduled 1 report",
       }),
     ).toBeInTheDocument();
     expect(
@@ -440,11 +440,11 @@ describe("DashboardPage", () => {
     // scoped comparison delta, the same backlog's oldest wait, the same
     // queue's past-target subset, and the queue's own state.
     expect(
-      within(cards[0]).getByText("+3 vs previous period · month to date"),
+      within(cards[0]).getByText("+3 reports vs previous period · month to date"),
     ).toBeInTheDocument();
     expect(within(cards[1]).getByText("Oldest: 5 days")).toBeInTheDocument();
     expect(
-      within(cards[2]).getByText("1 past target date"),
+      within(cards[2]).getByText("1 report past target date"),
     ).toBeInTheDocument();
     expect(
       within(cards[3]).getByText("No validation underway"),
@@ -502,7 +502,7 @@ describe("DashboardPage", () => {
       }),
     );
     renderDashboard();
-    expect(screen.getByText("-3 vs previous period · month to date")).toBeInTheDocument();
+    expect(screen.getByText("-3 reports vs previous period · month to date")).toBeInTheDocument();
     expect(screen.queryByText(/▼ Down from 15/)).not.toBeInTheDocument();
 
     vi.mocked(useAnalytics).mockReturnValue(
@@ -559,7 +559,7 @@ describe("DashboardPage", () => {
       .getByText("Reports needing field validation")
       .closest("article")!;
     expect(within(validation).getByText("4")).toBeInTheDocument();
-    expect(within(validation).getByText("1 past target date")).toBeInTheDocument();
+    expect(within(validation).getByText("1 report past target date")).toBeInTheDocument();
   });
 
   it("shows no empty-state sentence when a queue is empty", () => {
@@ -598,7 +598,7 @@ describe("DashboardPage", () => {
       }),
     ).toBeInTheDocument();
     expect(snapshot.queryAllByText("Past target date")).toHaveLength(0);
-    expect(snapshot.getByText("0 past target date")).toBeInTheDocument();
+    expect(snapshot.getByText("0 reports past target date")).toBeInTheDocument();
     expect(
       snapshot.getByText("No validation underway"),
     ).toBeInTheDocument();

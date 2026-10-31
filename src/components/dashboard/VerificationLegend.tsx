@@ -1,4 +1,5 @@
 import type { VerificationOutcomeSplit } from "../../domain/dashboard.types";
+import { reportCount } from "./countUnits";
 import { kpiBandFillClass, kpiBandForIndex } from "./kpiBandEncoding";
 import { VERIFICATION_LEGEND, verificationLegendName } from "./verificationLegend";
 
@@ -39,7 +40,9 @@ export function VerificationLegend({
                 aria-hidden="true"
               />
               <span className="decision-chart__legend-label">{entry.label}</span>
-              <strong className="decision-chart__legend-count">{count}</strong>
+              <strong className="decision-chart__legend-count">
+                {reportCount(count)}
+              </strong>
             </span>
           </li>
         );

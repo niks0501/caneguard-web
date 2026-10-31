@@ -60,7 +60,7 @@ describe("KPI graphics", () => {
 
     expect(
       screen.getByRole("img", {
-        name: "Field-validation schedule: Past target date 1, Scheduled ahead 2",
+        name: "Field-validation schedule: Past target date 1 report, Scheduled ahead 2 reports",
       }),
     ).toBeInTheDocument();
     const segments = container.querySelectorAll(".kpi-bar__segment");
@@ -113,7 +113,7 @@ describe("KPI graphics", () => {
 
     expect(
       screen.getByRole("img", {
-        name: "Waiting age: 0–2 days waiting 1, 3–6 days waiting 2",
+        name: "Waiting age: 0–2 days waiting 1 report, 3–6 days waiting 2 reports",
       }),
     ).toBeInTheDocument();
     const slices = container.querySelectorAll(".kpi-radial__slice");

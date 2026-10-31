@@ -140,10 +140,19 @@ describe("FieldValidationMapPage structure and summary", () => {
 
   it("exposes four filtered summary metrics that describe the filtered scope", () => {
     renderPage();
-    expect(summaryButton("Matching reports")).toHaveTextContent("12");
+    expect(summaryButton("Matching active reports")).toHaveTextContent("12");
     expect(summaryButton("Reports needing visit")).toHaveTextContent("7");
     expect(summaryButton("Reports past target date")).toHaveTextContent("3");
     expect(summaryButton("Reports without location")).toHaveTextContent("4");
+  });
+
+  it("drops the active qualifier once a case status is selected", () => {
+    renderPage("/monitoring?view=map&status=resolved");
+
+    expect(summaryButton("Matching reports")).toHaveTextContent("12");
+    expect(
+      screen.queryByRole("button", { name: /Matching active reports/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("never reports unknown map counts as zero", () => {
@@ -152,9 +161,9 @@ describe("FieldValidationMapPage structure and summary", () => {
     );
     const { unmount } = renderPage();
 
-    expect(summaryButton("Matching reports")).toHaveTextContent("—");
+    expect(summaryButton("Matching active reports")).toHaveTextContent("—");
     expect(summaryButton("Reports past target date")).toHaveTextContent("—");
-    expect(summaryButton("Matching reports")).not.toHaveTextContent("0");
+    expect(summaryButton("Matching active reports")).not.toHaveTextContent("0");
     unmount();
 
     vi.mocked(useFieldValidationMap).mockReturnValue(
@@ -166,7 +175,7 @@ describe("FieldValidationMapPage structure and summary", () => {
     );
     renderPage();
 
-    expect(summaryButton("Matching reports")).toHaveTextContent("Unavailable");
+    expect(summaryButton("Matching active reports")).toHaveTextContent("Unavailable");
     expect(summaryButton("Reports needing visit")).toHaveTextContent("Unavailable");
   });
 
@@ -223,7 +232,7 @@ describe("FieldValidationMapPage structure and summary", () => {
       expect.objectContaining({ queue: "follow_up_due", barangay: "Balaytigui" }),
       { enabled: true },
     );
-    await user.click(summaryButton("Matching reports"));
+    await user.click(summaryButton("Matching active reports"));
     expect(useFieldValidationMap).toHaveBeenLastCalledWith(
       expect.not.objectContaining({ queue: expect.anything() }),
       { enabled: true },

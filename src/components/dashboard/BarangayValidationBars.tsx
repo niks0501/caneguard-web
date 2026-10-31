@@ -13,6 +13,7 @@ import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { dashboardChartCopy } from "./chartCopy";
 import { bandColor, chartTheme } from "./chartTheme";
+import { reportCount } from "./countUnits";
 import { kpiBandFillClass, type KpiBand } from "./kpiBandEncoding";
 
 interface BarangayRow {
@@ -86,7 +87,7 @@ export function BarangayValidationBars({
       titleId="chart-barangay-validation"
       title={copy.title}
       periodLine={scopeLabel}
-      chartLabel={`${copy.title}: ${rows.map((row) => `${row.barangay} ${row.submitted} submitted, ${row.pastTargetDate} past target date`).join("; ")}`}
+      chartLabel={`${copy.title}: ${rows.map((row) => `${row.barangay} ${reportCount(row.submitted, "submitted")}, ${reportCount(row.pastTargetDate, "past target date")}`).join("; ")}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${scopeLabel}`}
@@ -131,12 +132,12 @@ export function BarangayValidationBars({
               formatter={(value, name) => [
                 value,
                 name === "submitted"
-                  ? "Submitted this period"
+                  ? "Submitted reports this period"
                   : name === "past_target_date"
-                    ? "Past target date"
+                    ? "Reports past target date"
                     : name === "scheduled"
-                      ? "Scheduled ahead"
-                      : "Unscheduled",
+                      ? "Reports scheduled ahead"
+                      : "Unscheduled reports",
               ]}
             />
             <Bar

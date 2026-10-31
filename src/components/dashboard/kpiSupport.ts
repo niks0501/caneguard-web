@@ -1,4 +1,5 @@
 import type { ReportAnalytics } from "../../domain/dashboard.types";
+import { reportCount } from "./countUnits";
 import { formatWindow } from "./dashboardScope";
 
 /**
@@ -25,7 +26,7 @@ export function deltaSupportLine(delta: number, monthToDate: boolean): string {
   const line =
     delta === 0
       ? "No change vs previous period"
-      : `${delta > 0 ? "+" : ""}${delta} vs previous period`;
+      : `${delta > 0 ? "+" : "-"}${reportCount(Math.abs(delta))} vs previous period`;
   return monthToDate ? `${line} · month to date` : line;
 }
 
@@ -59,7 +60,7 @@ export function waitingAgeSupportLine(
 
 /** Calendar subset of the field-validation queue the card counts. */
 export function pastTargetDateSupportLine(count: number): string {
-  return `${count} past target date`;
+  return `${reportCount(count)} past target date`;
 }
 
 /** Accessible name for KPI 4's status indicator, carrying its counted state. */

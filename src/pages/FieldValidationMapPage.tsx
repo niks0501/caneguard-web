@@ -346,7 +346,7 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
           <ul className="map-summary" aria-label="Map summary">
             <li>
               <button type="button" className={`map-summary__action${appliedFilters.queue === undefined ? " is-active" : ""}`} onClick={() => applyQueueScope(undefined)}>
-                <span className="map-summary__label">Matching reports</span>
+                <span className="map-summary__label">{appliedFilters.status ? "Matching reports" : "Matching active reports"}</span>
                 <strong>{summaryCount(summary.activeCases)}</strong>
               </button>
             </li>

@@ -197,6 +197,11 @@ describe("InflowComparisonBars", () => {
     expect(container.querySelector(".decision-chart-card__takeaway")).toBeNull();
     expect(screen.queryByText(/says nothing about what comes next/)).not.toBeInTheDocument();
     // Series meaning never depends on colour alone: names and totals print.
+    expect(
+      screen.getByRole("img", {
+        name: /12 reports submitted this period; 9 reports in the previous period/,
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/This period \(12 reports\)/)).toBeInTheDocument();
     expect(screen.getByText(/Previous period \(9 reports\)/)).toBeInTheDocument();
     // Both series are flat band solids: no pattern definition survives, no
@@ -263,13 +268,13 @@ describe("ConcernVsConditionBars", () => {
     const strip = screen.getByRole("list", { name: "Staff verification so far" });
     expect(strip).toHaveClass("decision-chart__legend--verification");
     expect(
-      within(strip).getByRole("img", { name: "Verified by staff: 3" }),
+      within(strip).getByRole("img", { name: "Verified by staff: 3 reports" }),
     ).toBeInTheDocument();
     expect(
-      within(strip).getByRole("img", { name: "Unable to verify: 2" }),
+      within(strip).getByRole("img", { name: "Unable to verify: 2 reports" }),
     ).toBeInTheDocument();
     expect(
-      within(strip).getByRole("img", { name: "Not yet determined: 7" }),
+      within(strip).getByRole("img", { name: "Not yet determined: 7 reports" }),
     ).toBeInTheDocument();
     // Solids, never colour alone: three flat band fills in ramp order, each
     // with its own printed label and count, and no texture anywhere.
@@ -297,7 +302,7 @@ describe("ConcernVsConditionBars", () => {
     ]) {
       expect(within(strip).getByText(label)).toBeInTheDocument();
       expect(
-        within(strip).getByRole("img", { name: `${label}: ${count}` }),
+        within(strip).getByRole("img", { name: `${label}: ${count} reports` }),
       ).toHaveTextContent(count);
     }
     for (const [label, count] of [
@@ -354,6 +359,11 @@ describe("BarangayValidationBars", () => {
     expect(screen.queryByText(/policy deadline/)).not.toBeInTheDocument();
     const c3Table = screen.getByRole("table");
     expect(within(c3Table).getByText("Reports past target date")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: /Balaytigui 8 reports submitted, 2 reports past target date/,
+      }),
+    ).toBeInTheDocument();
     // The baseline and the three stacked segments are four flat band solids,
     // and the legend swatches name the same bands in the same order.
     expect(container.querySelectorAll("pattern")).toHaveLength(0);
