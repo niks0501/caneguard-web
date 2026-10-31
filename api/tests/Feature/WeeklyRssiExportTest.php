@@ -239,6 +239,26 @@ class WeeklyRssiExportTest extends TestCase
         );
     }
 
+    public function test_pdf_render_failure_returns_a_csv_fallback_error(): void
+    {
+        $district = $this->pilotDistrict();
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        Sanctum::actingAs($reviewer);
+        Pdf::shouldReceive('view')->andThrow(new \RuntimeException('renderer down'));
+
+        $response = $this->get('/api/v1/reports/rssi-weekly/export?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W40',
+            'format' => 'pdf',
+        ]));
+
+        $response->assertStatus(503);
+        $response->assertJson([
+            'message' => 'The PDF could not be generated. The CSV export is still available.',
+            'code' => 'PDF_RENDER_FAILED',
+        ]);
+    }
+
     public function test_pdf_download_renders_an_a4_document(): void
     {
         $district = $this->pilotDistrict();
