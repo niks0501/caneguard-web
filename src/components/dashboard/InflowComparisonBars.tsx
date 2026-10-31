@@ -103,14 +103,14 @@ export function InflowComparisonBars({
             />
             <Bar
               dataKey="current"
-              name="This period"
+              name="current"
               fill={bandColor(CURRENT_BAND)}
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             />
             {comparisonAvailable ? <Bar
               dataKey="previous"
-              name="Previous period"
+              name="previous"
               fill={bandColor(PREVIOUS_BAND)}
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
