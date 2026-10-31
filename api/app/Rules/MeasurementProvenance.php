@@ -18,7 +18,7 @@ final class MeasurementProvenance implements ValidationRule
 
     public const MAX_AFFECTED_AREA_SETS = AffectedAreaPolygons::MAX_POLYGONS;
 
-    public const MAX_WAYPOINTS = SurveyPolygon::MAX_POSITIONS;
+    public const MAX_WAYPOINTS = 2000;
 
     private const MAX_DEPTH = 8;
 

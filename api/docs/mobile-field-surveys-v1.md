@@ -87,8 +87,9 @@ Three optional, nullable fields carry the phone's affected-area survey:
   `affected_area_polygons`, and every waypoint must record `source` (`map` or
   `gps`), `accuracy_meters` (a non-negative number or `null`) and `captured_at`
   (an ISO8601 date-time; a timezone offset is kept when supplied). At most 100
-  affected areas and 10,000 waypoints are accepted, the encoded object is
-  limited to 262,144 bytes, and every number must be finite.
+  affected areas and 2,000 waypoints are accepted, so the waypoint budget is
+  reachable inside the encoded object's 262,144-byte limit, and every number
+  must be finite.
 
 All three may be omitted; a plot-only payload stores `null` for each, so older
 clients keep working without a backfill. Top-level fields this contract does
@@ -102,14 +103,14 @@ Create and valid replay both return HTTP **201**, with exactly:
 { "id": "123", "status": "kept" }
 ```
 
-`id` is always a JSON string, which is the shape the phone expects. Keep the
-same UUID for retries. It is globally unique, enforced in the database. A
-replay from the same inspector in the same district returns the original ID
-without altering the polygon, measurements, affected-area evidence or
-timestamps, even if the supplied valid measurement differs. Normal validation
-and current authorization still apply to replays. Another inspector's UUID (or
-an original record in another district) yields a `client_uuid` field error; its
-ID is never disclosed.
+`id` is deliberately always a JSON string, never a number, because the phone
+rejects any other type. Keep the same UUID for retries. It is globally unique,
+enforced in the database. A replay from the same inspector in the same district
+returns the original ID without altering the polygon, measurements,
+affected-area evidence or timestamps, even if the supplied valid measurement
+differs. Normal validation and current authorization still apply to replays.
+Another inspector's UUID (or an original record in another district) yields a
+`client_uuid` field error; its ID is never disclosed.
 
 ## Rejection
 

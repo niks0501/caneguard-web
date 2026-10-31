@@ -6,6 +6,7 @@ use App\Models\District;
 use App\Models\DistrictMembership;
 use App\Models\FieldSurvey;
 use App\Models\User;
+use App\Rules\MeasurementProvenance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -144,6 +145,35 @@ class MobileFieldSurveyTest extends TestCase
         $this->postJson(self::ENDPOINT, $payload)->assertUnprocessable()
             ->assertJsonValidationErrors('affected_area_polygons');
         $this->assertDatabaseCount('field_surveys', 0);
+    }
+
+    public function test_waypoint_budget_is_reachable_inside_the_documented_byte_cap(): void
+    {
+        $this->loginInspector();
+        $waypoint = [
+            'latitude' => 10.7,
+            'longitude' => 122.9501,
+            'source' => 'gps',
+            'accuracy_meters' => 4.5,
+            'captured_at' => '2026-10-04T10:30:10.123456+08:00',
+        ];
+        $payload = $this->payload();
+        $payload['measurement_provenance'] = [
+            'method' => 'wgs84-ellipsoid-geodesic',
+            'affected_area_waypoint_provenance' => [array_fill(0, MeasurementProvenance::MAX_WAYPOINTS, $waypoint)],
+        ];
+
+        $this->postJson(self::ENDPOINT, $payload)->assertCreated();
+        $stored = FieldSurvey::query()->sole()->measurement_provenance;
+        $this->assertCount(MeasurementProvenance::MAX_WAYPOINTS, $stored['affected_area_waypoint_provenance'][0]);
+
+        $payload['client_uuid'] = (string) Str::uuid();
+        $payload['measurement_provenance']['affected_area_waypoint_provenance'] = [
+            array_fill(0, MeasurementProvenance::MAX_WAYPOINTS + 1, $waypoint),
+        ];
+        $this->postJson(self::ENDPOINT, $payload)->assertUnprocessable()
+            ->assertJsonValidationErrors('measurement_provenance');
+        $this->assertDatabaseCount('field_surveys', 1);
     }
 
     #[DataProvider('invalidAffectedAreaEvidence')]
