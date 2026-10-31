@@ -266,6 +266,19 @@ describe("ReportLocationMap layer toggle", () => {
     for (const feature of data.features) expect(screen.getByRole("link", { name: `Open ${feature.properties.referenceCode}` })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
   });
 
+  it("pluralizes the report and location counts for a single-point scope", async () => {
+    const data = gpsData();
+    data.features = data.features.slice(0, 1);
+    data.metadata.returnedCount = 1;
+    data.metadata.totalCount = 1;
+    data.metadata.locatedCount = 1;
+    vi.mocked(useFieldValidationMap).mockReturnValue({ data, isPending: false, isError: false } as unknown as ReturnType<typeof useFieldValidationMap>);
+    const user = userEvent.setup();
+    renderMap();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    expect(screen.getByText("1 report shown at 1 location (limit 100).")).toBeInTheDocument();
+  });
+
   it("registers an image fallback when the map style requests an absent sprite", async () => {
     renderMap();
 
