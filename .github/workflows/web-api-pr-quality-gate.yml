@@ -52,6 +52,12 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      - name: Check deployment access preflight
+        run: |
+          bash -n scripts/deploy-production.sh
+          php -l scripts/verify-release-access.php
+          python3 scripts/verify-release-access.test.py -v
+
       - name: Install Web dependencies
         run: npm ci --no-audit --no-fund
 
