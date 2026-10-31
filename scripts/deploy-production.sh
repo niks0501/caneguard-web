@@ -63,6 +63,23 @@ php artisan optimize:clear
 php artisan config:cache
 php artisan view:cache
 
+# Composer may create 0640 deploy:deploy files despite setgid parent directories.
+# Give PHP-FPM (www-data) read access before changing the live release symlink.
+# find -P does not follow the shared api/.env or api/storage symlinks.
+find -P "$new" -type d -exec chgrp www-data {} +
+find -P "$new" -type f -exec chgrp www-data {} +
+find -P "$new" -type d -exec chmod g+rx {} +
+find -P "$new" -type f -exec chmod g+r {} +
+
+bad_directory="$(find -P "$new" -type d \( ! -group www-data -o ! -perm -g+rx \) -print -quit)"
+bad_file="$(find -P "$new" -type f \( ! -group www-data -o ! -perm -g+r \) -print -quit)"
+if [[ -n "$bad_directory" || -n "$bad_file" ]]; then
+  echo "Release permissions are not readable by www-data; refusing activation" >&2
+  [[ -z "$bad_directory" ]] || printf 'Directory: %s\n' "$bad_directory" >&2
+  [[ -z "$bad_file" ]] || printf 'File: %s\n' "$bad_file" >&2
+  exit 1
+fi
+
 # Only non-destructive, backward-compatible migrations may be released.
 # Take an out-of-band MySQL backup before deployments with schema changes.
 php artisan migrate --force --no-interaction
