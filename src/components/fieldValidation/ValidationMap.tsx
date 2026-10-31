@@ -285,7 +285,7 @@ export function ValidationMap({
         <div>
           <h2 id="validation-map-heading">Cases</h2>
         </div>
-        <span>{data.metadata.returnedCount} shown</span>
+        <span>{data.metadata.returnedCount} reports shown</span>
       </div>
       <div className="validation-map" aria-label="Map of submitted report locations">
         {basemapStyle ? (

@@ -316,8 +316,8 @@ export function ReportLocationMap({
                         "concat",
                         ["get", "barangay"],
                         " (",
-                        ["get", "submitted"],
-                        ")",
+                        ["to-string", ["get", "submitted"]],
+                        " reports)",
                       ],
                       "text-size": 12,
                       "text-offset": [0, 1.2],
@@ -375,7 +375,7 @@ export function ReportLocationMap({
                           {selected.barangay}
                         </strong>
                         <p className="decision-map__popup-counts">
-                          {selected.submitted} submitted · {selected.open} open
+                          {selected.submitted} submitted reports · {selected.open} reports in open
                           validation
                         </p>
                         <Link
@@ -425,6 +425,20 @@ export function ReportLocationMap({
             {gps.data.metadata.truncated ? "; a sample only" : ""}.
           </p>
         ) : null}
+        {layer === "gps" && inView && gps.data && gps.data.features.length > 0 ? (
+          <details className="decision-chart__barangay-remainder">
+            <summary>Reports shown on the GPS map</summary>
+            <ul className="location-group-reports">
+              {gps.data.features.map(({ properties }) => (
+                <li key={properties.uuid}>
+                  <Link to={routes.reportDetail(properties.uuid)}>{properties.referenceCode}</Link>
+                  <span>{reviewStatusLabels[properties.reviewStatus]}</span>
+                  <time>{formatValidationDate(properties.observedAt)}</time>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
         <div className="decision-chart__barangay-summary">
           <ul className="decision-chart__barangay-list" aria-label="Active barangays in scope">
             {topBarangays.map((row) => (
@@ -435,7 +449,7 @@ export function ReportLocationMap({
                 >
                   <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
                   <span className="decision-chart__barangay-count">
-                    {row.submitted} submitted · {row.open} open validation
+                    {row.submitted} submitted reports · {row.open} reports in open validation
                   </span>
                 </Link>
               </li>
@@ -445,7 +459,7 @@ export function ReportLocationMap({
             <details className="decision-chart__barangay-remainder">
               <summary className="decision-chart__barangay-remainder-summary">
                 <span>
-                  +{remainderBarangays.length} more barangays ({remainderSubmitted} submitted · {remainderOpen} open validation)
+                  +{remainderBarangays.length} more barangays ({remainderSubmitted} submitted reports · {remainderOpen} reports in open validation)
                 </span>
               </summary>
               <ul className="decision-chart__barangay-list decision-chart__barangay-list--remainder">
@@ -457,7 +471,7 @@ export function ReportLocationMap({
                     >
                       <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
                       <span className="decision-chart__barangay-count">
-                        {row.submitted} submitted · {row.open} open validation
+                        {row.submitted} submitted reports · {row.open} reports in open validation
                       </span>
                     </Link>
                   </li>

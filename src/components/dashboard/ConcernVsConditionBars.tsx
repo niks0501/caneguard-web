@@ -81,12 +81,12 @@ export function ConcernVsConditionBars({
     <DecisionChartFrame
       titleId="chart-concern-condition"
       title={copy.title}
-      periodLine={scopeLabel}
+      periodLine={`${scopeLabel} · submitted reports`}
       chartLabel={`${copy.title}: reported ${analytics.reportedConcern.map((item) => `${reportedConcernLabel(item.concern)} ${item.count}`).join(", ")}; possible condition ${POSSIBLE_CONDITIONS.map((entry) => `${entry.label} ${analytics.possibleCondition.find((item) => item.condition === entry.value)?.count ?? 0}`).join(", ")}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${scopeLabel}`}
-      tableHead={["Series", "Count"]}
+      tableHead={["Series", "Submitted reports"]}
       tableRows={rows.map((row) => [row.rowLabel, String(row.count)])}
       tableFootRows={VERIFICATION_LEGEND.map((entry) => [
         `Staff verification: ${entry.label}`,

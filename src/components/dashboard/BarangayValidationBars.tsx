@@ -92,10 +92,10 @@ export function BarangayValidationBars({
       tableCaption={`${copy.title}. ${scopeLabel}`}
       tableHead={[
         "Barangay",
-        "Submitted",
-        "Past target date",
-        "Scheduled ahead",
-        "Unscheduled",
+        "Submitted reports",
+        "Reports past target date",
+        "Reports scheduled ahead",
+        "Unscheduled reports",
       ]}
       tableRows={rows.map((row) => [
         row.barangay,
@@ -147,7 +147,7 @@ export function BarangayValidationBars({
               isAnimationActive={false}
             />
             <Bar
-              dataKey="past_target_date"
+              dataKey="pastTargetDate"
               name="past_target_date"
               stackId="validation"
               fill={bandColor(PAST_TARGET_BAND)}
@@ -187,9 +187,9 @@ export function BarangayValidationBars({
             <Link to={`/reports?barangay=${encodeURIComponent(row.barangay)}`}>
               <strong>{row.barangay}</strong>
               <span>
-                {row.submitted} submitted · {row.pastTargetDate} past target
-                date · {row.scheduled} scheduled ahead · {row.unscheduled}{" "}
-                unscheduled
+                {row.submitted} submitted reports · {row.pastTargetDate} reports past target
+                date · {row.scheduled} reports scheduled ahead · {row.unscheduled}{" "}
+                unscheduled reports
               </span>
             </Link>
           </li>
@@ -204,7 +204,7 @@ export function BarangayValidationBars({
             data-series-band={BASELINE_BAND}
             aria-hidden="true"
           />
-          Submitted this period
+          Submitted reports this period
         </li>
         <li>
           <span
@@ -212,7 +212,7 @@ export function BarangayValidationBars({
             data-series-band={PAST_TARGET_BAND}
             aria-hidden="true"
           />
-          Past target date
+          Reports past target date
         </li>
         <li>
           <span
@@ -220,7 +220,7 @@ export function BarangayValidationBars({
             data-series-band={SCHEDULED_BAND}
             aria-hidden="true"
           />
-          Scheduled ahead
+          Reports scheduled ahead
         </li>
         <li>
           <span
@@ -228,7 +228,7 @@ export function BarangayValidationBars({
             data-series-band={UNSCHEDULED_BAND}
             aria-hidden="true"
           />
-          Unscheduled
+          Unscheduled reports
         </li>
       </ul>
       ) : null}

@@ -230,6 +230,21 @@ beforeEach(() => {
 });
 
 describe("ReportLocationMap layer toggle", () => {
+  it("offers keyboard-accessible links to every report at a shared GPS location", async () => {
+    const data = gpsData();
+    data.features.forEach((feature) => Object.assign(feature.properties, {
+      locationGroupKey: "shared", locationGroupSize: 2, locationGroupCoordinates: [120.6, 14.07],
+    }));
+    vi.mocked(useFieldValidationMap).mockReturnValue({ data, isPending: false, isError: false } as unknown as ReturnType<typeof useFieldValidationMap>);
+    const user = userEvent.setup();
+    renderMap();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    await user.click(screen.getByText("Reports shown on the GPS map"));
+    for (const feature of data.features) {
+      expect(screen.getByRole("link", { name: feature.properties.referenceCode })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
+    }
+  });
+
   it("plots one counted server-group marker and links every member on click", async () => {
     const data = gpsData();
     data.features.forEach((feature) => Object.assign(feature.properties, {
@@ -385,7 +400,7 @@ describe("ReportLocationMap layer toggle", () => {
       name: "Balaytigui report summary",
     });
     expect(barangayPopup).toHaveTextContent("Balaytigui");
-    expect(barangayPopup).toHaveTextContent("8 submitted · 5 open validation");
+    expect(barangayPopup).toHaveTextContent("8 submitted reports · 5 reports in open validation");
     expect(
       within(barangayPopup).getByRole("link", {
         name: "Open Balaytigui reports register",

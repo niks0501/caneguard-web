@@ -346,7 +346,7 @@ describe("DashboardPage", () => {
       ...analytics, reviewBacklog: { totalWaiting: 1, buckets: [{ label: "0–2 days waiting", count: 1 }], oldestWaitingDays: 2 },
     } }));
     renderDashboard();
-    const card = screen.getByText("Awaiting review").closest("article")!;
+    const card = screen.getByText("Reports awaiting review").closest("article")!;
     expect(within(card).getByText("1")).toBeInTheDocument();
     expect(within(card).getByText("Oldest: 2 days")).toBeInTheDocument();
     expect(within(card).getByRole("img", { name: "Waiting age: 0–2 days waiting 1" })).toBeInTheDocument();
@@ -363,7 +363,7 @@ describe("DashboardPage", () => {
     } }));
     const { rerender } = renderDashboard();
 
-    const card = screen.getByText("Awaiting review").closest("article")!;
+    const card = screen.getByText("Reports awaiting review").closest("article")!;
     expect(within(card).getByText("0")).toBeInTheDocument();
     // Nothing waiting has no oldest age, and the empty split draws no slices.
     expect(within(card).getByText("No reports awaiting review")).toBeInTheDocument();
@@ -383,7 +383,7 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
     expect(
-      within(screen.getByText("Awaiting review").closest("article")!).getByText(
+      within(screen.getByText("Reports awaiting review").closest("article")!).getByText(
         "Oldest waiting age unavailable",
       ),
     ).toBeInTheDocument();
@@ -398,9 +398,9 @@ describe("DashboardPage", () => {
       screen.getByRole("region", { name: "Current operations" }),
     );
     expect(snapshot.getByText("Submitted reports")).toBeInTheDocument();
-    expect(snapshot.getByText("Awaiting review")).toBeInTheDocument();
-    expect(snapshot.getByText("Needing field validation")).toBeInTheDocument();
-    expect(snapshot.getByText("Unverified, no active work")).toBeInTheDocument();
+    expect(snapshot.getByText("Reports awaiting review")).toBeInTheDocument();
+    expect(snapshot.getByText("Reports needing field validation")).toBeInTheDocument();
+    expect(snapshot.getByText("Unverified reports, no active work")).toBeInTheDocument();
 
     // KPI 1: comparison and hint paragraphs are stripped.
     expect(snapshot.queryByText(/▲ Up from/)).not.toBeInTheDocument();
@@ -545,7 +545,7 @@ describe("DashboardPage", () => {
       within(submitted).getByText("Previous period unavailable"),
     ).toBeInTheDocument();
 
-    const awaiting = screen.getByText("Awaiting review").closest("article")!;
+    const awaiting = screen.getByText("Reports awaiting review").closest("article")!;
     expect(within(awaiting).getByText("—")).toBeInTheDocument();
     expect(
       within(awaiting).getByText("Waiting age unavailable"),
@@ -556,7 +556,7 @@ describe("DashboardPage", () => {
 
     // The summary-backed cards still count: their population is current state.
     const validation = screen
-      .getByText("Needing field validation")
+      .getByText("Reports needing field validation")
       .closest("article")!;
     expect(within(validation).getByText("4")).toBeInTheDocument();
     expect(within(validation).getByText("1 past target date")).toBeInTheDocument();
@@ -617,7 +617,7 @@ describe("DashboardPage", () => {
     // anywhere); this fixture proves the longest real labels still mount and
     // that the removed explanatory prose is gone rather than shortened.
     renderDashboard();
-    expect(screen.getByText("Unverified, no active work")).toBeInTheDocument();
+    expect(screen.getByText("Unverified reports, no active work")).toBeInTheDocument();
     expect(
       screen.queryByText(/no referral in flight, no validation assignment/),
     ).not.toBeInTheDocument();

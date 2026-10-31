@@ -66,7 +66,7 @@ export function InflowComparisonBars({
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${periodLine}`}
-      tableHead={["Bucket", "This period", "Previous period"]}
+      tableHead={["Bucket", "Reports this period", "Reports previous period"]}
       tableRows={rows.map((row) => [
         row.label,
         String(row.current),
@@ -124,7 +124,7 @@ export function InflowComparisonBars({
             data-series-band={CURRENT_BAND}
             aria-hidden="true"
           />
-          This period ({analytics.totalSubmitted})
+          This period ({analytics.totalSubmitted} reports)
         </li>
         <li>
           {comparisonAvailable ? (
@@ -134,7 +134,7 @@ export function InflowComparisonBars({
               aria-hidden="true"
             />
           ) : null}
-          {comparisonAvailable ? `Previous period (${comparison.previousTotal})` : "Previous period unavailable"}
+          {comparisonAvailable ? `Previous period (${comparison.previousTotal} reports)` : "Previous period unavailable"}
         </li>
       </ul>
     </DecisionChartFrame>

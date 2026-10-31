@@ -163,7 +163,7 @@ describe("InflowComparisonBars", () => {
         scopeLabel={scopeLabel}
       />,
     );
-    expect(screen.getByText("Previous period (0)")).toBeInTheDocument();
+    expect(screen.getByText("Previous period (0 reports)")).toBeInTheDocument();
     expect(screen.queryByText(/Previous period unavailable/)).not.toBeInTheDocument();
   });
 
@@ -197,8 +197,8 @@ describe("InflowComparisonBars", () => {
     expect(container.querySelector(".decision-chart-card__takeaway")).toBeNull();
     expect(screen.queryByText(/says nothing about what comes next/)).not.toBeInTheDocument();
     // Series meaning never depends on colour alone: names and totals print.
-    expect(screen.getByText(/This period \(12\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Previous period \(9\)/)).toBeInTheDocument();
+    expect(screen.getByText(/This period \(12 reports\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Previous period \(9 reports\)/)).toBeInTheDocument();
     // Both series are flat band solids: no pattern definition survives, no
     // mark paints a `url(#…)` reference, and the two legend swatches name the
     // same bands the bars use.
@@ -353,7 +353,7 @@ describe("BarangayValidationBars", () => {
     expect(screen.queryByText(/Barangay first/)).not.toBeInTheDocument();
     expect(screen.queryByText(/policy deadline/)).not.toBeInTheDocument();
     const c3Table = screen.getByRole("table");
-    expect(within(c3Table).getByText("Past target date")).toBeInTheDocument();
+    expect(within(c3Table).getByText("Reports past target date")).toBeInTheDocument();
     // The baseline and the three stacked segments are four flat band solids,
     // and the legend swatches name the same bands in the same order.
     expect(container.querySelectorAll("pattern")).toHaveLength(0);
@@ -433,7 +433,7 @@ describe("decision chart copy discipline", () => {
     }
     // The one named exception: the KPI segment wording the plan allows
     // while "overdue" itself stays forbidden.
-    expect(copy).toContain("Past target date");
+    expect(copy).toContain("Reports past target date");
     expect(copy.toLowerCase()).not.toContain("overdue");
   });
 });
