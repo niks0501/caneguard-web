@@ -13,7 +13,7 @@ import {
   isCanonicalWorkReport,
   isInOperationalQueue,
 } from "./mockOperationalQueues";
-import { mockReports } from "./mockReports";
+import { mockReportStore } from "./mockReportStore";
 
 function hasValidCoordinates(report: DiseaseReport) {
   const latitude = report.finalLatitude;
@@ -62,7 +62,7 @@ function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
 export class MockFieldValidationRepository implements FieldValidationRepository {
   async getMap(filters: FieldValidationFilters = {}): Promise<FieldValidationMapData> {
     const today = manilaDateAt();
-    const reports = mockReports
+    const reports = mockReportStore
       .filter(isCanonicalWorkReport)
       .filter(
         (report) =>
@@ -123,7 +123,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
   async getQueue(filters: FieldValidationFilters = {}): Promise<FieldValidationQueueData> {
     const queue = filters.queue ?? "needs_visit";
     const today = manilaDateAt();
-    const rawItems = filterMockOperationalQueue(mockReports, queue, today)
+    const rawItems = filterMockOperationalQueue(mockReportStore, queue, today)
       .filter((report) => !filters.status || report.reviewStatus === filters.status)
       .filter((report) => matchesFilters(report, filters))
       .filter((report) => {

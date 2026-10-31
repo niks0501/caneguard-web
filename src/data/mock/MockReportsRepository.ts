@@ -1,3 +1,4 @@
+import { ApiError } from "../../api/ApiError";
 import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
@@ -23,34 +24,7 @@ import {
   legacyReviewStatusForLifecycle,
 } from "../api/mappers/lifecycle.mapper";
 import { isCanonicalWorkReport, isInOperationalQueue } from "./mockOperationalQueues";
-import { mockReports } from "./mockReports";
-
-const cloneReport = (report: DiseaseReport): DiseaseReport => ({
-  ...report,
-  updatedAt: report.updatedAt ?? report.submittedAt,
-  reviewVersion: report.reviewVersion ?? 0,
-  symptoms: report.symptoms.map((symptom) => ({ ...symptom })),
-  reviewEvents: report.reviewEvents
-    ? report.reviewEvents.map((event) => ({
-        ...event,
-        actor: event.actor ? { ...event.actor } : null,
-      }))
-    : [],
-  affectedFields: report.affectedFields?.map((field) => ({
-    ...field,
-    geometry: {
-      type: "Polygon",
-      coordinates: field.geometry.coordinates.map((ring) => ring.map(([longitude, latitude]) => [longitude, latitude])),
-    },
-    inspector: { ...field.inspector },
-  })) ?? [],
-  referral: report.referral
-    ? {
-        ...report.referral,
-        officeContext: { ...report.referral.officeContext },
-      }
-    : report.referral,
-});
+import { cloneMockReport, mockReportStore } from "./mockReportStore";
 
 const exportHeaders = [
   "case_reference",
@@ -89,7 +63,7 @@ function reportersForMockAssignment(uuid: string) {
 }
 
 export class MockReportsRepository implements ReportsRepository {
-  private reports = mockReports.map(cloneReport);
+  private reports = mockReportStore;
 
   async listAdvisories(): Promise<Advisory[]> {
     return [];
@@ -184,7 +158,7 @@ export class MockReportsRepository implements ReportsRepository {
     const page = filters?.page ?? 1;
     const lastPage = Math.max(1, Math.ceil(filtered.length / perPage));
     const start = (page - 1) * perPage;
-    const reports = filtered.slice(start, start + perPage).map(cloneReport);
+    const reports = filtered.slice(start, start + perPage).map(cloneMockReport);
 
     return {
       reports,
@@ -257,7 +231,7 @@ export class MockReportsRepository implements ReportsRepository {
 
   async getReportById(reportId: string): Promise<DiseaseReport | null> {
     const report = this.reports.find((item) => item.uuid === reportId);
-    return report ? cloneReport(report) : null;
+    return report ? cloneMockReport(report) : null;
   }
 
   async openCase(reportId: string): Promise<{ firstReviewedAt: string | null }> {
@@ -293,6 +267,9 @@ export class MockReportsRepository implements ReportsRepository {
     }
 
     const current = this.reports[index];
+    if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new ApiError("The report changed while the review was being saved.", { status: 409 });
+    }
     const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
     const legacyLifecycle = input.status
       ? legacyLifecycleForReviewStatus(input.status)
@@ -380,12 +357,15 @@ export class MockReportsRepository implements ReportsRepository {
       reviewEvents: [newEvent, ...(current.reviewEvents ?? [])],
     };
     this.reports[index] = updated;
-    return cloneReport(updated);
+    return cloneMockReport(updated);
   }
 
   async recordHandoffNote(reportId: string, input: HandoffNoteInput): Promise<DiseaseReport> {
     const report = this.reports.find((item) => item.uuid === reportId);
-    if (!report || report.reviewVersion !== input.expectedVersion) throw new Error("Refresh the case before saving.");
+    if (!report) throw new Error(`Report ${reportId} was not found.`);
+    if ((report.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new ApiError("The report changed while the handoff note was being saved.", { status: 409 });
+    }
     report.handoffNotes = [{
       id: (report.handoffNotes?.length ?? 0) + 1,
       destination: input.destination.trim(),
@@ -395,7 +375,7 @@ export class MockReportsRepository implements ReportsRepository {
       advice_received_note: input.adviceReceivedNote?.trim() || null,
     }, ...(report.handoffNotes ?? [])];
     report.reviewVersion = input.expectedVersion + 1;
-    return cloneReport(report);
+    return cloneMockReport(report);
   }
 
   async linkDuplicate(
@@ -411,8 +391,11 @@ export class MockReportsRepository implements ReportsRepository {
     }
 
     const current = this.reports[duplicateIndex];
+    if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new ApiError("The report changed while the duplicate link was being saved.", { status: 409 });
+    }
     if (current.canonicalLinkage?.isDuplicate) {
-      return cloneReport(current);
+      return cloneMockReport(current);
     }
 
     const now = new Date().toISOString();
@@ -436,7 +419,7 @@ export class MockReportsRepository implements ReportsRepository {
       updatedAt: now,
     };
     this.reports[duplicateIndex] = updated;
-    return cloneReport(updated);
+    return cloneMockReport(updated);
   }
 
   async updateAffectedFields(
@@ -448,7 +431,7 @@ export class MockReportsRepository implements ReportsRepository {
 
     const current = this.reports[index];
     if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
-      throw new Error("The report changed while affected fields were being saved.");
+      throw new ApiError("The report changed while affected fields were being saved.", { status: 409 });
     }
 
     const currentFields = current.affectedFields ?? [];
@@ -473,7 +456,7 @@ export class MockReportsRepository implements ReportsRepository {
       updatedAt,
     };
 
-    return { affectedFields: cloneReport(this.reports[index]).affectedFields ?? [], version, updatedAt };
+    return { affectedFields: cloneMockReport(this.reports[index]).affectedFields ?? [], version, updatedAt };
   }
 
   async unlinkDuplicate(
@@ -487,10 +470,10 @@ export class MockReportsRepository implements ReportsRepository {
 
     const current = this.reports[duplicateIndex];
     if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
-      throw new Error("The report changed while the duplicate link was being removed.");
+      throw new ApiError("The report changed while the duplicate link was being removed.", { status: 409 });
     }
     if (!current.canonicalLinkage?.isDuplicate) {
-      return cloneReport(current);
+      return cloneMockReport(current);
     }
 
     const updated: DiseaseReport = {
@@ -507,6 +490,6 @@ export class MockReportsRepository implements ReportsRepository {
       updatedAt: new Date().toISOString(),
     };
     this.reports[duplicateIndex] = updated;
-    return cloneReport(updated);
+    return cloneMockReport(updated);
   }
 }
