@@ -9,6 +9,7 @@ This workflow deploys **only** the Web/Laravel application to the existing Light
 - PHP 8.3+, Composer 2, PHP extensions, Nginx, MySQL, and DNS/HTTPS must already be operational.
 - `/var/www/caneguard/current/api/public` must be the Nginx document root.
 - The server's `deploy` account must have `flock`, `tar`, `sha256sum`, `curl` and `php`.
+- `deploy` must be a member of the `www-data` group and able to `chgrp` release-owned files to `www-data`. After Composer installs dependencies, the script grants that group read/traverse access throughout the new release, checks the resulting modes, and only then runs migrations and activates. It does not follow persistent `.env` or `storage` symlinks.
 - Before first run, verify the archive destination and shared state permissions. The workflow does not change host configuration.
 
 ## SSH credentials, configured manually
