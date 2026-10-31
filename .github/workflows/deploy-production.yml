@@ -26,9 +26,6 @@ jobs:
     env:
       DEPLOY_HOST: caneguard.online
       RELEASE_ID: release-${{ github.run_number }}-${{ github.sha }}
-      VITE_API_BASE_URL: https://caneguard.online
-      VITE_DATA_SOURCE: api
-      VITE_REALTIME_ENABLED: "false"
 
     steps:
       - name: Checkout exact approved revision
@@ -69,6 +66,14 @@ jobs:
         run: |
           npm run check:web
           npm run check:api
+
+      # Keep production VITE_* variables out of Vitest, whose mocks use localhost.
+      - name: Build production React assets
+        env:
+          VITE_API_BASE_URL: https://caneguard.online
+          VITE_DATA_SOURCE: api
+          VITE_REALTIME_ENABLED: "false"
+        run: npm run build
 
       - name: Package tracked source and built React assets
         run: |
