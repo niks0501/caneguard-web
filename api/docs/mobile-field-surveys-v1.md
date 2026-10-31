@@ -43,6 +43,17 @@ tokens.
       ]
     ]
   },
+  "affected_area_waypoints": [
+    [
+      {
+        "latitude": 10.700078,
+        "longitude": 122.950193,
+        "source": "gps",
+        "accuracy_meters": 4.5,
+        "captured_at": "2026-10-04T10:30:10.123456+08:00"
+      }
+    ]
+  ],
   "captured_at": "2026-10-04T10:30:12.123456+08:00",
   "district_code": "test-pilot"
 }
@@ -70,28 +81,35 @@ attribution fields have no authority.
 
 ## Affected-area evidence
 
-Three optional, nullable fields carry the phone's affected-area survey:
+Four optional, nullable fields carry the phone's affected-area survey:
 
 - `affected_area_polygons`: a JSON array of 0–100 GeoJSON `Polygon` objects,
   each held to the same structural rules as `polygon` (closed rings, three
   distinct points, WGS84 ranges, at most 10,000 positions across the whole
   array). An empty array means no affected area was drawn.
 - `affected_area_sqm`: the phone's combined affected size in square metres, a
-  finite number greater than or equal to zero; `0` is valid when nothing was
-  drawn. It is stored as supplied, as a decimal to four places, and never
+  finite number greater than or equal to zero and less than 10,000,000,000,000,000
+  (the widest figure the four-decimal column stores); `0` is valid when nothing
+  was drawn. It is stored as supplied, as a decimal to four places, and never
   independently recalculated by the server.
 - `measurement_provenance`: a JSON object describing how the figures were
   derived. It is stored as supplied, so unknown keys are preserved. When the
   optional `affected_area_waypoint_provenance` key is present it must be one
-  list of waypoints per affected area, in the same order as
-  `affected_area_polygons`, and every waypoint must record `source` (`map` or
-  `gps`), `accuracy_meters` (a non-negative number or `null`) and `captured_at`
-  (an ISO8601 date-time; a timezone offset is kept when supplied). At most 100
-  affected areas and 2,000 waypoints are accepted, so the waypoint budget is
-  reachable inside the encoded object's 262,144-byte limit, and every number
-  must be finite.
+  list of waypoints per affected area.
+- `affected_area_waypoints`: the phone's per-area point history, a JSON array
+  holding one list of waypoints per affected area. It is stored as supplied, so
+  `latitude`, `longitude` and unknown keys are kept.
 
-All three may be omitted; a plot-only payload stores `null` for each, so older
+Both waypoint shapes share one rule: every waypoint is a JSON object recording
+`source` (`map` or `gps`), `accuracy_meters` (a non-negative number of metres or
+`null`) and `captured_at` (an ISO8601 date-time naming a real calendar instant,
+with a timezone offset kept when supplied). At most 100 waypoint lists and
+1,500 waypoints are accepted, so a full-precision GPS track (six decimal places
+on every coordinate) still fits inside the provenance object's 262,144-byte
+limit. Waypoint sets are stored in the order the phone sends them and are never
+re-paired with `affected_area_polygons` by the server.
+
+All four may be omitted; a plot-only payload stores `null` for each, so older
 clients keep working without a backfill. Top-level fields this contract does
 not declare are ignored rather than stored.
 
@@ -126,8 +144,11 @@ Invalid fields return HTTP **422**, using the existing API error envelope:
 }
 ```
 
-The phone can display each `errors[field]` string array; geometry errors use the
-`polygon` key. Unauthorized/expired/revoked credentials return **401**; a verified
+The phone can display each `errors[field]` string array. Geometry errors use the
+`polygon` key; the affected-area evidence reports under
+`affected_area_polygons`, `affected_area_polygons.N`, `affected_area_sqm`,
+`measurement_provenance` and `affected_area_waypoints`.
+Unauthorized/expired/revoked credentials return **401**; a verified
 identity without inspector authority or pilot membership returns **403**.
 Rate limiting returns **429**. None of these failures creates a survey.
 

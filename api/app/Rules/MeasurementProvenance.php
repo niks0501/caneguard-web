@@ -10,7 +10,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
  * the figures plus, when supplied, every affected-area waypoint's source,
  * accuracy and capture time. Unknown keys are kept so a newer phone can add
  * evidence without a new wire field; a supplied point history must stay
- * readable and bounded.
+ * readable, name a real calendar instant and remain bounded.
  */
 final class MeasurementProvenance implements ValidationRule
 {
@@ -18,7 +18,7 @@ final class MeasurementProvenance implements ValidationRule
 
     public const MAX_AFFECTED_AREA_SETS = AffectedAreaPolygons::MAX_POLYGONS;
 
-    public const MAX_WAYPOINTS = 2000;
+    public const MAX_WAYPOINTS = 1500;
 
     private const MAX_DEPTH = 8;
 
@@ -46,7 +46,7 @@ final class MeasurementProvenance implements ValidationRule
         }
 
         if (array_key_exists('affected_area_waypoint_provenance', $value)) {
-            $failure = $this->waypointProvenanceFailure($value['affected_area_waypoint_provenance']);
+            $failure = self::waypointSetsFailure($value['affected_area_waypoint_provenance']);
             if ($failure !== null) {
                 $fail($failure);
             }
@@ -54,17 +54,18 @@ final class MeasurementProvenance implements ValidationRule
     }
 
     /**
-     * Every point's history is one list per affected area, in the same order as
-     * the submitted affected-area polygons.
+     * Every point's history is one list per affected area. The sets are stored
+     * in the phone's order and are never re-paired with the submitted
+     * affected-area polygons.
      */
-    private function waypointProvenanceFailure(mixed $sets): ?string
+    public static function waypointSetsFailure(mixed $sets): ?string
     {
         if (! is_array($sets) || ! array_is_list($sets)) {
-            return 'The affected area waypoint provenance must be a list of per-area waypoint lists.';
+            return 'The affected area waypoints must be a list of per-area waypoint lists.';
         }
 
         if (count($sets) > self::MAX_AFFECTED_AREA_SETS) {
-            return 'The affected area waypoint provenance may describe at most '.self::MAX_AFFECTED_AREA_SETS.' affected areas.';
+            return 'The affected area waypoints may describe at most '.self::MAX_AFFECTED_AREA_SETS.' affected areas.';
         }
 
         $waypoints = 0;
@@ -75,11 +76,11 @@ final class MeasurementProvenance implements ValidationRule
 
             $waypoints += count($set);
             if ($waypoints > self::MAX_WAYPOINTS) {
-                return 'The affected area waypoint provenance may contain at most '.self::MAX_WAYPOINTS.' waypoints.';
+                return 'The affected area waypoints may contain at most '.self::MAX_WAYPOINTS.' waypoints.';
             }
 
             foreach ($set as $waypoint) {
-                $failure = $this->waypointFailure($waypoint);
+                $failure = self::waypointFailure($waypoint);
                 if ($failure !== null) {
                     return $failure;
                 }
@@ -89,7 +90,7 @@ final class MeasurementProvenance implements ValidationRule
         return null;
     }
 
-    private function waypointFailure(mixed $waypoint): ?string
+    private static function waypointFailure(mixed $waypoint): ?string
     {
         if (! is_array($waypoint) || ($waypoint !== [] && array_is_list($waypoint))) {
             return 'Each affected area waypoint must be a JSON object.';
@@ -110,11 +111,22 @@ final class MeasurementProvenance implements ValidationRule
         }
 
         $capturedAt = $waypoint['captured_at'] ?? null;
-        if (! is_string($capturedAt) || preg_match(self::ISO8601, $capturedAt) !== 1) {
+        if (! is_string($capturedAt)
+            || preg_match(self::ISO8601, $capturedAt) !== 1
+            || ! self::isCalendarInstant($capturedAt)) {
             return 'Each affected area waypoint must record its captured_at as an ISO8601 date-time.';
         }
 
         return null;
+    }
+
+    private static function isCalendarInstant(string $value): bool
+    {
+        $parsed = date_parse($value);
+
+        return $parsed['error_count'] === 0
+            && $parsed['warning_count'] === 0
+            && checkdate((int) $parsed['month'], (int) $parsed['day'], (int) $parsed['year']);
     }
 
     private function jsonSafe(mixed $value, int $depth = 0): bool

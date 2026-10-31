@@ -78,7 +78,7 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertSame($before, FieldSurvey::findOrFail($id)->getRawOriginal());
     }
 
-    public function test_affected_area_surveys_persist_polygons_measured_area_and_waypoint_provenance(): void
+    public function test_affected_area_surveys_persist_polygons_measured_area_and_waypoint_evidence(): void
     {
         $this->loginInspector();
         $payload = $this->payload();
@@ -113,6 +113,23 @@ class MobileFieldSurveyTest extends TestCase
                 ]],
             ],
         ];
+        $payload['affected_area_waypoints'] = [
+            [[
+                'latitude' => 10.700078,
+                'longitude' => 122.950193,
+                'source' => 'gps',
+                'accuracy_meters' => 4.5,
+                'captured_at' => '2026-10-04T10:30:10.123456+08:00',
+                'reading' => 'walked',
+            ]],
+            [[
+                'latitude' => 10.7003,
+                'longitude' => 122.9503,
+                'source' => 'map',
+                'accuracy_meters' => null,
+                'captured_at' => '2026-10-04T10:30:11',
+            ]],
+        ];
 
         $receipt = $this->postJson(self::ENDPOINT, $payload)->assertCreated();
         $survey = FieldSurvey::query()->sole();
@@ -120,10 +137,12 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertEquals($payload['affected_area_polygons'], $survey->affected_area_polygons);
         $this->assertSame('6986.2500', $survey->affected_area_sqm);
         $this->assertEquals($payload['measurement_provenance'], $survey->measurement_provenance);
+        $this->assertEquals($payload['affected_area_waypoints'], $survey->affected_area_waypoints);
         $fresh = $survey->fresh();
         $this->assertEquals($payload['affected_area_polygons'], $fresh->affected_area_polygons);
         $this->assertSame('6986.2500', $fresh->affected_area_sqm);
         $this->assertEquals($payload['measurement_provenance'], $fresh->measurement_provenance);
+        $this->assertEquals($payload['affected_area_waypoints'], $fresh->affected_area_waypoints);
     }
 
     public function test_legacy_payload_without_affected_area_evidence_stores_nulls(): void
@@ -134,6 +153,16 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertNull($survey->affected_area_polygons);
         $this->assertNull($survey->affected_area_sqm);
         $this->assertNull($survey->measurement_provenance);
+        $this->assertNull($survey->affected_area_waypoints);
+    }
+
+    public function test_affected_area_sqm_accepts_the_largest_figure_the_column_stores(): void
+    {
+        $this->loginInspector();
+        $payload = $this->payload();
+        $payload['affected_area_sqm'] = 9999999999999998.0;
+        $this->postJson(self::ENDPOINT, $payload)->assertCreated();
+        $this->assertSame('9999999999999998.0000', FieldSurvey::query()->sole()->affected_area_sqm);
     }
 
     public function test_affected_area_polygons_share_one_position_budget(): void
@@ -147,32 +176,51 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertDatabaseCount('field_surveys', 0);
     }
 
-    public function test_waypoint_budget_is_reachable_inside_the_documented_byte_cap(): void
+    public function test_waypoint_budget_is_reachable_inside_the_byte_cap_at_gps_precision(): void
     {
         $this->loginInspector();
         $waypoint = [
-            'latitude' => 10.7,
-            'longitude' => 122.9501,
+            'latitude' => 10.700078,
+            'longitude' => 122.950193,
             'source' => 'gps',
-            'accuracy_meters' => 4.5,
+            'accuracy_meters' => 12.3456,
             'captured_at' => '2026-10-04T10:30:10.123456+08:00',
         ];
-        $payload = $this->payload();
-        $payload['measurement_provenance'] = [
+        $provenance = [
             'method' => 'wgs84-ellipsoid-geodesic',
+            'plot_area_sqm' => 29160,
+            'affected_area_sqm' => 4860.5,
+            'source_polygon_count' => 1,
+            'overlap_removed' => false,
+        ];
+        $payload = $this->payload();
+        $payload['measurement_provenance'] = $provenance + [
             'affected_area_waypoint_provenance' => [array_fill(0, MeasurementProvenance::MAX_WAYPOINTS, $waypoint)],
         ];
+        $payload['affected_area_waypoints'] = [array_fill(0, MeasurementProvenance::MAX_WAYPOINTS, $waypoint)];
 
         $this->postJson(self::ENDPOINT, $payload)->assertCreated();
-        $stored = FieldSurvey::query()->sole()->measurement_provenance;
-        $this->assertCount(MeasurementProvenance::MAX_WAYPOINTS, $stored['affected_area_waypoint_provenance'][0]);
+        $survey = FieldSurvey::query()->sole();
+        $this->assertCount(
+            MeasurementProvenance::MAX_WAYPOINTS,
+            $survey->measurement_provenance['affected_area_waypoint_provenance'][0],
+        );
+        $this->assertCount(MeasurementProvenance::MAX_WAYPOINTS, $survey->affected_area_waypoints[0]);
 
         $payload['client_uuid'] = (string) Str::uuid();
+        $payload['affected_area_waypoints'] = null;
         $payload['measurement_provenance']['affected_area_waypoint_provenance'] = [
             array_fill(0, MeasurementProvenance::MAX_WAYPOINTS + 1, $waypoint),
         ];
         $this->postJson(self::ENDPOINT, $payload)->assertUnprocessable()
             ->assertJsonValidationErrors('measurement_provenance');
+
+        $payload['client_uuid'] = (string) Str::uuid();
+        $payload['measurement_provenance'] = $provenance;
+        $payload['affected_area_waypoints'] = [array_fill(0, MeasurementProvenance::MAX_WAYPOINTS + 1, $waypoint)];
+        $this->postJson(self::ENDPOINT, $payload)->assertUnprocessable()
+            ->assertJsonValidationErrors('affected_area_waypoints');
+
         $this->assertDatabaseCount('field_surveys', 1);
     }
 
@@ -204,6 +252,7 @@ class MobileFieldSurveyTest extends TestCase
             ['affected_area_polygons', array_fill(0, 101, $polygon), 'affected_area_polygons'],
             ['affected_area_polygons', [['type' => 'MultiPolygon', 'coordinates' => []]], 'affected_area_polygons.0'],
             ['affected_area_sqm', -1, 'affected_area_sqm'],
+            ['affected_area_sqm', 1.0E16, 'affected_area_sqm'],
             ['affected_area_sqm', '12.5', 'affected_area_sqm'],
             ['affected_area_sqm', true, 'affected_area_sqm'],
             ['affected_area_sqm', [], 'affected_area_sqm'],
@@ -214,7 +263,22 @@ class MobileFieldSurveyTest extends TestCase
             ['measurement_provenance', ['affected_area_waypoint_provenance' => [[array_replace($waypoint, ['accuracy_meters' => -1])]]], 'measurement_provenance'],
             ['measurement_provenance', ['affected_area_waypoint_provenance' => [[array_diff_key($waypoint, ['accuracy_meters' => true])]]], 'measurement_provenance'],
             ['measurement_provenance', ['affected_area_waypoint_provenance' => [[array_replace($waypoint, ['captured_at' => '2026-10-04 10:30:11'])]]], 'measurement_provenance'],
+            ['measurement_provenance', ['affected_area_waypoint_provenance' => [[array_replace($waypoint, ['captured_at' => '2026-02-30T10:30:11Z'])]]], 'measurement_provenance'],
+            ['measurement_provenance', ['affected_area_waypoint_provenance' => [[array_replace($waypoint, ['captured_at' => '2026-13-45T10:30:11+08:00'])]]], 'measurement_provenance'],
+            ['measurement_provenance', ['affected_area_waypoint_provenance' => [[array_replace($waypoint, ['captured_at' => '2026-10-04T99:99:99Z'])]]], 'measurement_provenance'],
             ['measurement_provenance', ['note' => str_repeat('a', 262145)], 'measurement_provenance'],
+            ['affected_area_waypoints', 'not-a-list', 'affected_area_waypoints'],
+            ['affected_area_waypoints', ['shape' => $waypoint], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [$waypoint], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [['not-a-waypoint']], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [[array_replace($waypoint, ['source' => 'satellite'])]], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [[array_replace($waypoint, ['accuracy_meters' => -1])]], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [[array_diff_key($waypoint, ['accuracy_meters' => true])]], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [[array_replace($waypoint, ['captured_at' => '2026-10-04 10:30:11'])]], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [[array_replace($waypoint, ['captured_at' => '2026-02-30T10:30:11Z'])]], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [[array_replace($waypoint, ['captured_at' => '2026-13-45T10:30:11+08:00'])]], 'affected_area_waypoints'],
+            ['affected_area_waypoints', [[array_replace($waypoint, ['captured_at' => '2026-10-04T99:99:99Z'])]], 'affected_area_waypoints'],
+            ['affected_area_waypoints', array_fill(0, 101, [$waypoint]), 'affected_area_waypoints'],
         ];
     }
 
@@ -232,6 +296,7 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertTrue(Schema::hasColumn('field_surveys', 'affected_area_polygons'));
         $this->assertTrue(Schema::hasColumn('field_surveys', 'affected_area_sqm'));
         $this->assertTrue(Schema::hasColumn('field_surveys', 'measurement_provenance'));
+        $this->assertTrue(Schema::hasColumn('field_surveys', 'affected_area_waypoints'));
         $this->assertSame($before, FieldSurvey::query()->sole()->getRawOriginal());
     }
 

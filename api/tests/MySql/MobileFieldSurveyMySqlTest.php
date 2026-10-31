@@ -106,6 +106,16 @@ class MobileFieldSurveyMySqlTest extends TestCase
                 ],
             ]],
         ];
+        $payload['affected_area_waypoints'] = [[
+            [
+                'latitude' => 10.700078,
+                'longitude' => 122.950193,
+                'source' => 'gps',
+                'accuracy_meters' => 4.5,
+                'captured_at' => '2026-10-04T10:30:10.123456+08:00',
+                'reading' => 'walked',
+            ],
+        ]];
         $this->withToken($inspector->createToken('survey-affected', ['report:submit'])->plainTextToken);
 
         $receipt = $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertCreated()
@@ -118,9 +128,36 @@ class MobileFieldSurveyMySqlTest extends TestCase
         $this->assertEquals($payload['affected_area_polygons'], $survey->affected_area_polygons);
         $this->assertSame('6986.1235', $survey->affected_area_sqm);
         $this->assertEquals($payload['measurement_provenance'], $survey->measurement_provenance);
+        $this->assertEquals($payload['affected_area_waypoints'], $survey->affected_area_waypoints);
         $this->assertSame('json', Schema::getColumnType('field_surveys', 'affected_area_polygons'));
         $this->assertSame('decimal', Schema::getColumnType('field_surveys', 'affected_area_sqm'));
         $this->assertSame('json', Schema::getColumnType('field_surveys', 'measurement_provenance'));
+        $this->assertSame('json', Schema::getColumnType('field_surveys', 'affected_area_waypoints'));
+    }
+
+    public function test_invalid_waypoints_and_oversized_areas_never_reach_the_mysql_columns(): void
+    {
+        $inspector = User::factory()->inDistrict($this->pilotDistrict())->create();
+        $this->withToken($inspector->createToken('survey-affected-reject', ['report:submit'])->plainTextToken);
+        $payload = $this->payload();
+        $payload['affected_area_waypoints'] = [[
+            [
+                'latitude' => 10.700078,
+                'longitude' => 122.950193,
+                'source' => 'gps',
+                'accuracy_meters' => 4.5,
+                'captured_at' => '2026-02-30T10:30:10Z',
+            ],
+        ]];
+        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertUnprocessable()
+            ->assertJsonValidationErrors('affected_area_waypoints');
+
+        unset($payload['affected_area_waypoints']);
+        $payload['affected_area_sqm'] = 1.0E16;
+        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertUnprocessable()
+            ->assertJsonValidationErrors('affected_area_sqm');
+
+        $this->assertSame(0, FieldSurvey::query()->where('client_uuid', $payload['client_uuid'])->count());
     }
 
     private function payload(): array

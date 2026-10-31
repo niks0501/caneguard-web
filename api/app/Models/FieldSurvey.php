@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'affected_area_polygons',
     'affected_area_sqm',
     'measurement_provenance',
+    'affected_area_waypoints',
     'captured_at',
 ])]
 class FieldSurvey extends Model
@@ -29,6 +30,7 @@ class FieldSurvey extends Model
             'affected_area_polygons' => 'array',
             'affected_area_sqm' => 'decimal:4',
             'measurement_provenance' => 'array',
+            'affected_area_waypoints' => 'array',
             'captured_at' => 'immutable_datetime',
         ];
     }

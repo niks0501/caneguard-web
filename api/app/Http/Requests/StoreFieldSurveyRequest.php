@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Rules\AffectedAreaPolygons;
+use App\Rules\AffectedAreaWaypoints;
 use App\Rules\MeasurementProvenance;
 use App\Rules\SurveyPolygon;
 use App\Security\DistrictAccess;
@@ -37,11 +38,13 @@ class StoreFieldSurveyRequest extends ApiFormRequest
             'affected_area_polygons' => ['nullable', new AffectedAreaPolygons],
             'affected_area_polygons.*' => ['required', new SurveyPolygon],
             'affected_area_sqm' => ['nullable', function (string $attribute, mixed $value, Closure $fail): void {
-                if ((! is_int($value) && ! is_float($value)) || ! is_finite((float) $value) || $value < 0) {
-                    $fail('The affected area sqm must be a finite number greater than or equal to zero.');
+                if ((! is_int($value) && ! is_float($value)) || ! is_finite((float) $value)
+                    || $value < 0 || $value >= 1.0E16) {
+                    $fail('The affected area sqm must be a finite number greater than or equal to zero and less than 10000000000000000.');
                 }
             }],
             'measurement_provenance' => ['nullable', new MeasurementProvenance],
+            'affected_area_waypoints' => ['nullable', new AffectedAreaWaypoints],
             'captured_at' => ['required', 'string', 'max:40', 'date',
                 'regex:/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D',
                 'after_or_equal:1000-01-01T00:00:00Z', 'before_or_equal:9999-12-31T23:59:59Z'],
