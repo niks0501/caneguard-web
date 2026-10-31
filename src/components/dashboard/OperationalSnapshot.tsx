@@ -110,7 +110,7 @@ export function OperationalSnapshot({
       </div>
       <div className="col-3">
         <KpiCard
-          label="Awaiting review"
+          label="Reports awaiting review"
           value={analytics ? String(analytics.reviewBacklog.totalWaiting) : "—"}
           unavailable={!analytics}
           support={waitingAgeSupportLine(analytics?.reviewBacklog)}
@@ -130,7 +130,7 @@ export function OperationalSnapshot({
       </div>
       <div className="col-3">
         <KpiCard
-          label="Needing field validation"
+          label="Reports needing field validation"
           value={String(summary.queues.needs_visit)}
           support={pastTargetDateSupportLine(summary.queues.follow_up_due)}
           icon={<ClipboardCheck aria-hidden="true" strokeWidth={1.75} />}
@@ -145,7 +145,7 @@ export function OperationalSnapshot({
       </div>
       <div className="col-3">
         <KpiCard
-          label="Unverified, no active work"
+          label="Unverified reports, no active work"
           value={String(summary.queues.unverified_no_active_work)}
           support={UNVERIFIED_SUPPORT_LINE}
           icon={<CircleHelp aria-hidden="true" strokeWidth={1.75} />}

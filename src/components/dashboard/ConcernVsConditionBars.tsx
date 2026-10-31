@@ -14,6 +14,7 @@ import { DecisionChartFrame } from "./DecisionChartFrame";
 import { VerificationLegend } from "./VerificationLegend";
 import { dashboardChartCopy } from "./chartCopy";
 import { bandColor, chartTheme } from "./chartTheme";
+import { reportCount } from "./countUnits";
 import { kpiBandForIndex, type KpiBand } from "./kpiBandEncoding";
 import {
   POSSIBLE_CONDITIONS,
@@ -81,12 +82,12 @@ export function ConcernVsConditionBars({
     <DecisionChartFrame
       titleId="chart-concern-condition"
       title={copy.title}
-      periodLine={scopeLabel}
-      chartLabel={`${copy.title}: reported ${analytics.reportedConcern.map((item) => `${reportedConcernLabel(item.concern)} ${item.count}`).join(", ")}; possible condition ${POSSIBLE_CONDITIONS.map((entry) => `${entry.label} ${analytics.possibleCondition.find((item) => item.condition === entry.value)?.count ?? 0}`).join(", ")}`}
+      periodLine={`${scopeLabel} · submitted reports`}
+      chartLabel={`${copy.title}: reported ${analytics.reportedConcern.map((item) => `${reportedConcernLabel(item.concern)} ${reportCount(item.count)}`).join(", ")}; possible condition ${POSSIBLE_CONDITIONS.map((entry) => `${entry.label} ${reportCount(analytics.possibleCondition.find((item) => item.condition === entry.value)?.count ?? 0)}`).join(", ")}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${scopeLabel}`}
-      tableHead={["Series", "Count"]}
+      tableHead={["Series", "Submitted reports"]}
       tableRows={rows.map((row) => [row.rowLabel, String(row.count)])}
       tableFootRows={VERIFICATION_LEGEND.map((entry) => [
         `Staff verification: ${entry.label}`,

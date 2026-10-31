@@ -14,6 +14,7 @@ import type {
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { dashboardChartCopy } from "./chartCopy";
 import { bandColor, chartTheme } from "./chartTheme";
+import { reportCount } from "./countUnits";
 import { kpiBandFillClass, type KpiBand } from "./kpiBandEncoding";
 import { formatWindow } from "./dashboardScope";
 
@@ -62,11 +63,11 @@ export function InflowComparisonBars({
       titleId="chart-inflow"
       title={copy.title}
       periodLine={periodLine}
-      chartLabel={`${copy.title}: ${analytics.totalSubmitted} submitted this period; ${comparisonAvailable ? `${comparison.previousTotal} in the previous period` : "previous period unavailable"}`}
+      chartLabel={`${copy.title}: ${reportCount(analytics.totalSubmitted, "submitted")} this period; ${comparisonAvailable ? `${reportCount(comparison.previousTotal)} in the previous period` : "previous period unavailable"}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${periodLine}`}
-      tableHead={["Bucket", "This period", "Previous period"]}
+      tableHead={["Bucket", "Reports this period", "Reports previous period"]}
       tableRows={rows.map((row) => [
         row.label,
         String(row.current),
@@ -91,7 +92,7 @@ export function InflowComparisonBars({
             <Tooltip
               formatter={(value, name) => [
                 value,
-                name === "current" ? "This period" : "Previous period",
+                name === "current" ? "Reports this period" : "Reports previous period",
               ]}
               labelFormatter={(_, payload) => {
                 const point = payload[0]?.payload as (typeof rows)[number] | undefined;
@@ -102,14 +103,14 @@ export function InflowComparisonBars({
             />
             <Bar
               dataKey="current"
-              name="This period"
+              name="current"
               fill={bandColor(CURRENT_BAND)}
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
             />
             {comparisonAvailable ? <Bar
               dataKey="previous"
-              name="Previous period"
+              name="previous"
               fill={bandColor(PREVIOUS_BAND)}
               radius={[4, 4, 0, 0]}
               isAnimationActive={false}
@@ -124,7 +125,7 @@ export function InflowComparisonBars({
             data-series-band={CURRENT_BAND}
             aria-hidden="true"
           />
-          This period ({analytics.totalSubmitted})
+          This period ({reportCount(analytics.totalSubmitted)})
         </li>
         <li>
           {comparisonAvailable ? (
@@ -134,7 +135,7 @@ export function InflowComparisonBars({
               aria-hidden="true"
             />
           ) : null}
-          {comparisonAvailable ? `Previous period (${comparison.previousTotal})` : "Previous period unavailable"}
+          {comparisonAvailable ? `Previous period (${reportCount(comparison.previousTotal)})` : "Previous period unavailable"}
         </li>
       </ul>
     </DecisionChartFrame>

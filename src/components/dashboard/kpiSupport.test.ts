@@ -12,14 +12,14 @@ import {
 
 describe("KPI supporting lines", () => {
   it("prints a signed delta against the comparison window", () => {
-    expect(deltaSupportLine(3, false)).toBe("+3 vs previous period");
-    expect(deltaSupportLine(-3, false)).toBe("-3 vs previous period");
+    expect(deltaSupportLine(3, false)).toBe("+3 reports vs previous period");
+    expect(deltaSupportLine(-3, false)).toBe("-3 reports vs previous period");
     expect(deltaSupportLine(0, false)).toBe("No change vs previous period");
   });
 
   it("labels a window that stops at today as month to date", () => {
     expect(deltaSupportLine(3, true)).toBe(
-      "+3 vs previous period · month to date",
+      "+3 reports vs previous period · month to date",
     );
     expect(deltaSupportLine(0, true)).toBe(
       "No change vs previous period · month to date",
@@ -65,8 +65,9 @@ describe("KPI supporting lines", () => {
   });
 
   it("names the field-validation past-target subset inside its queue count", () => {
-    expect(pastTargetDateSupportLine(4)).toBe("4 past target date");
-    expect(pastTargetDateSupportLine(0)).toBe("0 past target date");
+    expect(pastTargetDateSupportLine(1)).toBe("1 report past target date");
+    expect(pastTargetDateSupportLine(4)).toBe("4 reports past target date");
+    expect(pastTargetDateSupportLine(0)).toBe("0 reports past target date");
   });
 
   it("names the status indicator with the count it encodes", () => {

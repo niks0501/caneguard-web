@@ -18,6 +18,7 @@ import { useFieldValidationMap } from "../../hooks/useFieldValidation";
 import { Skeleton } from "../ui/States";
 import { dashboardChartCopy } from "./chartCopy";
 import { chartTheme } from "./chartTheme";
+import { reportCount } from "./countUnits";
 import {
   readDashboardPreferences,
   saveDashboardMapLayer,
@@ -101,7 +102,10 @@ function useInView(): [React.RefObject<HTMLDivElement | null>, boolean] {
  * small summary popup anchored on the map with the essential counts and a
  * link through to the barangay reports register or the single report. The
  * barangay list below is a real list of links and stays the keyboard route
- * to those destinations, so the map is never the only way through.
+ * to those destinations, so the map is never the only way through. The GPS
+ * layer repeats that guarantee for shared locations: its details list links
+ * every returned report, so a member hidden behind a shared dot is still one
+ * click away.
  */
 export function ReportLocationMap({
   rows,
@@ -316,8 +320,13 @@ export function ReportLocationMap({
                         "concat",
                         ["get", "barangay"],
                         " (",
-                        ["get", "submitted"],
-                        ")",
+                        ["to-string", ["get", "submitted"]],
+                        [
+                          "case",
+                          ["==", ["get", "submitted"], 1],
+                          " report)",
+                          " reports)",
+                        ],
                       ],
                       "text-size": 12,
                       "text-offset": [0, 1.2],
@@ -375,8 +384,8 @@ export function ReportLocationMap({
                           {selected.barangay}
                         </strong>
                         <p className="decision-map__popup-counts">
-                          {selected.submitted} submitted · {selected.open} open
-                          validation
+                          {reportCount(selected.submitted, "submitted")} ·{" "}
+                          {reportCount(selected.open, "in open validation")}
                         </p>
                         <Link
                           className="decision-map__popup-link"
@@ -389,7 +398,7 @@ export function ReportLocationMap({
                     ) : (
                       <>
                         <strong className="decision-map__popup-title">
-                          {selectedReports.length} reports at this point
+                          {reportCount(selectedReports.length)} at this point
                         </strong>
                         {gps.data?.metadata.truncated ? <p>Within the returned map slice.</p> : null}
                         <ul className="location-group-reports">
@@ -421,9 +430,23 @@ export function ReportLocationMap({
         ) : null}
         {layer === "gps" && inView && gps.data ? (
           <p className="decision-chart-card__hint">
-            {gps.data.metadata.returnedCount} reports shown at {gpsGroups.length} locations (limit {GPS_LIMIT})
+            {reportCount(gps.data.metadata.returnedCount)} shown at {gpsGroups.length} location{gpsGroups.length === 1 ? "" : "s"} (limit {GPS_LIMIT})
             {gps.data.metadata.truncated ? "; a sample only" : ""}.
           </p>
+        ) : null}
+        {layer === "gps" && inView && gps.data && gps.data.features.length > 0 ? (
+          <details className="decision-chart__barangay-remainder">
+            <summary>Reports shown on the GPS map</summary>
+            <ul className="location-group-reports">
+              {gps.data.features.map(({ properties }) => (
+                <li key={properties.uuid}>
+                  <Link to={routes.reportDetail(properties.uuid)}>{properties.referenceCode}</Link>
+                  <span>{reviewStatusLabels[properties.reviewStatus]}</span>
+                  <time>{formatValidationDate(properties.observedAt)}</time>
+                </li>
+              ))}
+            </ul>
+          </details>
         ) : null}
         <div className="decision-chart__barangay-summary">
           <ul className="decision-chart__barangay-list" aria-label="Active barangays in scope">
@@ -435,7 +458,8 @@ export function ReportLocationMap({
                 >
                   <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
                   <span className="decision-chart__barangay-count">
-                    {row.submitted} submitted · {row.open} open validation
+                    {reportCount(row.submitted, "submitted")} ·{" "}
+                    {reportCount(row.open, "in open validation")}
                   </span>
                 </Link>
               </li>
@@ -445,7 +469,7 @@ export function ReportLocationMap({
             <details className="decision-chart__barangay-remainder">
               <summary className="decision-chart__barangay-remainder-summary">
                 <span>
-                  +{remainderBarangays.length} more barangays ({remainderSubmitted} submitted · {remainderOpen} open validation)
+                  +{remainderBarangays.length} more barangays ({reportCount(remainderSubmitted, "submitted")} · {reportCount(remainderOpen, "in open validation")})
                 </span>
               </summary>
               <ul className="decision-chart__barangay-list decision-chart__barangay-list--remainder">
@@ -457,7 +481,8 @@ export function ReportLocationMap({
                     >
                       <strong className="decision-chart__barangay-name">{row.barangay}</strong>{" "}
                       <span className="decision-chart__barangay-count">
-                        {row.submitted} submitted · {row.open} open validation
+                        {reportCount(row.submitted, "submitted")} ·{" "}
+                        {reportCount(row.open, "in open validation")}
                       </span>
                     </Link>
                   </li>

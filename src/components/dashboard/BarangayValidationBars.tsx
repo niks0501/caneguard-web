@@ -13,6 +13,7 @@ import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { dashboardChartCopy } from "./chartCopy";
 import { bandColor, chartTheme } from "./chartTheme";
+import { reportCount } from "./countUnits";
 import { kpiBandFillClass, type KpiBand } from "./kpiBandEncoding";
 
 interface BarangayRow {
@@ -86,16 +87,16 @@ export function BarangayValidationBars({
       titleId="chart-barangay-validation"
       title={copy.title}
       periodLine={scopeLabel}
-      chartLabel={`${copy.title}: ${rows.map((row) => `${row.barangay} ${row.submitted} submitted, ${row.pastTargetDate} past target date`).join("; ")}`}
+      chartLabel={`${copy.title}: ${rows.map((row) => `${row.barangay} ${reportCount(row.submitted, "submitted")}, ${reportCount(row.pastTargetDate, "past target date")}`).join("; ")}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${scopeLabel}`}
       tableHead={[
         "Barangay",
-        "Submitted",
-        "Past target date",
-        "Scheduled ahead",
-        "Unscheduled",
+        "Submitted reports",
+        "Reports past target date",
+        "Reports scheduled ahead",
+        "Unscheduled reports",
       ]}
       tableRows={rows.map((row) => [
         row.barangay,
@@ -131,12 +132,12 @@ export function BarangayValidationBars({
               formatter={(value, name) => [
                 value,
                 name === "submitted"
-                  ? "Submitted this period"
+                  ? "Submitted reports this period"
                   : name === "past_target_date"
-                    ? "Past target date"
+                    ? "Reports past target date"
                     : name === "scheduled"
-                      ? "Scheduled ahead"
-                      : "Unscheduled",
+                      ? "Reports scheduled ahead"
+                      : "Unscheduled reports",
               ]}
             />
             <Bar
@@ -147,7 +148,7 @@ export function BarangayValidationBars({
               isAnimationActive={false}
             />
             <Bar
-              dataKey="past_target_date"
+              dataKey="pastTargetDate"
               name="past_target_date"
               stackId="validation"
               fill={bandColor(PAST_TARGET_BAND)}
@@ -187,9 +188,10 @@ export function BarangayValidationBars({
             <Link to={`/reports?barangay=${encodeURIComponent(row.barangay)}`}>
               <strong>{row.barangay}</strong>
               <span>
-                {row.submitted} submitted · {row.pastTargetDate} past target
-                date · {row.scheduled} scheduled ahead · {row.unscheduled}{" "}
-                unscheduled
+                {reportCount(row.submitted, "submitted")} ·{" "}
+                {reportCount(row.pastTargetDate, "past target date")} ·{" "}
+                {reportCount(row.scheduled, "scheduled ahead")} ·{" "}
+                {reportCount(row.unscheduled, "unscheduled")}
               </span>
             </Link>
           </li>
@@ -204,7 +206,7 @@ export function BarangayValidationBars({
             data-series-band={BASELINE_BAND}
             aria-hidden="true"
           />
-          Submitted this period
+          Submitted reports this period
         </li>
         <li>
           <span
@@ -212,7 +214,7 @@ export function BarangayValidationBars({
             data-series-band={PAST_TARGET_BAND}
             aria-hidden="true"
           />
-          Past target date
+          Reports past target date
         </li>
         <li>
           <span
@@ -220,7 +222,7 @@ export function BarangayValidationBars({
             data-series-band={SCHEDULED_BAND}
             aria-hidden="true"
           />
-          Scheduled ahead
+          Reports scheduled ahead
         </li>
         <li>
           <span
@@ -228,7 +230,7 @@ export function BarangayValidationBars({
             data-series-band={UNSCHEDULED_BAND}
             aria-hidden="true"
           />
-          Unscheduled
+          Unscheduled reports
         </li>
       </ul>
       ) : null}

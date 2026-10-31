@@ -140,10 +140,19 @@ describe("FieldValidationMapPage structure and summary", () => {
 
   it("exposes four filtered summary metrics that describe the filtered scope", () => {
     renderPage();
-    expect(summaryButton("Active Cases")).toHaveTextContent("12");
-    expect(summaryButton("Need Visit")).toHaveTextContent("7");
-    expect(summaryButton("Overdue")).toHaveTextContent("3");
-    expect(summaryButton("No Location")).toHaveTextContent("4");
+    expect(summaryButton("Matching active reports")).toHaveTextContent("12");
+    expect(summaryButton("Reports needing visit")).toHaveTextContent("7");
+    expect(summaryButton("Reports past target date")).toHaveTextContent("3");
+    expect(summaryButton("Reports without location")).toHaveTextContent("4");
+  });
+
+  it("drops the active qualifier once a case status is selected", () => {
+    renderPage("/monitoring?view=map&status=resolved");
+
+    expect(summaryButton("Matching reports")).toHaveTextContent("12");
+    expect(
+      screen.queryByRole("button", { name: /Matching active reports/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("never reports unknown map counts as zero", () => {
@@ -152,9 +161,9 @@ describe("FieldValidationMapPage structure and summary", () => {
     );
     const { unmount } = renderPage();
 
-    expect(summaryButton("Active Cases")).toHaveTextContent("—");
-    expect(summaryButton("Overdue")).toHaveTextContent("—");
-    expect(summaryButton("Active Cases")).not.toHaveTextContent("0");
+    expect(summaryButton("Matching active reports")).toHaveTextContent("—");
+    expect(summaryButton("Reports past target date")).toHaveTextContent("—");
+    expect(summaryButton("Matching active reports")).not.toHaveTextContent("0");
     unmount();
 
     vi.mocked(useFieldValidationMap).mockReturnValue(
@@ -166,8 +175,8 @@ describe("FieldValidationMapPage structure and summary", () => {
     );
     renderPage();
 
-    expect(summaryButton("Active Cases")).toHaveTextContent("Unavailable");
-    expect(summaryButton("Need Visit")).toHaveTextContent("Unavailable");
+    expect(summaryButton("Matching active reports")).toHaveTextContent("Unavailable");
+    expect(summaryButton("Reports needing visit")).toHaveTextContent("Unavailable");
   });
 
   it("gives staff a recovery step instead of developer instructions when the API is unreachable", () => {
@@ -213,17 +222,17 @@ describe("FieldValidationMapPage structure and summary", () => {
   it("narrows to Need Visit and Overdue without silently clearing unrelated manual filters", async () => {
     const user = userEvent.setup();
     renderPage("/monitoring?view=map&barangay=Balaytigui");
-    await user.click(summaryButton("Need Visit"));
+    await user.click(summaryButton("Reports needing visit"));
     expect(useFieldValidationMap).toHaveBeenLastCalledWith(
       expect.objectContaining({ queue: "needs_visit", barangay: "Balaytigui" }),
       { enabled: true },
     );
-    await user.click(summaryButton("Overdue"));
+    await user.click(summaryButton("Reports past target date"));
     expect(useFieldValidationMap).toHaveBeenLastCalledWith(
       expect.objectContaining({ queue: "follow_up_due", barangay: "Balaytigui" }),
       { enabled: true },
     );
-    await user.click(summaryButton("Active Cases"));
+    await user.click(summaryButton("Matching active reports"));
     expect(useFieldValidationMap).toHaveBeenLastCalledWith(
       expect.not.objectContaining({ queue: expect.anything() }),
       { enabled: true },
@@ -233,7 +242,7 @@ describe("FieldValidationMapPage structure and summary", () => {
   it("hands No Location to the normal case list filtered to matching unlocated reports", async () => {
     const user = userEvent.setup();
     renderPage("/monitoring?view=map&barangay=Balaytigui");
-    await user.click(summaryButton("No Location"));
+    await user.click(summaryButton("Reports without location"));
     expect(screen.getByTestId("location")).toHaveTextContent("/reports?");
     expect(screen.getByTestId("location")).toHaveTextContent("location=unlocated");
   });
@@ -241,7 +250,7 @@ describe("FieldValidationMapPage structure and summary", () => {
   it("carries the Overdue queue into the register and no-location list", async () => {
     const user = userEvent.setup();
     renderPage("/monitoring?view=map&barangay=Bucay&queue=follow_up_due");
-    await user.click(summaryButton("No Location"));
+    await user.click(summaryButton("Reports without location"));
     expect(screen.getByTestId("location")).toHaveTextContent("/reports?");
     expect(screen.getByTestId("location")).toHaveTextContent("queue=follow_up_due");
     expect(screen.getByTestId("location")).toHaveTextContent("barangay=Bucay");

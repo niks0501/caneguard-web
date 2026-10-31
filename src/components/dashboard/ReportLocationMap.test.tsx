@@ -22,7 +22,7 @@ vi.mock("../../config/env", () => ({
 
 const mapState = vi.hoisted(() => ({
   sources: [] as Array<{ id: string; features: number }>,
-  layers: [] as Array<{ id: string; paint?: Record<string, unknown> }>,
+  layers: [] as Array<{ id: string; paint?: Record<string, unknown>; layout?: Record<string, unknown> }>,
   /** Recorded MapLibre map click event replayed by the canvas stand-in. */
   mapClickEvent: undefined as unknown,
   missingImageListener: undefined as ((event: { id: string }) => void) | undefined,
@@ -105,11 +105,11 @@ vi.mock("react-map-gl/maplibre", () => {
     return createElement("div", { "data-source": id }, children);
   };
 
-  const Layer = ({ id, paint }: { id?: string; paint?: Record<string, unknown> }) => {
-    const paintRef = useRef(paint);
-    paintRef.current = paint;
+  const Layer = ({ id, paint, layout }: { id?: string; paint?: Record<string, unknown>; layout?: Record<string, unknown> }) => {
+    const propsRef = useRef({ paint, layout });
+    propsRef.current = { paint, layout };
     useEffect(() => {
-      if (id) mapState.layers.push({ id, paint: paintRef.current });
+      if (id) mapState.layers.push({ id, ...propsRef.current });
     }, [id]);
     return null;
   };
@@ -230,6 +230,21 @@ beforeEach(() => {
 });
 
 describe("ReportLocationMap layer toggle", () => {
+  it("offers keyboard-accessible links to every report at a shared GPS location", async () => {
+    const data = gpsData();
+    data.features.forEach((feature) => Object.assign(feature.properties, {
+      locationGroupKey: "shared", locationGroupSize: 2, locationGroupCoordinates: [120.6, 14.07],
+    }));
+    vi.mocked(useFieldValidationMap).mockReturnValue({ data, isPending: false, isError: false } as unknown as ReturnType<typeof useFieldValidationMap>);
+    const user = userEvent.setup();
+    renderMap();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    await user.click(screen.getByText("Reports shown on the GPS map"));
+    for (const feature of data.features) {
+      expect(screen.getByRole("link", { name: feature.properties.referenceCode })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
+    }
+  });
+
   it("plots one counted server-group marker and links every member on click", async () => {
     const data = gpsData();
     data.features.forEach((feature) => Object.assign(feature.properties, {
@@ -249,6 +264,19 @@ describe("ReportLocationMap layer toggle", () => {
     expect(screen.getByText("2 reports at this point")).toBeInTheDocument();
     expect(screen.getByText("Within the returned map slice.")).toBeInTheDocument();
     for (const feature of data.features) expect(screen.getByRole("link", { name: `Open ${feature.properties.referenceCode}` })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
+  });
+
+  it("pluralizes the report and location counts for a single-point scope", async () => {
+    const data = gpsData();
+    data.features = data.features.slice(0, 1);
+    data.metadata.returnedCount = 1;
+    data.metadata.totalCount = 1;
+    data.metadata.locatedCount = 1;
+    vi.mocked(useFieldValidationMap).mockReturnValue({ data, isPending: false, isError: false } as unknown as ReturnType<typeof useFieldValidationMap>);
+    const user = userEvent.setup();
+    renderMap();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    expect(screen.getByText("1 report shown at 1 location (limit 100).")).toBeInTheDocument();
   });
 
   it("registers an image fallback when the map style requests an absent sprite", async () => {
@@ -304,7 +332,7 @@ describe("ReportLocationMap layer toggle", () => {
 
     expect(screen.getByLabelText("Map of field-report locations: Barangay circles")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /Balaytigui 8 submitted/ }),
+      screen.getByRole("link", { name: /Balaytigui 8 reports submitted/ }),
     ).toHaveAttribute("href", "/reports?barangay=Balaytigui");
 
     await user.click(screen.getByRole("button", { name: "GPS points" }));
@@ -365,6 +393,40 @@ describe("ReportLocationMap layer toggle", () => {
       if (index > 0) expect(stops[index]).toBeGreaterThan(stops[index - 2]);
     }
     expect(stops).toEqual([1, 10, 2, 30]);
+    // A one-report scope prints the singular unit on the list and on the map
+    // label MapLibre draws for the dot.
+    expect(
+      screen.getByText("1 report submitted · 1 report in open validation"),
+    ).toBeInTheDocument();
+    const label = mapState.layers.find(
+      (entry) => entry.id === "dashboard-barangay-label",
+    );
+    expect(label?.layout?.["text-field"]).toEqual([
+      "concat",
+      ["get", "barangay"],
+      " (",
+      ["to-string", ["get", "submitted"]],
+      ["case", ["==", ["get", "submitted"], 1], " report)", " reports)"],
+    ]);
+  });
+
+  it("prints a one-report dot summary with a singular unit", async () => {
+    const user = userEvent.setup();
+    renderMap();
+    mapState.mapClickEvent = {
+      features: [
+        {
+          layer: { id: "dashboard-barangay-circle" },
+          properties: { barangay: "Balaytigui", submitted: 1, open: 1 },
+        },
+      ],
+      lngLat: { lng: 120.6, lat: 14.07 },
+    };
+    await user.click(screen.getByTestId("map-click"));
+
+    expect(
+      screen.getByRole("group", { name: "Balaytigui report summary" }),
+    ).toHaveTextContent("1 report submitted · 1 report in open validation");
   });
 
   it("opens a dot summary popup with the counts and a link through", async () => {
@@ -385,7 +447,7 @@ describe("ReportLocationMap layer toggle", () => {
       name: "Balaytigui report summary",
     });
     expect(barangayPopup).toHaveTextContent("Balaytigui");
-    expect(barangayPopup).toHaveTextContent("8 submitted · 5 open validation");
+    expect(barangayPopup).toHaveTextContent("8 reports submitted · 5 reports in open validation");
     expect(
       within(barangayPopup).getByRole("link", {
         name: "Open Balaytigui reports register",
@@ -429,7 +491,7 @@ describe("ReportLocationMap layer toggle", () => {
     // their own popups, so a keyboard user keeps every destination the dots
     // offer (the register for a barangay, the report for a GPS point).
     const listLink = screen.getByRole("link", {
-      name: /Balaytigui 8 submitted/,
+      name: /Balaytigui 8 reports submitted/,
     });
     expect(listLink).toHaveAttribute("href", "/reports?barangay=Balaytigui");
     listLink.focus();

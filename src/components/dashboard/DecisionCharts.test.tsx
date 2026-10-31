@@ -163,7 +163,7 @@ describe("InflowComparisonBars", () => {
         scopeLabel={scopeLabel}
       />,
     );
-    expect(screen.getByText("Previous period (0)")).toBeInTheDocument();
+    expect(screen.getByText("Previous period (0 reports)")).toBeInTheDocument();
     expect(screen.queryByText(/Previous period unavailable/)).not.toBeInTheDocument();
   });
 
@@ -197,8 +197,13 @@ describe("InflowComparisonBars", () => {
     expect(container.querySelector(".decision-chart-card__takeaway")).toBeNull();
     expect(screen.queryByText(/says nothing about what comes next/)).not.toBeInTheDocument();
     // Series meaning never depends on colour alone: names and totals print.
-    expect(screen.getByText(/This period \(12\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Previous period \(9\)/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: /12 reports submitted this period; 9 reports in the previous period/,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/This period \(12 reports\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Previous period \(9 reports\)/)).toBeInTheDocument();
     // Both series are flat band solids: no pattern definition survives, no
     // mark paints a `url(#…)` reference, and the two legend swatches name the
     // same bands the bars use.
@@ -263,13 +268,13 @@ describe("ConcernVsConditionBars", () => {
     const strip = screen.getByRole("list", { name: "Staff verification so far" });
     expect(strip).toHaveClass("decision-chart__legend--verification");
     expect(
-      within(strip).getByRole("img", { name: "Verified by staff: 3" }),
+      within(strip).getByRole("img", { name: "Verified by staff: 3 reports" }),
     ).toBeInTheDocument();
     expect(
-      within(strip).getByRole("img", { name: "Unable to verify: 2" }),
+      within(strip).getByRole("img", { name: "Unable to verify: 2 reports" }),
     ).toBeInTheDocument();
     expect(
-      within(strip).getByRole("img", { name: "Not yet determined: 7" }),
+      within(strip).getByRole("img", { name: "Not yet determined: 7 reports" }),
     ).toBeInTheDocument();
     // Solids, never colour alone: three flat band fills in ramp order, each
     // with its own printed label and count, and no texture anywhere.
@@ -297,7 +302,7 @@ describe("ConcernVsConditionBars", () => {
     ]) {
       expect(within(strip).getByText(label)).toBeInTheDocument();
       expect(
-        within(strip).getByRole("img", { name: `${label}: ${count}` }),
+        within(strip).getByRole("img", { name: `${label}: ${count} reports` }),
       ).toHaveTextContent(count);
     }
     for (const [label, count] of [
@@ -353,7 +358,12 @@ describe("BarangayValidationBars", () => {
     expect(screen.queryByText(/Barangay first/)).not.toBeInTheDocument();
     expect(screen.queryByText(/policy deadline/)).not.toBeInTheDocument();
     const c3Table = screen.getByRole("table");
-    expect(within(c3Table).getByText("Past target date")).toBeInTheDocument();
+    expect(within(c3Table).getByText("Reports past target date")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: /Balaytigui 8 reports submitted, 2 reports past target date/,
+      }),
+    ).toBeInTheDocument();
     // The baseline and the three stacked segments are four flat band solids,
     // and the legend swatches name the same bands in the same order.
     expect(container.querySelectorAll("pattern")).toHaveLength(0);
@@ -378,6 +388,43 @@ describe("BarangayValidationBars", () => {
       expect(row.pastTargetDate + row.scheduled + row.unscheduled).toBe(row.open);
     }
   });
+
+  it("prints single-report narrow rows with singular units", () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }) as unknown as typeof window.matchMedia;
+    try {
+      renderWithRouter(
+        <BarangayValidationBars
+          analytics={{
+            ...analytics,
+            validationByBarangay: [
+              {
+                barangay: "Balaytigui",
+                submitted: 1,
+                open: 1,
+                pastTargetDate: 1,
+                scheduled: 0,
+                unscheduled: 0,
+              },
+            ],
+          } as ReportAnalytics}
+          scopeLabel={scopeLabel}
+        />,
+      );
+
+      expect(
+        screen.getByText(
+          "1 report submitted · 1 report past target date · 0 reports scheduled ahead · 0 reports unscheduled",
+        ),
+      ).toBeInTheDocument();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
 });
 
 describe("ReportLocationMap", () => {
@@ -397,7 +444,7 @@ describe("ReportLocationMap", () => {
       screen.getByRole("button", { name: "Barangay circles" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByRole("link", { name: /Balaytigui 8 submitted/ }),
+      screen.getByRole("link", { name: /Balaytigui 8 reports submitted/ }),
     ).toHaveAttribute("href", "/reports?barangay=Balaytigui");
 
     await user.click(screen.getByRole("button", { name: "GPS points" }));
@@ -433,7 +480,7 @@ describe("decision chart copy discipline", () => {
     }
     // The one named exception: the KPI segment wording the plan allows
     // while "overdue" itself stays forbidden.
-    expect(copy).toContain("Past target date");
+    expect(copy).toContain("Reports past target date");
     expect(copy.toLowerCase()).not.toContain("overdue");
   });
 });

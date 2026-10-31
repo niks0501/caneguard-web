@@ -1,4 +1,5 @@
 import type { VerificationOutcomeSplit } from "../../domain/dashboard.types";
+import { reportCount } from "./countUnits";
 
 /**
  * Staff-verification legend for the concern-vs-condition card (overhaul §3.4).
@@ -27,5 +28,5 @@ export const VERIFICATION_LEGEND: VerificationLegendEntry[] = [
 
 /** Accessible name for one legend mark: the outcome and its printed count. */
 export function verificationLegendName(label: string, count: number): string {
-  return `${label}: ${count}`;
+  return `${label}: ${reportCount(count)}`;
 }

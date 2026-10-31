@@ -13,6 +13,7 @@ import type { FieldValidationMapData, FieldValidationMapFeature } from "../../do
 import { reviewStatusLabels } from "../../domain/report.metadata";
 import type { ReviewStatus } from "../../domain/report.types";
 import { env } from "../../config/env";
+import { reportCount } from "../dashboard/countUnits";
 import { resolveBasemapStyle } from "./localBasemap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -285,7 +286,7 @@ export function ValidationMap({
         <div>
           <h2 id="validation-map-heading">Cases</h2>
         </div>
-        <span>{data.metadata.returnedCount} shown</span>
+        <span>{reportCount(data.metadata.returnedCount)} shown</span>
       </div>
       <div className="validation-map" aria-label="Map of submitted report locations">
         {basemapStyle ? (
