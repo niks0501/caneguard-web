@@ -1,3 +1,4 @@
+import { ApiError } from "../../api/ApiError";
 import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
@@ -293,6 +294,9 @@ export class MockReportsRepository implements ReportsRepository {
     }
 
     const current = this.reports[index];
+    if ((current.reviewVersion ?? 0) !== input.expectedVersion) {
+      throw new ApiError("The report changed while the review was being saved.", { status: 409 });
+    }
     const lifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
     const legacyLifecycle = input.status
       ? legacyLifecycleForReviewStatus(input.status)
