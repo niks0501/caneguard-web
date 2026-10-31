@@ -104,10 +104,11 @@ Both waypoint shapes share one rule: every waypoint is a JSON object recording
 `source` (`map` or `gps`), `accuracy_meters` (a non-negative number of metres or
 `null`) and `captured_at` (an ISO8601 date-time naming a real calendar instant,
 with a timezone offset kept when supplied). At most 100 waypoint lists and
-1,500 waypoints are accepted, so a full-precision GPS track (six decimal places
-on every coordinate) still fits inside the provenance object's 262,144-byte
-limit. Waypoint sets are stored in the order the phone sends them and are never
-re-paired with `affected_area_polygons` by the server.
+1,500 waypoints are accepted, and `measurement_provenance` is limited to 262,144
+bytes of JSON; a full-precision GPS track (six decimal places on every
+coordinate) at that waypoint budget still fits inside the cap. Waypoint sets are
+stored in the order the phone sends them and are never re-paired with
+`affected_area_polygons` by the server.
 
 All four may be omitted; a plot-only payload stores `null` for each, so older
 clients keep working without a backfill. Top-level fields this contract does
