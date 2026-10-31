@@ -13,7 +13,7 @@ h2 { font-size: 12pt; line-height: 1.3; margin: 14pt 0 7pt; page-break-after: av
 p { margin: 5pt 0 9pt; }
 .meta { font-size: 8pt; color: #3f5947; }
 .metrics { width: 100%; border-collapse: collapse; margin: 7pt 0 12pt; }
-.metrics td { width: 33.333%; padding: 8pt; border: 0.5pt solid #c9d6c5; vertical-align: top; }
+.metrics td { width: 50%; padding: 8pt; border: 0.5pt solid #c9d6c5; vertical-align: top; }
 .metrics .label { display: block; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .06em; color: #3f5947; }
 .metrics .value { display: block; font-size: 17pt; font-weight: 700; }
 table.cases { width: 100%; border-collapse: collapse; margin: 7pt 0 12pt; font-size: 8pt; }
@@ -40,10 +40,8 @@ tr { page-break-inside: avoid; }
 <tr>
 <td><span class="label">Validated RSSI cases</span><span class="value">{{ $report['sections']['validated']['cases'] }}</span></td>
 <td><span class="label">Suspected RSSI cases, not in the validated total</span><span class="value">{{ $report['sections']['suspected']['cases'] }}</span></td>
-<td><span class="label">Reported area of validated cases (ha)</span><span class="value">{{ number_format((float) $report['sections']['validated']['reported_area_hectares'], 2) }}</span></td>
 </tr>
 </table>
-<p class="meta">{{ $report['sections']['validated']['area_method'] }}</p>
 
 <h2>Validated RSSI cases</h2>
 <table class="cases">
@@ -66,18 +64,6 @@ tr { page-break-inside: avoid; }
 <tr><td>{{ $row['case_reference'] }}</td><td>{{ $row['submitted_date'] }}</td><td>{{ $row['barangay'] }}</td><td>{{ $row['staff_classification'] }}</td><td>{{ $row['verification_outcome'] }}</td><td class="num">{{ $row['area_hectares'] === null ? $row['area_measurement'] : number_format((float) $row['area_hectares'], 2) }}</td></tr>
 @empty
 <tr><td colspan="6" class="empty">No suspected RSSI case was received in this period.</td></tr>
-@endforelse
-</tbody>
-</table>
-
-<h2>By barangay</h2>
-<table class="cases">
-<thead><tr><th>Barangay</th><th class="num">Validated</th><th class="num">Suspected, not validated</th></tr></thead>
-<tbody>
-@forelse ($report['barangays'] as $row)
-<tr><td>{{ $row['barangay'] }}</td><td class="num">{{ $row['validated'] }}</td><td class="num">{{ $row['suspected'] }}</td></tr>
-@empty
-<tr><td colspan="3" class="empty">No RSSI case was received in this period.</td></tr>
 @endforelse
 </tbody>
 </table>

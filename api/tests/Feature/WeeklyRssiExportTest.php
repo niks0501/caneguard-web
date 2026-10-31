@@ -79,20 +79,62 @@ class WeeklyRssiExportTest extends TestCase
         );
         $this->assertSame(['validated'], array_values(array_unique(array_column($report['sections']['validated']['rows'], 'section'))));
         $this->assertSame(['suspected'], array_values(array_unique(array_column($report['sections']['suspected']['rows'], 'section'))));
-        $this->assertSame(2, $report['sections']['validated']['barangays']);
-        $this->assertEquals(2.5, $report['sections']['validated']['reported_area_hectares']);
         $this->assertSame('Not measured', $report['sections']['validated']['rows'][1]['area_measurement']);
         $this->assertSame('Not classified', $report['sections']['suspected']['rows'][0]['staff_classification']);
-        $this->assertSame(
-            [
-                ['barangay' => 'Banilad', 'validated' => 1, 'suspected' => 1],
-                ['barangay' => 'Bucana', 'validated' => 1, 'suspected' => 1],
-            ],
-            $report['barangays'],
-        );
         $payload = json_encode($report, JSON_THROW_ON_ERROR);
         $this->assertStringNotContainsString('PRIVATE', $payload);
         $this->assertStringNotContainsString('farmer_or_farm', $payload);
+    }
+
+    public function test_foreign_district_rssi_cases_are_excluded_from_the_pilot_export(): void
+    {
+        $district = $this->pilotDistrict();
+        $foreign = District::query()->create(['code' => 'foreign-district', 'name' => 'Foreign district']);
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+
+        $this->report($district, [
+            'reference_code' => 'CG-PILOT-VALIDATED',
+            'authority_classified_condition' => 'rssi',
+            'verification_outcome' => 'verified',
+        ]);
+        $this->report($foreign, [
+            'reference_code' => 'CG-FOREIGN-VALIDATED',
+            'authority_classified_condition' => 'rssi',
+            'verification_outcome' => 'verified',
+        ]);
+        $this->report($foreign, [
+            'reference_code' => 'CG-FOREIGN-SUSPECT',
+            'predicted_label' => 'unknown',
+            'reporter_suspected_condition' => 'RSSI',
+        ]);
+
+        $report = app(BuildWeeklyRssiReport::class)->handle(['period_type' => 'weekly', 'week' => '2026-W40'], $reviewer);
+
+        $this->assertSame(1, $report['sections']['validated']['cases']);
+        $this->assertSame(0, $report['sections']['suspected']['cases']);
+        $this->assertSame(['CG-PILOT-VALIDATED'], array_column($report['sections']['validated']['rows'], 'case_reference'));
+        $this->assertSame('test-pilot', $report['district']['code'] ?? null);
+        $this->assertStringNotContainsString('CG-FOREIGN', json_encode($report, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_export_returns_no_cases_when_no_pilot_district_is_configured(): void
+    {
+        $district = $this->pilotDistrict();
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $this->report($district, [
+            'reference_code' => 'CG-PILOT-VALIDATED',
+            'authority_classified_condition' => 'rssi',
+            'verification_outcome' => 'verified',
+        ]);
+
+        config(['caneguard.pilot_district_code' => '']);
+
+        $report = app(BuildWeeklyRssiReport::class)->handle(['period_type' => 'weekly', 'week' => '2026-W40'], $reviewer);
+
+        $this->assertSame(0, $report['sections']['validated']['cases']);
+        $this->assertSame(0, $report['sections']['suspected']['cases']);
+        $this->assertNull($report['district']);
+        $this->assertStringNotContainsString('CG-PILOT-VALIDATED', json_encode($report, JSON_THROW_ON_ERROR));
     }
 
     public function test_the_validated_total_uses_the_same_confirmation_rule_as_the_official_weekly_report(): void

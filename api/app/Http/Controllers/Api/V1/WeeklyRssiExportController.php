@@ -6,9 +6,9 @@ use App\Actions\Reports\BuildWeeklyRssiReport;
 use App\Actions\Reports\ExportWeeklyRssiCsv;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WeeklyRssiExportRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Spatie\LaravelPdf\Facades\Pdf;
-use Spatie\LaravelPdf\PdfBuilder;
 
 /**
  * Download-only. Office staff attach the file to their own email to the SRA;
@@ -20,16 +20,18 @@ final class WeeklyRssiExportController extends Controller
         WeeklyRssiExportRequest $request,
         BuildWeeklyRssiReport $buildWeeklyRssiReport,
         ExportWeeklyRssiCsv $exportWeeklyRssiCsv,
-    ): Response|PdfBuilder {
+    ): Response|JsonResponse {
         $report = $buildWeeklyRssiReport->handle($request->validated());
         $filename = 'caneguard-rssi-weekly-'.$report['period']['from'].'-to-'.$report['period']['to'];
 
         if (($request->validated()['format'] ?? 'csv') === 'pdf') {
             try {
-                return Pdf::view('reports.rssi-weekly', ['report' => $report])
+                $pdf = Pdf::view('reports.rssi-weekly', ['report' => $report])
                     ->format('a4')
                     ->name($filename)
                     ->download();
+
+                return $pdf->toResponse($request);
             } catch (\Throwable $exception) {
                 report($exception);
 

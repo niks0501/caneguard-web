@@ -72,20 +72,15 @@ final class BuildWeeklyRssiReport
                 self::SECTION_VALIDATED => [
                     'label' => 'Reviewed and validated RSSI cases',
                     'cases' => count($validated),
-                    'barangays' => $this->barangayCount($validated),
-                    'reported_area_hectares' => $this->reportedArea($validated),
-                    'area_method' => 'Sum of reported measured areas; fields may overlap, so this is not a unique infested area. Unmeasured cases carry no area.',
                     'rows' => $validated,
                 ],
                 self::SECTION_SUSPECTED => [
                     'label' => 'Suspected RSSI cases',
                     'cases' => count($suspected),
-                    'barangays' => $this->barangayCount($suspected),
                     'excluded_from_validated_totals' => true,
                     'rows' => $suspected,
                 ],
             ],
-            'barangays' => $this->barangayBreakdown($validated, $suspected),
             'method' => [
                 'confirmation' => 'A case is validated only when office staff classified it as RSSI and its verification outcome is verified. Suspected cases are listed separately and are never added to validated totals.',
                 'boundary' => 'Cases received inside the selected Asia/Manila period, on their receipt date. Duplicate-linked reports and records staff classified as another condition are excluded.',
@@ -103,7 +98,7 @@ final class BuildWeeklyRssiReport
 
     private function query(?User $actor, CarbonImmutable $start, CarbonImmutable $end): Builder
     {
-        return Report::query()->visibleTo($actor)
+        $query = Report::query()->visibleTo($actor)
             ->whereNull('canonical_report_id')
             ->where('submitted_at', '>=', $start->utc())
             ->where('submitted_at', '<', $end->utc())
@@ -113,7 +108,14 @@ final class BuildWeeklyRssiReport
                 $query->where('authority_classified_condition', Report::AUTHORITY_CONDITION_RSSI)
                     ->orWhere(fn (Builder $inner) => $inner->whereNull('authority_classified_condition')
                         ->where('reporter_suspected_condition', Report::REPORTER_CONCERN_RSSI));
-            })
+            });
+
+        $pilotId = $this->districtAccess->pilotId();
+        if ($pilotId === null) {
+            return $query->whereRaw('1 = 0')->orderBy('submitted_at')->orderBy('id');
+        }
+
+        return $query->where($query->getModel()->qualifyColumn('district_id'), $pilotId)
             ->orderBy('submitted_at')
             ->orderBy('id');
     }
@@ -152,48 +154,6 @@ final class BuildWeeklyRssiReport
             Report::VERIFICATION_OUTCOME_UNABLE_TO_VERIFY => 'Unable to verify',
             default => 'Not determined',
         };
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $rows
-     */
-    private function barangayCount(array $rows): int
-    {
-        return count(array_unique(array_map(
-            static fn (array $row): string => mb_strtolower((string) $row['barangay']),
-            $rows,
-        )));
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $rows
-     */
-    private function reportedArea(array $rows): float
-    {
-        return round(array_sum(array_map(
-            static fn (array $row): float => (float) ($row['area_hectares'] ?? 0),
-            $rows,
-        )), 2);
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $validated
-     * @param  array<int, array<string, mixed>>  $suspected
-     * @return array<int, array{barangay:string,validated:int,suspected:int}>
-     */
-    private function barangayBreakdown(array $validated, array $suspected): array
-    {
-        $barangays = [];
-        foreach ([[self::SECTION_VALIDATED, $validated], [self::SECTION_SUSPECTED, $suspected]] as [$section, $rows]) {
-            foreach ($rows as $row) {
-                $key = mb_strtolower((string) $row['barangay']);
-                $barangays[$key] ??= ['barangay' => (string) $row['barangay'], self::SECTION_VALIDATED => 0, self::SECTION_SUSPECTED => 0];
-                $barangays[$key][$section]++;
-            }
-        }
-        ksort($barangays);
-
-        return array_values($barangays);
     }
 
     /**
