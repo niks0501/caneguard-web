@@ -136,6 +136,25 @@ describe("ReportDocumentBuilder", () => {
   });
 });
 
+describe("ReportDocumentBuilder weekly RSSI export", () => {
+  it("offers the RSSI export as a download-only mode with no farmer appendix option", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({
+      reachability: "reachable",
+      checks: { database: "ready", storage: "ready" },
+    });
+    const user = userEvent.setup();
+    renderBuilder();
+
+    await user.click(screen.getByRole("button", { name: "Weekly RSSI report" }));
+
+    expect(screen.getByRole("region", { name: "Weekly RSSI export" })).toBeInTheDocument();
+    expect(screen.getByText(/reviewed and validated RSSI cases/i)).toBeInTheDocument();
+    expect(screen.queryByText("Include farmer/farm identifier appendix")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Download PDF" })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Download RSSI CSV" })).toBeEnabled());
+  });
+});
+
 describe("ReportDocumentBuilder document scope", () => {
   const scope = {
     filters: {

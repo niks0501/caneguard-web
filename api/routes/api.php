@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
 use App\Http\Controllers\Api\V1\UpdateReportAffectedFieldsController;
 use App\Http\Controllers\Api\V1\WebAccountsController;
+use App\Http\Controllers\Api\V1\WeeklyRssiExportController;
 use App\Http\Controllers\Api\V2\AccountsController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
 use App\Http\Controllers\Auth\ChangeEmailController;
@@ -122,6 +123,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::get('/reports', [ReportController::class, 'index']);
         Route::get('/reports/export', ReportExportController::class)
             ->name('api.v1.reports.export');
+        Route::get('/reports/rssi-weekly/export', WeeklyRssiExportController::class)
+            ->name('api.v1.reports.rssi-weekly.export');
         Route::get('/reports/documents/report/pdf', ReportDocumentController::class)
             ->name('api.v1.reports.documents.pdf');
         Route::get('/reports/documents/report', ReportDocumentController::class)
