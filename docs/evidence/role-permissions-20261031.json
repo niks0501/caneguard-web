@@ -1,0 +1,1733 @@
+{
+  "schema": "caneguard.role-permission-observations.v1",
+  "date": "2026-10-31",
+  "authority": "Worker observations only; not promoted proof tests or exhaustive acceptance.",
+  "apiWebRevision": "624832306dfb81febfc123c6c7902d57f500b8cd",
+  "mobileRevision": "83009f74159d0e98c609ca178834686a3d841df2",
+  "web": {
+    "surface": "Real office Web form sign-ins, then cookie-authenticated HTTP requests",
+    "signIns": [
+      {
+        "event": "web-form-sign-in",
+        "role": "reviewer",
+        "path": "/dashboard",
+        "confirmedRole": "reviewer"
+      },
+      {
+        "event": "web-form-sign-in",
+        "role": "admin",
+        "path": "/dashboard",
+        "confirmedRole": "admin"
+      }
+    ],
+    "observations": [
+      {
+        "role": "anonymous",
+        "method": "GET",
+        "path": "/api/v1/me",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "role": "anonymous",
+        "method": "GET",
+        "path": "/api/v1/reports",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "role": "anonymous",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "role": "anonymous",
+        "method": "GET",
+        "path": "/api/v1/mobile/assignments",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/me",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/dashboard/summary",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/reports",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/reports/01a19164-914e-73f0-8691-8deaf01bc82c",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/reports/map",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/reports/analytics?from=2026-10-01&to=2026-10-31",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/reports/export",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/field-reporters",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/field-surveys",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/notifications",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/district-reports",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65/events",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/district-reporting-settings",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/devices",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/mobile/assignments",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/mobile/reports/statuses",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v2/mobile/reports/statuses",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v3/mobile/reports/statuses",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/mobile/notifications",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "GET",
+        "path": "/api/v1/reference/locations",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "POST",
+        "path": "/api/v1/mobile/field-surveys",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "PATCH",
+        "path": "/api/v1/reports/01a19164-914e-73f0-8691-8deaf01bc82c/review",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "PATCH",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "POST",
+        "path": "/api/v1/mobile/auth/login",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "method": "POST",
+        "path": "/logout",
+        "status": 204,
+        "code": null,
+        "expected": 204,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/me",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/dashboard/summary",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/reports",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/reports/01a19164-9164-7167-8241-cab412d85285",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/reports/map",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/reports/analytics?from=2026-10-01&to=2026-10-31",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/reports/export",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/field-reporters",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/field-surveys",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/notifications",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/district-reports",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65/events",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/district-reporting-settings",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/devices",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/mobile/assignments",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/mobile/reports/statuses",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v2/mobile/reports/statuses",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v3/mobile/reports/statuses",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/mobile/notifications",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "GET",
+        "path": "/api/v1/reference/locations",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "path": "/api/v1/mobile/field-surveys",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "PATCH",
+        "path": "/api/v1/reports/01a19164-9164-7167-8241-cab412d85285/review",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "PATCH",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "PATCH",
+        "path": "/api/v1/admin/accounts/01a19164-911d-7340-ba01-e50889adbaec",
+        "status": 422,
+        "code": "VALIDATION_ERROR",
+        "expected": 422,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "PATCH",
+        "path": "/api/v1/admin/accounts/01a19164-8ee4-7004-b7c3-9e777ea8772f",
+        "status": 422,
+        "code": "VALIDATION_ERROR",
+        "expected": 422,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "path": "/api/v1/mobile/auth/login",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "method": "POST",
+        "path": "/logout",
+        "status": 204,
+        "code": null,
+        "expected": 204,
+        "pass": true
+      }
+    ]
+  },
+  "webStateAndWeekly": {
+    "surface": "Cookie-authenticated HTTP; successful Admin weekly sending NOT proved (local 503)",
+    "observations": [
+      {
+        "role": "reviewer",
+        "check": "review-note-persisted",
+        "status": 200,
+        "version": 1,
+        "notesMatch": true,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "check": "prepare-weekly",
+        "status": 201,
+        "expected": 201,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "check": "weekly-approve",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "check": "weekly-send",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "reviewer",
+        "check": "legacy-role-escalation",
+        "status": 403,
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "check": "review-note-persisted",
+        "status": 200,
+        "version": 1,
+        "notesMatch": true,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "check": "weekly-approve",
+        "status": 200,
+        "code": null,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "check": "weekly-send",
+        "status": 503,
+        "code": "SERVICE_UNAVAILABLE",
+        "expected": 503,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "check": "legacy-role-wrong-step-up",
+        "status": 422,
+        "expected": 422,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "check": "wrong-step-up",
+        "status": 422,
+        "expected": 422,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "check": "denied-account-write-unchanged",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "role": "admin",
+        "check": "self-disable-unchanged",
+        "status": 200,
+        "pass": true
+      }
+    ]
+  },
+  "mobile": {
+    "surface": "API-only; direct normal mobile-auth login, not Mobile UI",
+    "observations": [
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "POST",
+        "path": "/api/v1/mobile/auth/login",
+        "label": "legitimate mobile login; attacker-supplied role ignored",
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "POST",
+        "path": "/api/v1/mobile/auth/enroll",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/devices",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/assignments",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/notifications",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/reports/statuses",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v2/mobile/reports/statuses",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v3/mobile/reports/statuses",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/reference/locations",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/me",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/dashboard/summary",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/reports",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/reports/01a19164-914e-73f0-8691-8deaf01bc82c",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/reports/map",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/reports/export",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/reports/analytics?from=2026-10-01&to=2026-10-31",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/field-reporters",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/field-surveys",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/notifications",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65/events",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/district-reporting-settings",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/district-reports",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "PATCH",
+        "path": "/api/v1/reports/01a19164-914e-73f0-8691-8deaf01bc82c/review",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "PATCH",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "PATCH",
+        "path": "/api/v1/admin/users/01a19164-8ee4-7004-b7c3-9e777ea8772f/role",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "POST",
+        "path": "/api/v1/district-reports",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "POST",
+        "path": "/api/v1/mobile/field-surveys",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "POST",
+        "path": "/api/v1/mobile/notifications/read-all",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "POST",
+        "path": "/login",
+        "label": "CSRF-valid Web-login role denial",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "POST",
+        "path": "/api/v2/mobile/reports",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/api/v1/mobile/auth/login",
+        "label": "legitimate mobile login; attacker-supplied role ignored",
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/api/v1/mobile/auth/enroll",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/devices",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/assignments",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/notifications",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/reports/statuses",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v2/mobile/reports/statuses",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v3/mobile/reports/statuses",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/reference/locations",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/me",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/dashboard/summary",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/reports",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/reports/01a19164-914e-73f0-8691-8deaf01bc82c",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/reports/map",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/reports/export",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/reports/analytics?from=2026-10-01&to=2026-10-31",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/field-reporters",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/field-surveys",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/notifications",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65/events",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/district-reporting-settings",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/district-reports",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "PATCH",
+        "path": "/api/v1/reports/01a19164-914e-73f0-8691-8deaf01bc82c/review",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "PATCH",
+        "path": "/api/v1/admin/accounts/01a19164-905b-7250-ba52-3c144203ab65",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "PATCH",
+        "path": "/api/v1/admin/users/01a19164-8fa1-708d-92e0-9667310b964a/role",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/api/v1/district-reports",
+        "label": null,
+        "status": 403,
+        "code": "FORBIDDEN",
+        "errorFields": [],
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/api/v1/mobile/field-surveys",
+        "label": null,
+        "status": 201,
+        "code": null,
+        "errorFields": [],
+        "expected": 201,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/api/v1/mobile/field-surveys",
+        "label": "idempotent replay",
+        "status": 201,
+        "code": null,
+        "errorFields": [],
+        "expected": 201,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/api/v1/mobile/notifications/read-all",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/login",
+        "label": "CSRF-valid Web-login role denial",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "expected": 403,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "POST",
+        "path": "/api/v2/mobile/reports",
+        "label": null,
+        "status": 201,
+        "code": null,
+        "errorFields": [],
+        "expected": 201,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v3/mobile/reports/statuses",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "DELETE",
+        "path": "/api/v1/mobile/auth/devices/8",
+        "label": "cross-owner device revocation denied against extant target",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "errorFields": [],
+        "expected": 404,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "DELETE",
+        "path": "/api/v1/mobile/auth/devices/6",
+        "label": "cross-owner device revocation denied against extant target",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "errorFields": [],
+        "expected": 404,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": "foreign revocation attempt did not revoke live backup",
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "DELETE",
+        "path": "/api/v1/mobile/auth/devices/6",
+        "label": "own backup-device revocation allowed",
+        "status": 204,
+        "code": null,
+        "errorFields": [],
+        "expected": 204,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": "revoked backup token rejected",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "errorFields": [],
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "DELETE",
+        "path": "/api/v1/mobile/auth/logout",
+        "label": null,
+        "status": 204,
+        "code": null,
+        "errorFields": [],
+        "expected": 204,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "farmer",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": "logged-out token replay rejected",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "errorFields": [],
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": "foreign revocation attempt did not revoke live backup",
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "DELETE",
+        "path": "/api/v1/mobile/auth/devices/8",
+        "label": "own backup-device revocation allowed",
+        "status": 204,
+        "code": null,
+        "errorFields": [],
+        "expected": 204,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": "revoked backup token rejected",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "errorFields": [],
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": null,
+        "status": 200,
+        "code": null,
+        "errorFields": [],
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "DELETE",
+        "path": "/api/v1/mobile/auth/logout",
+        "label": null,
+        "status": 204,
+        "code": null,
+        "errorFields": [],
+        "expected": 204,
+        "pass": true
+      },
+      {
+        "surface": "API-only",
+        "role": "field_reporter",
+        "method": "GET",
+        "path": "/api/v1/mobile/auth/me",
+        "label": "logged-out token replay rejected",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "errorFields": [],
+        "expected": 401,
+        "pass": true
+      }
+    ],
+    "assertions": [
+      {
+        "role": "farmer",
+        "check": "login-role-not-elevated",
+        "pass": true
+      },
+      {
+        "role": "farmer",
+        "check": "restored-same-identity",
+        "pass": true
+      },
+      {
+        "role": "farmer",
+        "check": "enrolled-backup-device-visible",
+        "pass": true
+      },
+      {
+        "role": "field_reporter",
+        "check": "login-role-not-elevated",
+        "pass": true
+      },
+      {
+        "role": "field_reporter",
+        "check": "restored-same-identity",
+        "pass": true
+      },
+      {
+        "role": "field_reporter",
+        "check": "enrolled-backup-device-visible",
+        "pass": true
+      },
+      {
+        "role": "field_reporter",
+        "check": "same-survey-receipt-on-replay",
+        "pass": true
+      },
+      {
+        "role": "field_reporter",
+        "check": "uploaded-report-visible-in-own-status-feed",
+        "pass": true
+      },
+      {
+        "role": "farmer",
+        "check": "foreign-revocation-no-side-effect",
+        "pass": true
+      },
+      {
+        "role": "farmer",
+        "check": "role-still-not-elevated-after-forbidden-writes",
+        "pass": true
+      },
+      {
+        "role": "field_reporter",
+        "check": "foreign-revocation-no-side-effect",
+        "pass": true
+      },
+      {
+        "role": "field_reporter",
+        "check": "role-still-not-elevated-after-forbidden-writes",
+        "pass": true
+      }
+    ]
+  },
+  "limits": [
+    "Farmer physical-phone form login failed INVALID_RESPONSE; client accepts only field_reporter.",
+    "Inspector physical-phone form login separately succeeded; that does not convert the Mobile API-only requests into UI evidence.",
+    "Expo web login blocked by DATABASE_OPEN_FAILED.",
+    "Inactive-account Mobile login not verified.",
+    "No over-permissive endpoint established in the exercised active-role matrix."
+  ]
+}
