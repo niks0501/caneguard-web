@@ -137,10 +137,10 @@ describe("SubmittedReportsPage", () => {
   it("renders the monitoring workspace with shared Quick views and register columns", () => {
     renderPage("/monitoring?concern=rssi", "monitoring");
 
-    expect(screen.getByRole("heading", { name: "Monitoring workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Visits" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "RSSI" })).toHaveAttribute(
       "href",
-      "/monitoring?concern=rssi",
+      "/monitoring?concern=rssi&view=register",
     );
     expect(screen.getByRole("columnheader", { name: "Case" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Affected Area" })).toBeInTheDocument();
@@ -330,6 +330,15 @@ describe("SubmittedReportsPage", () => {
 
     expect(screen.getByTestId("location")).toHaveTextContent(/^$/);
     expect(screen.getByLabelText("Sort by")).toHaveValue("due_soonest");
+  });
+
+  it("clears monitoring filters back to the List view instead of ejecting to the map", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=register&queue=follow_up_due&barangay=Mabini", "monitoring");
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("?view=register");
   });
 
   it("stamps queue freshness in 12-hour Manila time and marks stale data", async () => {

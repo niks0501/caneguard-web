@@ -32,17 +32,20 @@ type MapProviderState = "loading" | "ready" | "error";
 
 /**
  * Quiet field pins: every case is ink, and amber is reserved for a real Note —
- * a case a person should look at before relying on it — which on the map is
- * an "Unable to determine" review status. MapLibre paint expressions cannot
- * read CSS custom properties, so these hexes restate token roles from
- * `src/styles/tokens.css` (`--color-text`, `--color-warning`); the status
- * legend beside the map is painted from the same roles, so update both
+ * a case a person should look at before relying on it — which on the map is an
+ * "Unable to determine" review or a reporter mismatch. MapLibre paint
+ * expressions cannot read CSS custom properties, so these hexes restate token
+ * roles from `src/styles/tokens.css` (`--color-text`, `--color-warning`); the
+ * status legend beside the map is painted from the same roles, so update both
  * together. The glyphs carry the state, so meaning never depends on colour.
  */
 const statusColorExpression = [
-  "match",
-  ["get", "review_status"],
-  "unable_to_verify",
+  "case",
+  [
+    "any",
+    ["==", ["get", "review_status"], "unable_to_verify"],
+    ["==", ["get", "mismatchReported"], true],
+  ],
   "#8a4a06",
   "#1d2720",
 ] as ExpressionSpecification;
@@ -182,6 +185,7 @@ export function ValidationMap({
       properties: {
         uuid: feature.properties.uuid,
         review_status: feature.properties.reviewStatus,
+        mismatchReported: feature.properties.mismatchReported === true,
       },
     })),
   };
@@ -369,7 +373,11 @@ export function ValidationMap({
                 type: "FeatureCollection",
                 features: expandedFeatures.map((item) => ({
                   ...item,
-                  properties: { uuid: item.properties.uuid, review_status: item.properties.reviewStatus },
+                  properties: {
+                    uuid: item.properties.uuid,
+                    review_status: item.properties.reviewStatus,
+                    mismatchReported: item.properties.mismatchReported === true,
+                  },
                 })),
               }}>
                 <Layer id="validation-expanded-points" type="circle" paint={{

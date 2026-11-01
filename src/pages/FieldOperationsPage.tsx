@@ -34,13 +34,13 @@ type QuickFilter = "all" | FieldOperationSection;
 
 function fieldOperationsError(error: unknown) {
   if (error instanceof ApiError && error.status === 403) {
-    return "Your account does not have access to Field Operations.";
+    return "Your account does not have access to Assignments.";
   }
   if (error instanceof ApiError && error.status === 429) {
-    return "Field Operations is receiving too many requests. Wait a moment, then try again.";
+    return "Assignments is receiving too many requests. Wait a moment, then try again.";
   }
   if (isApiConnectionError(error)) return serviceUnreachableMessage;
-  return "Field Operations could not be loaded. Please try again.";
+  return "Assignments could not be loaded. Please try again.";
 }
 
 const sectionDescriptions: Record<FieldOperationSection, string> = {
@@ -169,7 +169,7 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
       {!embedded ? (
         <PageHeader
           eyebrow="Field operations"
-          title="Field Operations"
+          title="Assignments"
           description="Prioritize, assign, reassign, and reschedule active field visits."
           actions={(
             <Button
@@ -205,7 +205,7 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
           </span>
         </div>
 
-        <ul className="field-operations-summary" aria-label="Field Operations workload summary">
+        <ul className="field-operations-summary" aria-label="Assignments workload summary">
           <li><span className="field-operations-summary__label">Overdue</span><strong>{summaryCount(summary.overdue)}</strong></li>
           <li><span className="field-operations-summary__label">Unassigned</span><strong>{summaryCount(summary.unassigned)}</strong></li>
           <li><span className="field-operations-summary__label">Upcoming</span><strong>{summaryCount(summary.upcoming)}</strong></li>
@@ -350,7 +350,7 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
 
         {selectedIsFilteredOut ? (
           <p className="queue-refresh-warning" role="status">
-            {selectedItem?.referenceCode} is outside the current Field Operations filters.
+            {selectedItem?.referenceCode} is outside the current Assignments filters.
             {" "}
             <button type="button" className="link-button" onClick={clearFilters}>Clear filters</button> to see it in context.
           </p>

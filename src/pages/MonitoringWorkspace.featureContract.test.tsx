@@ -10,6 +10,8 @@ import { reportListItemDto } from "../test/fixtures";
 import { server } from "../test/server";
 import { MonitoringWorkspacePage } from "./MonitoringWorkspacePage";
 
+vi.mock("./FieldValidationMapPage", () => ({ FieldValidationMapPage: () => <p>Map view</p> }));
+
 /**
  * PROTECTED FEATURE-CONTRACT TESTS - Monitoring Register / Visit Calendar redesign.
  *
@@ -161,7 +163,7 @@ function LocationProbe() {
   return <output data-testid="location">{location.pathname}{location.search}</output>;
 }
 
-function renderWorkspace(initialEntry = "/monitoring") {
+function renderWorkspace(initialEntry = "/monitoring?view=register") {
   return render(
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={[initialEntry]}>
@@ -193,14 +195,14 @@ afterEach(() => {
 
 describe("Monitoring Register contract", () => {
   it("REGISTER: keeps the case table, exposes Quick views, and does not embed the full month calendar", async () => {
-    renderWorkspace("/monitoring?concern=rssi");
+    renderWorkspace("/monitoring?concern=rssi&view=register");
 
     expect(await screen.findByText(reportListItemDto.reference_code)).toBeInTheDocument();
     expect(screen.getByText("Quick views")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "All cases" })).toHaveAttribute("href", "/monitoring");
-    expect(screen.getByRole("link", { name: "RSSI" })).toHaveAttribute("href", "/monitoring?concern=rssi");
-    expect(screen.getByRole("link", { name: "Follow-up due" })).toHaveAttribute("href", "/monitoring?queue=follow_up_due");
-    expect(screen.getByRole("link", { name: "Upcoming visits" })).toHaveAttribute("href", "/monitoring?queue=upcoming");
+    expect(screen.getByRole("link", { name: "All cases" })).toHaveAttribute("href", "/monitoring?view=register");
+    expect(screen.getByRole("link", { name: "RSSI" })).toHaveAttribute("href", "/monitoring?concern=rssi&view=register");
+    expect(screen.getByRole("link", { name: "Follow-up due" })).toHaveAttribute("href", "/monitoring?queue=follow_up_due&view=register");
+    expect(screen.getByRole("link", { name: "Upcoming visits" })).toHaveAttribute("href", "/monitoring?queue=upcoming&view=register");
 
     expect(screen.queryByRole("grid", { name: /scheduled visits|visit calendar/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Visit calendar" })).not.toBeInTheDocument();
@@ -208,25 +210,25 @@ describe("Monitoring Register contract", () => {
 
   it("QUICK VIEWS: selecting a preset clears prior case filters and restarts from page 1", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    renderWorkspace("/monitoring?concern=rssi&barangay=Mabini&page=3");
+    renderWorkspace("/monitoring?concern=rssi&barangay=Mabini&page=3&view=register");
     await screen.findByText(reportListItemDto.reference_code);
 
     await user.click(screen.getByRole("link", { name: "Upcoming visits" }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent("/monitoring?queue=upcoming"),
+      expect(screen.getByTestId("location")).toHaveTextContent("/monitoring?queue=upcoming&view=register"),
     );
   });
 
   it("QUICK VIEWS: All cases clears the active preset and manual Register filters", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    renderWorkspace("/monitoring?queue=follow_up_due&barangay=Mabini&page=2");
+    renderWorkspace("/monitoring?queue=follow_up_due&barangay=Mabini&page=2&view=register");
     await screen.findByText(reportListItemDto.reference_code);
 
     await user.click(screen.getByRole("link", { name: "All cases" }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent("/monitoring"),
+      expect(screen.getByTestId("location")).toHaveTextContent("/monitoring?view=register"),
     );
   });
 
@@ -270,7 +272,7 @@ describe("Monitoring Register contract", () => {
       scheduleItem(4, null, { barangay: "Wawa" }),
     ];
 
-    renderWorkspace("/monitoring?barangay=Balaytigui&concern=rssi");
+    renderWorkspace("/monitoring?barangay=Balaytigui&concern=rssi&view=register");
     await screen.findByText(reportListItemDto.reference_code);
 
     const summary = summaryRegion();
@@ -301,6 +303,17 @@ describe("Monitoring Register contract", () => {
     expect(await screen.findByText(reportListItemDto.reference_code)).toBeInTheDocument();
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(await screen.findByText(/schedule.*(unavailable|could not|failed)/i)).toBeInTheDocument();
+  });
+});
+
+describe("Visits default view contract", () => {
+  it("DEFAULT: bare /monitoring opens the Map instead of the case table", async () => {
+    renderWorkspace("/monitoring");
+
+    expect(await screen.findByText("Map view")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("Quick views")).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Case" })).not.toBeInTheDocument();
   });
 });
 

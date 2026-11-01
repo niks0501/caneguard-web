@@ -11,7 +11,7 @@ describe("workspace scope", () => {
     const link = monitoringViewLink("register", params);
 
     expect(link.removed).toEqual([]);
-    expect(link.to).toBe("/monitoring?queue=follow_up_due&barangay=Bucana");
+    expect(link.to).toBe("/monitoring?queue=follow_up_due&barangay=Bucana&view=register");
   });
 
   it("keeps the Overdue queue and barangay when opening the map", () => {
@@ -67,7 +67,7 @@ describe("workspace scope", () => {
   it("keeps the register's own queues, including the unverified gap", () => {
     const link = monitoringViewLink("register", new URLSearchParams("queue=unverified_no_active_work"));
 
-    expect(link.to).toBe("/monitoring?queue=unverified_no_active_work");
+    expect(link.to).toBe("/monitoring?queue=unverified_no_active_work&view=register");
     expect(link.removed).toEqual([]);
   });
 
@@ -80,7 +80,7 @@ describe("workspace scope", () => {
 
     expect(link.removed).toEqual([]);
     expect(link.to).toBe(
-      "/monitoring?queue=follow_up_due&search=bucana&case_state=open&workflow_status=needs_visit&reviewer=abc&sort=oldest",
+      "/monitoring?queue=follow_up_due&search=bucana&case_state=open&workflow_status=needs_visit&reviewer=abc&sort=oldest&view=register",
     );
   });
 

@@ -251,7 +251,7 @@ export function SubmittedReportsPage({
   };
 
   const clearFilters = () => {
-    setSearchParams(new URLSearchParams());
+    setSearchParams(isMonitoring ? new URLSearchParams("view=register") : new URLSearchParams());
   };
 
   const handleExport = async () => {

@@ -260,15 +260,15 @@ describe("queue regressions (SAVED, STATE)", () => {
 
     expect(screen.getByRole("link", { name: "RSSI" })).toHaveAttribute(
       "href",
-      "/monitoring?concern=rssi",
+      "/monitoring?concern=rssi&view=register",
     );
     expect(screen.getByRole("link", { name: "Follow-up due" })).toHaveAttribute(
       "href",
-      "/monitoring?queue=follow_up_due",
+      "/monitoring?queue=follow_up_due&view=register",
     );
     expect(screen.getByRole("link", { name: "Upcoming visits" })).toHaveAttribute(
       "href",
-      "/monitoring?queue=upcoming",
+      "/monitoring?queue=upcoming&view=register",
     );
   });
 

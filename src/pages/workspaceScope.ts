@@ -5,7 +5,7 @@ import {
 } from "../domain/operationalQueue";
 
 /**
- * One work scope shared by the monitoring views. Moving between Register, Map
+ * One work scope shared by the monitoring views. Moving between List, Map
  * and the no-location list must not silently broaden the results: a supported
  * filter travels with the reviewer, and an unsupported one is named rather than
  * dropped in silence.
@@ -108,9 +108,8 @@ export function monitoringViewLink(
   // Every view names itself in the URL: /monitoring opens the map, so a List
   // link without `view` would land on the map instead of the case table.
   params.set("view", view);
-  const query = params.toString();
   return {
-    to: query ? `${routes.monitoring}?${query}` : routes.monitoring,
+    to: `${routes.monitoring}?${params.toString()}`,
     removed: [...new Set(removed)],
   };
 }

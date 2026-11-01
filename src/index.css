@@ -3334,7 +3334,8 @@ body:has(.login-page--portal)::before {
 }
 
 /* Amber is the only hued marker: a Note is a case a person should look at
-   before relying on it, which here is an "Unable to determine" review. */
+   before relying on it, which here is an "Unable to determine" review or a
+   reporter mismatch. */
 .map-marker--unable_to_verify {
   color: var(--color-surface);
   background: var(--color-warning);
