@@ -10019,6 +10019,8 @@ button.monitoring-calendar__day-number:focus-visible {
   color: var(--color-muted);
 }
 
+/* Scoped to queue tables on purpose: the Settings device table and every
+   other `.report-table` keep their tabular header and cells at every width. */
 @media (max-width: 899px) {
   .report-table--queue {
     min-width: 0;
