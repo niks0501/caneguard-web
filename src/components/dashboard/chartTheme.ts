@@ -151,7 +151,7 @@ export function chartTooltipProps() {
   };
 }
 
-/** Stable per-barangay fill drawn from the brand family and the paper band ramp. */
+/** Stable per-barangay fill drawn from the brand family and the shared band ramp. */
 const BARANGAY_PALETTE_TOKENS: TokenName[] = [
   "--color-brand",
   "--color-brand-hover",

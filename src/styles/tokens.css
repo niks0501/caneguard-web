@@ -12,7 +12,11 @@
   --brand-gold-on-dark: #E2A15F;
   --brand-cream: #F0E4B8;
   --brand-dark-field: #101711;
-  /* Theme deviation: UI functional tokens (--color-primary: #2d6b40, --color-primary-dark: #1e452a) remain calibrated for GOV.UK web accessibility and contrast ratios on light surfaces rather than raw mark fills. */
+  /* Theme deviation: these paper UI functional tokens (--color-primary:
+     #2d6b40, --color-primary-dark: #1e452a) remain calibrated for GOV.UK web
+     accessibility and contrast ratios against light surfaces rather than raw
+     mark fills; the dark block at the end of this file re-derives them for dark
+     surfaces. */
 
   /* GOV.UK-aligned functional colour roles in CaneGuard brand */
   --color-brand: #2d6b40;
