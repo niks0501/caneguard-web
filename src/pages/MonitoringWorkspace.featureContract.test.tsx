@@ -324,6 +324,21 @@ describe("Workspace default view contract", () => {
     expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByText("Map view")).not.toBeInTheDocument();
   });
+
+  it("DEFAULT: a paginated List bookmark keeps its page instead of widening to the Map", async () => {
+    renderWorkspace("/monitoring?page=2");
+
+    expect(await screen.findByText("Quick views")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("Map view")).not.toBeInTheDocument();
+  });
+
+  it("DEFAULT: the located scope opens the Map that already shows located cases", async () => {
+    renderWorkspace("/monitoring?location=located");
+
+    expect(await screen.findByText("Map view")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
+  });
 });
 
 describe("Visit Calendar contract", () => {

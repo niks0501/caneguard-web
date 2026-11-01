@@ -100,6 +100,7 @@ describe("monitoring default view", () => {
     expect(monitoringViewFromUrl(new URLSearchParams())).toBe("map");
     expect(monitoringViewFromUrl(new URLSearchParams("queue=follow_up_due&barangay=Bucana"))).toBe("map");
     expect(monitoringViewFromUrl(new URLSearchParams("status=for_field_validation&date_from=2026-09-01"))).toBe("map");
+    expect(monitoringViewFromUrl(new URLSearchParams("location=located"))).toBe("map");
   });
 
   it("keeps a legacy filtered deep link on the List that can honor it", () => {
@@ -108,7 +109,15 @@ describe("monitoring default view", () => {
     expect(monitoringViewFromUrl(new URLSearchParams("sort=oldest"))).toBe("register");
     expect(monitoringViewFromUrl(new URLSearchParams("queue=needs_review"))).toBe("register");
     expect(monitoringViewFromUrl(new URLSearchParams("location=unlocated"))).toBe("register");
+    expect(monitoringViewFromUrl(new URLSearchParams("page=2"))).toBe("register");
     expect(monitoringViewFromUrl(new URLSearchParams("view=not_a_view&concern=rssi"))).toBe("register");
+  });
+
+  it("carries the located scope to the map that already shows located cases", () => {
+    const link = monitoringViewLink("map", new URLSearchParams("location=located"));
+
+    expect(link.removed).toEqual([]);
+    expect(link.to).toBe("/monitoring?location=located&view=map");
   });
 
   it("honors an explicit view over the URL's scope", () => {

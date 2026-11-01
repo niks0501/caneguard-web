@@ -64,7 +64,7 @@ function scopeKeptByView(
     if (view === "map" && !mapQueueValues.has(value)) return false;
   }
   if (view === "register") return true;
-  if (view === "map") return key !== "location";
+  if (view === "map") return key !== "location" || value === "located";
   return false;
 }
 
@@ -122,6 +122,8 @@ const workspaceViews = new Set<WorkspaceView>([
   "boundaries",
 ]);
 
+const listOnlyUrlKeys = ["page"] as const;
+
 /**
  * The view a monitoring URL names. A URL without a view keeps the scope it
  * carries: the List can honor every filter, so a link the Map would widen
@@ -130,6 +132,7 @@ const workspaceViews = new Set<WorkspaceView>([
 export function monitoringViewFromUrl(searchParams: URLSearchParams): WorkspaceView {
   const requested = searchParams.get("view") as WorkspaceView | null;
   if (requested && workspaceViews.has(requested)) return requested;
+  if (listOnlyUrlKeys.some((key) => searchParams.get(key)?.trim())) return "register";
   return monitoringViewLink("map", searchParams).removed.length > 0 ? "register" : "map";
 }
 
