@@ -101,6 +101,7 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           confidence: report.confidence ?? 0,
           reviewStatus: report.reviewStatus,
           lifecycle: report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus),
+          mismatchReported: report.mismatchReported ?? null,
           locationSource: report.locationSource ?? null,
           gpsAccuracy: report.gpsAccuracy ?? null,
           affectedAreaHectares: report.affectedAreaHectares ?? null,

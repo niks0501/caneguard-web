@@ -28,6 +28,21 @@ describe("MockFieldValidationRepository", () => {
     }
   });
 
+  it("marks a case the List tags as a reporter mismatch as a Note on the map too", async () => {
+    const map = await new MockFieldValidationRepository().getMap();
+    const list = await new MockReportsRepository().listReports({ limit: 100 });
+    const mismatchUuids = list.reports
+      .filter((report) => report.mismatchReported === true)
+      .map((report) => report.uuid);
+
+    expect(mismatchUuids.length).toBeGreaterThan(0);
+    const mismatchPins = map.features.filter((feature) => mismatchUuids.includes(feature.properties.uuid));
+    expect(mismatchPins.length).toBeGreaterThan(0);
+    for (const pin of mismatchPins) {
+      expect(pin.properties.mismatchReported).toBe(true);
+    }
+  });
+
   it("projects review versions and assignments from the report store reviews write to", async () => {
     const reportsRepository = new MockReportsRepository();
     const fieldValidationRepository = new MockFieldValidationRepository();
