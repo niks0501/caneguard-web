@@ -64,4 +64,49 @@ describe("AppShell navigation drawer", () => {
     expect(screen.queryByRole("dialog", { name: "Navigation menu" })).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
+
+  it("leaves Tab and Escape to a dialog opened from inside the drawer", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    await user.click(screen.getByRole("button", { name: "Open navigation" }));
+    const drawer = screen.getByRole("dialog", { name: "Navigation menu" });
+    const signOutTrigger = within(drawer).getByRole("button", { name: /sign out/i });
+    await user.click(signOutTrigger);
+
+    const confirmation = screen.getByRole("dialog", { name: "Sign out?" });
+    const cancel = within(confirmation).getByRole("button", { name: "Cancel" });
+
+    await user.tab();
+    expect(cancel).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog", { name: "Sign out?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Navigation menu" })).toBeInTheDocument();
+    expect(signOutTrigger).toHaveFocus();
+  });
+
+  it("hands the drawer keyboard back once the confirmation is dismissed", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const trigger = screen.getByRole("button", { name: "Open navigation" });
+    await user.click(trigger);
+    const drawer = screen.getByRole("dialog", { name: "Navigation menu" });
+    await user.click(within(drawer).getByRole("button", { name: /sign out/i }));
+    await user.click(
+      within(screen.getByRole("dialog", { name: "Sign out?" })).getByRole("button", {
+        name: "Cancel",
+      }),
+    );
+
+    expect(screen.queryByRole("dialog", { name: "Sign out?" })).not.toBeInTheDocument();
+
+    // Escape closes the drawer again instead of being swallowed by a trap that
+    // still believes a nested dialog is open.
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Navigation menu" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
 });

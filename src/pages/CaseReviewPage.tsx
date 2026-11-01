@@ -844,10 +844,11 @@ function CaseReviewContent() {
                     <History aria-hidden="true" />
                   </div>
 
-                  <div className="history-filter-row" role="tablist" aria-label="Filter case history">
+                  <div className="history-filter-row" role="group" aria-label="Filter case history">
                     <button
                       type="button"
                       className={`filter-chip ${historyFilter === "all" ? "is-active" : ""}`}
+                      aria-pressed={historyFilter === "all"}
                       onClick={() => setHistoryFilter("all")}
                     >
                       All ({historyCounts.all})
@@ -855,6 +856,7 @@ function CaseReviewContent() {
                     <button
                       type="button"
                       className={`filter-chip ${historyFilter === "review" ? "is-active" : ""}`}
+                      aria-pressed={historyFilter === "review"}
                       onClick={() => setHistoryFilter("review")}
                     >
                       Review ({historyCounts.review})
@@ -862,6 +864,7 @@ function CaseReviewContent() {
                     <button
                       type="button"
                       className={`filter-chip ${historyFilter === "field_validation" ? "is-active" : ""}`}
+                      aria-pressed={historyFilter === "field_validation"}
                       onClick={() => setHistoryFilter("field_validation")}
                     >
                       Field validation ({historyCounts.field_validation})
@@ -869,6 +872,7 @@ function CaseReviewContent() {
                     <button
                       type="button"
                       className={`filter-chip ${historyFilter === "referral" ? "is-active" : ""}`}
+                      aria-pressed={historyFilter === "referral"}
                       onClick={() => setHistoryFilter("referral")}
                     >
                       Referral ({historyCounts.referral})
@@ -876,6 +880,7 @@ function CaseReviewContent() {
                     <button
                       type="button"
                       className={`filter-chip ${historyFilter === "correction" ? "is-active" : ""}`}
+                      aria-pressed={historyFilter === "correction"}
                       onClick={() => setHistoryFilter("correction")}
                     >
                       Correction ({historyCounts.correction})

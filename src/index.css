@@ -107,6 +107,9 @@ a {
   color: inherit;
 }
 
+/* Clipping applies to this element's own box, never to table layout: put
+   `.sr-only` on a block wrapper around a hidden data table, not on the
+   `<table>` itself, or its widest row still widens the document. */
 .sr-only {
   position: absolute;
   width: 1px;

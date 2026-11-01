@@ -10,6 +10,7 @@ export function AppShell() {
   const realtime = useRealtimeInvalidation();
   const location = useLocation();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const drawerPanelRef = useRef<HTMLDivElement>(null);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
@@ -49,7 +50,16 @@ export function AppShell() {
       "[tabindex]:not([tabindex=\"-1\"])",
     ].join(",");
 
+    const hasNestedModal = () => {
+      const drawer = drawerRef.current;
+      if (!drawer) return false;
+      return Array.from(
+        document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'),
+      ).some((dialog) => !drawer.contains(dialog));
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (hasNestedModal()) return;
       if (event.key === "Escape") {
         event.preventDefault();
         setNavigationOpen(false);
@@ -91,7 +101,7 @@ export function AppShell() {
       </a>
       <div className="app-shell__desktop-nav"><AppSidebar /></div>
       {isNavigationOpen ? (
-        <div className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <div ref={drawerRef} className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <button
             className="mobile-drawer__backdrop"
             type="button"

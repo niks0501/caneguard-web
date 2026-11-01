@@ -8,14 +8,20 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
 import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
 import caneGuardLogo from "../../assets/brand/cane_guard_logo.png";
+import { Button } from "../ui/Button";
+import { Modal } from "../ui/Modal";
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const auth = useAuth();
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const logout = () => {
+    setConfirmingSignOut(false);
     onNavigate?.();
     void auth.logout();
   };
@@ -96,7 +102,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="sidebar__footer">
-        <button className="user-summary" type="button" onClick={logout}>
+        <button className="user-summary" type="button" onClick={() => setConfirmingSignOut(true)}>
           <span className="avatar">
             {auth.user?.name
               .split(/\s+/)
@@ -113,6 +119,27 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <span className="sr-only">Sign out</span>
         </button>
       </div>
+      {confirmingSignOut
+        ? createPortal(
+            <Modal
+              id="sign-out-confirm"
+              title="Sign out?"
+              open
+              onClose={() => setConfirmingSignOut(false)}
+              footer={
+                <>
+                  <Button variant="secondary" onClick={() => setConfirmingSignOut(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={logout}>Sign out</Button>
+                </>
+              }
+            >
+              <p>You will need to sign in again to continue.</p>
+            </Modal>,
+            document.body,
+          )
+        : null}
     </aside>
   );
 }

@@ -57,6 +57,10 @@ export default defineConfig({
     },
   },
   test: {
+    // `src/styles/tokens.test.ts` reads the two declarative stylesheets through
+    // Vite `?raw` imports. Vitest replaces CSS imports with empty strings unless
+    // the file is listed here, so only those two sheets are processed.
+    css: { include: [/src\/(?:index|styles\/tokens)\.css/] },
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],

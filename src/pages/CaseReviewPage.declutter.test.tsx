@@ -197,6 +197,70 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUpdateReportReview>);
   });
 
+  it("exposes the case history filter as a pressed-state button group, not a tablist", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
+    const group = screen.getByRole("group", { name: "Filter case history" });
+    const all = within(group).getByRole("button", { name: /^All \(/ });
+    const review = within(group).getByRole("button", { name: /^Review \(/ });
+    expect(all).toHaveAttribute("aria-pressed", "true");
+    expect(review).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(review);
+
+    expect(review).toHaveAttribute("aria-pressed", "true");
+    expect(all).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("filters the history list with the pressed chip and restores it with All", async () => {
+    const user = userEvent.setup();
+    const report = {
+      ...baseReport,
+      caseHistory: {
+        available: true,
+        sources: { reviewEvents: true, corrections: true, assignments: true, consults: true },
+        entries: [
+          {
+            id: "review-1",
+            type: "review" as const,
+            typeLabel: "Review",
+            timestamp: "2026-09-03T02:00:00Z",
+            actor: "Reviewer Alvarez",
+            fields: [{ label: "Case state", value: "Under review" }],
+            notes: null,
+          },
+          {
+            id: "correction-1",
+            type: "correction" as const,
+            typeLabel: "Correction",
+            timestamp: "2026-09-04T02:00:00Z",
+            actor: "Clerk Bautista",
+            fields: [{ label: "Field", value: "barangay" }],
+            notes: null,
+          },
+        ],
+      },
+    };
+    renderPage(report);
+
+    const group = screen.getByRole("group", { name: "Filter case history" });
+    expect(screen.getByText("Reviewer Alvarez")).toBeInTheDocument();
+    expect(screen.getByText("Clerk Bautista")).toBeInTheDocument();
+
+    await user.click(within(group).getByRole("button", { name: /^Correction \(/ }));
+
+    expect(screen.getByText("Clerk Bautista")).toBeInTheDocument();
+    expect(screen.queryByText("Reviewer Alvarez")).not.toBeInTheDocument();
+
+    await user.click(within(group).getByRole("button", { name: /^All \(/ }));
+
+    expect(screen.getByText("Reviewer Alvarez")).toBeInTheDocument();
+    expect(screen.getByText("Clerk Bautista")).toBeInTheDocument();
+  });
+
   it("retires the two-column split and reads evidence first: status, photo, condition, field report, office decision, history", () => {
     renderPage();
 

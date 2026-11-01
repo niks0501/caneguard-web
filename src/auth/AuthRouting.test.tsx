@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -282,6 +282,11 @@ describe("authenticated routing", () => {
     await user.click(screen.getByRole("button", { name: "Sign in" }));
     await screen.findByRole("link", { name: "Open CG-2026-0001" });
     await user.click(screen.getByRole("button", { name: /Sign out/ }));
+    await user.click(
+      within(await screen.findByRole("dialog", { name: "Sign out?" })).getByRole("button", {
+        name: "Sign out",
+      }),
+    );
 
     expect(
       await screen.findByRole("heading", {
@@ -289,6 +294,32 @@ describe("authenticated routing", () => {
       }),
     ).toBeInTheDocument();
     expect(logoutCalled).toBe(true);
+  });
+
+  it("asks before signing out and keeps the session when cancelled", async () => {
+    let logoutCalled = false;
+    server.use(
+      http.get(`${baseUrl}/api/v1/me`, () => HttpResponse.json({ data: webUser })),
+      http.get(`${baseUrl}/api/v1/reports`, () =>
+        HttpResponse.json(paginatedReportsDto),
+      ),
+      http.post(`${baseUrl}/logout`, () => {
+        logoutCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const user = await renderApp("/reports");
+
+    await screen.findByRole("link", { name: "Open CG-2026-0001" });
+    await user.click(screen.getByRole("button", { name: /Sign out/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Sign out?" });
+    expect(logoutCalled).toBe(false);
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(logoutCalled).toBe(false);
+    expect(window.location.pathname).toBe("/reports");
   });
 
   it("explains login throttling without reporting a false outage", async () => {
@@ -339,6 +370,11 @@ describe("authenticated routing", () => {
 
     await screen.findByRole("link", { name: "Open CG-2026-0001" });
     await user.click(screen.getByRole("button", { name: /Sign out/ }));
+    await user.click(
+      within(await screen.findByRole("dialog", { name: "Sign out?" })).getByRole("button", {
+        name: "Sign out",
+      }),
+    );
 
     expect(
       await screen.findByText(/You have not been logged out/),

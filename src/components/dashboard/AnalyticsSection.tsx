@@ -85,27 +85,29 @@ function ChartFrame({
           {children}
         </div>
       )}
-      <table className="sr-only">
-        <caption>{tableCaption}</caption>
-        <thead>
-          <tr>
-            {tableHead.map((head) => (
-              <th key={head} scope="col">
-                {head}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {tableRows.map((row, index) => (
-            <tr key={`${row[0]}-${index}`}>
-              {row.map((cell, cellIndex) => (
-                <td key={`${cell}-${cellIndex}`}>{cell}</td>
+      <div className="sr-only">
+        <table>
+          <caption>{tableCaption}</caption>
+          <thead>
+            <tr>
+              {tableHead.map((head) => (
+                <th key={head} scope="col">
+                  {head}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {tableRows.map((row, index) => (
+              <tr key={`${row[0]}-${index}`}>
+                {row.map((cell, cellIndex) => (
+                  <td key={`${cell}-${cellIndex}`}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -646,25 +648,27 @@ function LifecycleCard({
                   <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
                 </BarChart>
               </div>
-              <table className="sr-only">
-                <caption>
-                  {group.title}, {analytics.period.label}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">State</th>
-                    <th scope="col">Submitted reports</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.entries.map(([name, count]) => (
-                    <tr key={name}>
-                      <td>{name}</td>
-                      <td>{count}</td>
+              <div className="sr-only">
+                <table>
+                  <caption>
+                    {group.title}, {analytics.period.label}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">State</th>
+                      <th scope="col">Submitted reports</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {group.entries.map(([name, count]) => (
+                      <tr key={name}>
+                        <td>{name}</td>
+                        <td>{count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           );
         })

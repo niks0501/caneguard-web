@@ -52,34 +52,36 @@ export function DecisionChartFrame({
             {children}
           </div>
         )}
-        <table className="sr-only">
-          <caption>{tableCaption}</caption>
-          <thead>
-            <tr>
-              {tableHead.map((head) => (
-                <th key={head} scope="col">
-                  {head}
-                </th>
+        <div className="sr-only">
+          <table>
+            <caption>{tableCaption}</caption>
+            <thead>
+              <tr>
+                {tableHead.map((head) => (
+                  <th key={head} scope="col">
+                    {head}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row, index) => (
+                <tr key={`${row[0]}-${index}`}>
+                  {row.map((cell, cellIndex) => (
+                    <td key={`${cell}-${cellIndex}`}>{cell}</td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {tableRows.map((row, index) => (
-              <tr key={`${row[0]}-${index}`}>
-                {row.map((cell, cellIndex) => (
-                  <td key={`${cell}-${cellIndex}`}>{cell}</td>
-                ))}
-              </tr>
-            ))}
-            {tableFootRows.map((row, index) => (
-              <tr key={`${row[0]}-foot-${index}`}>
-                {row.map((cell, cellIndex) => (
-                  <td key={`${cell}-foot-${cellIndex}`}>{cell}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              {tableFootRows.map((row, index) => (
+                <tr key={`${row[0]}-foot-${index}`}>
+                  {row.map((cell, cellIndex) => (
+                    <td key={`${cell}-foot-${cellIndex}`}>{cell}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
