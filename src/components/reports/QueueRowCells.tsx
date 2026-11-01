@@ -29,6 +29,7 @@ export interface QueueRowView {
   province?: string | null;
   farmReference?: string | null;
   mismatchReported?: boolean | null;
+  checklistConsistency?: string | null;
   locationUnavailable?: boolean;
   predictedDisease: DiseaseKey;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
@@ -43,6 +44,9 @@ export interface QueueRowView {
 function queueCautions(row: QueueRowView): string[] {
   const cautions: string[] = [];
   if (row.mismatchReported === true) cautions.push("Reporter concern needs review");
+  if (row.checklistConsistency === "inconsistent") {
+    cautions.push("Observations do not match Possible Condition");
+  }
   if (row.locationUnavailable) cautions.push("Location not confirmed");
   return cautions;
 }

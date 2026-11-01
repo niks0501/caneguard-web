@@ -10017,13 +10017,11 @@ button.monitoring-calendar__day-number:focus-visible {
 }
 
 @media (max-width: 899px) {
-  .report-table,
-  .report-table--monitoring,
-  .dashboard-report-table {
+  .report-table--queue {
     min-width: 0;
   }
 
-  .report-table thead {
+  .report-table--queue thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -10032,21 +10030,21 @@ button.monitoring-calendar__day-number:focus-visible {
     white-space: nowrap;
   }
 
-  .report-table,
-  .report-table tbody,
-  .report-table tr,
-  .report-table td {
+  .report-table--queue,
+  .report-table--queue tbody,
+  .report-table--queue tr,
+  .report-table--queue td {
     display: block;
     width: 100%;
   }
 
-  .report-table tbody tr {
+  .report-table--queue tbody tr {
     padding: var(--space-2) 0;
     border-bottom: 1px solid var(--color-border);
   }
 
-  .report-table td,
-  .report-table tbody tr:last-child td {
+  .report-table--queue td,
+  .report-table--queue tbody tr:last-child td {
     min-width: 0;
     padding: 4px 14px;
     border-bottom: 0;

@@ -80,7 +80,7 @@ export function ReportTable({
   return (
     <>
     <div className="table-scroll">
-      <table className={`report-table${isMonitoring ? " report-table--monitoring" : ""}`}>
+      <table className={`report-table report-table--queue${isMonitoring ? " report-table--monitoring" : ""}`}>
         <thead>
           <tr>
             {QUEUE_HEADERS.map((header) => (

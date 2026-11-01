@@ -98,6 +98,15 @@ describe("ReportTable - six queue columns", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("marks an inconsistent checklist even when the reporter reported no concern", () => {
+    renderTable([report({ mismatchReported: false, checklistConsistency: "inconsistent" })]);
+
+    const row = rowFor("CG-2026-0001");
+    expect(
+      within(row).getByText("Observations do not match Possible Condition"),
+    ).toBeInTheDocument();
+  });
+
   it("falls back to 'No farm reference'", () => {
     renderTable([report({ farmReference: undefined })]);
 

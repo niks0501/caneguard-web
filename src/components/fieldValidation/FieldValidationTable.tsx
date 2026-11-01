@@ -67,7 +67,7 @@ export function FieldValidationTable({
         <p className="field-validation-table-card__empty">No located observations match the applied filters.</p>
       ) : (
         <div className="table-scroll">
-          <table className="report-table field-validation-table">
+          <table className="report-table report-table--queue field-validation-table">
             <thead>
               <tr>
                 {QUEUE_HEADERS.map((header) => (

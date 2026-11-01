@@ -49,7 +49,7 @@ export function DashboardRecentReports({
   return (
     <>
     <div className="table-scroll">
-      <table className="report-table dashboard-report-table">
+      <table className="report-table report-table--queue dashboard-report-table">
         <thead>
           <tr>
             {QUEUE_HEADERS.map((header) => (
