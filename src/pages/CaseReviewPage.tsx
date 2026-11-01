@@ -407,6 +407,11 @@ function CaseReviewContent() {
 
   const latestHistoryDate = mergedHistory[0]?.timestamp;
   const caseHistoryAvailable = report?.caseHistory?.available ?? true;
+  const cautionLinks = [
+    report && locationNeedsConfirmationFor(report) ? { id: "caution-location", label: "Location unconfirmed" } : null,
+    report && photoDifficultFor(report) ? { id: "caution-photo", label: "Photo hard to review" } : null,
+    report && observationsMismatchFor(report) ? { id: "caution-mismatch", label: "Observations differ from result" } : null,
+  ].filter((entry): entry is { id: string; label: string } => entry !== null);
   const caseHistorySummary = !caseHistoryAvailable
     ? "History unavailable for this older record"
     : mergedHistory.length === 0
@@ -650,20 +655,28 @@ function CaseReviewContent() {
       {/* 1. Case status with plain-language attention notices */}
       <section className="review-status-chips" aria-label="Case status">
         <div className="status-chip-row"><strong>{lifecycle?.caseState === "closed" ? "Closed" : "Open"}</strong></div>
+        {cautionLinks.length > 0 ? (
+          <p className="review-caution-line">
+            <span>{cautionLinks.length === 1 ? "Caution:" : "Cautions:"}</span>{" "}
+            {cautionLinks.map(({ id, label }, index) => (
+              <span key={id}>{index > 0 ? " · " : null}<a href={`#${id}`}>{label}</a></span>
+            ))}
+          </p>
+        ) : null}
         {locationNeedsConfirmationFor(report) ? (
-          <p className="review-state-summary" role="status">
+          <p id="caution-location" className="review-state-summary" role="status">
             <strong>Location needs confirmation</strong>
             <span>The submitted location could not be confirmed. Confirm it with the field contact before relying on it.</span>
           </p>
         ) : null}
         {photoDifficultFor(report) ? (
-          <p className="review-state-summary" role="status">
+          <p id="caution-photo" className="review-state-summary" role="status">
             <strong>Photo may be difficult to review</strong>
             <span>The submitted photo has quality concerns. Weigh the written observations more heavily.</span>
           </p>
         ) : null}
         {observationsMismatchFor(report) ? (
-          <p className="review-state-summary" role="status">
+          <p id="caution-mismatch" className="review-state-summary" role="status">
             <strong>The submitted observations do not fully match the Possible Condition</strong>
             <span>Compare the photo and field observations carefully before deciding.</span>
           </p>
