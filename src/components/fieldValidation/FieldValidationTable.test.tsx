@@ -104,6 +104,27 @@ describe("FieldValidationTable", () => {
     expect(within(row).queryByText("Needs field validation")).not.toBeInTheDocument();
   });
 
+  it("keeps the decision-support line under the located observations", () => {
+    renderTable();
+
+    const line = screen.getByText(
+      "Possible Condition is decision support, not a confirmed diagnosis.",
+    );
+    expect(
+      screen.getByRole("table").closest(".table-scroll")?.nextElementSibling,
+    ).toBe(line);
+  });
+
+  it("omits the decision-support line when no observation is listed", () => {
+    renderTable([]);
+
+    expect(
+      screen.queryByText(
+        "Possible Condition is decision support, not a confirmed diagnosis.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it("opens the case when a row is activated by keyboard", async () => {
     const user = userEvent.setup();
     mockNavigate.mockClear();

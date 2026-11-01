@@ -118,6 +118,55 @@ describe("ReportTable - six queue columns", () => {
     ).toBeInTheDocument();
   });
 
+  it("names every caution once in a single Note line", () => {
+    renderTable([
+      report({
+        mismatchReported: true,
+        locationUnavailable: true,
+        machineFacts: {
+          checklistConsistency: "inconsistent",
+          qualityWarnings: ["Image blur detected"],
+        },
+      }),
+    ]);
+
+    const caution = rowFor("CG-2026-0001").querySelector(".queue-caution");
+    expect(caution?.textContent).toBe(
+      "Note Reporter concern needs review; " +
+        "Observations do not match Possible Condition; " +
+        "Photo may be difficult to review; Location not confirmed",
+    );
+  });
+
+  it("keeps a clean row free of any Note marker", () => {
+    renderTable([
+      report({
+        mismatchReported: false,
+        machineFacts: { checklistConsistency: "consistent", qualityWarnings: [] },
+      }),
+    ]);
+
+    const row = rowFor("CG-2026-0001");
+    expect(row.querySelector(".queue-caution")).toBeNull();
+    expect(within(row).queryByText("Note")).not.toBeInTheDocument();
+  });
+
+  it("renders exactly one decision-support line directly under the table", () => {
+    renderTable([report({ reviewStatus: "submitted_unverified" }), report({ uuid: "00000000-0000-4000-8000-000000000002", referenceCode: "CG-2026-0002" })]);
+
+    const line = screen.getByText(
+      "Possible Condition is decision support, not a confirmed diagnosis.",
+    );
+    expect(
+      screen.getAllByText(
+        "Possible Condition is decision support, not a confirmed diagnosis.",
+      ),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("table").closest(".table-scroll")?.nextElementSibling,
+    ).toBe(line);
+  });
+
   it("falls back to 'No farm reference'", () => {
     renderTable([report({ farmReference: undefined })]);
 

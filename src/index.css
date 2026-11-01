@@ -7057,7 +7057,9 @@ body {
    The two badge columns are content-sized instead: `min-width: max-content`
    plus no-wrap keeps every real pill on one line (longest: "No supported
    disease detected", "Needs field validation"), and when the sum of those
-   floors outgrows the card the `.table-scroll` wrapper scrolls sideways. */
+   floors outgrows the card the `.table-scroll` wrapper scrolls sideways.
+   Below 900px this table is also `.report-table--queue`, whose stacking rule
+   lets those two badge cells wrap instead. */
 .dashboard-report-table {
   width: 100%;
   min-width: 0;
@@ -9949,7 +9951,8 @@ button.monitoring-calendar__day-number:focus-visible {
 }
 
 /* QF-5 silent queue: status reads as plain ink, tags appear only for a Note,
-   rows carry no tint or bar, and one line sits under every queue table. */
+   rows carry no tint or bar, and one decision-support line sits beneath the
+   table. */
 .report-table tbody tr.report-row--submitted_unverified,
 .report-table tbody tr.report-row--for_field_validation {
   background: transparent;
