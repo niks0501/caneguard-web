@@ -202,6 +202,13 @@ describe("ValidationMap", () => {
     expect(new Set(markers.map((marker) => marker.textContent)).size).toBe(5);
   });
 
+  it("names the amber Note beside the case status legend", () => {
+    renderMap(mapData([[120.63, 14.07]]));
+
+    const legend = screen.getByLabelText("Case status legend");
+    expect(legend).toHaveTextContent("Note: reporter mismatch");
+  });
+
   it("frames one located report at a useful local zoom", () => {
     renderMap(mapData([[120.63, 14.07]]));
     loadMap();

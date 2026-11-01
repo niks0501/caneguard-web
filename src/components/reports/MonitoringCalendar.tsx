@@ -53,7 +53,7 @@ function calendarErrorMessage(error: unknown) {
  * The month grid keeps a stable row height: a busy date shows at most two
  * compact visit indicators plus an exact `+N more` control, and the complete
  * workload for a selected date lives in the selected-day agenda. The Calendar
- * never mutates scheduling; Field Operations stays authoritative.
+ * never mutates scheduling; the Assignments view stays authoritative.
  */
 export function MonitoringCalendar() {
   const [searchParams, setSearchParams] = useSearchParams();

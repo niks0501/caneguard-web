@@ -183,7 +183,7 @@ describe("FieldOperationsPage default workload", () => {
 
   it("shows concise Overdue, Unassigned, Upcoming, and Assigned workload counts", () => {
     renderPage();
-    const summary = screen.getByRole("list", { name: "Field Operations workload summary" });
+    const summary = screen.getByRole("list", { name: "Assignments workload summary" });
     expect(within(summary).getByText("Overdue").closest("li")).toHaveTextContent("2");
     expect(within(summary).getByText("Unassigned").closest("li")).toHaveTextContent("3");
     expect(within(summary).getByText("Upcoming").closest("li")).toHaveTextContent("5");
@@ -351,7 +351,7 @@ describe("FieldOperationsPage failure and deep-link behavior", () => {
 
     expect(screen.getByText("Unavailable active visits")).toBeInTheDocument();
     expect(screen.queryByText(/partial read/)).not.toBeInTheDocument();
-    const summary = screen.getByRole("list", { name: "Field Operations workload summary" });
+    const summary = screen.getByRole("list", { name: "Assignments workload summary" });
     expect(within(summary).getAllByText("Unavailable")).toHaveLength(4);
     expect(within(summary).queryByText("0")).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(/could not be loaded/i);

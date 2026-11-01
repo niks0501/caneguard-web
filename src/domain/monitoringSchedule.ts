@@ -1,7 +1,7 @@
 import type { FieldValidationQueueItem } from "./fieldValidation.types";
 
 /**
- * Date-only schedule arithmetic for the Monitoring Register and Visit Calendar.
+ * Date-only schedule arithmetic for the Monitoring List and Visit Calendar.
  *
  * The office classification of a visit is always the Asia/Manila office date
  * (`manilaDateAt`), never the browser or device date. Everything here works on
@@ -95,7 +95,7 @@ export interface ScheduleSummaryCounts {
 
 /**
  * Global active-work counts. The population is the complete active visit
- * workload, so Register filters can never change these numbers.
+ * workload, so List filters can never change these numbers.
  */
 export function summarizeActiveWorkload(
   items: readonly FieldValidationQueueItem[],

@@ -5,7 +5,7 @@ import {
 } from "../domain/operationalQueue";
 
 /**
- * One work scope shared by the monitoring views. Moving between Register, Map
+ * One work scope shared by the monitoring views. Moving between List, Map
  * and the no-location list must not silently broaden the results: a supported
  * filter travels with the reviewer, and an unsupported one is named rather than
  * dropped in silence.
@@ -35,7 +35,7 @@ export const workspaceScopeLabels: Record<WorkspaceScopeUrlKey, string> = {
   location: "Map location",
 };
 
-/** Register-only filters that the other views cannot honor. */
+/** Filters only the List view can honor. */
 const registerOnlyFilterLabels: Record<string, string> = {
   search: "Search",
   concern: "Reported concern",
@@ -64,7 +64,7 @@ function scopeKeptByView(
     if (view === "map" && !mapQueueValues.has(value)) return false;
   }
   if (view === "register") return true;
-  if (view === "map") return key !== "location";
+  if (view === "map") return key !== "location" || value === "located";
   return false;
 }
 
@@ -105,12 +105,36 @@ export function monitoringViewLink(
     }
   }
 
-  if (view !== "register") params.set("view", view);
-  const query = params.toString();
+  // Every view names itself in the URL: /monitoring opens the map, so a List
+  // link without `view` would land on the map instead of the case table.
+  params.set("view", view);
   return {
-    to: query ? `${routes.monitoring}?${query}` : routes.monitoring,
+    to: `${routes.monitoring}?${params.toString()}`,
     removed: [...new Set(removed)],
   };
+}
+
+const workspaceViews = new Set<WorkspaceView>([
+  "register",
+  "calendar",
+  "map",
+  "field-operations",
+  "boundaries",
+]);
+
+const listOnlyUrlKeys = ["page"] as const;
+
+/**
+ * The view a monitoring URL names. A URL without a view keeps the state it
+ * carries: the List honors every filter and its page, so a URL whose state the
+ * Map would widen or lose opens the List, while a bare or fully map-compatible
+ * URL opens the Map.
+ */
+export function monitoringViewFromUrl(searchParams: URLSearchParams): WorkspaceView {
+  const requested = searchParams.get("view") as WorkspaceView | null;
+  if (requested && workspaceViews.has(requested)) return requested;
+  if (listOnlyUrlKeys.some((key) => searchParams.get(key)?.trim())) return "register";
+  return monitoringViewLink("map", searchParams).removed.length > 0 ? "register" : "map";
 }
 
 /** Notice text for a view that could not honor part of the arriving scope. */

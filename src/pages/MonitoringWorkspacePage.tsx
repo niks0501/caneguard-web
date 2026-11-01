@@ -8,6 +8,7 @@ import { LoadingState } from "../components/ui/States";
 import { SubmittedReportsPage } from "./SubmittedReportsPage";
 import { FieldOperationsPage } from "./FieldOperationsPage";
 import {
+  monitoringViewFromUrl,
   monitoringViewLink,
   scopeNoticeMessage,
   type WorkspaceView,
@@ -21,21 +22,18 @@ const BoundariesPage = lazy(() =>
 );
 
 const views: Array<{ key: WorkspaceView; label: string; icon: ReactNode }> = [
-  { key: "register", label: "Register", icon: <Table2 aria-hidden="true" /> },
+  { key: "register", label: "List", icon: <Table2 aria-hidden="true" /> },
   { key: "calendar", label: "Calendar", icon: <CalendarDays aria-hidden="true" /> },
   { key: "map", label: "Map", icon: <MapPinned aria-hidden="true" /> },
-  { key: "field-operations", label: "Field Operations", icon: <ClipboardList aria-hidden="true" /> },
+  { key: "field-operations", label: "Assignments", icon: <ClipboardList aria-hidden="true" /> },
   { key: "boundaries", label: "Field boundaries", icon: <LandPlot aria-hidden="true" /> },
 ];
 
-function viewFromUrl(value: string | null): WorkspaceView {
-  return value === "calendar" || value === "map" || value === "field-operations" || value === "boundaries" ? value : "register";
-}
-
+/** The Monitoring workspace opens on the map unless the URL carries state only the List can honor. */
 export function MonitoringWorkspacePage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const view = viewFromUrl(searchParams.get("view"));
+  const view = monitoringViewFromUrl(searchParams);
   // Navigation state survives Back/Forward, so the removed-filter notice lasts
   // exactly as long as the scope change it explains.
   const scopeNotice = scopeNoticeMessage(

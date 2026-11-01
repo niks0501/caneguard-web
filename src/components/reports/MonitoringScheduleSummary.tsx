@@ -7,9 +7,9 @@ import { useFieldValidationQueue } from "../../hooks/useFieldValidation";
 import { activeVisitWorkloadFilters } from "./monitoringWorkload";
 
 /**
- * Compact global active-work summary shown after the Register case table.
+ * Compact global active-work summary shown after the List case table.
  *
- * The counts come from the complete active visit workload, so Register search,
+ * The counts come from the complete active visit workload, so List search,
  * Quick views, and manual filters never change them. The metrics are
  * informational; `Open Calendar` is the only schedule navigation action.
  */

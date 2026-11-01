@@ -12,7 +12,7 @@ import type { DiseaseReport } from "./report.types";
 import { addScheduleDays } from "./monitoringSchedule";
 
 /**
- * Field Operations workload vocabulary.
+ * Assignments workload vocabulary.
  *
  * The default presentation is three mutually exclusive sections ordered by the
  * approved priority Overdue -> Unassigned -> Upcoming. `Upcoming` is the

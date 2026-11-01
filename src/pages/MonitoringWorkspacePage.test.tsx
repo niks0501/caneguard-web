@@ -14,6 +14,7 @@ import { MonitoringWorkspacePage } from "./MonitoringWorkspacePage";
 
 vi.mock("../hooks/useFieldValidation", () => ({ useFieldValidationQueue: vi.fn() }));
 vi.mock("../hooks/useReports", () => ({ useReports: vi.fn(), useExportReports: vi.fn() }));
+vi.mock("./FieldValidationMapPage", () => ({ FieldValidationMapPage: () => <p>Map view</p> }));
 
 function result<T>(data: T, overrides: Record<string, unknown> = {}) {
   return { data, error: null, isError: false, isFetching: false, isPending: false, isRefetchError: false, refetch: vi.fn(), ...overrides } as never;
@@ -26,17 +27,19 @@ describe("MonitoringWorkspacePage", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: 0, total: 0, items: [], oldest: null }));
   });
 
-  it("exposes the five consolidated monitoring views and the separate submitted reports entry", () => {
+  it("exposes the five workspace views and opens the map on the bare workspace route", async () => {
     render(
       <QueryClientProvider client={createQueryClient()}>
         <MemoryRouter initialEntries={["/monitoring"]}><MonitoringWorkspacePage /></MemoryRouter>
       </QueryClientProvider>,
     );
 
-    expect(screen.getByRole("link", { name: "Register" })).toHaveAttribute("href", "/monitoring");
-    expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/monitoring?view=calendar");
+    expect(await screen.findByText("Map view")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/monitoring?view=map");
-    expect(screen.getByRole("link", { name: "Field Operations" })).toHaveAttribute("href", "/monitoring?view=field-operations");
+    expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("href", "/monitoring?view=register");
+    expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/monitoring?view=calendar");
+    expect(screen.getByRole("link", { name: "Assignments" })).toHaveAttribute("href", "/monitoring?view=field-operations");
     expect(screen.getByRole("link", { name: "Field boundaries" })).toHaveAttribute("href", "/monitoring?view=boundaries");
   });
 });
@@ -109,6 +112,18 @@ describe("MonitoringWorkspacePage scope transitions", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: 0, total: 0, items: [], oldest: null }));
   });
 
+  it("keeps a legacy filtered deep link on the List instead of widening it to the map", async () => {
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/monitoring?concern=rssi"]}><MonitoringWorkspacePage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("Quick views")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("Map view")).not.toBeInTheDocument();
+  });
+
   it("keeps the work scope when switching views", () => {
     render(
       <QueryClientProvider client={createQueryClient()}>
@@ -122,9 +137,9 @@ describe("MonitoringWorkspacePage scope transitions", () => {
       "href",
       "/monitoring?queue=follow_up_due&barangay=Bucana&view=map",
     );
-    expect(screen.getByRole("link", { name: "Register" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute(
       "href",
-      "/monitoring?queue=follow_up_due&barangay=Bucana",
+      "/monitoring?queue=follow_up_due&barangay=Bucana&view=register",
     );
   });
 
