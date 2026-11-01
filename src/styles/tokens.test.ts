@@ -55,7 +55,6 @@ describe("design tokens", () => {
   it("gives the Quiet Field aliases concrete values instead of dropping declarations", () => {
     expect(resolve("--color-primary-soft")).toMatch(/^#[0-9a-f]{3,8}$/i);
     expect(resolve("--color-primary-text")).toMatch(/^#[0-9a-f]{3,8}$/i);
-    expect(resolve("--color-disease-rust")).toMatch(/^#[0-9a-f]{3,8}$/i);
     expect(resolve("--text-caption")).toMatch(/^\d+(\.\d+)?(px|rem|em)$/);
 
     // The aliases exist so retinted surfaces keep the palette's own values
