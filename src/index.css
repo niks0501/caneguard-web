@@ -1081,7 +1081,7 @@ a .mismatch-table-marker {
   color: var(--color-muted);
   font-size: var(--text-body-sm);
   font-weight: 700;
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
@@ -7563,7 +7563,7 @@ body {
 
 .queue-filter-btn.is-active {
   background: var(--color-primary-fill);
-  color: var(--color-surface);
+  color: var(--color-inverse-text);
   border-color: var(--color-primary-fill);
   font-weight: 700;
 }

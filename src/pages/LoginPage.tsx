@@ -10,6 +10,7 @@ import { WebRoleError } from "../auth/auth.api";
 import { useAuth } from "../auth/useAuth";
 import { Button } from "../components/ui/Button";
 import { LoadingState } from "../components/ui/States";
+import { useTheme } from "../theme/useTheme";
 
 type LoginLocationState = {
   from?: unknown;
@@ -31,6 +32,7 @@ function safeDestination(value: unknown): string {
 
 export function LoginPage() {
   const auth = useAuth();
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const routeState = (location.state ?? {}) as LoginLocationState;
@@ -136,7 +138,7 @@ export function LoginPage() {
       <section className="login-panel" aria-labelledby="login-heading">
         <div className="login-brand login-brand--hero">
           <img
-            src={caneGuardLogoFlat}
+            src={theme === "dark" ? caneGuardLogoFlatOnDark : caneGuardLogoFlat}
             alt="CaneGuard"
             className="login-brand__logo"
           />

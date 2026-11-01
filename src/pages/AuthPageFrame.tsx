@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { routes } from "../app/routes";
 import caneGuardLogo from "../assets/brand/cane_guard_logo.png";
 import caneGuardLogoOnDark from "../assets/brand/cane_guard_logo_onDark.png";
+import { useTheme } from "../theme/useTheme";
 
 interface AuthPageFrameProps {
   headingId: string;
@@ -21,12 +22,18 @@ export function AuthPageFrame({
   icon,
   children,
 }: AuthPageFrameProps) {
+  const theme = useTheme();
+
   return (
     <main className="login-page">
       <section className="login-panel" aria-labelledby={headingId}>
         <div className="login-brand">
           <span className="brand__mark">
-            <img src={caneGuardLogo} alt="" aria-hidden="true" />
+            <img
+              src={theme === "dark" ? caneGuardLogoOnDark : caneGuardLogo}
+              alt=""
+              aria-hidden="true"
+            />
           </span>
           <div>
             <strong>CaneGuard</strong>
