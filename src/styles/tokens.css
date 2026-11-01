@@ -17,6 +17,8 @@
   --color-primary-dark: #1e452a;
   --color-primary-light: #447a54;
   --color-primary-tint: #e8f2ea;
+  --color-primary-soft: var(--color-primary-tint);
+  --color-primary-text: var(--color-primary-dark);
   --color-accent: #d6cc99;
   --color-accent-dark: #b8ad73;
 
@@ -110,6 +112,7 @@
   --text-body: 19px;
   --text-table: 16px;
   --text-meta: 16px;
+  --text-caption: var(--text-meta);
 
   --control-height: 44px;
   --control-height-large: 48px;

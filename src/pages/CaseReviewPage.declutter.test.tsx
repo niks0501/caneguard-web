@@ -197,6 +197,24 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue({ mutateAsync: vi.fn(), reset: vi.fn() } as unknown as ReturnType<typeof useUpdateReportReview>);
   });
 
+  it("exposes the case history filter as a pressed-state button group, not a tablist", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
+    const group = screen.getByRole("group", { name: "Filter case history" });
+    const all = within(group).getByRole("button", { name: /^All \(/ });
+    const review = within(group).getByRole("button", { name: /^Review \(/ });
+    expect(all).toHaveAttribute("aria-pressed", "true");
+    expect(review).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(review);
+
+    expect(review).toHaveAttribute("aria-pressed", "true");
+    expect(all).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("retires the two-column split and reads evidence first: status, photo, condition, field report, office decision, history", () => {
     renderPage();
 
