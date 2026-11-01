@@ -30,7 +30,7 @@ describe("MockFieldValidationRepository", () => {
 
   it("marks a case the List tags as a reporter mismatch as a Note on the map too", async () => {
     const map = await new MockFieldValidationRepository().getMap();
-    const list = await new MockReportsRepository().listReports({ limit: 100 });
+    const list = await new MockReportsRepository().listReports({ perPage: 100 });
     const mismatchUuids = list.reports
       .filter((report) => report.mismatchReported === true)
       .map((report) => report.uuid);
