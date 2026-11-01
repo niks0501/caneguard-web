@@ -3,9 +3,9 @@ import { formatClockTimeWithSeconds } from "../../lib/formatters";
 
 /**
  * Single page-scope ruler for the analytical dashboard (overhaul §3.1, §4,
- * decision Q1). One control scopes KPI 1, C1, C2, C3, the map and the
- * recent-reports window. Point-in-time cards (KPIs 2–4) say so on the card
- * instead of silently ignoring the ruler.
+ * decision Q1). One control scopes KPI 1, KPI 2's review backlog, C1, C2, C3,
+ * the map and the recent-reports window. The current-state cards (KPIs 3–4)
+ * read the live queues rather than the ruler.
  */
 
 export type ScopeMode = "month" | "last30" | "custom";

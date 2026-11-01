@@ -2,10 +2,11 @@ import { manilaMonthAt } from "../../domain/reportingTime";
 import type { ScopeMode, ScopeSelection } from "./dashboardScope";
 
 /**
- * One scope ruler for the whole page (overhaul §3.1, §4; decision Q1):
- * This month / Last 30 days / Custom. Native form controls only. A month
- * scope that ends at today is labelled as such here, so the ruler itself
- * carries the month-to-date character instead of a prose note.
+ * One scope ruler for the page's windowed figures, mounted with the charts on
+ * the Trends tab (overhaul §3.1, §4; decision Q1): This month / Last 30 days /
+ * Custom. Native form controls only. A month scope that ends at today is
+ * labelled as such here, so the ruler itself carries the month-to-date
+ * character instead of a prose note.
  */
 export function ScopeRuler({
   selection,

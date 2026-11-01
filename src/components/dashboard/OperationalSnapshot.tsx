@@ -25,8 +25,10 @@ import type { MetricSegment } from "./metricSegments";
  * Section A — Current operations (overhaul §3.2). Four compact KPI cards, one
  * per metric, each composed as its header row, one large value, one supporting
  * line and one graphic: a submission sparkline, a waiting-age radial, the
- * field-validation schedule bar and a status indicator. The card itself links
- * to its queue, so no other text sits on the card. Every supporting figure is
+ * field-validation schedule bar and a status indicator. The two windowed cards
+ * caption the period their figures cover; the current-state queue cards carry
+ * no period. The card itself links to its queue, so no separate action row
+ * sits on the card. Every supporting figure is
  * read from the population and window the card already shows (`kpiSupport`):
  * KPI 1's delta from the same analytics request, KPI 2's oldest wait from the
  * same review backlog it counts, KPI 3's past-target count from the same
@@ -76,6 +78,10 @@ export function OperationalSnapshot({
           { label: "Unscheduled", count: unscheduled },
         ];
 
+  const periodCaption = analytics
+    ? `Period ${formatWindow(analytics.period.from, analytics.period.to)}`
+    : undefined;
+
   return (
     <div className="dashboard-grid">
       <div className="col-3">
@@ -101,10 +107,13 @@ export function OperationalSnapshot({
           linkLabel="Open the submitted reports register"
         >
           {analytics ? (
-            <Sparkline
-              points={analytics.series.map((point) => point.count)}
-              label={`Submissions ${formatWindow(analytics.period.from, analytics.period.to)}`}
-            />
+            <>
+              <span className="kpi-card__window">{periodCaption}</span>
+              <Sparkline
+                points={analytics.series.map((point) => point.count)}
+                label={`Submissions ${formatWindow(analytics.period.from, analytics.period.to)}`}
+              />
+            </>
           ) : null}
         </KpiCard>
       </div>
@@ -120,6 +129,9 @@ export function OperationalSnapshot({
             : routes.reportQueue("needs_review")}
           linkLabel="Open the Awaiting review queue"
         >
+          {periodCaption ? (
+            <span className="kpi-card__window">{periodCaption}</span>
+          ) : null}
           {waitingAge ? (
             <RadialMeter label="Waiting age" segments={waitingAge} />
           ) : null}

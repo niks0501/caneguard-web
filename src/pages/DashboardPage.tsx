@@ -1,11 +1,12 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { FileStack, RefreshCw, Rows3 } from "lucide-react";
+import { FileStack, RefreshCw } from "lucide-react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
 import { DASHBOARD_TIMEZONE_LABEL } from "../components/dashboard/analyticsCopy";
 import { serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
+import { morningNote } from "../components/dashboard/morningNote";
 import { DashboardRecentReports } from "../components/dashboard/DashboardRecentReports";
 import { OperationalSnapshot } from "../components/dashboard/OperationalSnapshot";
 import { ScopeRuler } from "../components/dashboard/ScopeRuler";
@@ -29,6 +30,12 @@ import { useAnalytics } from "../hooks/useAnalytics";
 import { dashboardSummaryOptions, useDashboard } from "../hooks/useDashboard";
 
 const MAX_ANALYTICS_RANGE_DAYS = 366;
+
+const DASHBOARD_TABS = [
+  { id: "today", label: "Today" },
+  { id: "trends", label: "Trends" },
+] as const;
+type DashboardTab = (typeof DASHBOARD_TABS)[number]["id"];
 
 const InflowComparisonBars = lazy(() =>
   import("../components/dashboard/InflowComparisonBars").then((module) => ({
@@ -59,6 +66,7 @@ export function DashboardPage() {
     () => readDashboardPreferences().selection,
   );
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("today");
 
   useEffect(() => {
     saveDashboardScope(selection);
@@ -80,7 +88,11 @@ export function DashboardPage() {
   const scopedAnalytics = !rangeTooLong && !analytics.isPlaceholderData &&
     analytics.data?.period.from === scope.from && analytics.data.period.to === scope.to
     ? analytics.data : undefined;
+  const analyticsUnavailable = rangeTooLong || analytics.isError;
+  const analyticsSettled = analyticsUnavailable && !analytics.isFetching;
+  const analyticsBusy = !scopedAnalytics && !analyticsSettled;
   const summary = dashboard.data;
+  const initialLoadFailed = dashboard.isError && !summary;
   const asOf = formatAsOfTime(dashboard.dataUpdatedAt);
   const scopeLabel = `${formatWindow(scope.from, scope.to)}${scope.comparison ? " · month to date" : ""}`;
   const printableScope = useMemo(
@@ -123,7 +135,6 @@ export function DashboardPage() {
             </p>
           </div>
           <div className="dashboard-header__context">
-            <ScopeRuler selection={selection} onChange={setSelection} />
             <p className="dashboard-last-updated" aria-live="polite">
               <RefreshCw
                 className={dashboard.isFetching ? "spin" : ""}
@@ -137,18 +148,6 @@ export function DashboardPage() {
         <div className="dashboard-header__actions">
           <Button
             type="button"
-            variant="secondary"
-            icon={<FileStack aria-hidden="true" />}
-            onClick={() => setReportBuilderOpen(true)}
-          >
-            Generate report
-          </Button>
-          <Link className="button button--secondary" to={routes.reports}>
-            <Rows3 aria-hidden="true" />
-            <span>View all reports</span>
-          </Link>
-          <Button
-            type="button"
             icon={<RefreshCw className={dashboard.isFetching ? "spin" : ""} aria-hidden="true" />}
             disabled={dashboard.isFetching}
             onClick={() => dashboard.refetch()}
@@ -158,23 +157,60 @@ export function DashboardPage() {
         </div>
       </header>
 
+      {initialLoadFailed ? null : (
+        <div className="dashboard-tabs" role="tablist" aria-label="Overview views">
+          {DASHBOARD_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`dashboard-tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={
+                activeTab === tab.id ? `dashboard-panel-${tab.id}` : undefined
+              }
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              className="dashboard-tabs__tab"
+              onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => {
+                if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+                event.preventDefault();
+                const next = tab.id === "today" ? "trends" : "today";
+                setActiveTab(next);
+                document.getElementById(`dashboard-tab-${next}`)?.focus();
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {dashboard.isRefetchError ? (
         <div className="dashboard-refresh-warning" role="alert">
           {refreshErrorMessage}
         </div>
       ) : null}
 
-      {dashboard.isError && !summary ? (
+      {initialLoadFailed ? (
         <ErrorState
           message={initialErrorMessage}
           onRetry={isForbidden ? undefined : () => dashboard.refetch()}
         />
-      ) : (
-        <div className="dashboard-sections">
+      ) : activeTab === "today" ? (
+        <div
+          className="dashboard-sections"
+          role="tabpanel"
+          id="dashboard-panel-today"
+          aria-labelledby="dashboard-tab-today"
+        >
+          {summary ? (
+            <p className="dashboard-note">{morningNote(summary.queues)}</p>
+          ) : null}
           <section
             className="dashboard-section"
             aria-labelledby="current-operations-heading"
-            aria-busy={dashboard.isPending || !scopedAnalytics}
+            aria-busy={dashboard.isPending || analyticsBusy}
           >
             <div className="dashboard-section__heading">
               <h2 id="current-operations-heading">Current operations</h2>
@@ -193,16 +229,10 @@ export function DashboardPage() {
               <OperationalSnapshot
                 summary={summary}
                 analytics={scopedAnalytics}
-                analyticsFailed={rangeTooLong ? true : analytics.isError}
+                analyticsFailed={analyticsUnavailable}
                 monthToDate={scope.comparison !== undefined}
               />
             )}
-            {rangeTooLong ? (
-              <p className="dashboard-scope-note" role="alert">
-                Custom range cannot exceed 366 days. Shorten the range to load
-                the period comparison.
-              </p>
-            ) : null}
           </section>
 
           <section
@@ -233,17 +263,51 @@ export function DashboardPage() {
                 <DashboardRecentReports reports={summary.recentReports} />
               </div>
             )}
+            {summary && summary.recentReports.length > 0 ? (
+              <p className="dashboard-table-line">
+                <span>{`Latest ${summary.recentReports.length} ${summary.recentReports.length === 1 ? "report" : "reports"}`}</span>
+                <Link to={routes.reports}>View all reports</Link>
+              </p>
+            ) : null}
           </section>
-
+        </div>
+      ) : (
+        <div
+          className="dashboard-sections"
+          role="tabpanel"
+          id="dashboard-panel-trends"
+          aria-labelledby="dashboard-tab-trends"
+        >
+          <div className="dashboard-trends-controls">
+            <ScopeRuler selection={selection} onChange={setSelection} />
+            <Button
+              type="button"
+              variant="secondary"
+              icon={<FileStack aria-hidden="true" />}
+              onClick={() => setReportBuilderOpen(true)}
+            >
+              Generate report
+            </Button>
+            {rangeTooLong ? (
+              <p className="dashboard-scope-note" role="alert">
+                Custom range cannot exceed 366 days. Shorten the range to load
+                the period comparison.
+              </p>
+            ) : null}
+          </div>
           <section
             className="dashboard-section"
             aria-labelledby="trends-analysis-heading"
-            aria-busy={!scopedAnalytics}
+            aria-busy={analyticsBusy}
           >
             <div className="dashboard-section__heading">
               <h2 id="trends-analysis-heading">Trends and analysis</h2>
             </div>
-            {!scopedAnalytics && analytics.isError && !analytics.isFetching ? (
+            {rangeTooLong ? (
+              <p className="dashboard-section__meta">
+                Charts are unavailable for this range.
+              </p>
+            ) : !scopedAnalytics && analyticsSettled ? (
               <ErrorState message="Report analytics unavailable for the selected period." onRetry={() => analytics.refetch()} />
             ) : !scopedAnalytics ? (
               <>
