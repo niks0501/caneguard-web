@@ -243,7 +243,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     finally { setNextPending(false); }
   };
 
-  return <form aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
+  return <form id="review-decision" tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
     <fieldset className="review-card review-finding" disabled={mutation.isPending}>
       <legend>Record Finding</legend>
       <div className="review-finding__fields">

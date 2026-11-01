@@ -55,12 +55,21 @@ export function EmptyState({ title = "No submitted reports yet", message = "New 
   );
 }
 
-export function NoResultsState({ onClear }: { onClear: () => void }) {
+export function NoResultsState({
+  onClear,
+  scopeLabel,
+}: {
+  onClear: () => void;
+  /** Names the queue the list is scoped to, so the empty state says where it looked. */
+  scopeLabel?: string;
+}) {
   return (
     <StatePanel
       icon={<SearchX aria-hidden="true" />}
-      title="No reports match these filters"
-      message="Try another keyword or clear the filters to view the full work queue."
+      title={scopeLabel ? `Nothing in ${scopeLabel}` : "No reports match these filters"}
+      message={scopeLabel
+        ? "No report matches this queue and the filters set. Clear the filters to leave the queue."
+        : "Try another keyword or clear the filters to view the full work queue."}
       action={
         <Button type="button" variant="secondary" onClick={onClear}>
           Clear filters

@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { AppSidebar } from "../navigation/AppSidebar";
 import { useRealtimeInvalidation } from "../../hooks/useRealtimeInvalidation";
 import { AppHeader } from "./AppHeader";
+import { BackToTop } from "./BackToTop";
+import { Breadcrumbs } from "./Breadcrumbs";
 
 export function AppShell() {
   const [isNavigationOpen, setNavigationOpen] = useState(false);
@@ -128,11 +130,13 @@ export function AppShell() {
           onOpenMenu={() => setNavigationOpen(true)}
           realtimeStatus={realtime.status}
         />
+        <Breadcrumbs />
         <main id="main-content" tabIndex={-1}>
           {location.state?.notice === "That section needs an Admin account." ? <p className="route-notice" role="status">{location.state.notice}</p> : null}
           <Outlet />
         </main>
       </div>
+      <BackToTop />
     </div>
   );
 }
