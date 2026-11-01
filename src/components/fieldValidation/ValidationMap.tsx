@@ -31,22 +31,20 @@ const OPERATING_AREA_VIEW = {
 type MapProviderState = "loading" | "ready" | "error";
 
 /**
- * MapLibre paint expressions cannot read CSS custom properties, so these hexes
- * restate token roles from `src/styles/tokens.css` (success green, secondary
- * text, border-strong), with warning as the fallback for the two open statuses.
- * Update them with those tokens: the status legend beside the map is painted
- * from token roles, so a stale literal drifts the pins away from the legend.
+ * Quiet field pins: every case is ink, and amber is reserved for a real Note —
+ * a case a person should look at before relying on it — which on the map is
+ * an "Unable to determine" review status. MapLibre paint expressions cannot
+ * read CSS custom properties, so these hexes restate token roles from
+ * `src/styles/tokens.css` (`--color-text`, `--color-warning`); the status
+ * legend beside the map is painted from the same roles, so update both
+ * together. The glyphs carry the state, so meaning never depends on colour.
  */
 const statusColorExpression = [
   "match",
   ["get", "review_status"],
-  "verified_by_staff",
-  "#2d6b40",
   "unable_to_verify",
-  "#4a5650",
-  "resolved",
-  "#98aba0",
   "#8a4a06",
+  "#1d2720",
 ] as ExpressionSpecification;
 
 /**
@@ -324,7 +322,7 @@ export function ValidationMap({
                   type="circle"
                   filter={["has", "point_count"]}
                   paint={{
-                    "circle-color": "#54745d",
+                    "circle-color": "#1d2720",
                     "circle-opacity": 0.92,
                     "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 50, 31],
                     "circle-stroke-color": "#ffffff",
@@ -348,11 +346,11 @@ export function ValidationMap({
                   filter={pointFilter}
                   paint={{
                     "circle-color": statusColorExpression,
-                    "circle-opacity": ["match", ["get", "review_status"], "verified_by_staff", 0.95, "resolved", 0.6, 0],
+                    "circle-opacity": 0.95,
                     "circle-radius": 9,
-                    "circle-stroke-color": statusColorExpression,
+                    "circle-stroke-color": "#ffffff",
                     "circle-stroke-opacity": 1,
-                    "circle-stroke-width": 3,
+                    "circle-stroke-width": 2,
                   }}
                 />
                 <Layer
@@ -364,7 +362,7 @@ export function ValidationMap({
                     "text-size": 12,
                     "text-allow-overlap": true,
                   }}
-                  paint={{ "text-color": statusColorExpression }}
+                  paint={{ "text-color": "#ffffff" }}
                 />
               </Source>
               <Source id="validation-expanded" type="geojson" data={{
@@ -391,10 +389,10 @@ export function ValidationMap({
                   }],
                 }}>
                   <Layer id="validation-selected-ring" type="circle" paint={{
-                    "circle-color": "#1f3d2b",
+                    "circle-color": "#1d2720",
                     "circle-opacity": 0.25,
                     "circle-radius": 16,
-                    "circle-stroke-color": "#1f3d2b",
+                    "circle-stroke-color": "#1d2720",
                     "circle-stroke-width": 3,
                   }} />
                 </Source>

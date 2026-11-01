@@ -21,15 +21,16 @@ const BoundariesPage = lazy(() =>
 );
 
 const views: Array<{ key: WorkspaceView; label: string; icon: ReactNode }> = [
-  { key: "register", label: "Register", icon: <Table2 aria-hidden="true" /> },
+  { key: "register", label: "List", icon: <Table2 aria-hidden="true" /> },
   { key: "calendar", label: "Calendar", icon: <CalendarDays aria-hidden="true" /> },
   { key: "map", label: "Map", icon: <MapPinned aria-hidden="true" /> },
-  { key: "field-operations", label: "Field Operations", icon: <ClipboardList aria-hidden="true" /> },
+  { key: "field-operations", label: "Assignments", icon: <ClipboardList aria-hidden="true" /> },
   { key: "boundaries", label: "Field boundaries", icon: <LandPlot aria-hidden="true" /> },
 ];
 
+/** Visits opens on the map; the other four views stay one link away. */
 function viewFromUrl(value: string | null): WorkspaceView {
-  return value === "calendar" || value === "map" || value === "field-operations" || value === "boundaries" ? value : "register";
+  return value === "register" || value === "calendar" || value === "field-operations" || value === "boundaries" ? value : "map";
 }
 
 export function MonitoringWorkspacePage() {
@@ -44,8 +45,8 @@ export function MonitoringWorkspacePage() {
 
   return (
     <PageContent>
-      <PageHeader title="Monitoring workspace" />
-      <nav className="monitoring-workspace-tabs" aria-label="Monitoring workspace views">
+      <PageHeader title="Visits" />
+      <nav className="monitoring-workspace-tabs" aria-label="Visits views">
         <span className="monitoring-workspace-tabs__label">Workspace views</span>
         {views.map(({ key, label, icon }) => {
           const link = monitoringViewLink(key, searchParams);

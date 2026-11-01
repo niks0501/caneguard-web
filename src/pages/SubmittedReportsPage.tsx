@@ -294,7 +294,7 @@ export function SubmittedReportsPage({
   return (
     <PageContent className={embedded ? "page-content--embedded" : undefined}>
       {!embedded ? <PageHeader
-        title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
+        title={isMonitoring ? "Visits" : "Submitted reports"}
         actions={(
           <>
           <Button
@@ -339,12 +339,12 @@ export function SubmittedReportsPage({
       /> : null}
 
       {isMonitoring ? (
-        <nav className="monitoring-quick-views" aria-label="Monitoring quick views">
+        <nav className="monitoring-quick-views" aria-label="Visits quick views">
           <span className="monitoring-quick-views__label">Quick views</span>
-          <Link to={routes.monitoring} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All cases</Link>
-          <Link to={`${routes.monitoring}?concern=rssi`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI</Link>
-          <Link to={`${routes.monitoring}?queue=follow_up_due`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
-          <Link to={`${routes.monitoring}?queue=upcoming`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
+          <Link to={`${routes.monitoring}?view=register`} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All cases</Link>
+          <Link to={`${routes.monitoring}?concern=rssi&view=register`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI</Link>
+          <Link to={`${routes.monitoring}?queue=follow_up_due&view=register`} className={urlState.filters.queue === "follow_up_due" ? "is-active" : undefined}>Follow-up due</Link>
+          <Link to={`${routes.monitoring}?queue=upcoming&view=register`} className={urlState.filters.queue === "upcoming" ? "is-active" : undefined}>Upcoming visits</Link>
           {urlState.hasActiveFilters ? (
             <span className="monitoring-saved-views__active" aria-current="page">Filtered view</span>
           ) : null}
@@ -390,7 +390,7 @@ export function SubmittedReportsPage({
       >
         <div className="workspace-heading">
           <div>
-            <h2 id="report-table-heading">{activeQueueLabel ?? (isMonitoring ? "Monitoring register" : "Recent submissions")}</h2>
+            <h2 id="report-table-heading">{activeQueueLabel ?? (isMonitoring ? "List" : "Recent submissions")}</h2>
           </div>
           <span>
             {activeQueueLabel

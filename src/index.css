@@ -3325,33 +3325,20 @@ body:has(.login-page--portal)::before {
   width: 22px;
   height: 22px;
   place-items: center;
-  color: var(--color-warning);
+  color: var(--color-surface);
   font-size: var(--text-machine);
   font-weight: 700;
-  background: var(--color-warning-soft);
-  border: 2px dashed var(--color-warning);
+  background: var(--color-text);
+  border: 2px solid var(--color-text);
   border-radius: 50%;
 }
 
-.map-marker--verified_by_staff {
-  color: white;
-  background: var(--color-success);
-  border-style: solid;
-  border-color: var(--color-success);
-}
-
+/* Amber is the only hued marker: a Note is a case a person should look at
+   before relying on it, which here is an "Unable to determine" review. */
 .map-marker--unable_to_verify {
-  color: var(--color-muted);
-  background: white;
-  border-style: solid;
-  border-color: var(--color-muted);
-}
-
-.map-marker--resolved {
-  color: var(--color-muted);
-  background: var(--color-surface-soft);
-  border-style: solid;
-  border-color: var(--color-border);
+  color: var(--color-surface);
+  background: var(--color-warning);
+  border-color: var(--color-warning);
 }
 
 .validation-map__popup {

@@ -105,7 +105,9 @@ export function monitoringViewLink(
     }
   }
 
-  if (view !== "register") params.set("view", view);
+  // Every view names itself in the URL: /monitoring opens the map, so a List
+  // link without `view` would land on the map instead of the case table.
+  params.set("view", view);
   const query = params.toString();
   return {
     to: query ? `${routes.monitoring}?${query}` : routes.monitoring,
