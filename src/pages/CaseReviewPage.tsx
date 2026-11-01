@@ -26,6 +26,8 @@ import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
 import { Button } from "../components/ui/Button";
 import { TextArea } from "../components/ui/FormControls";
 import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/States";
+import { NeedsDecisionBanner } from "../components/ui/NeedsDecisionBanner";
+import { deriveWorkflowStatus } from "../domain/workflowStatus";
 import { CappedDetailList } from "../components/ui/CappedDetailList";
 import { ClampedText } from "../components/ui/ClampedText";
 import { Modal } from "../components/ui/Modal";
@@ -377,6 +379,8 @@ function CaseReviewContent() {
   const report = reportQuery.data;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
   const lifecycle = report ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus) : undefined;
+  const workflowStatus = report ? deriveWorkflowStatus(report) : undefined;
+  const awaitingDecision = workflowStatus === "needs_review" || workflowStatus === "under_review";
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
   const visibleHistory = historyFilter === "all"
     ? mergedHistory
@@ -614,6 +618,7 @@ function CaseReviewContent() {
         description={humanLocationFor(report)}
         actions={<QueueStatusCell row={report} />}
       />
+      {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
       {reportQuery.isRefetchError ? (
         <div className="detail-refresh-warning" role="alert">
           <span>{detailRefreshMessage}</span>

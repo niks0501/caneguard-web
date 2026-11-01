@@ -55,7 +55,7 @@ describe("AppShell navigation drawer", () => {
     expect(
       within(screen.getByRole("dialog", { name: "Navigation menu" })).getByRole(
         "link",
-        { name: "Dashboard" },
+        { name: "Home" },
       ),
     ).toHaveFocus();
 

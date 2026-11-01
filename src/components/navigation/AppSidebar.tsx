@@ -1,14 +1,13 @@
 import {
   CalendarDays,
   SquareCheck,
-  ChevronRight,
   LayoutDashboard,
   LogOut,
   Settings,
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router";
 import { routes } from "../../app/routes";
@@ -16,6 +15,29 @@ import { useAuth } from "../../auth/useAuth";
 import caneGuardLogo from "../../assets/brand/cane_guard_logo.png";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
+
+function SidebarLink({
+  to,
+  icon,
+  onNavigate,
+  children,
+}: {
+  to: string;
+  icon: ReactNode;
+  onNavigate?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <NavLink
+      className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+      to={to}
+      onClick={onNavigate}
+    >
+      {icon}
+      <span>{children}</span>
+    </NavLink>
+  );
+}
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const auth = useAuth();
@@ -35,70 +57,42 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
         <span><strong>CaneGuard</strong><small>SRA Don Pedro Mill District Office</small></span>
       </div>
 
-      <nav className="sidebar__nav">
-        <p>Monitoring</p>
-        <NavLink
-          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-          to={routes.dashboard}
-          onClick={onNavigate}
-        >
-          <LayoutDashboard aria-hidden="true" />
-          <span>Dashboard</span>
-          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-        </NavLink>
-        <NavLink
-          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-          to={routes.needsAssessment}
-          onClick={onNavigate}
-        >
-          <SquareCheck aria-hidden="true" />
-          <span>Needs assessment</span>
-          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-        </NavLink>
-        <NavLink
-          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-          to={routes.reports}
-          onClick={onNavigate}
-        >
-          <ShieldCheck aria-hidden="true" />
-          <span>Reports</span>
-          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-        </NavLink>
-        {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
-          <NavLink
-            className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-            to={routes.monitoring}
-            onClick={onNavigate}
-          >
-            <CalendarDays aria-hidden="true" />
-            <span>Monitoring / Map</span>
-            <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-          </NavLink>
-        ) : null}
+      <nav className="sidebar__nav" aria-label="Workspace">
+        <SidebarLink to={routes.dashboard} icon={<LayoutDashboard aria-hidden="true" />} onNavigate={onNavigate}>
+          Home
+        </SidebarLink>
+        <div className="sidebar__group" role="group" aria-label="Work">
+          <SidebarLink to={routes.needsAssessment} icon={<SquareCheck aria-hidden="true" />} onNavigate={onNavigate}>
+            Needs assessment
+          </SidebarLink>
+          <SidebarLink to={routes.reports} icon={<ShieldCheck aria-hidden="true" />} onNavigate={onNavigate}>
+            Reports
+          </SidebarLink>
+          {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
+            <SidebarLink to={routes.monitoring} icon={<CalendarDays aria-hidden="true" />} onNavigate={onNavigate}>
+              Visits
+            </SidebarLink>
+          ) : null}
+        </div>
         {auth.user?.role === "admin" ? (
-          <>
+          <div className="sidebar__group" role="group" aria-label="Administration">
             <p>Administration</p>
-            <NavLink className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`} to={routes.reportApproval} onClick={onNavigate}>
-              <ShieldCheck aria-hidden="true" /><span>Report Approval</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-            </NavLink>
-            <NavLink className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`} to={routes.accounts} onClick={onNavigate}>
-              <Users aria-hidden="true" /><span>User Management</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-            </NavLink>
-            <NavLink className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`} to={routes.adminSettings} onClick={onNavigate}>
-              <Settings aria-hidden="true" /><span>Admin Settings</span><ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-            </NavLink>
-          </>
+            <SidebarLink to={routes.reportApproval} icon={<ShieldCheck aria-hidden="true" />} onNavigate={onNavigate}>
+              Report Approval
+            </SidebarLink>
+            <SidebarLink to={routes.accounts} icon={<Users aria-hidden="true" />} onNavigate={onNavigate}>
+              User Management
+            </SidebarLink>
+            <SidebarLink to={routes.adminSettings} icon={<Settings aria-hidden="true" />} onNavigate={onNavigate}>
+              Admin Settings
+            </SidebarLink>
+          </div>
         ) : null}
-        <p>Account</p>
-        <NavLink
-          className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
-          to={routes.settings}
-          onClick={onNavigate}
-        >
-          <Settings aria-hidden="true" />
-          <span>Settings</span>
-          <ChevronRight className="sidebar-link__arrow" aria-hidden="true" />
-        </NavLink>
+        <div className="sidebar__group" role="group" aria-label="Account">
+          <SidebarLink to={routes.settings} icon={<Settings aria-hidden="true" />} onNavigate={onNavigate}>
+            Settings
+          </SidebarLink>
+        </div>
       </nav>
 
       <div className="sidebar__footer">

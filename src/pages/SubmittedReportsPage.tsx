@@ -626,7 +626,7 @@ export function SubmittedReportsPage({
         {hasDisplayableData &&
         meta?.total === 0 &&
         urlState.hasActiveFilters ? (
-          <NoResultsState onClear={clearFilters} />
+          <NoResultsState onClear={clearFilters} scopeLabel={activeQueueLabel} />
         ) : null}
         {hasDisplayableData && reports.length > 0 && meta ? (
           <>
