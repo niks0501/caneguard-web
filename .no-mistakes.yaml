@@ -1,6 +1,7 @@
 
 commands:
-  test: "npm test -- --run src/auth/auth.api.test.ts"
+  prepare: "npm ci"
+  test: "npm test -- --run src/pages/CaseReviewPage.test.tsx src/pages/CaseReviewPage.declutter.test.tsx src/pages/CaseReviewPage.contract.test.tsx src/components/reports/ReviewDecisionForm.test.tsx"
 
 ignore_patterns:
   - "graphify-out/**"
