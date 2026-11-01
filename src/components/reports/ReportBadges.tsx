@@ -10,7 +10,7 @@ export function DiseaseBadge({
 }) {
   const label = diseaseLabels[disease];
   return (
-    <span className={`badge disease-badge disease-badge--${disease}`}>
+    <span className="badge disease-badge">
       <span aria-hidden="true" />
       {includePossibleConditionPrefix ? label : label.replace(/^Possible Condition:\s*/, "")}
     </span>

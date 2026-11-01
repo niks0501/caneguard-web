@@ -25,10 +25,6 @@ type TokenName =
   | "--color-surface"
   | "--color-surface-soft"
   | "--color-surface-tint"
-  | "--disease-healthy"
-  | "--disease-mosaic"
-  | "--disease-rust"
-  | "--disease-smut"
   | "--kpi-band-1"
   | "--kpi-band-2"
   | "--kpi-band-3"
@@ -117,30 +113,14 @@ export function seriesColor(index: number): string {
   return bandColor(kpiBandForIndex(index));
 }
 
-/** Possible-Condition colours stay the token set, keyed by condition. */
-export function conditionColor(condition: string): string {
-  switch (condition) {
-    case "healthy":
-      return readToken("--disease-healthy");
-    case "mosaic":
-      return readToken("--disease-mosaic");
-    case "rust":
-      return readToken("--disease-rust");
-    case "smut":
-      return readToken("--disease-smut");
-    default:
-      return readToken("--color-brand");
-  }
-}
-
-/** Stable per-barangay fill drawn from the brand family and condition set. */
+/** Stable per-barangay fill drawn from the brand family and the paper band ramp. */
 const BARANGAY_PALETTE_TOKENS: TokenName[] = [
   "--color-brand",
   "--color-brand-hover",
-  "--disease-mosaic",
-  "--disease-rust",
-  "--disease-smut",
-  "--disease-healthy",
+  "--kpi-band-1",
+  "--kpi-band-2",
+  "--kpi-band-3",
+  "--kpi-band-4",
 ];
 
 export function barangayColor(index: number): string {

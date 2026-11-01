@@ -20,7 +20,7 @@
   --color-accent: #d6cc99;
   --color-accent-dark: #b8ad73;
 
-  --color-page: #f4f7f3;
+  --color-page: #f8f5ee;
   --color-surface: #ffffff;
   --color-surface-soft: #edf3ed;
   --color-surface-muted: #f8faf8;
@@ -36,29 +36,24 @@
   --login-text-caption: 15px;
 
   --color-text: #1d2720;
-  --color-secondary-text: #4d5c52;
-  --color-muted: #4d5c52;
+  --color-secondary-text: #4a5650;
+  --color-muted: #4a5650;
   --color-inverse-text: #ffffff;
 
-  --color-border: #cbd8ce;
+  --color-border: #ddd8c9;
   --color-border-strong: #98aba0;
 
   --color-focus: #ffdd00;
   --focus-ring: 0 0 0 3px #ffdd00, 0 0 0 5px #1d2720;
 
-  --color-danger: #a64637;
-  --color-danger-soft: #fbeee8;
-  --color-error: #a64637;
-  --color-error-soft: #fbeee8;
-  --color-warning: #6e5213;
-  --color-warning-soft: #fef5d6;
+  --color-danger: #9b2f2f;
+  --color-danger-soft: #f6e3de;
+  --color-error: #9b2f2f;
+  --color-error-soft: #f6e3de;
+  --color-warning: #8a4a06;
+  --color-warning-soft: #f7ebd3;
   --color-success: #2d6b40;
   --color-success-soft: #e5f2e8;
-
-  --disease-healthy: #2d6b40;
-  --disease-mosaic: #8c5d07;
-  --disease-rust: #b54b17;
-  --disease-smut: #6b4783;
 
   /* Dashboard solid fill ramp (overhaul §3.8 + risk 7).
      Every dashboard mark that splits one whole into ordered parts — the KPI
