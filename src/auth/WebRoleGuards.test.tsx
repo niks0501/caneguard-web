@@ -52,7 +52,7 @@ describe("role-only workspace guards", () => {
   });
   it.each(["/dashboard", "/reports", "/settings"])("allows reviewer operational route %s", async path => {
     renderRoute(path);
-    for (const label of ["Home", "Reports", "Needs assessment", "Monitoring / Map", "Settings"]) {
+    for (const label of ["Home", "Reports", "Needs assessment", "Visits", "Settings"]) {
       expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
     }
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
