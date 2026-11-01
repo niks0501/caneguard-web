@@ -1,17 +1,15 @@
-import { readFileSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
 import { describe, expect, it } from "vitest";
+import indexCss from "../index.css?raw";
+import tokensCss from "./tokens.css?raw";
 
 // `src/styles/tokens.css` and `src/index.css` are the app's declarative design
 // contract: the stylesheets are the consumer, and every `var(--x)` they
 // reference must resolve to a declared value. An undeclared custom property
 // makes the declaration invalid at computed-value time, so the element silently
 // falls back to an inherited or initial colour/size.
-// Vitest runs with the project root as cwd and serves modules over a non-file
-// URL, so the stylesheets are read from the root rather than import.meta.url.
-const stylesheets = ["src/styles/tokens.css", "src/index.css"].map((path) =>
-  readFileSync(resolvePath(process.cwd(), path), "utf8"),
-);
+// The sheets come in through Vite's `?raw` imports so this file stays inside the
+// app TypeScript project (DOM libs only, no Node types) like every other test.
+const stylesheets = [tokensCss, indexCss];
 
 const declaredProperties = new Map<string, string>();
 for (const css of stylesheets) {
