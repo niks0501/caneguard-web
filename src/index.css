@@ -7057,7 +7057,9 @@ body {
    The two badge columns are content-sized instead: `min-width: max-content`
    plus no-wrap keeps every real pill on one line (longest: "No supported
    disease detected", "Needs field validation"), and when the sum of those
-   floors outgrows the card the `.table-scroll` wrapper scrolls sideways. */
+   floors outgrows the card the `.table-scroll` wrapper scrolls sideways.
+   Below 900px this table is also `.report-table--queue`, whose stacking rule
+   lets those two badge cells wrap instead. */
 .dashboard-report-table {
   width: 100%;
   min-width: 0;
@@ -9946,4 +9948,125 @@ button.monitoring-calendar__day-number:focus-visible {
 }
 .dashboard-trends-controls > .dashboard-scope-note {
   flex: 1 1 100%;
+}
+
+/* QF-5 silent queue: status reads as plain ink, tags appear only for a Note,
+   rows carry no tint or bar, and one decision-support line sits beneath the
+   table. */
+.report-table tbody tr.report-row--submitted_unverified,
+.report-table tbody tr.report-row--for_field_validation {
+  background: transparent;
+}
+
+.report-table tbody tr.report-row--submitted_unverified td:first-child,
+.report-table tbody tr.report-row--for_field_validation td:first-child {
+  box-shadow: none;
+}
+
+.report-table tbody tr.report-row--submitted_unverified:hover,
+.report-table tbody tr.report-row--for_field_validation:hover {
+  background: var(--color-surface-muted);
+}
+
+.workflow-status-badge,
+.report-table .disease-badge {
+  padding: 0;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.report-table .disease-badge > span {
+  display: none;
+}
+
+.queue-caution {
+  display: block;
+  margin-top: 5px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text);
+}
+
+.queue-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+
+.queue-tag--note {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning);
+}
+
+.report-identity .mismatch-table-marker,
+.queue-caution .mismatch-table-marker {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.queue-disclaimer {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-muted);
+}
+
+/* Scoped to queue tables on purpose: the Settings device table and every
+   other `.report-table` keep their tabular header and cells at every width. */
+@media (max-width: 899px) {
+  .report-table--queue {
+    min-width: 0;
+  }
+
+  .report-table--queue thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .report-table--queue,
+  .report-table--queue tbody,
+  .report-table--queue tr,
+  .report-table--queue td {
+    display: block;
+    width: 100%;
+  }
+
+  .report-table--queue tbody tr {
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .report-table--queue td,
+  .report-table--queue tbody tr:last-child td {
+    min-width: 0;
+    padding: 4px 14px;
+    border-bottom: 0;
+  }
+
+  .report-table--queue td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: var(--text-body-sm);
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+  .dashboard-report-table__cell-condition,
+  .dashboard-report-table__cell-status {
+    min-width: 0;
+    white-space: normal;
+  }
 }

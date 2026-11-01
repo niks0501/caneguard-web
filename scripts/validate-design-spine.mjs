@@ -567,8 +567,10 @@ export function validateDashboardWrapRules(
  * The Possible Condition and Work status columns hold badges, not prose, so
  * their cells must size to their content and never wrap: the longest real
  * strings ("No supported disease detected", "Needs field validation") have to
- * stay on one line, with the card's horizontal scroll as the small-screen
- * escape. A missing rule here silently squashes a real badge onto two lines.
+ * stay on one line, with the card's horizontal scroll as the fallback. Below
+ * 900px the table is also `.report-table--queue`, and its stacking rule
+ * deliberately lets these two cells wrap. A missing rule here silently
+ * squashes a real badge onto two lines at wider widths.
  */
 export const REPORT_TABLE_PILL_SELECTORS = [
   ".dashboard-report-table__cell-condition",

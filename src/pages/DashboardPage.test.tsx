@@ -768,8 +768,8 @@ describe("DashboardPage", () => {
   });
 
   it("keeps the longest condition and workflow-status pills in content-sized no-wrap cells", () => {
-    // The longest strings the badges can render: diseaseLabels.healthy minus
-    // its "Possible Condition: " prefix, and the six-state workflow labels.
+    // The longest strings the badges can render: the plain healthy condition
+    // name and the six-state workflow labels.
     // Both must stay one line, so both cells carry the content-sized no-wrap
     // contract that the design-spine validator asserts against index.css.
     vi.mocked(useDashboard).mockReturnValue(
@@ -800,7 +800,7 @@ describe("DashboardPage", () => {
     expect(container.querySelector(".table-scroll")).toContainElement(table);
 
     const conditionPill = within(table).getByText(
-      "Possible Condition: No supported disease detected",
+      "No supported disease detected",
     );
     const statusPill = within(table).getByText("Field Validation");
     expect(conditionPill.closest("td")).toHaveClass(

@@ -6,6 +6,7 @@ import type {
   DiseaseKey,
   MeasurementProvenance,
   ReportLifecycle,
+  ReportMachineFacts,
 } from "../../domain/report.types";
 import {
   deriveWorkflowStatus,
@@ -29,6 +30,7 @@ export interface QueueRowView {
   province?: string | null;
   farmReference?: string | null;
   mismatchReported?: boolean | null;
+  machineFacts?: ReportMachineFacts;
   locationUnavailable?: boolean;
   predictedDisease: DiseaseKey;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
@@ -39,15 +41,49 @@ export interface QueueRowView {
   scheduledRevisit?: boolean | null;
 }
 
+/**
+ * Every caution that applies to a row, named in one line. The checklist and
+ * photo cautions arrive in the list payload's machine facts; located
+ * observations project no machine facts, so their rows carry only the
+ * reporter-mismatch and location cautions.
+ */
+function queueCautions(row: QueueRowView): string[] {
+  const cautions: string[] = [];
+  const machineFacts = row.machineFacts;
+  if (row.mismatchReported === true) cautions.push("Reporter concern needs review");
+  if (machineFacts?.checklistConsistency === "inconsistent") {
+    cautions.push("Observations do not match Possible Condition");
+  }
+  if ((machineFacts?.qualityWarnings.length ?? 0) > 0) {
+    cautions.push("Photo may be difficult to review");
+  }
+  if (row.locationUnavailable) cautions.push("Location not confirmed");
+  return cautions;
+}
+
+/** The one quiet line that sits under a queue table. */
+export function QueueDisclaimer() {
+  return <p className="queue-disclaimer">Possible Condition is decision support, not a confirmed diagnosis.</p>;
+}
+
 export function QueueCaseCell({ row }: { row: QueueRowView }) {
+  const cautions = queueCautions(row);
   return (
     <>
       <strong>{row.referenceCode}</strong>
       <span className="table-secondary">
         {row.farmReference?.trim() ? row.farmReference : "No farm reference"}
       </span>
-      {row.mismatchReported === true ? (
-        <span className="mismatch-table-marker">Reporter concern needs review</span>
+      {cautions.length > 0 ? (
+        <span className="queue-caution">
+          <span className="queue-tag queue-tag--note">Note</span>{" "}
+          {cautions.map((caution, index) => (
+            <span className="mismatch-table-marker" key={caution}>
+              {index > 0 ? "; " : ""}
+              {caution}
+            </span>
+          ))}
+        </span>
       ) : null}
     </>
   );
@@ -71,7 +107,7 @@ export function QueueLocationCell({ row }: { row: QueueRowView }) {
 export function QueueConditionCell({ row }: { row: QueueRowView }) {
   return (
     <>
-      <DiseaseBadge disease={row.predictedDisease} />
+      <DiseaseBadge disease={row.predictedDisease} includePossibleConditionPrefix={false} />
       {row.authorityClassifiedCondition ? (
         <span className="table-secondary">
           Staff: {authorityClassifiedConditionLabels[row.authorityClassifiedCondition]}

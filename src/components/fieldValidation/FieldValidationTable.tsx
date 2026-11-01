@@ -6,6 +6,7 @@ import {
   QueueCaseCell,
   QueueConditionCell,
   QueueLocationCell,
+  QueueDisclaimer,
   QueueReviewLink,
   QueueStatusCell,
   type QueueRowView,
@@ -66,7 +67,7 @@ export function FieldValidationTable({
         <p className="field-validation-table-card__empty">No located observations match the applied filters.</p>
       ) : (
         <div className="table-scroll">
-          <table className="report-table field-validation-table">
+          <table className="report-table report-table--queue field-validation-table">
             <thead>
               <tr>
                 {QUEUE_HEADERS.map((header) => (
@@ -94,16 +95,16 @@ export function FieldValidationTable({
                     <td>
                       <QueueCaseCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Location">
                       <QueueLocationCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Possible Condition">
                       <QueueConditionCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Affected Area">
                       <QueueAffectedAreaCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Case Status">
                       <QueueStatusCell row={row} />
                     </td>
                     <td className="field-validation-table__action-cell">
@@ -116,6 +117,7 @@ export function FieldValidationTable({
           </table>
         </div>
       )}
+      {features.length > 0 ? <QueueDisclaimer /> : null}
     </section>
   );
 }
