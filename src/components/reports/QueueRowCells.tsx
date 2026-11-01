@@ -6,6 +6,7 @@ import type {
   DiseaseKey,
   MeasurementProvenance,
   ReportLifecycle,
+  ReportMachineFacts,
 } from "../../domain/report.types";
 import {
   deriveWorkflowStatus,
@@ -29,7 +30,7 @@ export interface QueueRowView {
   province?: string | null;
   farmReference?: string | null;
   mismatchReported?: boolean | null;
-  checklistConsistency?: string | null;
+  machineFacts?: ReportMachineFacts;
   locationUnavailable?: boolean;
   predictedDisease: DiseaseKey;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
@@ -40,12 +41,21 @@ export interface QueueRowView {
   scheduledRevisit?: boolean | null;
 }
 
-/** Every caution that applies to a row, named in one line. */
+/**
+ * Every caution that applies to a row, named in one line. The checklist and
+ * photo cautions arrive in the list payload's machine facts; located
+ * observations project no machine facts, so their rows carry only the
+ * reporter-mismatch and location cautions.
+ */
 function queueCautions(row: QueueRowView): string[] {
   const cautions: string[] = [];
+  const machineFacts = row.machineFacts;
   if (row.mismatchReported === true) cautions.push("Reporter concern needs review");
-  if (row.checklistConsistency === "inconsistent") {
+  if (machineFacts?.checklistConsistency === "inconsistent") {
     cautions.push("Observations do not match Possible Condition");
+  }
+  if ((machineFacts?.qualityWarnings.length ?? 0) > 0) {
+    cautions.push("Photo may be difficult to review");
   }
   if (row.locationUnavailable) cautions.push("Location not confirmed");
   return cautions;

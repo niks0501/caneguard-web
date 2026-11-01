@@ -98,12 +98,23 @@ describe("ReportTable - six queue columns", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("marks an inconsistent checklist even when the reporter reported no concern", () => {
-    renderTable([report({ mismatchReported: false, checklistConsistency: "inconsistent" })]);
+  it("names the machine-fact cautions from the list payload", () => {
+    renderTable([
+      report({
+        mismatchReported: false,
+        machineFacts: {
+          checklistConsistency: "inconsistent",
+          qualityWarnings: ["Image blur detected"],
+        },
+      }),
+    ]);
 
     const row = rowFor("CG-2026-0001");
     expect(
-      within(row).getByText("Observations do not match Possible Condition"),
+      within(row).getByText(/Observations do not match Possible Condition/),
+    ).toBeInTheDocument();
+    expect(
+      within(row).getByText(/Photo may be difficult to review/),
     ).toBeInTheDocument();
   });
 
