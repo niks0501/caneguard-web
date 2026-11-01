@@ -113,12 +113,19 @@ Two of those values carry a second role that does not move: `#ffffff` stays
 as `--color-inverse-text` and `#1e452a` stays as `--color-primary-dark`.
 `#2d6b40` at `ValidationMap.tsx:37` stays for `verified_by_staff`, and
 `#98aba0` at `ValidationMap.tsx:41` is `--color-border-strong` and also stays.
-Every other consumer reads `var(--token)` in `src/index.css`, so it moves with
-the token. Two shapes of that matter: `--color-warning` also rings the KPI
-status mark (`StatusIndicator.tsx:8`), which `npm run test:design-spine`
-asserts, so QF-3 repaints that graphic when it lands the Note value; and
-`--color-page` is also the sidebar text on `--color-primary-dark`, noted in
-the role table.
+The leftover map literals carry unchanged roles too: `#2d6b40`, `#1e452a` and
+`#b8ad73` at `src/components/boundaries/BoundariesMap.tsx:228,233,240`,
+`#2d6b40` at `src/components/dashboard/ReportLocationMap.tsx:300,349`, and the
+white marker strokes and count labels at `ValidationMap.tsx:323,336,373`.
+Every other consumer reads its value through `var(--token)` — in
+`src/index.css`, or through `chartTheme`'s CSS-variable reads in the maps — so
+it moves with the token. Two shapes of that matter: `--color-warning` also
+rings the KPI status mark (`StatusIndicator.tsx:8`), which
+`npm run test:design-spine` asserts, so QF-3 repaints that graphic when it
+lands the Note value; and `--color-page` is also the sidebar text on
+`--color-primary-dark`, noted in the role table. Two map fills are not token
+values and stay outside this set: `#54745d` (`ValidationMap.tsx:320`) and
+`#1f3d2b` (`ValidationMap.tsx:387,390`).
 
 ### Final tab names (names)
 
