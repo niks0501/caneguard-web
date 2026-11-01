@@ -98,6 +98,10 @@ function MapLegend() {
             <span>{reviewStatusLabels[status]}</span>
           </li>
         ))}
+        <li>
+          <span className="map-marker map-marker--note" aria-hidden="true" />
+          <span>Note: reporter mismatch</span>
+        </li>
       </ul>
     </div>
   );

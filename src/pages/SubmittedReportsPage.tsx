@@ -294,7 +294,7 @@ export function SubmittedReportsPage({
   return (
     <PageContent className={embedded ? "page-content--embedded" : undefined}>
       {!embedded ? <PageHeader
-        title={isMonitoring ? "Visits" : "Submitted reports"}
+        title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
         actions={(
           <>
           <Button
@@ -339,7 +339,7 @@ export function SubmittedReportsPage({
       /> : null}
 
       {isMonitoring ? (
-        <nav className="monitoring-quick-views" aria-label="Visits quick views">
+        <nav className="monitoring-quick-views" aria-label="Monitoring quick views">
           <span className="monitoring-quick-views__label">Quick views</span>
           <Link to={`${routes.monitoring}?view=register`} className={!urlState.hasActiveFilters ? "is-active" : undefined}>All cases</Link>
           <Link to={`${routes.monitoring}?concern=rssi&view=register`} className={urlState.filters.reportedConcern === "rssi" ? "is-active" : undefined}>RSSI</Link>

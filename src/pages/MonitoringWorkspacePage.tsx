@@ -45,8 +45,8 @@ export function MonitoringWorkspacePage() {
 
   return (
     <PageContent>
-      <PageHeader title="Visits" />
-      <nav className="monitoring-workspace-tabs" aria-label="Visits views">
+      <PageHeader title="Monitoring workspace" />
+      <nav className="monitoring-workspace-tabs" aria-label="Monitoring workspace views">
         <span className="monitoring-workspace-tabs__label">Workspace views</span>
         {views.map(({ key, label, icon }) => {
           const link = monitoringViewLink(key, searchParams);

@@ -27,7 +27,7 @@ describe("MonitoringWorkspacePage", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: 0, total: 0, items: [], oldest: null }));
   });
 
-  it("exposes the five Visits views and opens the map on the bare workspace route", async () => {
+  it("exposes the five workspace views and opens the map on the bare workspace route", async () => {
     render(
       <QueryClientProvider client={createQueryClient()}>
         <MemoryRouter initialEntries={["/monitoring"]}><MonitoringWorkspacePage /></MemoryRouter>

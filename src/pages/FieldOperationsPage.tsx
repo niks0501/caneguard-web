@@ -168,7 +168,7 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
     <>
       {!embedded ? (
         <PageHeader
-          eyebrow="Field operations"
+          eyebrow="Assignments"
           title="Assignments"
           description="Prioritize, assign, reassign, and reschedule active field visits."
           actions={(
