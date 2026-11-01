@@ -511,6 +511,77 @@ describe("CaseReviewPage", () => {
     expect(screen.getAllByText("Not measured")).toHaveLength(2);
   });
 
+  it("summarises a single caution on one quiet line that links to its notice", () => {
+    // Base review data already reports an observation mismatch, so one caution is active.
+    renderPage();
+
+    const line = screen.getByText("Caution:").closest("p");
+    expect(line).not.toBeNull();
+    expect(line).toHaveClass("review-caution-line");
+    const links = within(line as HTMLElement).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual(["Observations differ from result"]);
+    expect(links[0]).toHaveAttribute("href", "#caution-mismatch");
+    expect(document.getElementById("caution-mismatch")).toHaveTextContent(
+      "The submitted observations do not fully match the Possible Condition",
+    );
+  });
+
+  it("names every active caution once on one line and links each to its notice", () => {
+    const everyCaution = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          observations: {
+            ...reportDetailDto.observations,
+            final_latitude: null,
+            final_longitude: null,
+            location_source: "unavailable",
+            quality_warnings: ["blur"],
+          },
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: everyCaution }));
+    renderPage();
+
+    const line = screen.getByText("Cautions:").closest("p") as HTMLElement;
+    expect(line).toHaveClass("review-caution-line");
+    const links = within(line).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual([
+      "Location unconfirmed",
+      "Photo hard to review",
+      "Observations differ from result",
+    ]);
+
+    for (const link of links) {
+      const id = link.getAttribute("href")!.slice(1);
+      const targets = document.querySelectorAll(`#${id}`);
+      expect(targets).toHaveLength(1);
+      expect(targets[0]).toHaveClass("review-state-summary");
+    }
+  });
+
+  it("shows no caution line when the case carries no cautions", () => {
+    const cleanCase = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          reporter_observation: {
+            ...reportDetailDto.reporter_observation,
+            mismatch_reported: false,
+          },
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: cleanCase }));
+    renderPage();
+
+    expect(screen.queryByText("Caution:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cautions:")).not.toBeInTheDocument();
+    expect(document.querySelector(".review-caution-line")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Observations differ from result" })).not.toBeInTheDocument();
+  });
+
   it("renders RSSI reporter concern separately from the Possible Condition", () => {
     vi.mocked(useReport).mockReturnValue(
       queryResult({
