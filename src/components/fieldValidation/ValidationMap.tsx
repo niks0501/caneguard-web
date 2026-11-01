@@ -30,6 +30,13 @@ const OPERATING_AREA_VIEW = {
 
 type MapProviderState = "loading" | "ready" | "error";
 
+/**
+ * MapLibre paint expressions cannot read CSS custom properties, so these hexes
+ * restate token roles from `src/styles/tokens.css` (success green, secondary
+ * text, border-strong), with warning as the fallback for the two open statuses.
+ * Update them with those tokens: the status legend beside the map is painted
+ * from token roles, so a stale literal drifts the pins away from the legend.
+ */
 const statusColorExpression = [
   "match",
   ["get", "review_status"],
