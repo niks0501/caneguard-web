@@ -201,15 +201,6 @@ a {
   flex: 1;
 }
 
-.sidebar__nav > p {
-  margin: 8px 12px 10px;
-  color: rgba(245, 247, 242, 0.48);
-  font-size: var(--text-body-sm);
-  font-weight: 600;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
 .sidebar-link {
   display: flex;
   width: 100%;
@@ -244,10 +235,6 @@ a {
 
 .sidebar-link.is-active {
   box-shadow: inset 3px 0 var(--color-accent);
-}
-
-.sidebar-link__arrow {
-  margin-left: auto;
 }
 
 .sidebar__footer {
@@ -3838,15 +3825,6 @@ textarea:focus-visible {
 .sync-card span {
   color: var(--color-muted);
   font-size: var(--text-body-sm);
-}
-
-.sidebar__nav > p {
-  margin: 8px 12px 9px;
-  color: var(--color-primary);
-  font-size: var(--text-body-sm);
-  font-weight: 600;
-  letter-spacing: normal;
-  text-transform: none;
 }
 
 .sidebar-link {
