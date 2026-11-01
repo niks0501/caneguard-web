@@ -1,7 +1,7 @@
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
-/** Appears once the page has scrolled a screen, and returns focus to the top of the content. */
+/** Appears after 600px of scroll, and returns focus to the top of the content. */
 const SHOW_AFTER_PX = 600;
 
 export function BackToTop() {
