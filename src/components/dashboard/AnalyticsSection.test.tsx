@@ -272,6 +272,20 @@ describe("AnalyticsSectionView", () => {
     expect(within(comparisonTable).getByText("2")).toBeInTheDocument();
   });
 
+  it("clips every hidden data table in a block wrapper so it cannot widen the page", () => {
+    renderView();
+
+    // `overflow` does not apply to a table box, so `.sr-only` on the table
+    // itself still lets the widest row widen the document and force sideways
+    // scroll. The clip has to sit on a block wrapper around the table.
+    for (const table of screen.getAllByRole("table", { hidden: true })) {
+      expect(table).not.toHaveClass("sr-only");
+      const clip = table.closest(".sr-only");
+      expect(clip).not.toBeNull();
+      expect(clip?.tagName).toBe("DIV");
+    }
+  });
+
   it("labels charts as images with a series summary and states the delta without projection", () => {
     renderView();
 

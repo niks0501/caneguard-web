@@ -86,4 +86,27 @@ describe("AppShell navigation drawer", () => {
     expect(screen.getByRole("dialog", { name: "Navigation menu" })).toBeInTheDocument();
     expect(signOutTrigger).toHaveFocus();
   });
+
+  it("hands the drawer keyboard back once the confirmation is dismissed", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const trigger = screen.getByRole("button", { name: "Open navigation" });
+    await user.click(trigger);
+    const drawer = screen.getByRole("dialog", { name: "Navigation menu" });
+    await user.click(within(drawer).getByRole("button", { name: /sign out/i }));
+    await user.click(
+      within(screen.getByRole("dialog", { name: "Sign out?" })).getByRole("button", {
+        name: "Cancel",
+      }),
+    );
+
+    expect(screen.queryByRole("dialog", { name: "Sign out?" })).not.toBeInTheDocument();
+
+    // Escape closes the drawer again instead of being swallowed by a trap that
+    // still believes a nested dialog is open.
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Navigation menu" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
 });

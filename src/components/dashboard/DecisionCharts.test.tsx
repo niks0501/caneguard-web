@@ -115,6 +115,27 @@ beforeEach(() => {
   } as unknown as ReturnType<typeof useFieldValidationMap>);
 });
 
+describe("DecisionChartFrame hidden data table", () => {
+  it("clips the table in a block wrapper so it cannot widen the page", () => {
+    renderWithRouter(
+      <InflowComparisonBars
+        analytics={analytics}
+        previousSeries={[{ label: "2026-08-08", count: 3 }]}
+        scopeLabel={scopeLabel}
+      />,
+    );
+
+    // `overflow` does not apply to a table box, so `.sr-only` on the table
+    // itself still lets the widest row widen the document and force sideways
+    // scroll. The clip has to sit on a block wrapper around the table.
+    const table = screen.getByRole("table");
+    expect(table).not.toHaveClass("sr-only");
+    const clip = table.closest(".sr-only");
+    expect(clip).not.toBeNull();
+    expect(clip?.tagName).toBe("DIV");
+  });
+});
+
 describe("InflowComparisonBars", () => {
   it("aligns previous buckets by relative position rather than calendar label", () => {
     renderWithRouter(
