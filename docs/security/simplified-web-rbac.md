@@ -13,8 +13,8 @@ This table is the single maintained authority matrix. `npm run test:auth-doc-con
 | Action | Reviewer | Admin |
 | --- | --- | --- |
 | Dashboard | Yes | Yes |
-| Reports / Register and case review | Yes | Yes |
-| Monitoring, Map and Field Operations | Yes | Yes |
+| Reports / List and case review | Yes | Yes |
+| Monitoring, Map and Assignments | Yes | Yes |
 | Normal Settings (own account security) | Yes | Yes |
 | Prepare an official weekly version | Yes | Yes |
 | Approve or send an official weekly version | No | Yes |
