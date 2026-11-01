@@ -35,7 +35,7 @@ export const workspaceScopeLabels: Record<WorkspaceScopeUrlKey, string> = {
   location: "Map location",
 };
 
-/** Register-only filters that the other views cannot honor. */
+/** Filters only the List view can honor. */
 const registerOnlyFilterLabels: Record<string, string> = {
   search: "Search",
   concern: "Reported concern",
@@ -125,9 +125,10 @@ const workspaceViews = new Set<WorkspaceView>([
 const listOnlyUrlKeys = ["page"] as const;
 
 /**
- * The view a monitoring URL names. A URL without a view keeps the scope it
- * carries: the List can honor every filter, so a link the Map would widen
- * opens the List, while a bare or fully map-compatible URL opens the Map.
+ * The view a monitoring URL names. A URL without a view keeps the state it
+ * carries: the List honors every filter and its page, so a URL whose state the
+ * Map would widen or lose opens the List, while a bare or fully map-compatible
+ * URL opens the Map.
  */
 export function monitoringViewFromUrl(searchParams: URLSearchParams): WorkspaceView {
   const requested = searchParams.get("view") as WorkspaceView | null;

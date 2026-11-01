@@ -1,5 +1,5 @@
 /**
- * Known barangay choices for the Monitoring Map and Register filters.
+ * Known barangay choices for the Monitoring Map and List filters.
  *
  * Mirrors the authoritative `/api/v1/reference/locations` scope served by
  * `LocationReferenceController`. Offering these as choices keeps Barangay

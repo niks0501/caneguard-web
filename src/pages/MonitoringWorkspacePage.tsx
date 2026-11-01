@@ -29,7 +29,7 @@ const views: Array<{ key: WorkspaceView; label: string; icon: ReactNode }> = [
   { key: "boundaries", label: "Field boundaries", icon: <LandPlot aria-hidden="true" /> },
 ];
 
-/** Visits opens on the map unless the URL carries scope only the List can honor. */
+/** The Monitoring workspace opens on the map unless the URL carries state only the List can honor. */
 export function MonitoringWorkspacePage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
