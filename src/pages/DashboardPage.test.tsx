@@ -360,10 +360,31 @@ describe("DashboardPage", () => {
       "Custom range cannot exceed 366 days.",
     );
 
+    // The rejected range settles into an unavailable frame, never an endless
+    // loading one: analytics will not run for it.
+    expect(
+      screen.getByRole("region", { name: "Trends and analysis" }),
+    ).toHaveAttribute("aria-busy", "false");
+    expect(
+      screen.queryByText("Loading trends and analysis…"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Charts are unavailable for this range."),
+    ).toBeInTheDocument();
+
     // The tab without the range control no longer tells the reviewer to
-    // shorten a range it cannot show.
+    // shorten a range it cannot show, and its windowed figures settle as
+    // unavailable instead of staying busy.
     openTab("Today");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Current operations" }),
+    ).toHaveAttribute("aria-busy", "false");
+    const submitted = screen.getByText("Submitted reports").closest("article")!;
+    expect(within(submitted).getByText("—")).toBeInTheDocument();
+    expect(
+      within(submitted).getByText("Previous period unavailable"),
+    ).toBeInTheDocument();
   });
 
   it("never shows the old period while a new period is loading", () => {
@@ -835,22 +856,51 @@ describe("DashboardPage", () => {
     expect(screen.queryByRole("heading", { name: "Trends and analysis" })).not.toBeInTheDocument();
   });
 
-  it("labels the window its figures use on Today", () => {
-    renderDashboard();
-    const snapshot = within(
-      screen.getByRole("region", { name: "Current operations" }),
-    );
-    expect(snapshot.getByText("1–24 Sep 2026")).toBeInTheDocument();
+  it("captions the window only on the two cards whose figures it covers", () => {
+    const { rerender } = renderDashboard();
+    const card = (name: string) => screen.getByText(name).closest("article")!;
 
+    expect(
+      within(card("Submitted reports")).getByText("Period 1–24 Sep 2026"),
+    ).toBeInTheDocument();
+    expect(
+      within(card("Reports awaiting review")).getByText(
+        "Period 1–24 Sep 2026",
+      ),
+    ).toBeInTheDocument();
+
+    // The current-state queue counts are not filtered by the window, so they
+    // carry no period caption.
+    expect(
+      within(card("Reports needing field validation")).queryByText(/^Period /),
+    ).not.toBeInTheDocument();
+    expect(
+      within(
+        card("Unverified reports, no active work"),
+      ).queryByText(/^Period /),
+    ).not.toBeInTheDocument();
+
+    // The caption names the window the returned figures cover.
     openTab("Trends");
     fireEvent.change(screen.getByLabelText("Scope month"), {
       target: { value: "2026-08" },
     });
+    vi.mocked(useAnalytics).mockReturnValue(
+      analyticsResult({
+        data: {
+          ...analytics,
+          period: { ...analytics.period, from: "2026-08-01", to: "2026-08-31" },
+        },
+      }),
+    );
+    rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
     openTab("Today");
     expect(
-      within(
-        screen.getByRole("region", { name: "Current operations" }),
-      ).getByText("1–31 Aug 2026"),
+      within(card("Submitted reports")).getByText("Period 1–31 Aug 2026"),
     ).toBeInTheDocument();
   });
 
@@ -870,6 +920,37 @@ describe("DashboardPage", () => {
     expect(
       document.getElementById(trends.getAttribute("aria-controls")!),
     ).toHaveAttribute("role", "tabpanel");
+  });
+
+  it("renders no tab control while no tab panel can render", () => {
+    vi.mocked(useDashboard).mockReturnValue(
+      dashboardResult({
+        data: undefined,
+        error: new ApiError("Forbidden", { status: 403 }),
+        isError: true,
+      }),
+    );
+    const { rerender } = renderDashboard();
+    expect(
+      screen.getByText(
+        "Your account does not have access to the SRA Don Pedro dashboard.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+
+    vi.mocked(useDashboard).mockReturnValue(dashboardResult());
+    rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole("tablist", { name: "Overview views" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "Today" }),
+    ).toHaveAttribute("aria-controls", "dashboard-panel-today");
   });
 
   it("opens the printable report on the dashboard's own window with its scope summary and Reset", () => {
