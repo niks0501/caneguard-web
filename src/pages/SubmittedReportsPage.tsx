@@ -1,11 +1,12 @@
 import {
   useDeferredValue,
   useEffect,
+  useRef,
   useState,
   useMemo,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ClipboardCheck, Download, RefreshCw } from "lucide-react";
+import { ClipboardCheck, Download, RefreshCw, SlidersHorizontal } from "lucide-react";
 import {
   Link,
   useLocation,
@@ -19,7 +20,10 @@ import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileSh
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
 import { AppliedFilterChips, type AppliedFilterChip } from "../components/reports/AppliedFilterChips";
+import { ExportMenu } from "../components/reports/ExportMenu";
 import { MonitoringScheduleSummary } from "../components/reports/MonitoringScheduleSummary";
+import { QueueFiltersPanel } from "../components/reports/QueueFiltersPanel";
+import { QueueTabs, type QueueTabOption } from "../components/reports/QueueTabs";
 import { ReportTable } from "../components/reports/ReportTable";
 import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
 import { printableScopeFromReportFilters } from "../components/reports/reportBuilderScope";
@@ -96,12 +100,47 @@ const queueLabels = {
   unverified_no_active_work: "Unverified, no active work",
 } as const;
 
+/** Tab labels stay short so every queue fits on the one control line. */
+const queueTabLabels: Record<keyof typeof queueLabels, string> = {
+  needs_review: "Needs review",
+  needs_visit: "Needs visit",
+  follow_up_due: "Follow-up due",
+  upcoming: "Upcoming",
+  unverified_no_active_work: "Unverified",
+};
+
+const queueTabs: QueueTabOption[] = [
+  { value: "", label: "All" },
+  ...(Object.keys(queueLabels) as (keyof typeof queueLabels)[]).map(
+    (value) => ({ value, label: queueTabLabels[value] }),
+  ),
+];
+
+/** The queue tab that owns the results panel, defaulting to All. */
+function queueTabId(queue: string | undefined): string {
+  const index = queueTabs.findIndex((tab) => tab.value === (queue ?? ""));
+  return `report-queue-tab-${index === -1 ? 0 : index}`;
+}
+
 const locationLabels = {
   located: "With a usable location",
   unlocated: "Without a usable location",
 } as const;
 
 type ReportFilterChip = Omit<AppliedFilterChip, "key"> & { key: FilterKey };
+
+/** URL filter keys the side panel hosts. */
+const panelFilterKeys: ReadonlySet<FilterKey> = new Set<FilterKey>([
+  "concern",
+  "workflow_status",
+  "predicted_label",
+  "authority_classified_condition",
+  "barangay",
+  "location",
+  "date_from",
+  "date_to",
+  "reviewer",
+]);
 
 /** Filters that are applied but not visible in the primary control row. */
 function appliedFilterChips(
@@ -170,6 +209,8 @@ export function SubmittedReportsPage({
   const isMonitoring = workspace === "monitoring";
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
   const [csvConfirmOpen, setCsvConfirmOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersTriggerRef = useRef<HTMLButtonElement | null>(null);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -212,6 +253,12 @@ export function SubmittedReportsPage({
     urlState.filters,
     (uuid) => (fieldReporters.data ?? []).find((reporter) => reporter.uuid === uuid)?.name,
   );
+  // The trigger counts only the filters the side panel holds, so it never
+  // claims a filter such as the review status that only the URL or a chip sets.
+  const panelFilterCount = appliedChips.filter((chip) =>
+    panelFilterKeys.has(chip.key),
+  ).length;
+  const activeQueueTabId = queueTabId(urlState.filters.queue);
 
   useEffect(() => {
     if (
@@ -297,26 +344,27 @@ export function SubmittedReportsPage({
         title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
         actions={(
           <>
-          <Button
-            variant="primary"
-            icon={<ClipboardCheck aria-hidden="true" />}
-            onClick={() => setReportBuilderOpen(true)}
-          >
-            Filtered printable report
-          </Button>
-          <Button
-            variant="secondary"
-            icon={<Download aria-hidden="true" />}
-            disabled={
-              exportReports.isPending ||
-              reportsQuery.isFetching ||
-              urlState.invalid ||
-              !hasDisplayableData
-            }
-            onClick={() => setCsvConfirmOpen(true)}
-          >
-            {exportReports.isPending ? "Preparing CSV" : "Case CSV"}
-          </Button>
+          <ExportMenu
+            actions={[
+              {
+                key: "printable",
+                label: "Filtered printable report",
+                icon: <ClipboardCheck aria-hidden="true" size={18} />,
+                onSelect: () => setReportBuilderOpen(true),
+              },
+              {
+                key: "csv",
+                label: exportReports.isPending ? "Preparing CSV" : "Case CSV",
+                icon: <Download aria-hidden="true" size={18} />,
+                disabled:
+                  exportReports.isPending ||
+                  reportsQuery.isFetching ||
+                  urlState.invalid ||
+                  !hasDisplayableData,
+                onSelect: () => setCsvConfirmOpen(true),
+              },
+            ]}
+          />
           <Button
             variant="secondary"
             icon={
@@ -403,144 +451,166 @@ export function SubmittedReportsPage({
           </span>
         </div>
 
-        <div className="filter-bar">
-          <SearchInput
-            value={urlState.filters.search ?? ""}
-            maxLength={120}
-            placeholder={isMonitoring ? "Search ID, farmer/farm, barangay..." : "Search ID, submitter, barangay..."}
-            onChange={(event) =>
-              updateFilter("search", event.target.value, { replace: true })
-            }
+        <div className="filter-bar queue-toolbar">
+          <QueueTabs
+            tabs={queueTabs}
+            activeValue={urlState.filters.queue ?? ""}
+            onSelect={(value) => updateFilter("queue", value)}
+            panelId="report-queue-panel"
+            idPrefix="report-queue-tab"
           />
-          <SelectFilter
-            label="Queue"
-            value={urlState.filters.queue ?? ""}
-            onChange={(event) => updateFilter("queue", event.target.value)}
-          >
-            <option value="">All work queues</option>
-            {Object.entries(queueLabels).map(([value, label]) => (
-              <option value={value} key={value}>{label}</option>
-            ))}
-          </SelectFilter>
-          <SelectFilter
-            label="Sort by"
-            value={urlState.filters.sort ?? "due_soonest"}
-            onChange={(event) =>
-              updateFilter("sort", event.target.value)
-            }
-          >
-            <option value="due_soonest">Due soonest</option>
-            <option value="oldest">Oldest submitted first</option>
-            <option value="newest">Newest submitted first</option>
-          </SelectFilter>
+          <div className="queue-toolbar__controls">
+            <SearchInput
+              value={urlState.filters.search ?? ""}
+              maxLength={120}
+              placeholder={isMonitoring ? "Search ID or farm" : "Search ID or name"}
+              onChange={(event) =>
+                updateFilter("search", event.target.value, { replace: true })
+              }
+            />
+            <SelectFilter
+              label="Sort by"
+              value={urlState.filters.sort ?? "due_soonest"}
+              onChange={(event) =>
+                updateFilter("sort", event.target.value)
+              }
+            >
+              <option value="due_soonest">Due soonest</option>
+              <option value="oldest">Oldest submitted first</option>
+              <option value="newest">Newest submitted first</option>
+            </SelectFilter>
+            <Button
+              ref={filtersTriggerRef}
+              variant="secondary"
+              icon={<SlidersHorizontal aria-hidden="true" size={18} />}
+              aria-label={
+                panelFilterCount > 0
+                  ? `Filters, ${panelFilterCount} applied`
+                  : "Filters"
+              }
+              aria-expanded={filtersOpen}
+              aria-controls="queue-filters-panel"
+              onClick={() => setFiltersOpen(true)}
+            >
+              Filters
+              {panelFilterCount > 0 ? (
+                <span className="queue-toolbar__count">{panelFilterCount}</span>
+              ) : null}
+            </Button>
+          </div>
         </div>
 
-        <details className="more-filters">
-          <summary>More filters</summary>
-          <div className="filter-bar">
-          <SelectFilter
-            label="Reported concern"
-            value={urlState.filters.reportedConcern ?? ""}
-            onChange={(event) => updateFilter("concern", event.target.value)}
-          >
-            <option value="">Any reported concern</option>
-            <option value="rssi">RSSI</option>
-          </SelectFilter>
-          <SelectFilter
-            label="Status"
-            value={urlState.filters.workflowStatus ?? ""}
-            onChange={(event) =>
-              updateFilter("workflow_status", event.target.value)
-            }
-          >
-            <option value="">All statuses</option>
-            {workflowStatusValues.map((value) => (
-              <option value={value} key={value}>
-                {workflowStatusLabels[value]}
-              </option>
-            ))}
-          </SelectFilter>
-          <SelectFilter
-            label="Possible Condition"
-            value={urlState.filters.disease ?? ""}
-            onChange={(event) =>
-              updateFilter("predicted_label", event.target.value)
-            }
-          >
-            <option value="">All Possible Conditions</option>
-            {Object.entries(diseaseLabels).map(([value, label]) => (
-              <option value={value} key={value}>{label}</option>
-            ))}
-          </SelectFilter>
-          <SelectFilter
-            label="Staff-classified condition"
-            value={urlState.filters.staffClassifiedCondition ?? ""}
-            onChange={(event) =>
-              updateFilter("authority_classified_condition", event.target.value)
-            }
-          >
-            <option value="">Any staff classification</option>
-            {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
-              <option value={value} key={value}>{label}</option>
-            ))}
-          </SelectFilter>
-          <label className="select-filter">
-            <span>Barangay</span>
-            <input
-              type="text"
-              value={urlState.filters.barangay ?? ""}
-              maxLength={120}
-              placeholder="All barangays"
+        <QueueFiltersPanel
+          id="queue-filters-panel"
+          title="Filters"
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          triggerRef={filtersTriggerRef}
+        >
+          <div className="queue-filters-panel__fields">
+            <SelectFilter
+              label="Reported concern"
+              value={urlState.filters.reportedConcern ?? ""}
+              onChange={(event) => updateFilter("concern", event.target.value)}
+            >
+              <option value="">Any reported concern</option>
+              <option value="rssi">RSSI</option>
+            </SelectFilter>
+            <SelectFilter
+              label="Status"
+              value={urlState.filters.workflowStatus ?? ""}
               onChange={(event) =>
-                updateFilter("barangay", event.target.value, {
-                  replace: true,
-                })
+                updateFilter("workflow_status", event.target.value)
               }
-            />
-          </label>
-          <SelectFilter
-            label="Map location"
-            value={urlState.filters.location ?? ""}
-            onChange={(event) => updateFilter("location", event.target.value)}
-          >
-            <option value="">Any location</option>
-            <option value="located">With a usable location</option>
-            <option value="unlocated">Without a usable location</option>
-          </SelectFilter>
-          <label className="select-filter">
-            <span>From date</span>
-            <input
-              type="date"
-              value={urlState.filters.dateFrom ?? ""}
-              max={urlState.filters.dateTo}
+            >
+              <option value="">All statuses</option>
+              {workflowStatusValues.map((value) => (
+                <option value={value} key={value}>
+                  {workflowStatusLabels[value]}
+                </option>
+              ))}
+            </SelectFilter>
+            <SelectFilter
+              label="Possible Condition"
+              value={urlState.filters.disease ?? ""}
               onChange={(event) =>
-                updateFilter("date_from", event.target.value)
+                updateFilter("predicted_label", event.target.value)
               }
-            />
-          </label>
-          <label className="select-filter">
-            <span>To date</span>
-            <input
-              type="date"
-              value={urlState.filters.dateTo ?? ""}
-              min={urlState.filters.dateFrom}
+            >
+              <option value="">All Possible Conditions</option>
+              {Object.entries(diseaseLabels).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </SelectFilter>
+            <SelectFilter
+              label="Staff-classified condition"
+              value={urlState.filters.staffClassifiedCondition ?? ""}
               onChange={(event) =>
-                updateFilter("date_to", event.target.value)
+                updateFilter("authority_classified_condition", event.target.value)
               }
-            />
-          </label>
-          <SelectFilter
-            label="Field Inspector"
-            value={urlState.filters.reviewer ?? ""}
-            onChange={(event) => updateFilter("reviewer", event.target.value)}
-          >
-            <option value="">Any Field Inspector</option>
-            {(fieldReporters.data ?? []).map((reporter) => (
-              <option value={reporter.uuid} key={reporter.uuid}>{reporter.name}</option>
-            ))}
-          </SelectFilter>
+            >
+              <option value="">Any staff classification</option>
+              {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </SelectFilter>
+            <label className="select-filter">
+              <span>Barangay</span>
+              <input
+                type="text"
+                value={urlState.filters.barangay ?? ""}
+                maxLength={120}
+                placeholder="All barangays"
+                onChange={(event) =>
+                  updateFilter("barangay", event.target.value, {
+                    replace: true,
+                  })
+                }
+              />
+            </label>
+            <SelectFilter
+              label="Map location"
+              value={urlState.filters.location ?? ""}
+              onChange={(event) => updateFilter("location", event.target.value)}
+            >
+              <option value="">Any location</option>
+              <option value="located">With a usable location</option>
+              <option value="unlocated">Without a usable location</option>
+            </SelectFilter>
+            <label className="select-filter">
+              <span>From date</span>
+              <input
+                type="date"
+                value={urlState.filters.dateFrom ?? ""}
+                max={urlState.filters.dateTo}
+                onChange={(event) =>
+                  updateFilter("date_from", event.target.value)
+                }
+              />
+            </label>
+            <label className="select-filter">
+              <span>To date</span>
+              <input
+                type="date"
+                value={urlState.filters.dateTo ?? ""}
+                min={urlState.filters.dateFrom}
+                onChange={(event) =>
+                  updateFilter("date_to", event.target.value)
+                }
+              />
+            </label>
+            <SelectFilter
+              label="Field Inspector"
+              value={urlState.filters.reviewer ?? ""}
+              onChange={(event) => updateFilter("reviewer", event.target.value)}
+            >
+              <option value="">Any Field Inspector</option>
+              {(fieldReporters.data ?? []).map((reporter) => (
+                <option value={reporter.uuid} key={reporter.uuid}>{reporter.name}</option>
+              ))}
+            </SelectFilter>
           </div>
-        </details>
+        </QueueFiltersPanel>
 
         {appliedChips.length > 0 ? (
           <AppliedFilterChips
@@ -554,95 +624,102 @@ export function SubmittedReportsPage({
           />
         ) : null}
 
-        {reportsQuery.isFetching && hasDisplayableData ? (
-          <p className="queue-refresh-status" role="status">
-            Refreshing this server-filtered queue…
-          </p>
-        ) : null}
-        {reportsQuery.isRefetchError && hasDisplayableData ? (
-          <p className="queue-refresh-warning" role="alert">
-            {rateLimited
-              ? "The latest refresh was rate limited. Wait a moment before trying again; the previous queue remains visible."
-              : malformedData
-                ? "The latest response had an unexpected format. The previous queue remains visible."
-                : connectionError
-                  ? serviceUnreachableWhileShowingData
-                  : "The latest refresh failed. Showing the most recently loaded queue."}
-          </p>
-        ) : null}
+        <div
+          className="report-workspace__results"
+          role="tabpanel"
+          id="report-queue-panel"
+          aria-labelledby={activeQueueTabId}
+        >
+          {reportsQuery.isFetching && hasDisplayableData ? (
+            <p className="queue-refresh-status" role="status">
+              Refreshing this server-filtered queue…
+            </p>
+          ) : null}
+          {reportsQuery.isRefetchError && hasDisplayableData ? (
+            <p className="queue-refresh-warning" role="alert">
+              {rateLimited
+                ? "The latest refresh was rate limited. Wait a moment before trying again; the previous queue remains visible."
+                : malformedData
+                  ? "The latest response had an unexpected format. The previous queue remains visible."
+                  : connectionError
+                    ? serviceUnreachableWhileShowingData
+                    : "The latest refresh failed. Showing the most recently loaded queue."}
+            </p>
+          ) : null}
 
-        {urlState.invalid ? (
-          <ErrorState
-            message="The report URL contains an invalid filter or page. Clear the filters to return to the queue."
-            onRetry={clearFilters}
-          />
-        ) : null}
-        {!urlState.invalid && reportsQuery.isPending ? <LoadingState /> : null}
-        {!urlState.invalid && showInitialError && invalidQuery ? (
-          <ErrorState
-            message="The server rejected one or more report filters. Clear them and try again."
-            onRetry={clearFilters}
-          />
-        ) : null}
-        {!urlState.invalid && showInitialError && accessDenied ? (
-          <ErrorState message="Your account does not have access to the submitted report queue." />
-        ) : null}
-        {!urlState.invalid && showInitialError && malformedData ? (
-          <ErrorState
-            message="CaneGuard returned report data in an unexpected format. Refresh after the service is corrected."
-            onRetry={() => reportsQuery.refetch()}
-          />
-        ) : null}
-        {!urlState.invalid && showInitialError && connectionError ? (
-          <ErrorState
-            message={serviceUnreachableMessage}
-            detail={apiEndpointDetail(env.apiBaseUrl)}
-            onRetry={() => reportsQuery.refetch()}
-          />
-        ) : null}
-        {!urlState.invalid && showInitialError && rateLimited ? (
-          <ErrorState
-            message="The report queue is receiving too many requests. Wait a moment, then try again."
-            onRetry={() => reportsQuery.refetch()}
-          />
-        ) : null}
-        {!urlState.invalid &&
-        showInitialError &&
-        !invalidQuery &&
-        !accessDenied &&
-        !connectionError &&
-        !rateLimited &&
-        !malformedData ? (
-          <ErrorState
-            message="The submitted report service is unavailable. Please try again."
-            onRetry={() => reportsQuery.refetch()}
-          />
-        ) : null}
-        {hasDisplayableData &&
-        meta?.total === 0 &&
-        !urlState.hasActiveFilters ? (
-          <EmptyState />
-        ) : null}
-        {hasDisplayableData &&
-        meta?.total === 0 &&
-        urlState.hasActiveFilters ? (
-          <NoResultsState onClear={clearFilters} scopeLabel={activeQueueLabel} />
-        ) : null}
-        {hasDisplayableData && reports.length > 0 && meta ? (
-          <>
-            <ReportTable
-              reports={reports}
-              variant={isMonitoring ? "monitoring" : "default"}
+          {urlState.invalid ? (
+            <ErrorState
+              message="The report URL contains an invalid filter or page. Clear the filters to return to the queue."
+              onRetry={clearFilters}
             />
-            <Pagination
-              currentPage={meta.currentPage}
-              pageCount={meta.lastPage}
-              itemCount={meta.total}
-              onPageChange={setPage}
+          ) : null}
+          {!urlState.invalid && reportsQuery.isPending ? <LoadingState /> : null}
+          {!urlState.invalid && showInitialError && invalidQuery ? (
+            <ErrorState
+              message="The server rejected one or more report filters. Clear them and try again."
+              onRetry={clearFilters}
             />
-          </>
-        ) : null}
-        {isMonitoring && !urlState.invalid ? <MonitoringScheduleSummary /> : null}
+          ) : null}
+          {!urlState.invalid && showInitialError && accessDenied ? (
+            <ErrorState message="Your account does not have access to the submitted report queue." />
+          ) : null}
+          {!urlState.invalid && showInitialError && malformedData ? (
+            <ErrorState
+              message="CaneGuard returned report data in an unexpected format. Refresh after the service is corrected."
+              onRetry={() => reportsQuery.refetch()}
+            />
+          ) : null}
+          {!urlState.invalid && showInitialError && connectionError ? (
+            <ErrorState
+              message={serviceUnreachableMessage}
+              detail={apiEndpointDetail(env.apiBaseUrl)}
+              onRetry={() => reportsQuery.refetch()}
+            />
+          ) : null}
+          {!urlState.invalid && showInitialError && rateLimited ? (
+            <ErrorState
+              message="The report queue is receiving too many requests. Wait a moment, then try again."
+              onRetry={() => reportsQuery.refetch()}
+            />
+          ) : null}
+          {!urlState.invalid &&
+          showInitialError &&
+          !invalidQuery &&
+          !accessDenied &&
+          !connectionError &&
+          !rateLimited &&
+          !malformedData ? (
+            <ErrorState
+              message="The submitted report service is unavailable. Please try again."
+              onRetry={() => reportsQuery.refetch()}
+            />
+          ) : null}
+          {hasDisplayableData &&
+          meta?.total === 0 &&
+          !urlState.hasActiveFilters ? (
+            <EmptyState />
+          ) : null}
+          {hasDisplayableData &&
+          meta?.total === 0 &&
+          urlState.hasActiveFilters ? (
+            <NoResultsState onClear={clearFilters} scopeLabel={activeQueueLabel} />
+          ) : null}
+          {hasDisplayableData && reports.length > 0 && meta ? (
+            <>
+              <ReportTable
+                reports={reports}
+                variant={isMonitoring ? "monitoring" : "default"}
+              />
+              <Pagination
+                currentPage={meta.currentPage}
+                pageCount={meta.lastPage}
+                itemCount={meta.total}
+                onPageChange={setPage}
+              />
+            </>
+          ) : null}
+          {isMonitoring && !urlState.invalid ? <MonitoringScheduleSummary /> : null}
+        </div>
       </section>
       <Modal
         id="case-csv-scope"
