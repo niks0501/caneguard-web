@@ -74,24 +74,25 @@ describe("NeedsAssessmentPage", () => {
     });
   });
 
-  it("keeps one list with a heading per non-empty group and lists each case once", () => {
+  it("keeps one list with a heading and count for each group that has rows", () => {
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
 
     expect(screen.queryByText("To check")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Needs assessment" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Visits awaiting a decision" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "New observations" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Unassigned visits" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overdue visits" })).toBeInTheDocument();
-    // Attention is carried by the outcome of a visit already in the list, so
-    // there is no second group that repeats those cases.
-    expect(screen.queryByRole("heading", { name: "Needs attention" })).not.toBeInTheDocument();
-    expect(screen.getAllByText("CG-worsened")).toHaveLength(1);
-    expect(screen.getAllByText("CG-unable")).toHaveLength(1);
-    expect(screen.getAllByText("CG-fresh")).toHaveLength(1);
     expect(screen.getAllByText("Worsened").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Unable to determine").length).toBeGreaterThan(0);
+
+    const attention = screen.getByRole("region", { name: "Needs attention" });
+    expect(within(attention).getByText("2")).toBeInTheDocument();
+    expect(within(attention).getByText("CG-worsened")).toBeInTheDocument();
+    expect(within(attention).getByText("CG-unable")).toBeInTheDocument();
+    expect(within(attention).queryByText("CG-fresh")).not.toBeInTheDocument();
 
     // A never-visited observation is not described as a completed visit.
     const newObservations = screen.getByRole("region", { name: "New observations" });
@@ -117,19 +118,20 @@ describe("NeedsAssessmentPage", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
       if (filters?.queue === "follow_up_due") return result([]);
       if (filters?.queue === "needs_visit") return result([]);
-      return result([report("worsened", "worsened", "completed")]);
+      return result([report("improved", "improved", "completed")]);
     });
 
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
 
     expect(screen.getByRole("heading", { name: "Visits awaiting a decision" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Needs attention" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "New observations" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Unassigned visits" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Overdue visits" })).not.toBeInTheDocument();
+    expect(screen.getByText("No completed visit recorded Worsened or Unable to determine.")).toBeInTheDocument();
     expect(screen.getByText("No unvisited observations are waiting.")).toBeInTheDocument();
     expect(screen.getByText("No unassigned visit requests are waiting.")).toBeInTheDocument();
     expect(screen.getByText("No open visits are overdue.")).toBeInTheDocument();
-    expect(document.querySelectorAll(".needs-assessment-folded")).toHaveLength(3);
   });
 
   it("attributes a truncated read to its queue instead of pairing a section count with the queue total", () => {
@@ -151,9 +153,25 @@ describe("NeedsAssessmentPage", () => {
     // The boundary is stated once for the queue, not once per group it feeds.
     expect(screen.getAllByText(/The Visits awaiting a decision queue loaded the first 2 of 137 matching cases/)).toHaveLength(1);
     // A subset of a subset is never given the queue's denominator.
+    const attention = screen.getByRole("region", { name: "Needs attention" });
+    expect(within(attention).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
+    expect(within(attention).queryByText(/1 of 137/)).not.toBeInTheDocument();
     const observations = screen.getByRole("region", { name: "New observations" });
     expect(within(observations).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
     expect(within(observations).queryByText(/1 of 137/)).not.toBeInTheDocument();
+  });
+
+  it("does not describe a bounded queue when the list could not be loaded", () => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "needs_visit") return result([], { isError: true, data: undefined });
+      if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
+      return result([report("worsened", "worsened", "completed")], {}, { total: 137, truncated: true });
+    });
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    expect(screen.getByText("This list could not be loaded. Please try again.")).toBeInTheDocument();
+    expect(screen.queryByText(/queue loaded the first/)).not.toBeInTheDocument();
   });
 
   it("does not report an unavailable queue as zero work", () => {

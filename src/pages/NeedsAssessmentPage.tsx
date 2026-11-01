@@ -15,6 +15,8 @@ import { formatDateTime } from "../lib/formatters";
 import { env } from "../config/env";
 import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 
+const attentionOutcomes: FollowUpOutcome[] = ["worsened", "unable_to_determine"];
+
 function outcomeLabel(outcome: FollowUpOutcome | null | undefined) {
   return outcome ? followUpOutcomeLabels[outcome] : "Outcome not recorded";
 }
@@ -130,6 +132,7 @@ export function NeedsAssessmentPage() {
   const needsReview = awaitingQuery.data?.reports ?? [];
   const completedVisits = needsReview.filter((report) => fieldValidationStateOf(report) === "completed");
   const newObservations = needsReview.filter((report) => fieldValidationStateOf(report) !== "completed");
+  const attention = completedVisits.filter((report) => attentionOutcomes.includes(report.latestValidation?.followUpOutcome ?? "improved"));
   const unassignedVisits = (visitQuery.data?.reports ?? []).filter(
     (report) => fieldValidationStateOf(report) === "unassigned",
   );
@@ -151,6 +154,10 @@ export function NeedsAssessmentPage() {
     {
       key: "awaiting", title: "Visits awaiting a decision", reports: completedVisits,
       empty: "No completed field visits are waiting for a decision.", truncated: Boolean(awaitingTruncation),
+    },
+    {
+      key: "attention", title: "Needs attention", reports: attention,
+      empty: "No completed visit recorded Worsened or Unable to determine.", truncated: Boolean(awaitingTruncation),
     },
     {
       key: "observations", title: "New observations", reports: newObservations,
@@ -240,13 +247,15 @@ export function NeedsAssessmentPage() {
           onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
         />
       ) : null}
-      {awaitingTruncation ? <QueueBoundary title="Visits awaiting a decision" {...awaitingTruncation} /> : null}
-      {visitTruncation ? <QueueBoundary title="Unassigned visits" {...visitTruncation} /> : null}
-      {overdueTruncation ? <QueueBoundary title="Overdue visits" {...overdueTruncation} /> : null}
       {!hasInitialError && awaitingQuery.data && visitQuery.data ? (
-        <div className="needs-assessment-queue">
-          {groups.map((group) => <AssessmentGroup key={group.key} group={group} />)}
-        </div>
+        <>
+          {awaitingTruncation ? <QueueBoundary title="Visits awaiting a decision" {...awaitingTruncation} /> : null}
+          {visitTruncation ? <QueueBoundary title="Unassigned visits" {...visitTruncation} /> : null}
+          {overdueTruncation ? <QueueBoundary title="Overdue visits" {...overdueTruncation} /> : null}
+          <div className="needs-assessment-queue">
+            {groups.map((group) => <AssessmentGroup key={group.key} group={group} />)}
+          </div>
+        </>
       ) : null}
       {completedVisits.some((report) => report.latestValidation?.followUpOutcome === "unchanged") ? (
         <p className="needs-assessment-note" role="note">Unchanged outcomes remain in Needs assessment until an office reviewer records the next action.</p>
