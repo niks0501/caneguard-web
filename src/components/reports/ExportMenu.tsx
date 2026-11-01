@@ -16,10 +16,8 @@ export interface ExportMenuAction {
  * press and after an action runs.
  */
 export function ExportMenu({
-  label = "Export",
   actions,
 }: {
-  label?: string;
   actions: ExportMenuAction[];
 }) {
   const menuRef = useRef<HTMLDetailsElement | null>(null);
@@ -55,7 +53,7 @@ export function ExportMenu({
       }}
     >
       <summary ref={triggerRef} className="button button--secondary export-menu__trigger">
-        <span>{label}</span>
+        <span>Export</span>
         <ChevronDown aria-hidden="true" size={16} />
       </summary>
       <div className="export-menu__panel">

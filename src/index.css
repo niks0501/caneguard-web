@@ -7489,52 +7489,6 @@ body {
   }
 }
 
-/* Report queue: operational detail disclosure for the independent lifecycle axes. */
-.more-filters {
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.more-filters > summary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 13px 18px;
-  color: var(--color-primary-dark);
-  font-size: var(--text-meta);
-  font-weight: 700;
-  cursor: pointer;
-  list-style: none;
-}
-
-.more-filters > summary::-webkit-details-marker {
-  display: none;
-}
-
-.more-filters > summary:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-primary-light) 48%, white);
-  outline-offset: -3px;
-}
-
-.more-filters > summary::after {
-  width: 7px;
-  height: 7px;
-  margin-left: auto;
-  content: "";
-  border-right: 2px solid var(--color-primary);
-  border-bottom: 2px solid var(--color-primary);
-  transform: rotate(45deg) translateY(-2px);
-  transition: transform var(--transition-fast);
-}
-
-.more-filters[open] > summary::after {
-  transform: rotate(-135deg) translateY(-1px);
-}
-
-.more-filters .filter-bar {
-  border-bottom: 0;
-}
-
 .table-overdue {
   color: var(--color-danger);
 }

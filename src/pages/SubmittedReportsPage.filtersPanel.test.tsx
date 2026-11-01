@@ -233,6 +233,27 @@ describe("QF-6 reports filters", () => {
     expect(filtersTrigger()).toHaveTextContent("1");
   });
 
+  it("counts only the filters the side panel hosts", () => {
+    renderPage("/reports?status=submitted_unverified");
+
+    expect(screen.getByRole("button", { name: "Filters" })).toHaveTextContent(
+      /^Filters$/,
+    );
+    expect(
+      within(screen.getByRole("group", { name: /Applied:/ })).getByText(
+        "Review status: Needs review",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("counts the panel filters alongside a filter only the URL sets", () => {
+    renderPage("/reports?status=submitted_unverified&barangay=Mabini");
+
+    expect(
+      screen.getByRole("button", { name: "Filters, 1 applied" }),
+    ).toHaveTextContent(/^Filters1$/);
+  });
+
   it("keeps every export behind one Export menu", async () => {
     const user = userEvent.setup();
     renderPage();

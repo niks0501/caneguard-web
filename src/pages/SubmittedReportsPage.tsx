@@ -129,6 +129,19 @@ const locationLabels = {
 
 type ReportFilterChip = Omit<AppliedFilterChip, "key"> & { key: FilterKey };
 
+/** URL filter keys the side panel hosts. */
+const panelFilterKeys: ReadonlySet<FilterKey> = new Set<FilterKey>([
+  "concern",
+  "workflow_status",
+  "predicted_label",
+  "authority_classified_condition",
+  "barangay",
+  "location",
+  "date_from",
+  "date_to",
+  "reviewer",
+]);
+
 /** Filters that are applied but not visible in the primary control row. */
 function appliedFilterChips(
   filters: ReportFilters,
@@ -240,10 +253,10 @@ export function SubmittedReportsPage({
     urlState.filters,
     (uuid) => (fieldReporters.data ?? []).find((reporter) => reporter.uuid === uuid)?.name,
   );
-  // The trigger counts the filters the side panel holds, not the queue tab or
-  // the search box that already sit on the control line.
-  const panelFilterCount = appliedChips.filter(
-    (chip) => chip.key !== "queue" && chip.key !== "search",
+  // The trigger counts only the filters the side panel holds, so it never
+  // claims a filter such as the review status that only the URL or a chip sets.
+  const panelFilterCount = appliedChips.filter((chip) =>
+    panelFilterKeys.has(chip.key),
   ).length;
   const activeQueueTabId = queueTabId(urlState.filters.queue);
 
