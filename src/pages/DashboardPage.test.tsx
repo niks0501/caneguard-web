@@ -200,6 +200,18 @@ function renderDashboard() {
   );
 }
 
+// The scope ruler, Generate report and the charts live on the Trends tab;
+// Today is the default view.
+function openTab(name: "Today" | "Trends") {
+  fireEvent.click(screen.getByRole("tab", { name }));
+}
+
+function renderTrends() {
+  const view = renderDashboard();
+  openTab("Trends");
+  return view;
+}
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -220,7 +232,7 @@ describe("DashboardPage", () => {
   it("requests the current PHT month by default and allows changing the scope", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
-    renderDashboard();
+    renderTrends();
     expect(useDashboard).toHaveBeenLastCalledWith("2026-09", {
       include: "counts,queues,recent,monthly",
       recentLimit: 10,
@@ -250,13 +262,15 @@ describe("DashboardPage", () => {
   });
 
   it("labels the current-month scope as month to date on the ruler itself", () => {
-    const { rerender } = renderDashboard();
+    const { rerender } = renderTrends();
 
     // The open month is named on the ruler, not in a prose note beside it.
     expect(screen.getByLabelText("This month to date")).toBeInTheDocument();
     expect(screen.queryByLabelText("This month")).not.toBeInTheDocument();
     expect(screen.queryByText(/Month to date; compared with/)).not.toBeInTheDocument();
+    openTab("Today");
     expect(screen.getByText("+3 reports vs previous period · month to date")).toBeInTheDocument();
+    openTab("Trends");
 
     fireEvent.change(screen.getByLabelText("Scope month"), {
       target: { value: "2026-08" },
@@ -282,6 +296,7 @@ describe("DashboardPage", () => {
     // A closed month is not month to date, and KPI 1 stops saying so.
     expect(screen.getByLabelText("This month")).toBeInTheDocument();
     expect(screen.queryByLabelText("This month to date")).not.toBeInTheDocument();
+    openTab("Today");
     expect(screen.getByText("+3 reports vs previous period")).toBeInTheDocument();
     expect(
       screen.queryByText("+3 reports vs previous period · month to date"),
@@ -324,7 +339,7 @@ describe("DashboardPage", () => {
 
   it("reports an unavailable analytics window instead of showing an endless loading frame", () => {
     vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: undefined, isError: true, isPending: false }));
-    renderDashboard();
+    renderTrends();
     expect(screen.getByText("Report analytics unavailable for the selected period.")).toBeInTheDocument();
     expect(screen.queryByText("Loading trends and analysis…")).not.toBeInTheDocument();
   });
@@ -332,10 +347,12 @@ describe("DashboardPage", () => {
   it("never shows the old period while a new period is loading", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
-    const { rerender } = renderDashboard();
+    const { rerender } = renderTrends();
     fireEvent.change(screen.getByLabelText("Scope month"), { target: { value: "2026-08" } });
     vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ isPlaceholderData: true }));
     rerender(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    expect(screen.queryByRole("img", { name: /Inflow: this period/ })).not.toBeInTheDocument();
+    openTab("Today");
     const snapshot = within(screen.getByRole("region", { name: "Current operations" }));
     expect(snapshot.queryByRole("img", { name: /Submissions 1–24 Sep/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /Inflow: this period/ })).not.toBeInTheDocument();
@@ -624,8 +641,9 @@ describe("DashboardPage", () => {
   });
 
   it("keeps the recent-reports heading free of the retired all-periods note", () => {
-    renderDashboard();
+    renderTrends();
     fireEvent.change(screen.getByLabelText("Scope month"), { target: { value: "2026-08" } });
+    openTab("Today");
     const recent = within(screen.getByRole("region", { name: "Recent reports" }));
     // The section meta line was deleted rather than reworded, so the heading
     // carries the section name alone.
@@ -762,24 +780,39 @@ describe("DashboardPage", () => {
     expect(screen.getByText("9:14:03 PM")).toBeInTheDocument();
   });
 
-  it("renders the header with the scope ruler and an always-visible freshness stamp", () => {
+  it("renders the header with an always-visible freshness stamp and one refresh button", () => {
     renderDashboard();
 
     expect(
       screen.getByText("SRA Don Pedro Mill District Office"),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Report scope" })).toBeInTheDocument();
     expect(screen.getByText("Last updated")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Refresh dashboard" }),
     ).toBeInTheDocument();
+    // Scope and Generate report belong to Trends, not Today.
+    expect(screen.queryByRole("group", { name: "Report scope" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Generate report" })).not.toBeInTheDocument();
+    openTab("Trends");
+    expect(screen.getByRole("group", { name: "Report scope" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Trends" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("leads Today with one calm sentence and one line under the table, with no charts", () => {
+    renderDashboard();
+    expect(screen.getByRole("tab", { name: "Today" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("1 field visit is past the target date.")).toBeInTheDocument();
+    const recent = within(screen.getByRole("region", { name: "Recent reports" }));
+    expect(recent.getByText("Latest 5 reports")).toBeInTheDocument();
+    expect(recent.getByRole("link", { name: "View all reports" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Trends and analysis" })).not.toBeInTheDocument();
   });
 
   it("opens the printable report on the dashboard's own window with its scope summary and Reset", () => {
     vi.useRealTimers();
-    renderDashboard();
+    renderTrends();
 
     fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
     fireEvent.change(screen.getByLabelText("Scope start date"), { target: { value: "2026-08-01" } });
@@ -824,7 +857,7 @@ describe("DashboardPage", () => {
       ...analytics,
       period: { ...analytics.period, from: `${manilaMonthAt()}-01`, to: manilaDateAt() },
     } }));
-    renderDashboard();
+    renderTrends();
 
     // Each decision chart and the map is a separate lazy chunk, so its first
     // paint can land after the 1s default wait on a loaded runner.
@@ -994,7 +1027,7 @@ describe("DashboardPage control memory", () => {
   }
 
   it("brings back the chosen month after the page is left and reopened, and queries follow it", () => {
-    const { unmount } = renderDashboard();
+    const { unmount } = renderTrends();
     expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
 
     fireEvent.change(screen.getByLabelText("Scope month"), {
@@ -1007,7 +1040,7 @@ describe("DashboardPage control memory", () => {
 
     // Leaving the route unmounts the page; the dashboard is opened again later.
     unmount();
-    renderDashboard();
+    renderTrends();
 
     expect(screen.getByLabelText("Scope month")).toHaveValue("2026-08");
     expect(useDashboard).toHaveBeenLastCalledWith(
@@ -1021,7 +1054,7 @@ describe("DashboardPage control memory", () => {
   });
 
   it("brings back a custom window and keeps its dates in the ruler", () => {
-    const { unmount } = renderDashboard();
+    const { unmount } = renderTrends();
     fireEvent.click(screen.getByLabelText("Custom"));
     fireEvent.change(screen.getByLabelText("Scope start date"), {
       target: { value: "2026-07-05" },
@@ -1031,7 +1064,7 @@ describe("DashboardPage control memory", () => {
     });
 
     unmount();
-    renderDashboard();
+    renderTrends();
 
     expect(screen.getByLabelText("Custom")).toBeChecked();
     expect(screen.getByLabelText("Scope start date")).toHaveValue("2026-07-05");
@@ -1047,11 +1080,11 @@ describe("DashboardPage control memory", () => {
   });
 
   it("brings back the last-30-days mode resolved against today", () => {
-    const { unmount } = renderDashboard();
+    const { unmount } = renderTrends();
     fireEvent.click(screen.getByLabelText("Last 30 days"));
 
     unmount();
-    renderDashboard();
+    renderTrends();
 
     expect(screen.getByLabelText("Last 30 days")).toBeChecked();
     expect(useAnalytics).toHaveBeenLastCalledWith(
@@ -1061,7 +1094,7 @@ describe("DashboardPage control memory", () => {
   });
 
   it("writes the chosen scope into the versioned store", () => {
-    renderDashboard();
+    renderTrends();
     fireEvent.change(screen.getByLabelText("Scope month"), {
       target: { value: "2026-08" },
     });
@@ -1077,13 +1110,14 @@ describe("DashboardPage control memory", () => {
       "{ half-written",
     );
 
-    renderDashboard();
+    renderTrends();
 
     expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
     expect(useDashboard).toHaveBeenLastCalledWith(
       "2026-09",
       dashboardSummaryOptions,
     );
+    openTab("Today");
     expect(
       screen.getByRole("heading", { name: "Current operations" }),
     ).toBeInTheDocument();
@@ -1104,7 +1138,7 @@ describe("DashboardPage control memory", () => {
       }),
     );
 
-    renderDashboard();
+    renderTrends();
 
     expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
     expect(useDashboard).toHaveBeenLastCalledWith(
@@ -1128,7 +1162,7 @@ describe("DashboardPage control memory", () => {
       }),
     );
 
-    renderDashboard();
+    renderTrends();
 
     expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
     expect(useDashboard).toHaveBeenLastCalledWith(
