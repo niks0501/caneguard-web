@@ -89,16 +89,16 @@ export function DashboardRecentReports({
                 <td>
                   <QueueCaseCell row={row} />
                 </td>
-                <td>
+                <td data-label="Location">
                   <QueueLocationCell row={row} />
                 </td>
-                <td className="dashboard-report-table__cell-condition">
+                <td className="dashboard-report-table__cell-condition" data-label="Possible Condition">
                   <QueueConditionCell row={row} />
                 </td>
-                <td>
+                <td data-label="Affected Area">
                   <QueueAffectedAreaCell row={row} />
                 </td>
-                <td className="dashboard-report-table__cell-status">
+                <td className="dashboard-report-table__cell-status" data-label="Case Status">
                   <QueueStatusCell row={row} />
                 </td>
                 <td className="report-review-cell">

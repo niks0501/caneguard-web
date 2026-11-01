@@ -95,16 +95,16 @@ export function FieldValidationTable({
                     <td>
                       <QueueCaseCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Location">
                       <QueueLocationCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Possible Condition">
                       <QueueConditionCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Affected Area">
                       <QueueAffectedAreaCell row={row} />
                     </td>
-                    <td>
+                    <td data-label="Case Status">
                       <QueueStatusCell row={row} />
                     </td>
                     <td className="field-validation-table__action-cell">

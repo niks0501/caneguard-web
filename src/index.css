@@ -10055,6 +10055,15 @@ button.monitoring-calendar__day-number:focus-visible {
     border-bottom: 0;
   }
 
+  .report-table--queue td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: var(--text-body-sm);
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
   .dashboard-report-table__cell-condition,
   .dashboard-report-table__cell-status {
     min-width: 0;

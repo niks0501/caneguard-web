@@ -192,6 +192,22 @@ describe("silent queue stylesheet", () => {
     }
   });
 
+  it("gives each queue cell the label its stacked block needs", () => {
+    renderQueue([report()]);
+    const table = screen.getByRole("table");
+    const labels = Array.from(table.querySelectorAll("tbody td")).map((cell) =>
+      cell.getAttribute("data-label"),
+    );
+    expect(labels).toEqual([
+      null,
+      "Location",
+      "Possible Condition",
+      "Affected Area",
+      "Case Status",
+      null,
+    ]);
+  });
+
   it("stacks queue tables at a phone width and leaves other report tables alone", () => {
     applySheet(STYLE_ID, indexCss);
     const narrowRules = narrowWidthRules(indexCss);
