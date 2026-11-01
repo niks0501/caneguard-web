@@ -39,15 +39,37 @@ export interface QueueRowView {
   scheduledRevisit?: boolean | null;
 }
 
+/** Every caution that applies to a row, named in one line. */
+function queueCautions(row: QueueRowView): string[] {
+  const cautions: string[] = [];
+  if (row.mismatchReported === true) cautions.push("Reporter concern needs review");
+  if (row.locationUnavailable) cautions.push("Location not confirmed");
+  return cautions;
+}
+
+/** The one quiet line that sits under every queue table. */
+export function QueueDisclaimer() {
+  return <p className="queue-disclaimer">Possible Condition is decision support, not a confirmed diagnosis.</p>;
+}
+
 export function QueueCaseCell({ row }: { row: QueueRowView }) {
+  const cautions = queueCautions(row);
   return (
     <>
       <strong>{row.referenceCode}</strong>
       <span className="table-secondary">
         {row.farmReference?.trim() ? row.farmReference : "No farm reference"}
       </span>
-      {row.mismatchReported === true ? (
-        <span className="mismatch-table-marker">Reporter concern needs review</span>
+      {cautions.length > 0 ? (
+        <span className="queue-caution">
+          <span className="queue-tag queue-tag--note">Note</span>{" "}
+          {cautions.map((caution, index) => (
+            <span className="mismatch-table-marker" key={caution}>
+              {index > 0 ? "; " : ""}
+              {caution}
+            </span>
+          ))}
+        </span>
       ) : null}
     </>
   );

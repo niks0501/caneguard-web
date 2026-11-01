@@ -6,6 +6,7 @@ import {
   QueueCaseCell,
   QueueConditionCell,
   QueueLocationCell,
+  QueueDisclaimer,
   QueueReviewLink,
   QueueStatusCell,
   type QueueRowView,
@@ -116,6 +117,7 @@ export function FieldValidationTable({
           </table>
         </div>
       )}
+      {features.length > 0 ? <QueueDisclaimer /> : null}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import {
   QueueCaseCell,
   QueueConditionCell,
   QueueLocationCell,
+  QueueDisclaimer,
   QueueReviewLink,
   QueueStatusCell,
   type QueueRowView,
@@ -77,6 +78,7 @@ export function ReportTable({
   };
 
   return (
+    <>
     <div className="table-scroll">
       <table className={`report-table${isMonitoring ? " report-table--monitoring" : ""}`}>
         <thead>
@@ -122,5 +124,7 @@ export function ReportTable({
         </tbody>
       </table>
     </div>
+    <QueueDisclaimer />
+    </>
   );
 }

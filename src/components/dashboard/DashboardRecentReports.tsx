@@ -6,6 +6,7 @@ import {
   QueueCaseCell,
   QueueConditionCell,
   QueueLocationCell,
+  QueueDisclaimer,
   QueueReviewLink,
   QueueStatusCell,
   type QueueRowView,
@@ -46,6 +47,7 @@ export function DashboardRecentReports({
   };
 
   return (
+    <>
     <div className="table-scroll">
       <table className="report-table dashboard-report-table">
         <thead>
@@ -108,5 +110,7 @@ export function DashboardRecentReports({
         </tbody>
       </table>
     </div>
+    <QueueDisclaimer />
+    </>
   );
 }
