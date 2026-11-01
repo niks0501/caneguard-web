@@ -10127,7 +10127,10 @@ button.monitoring-calendar__day-number:focus-visible {
   box-shadow: var(--shadow-floating);
   visibility: hidden;
   transform: translateX(100%);
-  transition: transform var(--transition-fast), visibility var(--transition-fast);
+  /* Only transform transitions: transitioning visibility would keep the panel
+   * computed `hidden` in the frame the open effect focuses it, so the browser
+   * would ignore that focus call. */
+  transition: transform var(--transition-fast);
 }
 
 .queue-filters-panel.is-open {
