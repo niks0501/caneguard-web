@@ -148,8 +148,8 @@ a {
   width: 100%;
   height: 100%;
   padding: 25px 18px 18px;
-  color: var(--color-page);
-  background: var(--color-primary-dark);
+  color: var(--color-inverse-text);
+  background: var(--color-primary-fill);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -4340,7 +4340,7 @@ textarea:focus-visible {
 }
 
 .metric-card--primary {
-  background: color-mix(in srgb, var(--color-primary-tint) 42%, white);
+  background: color-mix(in srgb, var(--color-primary-tint) 42%, var(--color-surface));
 }
 
 .metric-card--primary .metric-card__icon {
@@ -8734,7 +8734,7 @@ button.monitoring-calendar__day-number:focus-visible {
   align-items: center;
   justify-content: center;
   padding: var(--space-5);
-  background: color-mix(in srgb, var(--color-primary-dark) 55%, transparent);
+  background: var(--color-scrim);
 }
 
 .report-builder__panel {
