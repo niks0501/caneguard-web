@@ -10070,3 +10070,245 @@ button.monitoring-calendar__day-number:focus-visible {
     white-space: normal;
   }
 }
+
+/* QF-6 reports filters: queue tabs, search and sort share one line, the nine
+   filters live in a side panel, applied filters stay as chips and every export
+   sits behind one Export menu. */
+.filter-bar.queue-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2) var(--space-3);
+}
+
+.queue-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.queue-tabs__tab {
+  min-height: var(--control-height);
+  padding: 0 8px;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: var(--text-body-sm);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.queue-tabs__tab:hover {
+  color: var(--color-primary-dark);
+}
+
+.queue-tabs__tab[aria-selected="true"] {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  border-bottom-color: var(--color-primary-dark);
+}
+
+.queue-tabs__tab:focus-visible {
+  outline: none;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring);
+}
+
+.queue-toolbar__controls {
+  display: flex;
+  flex: 1 1 500px;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.queue-toolbar__controls .search-input {
+  flex: 1 1 200px;
+  min-width: 160px;
+  max-width: 320px;
+}
+
+.queue-toolbar__controls .select-filter {
+  flex: 0 0 170px;
+  min-width: 0;
+}
+
+.queue-toolbar__count {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  color: var(--color-inverse-text);
+  font-size: var(--text-machine);
+  font-weight: 700;
+  background: var(--color-primary-dark);
+  border-radius: var(--radius-pill);
+}
+
+.queue-filters-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--brand-dark-field);
+  opacity: 0.4;
+}
+
+.queue-filters-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 901;
+  display: flex;
+  width: min(420px, 100vw);
+  flex-direction: column;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-floating);
+  visibility: hidden;
+  transform: translateX(100%);
+  transition: transform var(--transition-fast), visibility var(--transition-fast);
+}
+
+.queue-filters-panel.is-open {
+  visibility: visible;
+  transform: none;
+}
+
+.queue-filters-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.queue-filters-panel__header h2 {
+  margin: 0;
+  color: var(--color-primary-dark);
+  font-family: var(--font-heading);
+  font-size: var(--text-section-title);
+  letter-spacing: -0.025em;
+}
+
+.queue-filters-panel__close {
+  display: inline-flex;
+  width: var(--control-height);
+  height: var(--control-height);
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-dark);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.queue-filters-panel__close:hover {
+  background: var(--color-surface-soft);
+}
+
+.queue-filters-panel__close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.queue-filters-panel__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.queue-filters-panel__fields {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.export-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.export-menu__trigger {
+  cursor: pointer;
+  list-style: none;
+}
+
+.export-menu__trigger::-webkit-details-marker {
+  display: none;
+}
+
+.export-menu__trigger::marker {
+  content: "";
+}
+
+.export-menu[open] .export-menu__trigger {
+  background: var(--color-surface-soft);
+}
+
+.export-menu__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  min-width: 264px;
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-floating);
+}
+
+.export-menu__item {
+  min-height: var(--control-height);
+  justify-content: flex-start;
+  padding: 0 var(--space-2);
+  font-weight: 600;
+  text-align: left;
+}
+
+.export-menu__item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Below the desktop width the tabs keep the line and the controls take their
+   own row, left aligned, instead of crowding one another. */
+@media (max-width: 1379px) {
+  .queue-toolbar__controls {
+    flex: 1 1 100%;
+    max-width: none;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
+  .queue-toolbar__controls .search-input {
+    flex: 1 1 220px;
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 899px) {
+  .queue-toolbar__controls .search-input,
+  .queue-toolbar__controls .select-filter {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-filters-panel {
+    transition: none;
+  }
+}
