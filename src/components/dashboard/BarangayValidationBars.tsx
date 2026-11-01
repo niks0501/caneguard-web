@@ -12,9 +12,10 @@ import {
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { dashboardChartCopy } from "./chartCopy";
-import { bandColor, chartTheme } from "./chartTheme";
+import { bandColor, chartTheme, chartTooltipProps } from "./chartTheme";
 import { reportCount } from "./countUnits";
 import { kpiBandFillClass, type KpiBand } from "./kpiBandEncoding";
+import { useTheme } from "../../theme/useTheme";
 
 interface BarangayRow {
   barangay: string;
@@ -76,6 +77,8 @@ export function BarangayValidationBars({
   scopeLabel: string;
 }) {
   const copy = dashboardChartCopy.barangayValidation;
+  // A theme change repaints the literal Recharts colours read from the tokens.
+  useTheme();
   const rows: BarangayRow[] = analytics.validationByBarangay.filter(
     (row) => row.submitted > 0 || row.open > 0,
   );
@@ -128,7 +131,7 @@ export function BarangayValidationBars({
               width="auto"
               tick={{ fontSize: chartTheme.tickFontSize, fill: chartTheme.text }}
             />
-            <Tooltip
+            <Tooltip {...chartTooltipProps()}
               formatter={(value, name) => [
                 value,
                 name === "submitted"

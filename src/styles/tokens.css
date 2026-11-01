@@ -1,4 +1,8 @@
 :root {
+  /* The document supports both appearances; the dark block at the end of this
+     file switches the UA's own controls and scrollbars with `color-scheme`. */
+  color-scheme: light;
+
   /* CaneGuard Master Brand Palette (synchronized with phone identity) */
   --brand-structural-green: #074424;
   --brand-structural-green-on-dark: #91B79A;
@@ -44,6 +48,24 @@
 
   --color-border: #ddd8c9;
   --color-border-strong: #98aba0;
+
+  /* Role splits for the dark set. On paper one deep green serves both ink and
+     fill, so every role here keeps today's value and paper renders exactly as
+     it did. On the dark page ink has to lighten while a fill has to stay deep,
+     so the dark block at the end of this file gives each role its own value.
+     `--color-primary` and `--color-primary-dark` are ink: links, icons, strokes
+     and active labels. The fill roles are separate tokens, so a fill never
+     inherits a light ink. `--color-on-accent` stays dark ink on the cream
+     accent avatar in both themes. The scrim and the two map-panel surfaces are
+     tokens because a light scrim or panel would glow on a dark page. */
+  --color-primary-fill: #2d6b40;
+  --color-action: #1e452a;
+  --color-action-hover: #2d6b40;
+  --color-danger-fill: #9b2f2f;
+  --color-on-accent: #1e452a;
+  --color-scrim: rgba(25, 35, 28, 0.55);
+  --color-canvas-note: rgba(250, 252, 249, 0.94);
+  --color-canvas-error: rgba(255, 247, 244, 0.96);
 
   --color-focus: #ffdd00;
   --focus-ring: 0 0 0 3px #ffdd00, 0 0 0 5px #1d2720;
@@ -153,4 +175,92 @@
   --shadow-raised: 0 8px 24px rgba(29, 39, 32, 0.08);
 
   --transition-fast: 150ms ease;
+}
+
+/* Dark set (QF-11).
+
+   The dark surfaces, ink, secondary text, note and stop pairs are the values
+   QF-2 reconciled from the mobile paper-and-ink tokens; QF-11 derives the rest
+   and gates every pair in scripts/validate-design-spine.mjs.
+
+   Dark is a screen affordance only: the whole block sits inside `@media
+   screen`, so printing and print-to-PDF keep the paper set no matter which
+   theme the operator picked. Nothing else has to undo the theme.
+
+   The ink greens sit near 10:1 on the dark surface so link text, active
+   labels, axis rules and map strokes stay readable. The band ramp keeps the
+   paper ramp's alternation: with a dark card surface every band must clear 3:1
+   on its own, and its two mid tones and two pale tones are three stops apart
+   from their neighbours, including the radial ring's 4-1 join. The pale bands
+   are fills only, never text. */
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --color-page: #171a16;
+    --color-surface: #20241f;
+    --color-surface-soft: #2a2e28;
+    --color-surface-muted: #1b1f1a;
+    --color-surface-tint: #303a31;
+
+    --color-text: #ede9df;
+    --color-secondary-text: #b9b6a9;
+    --color-muted: #b9b6a9;
+
+    --color-border: #3f473f;
+    --color-border-strong: #66756a;
+
+    /* Ink, then the fills that carry the same roles on paper. */
+    --color-primary: #b9dcc0;
+    --color-primary-dark: #b9dcc0;
+    --color-primary-light: #7fa98c;
+    --color-primary-text: #b9dcc0;
+    --color-primary-tint: #263a2c;
+    --color-primary-fill: #3e7c30;
+    --color-action: #3e7c30;
+    --color-action-hover: #35703a;
+    --color-brand: #7fa98c;
+    --color-brand-hover: #b9dcc0;
+
+    --color-danger: #f2a48f;
+    --color-error: #f2a48f;
+    --color-danger-soft: #351a14;
+    --color-error-soft: #351a14;
+    --color-danger-fill: #bf4a3d;
+    --color-warning: #e9c46a;
+    --color-warning-soft: #2c2612;
+    --color-success: #8fc79b;
+    --color-success-soft: #1c3526;
+
+    /* Shell and translucent surfaces. The shell itself already paints from
+       the surface tokens; these three are its remaining light echoes. */
+    --color-on-accent: #1e452a;
+    --color-scrim: rgba(5, 7, 5, 0.66);
+    --color-canvas-note: rgba(27, 31, 26, 0.94);
+    --color-canvas-error: rgba(53, 26, 20, 0.96);
+
+    --focus-ring: 0 0 0 3px #ffdd00, 0 0 0 5px #ede9df;
+
+    --login-page-mint-light: #141713;
+    --login-page-mint-mid: #181c17;
+    --login-page-mint-soft: #161a15;
+
+    --kpi-band-1: #5f7f5b;
+    --kpi-band-2: #cfe0c6;
+    --kpi-band-3: #8a7337;
+    --kpi-band-4: #f0dca4;
+
+    --badge-review-bg: #16304a;
+    --badge-review-text: #9fd0f5;
+    --badge-field-validation-bg: #362a0f;
+    --badge-field-validation-text: #f0c86b;
+    --badge-referral-bg: #2c2250;
+    --badge-referral-text: #cbb4ff;
+    --badge-correction-bg: #3d1f1c;
+    --badge-correction-text: #f2a48f;
+
+    --shadow-surface: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-floating: 0 12px 32px rgba(0, 0, 0, 0.55);
+    --shadow-raised: 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
 }

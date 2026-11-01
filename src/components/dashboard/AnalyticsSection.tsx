@@ -20,7 +20,8 @@ import {
   analyticsPeriodLine,
   areaDisclosureLine,
 } from "./analyticsCopy";
-import { barangayColor, chartTheme } from "./chartTheme";
+import { useTheme } from "../../theme/useTheme";
+import { barangayColor, chartTheme, chartTooltipProps } from "./chartTheme";
 
 function shiftDate(isoDate: string, days: number): string {
   const next = new Date(`${isoDate}T00:00:00Z`);
@@ -135,6 +136,9 @@ export function AnalyticsSectionView({
   onToChange: (value: string) => void;
   onPreset: (preset: "week" | "month") => void;
 }) {
+  // Repaint on an appearance change: every Recharts prop below is a literal
+  // colour read from the token set, and those reads are cached per theme.
+  useTheme();
   const { period } = analytics;
   const empty = analytics.totalSubmitted === 0;
   const seriesLabel =
@@ -248,7 +252,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="label" tickFormatter={formatTick} {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
           </BarChart>
         </ChartFrame>
@@ -279,7 +283,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis type="number" allowDecimals={false} {...axisProps()} />
             <YAxis type="category" dataKey="name" width={120} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Submitted reports">
               {analytics.casesByBarangay.map((item, index) => (
                 <Cell key={item.barangay} fill={barangayColor(index)} />
@@ -314,7 +318,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="name" {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
           </BarChart>
         </ChartFrame>
@@ -344,7 +348,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="name" {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
           </BarChart>
         </ChartFrame>
@@ -383,7 +387,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="name" {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
           </BarChart>
           <p className="analytics-card__description">{deltaCopy}</p>
@@ -420,7 +424,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="name" {...axisProps()} />
             <YAxis {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Estimated ha" fill={chartTheme.brand} />
           </BarChart>
           <p className="analytics-card__description">{areaDisclosureLine(analytics.area)}</p>
@@ -466,7 +470,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis type="number" allowDecimals={false} {...axisProps()} />
             <YAxis type="category" dataKey="name" width={140} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Open validation reports">
               {[
                 ...analytics.validationWorkload.assignees.map((item) => ({
@@ -514,7 +518,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="name" {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Open validation reports" fill={chartTheme.brand} />
           </BarChart>
         </ChartFrame>
@@ -540,7 +544,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="label" tickFormatter={formatTick} {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
           </BarChart>
           <p className="analytics-card__description">
@@ -577,7 +581,7 @@ export function AnalyticsSectionView({
             <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
             <XAxis dataKey="label" {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
-            <Tooltip />
+            <Tooltip {...chartTooltipProps()} />
             <Bar dataKey="count" name="Completed validations" fill={chartTheme.brand} />
           </BarChart>
           <p className="analytics-card__description">
@@ -644,7 +648,7 @@ function LifecycleCard({
                   <CartesianGrid stroke={chartTheme.border} strokeDasharray="3 3" />
                   <XAxis dataKey="name" {...axisProps()} />
                   <YAxis allowDecimals={false} {...axisProps()} />
-                  <Tooltip />
+                  <Tooltip {...chartTooltipProps()} />
                   <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
                 </BarChart>
               </div>
@@ -678,6 +682,7 @@ function LifecycleCard({
 }
 
 export function AnalyticsSection() {
+  useTheme();
   const [range, setRange] = useState(defaultRange);
   const granularity = granularityFor(range.from, range.to);
   const query = useAnalytics({

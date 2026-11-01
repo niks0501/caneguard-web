@@ -1,4 +1,5 @@
 import type { StyleSpecification } from "maplibre-gl";
+import type { Theme } from "../../theme/themePreference";
 
 /**
  * Provider-free basemap for local development when no MapTiler key is
@@ -9,7 +10,8 @@ import type { StyleSpecification } from "maplibre-gl";
  * It sets no `glyphs` URL on purpose. MapLibre then draws symbol text (cluster
  * counts and the five status glyphs) locally from the browser's fonts, so case
  * meaning stays legible offline. The fill matches the `--color-surface-soft`
- * token the map container already uses.
+ * token the map container already uses, and the dark field matches its dark
+ * value so a dark map keeps the same quiet, flat ground.
  */
 export const LOCAL_BASEMAP_STYLE: StyleSpecification = {
   version: 8,
@@ -23,11 +25,31 @@ export const LOCAL_BASEMAP_STYLE: StyleSpecification = {
   ],
 };
 
-/** The hosted basemap style served by MapTiler for a configured key. */
-export function mapTilerStyleUrl(mapTilerKey: string): string | undefined {
-  return mapTilerKey
-    ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(mapTilerKey)}`
-    : undefined;
+/** The dark counterpart: `--color-surface-soft` from the dark token block. */
+export const LOCAL_BASEMAP_STYLE_DARK: StyleSpecification = {
+  version: 8,
+  sources: {},
+  layers: [
+    {
+      id: "local-basemap-background",
+      type: "background",
+      paint: { "background-color": "#2a2e28" },
+    },
+  ],
+};
+
+/**
+ * The hosted basemap style served by MapTiler for a configured key. The dark
+ * choice uses the provider's dark rendition of the same streets style, so the
+ * dark map is a real map rather than a dimmed paper one.
+ */
+export function mapTilerStyleUrl(
+  mapTilerKey: string,
+  theme: Theme = "paper",
+): string | undefined {
+  if (!mapTilerKey) return undefined;
+  const style = theme === "dark" ? "streets-v2-dark" : "streets-v2";
+  return `https://api.maptiler.com/maps/${style}/style.json?key=${encodeURIComponent(mapTilerKey)}`;
 }
 
 /**
@@ -39,10 +61,12 @@ export function mapTilerStyleUrl(mapTilerKey: string): string | undefined {
 export function resolveBasemapStyle(
   mapTilerKey: string,
   isDevelopment: boolean,
+  theme: Theme = "paper",
 ): string | StyleSpecification | undefined {
-  const hostedStyle = mapTilerStyleUrl(mapTilerKey);
+  const hostedStyle = mapTilerStyleUrl(mapTilerKey, theme);
 
   if (hostedStyle) return hostedStyle;
 
-  return isDevelopment ? LOCAL_BASEMAP_STYLE : undefined;
+  if (!isDevelopment) return undefined;
+  return theme === "dark" ? LOCAL_BASEMAP_STYLE_DARK : LOCAL_BASEMAP_STYLE;
 }

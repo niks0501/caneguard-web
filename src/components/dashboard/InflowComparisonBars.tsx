@@ -13,10 +13,11 @@ import type {
 } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { dashboardChartCopy } from "./chartCopy";
-import { bandColor, chartTheme } from "./chartTheme";
+import { bandColor, chartTheme, chartTooltipProps } from "./chartTheme";
 import { reportCount } from "./countUnits";
 import { kpiBandFillClass, type KpiBand } from "./kpiBandEncoding";
 import { formatWindow } from "./dashboardScope";
+import { useTheme } from "../../theme/useTheme";
 
 function shortTick(value: string): string {
   return value.length === 10 ? value.slice(5).replace("-", "/") : value;
@@ -45,6 +46,8 @@ export function InflowComparisonBars({
   scopeLabel: string;
 }) {
   const copy = dashboardChartCopy.inflow;
+  // A theme change repaints the literal Recharts colours read from the tokens.
+  useTheme();
   const rows = (analytics.comparison.currentSeries ?? analytics.series).map((point, index) => ({
     label: point.label,
     current: point.count,
@@ -89,7 +92,7 @@ export function InflowComparisonBars({
               allowDecimals={false}
               tick={{ fontSize: chartTheme.tickFontSize, fill: chartTheme.secondaryText }}
             />
-            <Tooltip
+            <Tooltip {...chartTooltipProps()}
               formatter={(value, name) => [
                 value,
                 name === "current" ? "Reports this period" : "Reports previous period",
