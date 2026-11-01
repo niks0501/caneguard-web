@@ -9841,12 +9841,16 @@ button.monitoring-calendar__day-number:focus-visible {
 /* QF-7 case review: evidence left, decision pinned right from 1,100px. */
 .review-caution-line {
   margin: 8px 0 0;
-  color: var(--color-text-secondary, inherit);
+  color: var(--color-muted);
 }
 
 .review-caution-line a {
   color: inherit;
   text-decoration: underline;
+}
+
+.review-status-chips > .review-state-summary {
+  scroll-margin-top: calc(72px + var(--space-4));
 }
 
 @media (min-width: 1100px) {
@@ -9867,15 +9871,21 @@ button.monitoring-calendar__day-number:focus-visible {
     grid-column: 2;
     grid-row: 1 / span 40;
     position: sticky;
-    top: var(--space-4);
-    max-height: calc(100vh - 2 * var(--space-4));
+    top: calc(72px + var(--space-4));
+    max-height: calc(100dvh - 72px - 2 * var(--space-4));
     overflow-y: auto;
     margin-bottom: 0;
   }
 }
 
+@media (max-width: 1099px) {
+  .history-filter-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 @media (max-width: 899px) {
-  .review-decision-flow > .review-card:last-of-type .button:not(.button--secondary),
   .review-decision-flow > .review-card:last-of-type button[type="submit"] {
     position: sticky;
     bottom: var(--space-3, 12px);
