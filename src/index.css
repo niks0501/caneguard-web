@@ -5080,7 +5080,7 @@ textarea:focus-visible {
 }
 
 .reporter-observation-card {
-  border-top-color: var(--color-disease-rust);
+  border-top-color: var(--color-danger);
 }
 
 .field-validation-evidence-card {
@@ -5316,7 +5316,7 @@ textarea:focus-visible {
 }
 
 .reporter-observation-card::before {
-  color: var(--color-disease-rust);
+  color: var(--color-danger);
   content: "";
 }
 
@@ -5326,7 +5326,7 @@ textarea:focus-visible {
 }
 
 .reporter-observation-card .section-heading > svg {
-  color: var(--color-disease-rust);
+  color: var(--color-danger);
 }
 
 .office-review .section-heading > svg {

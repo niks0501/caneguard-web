@@ -118,8 +118,8 @@ const BARANGAY_PALETTE_TOKENS: TokenName[] = [
   "--color-brand",
   "--color-brand-hover",
   "--kpi-band-1",
-  "--kpi-band-3",
   "--kpi-band-2",
+  "--kpi-band-3",
   "--kpi-band-4",
 ];
 

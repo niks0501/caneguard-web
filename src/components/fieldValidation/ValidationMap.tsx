@@ -36,10 +36,10 @@ const statusColorExpression = [
   "verified_by_staff",
   "#2d6b40",
   "unable_to_verify",
-  "#4d5c52",
+  "#4a5650",
   "resolved",
   "#98aba0",
-  "#6e5213",
+  "#8a4a06",
 ] as ExpressionSpecification;
 
 /**
