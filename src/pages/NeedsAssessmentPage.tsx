@@ -15,8 +15,6 @@ import { formatDateTime } from "../lib/formatters";
 import { env } from "../config/env";
 import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 
-const attentionOutcomes: FollowUpOutcome[] = ["worsened", "unable_to_determine"];
-
 function outcomeLabel(outcome: FollowUpOutcome | null | undefined) {
   return outcome ? followUpOutcomeLabels[outcome] : "Outcome not recorded";
 }
@@ -38,11 +36,11 @@ function countValue(read: QueueRead, value: number): number | string {
   return "—";
 }
 
-function AssessmentRow({ report, attention = false, queueContext }: { report: DiseaseReport; attention?: boolean; queueContext: ReviewQueueContext }) {
+function AssessmentRow({ report, queueContext }: { report: DiseaseReport; queueContext: ReviewQueueContext }) {
   const outcome = report.latestValidation?.followUpOutcome;
   const visited = Boolean(report.latestValidation) || report.lifecycle?.fieldValidationState === "completed";
   return (
-    <article className={`needs-assessment-row${attention ? " needs-assessment-row--attention" : ""}`}>
+    <article className="needs-assessment-row">
       <div className="needs-assessment-row__identity">
         <Link className="report-link" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>
           <strong>{report.referenceCode}</strong>
@@ -67,41 +65,56 @@ function AssessmentRow({ report, attention = false, queueContext }: { report: Di
   );
 }
 
-function ReportSection({
-  title,
-  description,
-  reports,
-  empty,
-  attention = false,
-  read,
-}: {
+interface NeedsGroup {
+  key: string;
   title: string;
-  description: string;
   reports: DiseaseReport[];
+  /** The one line a group with no rows folds into. */
   empty: string;
-  attention?: boolean;
-  /** The bounded queue read behind this section, when it stopped at its boundary. */
-  read?: { loaded: number; total: number };
-}) {
-  const location = useLocation();
-  const headingId = `${title.toLowerCase().replaceAll(" ", "-")}-heading`;
+  /** The bounded queue read behind this group stopped at its boundary. */
+  truncated?: boolean;
+}
+
+/** One line stating where a bounded queue read stopped. */
+function QueueBoundary({ title, loaded, total }: { title: string; loaded: number; total: number }) {
   return (
-    <section className={`needs-assessment-section${attention ? " needs-assessment-section--attention" : ""}`} aria-labelledby={headingId}>
-      <div className="workspace-heading">
-        <div><h2 id={headingId}>{title}</h2><p>{description}</p></div>
-        <strong className="needs-assessment-count">{reports.length}</strong>
+    <p className="queue-refresh-warning" role="status">
+      The {title} queue loaded the first {loaded} of {total} matching cases, so this list may be incomplete.
+    </p>
+  );
+}
+
+/**
+ * QF-8: every case sits in one ruled list. A group with rows keeps a heading
+ * and a count; a group with none folds into a single line instead of taking a
+ * heading, a description and an empty panel of its own.
+ */
+function AssessmentGroup({ group }: { group: NeedsGroup }) {
+  const location = useLocation();
+  if (group.reports.length === 0) {
+    return <p className="needs-assessment-folded">{group.empty}</p>;
+  }
+  const headingId = `needs-assessment-${group.key}-heading`;
+  return (
+    <section className="needs-assessment-group" aria-labelledby={headingId}>
+      <div className="needs-assessment-group__heading">
+        <h2 id={headingId}>{group.title}</h2>
+        <strong className="needs-assessment-count">{group.reports.length}</strong>
       </div>
-      {read ? (
-        <p className="queue-refresh-warning" role="status">
-          This queue has {read.total} matching cases and only the first {read.loaded} are loaded, so these lists may be incomplete. Narrow the queue to reach the rest; Review Next stops at this boundary.
-        </p>
-      ) : null}
-      {reports.length > 0 ? <div className="needs-assessment-list">{reports.map((report) => <AssessmentRow key={report.uuid} report={report} attention={attention} queueContext={{
-        returnTo: `${location.pathname}${location.search}`, filters: {},
-        remainingIds: reports.slice(reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
-        reviewedIds: [], snapshotOnly: true,
-        ...(read ? { snapshotTruncated: true } : {}),
-      }} />)}</div> : <p className="needs-assessment-empty">{empty}</p>}
+      <div className="needs-assessment-list">
+        {group.reports.map((report) => (
+          <AssessmentRow
+            key={report.uuid}
+            report={report}
+            queueContext={{
+              returnTo: `${location.pathname}${location.search}`, filters: {},
+              remainingIds: group.reports.slice(group.reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
+              reviewedIds: [], snapshotOnly: true,
+              ...(group.truncated ? { snapshotTruncated: true } : {}),
+            }}
+          />
+        ))}
+      </div>
     </section>
   );
 }
@@ -117,14 +130,13 @@ export function NeedsAssessmentPage() {
   const needsReview = awaitingQuery.data?.reports ?? [];
   const completedVisits = needsReview.filter((report) => fieldValidationStateOf(report) === "completed");
   const newObservations = needsReview.filter((report) => fieldValidationStateOf(report) !== "completed");
-  const attention = completedVisits.filter((report) => attentionOutcomes.includes(report.latestValidation?.followUpOutcome ?? "improved"));
   const unassignedVisits = (visitQuery.data?.reports ?? []).filter(
     (report) => fieldValidationStateOf(report) === "unassigned",
   );
   const overdue = overdueQuery.data?.reports ?? [];
 
   // A truncated read is reported once per queue, attributed to that queue: a
-  // section row count is never paired with a denominator it does not match.
+  // group's row count is never paired with a denominator it does not match.
   const awaitingTruncation = awaitingQuery.data?.truncated
     ? { loaded: needsReview.length, total: awaitingQuery.data.total }
     : undefined;
@@ -134,6 +146,25 @@ export function NeedsAssessmentPage() {
   const overdueTruncation = overdueQuery.data?.truncated
     ? { loaded: overdue.length, total: overdueQuery.data.total }
     : undefined;
+
+  const groups: NeedsGroup[] = [
+    {
+      key: "awaiting", title: "Visits awaiting a decision", reports: completedVisits,
+      empty: "No completed field visits are waiting for a decision.", truncated: Boolean(awaitingTruncation),
+    },
+    {
+      key: "observations", title: "New observations", reports: newObservations,
+      empty: "No unvisited observations are waiting.", truncated: Boolean(awaitingTruncation),
+    },
+    {
+      key: "unassigned", title: "Unassigned visits", reports: unassignedVisits,
+      empty: "No unassigned visit requests are waiting.", truncated: Boolean(visitTruncation),
+    },
+    {
+      key: "overdue", title: "Overdue visits", reports: overdue,
+      empty: "No open visits are overdue.", truncated: Boolean(overdueTruncation),
+    },
+  ];
 
   const isLoading = awaitingQuery.isPending || visitQuery.isPending || overdueQuery.isPending;
   const hasInitialError = (awaitingQuery.isError && !awaitingQuery.data)
@@ -209,14 +240,13 @@ export function NeedsAssessmentPage() {
           onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
         />
       ) : null}
+      {awaitingTruncation ? <QueueBoundary title="Visits awaiting a decision" {...awaitingTruncation} /> : null}
+      {visitTruncation ? <QueueBoundary title="Unassigned visits" {...visitTruncation} /> : null}
+      {overdueTruncation ? <QueueBoundary title="Overdue visits" {...overdueTruncation} /> : null}
       {!hasInitialError && awaitingQuery.data && visitQuery.data ? (
-        <>
-          <ReportSection title="Visits awaiting a decision" description="Field visits are complete and need an office disposition." reports={completedVisits} read={awaitingTruncation} empty="No completed field visits are waiting for a decision." />
-          <ReportSection title="Needs attention" description="Worsened and Unable to determine outcomes inside the completed visits above." reports={attention} attention read={awaitingTruncation} empty="No completed visit recorded Worsened or Unable to determine." />
-          <ReportSection title="New observations" description="Observations that have never been visited. They are not completed visits." reports={newObservations} read={awaitingTruncation} empty="No unvisited observations are waiting." />
-          <ReportSection title="Unassigned visits" description="Open cases with a visit request but no Field Inspector yet." reports={unassignedVisits} read={visitTruncation} empty="No unassigned visit requests are waiting." />
-          <ReportSection title="Overdue visits" description="Open visits past their target date, counted separately from outcome attention." reports={overdue} read={overdueTruncation} empty="No open visits are overdue." />
-        </>
+        <div className="needs-assessment-queue">
+          {groups.map((group) => <AssessmentGroup key={group.key} group={group} />)}
+        </div>
       ) : null}
       {completedVisits.some((report) => report.latestValidation?.followUpOutcome === "unchanged") ? (
         <p className="needs-assessment-note" role="note">Unchanged outcomes remain in Needs assessment until an office reviewer records the next action.</p>

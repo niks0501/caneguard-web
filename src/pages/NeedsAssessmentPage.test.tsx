@@ -74,17 +74,22 @@ describe("NeedsAssessmentPage", () => {
     });
   });
 
-  it("separates completed visits, unvisited observations, attention, unassigned and overdue work", () => {
+  it("keeps one list with a heading per non-empty group and lists each case once", () => {
     render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
 
     expect(screen.queryByText("To check")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Needs assessment" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Visits awaiting a decision" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "New observations" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Unassigned visits" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overdue visits" })).toBeInTheDocument();
+    // Attention is carried by the outcome of a visit already in the list, so
+    // there is no second group that repeats those cases.
+    expect(screen.queryByRole("heading", { name: "Needs attention" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("CG-worsened")).toHaveLength(1);
+    expect(screen.getAllByText("CG-unable")).toHaveLength(1);
+    expect(screen.getAllByText("CG-fresh")).toHaveLength(1);
     expect(screen.getAllByText("Worsened").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Unable to determine").length).toBeGreaterThan(0);
 
@@ -96,6 +101,7 @@ describe("NeedsAssessmentPage", () => {
     expect(within(newObservations).queryByText(/Field evidence is ready/)).not.toBeInTheDocument();
     expect(within(newObservations).queryByText("Outcome not recorded")).not.toBeInTheDocument();
     const awaiting = screen.getByRole("region", { name: "Visits awaiting a decision" });
+    expect(within(awaiting).getByText("CG-worsened")).toBeInTheDocument();
     expect(within(awaiting).queryByText("CG-fresh")).not.toBeInTheDocument();
     expect(within(awaiting).queryByText("Not visited")).not.toBeInTheDocument();
 
@@ -105,6 +111,25 @@ describe("NeedsAssessmentPage", () => {
       "/monitoring?view=field-operations&report=unassigned",
     );
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
+  });
+
+  it("folds an empty group into one line instead of giving it a heading", () => {
+    vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "follow_up_due") return result([]);
+      if (filters?.queue === "needs_visit") return result([]);
+      return result([report("worsened", "worsened", "completed")]);
+    });
+
+    render(<MemoryRouter initialEntries={["/needs-assessment"]}><NeedsAssessmentPage /></MemoryRouter>);
+
+    expect(screen.getByRole("heading", { name: "Visits awaiting a decision" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "New observations" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Unassigned visits" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Overdue visits" })).not.toBeInTheDocument();
+    expect(screen.getByText("No unvisited observations are waiting.")).toBeInTheDocument();
+    expect(screen.getByText("No unassigned visit requests are waiting.")).toBeInTheDocument();
+    expect(screen.getByText("No open visits are overdue.")).toBeInTheDocument();
+    expect(document.querySelectorAll(".needs-assessment-folded")).toHaveLength(3);
   });
 
   it("attributes a truncated read to its queue instead of pairing a section count with the queue total", () => {
@@ -123,13 +148,12 @@ describe("NeedsAssessmentPage", () => {
     const awaiting = screen.getByRole("region", { name: "Visits awaiting a decision" });
     expect(within(awaiting).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
     expect(within(awaiting).queryByText(/1 of 137/)).not.toBeInTheDocument();
-    expect(
-      within(awaiting).getByText(/This queue has 137 matching cases and only the first 2 are loaded/),
-    ).toBeInTheDocument();
+    // The boundary is stated once for the queue, not once per group it feeds.
+    expect(screen.getAllByText(/The Visits awaiting a decision queue loaded the first 2 of 137 matching cases/)).toHaveLength(1);
     // A subset of a subset is never given the queue's denominator.
-    const attention = screen.getByRole("region", { name: "Needs attention" });
-    expect(within(attention).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
-    expect(within(attention).queryByText(/1 of 137/)).not.toBeInTheDocument();
+    const observations = screen.getByRole("region", { name: "New observations" });
+    expect(within(observations).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
+    expect(within(observations).queryByText(/1 of 137/)).not.toBeInTheDocument();
   });
 
   it("does not report an unavailable queue as zero work", () => {
