@@ -8,6 +8,7 @@ import { LoadingState } from "../components/ui/States";
 import { SubmittedReportsPage } from "./SubmittedReportsPage";
 import { FieldOperationsPage } from "./FieldOperationsPage";
 import {
+  monitoringViewFromUrl,
   monitoringViewLink,
   scopeNoticeMessage,
   type WorkspaceView,
@@ -28,15 +29,11 @@ const views: Array<{ key: WorkspaceView; label: string; icon: ReactNode }> = [
   { key: "boundaries", label: "Field boundaries", icon: <LandPlot aria-hidden="true" /> },
 ];
 
-/** Visits opens on the map; the other four views stay one link away. */
-function viewFromUrl(value: string | null): WorkspaceView {
-  return value === "register" || value === "calendar" || value === "field-operations" || value === "boundaries" ? value : "map";
-}
-
+/** Visits opens on the map unless the URL carries scope only the List can honor. */
 export function MonitoringWorkspacePage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const view = viewFromUrl(searchParams.get("view"));
+  const view = monitoringViewFromUrl(searchParams);
   // Navigation state survives Back/Forward, so the removed-filter notice lasts
   // exactly as long as the scope change it explains.
   const scopeNotice = scopeNoticeMessage(

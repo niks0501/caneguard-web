@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  monitoringViewFromUrl,
   monitoringViewLink,
   scopeNoticeMessage,
 } from "./workspaceScope";
@@ -91,5 +92,29 @@ describe("workspace scope", () => {
     );
 
     expect(link.removed).toEqual(["Status"]);
+  });
+});
+
+describe("monitoring default view", () => {
+  it("opens the map for a bare or fully map-compatible URL", () => {
+    expect(monitoringViewFromUrl(new URLSearchParams())).toBe("map");
+    expect(monitoringViewFromUrl(new URLSearchParams("queue=follow_up_due&barangay=Bucana"))).toBe("map");
+    expect(monitoringViewFromUrl(new URLSearchParams("status=for_field_validation&date_from=2026-09-01"))).toBe("map");
+  });
+
+  it("keeps a legacy filtered deep link on the List that can honor it", () => {
+    expect(monitoringViewFromUrl(new URLSearchParams("concern=rssi"))).toBe("register");
+    expect(monitoringViewFromUrl(new URLSearchParams("search=bucana"))).toBe("register");
+    expect(monitoringViewFromUrl(new URLSearchParams("sort=oldest"))).toBe("register");
+    expect(monitoringViewFromUrl(new URLSearchParams("queue=needs_review"))).toBe("register");
+    expect(monitoringViewFromUrl(new URLSearchParams("location=unlocated"))).toBe("register");
+    expect(monitoringViewFromUrl(new URLSearchParams("view=not_a_view&concern=rssi"))).toBe("register");
+  });
+
+  it("honors an explicit view over the URL's scope", () => {
+    expect(monitoringViewFromUrl(new URLSearchParams("view=calendar&calendar_month=2026-09"))).toBe("calendar");
+    expect(monitoringViewFromUrl(new URLSearchParams("view=map&concern=rssi"))).toBe("map");
+    expect(monitoringViewFromUrl(new URLSearchParams("view=field-operations"))).toBe("field-operations");
+    expect(monitoringViewFromUrl(new URLSearchParams("view=boundaries"))).toBe("boundaries");
   });
 });

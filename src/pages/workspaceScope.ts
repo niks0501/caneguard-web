@@ -114,6 +114,25 @@ export function monitoringViewLink(
   };
 }
 
+const workspaceViews = new Set<WorkspaceView>([
+  "register",
+  "calendar",
+  "map",
+  "field-operations",
+  "boundaries",
+]);
+
+/**
+ * The view a monitoring URL names. A URL without a view keeps the scope it
+ * carries: the List can honor every filter, so a link the Map would widen
+ * opens the List, while a bare or fully map-compatible URL opens the Map.
+ */
+export function monitoringViewFromUrl(searchParams: URLSearchParams): WorkspaceView {
+  const requested = searchParams.get("view") as WorkspaceView | null;
+  if (requested && workspaceViews.has(requested)) return requested;
+  return monitoringViewLink("map", searchParams).removed.length > 0 ? "register" : "map";
+}
+
 /** Notice text for a view that could not honor part of the arriving scope. */
 export function scopeNoticeMessage(removed: string[]): string | null {
   if (removed.length === 0) return null;

@@ -306,7 +306,7 @@ describe("Monitoring Register contract", () => {
   });
 });
 
-describe("Visits default view contract", () => {
+describe("Workspace default view contract", () => {
   it("DEFAULT: bare /monitoring opens the Map instead of the case table", async () => {
     renderWorkspace("/monitoring");
 
@@ -314,6 +314,15 @@ describe("Visits default view contract", () => {
     expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByText("Quick views")).not.toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "Case" })).not.toBeInTheDocument();
+  });
+
+  it("DEFAULT: a legacy filtered deep link opens the List that can honor its scope", async () => {
+    renderWorkspace("/monitoring?concern=rssi");
+
+    expect(await screen.findByText(reportListItemDto.reference_code)).toBeInTheDocument();
+    expect(screen.getByText("Quick views")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("Map view")).not.toBeInTheDocument();
   });
 });
 

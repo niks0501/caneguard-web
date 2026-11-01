@@ -112,6 +112,18 @@ describe("MonitoringWorkspacePage scope transitions", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: 0, total: 0, items: [], oldest: null }));
   });
 
+  it("keeps a legacy filtered deep link on the List instead of widening it to the map", async () => {
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/monitoring?concern=rssi"]}><MonitoringWorkspacePage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("Quick views")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("Map view")).not.toBeInTheDocument();
+  });
+
   it("keeps the work scope when switching views", () => {
     render(
       <QueryClientProvider client={createQueryClient()}>
