@@ -124,7 +124,7 @@ describe("SubmittedReportsPage", () => {
     expect(screen.getAllByText("Nasugbu, Batangas").length).toBeGreaterThan(0);
     expect(screen.getByText("Reporter concern needs review")).toBeInTheDocument();
     expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText("Possible Condition: Smut").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Smut").length).toBeGreaterThanOrEqual(1);
     const statusCell = screen.getByRole("cell", { name: "Field Validation" });
     const longStatusLabel = statusCell.querySelector(".status-badge__label");
     expect(longStatusLabel).toHaveClass("status-badge__label");

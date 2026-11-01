@@ -93,7 +93,7 @@ export function QueueLocationCell({ row }: { row: QueueRowView }) {
 export function QueueConditionCell({ row }: { row: QueueRowView }) {
   return (
     <>
-      <DiseaseBadge disease={row.predictedDisease} />
+      <DiseaseBadge disease={row.predictedDisease} includePossibleConditionPrefix={false} />
       {row.authorityClassifiedCondition ? (
         <span className="table-secondary">
           Staff: {authorityClassifiedConditionLabels[row.authorityClassifiedCondition]}
