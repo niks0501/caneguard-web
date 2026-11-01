@@ -214,9 +214,6 @@ export function DashboardPage() {
           >
             <div className="dashboard-section__heading">
               <h2 id="current-operations-heading">Current operations</h2>
-              <p className="dashboard-section__meta">
-                {formatWindow(scope.from, scope.to)}
-              </p>
             </div>
             {!summary ? (
               <>

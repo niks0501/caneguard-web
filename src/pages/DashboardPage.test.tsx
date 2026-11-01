@@ -880,6 +880,11 @@ describe("DashboardPage", () => {
       ).queryByText(/^Period /),
     ).not.toBeInTheDocument();
 
+    // No section-level period label sits above the current-state queue cards.
+    const heading = screen.getByRole("heading", { name: "Current operations" })
+      .parentElement!;
+    expect(within(heading).queryByText(/Sep 2026/)).not.toBeInTheDocument();
+
     // The caption names the window the returned figures cover.
     openTab("Trends");
     fireEvent.change(screen.getByLabelText("Scope month"), {
