@@ -21,10 +21,12 @@ two vendored source reports in this directory.
   literal copies at `src/components/fieldValidation/ValidationMap.tsx:37,39,41,42`
   and `src/components/fieldValidation/localBasemap.ts:21`.
 - **Current web names:** `src/components/navigation/AppSidebar.tsx` on the base
-  commit. It renders nine links: the four monitored here (Dashboard, Needs
+  commit. Driven with the admin fixture, an admin session renders eight links
+  (a reviewer session renders five): the four monitored here (Dashboard, Needs
   assessment, Reports, Monitoring / Map), three admin-only entries (Report
   Approval, User Management, Admin Settings) and Settings, under the group
-  labels Monitoring, Administration and Account.
+  labels Monitoring, Administration and Account. The Administration group and
+  its three entries are admin-only.
 
 ### Reconciliation rule
 
@@ -144,7 +146,8 @@ sentence on Today, charts/scope/Generate report on Trends.
 |---|---|---|
 | Home | Home | Same word; both host the Morning Note sentence |
 | Visits (renamed from "Today's visits", captain `quiet-tabs`) | Visits (renamed from Monitoring / Map, captain decision 6) | Parity achieved: same word on both |
-| Other two mobile tabs | — | Names not stated in the mobile report; unconfirmed, no mapping recorded |
+| Activity | — | Mobile-only; web has no Activity tab (`sources/mobile-report.md`, measured-noise table) |
+| Scan | — | Mobile-only; web has no Scan tab (`sources/mobile-report.md`, measured-noise table, "Scan is a tab") |
 | — | Needs assessment, Reports | Web-only; no mobile equivalent |
 
 Constraints both sides keep: "Possible Condition" and the disclaimer wording
