@@ -6,7 +6,8 @@ const plural = (count: number, one: string, many: string) =>
 /**
  * The one calm Today sentence, read from the queue counts the page already
  * loads. The most pressing item wins: a past-target-date visit, then reports
- * waiting for review, then visits still needed, then nothing.
+ * waiting for review, then visits still needed, then unverified reports with
+ * no active work, then nothing.
  */
 export function morningNote(queues: DashboardSummary["queues"]): string {
   if (queues.follow_up_due > 0) {
@@ -17,6 +18,13 @@ export function morningNote(queues: DashboardSummary["queues"]): string {
   }
   if (queues.needs_visit > 0) {
     return `${plural(queues.needs_visit, "report needs", "reports need")} a field visit.`;
+  }
+  if (queues.unverified_no_active_work > 0) {
+    return `${plural(
+      queues.unverified_no_active_work,
+      "unverified report has",
+      "unverified reports have",
+    )} no active work.`;
   }
   return "Nothing needs you.";
 }

@@ -20,6 +20,21 @@ describe("morningNote", () => {
     expect(morningNote({ ...queues, needs_visit: 3 })).toBe(
       "3 reports need a field visit.",
     );
+    expect(morningNote({ ...queues, unverified_no_active_work: 1 })).toBe(
+      "1 unverified report has no active work.",
+    );
+    expect(morningNote({ ...queues, unverified_no_active_work: 7 })).toBe(
+      "7 unverified reports have no active work.",
+    );
+  });
+
+  it("keeps unverified work below the active queues it waits behind", () => {
+    expect(
+      morningNote({ ...queues, needs_visit: 3, unverified_no_active_work: 7 }),
+    ).toBe("3 reports need a field visit.");
+    expect(
+      morningNote({ ...queues, needs_review: 1, unverified_no_active_work: 7 }),
+    ).toBe("1 report is waiting for your review.");
   });
 
   it("says nothing needs the reviewer when every queue is empty", () => {

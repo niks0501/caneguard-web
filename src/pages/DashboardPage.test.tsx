@@ -344,6 +344,28 @@ describe("DashboardPage", () => {
     expect(screen.queryByText("Loading trends and analysis…")).not.toBeInTheDocument();
   });
 
+  it("explains a custom range over 366 days beside the ruler that set it", () => {
+    renderTrends();
+    fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
+    fireEvent.change(screen.getByLabelText("Scope start date"), {
+      target: { value: "2024-01-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Scope end date"), {
+      target: { value: "2026-01-01" },
+    });
+
+    const controls = screen.getByRole("group", { name: "Report scope" })
+      .parentElement!;
+    expect(within(controls).getByRole("alert")).toHaveTextContent(
+      "Custom range cannot exceed 366 days.",
+    );
+
+    // The tab without the range control no longer tells the reviewer to
+    // shorten a range it cannot show.
+    openTab("Today");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("never shows the old period while a new period is loading", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
@@ -431,8 +453,11 @@ describe("DashboardPage", () => {
     // comparison/hint paragraphs.
     const cards = snapshot.getAllByRole("article");
     expect(cards).toHaveLength(4);
-    // Nothing but the four assigned slots: no paragraph and no chip list.
-    expect(snapshot.queryAllByRole("paragraph")).toHaveLength(0);
+    // Nothing but the four assigned slots: no paragraph inside a card and no
+    // chip list anywhere in the band.
+    expect(
+      cards.flatMap((card) => within(card).queryAllByRole("paragraph")),
+    ).toHaveLength(0);
     expect(snapshot.queryAllByRole("list")).toHaveLength(0);
     expect(
       snapshot.getByRole("img", { name: "Submissions 1–24 Sep 2026" }),
@@ -808,6 +833,43 @@ describe("DashboardPage", () => {
     expect(recent.getByText("Latest 5 reports")).toBeInTheDocument();
     expect(recent.getByRole("link", { name: "View all reports" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Trends and analysis" })).not.toBeInTheDocument();
+  });
+
+  it("labels the window its figures use on Today", () => {
+    renderDashboard();
+    const snapshot = within(
+      screen.getByRole("region", { name: "Current operations" }),
+    );
+    expect(snapshot.getByText("1–24 Sep 2026")).toBeInTheDocument();
+
+    openTab("Trends");
+    fireEvent.change(screen.getByLabelText("Scope month"), {
+      target: { value: "2026-08" },
+    });
+    openTab("Today");
+    expect(
+      within(
+        screen.getByRole("region", { name: "Current operations" }),
+      ).getByText("1–31 Aug 2026"),
+    ).toBeInTheDocument();
+  });
+
+  it("points each tab at the panel that is actually rendered", () => {
+    renderDashboard();
+    const today = screen.getByRole("tab", { name: "Today" });
+    const trends = screen.getByRole("tab", { name: "Trends" });
+    expect(today).toHaveAttribute("aria-controls", "dashboard-panel-today");
+    expect(trends).not.toHaveAttribute("aria-controls");
+    expect(
+      document.getElementById(today.getAttribute("aria-controls")!),
+    ).toHaveAttribute("role", "tabpanel");
+
+    openTab("Trends");
+    expect(trends).toHaveAttribute("aria-controls", "dashboard-panel-trends");
+    expect(today).not.toHaveAttribute("aria-controls");
+    expect(
+      document.getElementById(trends.getAttribute("aria-controls")!),
+    ).toHaveAttribute("role", "tabpanel");
   });
 
   it("opens the printable report on the dashboard's own window with its scope summary and Reset", () => {

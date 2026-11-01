@@ -161,7 +161,9 @@ export function DashboardPage() {
             role="tab"
             id={`dashboard-tab-${tab.id}`}
             aria-selected={activeTab === tab.id}
-            aria-controls={`dashboard-panel-${tab.id}`}
+            aria-controls={
+              activeTab === tab.id ? `dashboard-panel-${tab.id}` : undefined
+            }
             tabIndex={activeTab === tab.id ? 0 : -1}
             className="dashboard-tabs__tab"
             onClick={() => setActiveTab(tab.id)}
@@ -189,15 +191,13 @@ export function DashboardPage() {
           message={initialErrorMessage}
           onRetry={isForbidden ? undefined : () => dashboard.refetch()}
         />
-      ) : (
-        <div className="dashboard-sections">
-          {activeTab === "today" ? (
-          <div
-            className="dashboard-sections"
-            role="tabpanel"
-            id="dashboard-panel-today"
-            aria-labelledby="dashboard-tab-today"
-          >
+      ) : activeTab === "today" ? (
+        <div
+          className="dashboard-sections"
+          role="tabpanel"
+          id="dashboard-panel-today"
+          aria-labelledby="dashboard-tab-today"
+        >
           {summary ? (
             <p className="dashboard-note">{morningNote(summary.queues)}</p>
           ) : null}
@@ -208,6 +208,9 @@ export function DashboardPage() {
           >
             <div className="dashboard-section__heading">
               <h2 id="current-operations-heading">Current operations</h2>
+              <p className="dashboard-section__meta">
+                {formatWindow(scope.from, scope.to)}
+              </p>
             </div>
             {!summary ? (
               <>
@@ -227,12 +230,6 @@ export function DashboardPage() {
                 monthToDate={scope.comparison !== undefined}
               />
             )}
-            {rangeTooLong ? (
-              <p className="dashboard-scope-note" role="alert">
-                Custom range cannot exceed 366 days. Shorten the range to load
-                the period comparison.
-              </p>
-            ) : null}
           </section>
 
           <section
@@ -270,14 +267,14 @@ export function DashboardPage() {
               </p>
             ) : null}
           </section>
-          </div>
-          ) : (
-          <div
-            className="dashboard-sections"
-            role="tabpanel"
-            id="dashboard-panel-trends"
-            aria-labelledby="dashboard-tab-trends"
-          >
+        </div>
+      ) : (
+        <div
+          className="dashboard-sections"
+          role="tabpanel"
+          id="dashboard-panel-trends"
+          aria-labelledby="dashboard-tab-trends"
+        >
           <div className="dashboard-trends-controls">
             <ScopeRuler selection={selection} onChange={setSelection} />
             <Button
@@ -288,6 +285,12 @@ export function DashboardPage() {
             >
               Generate report
             </Button>
+            {rangeTooLong ? (
+              <p className="dashboard-scope-note" role="alert">
+                Custom range cannot exceed 366 days. Shorten the range to load
+                the period comparison.
+              </p>
+            ) : null}
           </div>
           <section
             className="dashboard-section"
@@ -364,8 +367,6 @@ export function DashboardPage() {
               </div>
             )}
           </section>
-          </div>
-          )}
         </div>
       )}
 
