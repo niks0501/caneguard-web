@@ -5,10 +5,9 @@ import type { ScopeSelection } from "./dashboardScope";
 /**
  * Dashboard control memory (overhaul §3.1, §3.4, decision Q1).
  *
- * Everything the Overview dashboard can be told to do lives here: the scope
- * ruler (mode, month, custom window) and the map layer toggle. The captain
- * chooses them once, and leaving for another page or reloading the tab brings
- * the same view back.
+ * Every persisted Overview control lives here: the scope ruler (mode, month,
+ * custom window) and the map layer toggle. The captain chooses them once, and
+ * leaving for another page or reloading the tab brings the same view back.
  *
  * The stored payload is versioned, so a later control set migrates instead of
  * discarding a captain's choices, and every read is validated: a truncated,
