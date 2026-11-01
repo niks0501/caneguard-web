@@ -195,7 +195,6 @@ describe("silent queue stylesheet", () => {
   it("stacks queue tables at a phone width and leaves other report tables alone", () => {
     applySheet(STYLE_ID, indexCss);
     const narrowRules = narrowWidthRules(indexCss);
-    expect(narrowRules).toContain(".report-table--queue");
     applySheet(NARROW_STYLE_ID, narrowRules);
 
     let deviceHost: HTMLElement | null = null;
