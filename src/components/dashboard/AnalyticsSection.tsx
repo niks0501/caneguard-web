@@ -20,7 +20,7 @@ import {
   analyticsPeriodLine,
   areaDisclosureLine,
 } from "./analyticsCopy";
-import { barangayColor, chartTheme, conditionColor } from "./chartTheme";
+import { barangayColor, chartTheme } from "./chartTheme";
 
 function shiftDate(isoDate: string, days: number): string {
   const next = new Date(`${isoDate}T00:00:00Z`);
@@ -313,14 +313,7 @@ export function AnalyticsSectionView({
             <XAxis dataKey="name" {...axisProps()} />
             <YAxis allowDecimals={false} {...axisProps()} />
             <Tooltip />
-            <Bar dataKey="count" name="Submitted reports">
-              {analytics.casesByPossibleCondition.map((item) => (
-                <Cell
-                  key={item.possibleCondition}
-                  fill={conditionColor(item.possibleCondition)}
-                />
-              ))}
-            </Bar>
+            <Bar dataKey="count" name="Submitted reports" fill={chartTheme.brand} />
           </BarChart>
         </ChartFrame>
 

@@ -687,7 +687,7 @@ a {
   color: var(--color-danger);
   background: var(--color-danger-soft);
   border: 1px solid var(--color-danger-soft);
-  border-left: 5px solid var(--disease-rust);
+  border-left: 5px solid var(--color-danger);
   border-radius: var(--radius-md);
 }
 
@@ -1030,11 +1030,6 @@ a .mismatch-table-marker {
   background: var(--color-muted);
   border-radius: 50%;
 }
-
-.disease-badge--healthy > span { background: var(--disease-healthy); }
-.disease-badge--mosaic > span { background: var(--disease-mosaic); }
-.disease-badge--rust > span { background: var(--disease-rust); }
-.disease-badge--smut > span { background: var(--disease-smut); }
 
 .status-badge--submitted_unverified { color: var(--color-warning); background: var(--color-warning-soft); }
 .status-badge--for_field_validation { color: var(--color-danger); background: var(--color-danger-soft); }
@@ -1473,11 +1468,11 @@ blockquote {
 }
 
 .reporter-observation-card {
-  border-top: 4px solid var(--disease-rust);
+  border-top: 4px solid var(--color-danger);
 }
 
 .reporter-observation-card .section-heading > svg {
-  color: var(--disease-rust);
+  color: var(--color-danger);
 }
 
 .reporter-mismatch-label {
@@ -4598,11 +4593,11 @@ textarea:focus-visible {
 }
 
 .report-table tbody tr.report-row--submitted_unverified {
-  background: color-mix(in srgb, var(--color-warning-soft) 16%, white);
+  background: color-mix(in srgb, var(--color-warning-soft) 16%, var(--color-surface));
 }
 
 .report-table tbody tr.report-row--for_field_validation {
-  background: color-mix(in srgb, var(--color-primary-tint) 28%, white);
+  background: color-mix(in srgb, var(--color-primary-tint) 28%, var(--color-surface));
 }
 
 .report-table tbody tr.report-row--submitted_unverified td:first-child {
