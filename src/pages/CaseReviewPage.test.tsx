@@ -244,6 +244,26 @@ describe("CaseReviewPage", () => {
     discard.mockRestore();
   });
 
+  it("offers no decision jump for a Follow-Up case", () => {
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      data: { ...report, firstReviewedAt: "2026-08-13T02:00:00.000Z", scheduledRevisit: true },
+    }));
+    renderPage();
+    expect(screen.getByText("Follow-Up")).toBeInTheDocument();
+    expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Go to decision" })).not.toBeInTheDocument();
+  });
+
+  it("offers the decision jump for a case still under review", () => {
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      data: { ...report, firstReviewedAt: "2026-08-13T02:00:00.000Z" },
+    }));
+    renderPage();
+    expect(screen.getByText("Under Review")).toBeInTheDocument();
+    expect(screen.getByText("Needs decision")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to decision" })).toBeInTheDocument();
+  });
+
   it.each(["completed", "cancelled"] as const)("shows a %s referral as read-only history without gating office review", async (status) => {
     const user = userEvent.setup();
     vi.mocked(useReport).mockReturnValue(queryResult({

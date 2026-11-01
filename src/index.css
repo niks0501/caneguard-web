@@ -9730,10 +9730,6 @@ button.monitoring-calendar__day-number:focus-visible {
 }
 
 @media (max-width: 1180px) {
-  .app-shell__desktop-nav {
-    width: 200px;
-  }
-
   .app-shell__main {
     margin-left: 0;
   }

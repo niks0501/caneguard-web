@@ -379,7 +379,7 @@ function CaseReviewContent() {
   const report = reportQuery.data;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
   const lifecycle = report ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus) : undefined;
-  const workflowStatus = report ? deriveWorkflowStatus({ lifecycle, firstReviewedAt: report.firstReviewedAt }) : undefined;
+  const workflowStatus = report ? deriveWorkflowStatus(report) : undefined;
   const awaitingDecision = workflowStatus === "needs_review" || workflowStatus === "under_review";
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
   const visibleHistory = historyFilter === "all"

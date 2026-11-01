@@ -52,10 +52,11 @@ describe("breadcrumbs", () => {
     expect(within(nav!).getByText("Visits")).toHaveAttribute("aria-current", "page");
   });
 
-  it("links back to the section from a case", () => {
-    const nav = trail("/reports/CG-2026-0718");
-    expect(within(nav!).getByRole("link", { name: "Reports" })).toHaveAttribute("href", "/reports");
-    expect(within(nav!).getByText("CG-2026-0718")).toHaveAttribute("aria-current", "page");
+  it("stops at the section on a case route", () => {
+    const nav = trail("/reports/6f1c9c7e-8f2a-4c1b-9f6d-1a2b3c4d5e6f");
+    expect(within(nav!).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Home", "Reports"]);
+    expect(within(nav!).getByText("Reports")).toHaveAttribute("aria-current", "page");
+    expect(within(nav!).getByRole("link", { name: "Home" })).toHaveAttribute("href", "/dashboard");
   });
 });
 

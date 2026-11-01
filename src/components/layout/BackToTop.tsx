@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 /** Appears once the page has scrolled a screen, and returns focus to the top of the content. */
 const SHOW_AFTER_PX = 600;
 
-export function BackToTop({ targetId = "main-content" }: { targetId?: string }) {
+export function BackToTop() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export function BackToTop({ targetId = "main-content" }: { targetId?: string }) 
       onClick={() => {
         const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
         window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-        document.getElementById(targetId)?.focus({ preventScroll: true });
+        document.getElementById("main-content")?.focus({ preventScroll: true });
       }}
     >
       <ArrowUp aria-hidden="true" />
