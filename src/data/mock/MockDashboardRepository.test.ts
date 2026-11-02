@@ -16,18 +16,10 @@ describe("MockDashboardRepository", () => {
 
     expect(analytics.totalSubmitted).toBe(8);
     expect(analytics.series.reduce((total, point) => total + point.count, 0)).toBe(8);
-    expect(analytics.casesByBarangay.reduce((total, item) => total + item.reportedCases, 0)).toBe(8);
-    expect(analytics.casesByPossibleCondition.reduce((total, item) => total + item.reportedCases, 0)).toBe(8);
+    expect(analytics.reviewBacklog.targetDays).toBe(3);
+    expect(analytics.validationTurnaround.targetDays).toBe(7);
+    expect(analytics.reviewTime.targetDays).toBe(3);
     expect(analytics.comparison.currentTotal).toBe(8);
     expect(analytics.period.days).toBe(31);
-  });
-
-  it("uses the current Asia/Manila month for a default summary", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-31T16:30:00.000Z"));
-
-    const summary = await new MockDashboardRepository().getSummary();
-
-    expect(summary.monthlySummary?.month).toBe("2026-09");
   });
 });

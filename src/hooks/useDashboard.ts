@@ -11,7 +11,7 @@ export const dashboardKeys = {
 
 /** First-paint slice: counts, queues and the 10 most recent reports. */
 export const dashboardSummaryOptions: DashboardSummaryOptions = {
-  include: "counts,queues,recent,monthly",
+  include: "counts,queues,recent",
   recentLimit: 10,
 };
 

@@ -1,10 +1,19 @@
 /**
- * Single copy contract for the analytics charts (plan section 6, Phase 1).
+ * Shared dashboard copy constants.
  *
  * Counts are always "submitted reports", never bare "cases"; the comparison
  * is a delta between two counts with no projection. The FORBIDDEN_WORDS list
  * mirrors plan section 5 — if any of those claims ever appears in chart copy,
- * the chart-copy test fails the build.
+ * the chart-copy tests fail the build.
+ *
+ * Time targets are a deliberate, narrow exception to the original
+ * "descriptive durations only, no target comparison" doctrine: the review
+ * target (3 days from submission) and the field-visit target (7 days from
+ * assignment) are the only two, defined as `REVIEW_TARGET_DAYS` and
+ * `VISIT_TARGET_DAYS` in `BuildReportAnalytics.php` and printed beside the
+ * measured values on the Team throughput cards. The words "sla" and
+ * "overdue" stay forbidden: a target is a reference, never a verdict or a
+ * ranking of people.
  */
 
 /**
@@ -12,92 +21,6 @@
  * page description). Cards print plain times and must never repeat it.
  */
 export const DASHBOARD_TIMEZONE_LABEL = "PHT (UTC+8)";
-
-/** Legacy analytics section only; the dashboard carries no boundary prose. */
-export const ANALYTICS_TIMEZONE_LINE = `Period boundaries use ${DASHBOARD_TIMEZONE_LABEL}.`;
-
-export const ANALYTICS_EMPTY_STATE = "No submitted reports in this period.";
-
-export const analyticsCopy = {
-  series: {
-    title: "Submitted reports over time",
-    description:
-      "How many submitted reports came in across the selected period. Counts of submitted reports, not of confirmed occurrences.",
-  },
-  barangay: {
-    title: "Submitted reports by barangay",
-    description:
-      "Where submitted reports are concentrated. Higher concentration of submitted reports in a barangay is an operational count, and barangay counts come first; GPS detail stays on the field map.",
-  },
-  condition: {
-    title: "Submitted reports by Possible Condition",
-    tag: "Possible Condition — decision support only",
-    description:
-      "Which possible conditions the AI evidence suggests. Healthy stays visible. Possible conditions are decision support, not diagnoses.",
-  },
-  caseState: {
-    title: "Open vs closed submitted reports",
-    description:
-      "How much of the register is still open. Counts of submitted reports, not of confirmed occurrences.",
-  },
-  comparison: {
-    title: "Previous-period comparison",
-    description:
-      "This period against the last comparable one: two counts and a delta. The delta describes what happened; it says nothing about what comes next.",
-  },
-  lifecycle: {
-    title: "Where work sits in the lifecycle",
-    description:
-      "Submitted reports split by verification outcome and field-validation state.",
-    verificationOutcome: "Verification outcome",
-    fieldValidationState: "Field-validation state",
-  },
-  area: {
-    title: "Estimated affected area",
-    description:
-      "How much estimated area submitted reports describe. An estimate from submitted reports, split by how it was recorded.",
-  },
-  workload: {
-    title: "Field-validation workload",
-    description:
-      "Open validation work per assignee, for balancing load only. Listed alphabetically, never ranked; unassigned work is its own bucket.",
-  },
-  schedule: {
-    title: "Validation schedule against target dates",
-    description:
-      "Open validation work against its recorded target visit date. Unscheduled work is always shown, so past-target work is never read as the whole backlog.",
-  },
-  backlog: {
-    title: "Review backlog by waiting age",
-    description:
-      "Submitted reports waiting for a first review, grouped by how long they have waited. Waiting age only; no deadline applies.",
-  },
-  turnaround: {
-    title: "Field-validation turnaround",
-    description:
-      "How long completed validations actually took, from assignment activation to the visit. Measured durations only, with no target comparison.",
-  },
-} as const;
-
-export function areaDisclosureLine(area: {
-  contributingReports: number;
-  estimatedHectares: number;
-  measuredReports: number;
-  measuredHectares: number;
-  notMeasuredReports: number;
-  notMeasuredHectares: number;
-  linkedDuplicatesExcluded: number;
-  overlapNote: string;
-}): string {
-  const reports = `${area.contributingReports} ${area.contributingReports === 1 ? "submitted report" : "submitted reports"}`;
-  const duplicates = `${area.linkedDuplicatesExcluded} ${area.linkedDuplicatesExcluded === 1 ? "linked duplicate" : "linked duplicates"} excluded`;
-  return (
-    `${reports} contribute an estimated ${area.estimatedHectares} ha ` +
-    `(${area.measuredReports} measured at ${area.measuredHectares} ha, ` +
-    `${area.notMeasuredReports} not measured at ${area.notMeasuredHectares} ha). ` +
-    `${duplicates}; ${area.overlapNote}`
-  );
-}
 
 /** Vocabulary from plan section 5 that must never appear in chart copy. */
 export const ANALYTICS_FORBIDDEN_WORDS = [
@@ -125,7 +48,3 @@ export const ANALYTICS_FORBIDDEN_WORDS = [
   "readiness %",
   "readiness percent",
 ] as const;
-
-export function analyticsPeriodLine(periodLabel: string): string {
-  return `${periodLabel}. ${ANALYTICS_TIMEZONE_LINE}`;
-}

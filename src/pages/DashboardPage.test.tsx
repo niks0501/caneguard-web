@@ -56,31 +56,6 @@ const summary = {
     resolved: 1,
   },
   recentReports: mockReports.slice(0, 5),
-  monthlySummary: {
-    month: "2026-09",
-    period: { from: "2026-09-01", to: "2026-09-30" },
-    reportedCases: 6,
-    casesByBarangay: [],
-    casesByPossibleCondition: [],
-    estimatedAffectedHectares: 0,
-    reportsContainingFarmerFarmInformation: 0,
-    fieldValidationCounts: {
-      unassigned: 1,
-      assigned: 2,
-      inProgress: 1,
-      completed: 0,
-      requiringValidation: 3,
-    },
-    closedCases: 0,
-    reviewTime: {
-      source: "submitted_at_to_reviewed_at",
-      reviewedCases: 0,
-      averageHours: null,
-      medianHours: null,
-      minHours: null,
-      maxHours: null,
-    },
-  },
 };
 
 const analytics = {
@@ -110,8 +85,27 @@ const analytics = {
     currentTotal: 12,
     delta: 3,
   },
+  validationWorkload: { assignees: [], unassigned: 0 },
+  validationTurnaround: {
+    source: "activated_at_to_visited_at",
+    completed: 0,
+    withinTarget: 0,
+    targetDays: 7,
+    averageHours: null,
+    medianHours: null,
+    minHours: null,
+    maxHours: null,
+    buckets: [],
+  },
+  reviewTime: {
+    targetDays: 3,
+    current: { source: "submitted_at_to_reviewed_at", reviewedCases: 0, averageHours: null, medianHours: null, minHours: null, maxHours: null },
+    previous: { source: "submitted_at_to_reviewed_at", reviewedCases: 0, averageHours: null, medianHours: null, minHours: null, maxHours: null },
+  },
   reviewBacklog: {
     totalWaiting: 3,
+    pastTarget: 1,
+    targetDays: 3,
     buckets: [
       { label: "0–2 days waiting", count: 1 },
       { label: "3–6 days waiting", count: 2 },
@@ -258,7 +252,7 @@ describe("DashboardPage", () => {
     vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
     renderTrends();
     expect(useDashboard).toHaveBeenLastCalledWith("2026-09", {
-      include: "counts,queues,recent,monthly",
+      include: "counts,queues,recent",
       recentLimit: 10,
     });
     expect(useAnalytics).toHaveBeenCalledWith(
@@ -270,7 +264,7 @@ describe("DashboardPage", () => {
       target: { value: "2026-08" },
     });
     expect(useDashboard).toHaveBeenLastCalledWith("2026-08", {
-      include: "counts,queues,recent,monthly",
+      include: "counts,queues,recent",
       recentLimit: 10,
     });
     expect(useAnalytics).toHaveBeenCalledWith(
@@ -1066,6 +1060,28 @@ describe("DashboardPage", () => {
     expect(
       await screen.findByRole("button", { name: "GPS points" }, lazyChunk),
     ).toBeInTheDocument();
+  });
+
+  it("mounts Team throughput on Trends only, once analytics match the scope", async () => {
+    vi.useRealTimers();
+    saveDashboardScope({
+      mode: "month",
+      month: manilaMonthAt(),
+      from: `${manilaMonthAt()}-01`,
+      to: manilaDateAt(),
+    });
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
+      ...analytics,
+      period: { ...analytics.period, from: `${manilaMonthAt()}-01`, to: manilaDateAt() },
+    } }));
+    renderDashboard();
+    expect(screen.queryByRole("heading", { name: "Team throughput" })).not.toBeInTheDocument();
+
+    openTab("Trends");
+    expect(
+      await screen.findByRole("heading", { name: "Team throughput" }, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Median time to first review" })).toBeInTheDocument();
   });
 
   it("mounts no legacy analytics, verification panel, monthly panel or disclosure", () => {

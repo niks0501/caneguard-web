@@ -15,9 +15,9 @@ use Illuminate\Validation\ValidationException;
  * Extends the documents track's Phase 0 period groundwork instead of
  * rebuilding it: PHT (Asia/Manila) boundaries, weekly/monthly/custom
  * resolution via from/to dates, and the 366-day range cap. The monthly
- * builder is reused through its buildFromQuery seam so dashboard summaries,
- * analytics and generated documents share scoped aggregates; only the new
- * buckets, open/closed split and previous-window comparison live here.
+ * builder's reviewTimes seam supplies the submitted-to-reviewed durations;
+ * the buckets and previous-window comparison live here. Only slices the
+ * Trends tab renders are computed.
  *
  * Scope parity with the CSV export is structural: the base query applies
  * canonical_report_id IS NULL plus ApplyReportFilters (and the operational
@@ -32,6 +32,12 @@ final class BuildReportAnalytics
     public const MAX_RANGE_DAYS = 366;
 
     public const MAX_DAY_BUCKETS = 62;
+
+    /** Review target: a submitted report is reviewed within this many days of submission. */
+    public const REVIEW_TARGET_DAYS = 3;
+
+    /** Field-visit target: a validation visit happens within this many days of assignment. */
+    public const VISIT_TARGET_DAYS = 7;
 
     public function __construct(
         private readonly ApplyReportFilters $applyReportFilters,
@@ -64,17 +70,7 @@ final class BuildReportAnalytics
 
         $filters = $this->filters($input);
         $base = $this->scopedQuery($start, $end, $filters);
-        $metrics = $this->buildMonthlyReportSummary->buildFromQuery(
-            clone $base,
-            null,
-            [
-                'from' => $start->toDateString(),
-                'to' => $end->subDay()->toDateString(),
-            ],
-        );
-
-        $total = (int) $metrics['reported_cases'];
-        $closed = (int) $metrics['closed_cases'];
+        $total = (clone $base)->count('reports.id');
 
         [$previousStart, $previousEnd] = [$start->subDays($days), $start];
         // A current-month-to-date window compares the same calendar days in
@@ -86,8 +82,8 @@ final class BuildReportAnalytics
                 [$previousStart, $previousEnd] = [$monthStart, $monthStart->addDays($days)];
             }
         }
-        $previousTotal = $this->scopedQuery($previousStart, $previousEnd, $filters)
-            ->count('reports.id');
+        $previousBase = $this->scopedQuery($previousStart, $previousEnd, $filters);
+        $previousTotal = (clone $previousBase)->count('reports.id');
 
         return [
             'period' => [
@@ -103,12 +99,6 @@ final class BuildReportAnalytics
             'filters' => (object) $filters,
             'total_submitted' => $total,
             'series' => $this->buckets(clone $base, $start, $end, $granularity),
-            'cases_by_barangay' => $metrics['cases_by_barangay'],
-            'cases_by_possible_condition' => $metrics['cases_by_possible_condition'],
-            'case_state' => [
-                'open' => $total - $closed,
-                'closed' => $closed,
-            ],
             'comparison' => [
                 'previous_from' => $previousStart->toDateString(),
                 'previous_to' => $previousEnd->subDay()->toDateString(),
@@ -124,7 +114,6 @@ final class BuildReportAnalytics
                 'current_total' => $total,
                 'delta' => $total - $previousTotal,
             ],
-            'lifecycle' => $this->lifecycle(clone $base),
             'reported_concern' => $this->reportedConcern(clone $base, $total),
             'possible_condition' => $this->possibleCondition(clone $base),
             'verification_outcome' => $this->verificationOutcome(clone $base),
@@ -134,11 +123,14 @@ final class BuildReportAnalytics
                 'province' => LocationReferenceController::SCOPE_PROVINCE,
                 'barangays' => LocationReferenceController::barangayScope(),
             ],
-            'area' => $this->area(clone $base, $start, $end, $filters),
             'validation_workload' => $this->validationWorkload(clone $base),
-            'validation_schedule' => $this->validationSchedule(clone $base),
             'review_backlog' => $this->reviewBacklog(),
             'validation_turnaround' => $this->validationTurnaround(clone $base),
+            'review_time' => [
+                'target_days' => self::REVIEW_TARGET_DAYS,
+                'current' => $this->buildMonthlyReportSummary->reviewTimes($base),
+                'previous' => $this->buildMonthlyReportSummary->reviewTimes($previousBase),
+            ],
         ];
     }
 
@@ -252,38 +244,6 @@ final class BuildReportAnalytics
         }
 
         return $buckets;
-    }
-
-    /**
-     * Where submitted reports sit in the lifecycle (C5). Every known state
-     * is present, including empty ones.
-     *
-     * @return array<string, array<string, int>>
-     */
-    private function lifecycle(Builder $base): array
-    {
-        $dimensions = [
-            'verification_outcome' => Report::verificationOutcomes(),
-            'field_validation_state' => Report::fieldValidationStates(),
-        ];
-        $result = [];
-        foreach ($dimensions as $column => $states) {
-            $counts = array_fill_keys($states, 0);
-            (clone $base)
-                ->select($column)
-                ->selectRaw('COUNT(*) AS state_count')
-                ->groupBy($column)
-                ->get()
-                ->each(function (Report $report) use ($column, &$counts): void {
-                    $state = (string) $report->getAttribute($column);
-                    if (array_key_exists($state, $counts)) {
-                        $counts[$state] = (int) $report->getAttribute('state_count');
-                    }
-                });
-            $result[$column] = $counts;
-        }
-
-        return $result;
     }
 
     /**
@@ -474,64 +434,6 @@ final class BuildReportAnalytics
     }
 
     /**
-     * Estimated affected area with provenance and overlap disclosure (C6).
-     * The unit is never a bare total: contributing report count, the
-     * measured/not-measured split, the linked duplicates excluded from the
-     * sum, and the overlap acknowledgement travel with the number.
-     *
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function area(
-        Builder $base,
-        CarbonImmutable $start,
-        CarbonImmutable $end,
-        array $filters,
-    ): array {
-        $estimatedHectares = 0.0;
-        $measuredHectares = 0.0;
-        $notMeasuredHectares = 0.0;
-        $contributing = 0;
-        $measuredReports = 0;
-        $notMeasuredReports = 0;
-
-        foreach ((clone $base)->get(['affected_area_hectares', 'affected_area_measurement']) as $report) {
-            if ($report->affected_area_hectares === null) {
-                continue;
-            }
-            $hectares = (float) $report->affected_area_hectares;
-            $contributing++;
-            $estimatedHectares += $hectares;
-            if (($report->affected_area_measurement ?? Report::MEASUREMENT_MEASURED) === Report::MEASUREMENT_MEASURED) {
-                $measuredReports++;
-                $measuredHectares += $hectares;
-            } else {
-                $notMeasuredReports++;
-                $notMeasuredHectares += $hectares;
-            }
-        }
-
-        $duplicates = Report::query()->visibleTo(request()->user())
-            ->whereNotNull('canonical_report_id')
-            ->where('submitted_at', '>=', $start->utc())
-            ->where('submitted_at', '<', $end->utc())
-            ->tap(fn (Builder $query) => $this->applyReportFilters->handle($query, $filters))
-            ->when(isset($filters['queue']), fn (Builder $query) => $this->applyOperationalQueueFilter->handle($query, $filters['queue']))
-            ->count('reports.id');
-
-        return [
-            'estimated_hectares' => round($estimatedHectares, 2),
-            'contributing_reports' => $contributing,
-            'measured_reports' => $measuredReports,
-            'measured_hectares' => round($measuredHectares, 2),
-            'not_measured_reports' => $notMeasuredReports,
-            'not_measured_hectares' => round($notMeasuredHectares, 2),
-            'linked_duplicates_excluded' => $duplicates,
-            'overlap_note' => 'Estimates may overlap where submitted reports describe the same ground.',
-        ];
-    }
-
-    /**
      * Open validation work per assignee for load balancing only (C7).
      * Scoped by the shared Needs Visit queue definition so the workload
      * always opens the same records as the queue. Ordered alphabetically by
@@ -569,52 +471,15 @@ final class BuildReportAnalytics
     }
 
     /**
-     * Open, incomplete validation work against its recorded target date
-     * (C8). Four buckets with unscheduled always visible, compared in PHT —
-     * the chart rule — and labelled past-target, never overdue.
-     *
-     * @return array{unscheduled: int, scheduled: int, due_today: int, past_target_date: int, today: string}
-     */
-    private function validationSchedule(Builder $base): array
-    {
-        $today = CarbonImmutable::now(self::TIMEZONE)->toDateString();
-        $buckets = [
-            'unscheduled' => 0,
-            'scheduled' => 0,
-            'due_today' => 0,
-            'past_target_date' => 0,
-        ];
-
-        $reports = (clone $base)
-            ->where('case_state', Report::CASE_STATE_OPEN)
-            ->where('field_validation_state', '!=', Report::FIELD_VALIDATION_STATE_COMPLETED)
-            ->with(['fieldValidationAssignment:id,report_id,target_visit_date'])
-            ->get(['reports.id']);
-
-        foreach ($reports as $report) {
-            $target = $report->fieldValidationAssignment?->target_visit_date?->toDateString();
-            if ($target === null) {
-                $buckets['unscheduled']++;
-            } elseif ($target < $today) {
-                $buckets['past_target_date']++;
-            } elseif ($target === $today) {
-                $buckets['due_today']++;
-            } else {
-                $buckets['scheduled']++;
-            }
-        }
-
-        return [...$buckets, 'today' => $today];
-    }
-
-    /**
      * Review backlog by waiting age over the needs-review predicate (C9):
      * open submitted reports with no verification outcome yet. Buckets are
      * labelled waiting age, never overdue; the oldest wait travels beside
      * the histogram. Current state, not period: it ignores the requested
      * window and filters so it matches the dashboard's needs_review queue.
      *
-     * @return array{total_waiting: int, buckets: array<int, array{label: string, count: int}>, oldest_waiting_days: int|null}
+     * past_target counts reports waiting longer than REVIEW_TARGET_DAYS.
+     *
+     * @return array{total_waiting: int, past_target: int, target_days: int, buckets: array<int, array{label: string, count: int}>, oldest_waiting_days: int|null}
      */
     private function reviewBacklog(): array
     {
@@ -634,9 +499,14 @@ final class BuildReportAnalytics
             ->get(['submitted_at']);
 
         $oldest = null;
+        $pastTarget = 0;
+        $targetCutoff = $now->subDays(self::REVIEW_TARGET_DAYS);
         foreach ($reports as $report) {
             if (! $report->submitted_at) {
                 continue;
+            }
+            if ($report->submitted_at->lt($targetCutoff)) {
+                $pastTarget++;
             }
             $waiting = max(0, (int) $report->submitted_at->diffInDays($now));
             $oldest = $oldest === null ? $waiting : max($oldest, $waiting);
@@ -651,6 +521,8 @@ final class BuildReportAnalytics
 
         return [
             'total_waiting' => $reports->count(),
+            'past_target' => $pastTarget,
+            'target_days' => self::REVIEW_TARGET_DAYS,
             'buckets' => array_map(
                 static fn (array $bucket): array => ['label' => $bucket['label'], 'count' => $bucket['count']],
                 $buckets,
@@ -661,8 +533,8 @@ final class BuildReportAnalytics
 
     /**
      * Measured field-validation turnaround from assignment activation to
-     * the completion visit (C12). Descriptive durations only: non-negative
-     * intervals, no target comparison, no ranking.
+     * the completion visit (C12). Non-negative intervals only, no ranking;
+     * within_target counts visits made within VISIT_TARGET_DAYS of assignment.
      *
      * @return array<string, mixed>
      */
@@ -701,6 +573,8 @@ final class BuildReportAnalytics
             return [
                 'source' => 'activated_at_to_visited_at',
                 'completed' => 0,
+                'within_target' => 0,
+                'target_days' => self::VISIT_TARGET_DAYS,
                 'average_hours' => null,
                 'median_hours' => null,
                 'min_hours' => null,
@@ -719,6 +593,11 @@ final class BuildReportAnalytics
         return [
             'source' => 'activated_at_to_visited_at',
             'completed' => $count,
+            'within_target' => count(array_filter(
+                $durations,
+                static fn (float $hours): bool => $hours <= self::VISIT_TARGET_DAYS * 24,
+            )),
+            'target_days' => self::VISIT_TARGET_DAYS,
             'average_hours' => round(array_sum($durations) / $count, 2),
             'median_hours' => round($median, 2),
             'min_hours' => $durations[0],

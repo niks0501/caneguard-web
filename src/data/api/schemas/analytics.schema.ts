@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { diseaseKeySchema } from "./report.schema";
 
 export const analyticsParamsSchema = z.object({
   from: z.iso.date(),
@@ -20,7 +19,14 @@ const analyticsBucketSchema = z.object({
   count: z.number().int().nonnegative(),
 });
 
-const lifecycleDistributionSchema = z.record(z.string(), z.number().int().nonnegative());
+const reviewTimeSchema = z.object({
+  source: z.string(),
+  reviewed_cases: z.number().int().nonnegative(),
+  average_hours: z.number().nonnegative().nullable(),
+  median_hours: z.number().nonnegative().nullable(),
+  min_hours: z.number().nonnegative().nullable(),
+  max_hours: z.number().nonnegative().nullable(),
+});
 
 export const analyticsResponseSchema = z.object({
   data: z.object({
@@ -37,22 +43,6 @@ export const analyticsResponseSchema = z.object({
     filters: z.record(z.string(), z.unknown()).optional().default({}),
     total_submitted: z.number().int().nonnegative(),
     series: z.array(analyticsSeriesPointSchema),
-    cases_by_barangay: z.array(
-      z.object({
-        barangay: z.string(),
-        reported_cases: z.number().int().nonnegative(),
-      }),
-    ),
-    cases_by_possible_condition: z.array(
-      z.object({
-        possible_condition: diseaseKeySchema,
-        reported_cases: z.number().int().nonnegative(),
-      }),
-    ),
-    case_state: z.object({
-      open: z.number().int().nonnegative(),
-      closed: z.number().int().nonnegative(),
-    }),
     comparison: z.object({
       previous_from: z.iso.date(),
       previous_to: z.iso.date(),
@@ -61,10 +51,6 @@ export const analyticsResponseSchema = z.object({
       current_series: z.array(analyticsSeriesPointSchema).optional(),
       current_total: z.number().int().nonnegative(),
       delta: z.number().int(),
-    }),
-    lifecycle: z.object({
-      verification_outcome: lifecycleDistributionSchema,
-      field_validation_state: lifecycleDistributionSchema,
     }),
     reported_concern: z.array(
       z.object({
@@ -100,16 +86,6 @@ export const analyticsResponseSchema = z.object({
       province: z.string(),
       barangays: z.array(z.string()),
     }),
-    area: z.object({
-      estimated_hectares: z.number().nonnegative(),
-      contributing_reports: z.number().int().nonnegative(),
-      measured_reports: z.number().int().nonnegative(),
-      measured_hectares: z.number().nonnegative(),
-      not_measured_reports: z.number().int().nonnegative(),
-      not_measured_hectares: z.number().nonnegative(),
-      linked_duplicates_excluded: z.number().int().nonnegative(),
-      overlap_note: z.string(),
-    }),
     validation_workload: z.object({
       assignees: z.array(
         z.object({
@@ -120,26 +96,28 @@ export const analyticsResponseSchema = z.object({
       ),
       unassigned: z.number().int().nonnegative(),
     }),
-    validation_schedule: z.object({
-      unscheduled: z.number().int().nonnegative(),
-      scheduled: z.number().int().nonnegative(),
-      due_today: z.number().int().nonnegative(),
-      past_target_date: z.number().int().nonnegative(),
-      today: z.iso.date(),
-    }),
     review_backlog: z.object({
       total_waiting: z.number().int().nonnegative(),
+      past_target: z.number().int().nonnegative(),
+      target_days: z.number().int().positive(),
       buckets: z.array(analyticsBucketSchema),
       oldest_waiting_days: z.number().int().nonnegative().nullable(),
     }),
     validation_turnaround: z.object({
       source: z.string(),
       completed: z.number().int().nonnegative(),
+      within_target: z.number().int().nonnegative(),
+      target_days: z.number().int().positive(),
       average_hours: z.number().nonnegative().nullable(),
       median_hours: z.number().nonnegative().nullable(),
       min_hours: z.number().nonnegative().nullable(),
       max_hours: z.number().nonnegative().nullable(),
       buckets: z.array(analyticsBucketSchema),
+    }),
+    review_time: z.object({
+      target_days: z.number().int().positive(),
+      current: reviewTimeSchema,
+      previous: reviewTimeSchema,
     }),
   }),
 });

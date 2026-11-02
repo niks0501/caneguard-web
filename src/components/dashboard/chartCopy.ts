@@ -25,3 +25,30 @@ export const dashboardChartCopy = {
     gpsLayer: "GPS points",
   },
 } as const;
+
+/**
+ * Team throughput copy (Trends). Titles, a plain scope line and an empty
+ * message per card. The two time targets are not worded here: the API sends
+ * the day counts (`BuildReportAnalytics::REVIEW_TARGET_DAYS` and
+ * `VISIT_TARGET_DAYS`) and the card prints them beside the measured value.
+ */
+export const throughputCopy = {
+  heading: "Team throughput",
+  reviewTime: {
+    title: "Median time to first review",
+    empty: "No reviewed reports in this period or the previous one.",
+  },
+  backlog: {
+    title: "Review backlog by waiting age",
+    scope: "Current queue, all submission dates",
+    empty: "No submitted reports are waiting for a first review.",
+  },
+  workload: {
+    title: "Open field-validation work per assignee",
+    empty: "No open field-validation work in this period.",
+  },
+  turnaround: {
+    title: "Field-validation turnaround",
+    empty: "No completed validations in this period.",
+  },
+} as const;

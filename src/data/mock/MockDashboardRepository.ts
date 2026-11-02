@@ -4,12 +4,12 @@ import type {
 } from "../contracts/DashboardRepository";
 import type {
   DashboardSummary,
-  MonthlyCaseSummary,
   ReportAnalytics,
   ReportAnalyticsParams,
+  ReviewTime,
 } from "../../domain/dashboard.types";
 import type { DiseaseReport, ReviewStatus } from "../../domain/report.types";
-import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
+import { manilaDateAt } from "../../domain/reportingTime";
 import { operationalQueueValues } from "../../domain/operationalQueue";
 import {
   legacyLifecycleForReviewStatus,
@@ -42,53 +42,12 @@ function reportDate(report: DiseaseReport) {
   return manilaDateAt(new Date(report.submittedAt));
 }
 
-function countBy<T extends string>(values: T[]) {
-  const counts = new Map<T, number>();
-  values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
-  return [...counts.entries()];
-}
+const REVIEW_TARGET_DAYS = 3;
+const VISIT_TARGET_DAYS = 7;
 
-function buildMonthlySummary(
-  reports: DiseaseReport[],
-  month: string,
-): MonthlyCaseSummary {
-  const monthlyReports = reports.filter((report) =>
-    isCanonicalWorkReport(report)
-    && manilaMonthAt(new Date(report.submittedAt)) === month,
-  );
-  const byBarangay = new Map<string, number>();
-  const byCondition = new Map<string, number>();
-  const fieldValidationCounts = {
-    unassigned: 0,
-    assigned: 0,
-    inProgress: 0,
-    completed: 0,
-    requiringValidation: 0,
-  };
-
-  monthlyReports.forEach((report) => {
-    byBarangay.set(
-      report.barangay,
-      (byBarangay.get(report.barangay) ?? 0) + 1,
-    );
-    byCondition.set(
-      report.predictedDisease,
-      (byCondition.get(report.predictedDisease) ?? 0) + 1,
-    );
-    const lifecycle = report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus);
-    const stateKey = {
-      unassigned: "unassigned",
-      assigned: "assigned",
-      in_progress: "inProgress",
-      completed: "completed",
-    }[lifecycle.fieldValidationState] as keyof typeof fieldValidationCounts;
-    fieldValidationCounts[stateKey] += 1;
-    if (["assigned", "in_progress"].includes(lifecycle.fieldValidationState)) {
-      fieldValidationCounts.requiringValidation += 1;
-    }
-  });
-
-  const durations = monthlyReports
+/** Submitted-to-reviewed durations for the reports in one window. */
+function buildReviewTime(reports: DiseaseReport[]): ReviewTime {
+  const durations = reports
     .filter((report) => report.reviewedAt)
     .map((report) =>
       (new Date(report.reviewedAt!).getTime() - new Date(report.submittedAt).getTime()) /
@@ -103,54 +62,21 @@ function buildMonthlySummary(
     : reviewedCases % 2 === 0
       ? (durations[middle - 1] + durations[middle]) / 2
       : durations[middle];
-  const lifecycleFor = (report: DiseaseReport) =>
-    report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus);
 
   return {
-    month,
-    period: {
-      from: `${month}-01`,
-      to: new Date(Date.UTC(
-        Number(month.slice(0, 4)),
-        Number(month.slice(5, 7)),
-        0,
-      )).toISOString().slice(0, 10),
-    },
-    reportedCases: monthlyReports.length,
-    casesByBarangay: [...byBarangay.entries()]
-      .map(([barangay, reportedCases]) => ({ barangay, reportedCases }))
-      .sort((first, second) => second.reportedCases - first.reportedCases),
-    casesByPossibleCondition: [...byCondition.entries()]
-      .map(([possibleCondition, reportedCases]) => ({
-        possibleCondition: possibleCondition as DiseaseReport["predictedDisease"],
-        reportedCases,
-      }))
-      .sort((first, second) => second.reportedCases - first.reportedCases),
-    estimatedAffectedHectares: Number(monthlyReports
-      .reduce((total, report) => total + (report.affectedAreaHectares ?? 0), 0)
-      .toFixed(2)),
-    reportsContainingFarmerFarmInformation: monthlyReports.filter((report) =>
-      Boolean(report.farmReference?.trim() || report.farmerOrFarmOwnerName?.trim()),
-    ).length,
-    fieldValidationCounts,
-    closedCases: monthlyReports.filter((report) =>
-      lifecycleFor(report).caseState === "closed",
-    ).length,
-    reviewTime: {
-      source: "submitted_at_to_reviewed_at",
-      reviewedCases,
-      averageHours: reviewedCases
-        ? Number((durations.reduce((total, hours) => total + hours, 0) / reviewedCases).toFixed(2))
-        : null,
-      medianHours: medianHours === null ? null : Number(medianHours.toFixed(2)),
-      minHours: reviewedCases ? Number(durations[0].toFixed(2)) : null,
-      maxHours: reviewedCases ? Number(durations[reviewedCases - 1].toFixed(2)) : null,
-    },
+    source: "submitted_at_to_reviewed_at",
+    reviewedCases,
+    averageHours: reviewedCases
+      ? Number((durations.reduce((total, hours) => total + hours, 0) / reviewedCases).toFixed(2))
+      : null,
+    medianHours: medianHours === null ? null : Number(medianHours.toFixed(2)),
+    minHours: reviewedCases ? Number(durations[0].toFixed(2)) : null,
+    maxHours: reviewedCases ? Number(durations[reviewedCases - 1].toFixed(2)) : null,
   };
 }
 
 export class MockDashboardRepository implements DashboardRepository {
-  async getSummary(month?: string, options?: DashboardSummaryOptions): Promise<DashboardSummary> {
+  async getSummary(_month?: string, options?: DashboardSummaryOptions): Promise<DashboardSummary> {
     const counts: Record<ReviewStatus, number> = {
       submitted_unverified: 0,
       for_field_validation: 0,
@@ -168,14 +94,11 @@ export class MockDashboardRepository implements DashboardRepository {
       filterMockOperationalQueue(canonicalReports, queue, today).length,
     ])) as DashboardSummary["queues"];
 
-    const selectedMonth = month ?? manilaMonthAt();
-
     return {
       totalSubmitted: canonicalReports.length,
       counts,
       queues,
       recentReports: canonicalReports.slice(0, options?.recentLimit ?? 10),
-      monthlySummary: buildMonthlySummary(canonicalReports, selectedMonth),
     };
   }
 
@@ -213,28 +136,13 @@ export class MockDashboardRepository implements DashboardRepository {
       verificationOutcome: {} as Record<string, number>,
       fieldValidationState: {} as Record<string, number>,
     };
-    const caseState = { open: 0, closed: 0 };
     reports.forEach((report) => {
       const lifecycle = lifecycleFor(report);
       lifecycleCounts.verificationOutcome[lifecycle.verificationOutcome] =
         (lifecycleCounts.verificationOutcome[lifecycle.verificationOutcome] ?? 0) + 1;
       lifecycleCounts.fieldValidationState[lifecycle.fieldValidationState] =
         (lifecycleCounts.fieldValidationState[lifecycle.fieldValidationState] ?? 0) + 1;
-      caseState[lifecycle.caseState] += 1;
     });
-
-    const areaReports = reports.filter(
-      (report) => report.affectedAreaHectares !== undefined,
-    );
-    const measuredReports = areaReports.filter(
-      (report) => report.affectedAreaMeasurement !== "not_measured",
-    );
-    const notMeasuredReports = areaReports.filter(
-      (report) => report.affectedAreaMeasurement === "not_measured",
-    );
-    const sumArea = (items: DiseaseReport[]) => Number(items
-      .reduce((total, report) => total + (report.affectedAreaHectares ?? 0), 0)
-      .toFixed(2));
 
     const openValidation = reports.filter((report) => {
       const lifecycle = lifecycleFor(report);
@@ -244,7 +152,6 @@ export class MockDashboardRepository implements DashboardRepository {
     });
     const workload = new Map<number, { assigneeId: number; name: string; openReports: number }>();
     let unassigned = 0;
-    const schedule = { unscheduled: 0, scheduled: 0, dueToday: 0, pastTargetDate: 0 };
     const today = manilaDateAt();
     openValidation.forEach((report, index) => {
       const assignment = report.fieldValidationAssignment;
@@ -260,11 +167,6 @@ export class MockDashboardRepository implements DashboardRepository {
       } else {
         unassigned += 1;
       }
-      const target = assignment?.targetVisitDate;
-      if (!target) schedule.unscheduled += 1;
-      else if (target < today) schedule.pastTargetDate += 1;
-      else if (target === today) schedule.dueToday += 1;
-      else schedule.scheduled += 1;
     });
 
     // Current state, not period: the same unscoped needs-review queue the
@@ -418,13 +320,6 @@ export class MockDashboardRepository implements DashboardRepository {
       },
       totalSubmitted: reports.length,
       series: [...series.entries()].map(([label, count]) => ({ label, count })),
-      casesByBarangay: countBy(reports.map((report) => report.barangay))
-        .map(([barangay, reportedCases]) => ({ barangay, reportedCases }))
-        .sort((first, second) => second.reportedCases - first.reportedCases || first.barangay.localeCompare(second.barangay)),
-      casesByPossibleCondition: countBy(reports.map((report) => report.predictedDisease))
-        .map(([possibleCondition, reportedCases]) => ({ possibleCondition, reportedCases }))
-        .sort((first, second) => second.reportedCases - first.reportedCases || first.possibleCondition.localeCompare(second.possibleCondition)),
-      caseState,
       comparison: {
         previousFrom,
         previousTo,
@@ -432,24 +327,14 @@ export class MockDashboardRepository implements DashboardRepository {
         currentTotal: reports.length,
         delta: reports.length - previousReports.length,
       },
-      lifecycle: lifecycleCounts,
-      area: {
-        estimatedHectares: sumArea(areaReports),
-        contributingReports: areaReports.length,
-        measuredReports: measuredReports.length,
-        measuredHectares: sumArea(measuredReports),
-        notMeasuredReports: notMeasuredReports.length,
-        notMeasuredHectares: sumArea(notMeasuredReports),
-        linkedDuplicatesExcluded: reportsInRange.length - reports.length,
-        overlapNote: "Estimates may overlap where submitted reports describe the same ground.",
-      },
       validationWorkload: {
         assignees: [...workload.values()].sort((first, second) => first.name.localeCompare(second.name)),
         unassigned,
       },
-      validationSchedule: { ...schedule, today },
       reviewBacklog: {
         totalWaiting: waitingReports.length,
+        pastTarget: waitingDays.filter((age) => age > REVIEW_TARGET_DAYS).length,
+        targetDays: REVIEW_TARGET_DAYS,
         buckets: backlogBuckets.map(({ label, count }) => ({ label, count })),
         oldestWaitingDays: waitingDays.length > 0 ? Math.max(...waitingDays) : null,
       },
@@ -461,6 +346,8 @@ export class MockDashboardRepository implements DashboardRepository {
       validationTurnaround: {
         source: "activated_at_to_visited_at",
         completed: turnaroundHours.length,
+        withinTarget: turnaroundHours.filter((hours) => hours <= VISIT_TARGET_DAYS * 24).length,
+        targetDays: VISIT_TARGET_DAYS,
         averageHours: turnaroundHours.length > 0
           ? Number((turnaroundHours.reduce((total, hours) => total + hours, 0) / turnaroundHours.length).toFixed(2))
           : null,
@@ -468,6 +355,11 @@ export class MockDashboardRepository implements DashboardRepository {
         minHours: turnaroundHours[0] ?? null,
         maxHours: turnaroundHours.at(-1) ?? null,
         buckets: turnaroundBuckets,
+      },
+      reviewTime: {
+        targetDays: REVIEW_TARGET_DAYS,
+        current: buildReviewTime(reports),
+        previous: buildReviewTime(previousReports),
       },
     };
   }
