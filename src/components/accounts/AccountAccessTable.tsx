@@ -14,9 +14,8 @@ export function AccountAccessTable({ accounts, onSaved }: { accounts: Account[];
   return <>
     {notice ? <p role="status">{notice}</p> : null}
     <p className="accounts-table__note">
-      Role and status changes only. A role change signs the person out; a disabled
-      account needs a fresh sign-in after it is re-enabled. Creating an account is
-      an operator task, not an Admin action here.
+      A role change signs the person out; a disabled account needs a fresh sign-in
+      after it is re-enabled.
     </p>
     <table className="report-table accounts-table">
       <caption className="sr-only">Web user access</caption>

@@ -44,6 +44,10 @@ class SecurityAudit extends Model
 
     public const ACTION_STEP_UP = 'step_up';
 
+    public const ACTION_ACCOUNT_CREATED = 'account_created';
+
+    public const ACTION_ACCOUNT_INVITE = 'account_invite_sent';
+
     public $timestamps = false;
 
     /**
