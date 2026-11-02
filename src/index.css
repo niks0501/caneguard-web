@@ -9033,6 +9033,7 @@ button.monitoring-calendar__day-number:focus-visible {
 .accounts-filters { max-width: 38rem; margin-block: var(--space-5); }
 .accounts-filters select, .accounts-editor select { width: 100%; min-height: 44px; padding: var(--space-2); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); font: inherit; }
 .accounts-scope { color: var(--color-secondary-text); margin-block: var(--space-4); }
+.accounts-field { margin-block: var(--space-6); }
 .accounts-table { width: 100%; table-layout: fixed; }
 .accounts-table th:first-child { width: 24%; }
 .accounts-table th:last-child { width: 18%; }

@@ -38,3 +38,20 @@ export async function changeAccount(uuid: string, command: AccountCommand, passw
     ...command, current_password: password,
   })).data);
 }
+
+export const fieldAccountSchema = accountSchema.extend({ role: z.literal("field_reporter") });
+export type FieldAccount = z.infer<typeof fieldAccountSchema>;
+const fieldListSchema = z.object({ data: z.array(fieldAccountSchema), meta: listSchema.shape.meta });
+export type FieldAccessCommand = { operation: "revoke" | "restore"; role: FieldAccount["role"]; expected_access_version: number; office_reference: string; idempotency_key: string };
+
+export async function listFieldAccounts(page: number, signal?: AbortSignal) {
+  return fieldListSchema.parse((await axiosClient.get("/api/v1/admin/accounts/field", { params: { page }, signal })).data);
+}
+export async function changeFieldAccess(uuid: string, command: FieldAccessCommand, password: string) {
+  await initializeCsrf();
+  return detailSchema.extend({ data: fieldAccountSchema }).parse((await axiosClient.put(`/api/v2/admin/accounts/${encodeURIComponent(uuid)}/access`, {
+    contract_version: "accounts-access-v1", operation: command.operation, desired: { role: command.role, grants: [] },
+    current_password: password, office_reference: command.office_reference.trim(),
+    idempotency_key: command.idempotency_key, expected_access_version: command.expected_access_version,
+  })).data);
+}

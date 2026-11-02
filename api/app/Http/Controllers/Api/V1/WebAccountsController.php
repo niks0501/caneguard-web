@@ -39,6 +39,19 @@ class WebAccountsController extends Controller
         ]);
     }
 
+    /** Read-only directory of field accounts; changes go through the v2 access operation. */
+    public function fieldIndex(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', User::class);
+        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:100000']]);
+        $page = User::query()->where('role', User::ROLE_FIELD_REPORTER)->orderBy('name')->orderBy('id')->paginate(25, page: $input['page'] ?? 1);
+
+        return response()->json([
+            'data' => $page->getCollection()->map(fn (User $user) => self::account($user)),
+            'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+        ]);
+    }
+
     public function show(Request $request, string $uuid): JsonResponse
     {
         $user = User::query()->where('uuid', $uuid)->firstOrFail();
