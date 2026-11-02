@@ -4,6 +4,7 @@ namespace App\Actions\Notifications;
 
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\WeeklyReportReminderNotification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -19,6 +20,11 @@ final class ScopeNotifications
             });
         }
 
-        return $query->whereIn('data->report_uuid', $reports->select('reports.uuid'));
+        return $query->where(function (Builder $scoped) use ($reports, $user): void {
+            $scoped->whereIn('data->report_uuid', $reports->select('reports.uuid'));
+            if (in_array($user->role, User::officeRoles(), true)) {
+                $scoped->orWhere('data->event_type', WeeklyReportReminderNotification::EVENT_TYPE);
+            }
+        });
     }
 }
