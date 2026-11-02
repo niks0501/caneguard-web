@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Auth\CreateWebAccount;
 use App\Actions\Auth\UpdateWebAccount;
 use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
@@ -10,6 +11,7 @@ use App\Security\AccountsDirectory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /** Supported account API: web roles and global status; field reads carry the read-only access hints only. */
@@ -70,6 +72,25 @@ class WebAccountsController extends Controller
         return response()->json(['data' => self::account($user)]);
     }
 
+    public function store(Request $request, CreateWebAccount $create): JsonResponse
+    {
+        Gate::authorize('create', User::class);
+        abort_unless(array_diff(array_keys($request->all()), ['name', 'email', 'role', 'current_password']) === [], 422);
+        $request->merge([
+            'name' => trim((string) $request->input('name')),
+            'email' => Str::lower(trim((string) $request->input('email'))),
+        ]);
+        $input = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'not_regex:/^\s*$/'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'role' => ['required', Rule::in(CreateWebAccount::ROLES)],
+            'current_password' => ['required', 'string', 'max:255'],
+        ]);
+        $result = $create->handle($request->user(), $input);
+
+        return response()->json(['data' => self::account($result['user']), 'invite_sent' => $result['invite_sent']], 201);
+    }
+
     public function update(Request $request, string $uuid, UpdateWebAccount $update): JsonResponse
     {
         $user = User::query()->where('uuid', $uuid)->firstOrFail();
@@ -96,7 +117,7 @@ class WebAccountsController extends Controller
         $user = User::query()->where('uuid', $uuid)->firstOrFail();
         Gate::authorize('view', $user);
         $events = SecurityAudit::query()->with('actor')->where('target_user_id', $user->id)
-            ->whereIn('action', ['role_change', 'account_status_change', 'web_account_changed', 'district_access_changed', 'account_review_changed', 'district_reporting_settings_changed', 'report_approved', 'report_send_requested'])
+            ->whereIn('action', ['role_change', 'account_status_change', 'web_account_changed', 'district_access_changed', 'account_created', 'account_invite_sent', 'account_review_changed', 'district_reporting_settings_changed', 'report_approved', 'report_send_requested'])
             ->orderByDesc('created_at')->orderByDesc('id')->limit(25)->get();
 
         return response()->json(['data' => $events->map(fn (SecurityAudit $event) => [

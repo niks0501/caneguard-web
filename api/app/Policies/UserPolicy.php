@@ -11,6 +11,11 @@ class UserPolicy
         return $actor->isActiveAdmin();
     }
 
+    public function create(User $actor): bool
+    {
+        return $actor->isActiveAdmin();
+    }
+
     public function view(User $actor, User $target): bool
     {
         return $this->viewAny($actor) && $target->isWebUser();

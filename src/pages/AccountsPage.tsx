@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { AccountAccessTable } from "../components/accounts/AccountAccessTable";
 import { LoadingState, ErrorState } from "../components/ui/States";
+import { AddAccountDialog } from "../components/accounts/AddAccountDialog";
 import { FieldAccountsSection } from "../components/accounts/FieldAccountsSection";
 import { Pagination } from "../components/ui/Pagination";
 import { useAuth } from "../auth/useAuth";
@@ -15,6 +16,7 @@ export function AccountsPage() {
   const client = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [notice, setNotice] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => { document.title = "User Management | CaneGuard"; }, []);
   useEffect(() => { const timer = window.setTimeout(() => setDebouncedSearch(search), 300); return () => window.clearTimeout(timer); }, [search]);
@@ -22,21 +24,8 @@ export function AccountsPage() {
   const query = useQuery({ queryKey: ["accounts", user?.uuid, filters], queryFn: ({ signal }) => listAccounts(filters, signal), retry: false, gcTime: 0 });
   const result = query.data;
   return <PageContent className="accounts-page">
-    <PageHeader title="User Management" />
-    <section className="accounts-provisioning" aria-labelledby="accounts-provisioning-heading">
-      <h2 id="accounts-provisioning-heading">New office accounts</h2>
-      <p>
-        This screen changes the role or status of an existing Web user. It does not
-        create accounts and there is no self-service staff sign-up.
-      </p>
-      <p>
-        A new Reviewer or Admin account is issued by an authorized CaneGuard operator.
-        Send the person&apos;s full name, work email, required role and the office
-        reference for the request through the district office&rsquo;s approved access
-        request channel. The account is verified and provisioned before the person
-        signs in here.
-      </p>
-    </section>
+    <PageHeader title="User Management" actions={<AddAccountDialog onCreated={async message => { setNotice(message); await client.invalidateQueries({ queryKey: ["accounts"] }); }} />} />
+    {notice ? <p role="status">{notice}</p> : null}
     <div className="accounts-filters">
       <label className="settings-field"><span>Search name or email</span><input type="search" maxLength={160} value={search} onChange={event => { setSearch(event.target.value); setParams({ page: "1" }); }} /></label>
     </div>

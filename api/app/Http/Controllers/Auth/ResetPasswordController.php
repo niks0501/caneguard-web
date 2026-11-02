@@ -24,13 +24,23 @@ class ResetPasswordController extends Controller
         $status = $resetPassword->handle(
             $request->validated(),
             function (User $user, string $password) use ($audits, $revoker, &$resetUser): void {
-                $user->forceFill(['password' => $password])->save();
+                $newlyVerified = ! $user->hasVerifiedEmail();
+                $user->forceFill(['password' => $password]);
+                if ($newlyVerified) {
+                    // Completing a mailed reset proves control of the address.
+                    $user->markEmailAsVerified();
+                } else {
+                    $user->save();
+                }
                 $revoker->handle($user);
                 $audits->handle(
                     SecurityAudit::ACTION_PASSWORD_RESET,
                     SecurityAudit::OUTCOME_SUCCESS,
                     target: $user,
                 );
+                if ($newlyVerified) {
+                    $audits->handle(SecurityAudit::ACTION_EMAIL_VERIFICATION, SecurityAudit::OUTCOME_SUCCESS, target: $user, metadata: ['via' => 'password_reset']);
+                }
                 $resetUser = $user;
             },
         );

@@ -55,6 +55,7 @@ Route::prefix('v1/admin/accounts')->middleware([
     'auth:sanctum', 'access.identity', 'verified', EnsureAccountsAccess::class,
 ])->group(function () {
     Route::get('/', [WebAccountsController::class, 'index']);
+    Route::post('/', [WebAccountsController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/field', [WebAccountsController::class, 'fieldIndex']);
     Route::get('/{uuid}', [WebAccountsController::class, 'show'])->whereUuid('uuid');
     Route::get('/{uuid}/events', [WebAccountsController::class, 'events'])->whereUuid('uuid');

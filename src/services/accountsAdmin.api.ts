@@ -39,6 +39,18 @@ export async function changeAccount(uuid: string, command: AccountCommand, passw
   })).data);
 }
 
+export const newAccountRoles = { field_reporter: "Field reporter", reviewer: "Reviewer", admin: "Admin" } as const;
+export type NewAccountRole = keyof typeof newAccountRoles;
+export type NewAccountCommand = { name: string; email: string; role: NewAccountRole };
+const createdSchema = z.object({
+  data: z.object({ uuid: z.uuid(), name: z.string(), email: z.email(), role: z.enum(["field_reporter", "reviewer", "admin"]) }),
+  invite_sent: z.boolean(),
+});
+export async function createAccount(command: NewAccountCommand, password: string) {
+  await initializeCsrf();
+  return createdSchema.parse((await axiosClient.post("/api/v1/admin/accounts", { ...command, current_password: password })).data);
+}
+
 export const fieldAccountSchema = accountSchema.extend({
   role: z.literal("field_reporter"),
   membership_state: z.enum(["not_issued", "active", "revoked"]),
