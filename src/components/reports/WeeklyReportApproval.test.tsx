@@ -154,6 +154,21 @@ describe("weekly district approval", () => {
     expect(screen.queryByRole("button", { name: "Request send" })).not.toBeInTheDocument();
   });
 
+  it("says recipients are missing, not the gate, when the gate is open", async () => {
+    auth("admin", ["report:send"]);
+    server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: { send_enabled: false, delivery_gate_open: true, recipients_configured: false } })));
+    renderApproval();
+    expect(await screen.findByText(/No official recipients configured/)).toBeInTheDocument();
+    expect(screen.queryByText("Office delivery gate closed.")).not.toBeInTheDocument();
+  });
+
+  it("says the gate is closed even when recipients exist", async () => {
+    auth("admin", ["report:send"]);
+    server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: { send_enabled: false, delivery_gate_open: false, recipients_configured: true } })));
+    renderApproval();
+    expect(await screen.findByText("Office delivery gate closed.")).toBeInTheDocument();
+  });
+
   it("explains stale version conflicts and never declares approval success", async () => {
     auth("admin", ["report:approve"]);
     server.use(http.post(`${base}/${version.uuid}/approve`, () => HttpResponse.json({ code: "CONFLICT" }, { status: 409 })));

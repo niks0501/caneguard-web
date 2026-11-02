@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
@@ -10,6 +11,14 @@ import { Modal } from "../ui/Modal";
 import { listSchema } from "./weeklyReportHistory";
 
 const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RSSI"], ["mosaic", "Sugarcane Mosaic"], ["rust", "Sugarcane Rust"], ["smut", "Sugarcane Smut"]];
+
+// Separate a closed delivery gate from a district that simply has no official recipient set yet.
+function sendUnavailableMessage(meta: z.infer<typeof listSchema>["meta"]) {
+  if (meta.delivery_gate_open === undefined && meta.recipients_configured === undefined) return "Weekly sending is not active yet.";
+  return meta.delivery_gate_open !== false && meta.recipients_configured === false
+    ? "No official recipients configured. Add them in Admin Settings."
+    : "Office delivery gate closed.";
+}
 
 export function WeeklyReportApproval({ week }: { week: string }) {
   const { user } = useAuth();
@@ -102,7 +111,8 @@ export function WeeklyReportApproval({ week }: { week: string }) {
       </Modal> : null}
       {latest?.prepared_name ? <p>Prepared by {latest.prepared_name}{latest.created_at ? ` · ${formatDateTime(latest.created_at)}` : ""}</p> : null}
       {latest?.approved_at ? <p>Approved{latest.approved_name ? ` by ${latest.approved_name}, ${latest.approved_title}` : ""} · {formatDateTime(latest.approved_at)}</p> : null}
-      {canSend && versions.data && !versions.data.meta.send_enabled ? <p role="status">Weekly sending is not active yet.</p> : null}
+      {canSend && versions.data && !versions.data.meta.send_enabled
+        ? <p role="status">{sendUnavailableMessage(versions.data.meta)}</p> : null}
       {receipt ? <div aria-label="Delivery receipt" role="status">
         <p>{receipt.state === "sent" ? "SMTP provider accepted the report. Inbox delivery is not guaranteed." : receipt.state === "failed" ? "Delivery failed or is uncertain. Check the provider before ordering another send." : receipt.state === "cancelled" ? "Send cancelled after authority or evidence changed." : receipt.state === "delivering" ? "Delivery in progress. Do not order another send." : "Send intent recorded. Delivery is not confirmed."}</p>
         <p>Ordered by {receipt.requested_name ?? `staff ${receipt.requested_by_id}`} · {formatDateTime(receipt.created_at)}</p>
