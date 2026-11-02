@@ -29,14 +29,24 @@ type TokenName =
   | "--kpi-band-2"
   | "--kpi-band-3"
   | "--kpi-band-4"
+  | "--radius-md"
   | "--text-body-sm";
 
 export type ChartTokenName = TokenName;
 
-const cache = new Map<TokenName, string>();
+const cache = new Map<string, string>();
+
+/** The appearance the document currently carries; it selects the token block. */
+function appliedTheme(): string {
+  if (typeof document === "undefined") return "paper";
+  return document.documentElement.dataset.theme || "paper";
+}
 
 function readToken(name: TokenName): string {
-  const cached = cache.get(name);
+  // Keyed by appearance: the dark block redeclares the same custom property
+  // names, so a value cached for paper must never be served to a dark render.
+  const key = `${appliedTheme()}:${name}`;
+  const cached = cache.get(key);
   if (cached !== undefined) return cached;
 
   let value = "";
@@ -46,7 +56,7 @@ function readToken(name: TokenName): string {
       .getPropertyValue(name)
       .trim();
   }
-  cache.set(name, value);
+  cache.set(key, value);
   return value;
 }
 
@@ -95,6 +105,10 @@ export const chartTheme = {
     const parsed = Number.parseInt(raw, 10);
     return Number.isFinite(parsed) ? parsed : 16;
   },
+  /** The tooltip panel's own radius, so it matches every other small panel. */
+  get radius(): string {
+    return readToken("--radius-md");
+  },
 };
 
 /**
@@ -113,7 +127,31 @@ export function seriesColor(index: number): string {
   return bandColor(kpiBandForIndex(index));
 }
 
-/** Stable per-barangay fill drawn from the brand family and the paper band ramp. */
+/**
+ * Tooltip paints, read from the same tokens as the card it floats over.
+ *
+ * Recharts' default tooltip is a white box with a thin grey border, which on
+ * the dark surface leaves the panel white and its text — inherited from the
+ * light ink — unreadable. Passing these on every `<Tooltip>` keeps the panel on
+ * the surface token and its text on the ink token in both themes. The item text
+ * is set to ink rather than the series colour, because a pale band fill is a
+ * fill and never a text colour.
+ */
+export function chartTooltipProps() {
+  return {
+    contentStyle: {
+      background: chartTheme.surface,
+      border: `1px solid ${chartTheme.border}`,
+      borderRadius: chartTheme.radius,
+      color: chartTheme.text,
+      fontSize: `${chartTheme.tickFontSize}px`,
+    },
+    labelStyle: { color: chartTheme.text, fontWeight: 600 },
+    itemStyle: { color: chartTheme.text },
+  };
+}
+
+/** Stable per-barangay fill drawn from the brand family and the shared band ramp. */
 const BARANGAY_PALETTE_TOKENS: TokenName[] = [
   "--color-brand",
   "--color-brand-hover",

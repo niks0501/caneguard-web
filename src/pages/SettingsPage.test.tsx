@@ -2,9 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
 import * as accountApi from "../services/account.api";
+import {
+  THEME_STORAGE_KEY,
+  applyTheme,
+  setTheme,
+} from "../theme/themePreference";
 import { SettingsPage } from "./SettingsPage";
 
 vi.mock("../auth/useAuth", () => ({
@@ -36,6 +41,13 @@ function renderSettingsPage() {
 }
 
 describe("SettingsPage", () => {
+  afterEach(() => {
+    // A chosen appearance outlives a render, so return the store to paper.
+    setTheme("paper");
+    applyTheme("paper");
+    window.localStorage.clear();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuth).mockReturnValue({
@@ -73,6 +85,28 @@ describe("SettingsPage", () => {
     expect(screen.getByText("maria.santos@sra.gov.ph")).toBeInTheDocument();
     expect(screen.getByText("Reviewer")).toBeInTheDocument();
     expect(screen.getByText("00000000-0000-4000-8000-000000000100")).toBeInTheDocument();
+  });
+
+  it("switches the workspace appearance from the Settings page and remembers it", async () => {
+    const user = userEvent.setup();
+    renderSettingsPage();
+
+    expect(screen.getByRole("heading", { name: "Appearance" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Paper" })).toBeChecked();
+
+    await user.click(screen.getByRole("radio", { name: "Dark" }));
+
+    // The whole workspace repaints: every token block keys off <html data-theme>.
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
+    expect(
+      JSON.parse(window.localStorage.getItem(THEME_STORAGE_KEY) as string),
+    ).toEqual({ version: 1, theme: "dark" });
+
+    await user.click(screen.getByRole("radio", { name: "Paper" }));
+
+    expect(document.documentElement.dataset.theme).toBe("paper");
+    expect(screen.getByRole("radio", { name: "Paper" })).toBeChecked();
   });
 
   it("renders enrolled mobile devices and allows revoking a device", async () => {

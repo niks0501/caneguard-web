@@ -22,7 +22,7 @@ The SVGs are design masters; web-consumed exports live under `public/` and `src/
 
 The on-dark variant changes only the structural green and gold. All exports are sRGB.
 
-*Theme deviation note:* Functional UI tokens in `src/styles/tokens.css` (`--color-primary: #2d6b40`, `--color-primary-dark: #1e452a`) remain calibrated for web WCAG AA contrast against light surfaces rather than raw mark fills (`#074424` and `#3E7C30`).
+*Theme deviation note:* Functional UI tokens in `src/styles/tokens.css` are calibrated for web WCAG AA contrast against the surface they sit on rather than raw mark fills (`#074424` and `#3E7C30`); that file owns their paper and dark values.
 
 ## Geometry and clear space
 

@@ -5,11 +5,11 @@
  * solid from the four-step `--kpi-band-<N>` ramp in `tokens.css`: the KPI
  * waiting-age radial, the field-validation schedule bar, the decision charts
  * and their legends all index into the same ordered band sequence. The ramp
- * alternates a deepened brand light with a deep brand tone, so every
- * *neighbouring* pair clears the 3:1 adjacent-fill rule — including the radial
- * ring's 4-1 join, because a ring's last band touches its first — and every
- * fill also clears 3:1 against the card surface (`npm run test:design-spine`
- * fails if any of those regress).
+ * alternates a lighter and a darker stop — deepened brand tones on paper, mid
+ * and pale tones on the dark set — so every *neighbouring* pair clears the 3:1
+ * adjacent-fill rule — including the radial ring's 4-1 join, because a ring's
+ * last band touches its first — and every fill also clears 3:1 against the
+ * card surface (`npm run test:design-spine` fails if any of those regress).
  *
  * There is no non-colour channel left: no pattern, hatch or texture is drawn.
  * Separation rests on hue and lightness alone, so every graphic keeps its

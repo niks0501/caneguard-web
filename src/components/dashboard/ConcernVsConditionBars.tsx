@@ -13,9 +13,10 @@ import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { DecisionChartFrame } from "./DecisionChartFrame";
 import { VerificationLegend } from "./VerificationLegend";
 import { dashboardChartCopy } from "./chartCopy";
-import { bandColor, chartTheme } from "./chartTheme";
+import { bandColor, chartTheme, chartTooltipProps } from "./chartTheme";
 import { reportCount } from "./countUnits";
 import { kpiBandForIndex, type KpiBand } from "./kpiBandEncoding";
+import { useTheme } from "../../theme/useTheme";
 import {
   POSSIBLE_CONDITIONS,
   reportedConcernLabel,
@@ -56,6 +57,8 @@ export function ConcernVsConditionBars({
   scopeLabel: string;
 }) {
   const copy = dashboardChartCopy.concernVsCondition;
+  // A theme change repaints the literal Recharts colours read from the tokens.
+  useTheme();
   const reportedRows: ConcernRow[] = analytics.reportedConcern.map((item, index) => ({
     key: `reported-${item.concern}`,
     rowLabel: `Reported: ${item.label}`,
@@ -114,7 +117,7 @@ export function ConcernVsConditionBars({
               width="auto"
               tick={{ fontSize: chartTheme.tickFontSize, fill: chartTheme.text }}
             />
-            <Tooltip formatter={(value) => [value, "Submitted reports"]} />
+            <Tooltip {...chartTooltipProps()} formatter={(value) => [value, "Submitted reports"]} />
             <Bar dataKey="count" radius={[0, 4, 4, 0]} isAnimationActive={false}>
               {rows.map((row) => (
                 <Cell

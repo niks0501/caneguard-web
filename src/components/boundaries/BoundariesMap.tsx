@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
 import { env } from "../../config/env";
+import { useMapPaint } from "../../theme/mapTheme";
+import { useTheme } from "../../theme/useTheme";
 import { resolveBasemapStyle } from "../fieldValidation/localBasemap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -107,7 +109,12 @@ export function BoundariesMap({
   const hasLoadedMap = useRef(false);
   const hasFittedInitialData = useRef(false);
   const lastFittedSelection = useRef<string | null>(null);
-  const basemapStyle = resolveBasemapStyle(env.mapTilerKey, import.meta.env.DEV);
+  // The basemap and the polygon paints follow the appearance tokens, so a dark
+  // map is a real dark map rather than dimmed paper, and its boundaries stay
+  // legible on that ground.
+  const theme = useTheme();
+  const paint = useMapPaint();
+  const basemapStyle = resolveBasemapStyle(env.mapTilerKey, import.meta.env.DEV, theme);
   const sourceData = useMemo(() => ({
     type: "FeatureCollection" as const,
     features: data.features.map((feature) => ({
@@ -225,19 +232,19 @@ export function BoundariesMap({
                 <Layer
                   id="field-boundaries-fill"
                   type="fill"
-                  paint={{ "fill-color": "#2d6b40", "fill-opacity": 0.18 }}
+                  paint={{ "fill-color": paint.boundaryFill, "fill-opacity": 0.18 }}
                 />
                 <Layer
                   id="field-boundaries-outline"
                   type="line"
-                  paint={{ "line-color": "#1e452a", "line-width": 2 }}
+                  paint={{ "line-color": paint.boundaryLine, "line-width": 2 }}
                 />
               </Source>
               <Source id="field-boundaries-selected" type="geojson" data={selectedSource}>
                 <Layer
                   id="field-boundaries-selected-line"
                   type="line"
-                  paint={{ "line-color": "#b8ad73", "line-width": 3 }}
+                  paint={{ "line-color": paint.boundarySelected, "line-width": 3 }}
                 />
               </Source>
               {selectedFeature && popupPosition ? (

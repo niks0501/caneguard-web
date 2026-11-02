@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   KeyRound,
   Mail,
+  Palette,
   Smartphone,
   Trash2,
   User,
@@ -16,6 +17,7 @@ import { DetailField, PageContent, PageHeader } from "../components/layout/Page"
 import { Button } from "../components/ui/Button";
 import { LoadingState } from "../components/ui/States";
 import { formatDateTime } from "../lib/formatters";
+import { ThemeChoice } from "../theme/ThemeChoice";
 import {
   changeEmail,
   changePassword,
@@ -207,6 +209,18 @@ export function SettingsPage() {
 
         {/* Credentials and Security Section */}
         <div className="settings-security-group">
+          {/* Appearance Card */}
+          <section className="settings-card settings-card--form" aria-labelledby="appearance-heading">
+            <div className="section-heading">
+              <div>
+                <h2 id="appearance-heading">Appearance</h2>
+              </div>
+              <Palette aria-hidden="true" />
+            </div>
+
+            <ThemeChoice />
+          </section>
+
           {/* Change Password Card */}
           <section className="settings-card settings-card--form" aria-labelledby="password-heading">
             <div className="section-heading">

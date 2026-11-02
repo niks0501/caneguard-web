@@ -15,9 +15,10 @@ import { reviewStatusLabels } from "../../domain/report.metadata";
 import { env } from "../../config/env";
 import type { BarangayValidationRow } from "../../domain/dashboard.types";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
+import { useMapPaint } from "../../theme/mapTheme";
+import { useTheme } from "../../theme/useTheme";
 import { Skeleton } from "../ui/States";
 import { dashboardChartCopy } from "./chartCopy";
-import { chartTheme } from "./chartTheme";
 import { reportCount } from "./countUnits";
 import {
   readDashboardPreferences,
@@ -26,12 +27,9 @@ import {
 } from "./dashboardPreferences";
 import { NASUGBU_BARANGAY_POINTS, NASUGBU_MAP_CENTER } from "./nasugbuBarangays";
 import { registerMissingMapImage } from "./registerMissingMapImage";
+import { mapTilerStyleUrl } from "../fieldValidation/localBasemap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
-
-const mapTilerStyle = env.mapTilerKey
-  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(env.mapTilerKey)}`
-  : undefined;
 
 const GPS_LIMIT = 100;
 
@@ -119,6 +117,12 @@ export function ReportLocationMap({
   to: string;
 }) {
   const copy = dashboardChartCopy.locationMap;
+  // The basemap and its marks follow the appearance choice: the dark set swaps
+  // in the provider's dark streets style and the ink, halo and label roles
+  // that stay legible over it.
+  const theme = useTheme();
+  const paint = useMapPaint();
+  const mapTilerStyle = mapTilerStyleUrl(env.mapTilerKey, theme);
   // The chosen layer is dashboard control state: it survives leaving the page
   // and reloading it, and an unreadable stored value falls back to circles.
   const [layer, setLayer] = useState<MapLayer>(
@@ -297,7 +301,7 @@ export function ReportLocationMap({
                     id="dashboard-barangay-circle"
                     type="circle"
                     paint={{
-                      "circle-color": chartTheme.primaryDark || "#2d6b40",
+                      "circle-color": paint.ink,
                       "circle-opacity": 0.75,
                       "circle-radius": [
                         "interpolate",
@@ -308,7 +312,7 @@ export function ReportLocationMap({
                         maxRadiusStop,
                         30,
                       ],
-                      "circle-stroke-color": chartTheme.surface || "#ffffff",
+                      "circle-stroke-color": paint.halo,
                       "circle-stroke-width": 2,
                     }}
                   />
@@ -332,7 +336,7 @@ export function ReportLocationMap({
                       "text-offset": [0, 1.2],
                       "text-allow-overlap": false,
                     }}
-                    paint={{ "text-color": chartTheme.text || "#1d2720" }}
+                    paint={{ "text-color": paint.label }}
                   />
                 </Source>
               ) : (
@@ -346,10 +350,10 @@ export function ReportLocationMap({
                     id="dashboard-gps-point"
                     type="circle"
                     paint={{
-                      "circle-color": chartTheme.primaryDark || "#2d6b40",
+                      "circle-color": paint.ink,
                       "circle-opacity": 0.85,
                       "circle-radius": ["case", [">", ["get", "count"], 1], 14, 6],
-                      "circle-stroke-color": chartTheme.surface || "#ffffff",
+                      "circle-stroke-color": paint.halo,
                       "circle-stroke-width": 2,
                     }}
                   />
@@ -357,7 +361,7 @@ export function ReportLocationMap({
                     "text-field": ["get", "count"],
                     "text-size": 12,
                     "text-allow-overlap": true,
-                  }} paint={{ "text-color": chartTheme.surface }} />
+                  }} paint={{ "text-color": paint.onPin }} />
                 </Source>
               )}
               {selected && (selected.layer === "barangay" || selectedReports.length > 0) ? (

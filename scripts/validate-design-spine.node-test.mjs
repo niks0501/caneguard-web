@@ -5,8 +5,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   contrastRatio,
+  parseThemeTokens,
   parseTokensCss,
   validateDashboardWrapRules,
+  validateDarkKpiBandDistinction,
+  validateDarkSemanticContrast,
+  validateDarkThemeIsScreenOnly,
+  validateDarkTokenParity,
   validateKpiBandDistinction,
   validateKpiCardFillRules,
   validateKpiSupportTooltip,
@@ -312,4 +317,175 @@ test("validateNoPatternEncoding passes the shipped dashboard and rejects any pat
   assert.ok(errors.some((error) => /must not use a url\(#…\) paint reference/.test(error)));
   assert.ok(errors.some((error) => /must not use a data-kpi-pattern attribute/.test(error)));
   assert.ok(errors.some((error) => /must not define '.kpi-pattern\*' rules/.test(error)));
+});
+
+const DARK_FIXTURE = `
+  :root {
+    --color-text: #1d2720;
+    --color-surface: #ffffff;
+  }
+  @media screen {
+    :root[data-theme="dark"] {
+      --color-text: #ede9df;
+      --color-surface: #20241f;
+    }
+  }
+`;
+
+test("parseThemeTokens keeps the paper and dark scopes apart", () => {
+  const paper = parseThemeTokens(DARK_FIXTURE, "paper");
+  const dark = parseThemeTokens(DARK_FIXTURE, "dark");
+
+  assert.equal(paper["--color-text"], "#1d2720");
+  assert.equal(paper["--color-surface"], "#ffffff");
+  assert.equal(dark["--color-text"], "#ede9df");
+  assert.equal(dark["--color-surface"], "#20241f");
+  // The dark scope never inherits a paper declaration into its own block.
+  assert.equal(dark["--color-muted"], undefined);
+  assert.throws(() => parseThemeTokens(DARK_FIXTURE, "sepia"), /Unknown theme scope/);
+});
+
+test("validateSemanticContrast gates the paper scope, not the later dark block", () => {
+  const shipped = readFileSync(
+    new URL("../src/styles/tokens.css", import.meta.url),
+    "utf8",
+  );
+  // The dark block redeclares --color-text and --color-surface; if the gate
+  // read the last declaration it would be measuring dark values against paper
+  // ones and passing by accident.
+  assert.deepEqual(validateSemanticContrast(shipped), []);
+
+  const failingPaper = `
+    :root {
+      --color-text: #eeeeee;
+      --color-muted: #eeeeee;
+      --color-secondary-text: #eeeeee;
+      --color-page: #ffffff;
+      --color-surface: #ffffff;
+      --color-surface-soft: #ffffff;
+    }
+    @media screen {
+      :root[data-theme="dark"] {
+        --color-text: #ede9df;
+        --color-muted: #b9b6a9;
+        --color-page: #171a16;
+        --color-surface: #20241f;
+        --color-surface-soft: #2a2e28;
+      }
+    }
+  `;
+  const errors = validateSemanticContrast(failingPaper);
+  assert.ok(errors.length > 0);
+  assert.ok(errors.some((error) => /Contrast failure for --color-text/.test(error)));
+});
+
+test("validateDarkSemanticContrast passes the shipped dark set and rejects a pale ink", () => {
+  const shipped = readFileSync(
+    new URL("../src/styles/tokens.css", import.meta.url),
+    "utf8",
+  );
+  assert.deepEqual(validateDarkSemanticContrast(shipped), []);
+
+  const missing = validateDarkSemanticContrast(":root { --color-text: #1d2720; }");
+  assert.ok(missing.some((error) => /Missing the dark token block/.test(error)));
+
+  const paleInk = shipped.replace(
+    "--color-text: #ede9df;",
+    "--color-text: #3a443c;",
+  );
+  const errors = validateDarkSemanticContrast(paleInk);
+  assert.ok(errors.length > 0);
+  assert.ok(errors.some((error) => /Dark contrast failure for --color-text/.test(error)));
+
+  const paleSecondary = shipped.replace(
+    "--color-secondary-text: #b9b6a9;",
+    "--color-secondary-text: #4a5650;",
+  );
+  assert.ok(
+    validateDarkSemanticContrast(paleSecondary).some((error) =>
+      /Dark contrast failure for --color-secondary-text/.test(error),
+    ),
+  );
+});
+
+test("validateDarkKpiBandDistinction rejects dark bands that vanish or merge", () => {
+  const shipped = readFileSync(
+    new URL("../src/styles/tokens.css", import.meta.url),
+    "utf8",
+  );
+  assert.deepEqual(validateDarkKpiBandDistinction(shipped), []);
+
+  // The paper deep tones on the dark surface: every band disappears.
+  const vanished = shipped
+    .replace("--kpi-band-1: #5f7f5b;", "--kpi-band-1: #1d2720;")
+    .replace("--kpi-band-2: #cfe0c6;", "--kpi-band-2: #2f3831;");
+  const vanishedErrors = validateDarkKpiBandDistinction(vanished);
+  assert.ok(vanishedErrors.some((error) => /Dark KPI band '--kpi-band-1'/.test(error)));
+  assert.ok(vanishedErrors.some((error) => /Dark KPI band '--kpi-band-2'/.test(error)));
+
+  const merged = shipped.replace("--kpi-band-2: #cfe0c6;", "--kpi-band-2: #5f7f5b;");
+  assert.ok(
+    validateDarkKpiBandDistinction(merged).some((error) =>
+      /Dark KPI bands 1 and 2 are adjacent/.test(error),
+    ),
+  );
+
+  const sparkMerge = shipped.replace("--kpi-band-1: #5f7f5b;", "--kpi-band-1: #b9dcc0;");
+  assert.ok(
+    validateDarkKpiBandDistinction(sparkMerge).some((error) =>
+      /Dark sparkline area .* are/.test(error),
+    ),
+  );
+});
+
+test("validateDarkThemeIsScreenOnly keeps print on paper", () => {
+  const shipped = readFileSync(
+    new URL("../src/styles/tokens.css", import.meta.url),
+    "utf8",
+  );
+  assert.deepEqual(validateDarkThemeIsScreenOnly(shipped), []);
+
+  const escaped = `
+    :root[data-theme="dark"] {
+      --color-text: #ede9df;
+    }
+  `;
+  const errors = validateDarkThemeIsScreenOnly(escaped);
+  assert.ok(errors.some((error) => /must sit inside '@media screen'/.test(error)));
+
+  // A dark block that also leaks a copy outside the screen block is the same
+  // regression: printing would pick up the dark page again.
+  const leaked = `${DARK_FIXTURE}
+    :root[data-theme="dark"] { --color-surface: #20241f; }
+  `;
+  assert.ok(
+    validateDarkThemeIsScreenOnly(leaked).some((error) =>
+      /must only be declared inside '@media screen'/.test(error),
+    ),
+  );
+});
+
+test("validateDarkTokenParity requires a dark value for every flippable colour", () => {
+  const shipped = readFileSync(
+    new URL("../src/styles/tokens.css", import.meta.url),
+    "utf8",
+  );
+  assert.deepEqual(validateDarkTokenParity(shipped), []);
+
+  const missing = shipped.replace(
+    "    --color-surface-soft: #2a2e28;",
+    "",
+  );
+  assert.ok(
+    validateDarkTokenParity(missing).some((error) =>
+      /Colour token '--color-surface-soft' has no dark value/.test(error),
+    ),
+  );
+
+  // The values that stay identical in both themes are exempt on purpose.
+  assert.ok(
+    !validateDarkTokenParity(shipped).some((error) =>
+      /--color-inverse-text|--color-accent/.test(error),
+    ),
+  );
 });

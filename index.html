@@ -11,6 +11,28 @@
       content="CaneGuard municipal workspace for reviewing submitted sugarcane field observations."
     />
     <title>CaneGuard | Submitted Reports</title>
+    <script>
+      // Adopt the stored appearance before the first paint, so a dark choice
+      // never flashes the paper surface while the app module loads. This is the
+      // one declaration `src/theme/themePreference.ts` cannot make early enough;
+      // keep the storage key, version and values in step with that module.
+      (function () {
+        try {
+          var stored = JSON.parse(
+            window.localStorage.getItem("caneguard.appearance.preferences")
+          );
+          if (
+            stored &&
+            stored.version === 1 &&
+            (stored.theme === "paper" || stored.theme === "dark")
+          ) {
+            document.documentElement.dataset.theme = stored.theme;
+          }
+        } catch (error) {
+          // Blocked or corrupt storage falls through to the paper stylesheet.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

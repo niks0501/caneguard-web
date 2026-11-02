@@ -69,6 +69,58 @@ export function parseTokensCss(content) {
   return tokens;
 }
 
+/**
+ * The two token scopes this stylesheet declares: the paper default on `:root`
+ * and the dark set on `[data-theme="dark"]`. Reading both as one flat map is
+ * wrong now that the dark block redeclares the same names — the later block
+ * would silently replace the paper values every contrast gate measured.
+ */
+export const THEME_SCOPES = {
+  paper: ":root",
+  dark: ':root[data-theme="dark"]',
+};
+
+/** The declarations of one theme's block, or `{}` when the block is absent. */
+export function parseThemeTokens(content, theme = "paper") {
+  const selector = THEME_SCOPES[theme];
+  if (!selector) throw new Error(`Unknown theme scope '${theme}'`);
+  const block = blockForSelector(content, selector);
+  return block === null ? {} : parseTokensCss(block);
+}
+
+/**
+ * Remove every top-level `@media <query>` block from a stylesheet.
+ *
+ * The dark set lives inside `@media screen` so printing keeps the paper
+ * tokens. This is the helper that proves it: whatever remains after stripping
+ * the screen blocks must not mention the dark scope at all.
+ */
+export function stripMediaBlocks(content, query) {
+  let remaining = "";
+  let index = 0;
+  while (index < content.length) {
+    const start = content.indexOf(`@media ${query}`, index);
+    if (start === -1) {
+      remaining += content.slice(index);
+      break;
+    }
+    remaining += content.slice(index, start);
+    const open = content.indexOf("{", start);
+    if (open === -1) break;
+    let depth = 0;
+    let cursor = open;
+    for (; cursor < content.length; cursor += 1) {
+      if (content[cursor] === "{") depth += 1;
+      else if (content[cursor] === "}") {
+        depth -= 1;
+        if (depth === 0) break;
+      }
+    }
+    index = cursor + 1;
+  }
+  return remaining;
+}
+
 export function validateDesignTokens(cssFiles = getAllCssFiles()) {
   const errors = [];
 
@@ -135,9 +187,12 @@ export function validateDesignTokens(cssFiles = getAllCssFiles()) {
   return errors;
 }
 
-export function validateSemanticContrast(tokensContent = readFileSync(TOKENS_PATH, "utf8")) {
+export function validateSemanticContrast(
+  tokensContent = readFileSync(TOKENS_PATH, "utf8"),
+  theme = "paper",
+) {
   const errors = [];
-  const tokens = parseTokensCss(tokensContent);
+  const tokens = parseThemeTokens(tokensContent, theme);
 
   const semanticPairs = [
     { fg: "--color-text", bg: "--color-surface", min: 4.5 },
@@ -167,6 +222,240 @@ export function validateSemanticContrast(tokensContent = readFileSync(TOKENS_PAT
     if (ratio < min) {
       errors.push(
         `Contrast failure for ${fg} (${fgVal}) on ${bg} (${bgVal}): ${ratio.toFixed(2)}:1 (required >= ${min}:1)`
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * The dark set's own gates (QF-11).
+ *
+ * Paper values are unchanged, so they keep the gates above; these measure the
+ * dark block the same way. Nothing here is a second palette: every pair is a
+ * declared token pair from `src/styles/tokens.css`, and the word "dark" below
+ * only selects which block the values come from.
+ */
+export function validateDarkSemanticContrast(
+  tokensContent = readFileSync(TOKENS_PATH, "utf8"),
+) {
+  const errors = [];
+  const dark = parseThemeTokens(tokensContent, "dark");
+
+  if (Object.keys(dark).length === 0) {
+    return [
+      `Missing the dark token block '${THEME_SCOPES.dark}' in src/styles/tokens.css`,
+    ];
+  }
+
+  // The dark block is an override layer, exactly as the cascade resolves it: a
+  // token it does not redeclare keeps its paper value (the cream accent, the
+  // white inverse ink). Merging here keeps the gate honest about that.
+  const tokens = { ...parseThemeTokens(tokensContent, "paper"), ...dark };
+
+  const pairs = [
+    // Ink and secondary text on every dark ground.
+    ["--color-text", "--color-page"],
+    ["--color-text", "--color-surface"],
+    ["--color-text", "--color-surface-soft"],
+    ["--color-secondary-text", "--color-page"],
+    ["--color-secondary-text", "--color-surface"],
+    ["--color-secondary-text", "--color-surface-soft"],
+    ["--color-muted", "--color-surface"],
+    ["--color-muted", "--color-surface-soft"],
+    // Ink greens: links, active labels and icons.
+    ["--color-primary", "--color-page"],
+    ["--color-primary", "--color-surface"],
+    ["--color-primary", "--color-surface-soft"],
+    ["--color-primary-dark", "--color-surface"],
+    ["--color-primary-light", "--color-surface"],
+    // Tinted panels and chips carry both ink and the ink green.
+    ["--color-text", "--color-primary-tint"],
+    ["--color-primary", "--color-primary-tint"],
+    ["--color-text", "--color-surface-tint"],
+    // Status pairs.
+    ["--color-warning", "--color-warning-soft"],
+    ["--color-warning", "--color-surface"],
+    ["--color-danger", "--color-danger-soft"],
+    ["--color-danger", "--color-surface"],
+    ["--color-error", "--color-error-soft"],
+    ["--color-success", "--color-success-soft"],
+    ["--color-success", "--color-surface"],
+    // The cream accent keeps dark ink in both themes.
+    ["--color-on-accent", "--color-accent"],
+    // Inverse text sits on the fill roles, never on an ink role.
+    ["--color-inverse-text", "--color-action"],
+    ["--color-inverse-text", "--color-primary-fill"],
+    ["--color-inverse-text", "--color-danger-fill"],
+    // Timeline badge pairs.
+    ["--badge-review-text", "--badge-review-bg"],
+    ["--badge-field-validation-text", "--badge-field-validation-bg"],
+    ["--badge-referral-text", "--badge-referral-bg"],
+    ["--badge-correction-text", "--badge-correction-bg"],
+  ];
+
+  for (const [fg, bg] of pairs) {
+    const ratio = tokenPairRatio(tokens, fg, bg, errors);
+    if (ratio === null) continue;
+    if (ratio < 4.5) {
+      errors.push(
+        `Dark contrast failure for ${fg} (${tokens[fg]}) on ${bg} (${tokens[bg]}): ${ratio.toFixed(2)}:1 (required >= 4.5:1)`,
+      );
+    }
+  }
+
+  // A rule or a control boundary is not text: 3:1 is its bar.
+  const borderRatio = tokenPairRatio(
+    tokens,
+    "--color-border-strong",
+    "--color-surface",
+    errors,
+  );
+  if (borderRatio !== null && borderRatio < 3) {
+    errors.push(
+      `Dark rule '--color-border-strong' (${tokens["--color-border-strong"]}) on '--color-surface' (${tokens["--color-surface"]}) is ${borderRatio.toFixed(2)}:1 (required >= 3:1)`,
+    );
+  }
+
+  return errors;
+}
+
+function tokenPairRatio(tokens, fg, bg, errors) {
+  const fgValue = tokens[fg];
+  const bgValue = tokens[bg];
+  if (!fgValue || !bgValue) {
+    errors.push(`Missing dark token for pair ${fg} (${fgValue}) on ${bg} (${bgValue})`);
+    return null;
+  }
+  return contrastRatio(fgValue, bgValue);
+}
+
+/**
+ * The dark band ramp.
+ *
+ * The same four rules the paper ramp answers to: each band clears 3:1 on the
+ * card surface, every neighbouring pair — including the radial ring's 4-1
+ * join — clears 3:1, and the sparkline's area and line stay apart. A dark card
+ * surface forces the ramp to alternate a mid tone with a pale tone, because a
+ * deep fill would otherwise vanish into the card.
+ */
+export function validateDarkKpiBandDistinction(
+  tokensContent = readFileSync(TOKENS_PATH, "utf8"),
+) {
+  const errors = [];
+  const dark = parseThemeTokens(tokensContent, "dark");
+  if (Object.keys(dark).length === 0) return errors;
+  const tokens = { ...parseThemeTokens(tokensContent, "paper"), ...dark };
+  const surface = tokens["--color-surface"];
+
+  if (!surface) {
+    errors.push("Missing dark '--color-surface' for the KPI band contrast check");
+    return errors;
+  }
+
+  for (const token of KPI_BAND_FILL_TOKENS) {
+    const value = tokens[token];
+    if (!value) {
+      errors.push(`Missing dark KPI band token '${token}'`);
+      continue;
+    }
+    const ratio = contrastRatio(value, surface);
+    if (ratio < KPI_BAND_MIN_CONTRAST) {
+      errors.push(
+        `Dark KPI band '${token}' (${value}) on '--color-surface' (${surface}) is ${ratio.toFixed(2)}:1 (required >= ${KPI_BAND_MIN_CONTRAST}:1)`,
+      );
+    }
+  }
+
+  for (const [a, b] of KPI_BAND_ADJACENT_PAIRS) {
+    const va = tokens[`--kpi-band-${a}`];
+    const vb = tokens[`--kpi-band-${b}`];
+    if (!va || !vb) continue;
+    const ratio = contrastRatio(va, vb);
+    if (ratio < KPI_BAND_MIN_CONTRAST) {
+      errors.push(
+        `Dark KPI bands ${a} and ${b} are adjacent (or join across the ring): ${ratio.toFixed(2)}:1 (required >= ${KPI_BAND_MIN_CONTRAST}:1)`,
+      );
+    }
+  }
+
+  const [sparkFill, sparkLine] = SPARKLINE_ADJACENT_TOKENS;
+  if (tokens[sparkFill] && tokens[sparkLine]) {
+    const ratio = contrastRatio(tokens[sparkFill], tokens[sparkLine]);
+    if (ratio < KPI_BAND_MIN_CONTRAST) {
+      errors.push(
+        `Dark sparkline area '${sparkFill}' and line '${sparkLine}' are ${ratio.toFixed(2)}:1 (required >= ${KPI_BAND_MIN_CONTRAST}:1)`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Print stays on paper.
+ *
+ * The dark block is a screen affordance: it sits inside `@media screen`, so a
+ * print or print-to-PDF render keeps the paper tokens whatever theme the
+ * operator picked. This gate fails if any dark selector escapes that media
+ * block, which is what would silently put a dark page on the record copy.
+ */
+export function validateDarkThemeIsScreenOnly(
+  tokensContent = readFileSync(TOKENS_PATH, "utf8"),
+) {
+  const errors = [];
+  const screenStripped = stripMediaBlocks(tokensContent, "screen");
+
+  if (screenStripped === tokensContent) {
+    errors.push(
+      "The dark token block must sit inside '@media screen' so printing keeps the paper tokens",
+    );
+    return errors;
+  }
+
+  if (/\[data-theme=["']dark["']\]/.test(screenStripped)) {
+    errors.push(
+      "'[data-theme=\"dark\"]' must only be declared inside '@media screen'; printing stays on paper",
+    );
+  }
+
+  return errors;
+}
+
+/**
+ * Dark parity: every colour-bearing token has a dark value unless it is one of
+ * the values that must not change. A new colour token added to `:root` and
+ * forgotten in the dark block is a silent light-on-dark surface, so it fails
+ * here instead of on a screen nobody opened.
+ *
+ * The exempt list is deliberate: the cream accent family, the inverse (white)
+ * ink and the focus yellow are the same on both grounds, and the aliases that
+ * point at another token are overridden through the name they point at.
+ */
+export const DARK_PARITY_EXEMPT_TOKENS = [
+  "--color-accent",
+  "--color-accent-dark",
+  "--color-inverse-text",
+  "--color-focus",
+];
+
+const COLOUR_LITERAL = /^(?:#[0-9a-f]{3,8}|rgba?\()/i;
+
+export function validateDarkTokenParity(
+  tokensContent = readFileSync(TOKENS_PATH, "utf8"),
+) {
+  const errors = [];
+  const paper = parseThemeTokens(tokensContent, "paper");
+  const dark = parseThemeTokens(tokensContent, "dark");
+
+  for (const [name, value] of Object.entries(paper)) {
+    if (!COLOUR_LITERAL.test(value)) continue;
+    if (name.startsWith("--brand-")) continue;
+    if (DARK_PARITY_EXEMPT_TOKENS.includes(name)) continue;
+    if (dark[name] === undefined) {
+      errors.push(
+        `Colour token '${name}' has no dark value in '${THEME_SCOPES.dark}'`,
       );
     }
   }
@@ -240,7 +529,7 @@ export function validateKpiBandDistinction(
   cssContent = readFileSync(join(SRC_DIR, "index.css"), "utf8"),
 ) {
   const errors = [];
-  const tokens = parseTokensCss(tokensContent);
+  const tokens = parseThemeTokens(tokensContent, "paper");
   const surface = tokens["--color-surface"];
 
   if (!surface) {
@@ -649,6 +938,10 @@ export function assertDesignSpine() {
   const wrapErrors = validateDashboardWrapRules();
   const pillErrors = validateReportTablePillRules();
   const kpiErrors = validateKpiCardFillRules();
+  const darkContrastErrors = validateDarkSemanticContrast();
+  const darkBandErrors = validateDarkKpiBandDistinction();
+  const darkScopeErrors = validateDarkThemeIsScreenOnly();
+  const darkParityErrors = validateDarkTokenParity();
   const allErrors = [
     ...tokenErrors,
     ...contrastErrors,
@@ -658,6 +951,10 @@ export function assertDesignSpine() {
     ...wrapErrors,
     ...pillErrors,
     ...kpiErrors,
+    ...darkContrastErrors,
+    ...darkBandErrors,
+    ...darkScopeErrors,
+    ...darkParityErrors,
   ];
 
   if (allErrors.length > 0) {

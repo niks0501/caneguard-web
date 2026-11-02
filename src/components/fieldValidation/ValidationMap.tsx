@@ -14,6 +14,8 @@ import { reviewStatusLabels } from "../../domain/report.metadata";
 import type { ReviewStatus } from "../../domain/report.types";
 import { env } from "../../config/env";
 import { reportCount } from "../dashboard/countUnits";
+import { useMapPaint, type MapPaint } from "../../theme/mapTheme";
+import { useTheme } from "../../theme/useTheme";
 import { resolveBasemapStyle } from "./localBasemap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -34,21 +36,23 @@ type MapProviderState = "loading" | "ready" | "error";
  * Quiet field pins: every case is ink, and amber is reserved for a real Note —
  * a case a person should look at before relying on it — which on the map is an
  * "Unable to determine" review or a reporter mismatch. MapLibre paint
- * expressions cannot read CSS custom properties, so these hexes restate token
- * roles from `src/styles/tokens.css` (`--color-text`, `--color-warning`); the
- * status legend beside the map is painted from the same roles, so update both
- * together. The glyphs carry the state, so meaning never depends on colour.
+ * expressions cannot read CSS custom properties, so the ink and note fills
+ * come from `useMapPaint` (`src/theme/mapTheme.ts`), which reads the token
+ * roles at render and follows the appearance change. The glyphs carry the
+ * state, so meaning never depends on colour.
  */
-const statusColorExpression = [
-  "case",
-  [
-    "any",
-    ["==", ["get", "review_status"], "unable_to_verify"],
-    ["==", ["get", "mismatchReported"], true],
-  ],
-  "#8a4a06",
-  "#1d2720",
-] as ExpressionSpecification;
+function statusColorExpression(paint: MapPaint): ExpressionSpecification {
+  return [
+    "case",
+    [
+      "any",
+      ["==", ["get", "review_status"], "unable_to_verify"],
+      ["==", ["get", "mismatchReported"], true],
+    ],
+    paint.note,
+    paint.ink,
+  ] as ExpressionSpecification;
+}
 
 /**
  * Every operational state carries its own glyph so meaning never depends on
@@ -169,9 +173,12 @@ export function ValidationMap({
   const [providerState, setProviderState] = useState<MapProviderState>("loading");
   const mapRef = useRef<MapRef | null>(null);
   const fittedFrameKey = useRef<string | null>(null);
-  // Resolved per render so tests and runtime configuration can both change the
-  // basemap without reloading the module.
-  const basemapStyle = resolveBasemapStyle(env.mapTilerKey, import.meta.env.DEV);
+  // Resolved per render so tests, runtime configuration and the appearance
+  // choice can all change the basemap without reloading the module.
+  const theme = useTheme();
+  const paint = useMapPaint();
+  const basemapStyle = resolveBasemapStyle(env.mapTilerKey, import.meta.env.DEV, theme);
+  const pinColor = statusColorExpression(paint);
 
   const expandedFeatures = selection?.kind === "cluster" && expanded
     && expanded.keys === (selection.clusterKeys ?? []).join("|")
@@ -330,10 +337,10 @@ export function ValidationMap({
                   type="circle"
                   filter={["has", "point_count"]}
                   paint={{
-                    "circle-color": "#1d2720",
+                    "circle-color": paint.ink,
                     "circle-opacity": 0.92,
                     "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 50, 31],
-                    "circle-stroke-color": "#ffffff",
+                    "circle-stroke-color": paint.halo,
                     "circle-stroke-width": 2,
                   }}
                 />
@@ -346,17 +353,17 @@ export function ValidationMap({
                     "text-size": 12,
                     "text-allow-overlap": true,
                   }}
-                  paint={{ "text-color": "#ffffff" }}
+                  paint={{ "text-color": paint.onPin }}
                 />
                 <Layer
                   id="validation-points"
                   type="circle"
                   filter={pointFilter}
                   paint={{
-                    "circle-color": statusColorExpression,
+                    "circle-color": pinColor,
                     "circle-opacity": 0.95,
                     "circle-radius": 9,
-                    "circle-stroke-color": "#ffffff",
+                    "circle-stroke-color": paint.halo,
                     "circle-stroke-opacity": 1,
                     "circle-stroke-width": 2,
                   }}
@@ -370,7 +377,7 @@ export function ValidationMap({
                     "text-size": 12,
                     "text-allow-overlap": true,
                   }}
-                  paint={{ "text-color": "#ffffff" }}
+                  paint={{ "text-color": paint.onPin }}
                 />
               </Source>
               <Source id="validation-expanded" type="geojson" data={{
@@ -385,9 +392,9 @@ export function ValidationMap({
                 })),
               }}>
                 <Layer id="validation-expanded-points" type="circle" paint={{
-                  "circle-color": statusColorExpression,
+                  "circle-color": pinColor,
                   "circle-radius": 7,
-                  "circle-stroke-color": "#ffffff",
+                  "circle-stroke-color": paint.halo,
                   "circle-stroke-width": 2,
                 }} />
               </Source>
@@ -401,10 +408,10 @@ export function ValidationMap({
                   }],
                 }}>
                   <Layer id="validation-selected-ring" type="circle" paint={{
-                    "circle-color": "#1d2720",
+                    "circle-color": paint.ink,
                     "circle-opacity": 0.25,
                     "circle-radius": 16,
-                    "circle-stroke-color": "#1d2720",
+                    "circle-stroke-color": paint.ink,
                     "circle-stroke-width": 3,
                   }} />
                 </Source>
