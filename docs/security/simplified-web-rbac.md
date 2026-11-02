@@ -32,11 +32,14 @@ All routes under `/api/v1/admin/accounts` require a Sanctum web session, an acti
 | Method | Route | Result |
 | --- | --- | --- |
 | GET | `/` | Web-role users; optional bounded `search` and `page`; 25 per page |
+| GET | `/field` | Read-only field-reporter directory; optional bounded `page`; 25 per page |
 | GET | `/{uuid}` | One user's identity, role and status |
 | PATCH | `/{uuid}` | Password-confirmed role/status change |
 | GET | `/{uuid}/events` | Latest 25 role/status/admin audit events, newest first |
 
 Account fields: `uuid`, `name`, `email`, `role`, `is_active`, `access_version`. Writes require `role=reviewer|admin`, boolean `is_active`, `current_password`, and `expected_access_version`. Undocumented authority fields are rejected. The version protects against stale edits; it is not an administrator control.
+
+Field rows add the same Sanctum/verified/Admin gate plus the read-only access hints the v2 access operation enforces: `membership_state` (`not_issued`, `active`, `revoked`), `allowed_actions`, and `denial_reasons`. A field row offers no action when `allowed_actions` omits it; the screen shows the denial reason instead.
 
 Self role/status changes and failed password confirmation return 422; stale target versions return 409. Actor and target are rechecked under ordered user locks. Successful changed fields are audited with actor, target, before/after role/status and time; no-op writes do not revoke authentication or manufacture change events. Audit history uses the configured security-audit retention policy. Passwords, credentials and session contents are never audit metadata.
 

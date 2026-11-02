@@ -39,7 +39,12 @@ export async function changeAccount(uuid: string, command: AccountCommand, passw
   })).data);
 }
 
-export const fieldAccountSchema = accountSchema.extend({ role: z.literal("field_reporter") });
+export const fieldAccountSchema = accountSchema.extend({
+  role: z.literal("field_reporter"),
+  membership_state: z.enum(["not_issued", "active", "revoked"]),
+  allowed_actions: z.array(z.enum(["admit", "replace", "revoke", "restore", "keep_farmer", "defer", "reopen", "transfer"])),
+  denial_reasons: z.array(z.string()),
+});
 export type FieldAccount = z.infer<typeof fieldAccountSchema>;
 const fieldListSchema = z.object({ data: z.array(fieldAccountSchema), meta: listSchema.shape.meta });
 export type FieldAccessCommand = { operation: "revoke" | "restore"; role: FieldAccount["role"]; expected_access_version: number; office_reference: string; idempotency_key: string };

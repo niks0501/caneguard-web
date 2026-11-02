@@ -3,6 +3,7 @@ import { axiosClient } from "../api/axiosClient";
 import { initializeCsrf } from "../auth/auth.api";
 import { webAccount } from "../test/accountFixtures";
 import { changeAccount, listAccounts, listSchema } from "./accountsAdmin.api";
+import type { FieldAccount } from "./accountsAdmin.api";
 
 vi.mock("../api/axiosClient", () => ({ axiosClient: { get: vi.fn(), patch: vi.fn(), put: vi.fn() } }));
 vi.mock("../auth/auth.api", () => ({ initializeCsrf: vi.fn() }));
@@ -31,9 +32,10 @@ describe("simplified account transport", () => {
 });
 
 describe("field account transport", () => {
+  beforeEach(() => vi.clearAllMocks());
   it("sends the v2 access operation with step-up, reference, key and version", async () => {
     const { changeFieldAccess } = await import("./accountsAdmin.api");
-    const field = { ...webAccount, role: "field_reporter" as const };
+    const field: FieldAccount = { ...webAccount, role: "field_reporter", is_active: false, membership_state: "revoked", allowed_actions: ["restore"], denial_reasons: [] };
     vi.mocked(axiosClient.put).mockResolvedValue({ data: { data: field } });
     await changeFieldAccess(field.uuid, { operation: "revoke", role: "field_reporter", expected_access_version: 2, office_reference: " REF ", idempotency_key: "key" }, "pw");
     expect(initializeCsrf).toHaveBeenCalled();
