@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\V1\WebAccountsController;
 use App\Http\Controllers\Api\V1\WeeklyRssiExportController;
 use App\Http\Controllers\Api\V2\AccountsController;
 use App\Http\Controllers\Api\V2\MobileReportController as MobileV2ReportController;
+use App\Http\Controllers\Api\V3\MobileReportController as MobileV3ReportController;
 use App\Http\Controllers\Auth\ChangeEmailController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\DisableBiometricController;
@@ -226,6 +227,9 @@ Route::prefix('v2')->middleware(['auth:sanctum', 'verified', 'inspector.access']
 });
 
 Route::prefix('v3')->middleware(['auth:sanctum', 'verified', 'inspector.access'])->group(function () {
+    Route::post('/mobile/reports', [MobileV3ReportController::class, 'store'])
+        ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1'])
+        ->name('api.v3.mobile.reports.store');
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware(['mobile.token', 'abilities:report:status'])
         ->name('api.v3.mobile.reports.statuses');

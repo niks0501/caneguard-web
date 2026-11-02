@@ -1,0 +1,700 @@
+{
+  "$id": "https://github.com/niks0501/caneguard-web/blob/main/docs/contracts/mobile-report-upload-v3.json",
+  "artifact_format": "caneguard-multipart-contract",
+  "contract": "mobile-report-upload-v3",
+  "version": 3,
+  "status": "stable",
+  "owner": "niks0501/caneguard-web/api",
+  "wire": {
+    "method": "POST",
+    "path": "/api/v3/mobile/reports",
+    "content_type": "multipart/form-data",
+    "undeclared_fields": "ignored"
+  },
+  "authority": {
+    "client_owned": [
+      "client_uuid",
+      "image",
+      "image_source_type",
+      "source_width",
+      "source_height",
+      "predicted_label",
+      "confidence",
+      "class_scores",
+      "symptom_keys",
+      "checklist_consistency",
+      "reported_severity",
+      "mismatch_reported",
+      "reporter_suspected_condition",
+      "reporter_observation_text",
+      "quality_warnings",
+      "barangay",
+      "farmer_or_farm_owner_name",
+      "province",
+      "municipality",
+      "final_latitude",
+      "final_longitude",
+      "location_source",
+      "location_unavailable_reason",
+      "gps_accuracy",
+      "observed_at",
+      "captured_at",
+      "sugarcane_variety",
+      "crop_age",
+      "cane_class",
+      "affected_area_hectares",
+      "affected_area_measurement",
+      "affected_portion_percent",
+      "affected_portion_measurement",
+      "field_notes",
+      "model_version",
+      "preprocess_ms",
+      "inference_ms",
+      "total_ms",
+      "scan_record_client_uuid",
+      "field_survey_client_uuid"
+    ],
+    "server_derived": [
+      "uuid",
+      "reference_code",
+      "reporter_id",
+      "district_id",
+      "image_mime_type",
+      "image_size_bytes",
+      "submitted_at",
+      "created_at",
+      "updated_at"
+    ],
+    "server_owned_read_only": [
+      "review_status",
+      "review_notes",
+      "reviewed_at",
+      "reviewer_id",
+      "lock_version",
+      "case_state",
+      "verification_outcome",
+      "field_validation_state",
+      "referral_state",
+      "authority_classified_condition"
+    ],
+    "undeclared_field_policy": "ignored"
+  },
+  "authentication": {
+    "transport": "Sanctum bearer token",
+    "required_ability": "report:submit",
+    "server_authority": "field reporter role and Report::create policy"
+  },
+  "fields": {
+    "client_uuid": {
+      "wire_type": "text",
+      "type": "uuid",
+      "required": true,
+      "nullable": false,
+      "format": "uuid"
+    },
+    "image": {
+      "wire_type": "file",
+      "type": "image",
+      "required": true,
+      "nullable": false,
+      "formats": [
+        {
+          "name": "jpeg",
+          "extensions": [
+            "jpg",
+            "jpeg"
+          ],
+          "mime_types": [
+            "image/jpeg"
+          ]
+        },
+        {
+          "name": "png",
+          "extensions": [
+            "png"
+          ],
+          "mime_types": [
+            "image/png"
+          ]
+        },
+        {
+          "name": "webp",
+          "extensions": [
+            "webp"
+          ],
+          "mime_types": [
+            "image/webp"
+          ]
+        }
+      ],
+      "max_bytes": 10485760,
+      "metadata": {
+        "client_declared_fields": [
+          "source_width",
+          "source_height"
+        ],
+        "server_derived_fields": {
+          "mime_type": {
+            "type": "string",
+            "source": "uploaded image",
+            "persistence_column": "image_mime_type"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "source": "uploaded image",
+            "maximum_ref": "#/fields/image/max_bytes",
+            "persistence_column": "image_size_bytes"
+          }
+        }
+      }
+    },
+    "image_source_type": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "enum": [
+        "camera",
+        "gallery"
+      ]
+    },
+    "source_width": {
+      "wire_type": "text",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "minimum": 1,
+      "maximum": 50000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "source_height": {
+      "wire_type": "text",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "minimum": 1,
+      "maximum": 50000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "predicted_label": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "enum": [
+        "healthy",
+        "mosaic",
+        "rust",
+        "smut"
+      ]
+    },
+    "confidence": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "class_scores": {
+      "wire_name_template": "class_scores[{key}]",
+      "wire_type": "nested-object",
+      "type": "object",
+      "required": true,
+      "nullable": false,
+      "min_properties": 4,
+      "additional_properties": true,
+      "key_pattern": "^[a-z][a-z0-9_-]{0,31}$",
+      "conditions": [
+        {
+          "rule": "model_class_keys",
+          "field": "model_version",
+          "value": "v1.0-mobilenetv2",
+          "required_keys": [
+            "healthy",
+            "mosaic",
+            "rust",
+            "smut"
+          ],
+          "additional_properties": false
+        }
+      ],
+      "values": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "symptom_keys": {
+      "wire_name_template": "symptom_keys[]",
+      "wire_type": "repeated-text",
+      "type": "array",
+      "required": true,
+      "nullable": false,
+      "min_items": 1,
+      "unique_items": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "mosaic",
+          "rust",
+          "smut",
+          "yellow-midrib",
+          "none",
+          "something-else",
+          "unable-to-tell"
+        ]
+      }
+    },
+    "checklist_consistency": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "max_length": 40
+    },
+    "reported_severity": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 20,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "mismatch_reported": {
+      "wire_type": "text",
+      "type": "boolean",
+      "required": false,
+      "nullable": true,
+      "accepted_wire_values": [
+        true,
+        false,
+        0,
+        1,
+        "0",
+        "1",
+        "true",
+        "false"
+      ],
+      "normalization": {
+        "empty_string": "null",
+        "boolean_strings": {
+          "true": true,
+          "false": false
+        }
+      }
+    },
+    "reporter_suspected_condition": {
+      "description": "Bounded free-text reporter observation; Mobile may send RSSI as a field concern value, not as a Model V1 class.",
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 120,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "reporter_observation_text": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 1000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "quality_warnings": {
+      "wire_name_template": "quality_warnings[]",
+      "wire_type": "repeated-text",
+      "type": "array",
+      "required": false,
+      "nullable": false,
+      "default": [],
+      "unique_items": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "low-resolution",
+          "too-dark",
+          "too-bright",
+          "low-contrast"
+        ]
+      }
+    },
+    "barangay": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "max_length": 120
+    },
+    "farmer_or_farm_owner_name": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 160,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "province": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 120,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "municipality": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 120,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "final_latitude": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": -90,
+      "maximum": 90,
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_with",
+          "fields": [
+            "final_longitude"
+          ]
+        },
+        {
+          "rule": "required_if",
+          "field": "location_source",
+          "value": "gps"
+        },
+        {
+          "rule": "required_if",
+          "field": "location_source",
+          "value": "manual_map"
+        },
+        {
+          "rule": "prohibited_when",
+          "field": "location_source",
+          "value": "unavailable"
+        }
+      ]
+    },
+    "final_longitude": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": -180,
+      "maximum": 180,
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_with",
+          "fields": [
+            "final_latitude"
+          ]
+        },
+        {
+          "rule": "required_if",
+          "field": "location_source",
+          "value": "gps"
+        },
+        {
+          "rule": "required_if",
+          "field": "location_source",
+          "value": "manual_map"
+        },
+        {
+          "rule": "prohibited_when",
+          "field": "location_source",
+          "value": "unavailable"
+        }
+      ]
+    },
+    "location_source": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "enum": [
+        "gps",
+        "manual_map",
+        "unavailable"
+      ],
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_with",
+          "fields": [
+            "final_latitude",
+            "final_longitude"
+          ]
+        }
+      ]
+    },
+    "location_unavailable_reason": {
+      "description": "D-02: why an exact coordinate was not captured. Required only when location_source is unavailable.",
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 40,
+      "enum": [
+        "permission_denied",
+        "services_unavailable",
+        "low_accuracy",
+        "offline_no_map",
+        "other"
+      ],
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_if",
+          "field": "location_source",
+          "value": "unavailable"
+        },
+        {
+          "rule": "prohibited_unless",
+          "field": "location_source",
+          "value": "unavailable"
+        }
+      ]
+    },
+    "gps_accuracy": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": 0,
+      "normalization": {
+        "empty_string": "null"
+      },
+      "conditions": [
+        {
+          "rule": "required_if",
+          "field": "location_source",
+          "value": "gps"
+        },
+        {
+          "rule": "prohibited_unless",
+          "field": "location_source",
+          "value": "gps"
+        }
+      ]
+    },
+    "observed_at": {
+      "wire_type": "text",
+      "type": "date-time",
+      "required": false,
+      "nullable": true,
+      "format": "date-time",
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "scan_record_client_uuid": {
+      "wire_type": "text",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "format": "uuid",
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "field_survey_client_uuid": {
+      "wire_type": "text",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "format": "uuid",
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "sugarcane_variety": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "crop_age": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "cane_class": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "affected_area_hectares": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "exclusive_minimum": 0,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "affected_area_measurement": {
+      "description": "D-01: whether affected_area_hectares was actually measured. Inferred as measured when a hectare value is present and not_measured otherwise.",
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": false,
+      "enum": [
+        "measured",
+        "not_measured"
+      ],
+      "conditions": [
+        {
+          "rule": "measurement_pairing",
+          "value_field": "affected_area_hectares"
+        }
+      ]
+    },
+    "affected_portion_percent": {
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": 0,
+      "maximum": 100,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "affected_portion_measurement": {
+      "description": "D-01: whether affected_portion_percent was actually measured. Inferred as measured when a percentage is present and not_measured otherwise.",
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": false,
+      "enum": [
+        "measured",
+        "not_measured"
+      ],
+      "conditions": [
+        {
+          "rule": "measurement_pairing",
+          "value_field": "affected_portion_percent"
+        }
+      ]
+    },
+    "field_notes": {
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": true,
+      "max_length": 5000,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "model_version": {
+      "wire_type": "text",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "max_length": 100,
+      "known_values": [
+        "v1.0-mobilenetv2"
+      ],
+      "unrecognised_value_policy": "persist_as_submitted"
+    },
+    "preprocess_ms": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 999999999
+    },
+    "inference_ms": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 999999999
+    },
+    "total_ms": {
+      "wire_type": "text",
+      "type": "number",
+      "required": true,
+      "nullable": false,
+      "minimum": 0,
+      "maximum": 999999999
+    },
+    "captured_at": {
+      "wire_type": "text",
+      "type": "date-time",
+      "required": true,
+      "nullable": false,
+      "format": "date-time"
+    }
+  },
+  "versioning": {
+    "same_major_compatible_widening": [
+      "Accepting additional optional fields while preserving the undeclared-field policy.",
+      "Accepting additional values for an existing enum without changing existing value meanings.",
+      "Increasing a text maximum or numeric maximum, or lowering a numeric minimum, without changing persistence semantics.",
+      "Adding an accepted image format without removing or changing existing formats.",
+      "Increasing the image hard maximum only when every existing v3 consumer remains safe with the wider value.",
+      "Accepting optional measurement provenance while preserving existing numeric optionality.",
+      "Accepting the additional location_source value unavailable for reports submitted without an exact coordinate.",
+      "Recording why a location was unavailable while keeping barangay mandatory."
+    ],
+    "new_major_required": [
+      "Renaming or removing a field, changing its multipart encoding, or changing its type.",
+      "Making an accepted field or value invalid, including narrowing a text, numeric, UUID, array, coordinate, or image boundary.",
+      "Changing a field from optional to required, or changing null and empty-value semantics.",
+      "Changing enum meaning, disease classes, conditional location requirements, server-derived metadata, or persistence semantics.",
+      "Removing an existing image format or lowering the 10 MiB hard maximum."
+    ],
+    "v3_introduction": "v3 is v2 plus the optional nullable field_survey_client_uuid. Every other field, bound, encoding, location rule and persistence meaning is identical to v2, and the v2 endpoint and artifact are unchanged."
+  }
+}

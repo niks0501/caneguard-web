@@ -42,6 +42,7 @@ class PersistReport
                 'district_id' => app(DistrictAccess::class)->pilotId(),
                 'client_uuid' => $data['client_uuid'],
                 'scan_record_client_uuid' => $data['scan_record_client_uuid'] ?? null,
+                'field_survey_client_uuid' => $data['field_survey_client_uuid'] ?? null,
                 'barangay' => $data['barangay'],
                 'farmer_or_farm_owner_name' => $data['farmer_or_farm_owner_name'] ?? null,
                 'province' => $data['province'] ?? null,
