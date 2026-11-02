@@ -19,7 +19,7 @@ export const versionSchema = z.object({
   transmissions: z.array(transmissionSchema).default([]),
 });
 export const listSchema = z.object({
-  data: z.array(versionSchema), meta: z.object({ send_enabled: z.boolean(), appendix_allowed: z.boolean().default(false) }),
+  data: z.array(versionSchema), meta: z.object({ send_enabled: z.boolean(), recipient_count: z.number().int().min(0).default(0), appendix_allowed: z.boolean().default(false) }),
 });
 
 export type ReportVersion = z.infer<typeof versionSchema>;

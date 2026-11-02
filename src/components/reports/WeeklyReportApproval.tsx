@@ -6,6 +6,7 @@ import { useAuth } from "../../auth/useAuth";
 import { env } from "../../config/env";
 import { formatDateTime } from "../../lib/formatters";
 import { Button } from "../ui/Button";
+import { Modal } from "../ui/Modal";
 import { listSchema } from "./weeklyReportHistory";
 
 const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RSSI"], ["mosaic", "Sugarcane Mosaic"], ["rust", "Sugarcane Rust"], ["smut", "Sugarcane Smut"]];
@@ -16,6 +17,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
   const [online, setOnline] = useState(() => navigator.onLine);
   const [disease, setDisease] = useState("");
   const [appendix, setAppendix] = useState(false);
+  const [confirming, setConfirming] = useState<"approve" | "send" | null>(null);
   const intentKeys = useRef(new Map<string, string>());
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -63,6 +65,12 @@ export function WeeklyReportApproval({ week }: { week: string }) {
   const path = latest ? `${env.apiBaseUrl}/api/v1/district-reports/${latest.uuid}` : "";
   const query = params.toString();
 
+  const confirm = () => {
+    if (!confirming || action.isPending) return;
+    action.mutate(confirming);
+    setConfirming(null);
+  };
+
   if (env.dataSource !== "api") return null;
 
   return (
@@ -74,9 +82,24 @@ export function WeeklyReportApproval({ week }: { week: string }) {
           {action.isPending && action.variables === "prepare" ? "Preparing version..." : "Prepare district version"}
         </Button>
         {latest ? <span>Version {latest.version} · {latest.version_reason ?? "initial"} · {latest.content_hash.slice(0, 12)}</span> : null}
-        {canApprove ? <Button type="button" disabled={!latest || Boolean(latest.approved_at) || busy} onClick={() => action.mutate("approve")}>Approve version</Button> : null}
-        {canSend && versions.data?.meta.send_enabled ? <Button type="button" disabled={!latest?.approved_at || Boolean(blockedSend) || busy} onClick={() => action.mutate("send")}>{receipt?.state === "failed" || receipt?.state === "cancelled" ? "Order another send" : "Request send"}</Button> : null}
+        {canApprove ? <Button type="button" disabled={!latest || Boolean(latest.approved_at) || busy} onClick={() => setConfirming("approve")}>Approve version</Button> : null}
+        {canSend && versions.data?.meta.send_enabled ? <Button type="button" disabled={!latest?.approved_at || Boolean(blockedSend) || busy} onClick={() => setConfirming("send")}>{receipt?.state === "failed" || receipt?.state === "cancelled" ? "Order another send" : "Request send"}</Button> : null}
       </div>
+      {latest && confirming ? <Modal id="weekly-report-confirm" title={confirming === "approve" ? "Approve this report version?" : "Send this report to the district?"} open onClose={() => setConfirming(null)}
+        footer={<>
+          <Button type="button" variant="secondary" onClick={() => setConfirming(null)}>Cancel</Button>
+          <Button type="button" disabled={action.isPending} onClick={confirm}>{confirming === "approve" ? "Confirm approval" : "Confirm send"}</Button>
+        </>}>
+        <dl>
+          <dt>Week</dt><dd>{week}</dd>
+          <dt>Version</dt><dd>{latest.version}</dd>
+          <dt>Content hash</dt><dd className="machine-text">{latest.content_hash.slice(0, 12)}</dd>
+          <dt>Recipients</dt><dd>{versions.data?.meta.recipient_count ?? 0}</dd>
+        </dl>
+        <p>{confirming === "approve"
+          ? "Approval records your name and title as the attestation for this exact version. It cannot be undone."
+          : "Sending emails the signed PDF to the district recipients. It cannot be undone or recalled."}</p>
+      </Modal> : null}
       {latest?.prepared_name ? <p>Prepared by {latest.prepared_name}{latest.created_at ? ` · ${formatDateTime(latest.created_at)}` : ""}</p> : null}
       {latest?.approved_at ? <p>Approved{latest.approved_name ? ` by ${latest.approved_name}, ${latest.approved_title}` : ""} · {formatDateTime(latest.approved_at)}</p> : null}
       {canSend && versions.data && !versions.data.meta.send_enabled ? <p role="status">Weekly sending is not active yet.</p> : null}
