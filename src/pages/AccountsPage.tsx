@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { AccountAccessTable } from "../components/accounts/AccountAccessTable";
 import { LoadingState, ErrorState } from "../components/ui/States";
+import { FieldAccountsSection } from "../components/accounts/FieldAccountsSection";
 import { Pagination } from "../components/ui/Pagination";
 import { useAuth } from "../auth/useAuth";
 import { accountsFilters } from "./accountsUrlState";
@@ -43,5 +44,6 @@ export function AccountsPage() {
       {result.data.length === 0 ? <p role="status">{search ? "No matching users." : "No web users."}</p> : <AccountAccessTable accounts={result.data} onSaved={async () => { await client.invalidateQueries({ queryKey: ["accounts"] }); }} />}
       <Pagination currentPage={result.meta.page} pageCount={Math.max(1, Math.ceil(result.meta.total / result.meta.per_page))} itemCount={result.meta.total} itemLabel="users" onPageChange={page => setParams({ page: String(page) })} />
     </> : null}
+    <FieldAccountsSection />
   </PageContent>;
 }

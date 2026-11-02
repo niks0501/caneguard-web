@@ -102,4 +102,4 @@ Mobile must treat revoked tokens/old grant revisions as lost authority and re-au
 
 ## Evidence
 
-Synthetic fixtures: `examples/accounts-access-v1-list.json`, `examples/account-access-event-v1.json`. Static validator: `npm run contract:accounts-artifact`. Web tests: AccountsPage, AccountDetailPage, accountsAdmin.api. Backend: AccountsAccessTest; MySQL AccountsAccessMySqlTest; current auth/district/report suites remain required. A green lower-level suite is not a claim that production rollout or live browser acceptance occurred.
+Synthetic fixtures: `examples/accounts-access-v1-list.json`, `examples/account-access-event-v1.json`. Static validator: `npm run contract:accounts-artifact`. Web tests: AccountsPage, AccountDetailPage, FieldAccountsSection, accountsAdmin.api. Backend: AccountsAccessTest; MySQL AccountsAccessMySqlTest; current auth/district/report suites remain required. A green lower-level suite is not a claim that production rollout or live browser acceptance occurred.

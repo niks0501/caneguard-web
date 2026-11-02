@@ -6,12 +6,13 @@ use App\Actions\Auth\UpdateWebAccount;
 use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Security\AccountsDirectory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
-/** Supported account API: web roles and global status, never district authority. */
+/** Supported account API: web roles and global status; field reads carry the read-only access hints only. */
 class WebAccountsController extends Controller
 {
     public static function account(User $user): array
@@ -35,6 +36,28 @@ class WebAccountsController extends Controller
 
         return response()->json([
             'data' => $page->getCollection()->map(fn (User $user) => self::account($user)),
+            'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+        ]);
+    }
+
+    /** Read-only directory of field accounts; changes go through the v2 access operation. */
+    public function fieldIndex(Request $request, AccountsDirectory $directory): JsonResponse
+    {
+        Gate::authorize('viewAny', User::class);
+        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:100000']]);
+        $page = $directory->scope()->where('role', User::ROLE_FIELD_REPORTER)->orderBy('name')->orderBy('id')->paginate(25, page: $input['page'] ?? 1);
+        $actor = $request->user();
+
+        return response()->json([
+            'data' => $page->getCollection()->map(function (User $user) use ($directory, $actor) {
+                $detail = $directory->detail($user, $actor);
+
+                return array_merge(self::account($user), [
+                    'membership_state' => $detail['membership_state'],
+                    'allowed_actions' => $detail['allowed_actions'],
+                    'denial_reasons' => $detail['denial_reasons'],
+                ]);
+            }),
             'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
         ]);
     }

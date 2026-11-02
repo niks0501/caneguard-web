@@ -3,8 +3,9 @@ import { axiosClient } from "../api/axiosClient";
 import { initializeCsrf } from "../auth/auth.api";
 import { webAccount } from "../test/accountFixtures";
 import { changeAccount, listAccounts, listSchema } from "./accountsAdmin.api";
+import type { FieldAccount } from "./accountsAdmin.api";
 
-vi.mock("../api/axiosClient", () => ({ axiosClient: { get: vi.fn(), patch: vi.fn() } }));
+vi.mock("../api/axiosClient", () => ({ axiosClient: { get: vi.fn(), patch: vi.fn(), put: vi.fn() } }));
 vi.mock("../auth/auth.api", () => ({ initializeCsrf: vi.fn() }));
 const filters = { search: "", page: 1 };
 const fixture = { data: [webAccount], meta: { page: 1, per_page: 25, total: 1 } };
@@ -27,5 +28,20 @@ describe("simplified account transport", () => {
     await changeAccount(webAccount.uuid, command, "synthetic-password");
     expect(initializeCsrf).toHaveBeenCalledOnce();
     expect(axiosClient.patch).toHaveBeenCalledWith(`/api/v1/admin/accounts/${webAccount.uuid}`, { ...command, current_password: "synthetic-password" });
+  });
+});
+
+describe("field account transport", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("sends the v2 access operation with step-up, reference, key and version", async () => {
+    const { changeFieldAccess } = await import("./accountsAdmin.api");
+    const field: FieldAccount = { ...webAccount, role: "field_reporter", is_active: false, membership_state: "revoked", allowed_actions: ["restore"], denial_reasons: [] };
+    vi.mocked(axiosClient.put).mockResolvedValue({ data: { data: field } });
+    await changeFieldAccess(field.uuid, { operation: "revoke", role: "field_reporter", expected_access_version: 2, office_reference: " REF ", idempotency_key: "key" }, "pw");
+    expect(initializeCsrf).toHaveBeenCalled();
+    expect(axiosClient.put).toHaveBeenCalledWith(`/api/v2/admin/accounts/${field.uuid}/access`, {
+      contract_version: "accounts-access-v1", operation: "revoke", desired: { role: "field_reporter", grants: [] },
+      current_password: "pw", office_reference: "REF", idempotency_key: "key", expected_access_version: 2,
+    });
   });
 });

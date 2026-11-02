@@ -10,7 +10,7 @@ import { AccountsPage } from "./AccountsPage";
 import { accountsFilters } from "./accountsUrlState";
 
 vi.mock("../auth/useAuth", () => ({ useAuth: vi.fn() }));
-vi.mock("../services/accountsAdmin.api", async original => ({ ...await original<typeof api>(), listAccounts: vi.fn(), changeAccount: vi.fn() }));
+vi.mock("../services/accountsAdmin.api", async original => ({ ...await original<typeof api>(), listAccounts: vi.fn(), changeAccount: vi.fn(), listFieldAccounts: vi.fn(), changeFieldAccess: vi.fn() }));
 function Location() { return <output aria-label="Location">{useLocation().search}</output>; }
 function renderPage(route = "/accounts") {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={[route]}><AccountsPage /><Location /></MemoryRouter></QueryClientProvider>);
@@ -19,6 +19,7 @@ describe("User Management", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuth).mockReturnValue({ user: adminAccount, status: "authenticated", reason: null, restoreSession: vi.fn(), login: vi.fn(), logout: vi.fn() });
+    vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [], meta: { page: 1, per_page: 25, total: 0 } });
     vi.mocked(api.listAccounts).mockResolvedValue({ data: [adminAccount, webAccount], meta: { page: 1, per_page: 25, total: 2 } });
   });
   it("shows only identity, web role and status; own row is disabled", async () => {
