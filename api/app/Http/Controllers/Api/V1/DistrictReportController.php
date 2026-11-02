@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DistrictRecipientSet;
 use App\Models\DistrictReportVersion;
 use App\Security\DistrictAccess;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -26,10 +27,22 @@ class DistrictReportController extends Controller
             ->when($start, fn ($query) => $query->where('week_start', $start))
             ->orderByDesc('week_start')->orderByDesc('version')->limit(50)->get();
 
-        return response()->json(['data' => $versions->map(function ($version): array {
+        $topVersion = $versions->groupBy('week_start')->map(fn ($group) => $group->max('version'));
+
+        return response()->json(['data' => $versions->map(function ($version) use ($workflow, $topVersion): array {
             // No farmer names, raw sealed content, evidence hashes or PDF bytes in list responses.
+            $content = $version->content ?? [];
+            $weekStart = substr((string) $version->week_start, 0, 10);
+            // Only the newest listed version of a week can still be current; older ones are superseded.
+            $stale = $version->version < $topVersion[$version->week_start] ? 'newer_version' : $workflow->staleReason($version);
+
             return $version->only(['uuid', 'version', 'content_hash', 'approved_at', 'approved_name', 'approved_title', 'prepared_name', 'created_at', 'supersedes_version_id', 'version_reason', 'document_sha256', 'renderer_version'])
-                + ['appendix_enabled' => $version->content['appendix_enabled'] ?? false, 'transmissions' => $version->transmissions];
+                + ['week' => CarbonImmutable::parse($weekStart, 'Asia/Manila')->format('o-\WW'), 'week_start' => $weekStart,
+                    'is_current' => $stale === null, 'stale_reason' => $stale,
+                    'headline' => ['cases' => (int) ($content['case_universe']['cases'] ?? 0),
+                        'confirmed' => (int) collect($content['diseases'] ?? [])->sum('confirmed'),
+                        'late_evidence' => (int) ($content['late_evidence']['received_later_for_this_week'] ?? 0)],
+                    'appendix_enabled' => $content['appendix_enabled'] ?? false, 'transmissions' => $version->transmissions];
         }), 'meta' => [
             'send_enabled' => config('caneguard.weekly_send_enabled') === true
                 && DistrictRecipientSet::query()->where('district_id', $access->pilotId())->whereNull('revoked_at')->exists(),

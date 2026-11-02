@@ -32,3 +32,8 @@ export function previousManilaIsoWeekAt(now: Date = new Date()): string {
 
   return `${isoYear}-W${String(week).padStart(2, "0")}`;
 }
+
+/** Return the last `count` complete ISO weeks, newest first, resolved from the Manila date. */
+export function recentManilaIsoWeeks(count: number, now: Date = new Date()): string[] {
+  return Array.from({ length: count }, (_, index) => previousManilaIsoWeekAt(new Date(now.getTime() - index * 7 * DAY_MS)));
+}
