@@ -33,7 +33,7 @@ review:
 test:
   instructions: |
     Use PROJECT_CHECKS.md to select affected Vitest, Laravel or consumer-contract tests; full suites belong in CI.
-    No interactive checks in no-mistakes; explicitly authorized browser acceptance uses npm run dev -- --host 127.0.0.1 --port <free-port> --strictPort.
-    For authorized live API acceptance, start Laravel per README.md with isolated firstmate_ test data; never production/shared databases.
+    Run browser acceptance in no-mistakes whenever the change justifies it, using npm run dev -- --host 127.0.0.1 --port <free-port> --strictPort.
+    For live API acceptance, start Laravel per README.md with isolated firstmate_ test data; never production/shared databases.
     Browser-compatible Web/HTTP evidence cannot prove Mobile native behavior; backend-only changes need no browser.
     Record revision, commands and actual evidence; unavailable required evidence is inconclusive, defects are no-go.

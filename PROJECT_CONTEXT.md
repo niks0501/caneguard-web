@@ -216,9 +216,9 @@ Third-party integrations are optional.
 - When GitHub MCP is available, prefer local Git for local working-tree state and use GitHub MCP for remote repositories, PRs, issues, and Actions. Never inspect or expose `GITHUB_PERSONAL_ACCESS_TOKEN`.
 - Ask before remote GitHub mutations such as creating/editing issues, comments, pull requests, workflow dispatches, releases, or other externally visible state.
 - Use Graphify only when repository-wide structure or hidden dependency analysis would materially help.
-- Use browser automation when Web UI behavior requires it, not for unrelated API work.
+- Run browser verification with `chrome-devtools-axi` when Web UI behavior or a live HTTP contract changes, including during validation; not for unrelated API work.
 - For non-trivial architecture, debugging, runtime, or verification work, consult the project `akidev-tool-routing` skill and load the smallest matching specialized skill. Never install missing shared workstation tools.
-- Keep this Web/API repository focused on its Web and API checks; do not run device tooling or device E2E here.
+- Keep this Web/API repository focused on its Web and API checks; do not run device tooling here.
 - Framework-owner guidance wins when third-party skills conflict with the framework's official behavior.
 - Repository-specific instructions win over generic style guidance unless doing so would introduce a correctness or security defect.
 
