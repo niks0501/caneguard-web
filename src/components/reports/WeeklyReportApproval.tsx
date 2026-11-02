@@ -92,11 +92,11 @@ export function WeeklyReportApproval({ week }: { week: string }) {
         </Button>
         {latest ? <span>Version {latest.version} · {latest.version_reason ?? "initial"} · {latest.content_hash.slice(0, 12)}</span> : null}
         {canApprove ? <Button type="button" disabled={!latest || Boolean(latest.approved_at) || busy} onClick={() => action.mutate("approve")}>Approve version</Button> : null}
-        {canSend ? <Button type="button" disabled={!latest?.approved_at || !versions.data?.meta.send_enabled || Boolean(blockedSend) || busy} onClick={() => action.mutate("send")}>{receipt?.state === "failed" || receipt?.state === "cancelled" ? "Order another send" : "Request send"}</Button> : null}
+        {canSend && versions.data?.meta.send_enabled ? <Button type="button" disabled={!latest?.approved_at || Boolean(blockedSend) || busy} onClick={() => action.mutate("send")}>{receipt?.state === "failed" || receipt?.state === "cancelled" ? "Order another send" : "Request send"}</Button> : null}
       </div>
       {latest?.prepared_name ? <p>Prepared by {latest.prepared_name}{latest.created_at ? ` · ${formatDateTime(latest.created_at)}` : ""}</p> : null}
       {latest?.approved_at ? <p>Approved{latest.approved_name ? ` by ${latest.approved_name}, ${latest.approved_title}` : ""} · {formatDateTime(latest.approved_at)}</p> : null}
-      {canSend && versions.data && !versions.data.meta.send_enabled ? <p role="status">Office delivery gate closed.</p> : null}
+      {canSend && versions.data && !versions.data.meta.send_enabled ? <p role="status">Weekly sending is not active yet.</p> : null}
       {receipt ? <div aria-label="Delivery receipt" role="status">
         <p>{receipt.state === "sent" ? "SMTP provider accepted the report. Inbox delivery is not guaranteed." : receipt.state === "failed" ? "Delivery failed or is uncertain. Check the provider before ordering another send." : receipt.state === "cancelled" ? "Send cancelled after authority or evidence changed." : receipt.state === "delivering" ? "Delivery in progress. Do not order another send." : "Send intent recorded. Delivery is not confirmed."}</p>
         <p>Ordered by {receipt.requested_name ?? `staff ${receipt.requested_by_id}`} · {formatDateTime(receipt.created_at)}</p>

@@ -25,6 +25,7 @@ final class DistrictReportingSettingsController extends Controller
             'reminder_time' => $settings?->reminder_time,
             'timezone' => 'Asia/Manila',
             'can_manage' => true,
+            'reminders_active' => config('caneguard.weekly_reminders_enabled') === true,
         ]])->header('Cache-Control', 'private, no-store');
     }
 

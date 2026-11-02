@@ -115,12 +115,12 @@ describe("weekly district approval", () => {
     vi.restoreAllMocks();
   });
 
-  it("keeps sending disabled behind the office contract gate", async () => {
+  it("hides sending behind the office contract gate", async () => {
     auth("admin", ["report:send"]);
     server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: { send_enabled: false } })));
     renderApproval();
-    expect(await screen.findByText("Office delivery gate closed.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Request send" })).toBeDisabled();
+    expect(await screen.findByText("Weekly sending is not active yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request send" })).not.toBeInTheDocument();
   });
 
   it("explains stale version conflicts and never declares approval success", async () => {

@@ -68,6 +68,8 @@ return [
         explode(',', (string) env('CANEGUARD_ACCEPTED_MODEL_VERSIONS', 'v1.0-mobilenetv2')),
     ))),
     'weekly_send_enabled' => env('CANEGUARD_WEEKLY_SEND_ENABLED', false),
+    // No scheduler or reminder command exists yet; keep reminders closed until ops provision a worker, scheduler and mail.
+    'weekly_reminders_enabled' => env('CANEGUARD_WEEKLY_REMINDERS_ENABLED', false),
     'weekly_appendix_enabled' => env('CANEGUARD_WEEKLY_APPENDIX_ENABLED', false),
     'auth' => [
         'verification_url' => env(

@@ -52,5 +52,13 @@ After a deployment fix is merged, start a **new** dispatch and verify its SHA co
 
 The workflow needs the dedicated `deploy` key; your personal workstation SSH key is not needed. View Actions logs after each run. A passed deployment should show `PASS: Active release`.
 
+## Weekly send and reminders need operations that production does not run yet
+Production currently runs no queue worker, no scheduler and no mail. Until all three are provisioned:
+- Weekly send must stay off (`CANEGUARD_WEEKLY_SEND_ENABLED=false`). A send is queued on the `database` queue and, with no `queue:work` process, would stay `pending` forever. The Send control is hidden and the page says weekly sending is not active yet.
+- Preparation reminders must stay off (`CANEGUARD_WEEKLY_REMINDERS_ENABLED=false`). No schedule or reminder command exists, so a saved reminder day and time would never fire. The Admin Settings form is hidden and says preparation reminders are not active yet.
+- Keep `BROADCAST_CONNECTION=log` in the shared production `.env` while `VITE_REALTIME_ENABLED` is `false`. Queued broadcast events otherwise accumulate unprocessed in the `jobs` table.
+
+Enabling either flag requires a supervised `php artisan queue:work`, a scheduler entry, and working SMTP first.
+
 ## Explicit exclusions
 No Android app build, Mobile integration, SRA roster provisioning, district changes, SMTP setup, seeding, Reverb launch, or database reset.
