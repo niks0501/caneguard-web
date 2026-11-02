@@ -18,7 +18,7 @@ class DistrictReportingSettingsTest extends TestCase
         $manager = User::factory()->admin()->inDistrict($district)->create();
         $grant = DistrictGrant::query()->create(['user_id' => $manager->id, 'district_id' => $district->id, 'ability' => 'staff:manage']);
         $this->actingAs($manager, 'web');
-        $this->getJson('/api/v1/district-reporting-settings')->assertOk()->assertJsonPath('data.reminder_day', null)->assertJsonPath('data.timezone', 'Asia/Manila');
+        $this->getJson('/api/v1/district-reporting-settings')->assertOk()->assertJsonPath('data.reminder_day', null)->assertJsonPath('data.timezone', 'Asia/Manila')->assertJsonPath('data.reminders_active', false);
         $payload = ['reminder_day' => 2, 'reminder_time' => '13:30', 'office_reference' => 'synthetic-office-decision', 'current_password' => 'password'];
         $this->putJson('/api/v1/district-reporting-settings', [...$payload, 'current_password' => 'wrong'])->assertForbidden();
         $this->putJson('/api/v1/district-reporting-settings', $payload)->assertOk()->assertJsonPath('data.reminder_day', 2)->assertJsonPath('data.reminder_time', '13:30');
