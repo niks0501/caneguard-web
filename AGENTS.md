@@ -56,11 +56,11 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 
 ## No-Mistakes Test Policy
 
-During no-mistakes validation, never run E2E, UI, browser, device, or interactive acceptance tests such as agent-device, Playwright, Appium, Detox, Cypress, or Selenium.
+During no-mistakes validation, run live verification alongside the fast automated checks whenever the change justifies it: E2E, UI, browser, device, or interactive acceptance tests such as agent-device, Playwright, Appium, Detox, Cypress, or Selenium.
 
-Use only fast non-interactive automated checks, including targeted unit tests, integration tests, type checks, lint, and static validation.
+Start with fast non-interactive automated checks, including targeted unit tests, integration tests, type checks, lint, and static validation, then run the live checks the change calls for.
 
-E2E validation belongs to the implementation phase and must not be repeated by no-mistakes unless explicitly requested.
+E2E validation belongs to both the implementation phase and no-mistakes validation.
 
 ## Completion
 
