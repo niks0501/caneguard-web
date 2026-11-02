@@ -61,7 +61,7 @@ const ReportLocationMap = lazy(() =>
 export function DashboardPage() {
   // The scope ruler's last-chosen mode and window survive leaving the page and
   // reloading it; a missing or unreadable stored value falls back to the
-  // current PHT month to date (see dashboardPreferences.ts).
+  // last 30 days (see dashboardPreferences.ts).
   const [selection, setSelection] = useState<ScopeSelection>(
     () => readDashboardPreferences().selection,
   );

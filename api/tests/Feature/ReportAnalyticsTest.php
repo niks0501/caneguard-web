@@ -343,7 +343,7 @@ class ReportAnalyticsTest extends TestCase
         );
     }
 
-    public function test_review_waiting_age_uses_the_same_period_scoped_population_as_the_review_count(): void
+    public function test_review_waiting_age_counts_the_unscoped_needs_review_queue_regardless_of_period(): void
     {
         CarbonImmutable::setTestNow('2026-09-10 09:00:00');
         try {
@@ -367,8 +367,13 @@ class ReportAnalyticsTest extends TestCase
             Sanctum::actingAs($reviewer);
             $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-10')
                 ->assertOk()->json('data');
-            $this->assertSame(1, $data['review_backlog']['total_waiting']);
-            $this->assertSame(1, array_sum(array_column($data['review_backlog']['buckets'], 'count')));
+            // The August report predates the window yet still waits.
+            $this->assertSame(2, $data['review_backlog']['total_waiting']);
+            $this->assertSame(2, array_sum(array_column($data['review_backlog']['buckets'], 'count')));
+            $this->assertSame(
+                (int) CarbonImmutable::parse('2026-08-08T02:00:00Z')->diffInDays(CarbonImmutable::now('Asia/Manila')),
+                $data['review_backlog']['oldest_waiting_days'],
+            );
         } finally {
             CarbonImmutable::setTestNow();
         }

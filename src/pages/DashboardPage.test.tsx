@@ -8,6 +8,7 @@ import { ANALYTICS_FORBIDDEN_WORDS } from "../components/dashboard/analyticsCopy
 import {
   DASHBOARD_PREFERENCES_STORAGE_KEY,
   DASHBOARD_PREFERENCES_VERSION,
+  saveDashboardScope,
 } from "../components/dashboard/dashboardPreferences";
 import type { ScopeSelection } from "../components/dashboard/dashboardScope";
 import { mockReports } from "../data/mock/mockReports";
@@ -228,7 +229,30 @@ beforeEach(() => {
   } as unknown as ReturnType<typeof useFieldValidationMap>);
 });
 
+// The first-visit default is the last 30 days; most cases below exercise the
+// month-to-date window, so they store that choice as a captain would.
+function chooseCurrentMonth() {
+  saveDashboardScope({
+    mode: "month",
+    month: "2026-09",
+    from: "2026-09-01",
+    to: "2026-09-24",
+  });
+}
+
 describe("DashboardPage", () => {
+  beforeEach(chooseCurrentMonth);
+
+  it("opens Trends on the last 30 days when no scope is stored", () => {
+    window.localStorage.clear();
+    renderTrends();
+    expect(screen.getByLabelText("Last 30 days")).toBeChecked();
+    expect(useAnalytics).toHaveBeenLastCalledWith(
+      { from: "2026-08-26", to: "2026-09-24", granularity: "day" },
+      { enabled: true },
+    );
+  });
+
   it("requests the current PHT month by default and allows changing the scope", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-24T05:30:00.000Z"));
@@ -412,6 +436,18 @@ describe("DashboardPage", () => {
     expect(within(card).getByRole("img", { name: "Waiting age: 0–2 days waiting 1 report" })).toBeInTheDocument();
   });
 
+  it("reads the same count as the morning note, however old the waiting reports are", () => {
+    vi.mocked(useDashboard).mockReturnValue(dashboardResult({
+      data: { ...summary, queues: { ...summary.queues, follow_up_due: 0 } },
+    }));
+    renderDashboard();
+    const card = screen.getByText("Reports awaiting review").closest("article")!;
+    expect(within(card).getByText("3")).toBeInTheDocument();
+    expect(
+      screen.getByText("3 reports are waiting for your review."),
+    ).toBeInTheDocument();
+  });
+
   it("labels an empty or unmeasurable waiting backlog honestly", () => {
     vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
       ...analytics,
@@ -536,7 +572,7 @@ describe("DashboardPage", () => {
     ).toHaveAttribute("href", "/reports");
     expect(
       snapshot.getByRole("link", { name: "Open the Awaiting review queue" }),
-    ).toHaveAttribute("href", "/reports?queue=needs_review&date_from=2026-09-01&date_to=2026-09-24");
+    ).toHaveAttribute("href", "/reports?queue=needs_review");
     expect(
       snapshot.getByRole("link", {
         name: "Open the Needing field validation queue",
@@ -856,21 +892,19 @@ describe("DashboardPage", () => {
     expect(screen.queryByRole("heading", { name: "Trends and analysis" })).not.toBeInTheDocument();
   });
 
-  it("captions the window only on the two cards whose figures it covers", () => {
+  it("captions the window only on the submissions card", () => {
     const { rerender } = renderDashboard();
     const card = (name: string) => screen.getByText(name).closest("article")!;
 
     expect(
       within(card("Submitted reports")).getByText("Period 1–24 Sep 2026"),
     ).toBeInTheDocument();
-    expect(
-      within(card("Reports awaiting review")).getByText(
-        "Period 1–24 Sep 2026",
-      ),
-    ).toBeInTheDocument();
 
-    // The current-state queue counts are not filtered by the window, so they
-    // carry no period caption.
+    // The queue counts, awaiting review included, are current state rather
+    // than windowed, so they carry no period caption.
+    expect(
+      within(card("Reports awaiting review")).queryByText(/^Period /),
+    ).not.toBeInTheDocument();
     expect(
       within(card("Reports needing field validation")).queryByText(/^Period /),
     ).not.toBeInTheDocument();
@@ -998,9 +1032,15 @@ describe("DashboardPage", () => {
 
   it("mounts the three decision charts and the map once period data arrives", async () => {
     vi.useRealTimers();
-    // The default scope is the current PHT month: first of the month through
+    // The stored scope is the current PHT month: first of the month through
     // today. The fixture must agree with both bounds or the page treats the
     // payload as out of scope and never mounts the charts.
+    saveDashboardScope({
+      mode: "month",
+      month: manilaMonthAt(),
+      from: `${manilaMonthAt()}-01`,
+      to: manilaDateAt(),
+    });
     vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
       ...analytics,
       period: { ...analytics.period, from: `${manilaMonthAt()}-01`, to: manilaDateAt() },
@@ -1168,6 +1208,8 @@ describe("DashboardPage", () => {
 });
 
 describe("DashboardPage control memory", () => {
+  beforeEach(chooseCurrentMonth);
+
   function stored(): Record<string, unknown> {
     return JSON.parse(
       window.localStorage.getItem(DASHBOARD_PREFERENCES_STORAGE_KEY) ?? "null",
@@ -1260,7 +1302,7 @@ describe("DashboardPage control memory", () => {
 
     renderTrends();
 
-    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
+    expect(screen.getByLabelText("Last 30 days")).toBeChecked();
     expect(useDashboard).toHaveBeenLastCalledWith(
       "2026-09",
       dashboardSummaryOptions,
@@ -1288,7 +1330,7 @@ describe("DashboardPage control memory", () => {
 
     renderTrends();
 
-    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
+    expect(screen.getByLabelText("Last 30 days")).toBeChecked();
     expect(useDashboard).toHaveBeenLastCalledWith(
       "2026-09",
       dashboardSummaryOptions,
@@ -1312,7 +1354,7 @@ describe("DashboardPage control memory", () => {
 
     renderTrends();
 
-    expect(screen.getByLabelText("Scope month")).toHaveValue("2026-09");
+    expect(screen.getByLabelText("Last 30 days")).toBeChecked();
     expect(useDashboard).toHaveBeenLastCalledWith(
       "2026-09",
       dashboardSummaryOptions,

@@ -267,11 +267,13 @@ export class MockDashboardRepository implements DashboardRepository {
       else schedule.scheduled += 1;
     });
 
-    const waitingReports = reports.filter((report) => {
-      const lifecycle = lifecycleFor(report);
-      return lifecycle.caseState === "open" &&
-        lifecycle.verificationOutcome === "not_determined";
-    });
+    // Current state, not period: the same unscoped needs-review queue the
+    // morning note counts.
+    const waitingReports = filterMockOperationalQueue(
+      mockReports.filter(isCanonicalWorkReport),
+      "needs_review",
+      today,
+    );
     const backlogBuckets = [
       { label: "0–2 days waiting", min: 0, max: 2, count: 0 },
       { label: "3–6 days waiting", min: 3, max: 6, count: 0 },
