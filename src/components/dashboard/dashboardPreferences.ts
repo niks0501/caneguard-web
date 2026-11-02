@@ -39,13 +39,13 @@ const storedSelectionSchema = z.object({
   to: scopeDateSchema,
 });
 
-/** First-visit scope (current PHT month to date) and the map's own default. */
+/** First-visit scope (last 30 days, never empty early in a month) and the map's own default. */
 export function defaultDashboardPreferences(
   today: string = manilaDateAt(),
 ): DashboardPreferences {
   const month = today.slice(0, 7);
   return {
-    selection: { mode: "month", month, from: `${month}-01`, to: today },
+    selection: { mode: "last30", month, from: `${month}-01`, to: today },
     mapLayer: "barangay",
   };
 }

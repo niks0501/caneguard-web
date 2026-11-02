@@ -137,7 +137,7 @@ final class BuildReportAnalytics
             'area' => $this->area(clone $base, $start, $end, $filters),
             'validation_workload' => $this->validationWorkload(clone $base),
             'validation_schedule' => $this->validationSchedule(clone $base),
-            'review_backlog' => $this->reviewBacklog(clone $base),
+            'review_backlog' => $this->reviewBacklog(),
             'validation_turnaround' => $this->validationTurnaround(clone $base),
         ];
     }
@@ -611,12 +611,15 @@ final class BuildReportAnalytics
      * Review backlog by waiting age over the needs-review predicate (C9):
      * open submitted reports with no verification outcome yet. Buckets are
      * labelled waiting age, never overdue; the oldest wait travels beside
-     * the histogram.
+     * the histogram. Current state, not period: it ignores the requested
+     * window and filters so it matches the dashboard's needs_review queue.
      *
      * @return array{total_waiting: int, buckets: array<int, array{label: string, count: int}>, oldest_waiting_days: int|null}
      */
-    private function reviewBacklog(Builder $base): array
+    private function reviewBacklog(): array
     {
+        $base = Report::query()->visibleTo(request()->user())
+            ->whereNull('canonical_report_id');
         $now = CarbonImmutable::now(self::TIMEZONE);
         $buckets = [
             ['label' => '0–2 days waiting', 'min' => 0, 'max' => 2, 'count' => 0],

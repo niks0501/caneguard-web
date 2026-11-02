@@ -25,13 +25,14 @@ import type { MetricSegment } from "./metricSegments";
  * Section A — Current operations (overhaul §3.2). Four compact KPI cards, one
  * per metric, each composed as its header row, one large value, one supporting
  * line and one graphic: a submission sparkline, a waiting-age radial, the
- * field-validation schedule bar and a status indicator. The two windowed cards
- * caption the period their figures cover; the current-state queue cards carry
- * no period. The card itself links to its queue, so no separate action row
+ * field-validation schedule bar and a status indicator. Only the
+ * submissions card captions its period; KPI 2 reads the unscoped
+ * needs-review queue like the other current-state queue cards, so it carries
+ * no period and links to the queue unfiltered. The card itself links to its queue, so no separate action row
  * sits on the card. Every supporting figure is
  * read from the population and window the card already shows (`kpiSupport`):
  * KPI 1's delta from the same analytics request, KPI 2's oldest wait from the
- * same review backlog it counts, KPI 3's past-target count from the same
+ * same unscoped review backlog it counts, KPI 3's past-target count from the same
  * current-state queue. KPI 1 alone also carries the page's single tooltip,
  * defining what "previous period" means for the window the request returned
  * (the retired header scope note used to say it in prose). The two calendar
@@ -124,14 +125,9 @@ export function OperationalSnapshot({
           unavailable={!analytics}
           support={waitingAgeSupportLine(analytics?.reviewBacklog)}
           icon={<ShieldCheck aria-hidden="true" strokeWidth={1.75} />}
-          href={analytics
-            ? `${routes.reportQueue("needs_review")}&date_from=${analytics.period.from}&date_to=${analytics.period.to}`
-            : routes.reportQueue("needs_review")}
+          href={routes.reportQueue("needs_review")}
           linkLabel="Open the Awaiting review queue"
         >
-          {periodCaption ? (
-            <span className="kpi-card__window">{periodCaption}</span>
-          ) : null}
           {waitingAge ? (
             <RadialMeter label="Waiting age" segments={waitingAge} />
           ) : null}

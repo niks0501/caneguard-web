@@ -62,11 +62,12 @@ beforeEach(() => {
 });
 
 describe("dashboard preferences store", () => {
-  it("starts from the current PHT month to date and barangay circles", () => {
+  it("starts from the last 30 days and barangay circles", () => {
     expect(readDashboardPreferences(window.localStorage, TODAY)).toEqual({
       selection: defaultSelection,
       mapLayer: "barangay",
     });
+    expect(defaultSelection.mode).toBe("last30");
   });
 
   it("round-trips a chosen scope with its version envelope", () => {
