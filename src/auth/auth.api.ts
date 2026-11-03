@@ -5,7 +5,6 @@ import type {
   AppUser,
   LoginCredentials,
   PasswordResetCredentials,
-  RegistrationCredentials,
   WebRole,
 } from "./auth.types";
 
@@ -24,16 +23,6 @@ const authActionResponseSchema = z.object({
   code: z.string(),
 });
 
-const registrationResponseSchema = authActionResponseSchema.extend({
-  user: z.object({
-    uuid: z.string(),
-    name: z.string(),
-    email: z.email(),
-    role: z.literal("farmer"),
-    email_verified: z.boolean(),
-  }),
-});
-
 export async function initializeCsrf(): Promise<void> {
   await axiosClient.get("/sanctum/csrf-cookie");
 }
@@ -43,14 +32,6 @@ export async function loginRequest(
 ): Promise<void> {
   await initializeCsrf();
   await axiosClient.post("/login", credentials);
-}
-
-export async function registerRequest(
-  credentials: RegistrationCredentials,
-) {
-  await initializeCsrf();
-  const response = await axiosClient.post("/register", credentials);
-  return registrationResponseSchema.parse(response.data);
 }
 
 export async function resendVerificationRequest(email: string) {
