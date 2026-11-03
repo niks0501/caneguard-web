@@ -53,9 +53,6 @@ class EmptyDatabaseSeederTest extends TestCase
                 ['label' => '2026-09-01', 'count' => 0],
                 ['label' => '2026-09-02', 'count' => 0],
             ])
-            ->assertJsonPath('data.cases_by_barangay', [])
-            ->assertJsonPath('data.cases_by_possible_condition', [])
-            ->assertJsonPath('data.case_state', ['open' => 0, 'closed' => 0])
             ->assertJsonPath('data.comparison.delta', 0);
 
         $this->getJson('/api/v1/reports/map')

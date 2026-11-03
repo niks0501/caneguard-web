@@ -137,7 +137,7 @@ final class BuildMonthlyReportSummary
      *
      * @return array{source: string, reviewed_cases: int, average_hours: float|null, median_hours: float|null, min_hours: float|null, max_hours: float|null}
      */
-    private function reviewTimes(Builder $baseQuery): array
+    public function reviewTimes(Builder $baseQuery): array
     {
         $durations = (clone $baseQuery)
             ->whereNotNull('reviewed_at')

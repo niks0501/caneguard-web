@@ -1,5 +1,5 @@
 import type { OperationalQueue } from "./operationalQueue";
-import type { DiseaseKey, DiseaseReport, ReviewStatus } from "./report.types";
+import type { DiseaseReport, ReviewStatus } from "./report.types";
 
 export type DashboardQueueCounts = Record<OperationalQueue, number>;
 
@@ -13,41 +13,6 @@ export interface RiskTriageSummary {
   nextMeasurementDueAt: string;
   note: string;
   bands: { green: number; amber: number; red: number };
-}
-
-export interface MonthlyCaseSummary {
-  month: string;
-  period: {
-    from: string;
-    to: string;
-  };
-  reportedCases: number;
-  casesByBarangay: Array<{
-    barangay: string;
-    reportedCases: number;
-  }>;
-  casesByPossibleCondition: Array<{
-    possibleCondition: DiseaseKey;
-    reportedCases: number;
-  }>;
-  estimatedAffectedHectares: number;
-  reportsContainingFarmerFarmInformation: number;
-  fieldValidationCounts: {
-    unassigned: number;
-    assigned: number;
-    inProgress: number;
-    completed: number;
-    requiringValidation: number;
-  };
-  closedCases: number;
-  reviewTime: {
-    source: string;
-    reviewedCases: number;
-    averageHours: number | null;
-    medianHours: number | null;
-    minHours: number | null;
-    maxHours: number | null;
-  };
 }
 
 export interface ReportAnalyticsPeriod {
@@ -70,18 +35,6 @@ export interface ReportAnalytics {
   period: ReportAnalyticsPeriod;
   totalSubmitted: number;
   series: ReportAnalyticsSeriesPoint[];
-  casesByBarangay: Array<{
-    barangay: string;
-    reportedCases: number;
-  }>;
-  casesByPossibleCondition: Array<{
-    possibleCondition: DiseaseKey;
-    reportedCases: number;
-  }>;
-  caseState: {
-    open: number;
-    closed: number;
-  };
   comparison: {
     previousFrom: string;
     previousTo: string;
@@ -91,17 +44,15 @@ export interface ReportAnalytics {
     currentTotal: number;
     delta: number;
   };
-  lifecycle: LifecycleDistributions;
   reportedConcern: ReportedConcernCount[];
   possibleCondition: PossibleConditionCount[];
   verificationOutcome: VerificationOutcomeSplit;
   validationByBarangay: BarangayValidationRow[];
   barangayScope: BarangayScope;
-  area: AreaEstimate;
   validationWorkload: ValidationWorkload;
-  validationSchedule: ValidationSchedule;
   reviewBacklog: ReviewBacklog;
   validationTurnaround: ValidationTurnaround;
+  reviewTime: ReviewTimeComparison;
 }
 
 export interface ReportAnalyticsParams {
@@ -109,22 +60,6 @@ export interface ReportAnalyticsParams {
   to: string;
   granularity?: "day" | "week";
   comparison?: "previous_month";
-}
-
-export interface LifecycleDistributions {
-  verificationOutcome: Record<string, number>;
-  fieldValidationState: Record<string, number>;
-}
-
-export interface AreaEstimate {
-  estimatedHectares: number;
-  contributingReports: number;
-  measuredReports: number;
-  measuredHectares: number;
-  notMeasuredReports: number;
-  notMeasuredHectares: number;
-  linkedDuplicatesExcluded: number;
-  overlapNote: string;
 }
 
 export interface ValidationWorkload {
@@ -136,16 +71,11 @@ export interface ValidationWorkload {
   unassigned: number;
 }
 
-export interface ValidationSchedule {
-  unscheduled: number;
-  scheduled: number;
-  dueToday: number;
-  pastTargetDate: number;
-  today: string;
-}
-
 export interface ReviewBacklog {
   totalWaiting: number;
+  /** Waiting longer than `targetDays`. */
+  pastTarget: number;
+  targetDays: number;
   buckets: ReportAnalyticsSeriesPoint[];
   oldestWaitingDays: number | null;
 }
@@ -183,9 +113,28 @@ export interface BarangayScope {
   barangays: string[];
 }
 
+/** Submitted-to-reviewed durations for one window. */
+export interface ReviewTime {
+  source: string;
+  reviewedCases: number;
+  averageHours: number | null;
+  medianHours: number | null;
+  minHours: number | null;
+  maxHours: number | null;
+}
+
+export interface ReviewTimeComparison {
+  targetDays: number;
+  current: ReviewTime;
+  previous: ReviewTime;
+}
+
 export interface ValidationTurnaround {
   source: string;
   completed: number;
+  /** Visits made within `targetDays` of assignment. */
+  withinTarget: number;
+  targetDays: number;
   averageHours: number | null;
   medianHours: number | null;
   minHours: number | null;
@@ -208,6 +157,5 @@ export interface DashboardSummary {
   queues: DashboardQueueCounts;
   riskTriage?: RiskTriageSummary;
   recentReports: DiseaseReport[];
-  monthlySummary?: MonthlyCaseSummary;
 }
 

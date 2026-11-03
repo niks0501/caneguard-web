@@ -101,9 +101,7 @@ class DemoAnalyticsSeederTest extends TestCase
                 'to' => '2026-09-30',
                 'granularity' => 'week',
             ]))->assertOk()
-                ->assertJsonPath('data.total_submitted', $rangeReports->count())
-                ->assertJsonPath('data.cases_by_barangay', ReportMetricExpectations::groupedCounts($rangeReports, 'barangay', 'barangay'))
-                ->assertJsonPath('data.cases_by_possible_condition', ReportMetricExpectations::groupedCounts($rangeReports, 'predicted_label', 'possible_condition'));
+                ->assertJsonPath('data.total_submitted', $rangeReports->count());
             $analyticsPayload = json_decode($analytics->getContent(), false, 512, JSON_THROW_ON_ERROR);
             $this->assertIsObject($analyticsPayload->data->filters);
             $this->assertSame([], (array) $analyticsPayload->data->filters);

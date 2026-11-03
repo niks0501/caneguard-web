@@ -1,6 +1,7 @@
 import type {
   DashboardSummary,
   ReportAnalytics,
+  ReviewTime,
 } from "../../../domain/dashboard.types";
 import type { AnalyticsResponseDto } from "../schemas/analytics.schema";
 import type { DashboardResponseDto } from "../schemas/dashboard.schema";
@@ -25,18 +26,6 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
       label: point.label,
       count: point.count,
     })),
-    casesByBarangay: data.cases_by_barangay.map((item) => ({
-      barangay: item.barangay,
-      reportedCases: item.reported_cases,
-    })),
-    casesByPossibleCondition: data.cases_by_possible_condition.map((item) => ({
-      possibleCondition: item.possible_condition,
-      reportedCases: item.reported_cases,
-    })),
-    caseState: {
-      open: data.case_state.open,
-      closed: data.case_state.closed,
-    },
     comparison: {
       previousFrom: data.comparison.previous_from,
       previousTo: data.comparison.previous_to,
@@ -45,10 +34,6 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
       currentSeries: data.comparison.current_series?.map((point) => ({ ...point })),
       currentTotal: data.comparison.current_total,
       delta: data.comparison.delta,
-    },
-    lifecycle: {
-      verificationOutcome: { ...data.lifecycle.verification_outcome },
-      fieldValidationState: { ...data.lifecycle.field_validation_state },
     },
     reportedConcern: data.reported_concern.map((item) => ({ ...item })),
     possibleCondition: data.possible_condition.map((item) => ({ ...item })),
@@ -66,16 +51,6 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
       province: data.barangay_scope.province,
       barangays: [...data.barangay_scope.barangays],
     },
-    area: {
-      estimatedHectares: data.area.estimated_hectares,
-      contributingReports: data.area.contributing_reports,
-      measuredReports: data.area.measured_reports,
-      measuredHectares: data.area.measured_hectares,
-      notMeasuredReports: data.area.not_measured_reports,
-      notMeasuredHectares: data.area.not_measured_hectares,
-      linkedDuplicatesExcluded: data.area.linked_duplicates_excluded,
-      overlapNote: data.area.overlap_note,
-    },
     validationWorkload: {
       assignees: data.validation_workload.assignees.map((item) => ({
         assigneeId: item.assignee_id,
@@ -84,15 +59,10 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
       })),
       unassigned: data.validation_workload.unassigned,
     },
-    validationSchedule: {
-      unscheduled: data.validation_schedule.unscheduled,
-      scheduled: data.validation_schedule.scheduled,
-      dueToday: data.validation_schedule.due_today,
-      pastTargetDate: data.validation_schedule.past_target_date,
-      today: data.validation_schedule.today,
-    },
     reviewBacklog: {
       totalWaiting: data.review_backlog.total_waiting,
+      pastTarget: data.review_backlog.past_target,
+      targetDays: data.review_backlog.target_days,
       buckets: data.review_backlog.buckets.map((point) => ({
         label: point.label,
         count: point.count,
@@ -102,6 +72,8 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
     validationTurnaround: {
       source: data.validation_turnaround.source,
       completed: data.validation_turnaround.completed,
+      withinTarget: data.validation_turnaround.within_target,
+      targetDays: data.validation_turnaround.target_days,
       averageHours: data.validation_turnaround.average_hours,
       medianHours: data.validation_turnaround.median_hours,
       minHours: data.validation_turnaround.min_hours,
@@ -111,6 +83,22 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
         count: point.count,
       })),
     },
+    reviewTime: {
+      targetDays: data.review_time.target_days,
+      current: mapReviewTime(data.review_time.current),
+      previous: mapReviewTime(data.review_time.previous),
+    },
+  };
+}
+
+function mapReviewTime(dto: AnalyticsResponseDto["data"]["review_time"]["current"]): ReviewTime {
+  return {
+    source: dto.source,
+    reviewedCases: dto.reviewed_cases,
+    averageHours: dto.average_hours,
+    medianHours: dto.median_hours,
+    minHours: dto.min_hours,
+    maxHours: dto.max_hours,
   };
 }
 
@@ -147,42 +135,5 @@ export function mapDashboard(dto: DashboardResponseDto): DashboardSummary {
       resolved: counts.resolved,
     },
     recentReports: dto.data.recent_reports.map(mapReportListItem),
-    monthlySummary: dto.data.monthly_summary
-      ? {
-          month: dto.data.monthly_summary.month,
-          period: dto.data.monthly_summary.period,
-          reportedCases: dto.data.monthly_summary.reported_cases,
-          casesByBarangay: dto.data.monthly_summary.cases_by_barangay.map((item) => ({
-            barangay: item.barangay,
-            reportedCases: item.reported_cases,
-          })),
-          casesByPossibleCondition:
-            dto.data.monthly_summary.cases_by_possible_condition.map((item) => ({
-              possibleCondition: item.possible_condition,
-              reportedCases: item.reported_cases,
-            })),
-          estimatedAffectedHectares:
-            dto.data.monthly_summary.estimated_affected_hectares,
-          reportsContainingFarmerFarmInformation:
-            dto.data.monthly_summary.reports_containing_farmer_farm_information,
-          fieldValidationCounts: {
-            unassigned: dto.data.monthly_summary.field_validation_counts.unassigned,
-            assigned: dto.data.monthly_summary.field_validation_counts.assigned,
-            inProgress: dto.data.monthly_summary.field_validation_counts.in_progress,
-            completed: dto.data.monthly_summary.field_validation_counts.completed,
-            requiringValidation:
-              dto.data.monthly_summary.field_validation_counts.requiring_validation,
-          },
-          closedCases: dto.data.monthly_summary.closed_cases,
-          reviewTime: {
-            source: dto.data.monthly_summary.review_time.source,
-            reviewedCases: dto.data.monthly_summary.review_time.reviewed_cases,
-            averageHours: dto.data.monthly_summary.review_time.average_hours,
-            medianHours: dto.data.monthly_summary.review_time.median_hours,
-            minHours: dto.data.monthly_summary.review_time.min_hours,
-            maxHours: dto.data.monthly_summary.review_time.max_hours,
-          },
-        }
-      : undefined,
   };
 }

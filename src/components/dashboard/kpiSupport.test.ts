@@ -30,6 +30,8 @@ describe("KPI supporting lines", () => {
     expect(
       waitingAgeSupportLine({
         totalWaiting: 4,
+        pastTarget: 0,
+        targetDays: 3,
         buckets: [],
         oldestWaitingDays: 14,
       }),
@@ -37,6 +39,8 @@ describe("KPI supporting lines", () => {
     expect(
       waitingAgeSupportLine({
         totalWaiting: 1,
+        pastTarget: 0,
+        targetDays: 3,
         buckets: [],
         oldestWaitingDays: 1,
       }),
@@ -48,6 +52,8 @@ describe("KPI supporting lines", () => {
     expect(
       waitingAgeSupportLine({
         totalWaiting: 0,
+        pastTarget: 0,
+        targetDays: 3,
         buckets: [],
         oldestWaitingDays: null,
       }),
@@ -56,6 +62,8 @@ describe("KPI supporting lines", () => {
     expect(
       waitingAgeSupportLine({
         totalWaiting: 2,
+        pastTarget: 0,
+        targetDays: 3,
         buckets: [],
         oldestWaitingDays: null,
       }),

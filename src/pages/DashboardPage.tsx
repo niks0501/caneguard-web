@@ -52,6 +52,11 @@ const BarangayValidationBars = lazy(() =>
     default: module.BarangayValidationBars,
   })),
 );
+const TeamThroughput = lazy(() =>
+  import("../components/dashboard/TeamThroughput").then((module) => ({
+    default: module.TeamThroughput,
+  })),
+);
 const ReportLocationMap = lazy(() =>
   import("../components/dashboard/ReportLocationMap").then((module) => ({
     default: module.ReportLocationMap,
@@ -374,6 +379,17 @@ export function DashboardPage() {
               </div>
             )}
           </section>
+          {scopedAnalytics ? (
+            <Suspense
+              fallback={
+                <div aria-hidden="true">
+                  <Skeleton label="Loading team throughput" />
+                </div>
+              }
+            >
+              <TeamThroughput analytics={scopedAnalytics} scopeLabel={scopeLabel} />
+            </Suspense>
+          ) : null}
         </div>
       )}
 

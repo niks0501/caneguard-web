@@ -93,8 +93,7 @@ class ReportAnalyticsTest extends TestCase
                 ['label' => '2026-09-01', 'count' => 0],
                 ['label' => '2026-09-02', 'count' => 3],
                 ['label' => '2026-09-03', 'count' => 0],
-            ])
-            ->assertJsonPath('data.case_state', ['open' => 2, 'closed' => 1]);
+            ]);
     }
 
     public function test_analytics_buckets_by_iso_week_starting_monday(): void
@@ -205,10 +204,7 @@ class ReportAnalyticsTest extends TestCase
         $this->getJson('/api/v1/reports/analytics?'.$query)
             ->assertOk()
             ->assertJsonPath('data.total_submitted', 1)
-            ->assertJsonPath('data.comparison.previous_total', 0)
-            ->assertJsonPath('data.cases_by_barangay', [
-                ['barangay' => 'Mabini', 'reported_cases' => 1],
-            ]);
+            ->assertJsonPath('data.comparison.previous_total', 0);
 
         $export = $this->get('/api/v1/reports/export?'.http_build_query([
             'status' => Report::STATUS_FOR_FIELD_VALIDATION,
@@ -241,9 +237,6 @@ class ReportAnalyticsTest extends TestCase
                 ['label' => '2026-09-01', 'count' => 0],
                 ['label' => '2026-09-02', 'count' => 0],
             ])
-            ->assertJsonPath('data.cases_by_barangay', [])
-            ->assertJsonPath('data.cases_by_possible_condition', [])
-            ->assertJsonPath('data.case_state', ['open' => 0, 'closed' => 0])
             ->assertJsonPath('data.comparison.delta', 0);
 
         $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
@@ -281,12 +274,6 @@ class ReportAnalyticsTest extends TestCase
         // Mid-month rows sit inside both PHT September periods, so the shared
         // aggregate must agree exactly.
         $this->assertSame($monthly['reported_cases'], $analytics['total_submitted']);
-        $this->assertSame($monthly['cases_by_barangay'], $analytics['cases_by_barangay']);
-        $this->assertSame(
-            $monthly['cases_by_possible_condition'],
-            $analytics['cases_by_possible_condition'],
-        );
-        $this->assertSame($monthly['closed_cases'], $analytics['case_state']['closed']);
     }
 
     public function test_analytics_reports_reported_concern_beside_the_ai_series(): void

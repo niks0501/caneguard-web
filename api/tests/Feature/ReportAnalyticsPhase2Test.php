@@ -24,79 +24,17 @@ class ReportAnalyticsPhase2Test extends TestCase
             ->json('data');
     }
 
-    public function test_lifecycle_distributions_cover_operational_states_without_expert_metrics(): void
+    public function test_slices_the_trends_tab_does_not_render_are_not_computed(): void
     {
-        Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'case_state' => Report::CASE_STATE_OPEN,
-            'verification_outcome' => Report::VERIFICATION_OUTCOME_NOT_DETERMINED,
-            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
-            'referral_state' => Report::REFERRAL_STATE_REFERRED,
-            'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
-        ]);
-
         $data = $this->getAnalytics([
             'from' => '2026-09-01',
             'to' => '2026-09-07',
             'granularity' => 'day',
         ]);
 
-        $this->assertSame(
-            ['not_determined' => 1, 'verified' => 0, 'unable_to_verify' => 0],
-            $data['lifecycle']['verification_outcome'],
-        );
-        $this->assertSame(
-            ['unassigned' => 0, 'assigned' => 1, 'in_progress' => 0, 'completed' => 0],
-            $data['lifecycle']['field_validation_state'],
-        );
-        $this->assertArrayNotHasKey('referral_state', $data['lifecycle']);
-        $this->assertArrayNotHasKey('expert_verification', $data);
-    }
-
-    public function test_area_reports_provenance_split_and_excluded_duplicates(): void
-    {
-        Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'affected_area_hectares' => 10.0,
-            'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
-            'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
-        ]);
-        Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'affected_area_hectares' => 4.5,
-            'affected_area_measurement' => Report::MEASUREMENT_NOT_MEASURED,
-            'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
-        ]);
-        Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'affected_area_hectares' => null,
-            'submitted_at' => CarbonImmutable::parse('2026-09-03T03:00:00Z'),
-        ]);
-        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'affected_area_hectares' => 7.0,
-            'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
-        ]);
-        Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'affected_area_hectares' => 99.0,
-            'canonical_report_id' => $canonical->getKey(),
-            'submitted_at' => CarbonImmutable::parse('2026-09-04T03:00:00Z'),
-        ]);
-
-        $data = $this->getAnalytics([
-            'from' => '2026-09-01',
-            'to' => '2026-09-07',
-            'granularity' => 'day',
-        ]);
-
-        $this->assertEquals(21.5, $data['area']['estimated_hectares']);
-        $this->assertSame(3, $data['area']['contributing_reports']);
-        // The canonical report itself is a submitted report; only its linked
-        // duplicate stays out of the sum.
-        $this->assertSame(2, $data['area']['measured_reports']);
-        $this->assertEquals(17.0, $data['area']['measured_hectares']);
-        $this->assertSame(1, $data['area']['not_measured_reports']);
-        $this->assertEquals(4.5, $data['area']['not_measured_hectares']);
-        $this->assertSame(1, $data['area']['linked_duplicates_excluded']);
-        $this->assertSame(
-            'Estimates may overlap where submitted reports describe the same ground.',
-            $data['area']['overlap_note'],
-        );
+        foreach (['cases_by_barangay', 'cases_by_possible_condition', 'case_state', 'lifecycle', 'area', 'validation_schedule'] as $slice) {
+            $this->assertArrayNotHasKey($slice, $data);
+        }
     }
 
     public function test_workload_groups_open_validation_by_assignee_with_unassigned_bucket(): void
@@ -164,72 +102,6 @@ class ReportAnalyticsPhase2Test extends TestCase
         $this->assertSame(1, $data['validation_workload']['unassigned']);
     }
 
-    public function test_schedule_reports_four_buckets_with_unscheduled_visible(): void
-    {
-        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
-        $today = CarbonImmutable::now('Asia/Manila')->toDateString();
-
-        $past = Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'case_state' => Report::CASE_STATE_OPEN,
-            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
-            'submitted_at' => CarbonImmutable::parse('2026-09-02T02:00:00Z'),
-        ]);
-        FieldValidationAssignment::factory()->create([
-            'report_id' => $past->getKey(),
-            'assigned_by_id' => $reviewer->getKey(),
-            'target_visit_date' => '2026-01-05',
-        ]);
-        $dueToday = Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'case_state' => Report::CASE_STATE_OPEN,
-            'field_validation_state' => Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
-            'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
-        ]);
-        FieldValidationAssignment::factory()->create([
-            'report_id' => $dueToday->getKey(),
-            'assigned_by_id' => $reviewer->getKey(),
-            'target_visit_date' => $today,
-        ]);
-        $scheduled = Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'case_state' => Report::CASE_STATE_OPEN,
-            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
-            'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
-        ]);
-        FieldValidationAssignment::factory()->create([
-            'report_id' => $scheduled->getKey(),
-            'assigned_by_id' => $reviewer->getKey(),
-            'target_visit_date' => '2099-01-05',
-        ]);
-        // No assignment at all: unscheduled, never past-due.
-        Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'case_state' => Report::CASE_STATE_OPEN,
-            'field_validation_state' => Report::FIELD_VALIDATION_STATE_UNASSIGNED,
-            'submitted_at' => CarbonImmutable::parse('2026-09-05T02:00:00Z'),
-        ]);
-        // Completed validation is out of the schedule picture.
-        $done = Report::factory()->inDistrict($this->pilotDistrict())->create([
-            'case_state' => Report::CASE_STATE_OPEN,
-            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
-            'submitted_at' => CarbonImmutable::parse('2026-09-05T03:00:00Z'),
-        ]);
-        FieldValidationAssignment::factory()->create([
-            'report_id' => $done->getKey(),
-            'assigned_by_id' => $reviewer->getKey(),
-            'target_visit_date' => '2026-01-05',
-        ]);
-
-        $data = $this->getAnalytics([
-            'from' => '2026-09-01',
-            'to' => '2026-09-07',
-            'granularity' => 'day',
-        ]);
-
-        $this->assertSame(1, $data['validation_schedule']['unscheduled']);
-        $this->assertSame(1, $data['validation_schedule']['scheduled']);
-        $this->assertSame(1, $data['validation_schedule']['due_today']);
-        $this->assertSame(1, $data['validation_schedule']['past_target_date']);
-        $this->assertSame($today, $data['validation_schedule']['today']);
-    }
-
     public function test_backlog_buckets_waiting_age_and_names_the_oldest_wait(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-09-07T02:00:00Z'));
@@ -260,6 +132,9 @@ class ReportAnalyticsPhase2Test extends TestCase
         ]);
 
         $this->assertSame(2, $data['review_backlog']['total_waiting']);
+        // Only the June report has waited longer than the 3-day review target.
+        $this->assertSame(3, $data['review_backlog']['target_days']);
+        $this->assertSame(1, $data['review_backlog']['past_target']);
         $this->assertSame(
             (int) $oldSubmittedAt->diffInDays(CarbonImmutable::now('Asia/Manila')),
             $data['review_backlog']['oldest_waiting_days'],
@@ -306,6 +181,8 @@ class ReportAnalyticsPhase2Test extends TestCase
 
         $this->assertSame('activated_at_to_visited_at', $data['validation_turnaround']['source']);
         $this->assertSame(1, $data['validation_turnaround']['completed']);
+        $this->assertSame(7, $data['validation_turnaround']['target_days']);
+        $this->assertSame(1, $data['validation_turnaround']['within_target']);
         $this->assertEquals(24.0, $data['validation_turnaround']['average_hours']);
         $this->assertEquals(24.0, $data['validation_turnaround']['median_hours']);
         $this->assertEquals(24.0, $data['validation_turnaround']['min_hours']);
@@ -321,17 +198,45 @@ class ReportAnalyticsPhase2Test extends TestCase
             'granularity' => 'day',
         ]);
 
-        $this->assertSame(0, $data['area']['contributing_reports']);
-        $this->assertEquals(0.0, $data['area']['estimated_hectares']);
-        $this->assertSame(0, $data['area']['linked_duplicates_excluded']);
         $this->assertSame([], $data['validation_workload']['assignees']);
         $this->assertSame(0, $data['validation_workload']['unassigned']);
-        $this->assertSame(
-            ['unscheduled' => 0, 'scheduled' => 0, 'due_today' => 0, 'past_target_date' => 0],
-            collect($data['validation_schedule'])->except('today')->all(),
-        );
         $this->assertSame(0, $data['review_backlog']['total_waiting']);
         $this->assertNull($data['review_backlog']['oldest_waiting_days']);
         $this->assertSame(0, $data['validation_turnaround']['completed']);
+        $this->assertSame(0, $data['validation_turnaround']['within_target']);
+        $this->assertSame(0, $data['review_backlog']['past_target']);
+        $this->assertSame(0, $data['review_time']['current']['reviewed_cases']);
+        $this->assertNull($data['review_time']['current']['median_hours']);
+        $this->assertSame(0, $data['review_time']['previous']['reviewed_cases']);
+    }
+
+    public function test_review_time_compares_the_median_with_the_previous_window(): void
+    {
+        // Current window (1-7 Sep): reviewed after 24h and 72h, median 48h.
+        foreach ([['2026-09-02T02:00:00Z', 24], ['2026-09-03T02:00:00Z', 72]] as [$submitted, $hours]) {
+            $at = CarbonImmutable::parse($submitted);
+            Report::factory()->inDistrict($this->pilotDistrict())->create([
+                'submitted_at' => $at,
+                'reviewed_at' => $at->addHours($hours),
+            ]);
+        }
+        // Previous window (25-31 Aug): one report reviewed after 96h.
+        $previous = CarbonImmutable::parse('2026-08-27T02:00:00Z');
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'submitted_at' => $previous,
+            'reviewed_at' => $previous->addHours(96),
+        ]);
+
+        $data = $this->getAnalytics([
+            'from' => '2026-09-01',
+            'to' => '2026-09-07',
+            'granularity' => 'day',
+        ]);
+
+        $this->assertSame(3, $data['review_time']['target_days']);
+        $this->assertSame(2, $data['review_time']['current']['reviewed_cases']);
+        $this->assertEquals(48.0, $data['review_time']['current']['median_hours']);
+        $this->assertSame(1, $data['review_time']['previous']['reviewed_cases']);
+        $this->assertEquals(96.0, $data['review_time']['previous']['median_hours']);
     }
 }
