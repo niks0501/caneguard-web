@@ -160,6 +160,55 @@ class WeeklyReportContentTest extends TestCase
         $this->assertStringNotContainsString('width="245"', $charts[2]['svg']);
     }
 
+    public function test_comparison_handles_zero_previous_week_and_barangays_with_first_cases(): void
+    {
+        $district = $this->pilotDistrict();
+        $this->report($district, ['barangay' => 'Banilad']);
+        $this->report($district, ['barangay' => 'Wawa']);
+        $content = app(BuildWeeklyReportContent::class)->handle($district, '2026-W40');
+        $this->assertSame('weekly-report-content-v2', $content['contract']);
+        $comparison = $content['comparison'];
+        $this->assertSame('2026-W39', $comparison['previous_week']);
+        $this->assertSame(0, $comparison['previous_cases']);
+        $this->assertSame(2, $comparison['delta']);
+        $this->assertSame(['Banilad', 'Wawa'], array_column($comparison['first_case_barangays']['barangays'], 'barangay'));
+    }
+
+    public function test_comparison_shows_a_disease_that_appears_and_excludes_repeat_barangays(): void
+    {
+        $district = $this->pilotDistrict();
+        $this->report($district, ['submitted_at' => '2026-09-22 10:00:00', 'predicted_label' => 'rust', 'barangay' => 'Banilad']);
+        $this->report($district, ['submitted_at' => '2026-09-22 11:00:00', 'predicted_label' => 'rust', 'barangay' => 'Banilad']);
+        $this->report($district, ['predicted_label' => 'rust', 'barangay' => 'Banilad']);
+        $this->report($district, ['predicted_label' => 'mosaic', 'barangay' => 'Wawa']);
+        $comparison = app(BuildWeeklyReportContent::class)->handle($district, '2026-W40')['comparison'];
+        $rows = collect($comparison['diseases'])->keyBy('key');
+        $this->assertSame(2, $comparison['previous_cases']);
+        $this->assertSame(0, $comparison['delta']);
+        $this->assertSame(2, $rows['rust']['previous']['suspected']);
+        $this->assertSame(1, $rows['rust']['current']['suspected']);
+        $this->assertSame(0, $rows['mosaic']['previous']['suspected']);
+        $this->assertSame(1, $rows['mosaic']['current']['suspected']);
+        $this->assertSame(['Wawa'], array_column($comparison['first_case_barangays']['barangays'], 'barangay'));
+    }
+
+    public function test_late_evidence_is_counted_once_in_its_receipt_week(): void
+    {
+        $district = $this->pilotDistrict();
+        // Observed in W39 but received in W40: it belongs to W40 only.
+        $this->report($district, ['submitted_at' => '2026-09-29 10:00:00', 'observed_at' => '2026-09-23 09:00:00']);
+        $this->report($district, ['submitted_at' => '2026-09-22 10:00:00', 'observed_at' => '2026-09-22 09:00:00']);
+        $comparison = app(BuildWeeklyReportContent::class)->handle($district, '2026-W40')['comparison'];
+        $this->assertSame(1, $comparison['previous_cases']);
+        $this->assertSame(0, $comparison['delta']);
+        // Received in W41 for W40: W40 is unchanged and W41 sees W40 only as received.
+        $this->report($district, ['submitted_at' => '2026-10-06 10:00:00', 'observed_at' => '2026-09-30 09:00:00']);
+        $this->assertSame(1, app(BuildWeeklyReportContent::class)->handle($district, '2026-W40')['case_universe']['cases']);
+        $w41 = app(BuildWeeklyReportContent::class)->handle($district, '2026-W41')['comparison'];
+        $this->assertSame(1, $w41['previous_cases']);
+        $this->assertSame(0, $w41['delta']);
+    }
+
     protected function report(District $district, array $attributes = []): Report
     {
         return Report::factory()->inDistrict($district)->create(array_replace([

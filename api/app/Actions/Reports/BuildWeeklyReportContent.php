@@ -13,6 +13,13 @@ final class BuildWeeklyReportContent
 {
     public const DISEASES = ['healthy' => 'Healthy', 'rssi' => 'RSSI', 'mosaic' => 'Sugarcane Mosaic', 'rust' => 'Sugarcane Rust', 'smut' => 'Sugarcane Smut'];
 
+    public const CONTRACT = 'weekly-report-content-v2';
+
+    /** Sealed v1 versions stay readable; only new preparations carry the comparison block. */
+    public const CONTRACTS = ['weekly-report-content-v1', self::CONTRACT];
+
+    public const FIRST_CASE_LOOKBACK_WEEKS = 4;
+
     public function period(string $week): array
     {
         if (! preg_match('/^(\d{4})-W(\d{2})$/', $week, $parts)) {
@@ -138,7 +145,7 @@ final class BuildWeeklyReportContent
         ksort($points);
 
         return [
-            'contract' => 'weekly-report-content-v1',
+            'contract' => self::CONTRACT,
             'district' => ['code' => $district->code, 'name' => $district->name],
             'period' => ['type' => 'weekly', 'week' => $week, 'from' => $period['start']->toDateString(), 'to' => $period['end']->subDay()->toDateString(), 'timezone' => 'Asia/Manila', 'boundary_basis' => 'submitted_at'],
             'case_universe' => ['cases' => $cases->count() - $excluded, 'source_reports' => $rows->count(), 'duplicate_linked_excluded' => $rows->count() - $cases->count(), 'out_of_scope_excluded' => $excluded],
@@ -149,9 +156,53 @@ final class BuildWeeklyReportContent
             'actions' => collect($actions)->map(fn ($count, $key) => ['key' => $key, 'count' => $count])->values()->all(),
             'late_evidence' => ['received_later_for_this_week' => $this->inScopeCases($this->lateQuery($district->id, $period['start']))->count(), 'reports_synced_after_period' => array_sum($late), 'affected_prior_weeks' => collect($late)->map(fn ($count, $week) => ['week' => $week, 'count' => $count])->values()->all()],
             'trend' => $this->trend($query, $period['start']),
+            'comparison' => $this->comparison($district->id, $period['start'], $diseases, $barangays, $cases->count() - $excluded),
             'map' => ['asset_digest' => app(WeeklyReportGraphics::class)->assetDigest(), 'clusters' => array_values($points), 'unlocated_cases' => $unlocated, 'precision' => '0.01 degree clusters; not farm boundaries'],
             'method' => ['classification' => 'Staff classification takes precedence. Confirmation requires staff classification and verified outcome; AI alone never confirms.', 'deduplication' => 'Duplicate-linked reports are excluded from case counts and retained as source evidence.', 'area' => 'Farm-group maximum; per disease only.', 'boundary' => 'Receipt week: Monday 12:00 AM through Sunday 11:59 PM, Asia/Manila. Late evidence does not move cases into an earlier week.'],
             'appendix_enabled' => $appendix, 'appendix' => $appendixRows,
+        ];
+    }
+
+    /**
+     * Receipt-week comparison. Each report sits in exactly one week by submitted_at, so late evidence
+     * for an earlier week is counted where it was received and never twice.
+     */
+    private function comparison(int $districtId, CarbonImmutable $start, array $diseases, array $barangays, int $total): array
+    {
+        $previousStart = $start->subWeek();
+        $previous = $this->inScopeCases($this->query($districtId, $previousStart))->orderBy('id')->get();
+        $before = array_fill_keys(array_keys(self::DISEASES), ['suspected' => 0, 'under_review' => 0, 'confirmed' => 0]);
+        foreach ($previous as $report) {
+            [$disease, $state] = $this->classify($report);
+            if ($disease !== null) {
+                $before[$disease][$state]++;
+            }
+        }
+        $rows = [];
+        foreach ($diseases as $key => $now) {
+            $rows[] = ['key' => $key, 'label' => $now['label'], 'previous' => $before[$key],
+                'current' => ['suspected' => $now['suspected'], 'under_review' => $now['under_review'], 'confirmed' => $now['confirmed']]];
+        }
+        $lookback = $this->inScopeCases(Report::query()->where('district_id', $districtId)
+            ->where('submitted_at', '>=', $start->subWeeks(self::FIRST_CASE_LOOKBACK_WEEKS)->utc())->where('submitted_at', '<', $start->utc()))->get();
+        $seen = [];
+        foreach ($lookback as $report) {
+            $seen[$this->normalize(trim((string) $report->barangay) ?: 'Not recorded')] = true;
+        }
+        $first = [];
+        foreach ($barangays as $key => $barangay) {
+            if (! isset($seen[$key])) {
+                $first[] = ['barangay' => $barangay['barangay'], 'cases' => $barangay['cases']];
+            }
+        }
+
+        return [
+            'previous_week' => $previousStart->format('o-\WW'),
+            'previous_cases' => $previous->count(),
+            'delta' => $total - $previous->count(),
+            'diseases' => $rows,
+            'first_case_barangays' => ['lookback_weeks' => self::FIRST_CASE_LOOKBACK_WEEKS, 'barangays' => $first],
+            'method_statement' => 'Previous week is the preceding Monday-to-Sunday receipt week, Asia/Manila, counted by the same case rules as this week and read when this version was prepared. A report is counted only in the week it was received. First cases: barangays with cases this week and none in the four receipt weeks before it.',
         ];
     }
 

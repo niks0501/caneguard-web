@@ -51,6 +51,7 @@ Prepared by {{ $version->prepared_name }} · {{ $version->created_at?->timezone(
 <tr><td>Unique named farmer/farm references<br><span class="meta">Name-matched by barangay; approximate, not verified identity</span></td><td class="num">{{ $content['farmers']['named_unique'] }}</td></tr>
 <tr><td>Reports carrying farmer/farm information</td><td class="num">{{ $content['farmers']['reports_carrying_farmer_information'] }}</td></tr>
 <tr><td>Open / closed cases</td><td class="num">{{ $content['status']['open'] }} / {{ $content['status']['closed'] }}</td></tr>
+@isset($content['comparison'])<tr><td>vs previous week ({{ $content['comparison']['previous_week'] }})</td><td class="num">{{ $content['comparison']['previous_cases'] }} → {{ $content['case_universe']['cases'] }} ({{ $content['comparison']['delta'] > 0 ? '+' : '' }}{{ $content['comparison']['delta'] }})</td></tr>@endisset
 </tbody></table>
 <h2>By class{{ $disease ? ' · selected class' : '' }}</h2>
 <table><thead><tr><th>Class</th><th class="num">Suspected</th><th class="num">Under review</th><th class="num">Confirmed</th></tr></thead><tbody>
@@ -62,6 +63,18 @@ Prepared by {{ $version->prepared_name }} · {{ $version->created_at?->timezone(
 </tbody></table>
 <p class="meta">Unclassified, full scope: mixed or multiple {{ $content['unclassified']['mixed_or_multiple'] }} · unable to classify {{ $content['unclassified']['unable_to_classify'] }} · no classification {{ $content['unclassified']['none'] }}.</p>
 <p class="meta">{{ $content['method']['classification'] }}</p>
+@isset($content['comparison'])
+<h2>Week over week · full scope</h2>
+<table><thead><tr><th>Class</th><th class="num">Suspected</th><th class="num">Under review</th><th class="num">Confirmed</th></tr></thead><tbody>
+@foreach ($content['comparison']['diseases'] as $row)
+@if (!$disease || $disease === $row['key'])
+<tr><td>{{ $row['label'] }}</td>@foreach (['suspected', 'under_review', 'confirmed'] as $state)<td class="num">{{ $row['previous'][$state] }} → {{ $row['current'][$state] }}</td>@endforeach</tr>
+@endif
+@endforeach
+</tbody></table>
+<p>First cases in {{ $content['comparison']['first_case_barangays']['lookback_weeks'] }} weeks: @forelse ($content['comparison']['first_case_barangays']['barangays'] as $row){{ $row['barangay'] }} ({{ $row['cases'] }}){{ $loop->last ? '' : ', ' }}@empty none @endforelse</p>
+<p class="meta">{{ $content['comparison']['method_statement'] }}</p>
+@endisset
 <h2>By barangay · full scope</h2>
 <table><thead><tr><th>Barangay</th><th class="num">Cases</th>@foreach ($content['diseases'] as $row)<th class="num">{{ $row['label'] }} confirmed</th>@endforeach</tr></thead><tbody>
 @forelse ($content['barangays'] as $row)

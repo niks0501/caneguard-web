@@ -71,7 +71,7 @@ final class DistrictReportWorkflow
 
                 return $locked;
             }
-            abort_unless(($locked->content['contract'] ?? null) === 'weekly-report-content-v1', 409);
+            abort_unless(in_array($locked->content['contract'] ?? null, BuildWeeklyReportContent::CONTRACTS, true), 409);
             abort_if(($locked->content['appendix_enabled'] ?? false) && ! $this->appendixAllowed($actor), 403);
             $locked->fill([
                 'approved_by_id' => $actor->id,
