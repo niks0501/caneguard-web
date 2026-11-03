@@ -6,7 +6,7 @@ import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
 import { Button } from "../ui/Button";
 
-const schema = z.object({ data: z.object({ reminder_day: z.number().int().nullable(), reminder_time: z.string().nullable(), timezone: z.literal("Asia/Manila"), can_manage: z.boolean(), reminders_active: z.boolean().default(false) }) });
+const schema = z.object({ data: z.object({ reminder_day: z.number().int().nullable(), reminder_time: z.string().nullable(), timezone: z.literal("Asia/Manila"), can_manage: z.boolean() }) });
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 type ScheduleInput = { reminder_day: number; reminder_time: string; office_reference: string; current_password: string };
 function clock(value: string) {
@@ -64,8 +64,7 @@ export function WeeklyReportingSettings() {
     <p>Monday–Sunday receipt weeks, Asia/Manila. This preparation schedule never approves or sends a report automatically.</p>
     {query.isLoading ? <p role="status">Loading reporting schedule...</p> : null}
     {settings ? <p>Current schedule: {settings.reminder_day && settings.reminder_time ? `${days[settings.reminder_day - 1]} at ${clock(settings.reminder_time)} PHT` : "Not configured"}</p> : null}
-    {settings?.can_manage && !settings.reminders_active ? <p role="status">Preparation reminders are not active yet.</p> : null}
-    {settings?.can_manage && settings.reminders_active ? <ScheduleForm key={`${settings.reminder_day}:${settings.reminder_time}`} initialDay={settings.reminder_day} initialTime={settings.reminder_time} busy={save.isPending} onSave={(input) => save.mutate(input)} /> : null}
+    {settings?.can_manage ? <ScheduleForm key={`${settings.reminder_day}:${settings.reminder_time}`} initialDay={settings.reminder_day} initialTime={settings.reminder_time} busy={save.isPending} onSave={(input) => save.mutate(input)} /> : null}
     {save.isSuccess ? <p role="status">Reporting schedule saved. Sending remains manual.</p> : null}
     {error ? <p role="alert">{toApiError(error).status === 403 ? "Your Admin access or password could not be verified." : "The reporting schedule could not be saved or loaded. Try again when online."}</p> : null}
   </section>;

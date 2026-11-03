@@ -20,16 +20,10 @@ describe("weekly reporting schedule settings", () => {
     expect(screen.queryByRole("button", { name: "Save reporting schedule" })).not.toBeInTheDocument();
     expect(screen.getByText(/never approves or sends a report automatically/)).toBeInTheDocument();
   });
-  it("hides the schedule form and says reminders are not active while ops are not provisioned", async () => {
-    server.use(http.get(url, () => HttpResponse.json({ data: { reminder_day: null, reminder_time: null, timezone: "Asia/Manila", can_manage: true, reminders_active: false } })));
-    show();
-    expect(await screen.findByText("Preparation reminders are not active yet.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save reporting schedule" })).not.toBeInTheDocument();
-  });
   it("restores the saved 12-hour clock and saves only an explicit password-backed schedule", async () => {
     let body: unknown;
     server.use(
-      http.get(url, () => HttpResponse.json({ data: { reminder_day: 2, reminder_time: "13:30", timezone: "Asia/Manila", can_manage: true, reminders_active: true } })),
+      http.get(url, () => HttpResponse.json({ data: { reminder_day: 2, reminder_time: "13:30", timezone: "Asia/Manila", can_manage: true } })),
       http.put(url, async ({ request }) => { body = await request.json(); return HttpResponse.json({ data: {} }); }),
     );
     const user = userEvent.setup();
