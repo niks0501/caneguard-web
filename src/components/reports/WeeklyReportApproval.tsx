@@ -14,8 +14,7 @@ const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RS
 
 // Separate a closed delivery gate from a district that simply has no official recipient set yet.
 function sendUnavailableMessage(meta: z.infer<typeof listSchema>["meta"]) {
-  if (meta.delivery_gate_open === undefined && meta.recipients_configured === undefined) return "Weekly sending is not active yet.";
-  return meta.delivery_gate_open !== false && meta.recipients_configured === false
+  return meta.delivery_gate_open && !meta.recipients_configured
     ? "No official recipients configured. Add them in Admin Settings."
     : "Office delivery gate closed.";
 }

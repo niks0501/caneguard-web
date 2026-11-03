@@ -59,7 +59,10 @@ export function OfficialRecipients() {
       if (!navigator.onLine) throw new Error("An online connection is required.");
       return axiosClient.post("/api/v1/district-recipient-sets/replace", input);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: key }),
+      queryClient.invalidateQueries({ queryKey: ["district-report-versions"] }),
+    ]),
   });
   if (env.dataSource !== "api") return null;
   const sets = query.data ?? [];
