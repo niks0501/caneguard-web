@@ -54,7 +54,7 @@ The workflow needs the dedicated `deploy` key; your personal workstation SSH key
 
 ## Weekly send needs operations that production does not run yet
 Production currently runs no queue worker and no mail. Until both are provisioned:
-- Weekly send must stay off (`CANEGUARD_WEEKLY_SEND_ENABLED=false`). A send is queued on the `database` queue and, with no `queue:work` process, would stay `pending` forever. The Send control is hidden and the page says weekly sending is not active yet.
+- Weekly send must stay off (`CANEGUARD_WEEKLY_SEND_ENABLED=false`). A send is queued on the `database` queue and, with no `queue:work` process, would stay `pending` forever. The Send control is hidden and the page says **Office delivery gate closed.**
 - Keep `BROADCAST_CONNECTION=log` in the shared production `.env` while `VITE_REALTIME_ENABLED` is `false`. Queued broadcast events otherwise accumulate unprocessed in the `jobs` table.
 
 Enabling the send flag requires a supervised `php artisan queue:work` and working SMTP first.
