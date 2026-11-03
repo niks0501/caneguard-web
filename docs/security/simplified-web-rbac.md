@@ -61,6 +61,8 @@ Legacy input formats, password confirmation, version/idempotency checks and lega
 
 Weekly-report Policies allow an active verified Admin to approve/send (`DistrictReportVersionPolicy::approve` and `::send` require `isActiveAdmin`), without named keys or separation-of-duties. Immutable report evidence, current-version checks, recipient contracts, sealed PDFs, idempotent send intents and delivery launch gates remain business rules. Pending delivery rechecks current account authority and report evidence.
 
+Reading or replacing official weekly-report recipients carries the same authority: `GET /api/v1/district-recipient-sets` and `POST /api/v1/district-recipient-sets/replace` require an active verified Admin office session and let a Reviewer get 403, and the replace adds password step-up and an office decision reference.
+
 Admin Settings is a separate guarded surface. Reviewers who follow an administrative URL return to Dashboard with **That section needs an Admin account.** Server routes independently deny Reviewer writes/reads where applicable.
 
 Public registration is disabled for every identity kind. Farmer registration has no public entry, and direct registration requests return `403 REGISTRATION_DISABLED` unconditionally. The retired rollout flags do not enable them. New identities are created only by an Admin through User Management (`POST /api/v1/admin/accounts`, step-up password, roles field reporter, reviewer or admin): the account starts unverified, a set-password link is mailed through the password-reset flow, and completing that reset verifies the email. Each creation writes an account-access event and security-audit rows. Existing account-recovery and verification endpoints remain available.

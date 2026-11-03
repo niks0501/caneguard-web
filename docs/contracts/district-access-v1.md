@@ -41,10 +41,12 @@ The Web document builder can still preview draft analytics. Official versions ar
 | GET | `/api/v1/district-reports/{uuid}/document` | Same-district office; private/no-store |
 | POST | `/api/v1/district-reports/{uuid}/approve` (`content_hash`) | Active verified Admin office session and the exact version hash |
 | POST | `/api/v1/district-reports/{uuid}/send` (`content_hash`, UUID `idempotency_key`) | Active verified Admin office session, valid approval and recipient contract |
+| GET | `/api/v1/district-recipient-sets` | Active verified Admin office session; private/no-store |
+| POST | `/api/v1/district-recipient-sets/replace` (`recipients`, `office_reference`, `current_password`) | Active verified Admin office session and password step-up |
 
 Versions seal the HTML, SHA-256 content hash, week, district, source report UUIDs, lock versions and evidence hashes, version number and preparer. Approval binds the exact hash, version, named approver and recorded authority revision. Newer drafts, changed evidence, foreign district, stale authority or mismatched hashes return conflict/forbidden rather than silently sending something else. Domain events retain draft/approval/intent/cancellation history; versions and recipient sets are immutable through their model interfaces.
 
-Sending requires `CANEGUARD_WEEKLY_SEND_ENABLED=true` and an explicitly office-approved, active, immutable `DistrictRecipientSet`. No recipient set is inferred or seeded by production migrations. Revise recipients by retiring the old set and creating a new approved version, never editing the sealed contract. In-flight intents bind the immutable recipient-set ID and will cancel if it is retired.
+Sending requires `CANEGUARD_WEEKLY_SEND_ENABLED=true` and an explicitly office-approved, active, immutable `DistrictRecipientSet`. No recipient set is inferred or seeded by production migrations. Revise recipients by retiring the old set and creating a new approved version through `POST /api/v1/district-recipient-sets/replace`, never by editing the sealed contract. In-flight intents bind the immutable recipient-set ID and will cancel if it is retired. The replace contract, its Admin Settings panel and the recipient-specific `meta` flags are specified in [official weekly reporting content v1](../../api/docs/weekly-report-content-v1.md).
 
 Delivery transport, send receipts and their explicit launch gates are specified in [official weekly reporting content v1](../../api/docs/weekly-report-content-v1.md). Roster certification and recipient-contract approval remain external launch work.
 

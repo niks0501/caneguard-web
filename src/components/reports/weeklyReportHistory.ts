@@ -19,10 +19,11 @@ export const versionSchema = z.object({
   transmissions: z.array(transmissionSchema).default([]),
 });
 export const listSchema = z.object({
-  data: z.array(versionSchema), meta: z.object({ send_enabled: z.boolean(), recipient_count: z.number().int().min(0).default(0), appendix_allowed: z.boolean().default(false) }),
+  data: z.array(versionSchema), meta: z.object({ send_enabled: z.boolean(), delivery_gate_open: z.boolean(), recipients_configured: z.boolean(), recipient_count: z.number().int().min(0).default(0), appendix_allowed: z.boolean().default(false) }),
 });
 
 export type ReportVersion = z.infer<typeof versionSchema>;
+export type ReportListMeta = z.infer<typeof listSchema>["meta"];
 export type WeekStatus = "not_prepared" | "draft" | "approved" | "stale" | "sent" | "failed";
 
 export const weekStatusLabels: Record<WeekStatus, string> = {

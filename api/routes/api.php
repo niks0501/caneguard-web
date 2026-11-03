@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AdvisoryController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\DistrictAccessController;
+use App\Http\Controllers\Api\V1\DistrictRecipientSetController;
 use App\Http\Controllers\Api\V1\DistrictReportController;
 use App\Http\Controllers\Api\V1\DistrictReportingSettingsController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
@@ -102,6 +103,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::get('/district-reports/{version}/pdf', [DistrictReportController::class, 'pdf']);
         Route::get('/district-reporting-settings', [DistrictReportingSettingsController::class, 'show'])->middleware(EnsureAccountsAccess::class);
         Route::put('/district-reporting-settings', [DistrictReportingSettingsController::class, 'update'])->middleware(EnsureAccountsAccess::class);
+        Route::get('/district-recipient-sets', [DistrictRecipientSetController::class, 'index'])->middleware(EnsureAccountsAccess::class);
+        Route::post('/district-recipient-sets/replace', [DistrictRecipientSetController::class, 'replace'])->middleware(EnsureAccountsAccess::class);
         Route::post('/district-reports/{version}/approve', [DistrictReportController::class, 'approve'])->middleware(EnsureAccountsAccess::class);
         Route::post('/district-reports/{version}/send', [DistrictReportController::class, 'send'])->middleware(EnsureAccountsAccess::class);
         Route::get('/dashboard/summary', DashboardSummaryController::class);

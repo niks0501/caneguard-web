@@ -48,7 +48,7 @@ describe("weekly report history", () => {
     vi.mocked(useAuth).mockReturnValue({ status: "authenticated", user: { uuid: "u", name: "A", email: "a@example.test", role: "admin" } } as ReturnType<typeof useAuth>);
     server.use(http.get(base, () => HttpResponse.json({
       data: [make(weeks[0], 2), make(weeks[0], 1, { is_current: false, stale_reason: "newer_version" }), make(weeks[1], 1, { approved_at: "2026-10-01T04:00:00Z", transmissions: [sent] })],
-      meta: { send_enabled: true },
+      meta: { send_enabled: true, delivery_gate_open: true, recipients_configured: true },
     })));
     const onSelect = vi.fn();
     render(<QueryClientProvider client={new QueryClient()}><WeeklyReportHistory week={weeks[0]} onSelect={onSelect} /></QueryClientProvider>);

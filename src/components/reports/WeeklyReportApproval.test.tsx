@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../../auth/useAuth";
 import { server } from "../../test/server";
+import { OfficialRecipients } from "./OfficialRecipients";
 import { WeeklyReportApproval } from "./WeeklyReportApproval";
 
 vi.mock("../../auth/useAuth", () => ({ useAuth: vi.fn() }));
@@ -34,7 +35,7 @@ function renderApproval() {
 describe("weekly district approval", () => {
   beforeEach(() => {
     auth("reviewer", []);
-    server.use(http.get(base, () => HttpResponse.json({ data: [version], meta: { send_enabled: true } })));
+    server.use(http.get(base, () => HttpResponse.json({ data: [version], meta: { send_enabled: true, delivery_gate_open: true, recipients_configured: true } })));
   });
 
   it("lets reviewers prepare but never shows approval or send, even with malformed grants", async () => {
@@ -59,7 +60,7 @@ describe("weekly district approval", () => {
     let approved: string | null = null;
     let sendBody: unknown;
     server.use(
-      http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: approved }], meta: { send_enabled: true } })),
+      http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: approved }], meta: { send_enabled: true, delivery_gate_open: true, recipients_configured: true } })),
       http.post(`${base}/${version.uuid}/approve`, async ({ request }) => {
         expect(await request.json()).toEqual({ content_hash: version.content_hash });
         approved = "2026-10-01T04:00:00Z";
@@ -90,7 +91,7 @@ describe("weekly district approval", () => {
     auth("admin", []);
     let posts = 0;
     server.use(
-      http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: approvedAt }], meta: { send_enabled: true, recipient_count: 3 } })),
+      http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: approvedAt }], meta: { send_enabled: true, delivery_gate_open: true, recipients_configured: true, recipient_count: 3 } })),
       http.post(`${base}/${version.uuid}/${kind}`, () => { posts += 1; return HttpResponse.json({ data: { state: "pending" } }, { status: 202 }); }),
     );
     const user = userEvent.setup();
@@ -118,7 +119,7 @@ describe("weekly district approval", () => {
       id: 1, state: "sent", transport_receipt: "provider-id@example.test", failure_reason: null,
       requested_name: "Sender Name", requested_by_id: 1, send_grant_id: 3, send_grant_revision: 2,
       created_at: "2026-10-01T05:00:00Z", completed_at: "2026-10-01T05:01:00Z",
-    }] }], meta: { send_enabled: true } })));
+    }] }], meta: { send_enabled: true, delivery_gate_open: true, recipients_configured: true } })));
     renderApproval();
     expect(await screen.findByText("SMTP provider accepted the report. Inbox delivery is not guaranteed.")).toBeInTheDocument();
     expect(screen.getByText(/Provider message ID: provider-id/)).toBeInTheDocument();
@@ -148,10 +149,53 @@ describe("weekly district approval", () => {
 
   it("hides sending behind the office contract gate", async () => {
     auth("admin", ["report:send"]);
-    server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: { send_enabled: false } })));
+    server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: { send_enabled: false, delivery_gate_open: false, recipients_configured: false } })));
     renderApproval();
-    expect(await screen.findByText("Weekly sending is not active yet.")).toBeInTheDocument();
+    expect(await screen.findByText("Office delivery gate closed.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request send" })).not.toBeInTheDocument();
+  });
+
+  it("says recipients are missing, not the gate, when the gate is open", async () => {
+    auth("admin", ["report:send"]);
+    server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: { send_enabled: false, delivery_gate_open: true, recipients_configured: false } })));
+    renderApproval();
+    expect(await screen.findByText(/No official recipients configured/)).toBeInTheDocument();
+    expect(screen.queryByText("Office delivery gate closed.")).not.toBeInTheDocument();
+  });
+
+  it("says the gate is closed even when recipients exist", async () => {
+    auth("admin", ["report:send"]);
+    server.use(http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: { send_enabled: false, delivery_gate_open: false, recipients_configured: true } })));
+    renderApproval();
+    expect(await screen.findByText("Office delivery gate closed.")).toBeInTheDocument();
+  });
+
+  it("offers sending again after an admin replaces recipients in another panel", async () => {
+    auth("admin", []);
+    const recipientsUrl = "http://localhost:8000/api/v1/district-recipient-sets";
+    let configured = false;
+    const meta = () => ({ send_enabled: configured, delivery_gate_open: true, recipients_configured: configured });
+    server.use(
+      http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: "2026-10-01T04:00:00Z" }], meta: meta() })),
+      http.get(recipientsUrl, () => HttpResponse.json({ data: [] })),
+      http.post(`${recipientsUrl}/replace`, () => { configured = true; return HttpResponse.json({ data: [] }); }),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 30_000 }, mutations: { retry: false } } });
+    const approval = render(<QueryClientProvider client={client}><WeeklyReportApproval week="2026-W40" /></QueryClientProvider>);
+    expect(await screen.findByText(/No official recipients configured\. Add them in Admin Settings\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request send" })).not.toBeInTheDocument();
+    approval.unmount();
+    const settings = render(<QueryClientProvider client={client}><OfficialRecipients /></QueryClientProvider>);
+    const user = userEvent.setup();
+    await user.type(await screen.findByRole("textbox", { name: "Recipient emails" }), "a@example.test");
+    await user.type(screen.getByRole("textbox", { name: "Office decision reference" }), "ref-1");
+    await user.type(screen.getByLabelText("Current password"), "synthetic-password");
+    await user.click(screen.getByRole("button", { name: "Replace recipients" }));
+    expect(await screen.findByText("Recipients replaced. The previous set is revoked.")).toBeInTheDocument();
+    settings.unmount();
+    render(<QueryClientProvider client={client}><WeeklyReportApproval week="2026-W40" /></QueryClientProvider>);
+    expect(await screen.findByRole("button", { name: "Request send" })).toBeInTheDocument();
+    expect(screen.queryByText(/No official recipients configured/)).not.toBeInTheDocument();
   });
 
   it("explains stale version conflicts and never declares approval success", async () => {
