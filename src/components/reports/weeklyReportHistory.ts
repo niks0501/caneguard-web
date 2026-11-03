@@ -23,6 +23,7 @@ export const listSchema = z.object({
 });
 
 export type ReportVersion = z.infer<typeof versionSchema>;
+export type ReportListMeta = z.infer<typeof listSchema>["meta"];
 export type WeekStatus = "not_prepared" | "draft" | "approved" | "stale" | "sent" | "failed";
 
 export const weekStatusLabels: Record<WeekStatus, string> = {

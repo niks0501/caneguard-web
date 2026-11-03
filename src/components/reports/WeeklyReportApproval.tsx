@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
@@ -8,12 +7,12 @@ import { env } from "../../config/env";
 import { formatDateTime } from "../../lib/formatters";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
-import { listSchema } from "./weeklyReportHistory";
+import { listSchema, type ReportListMeta } from "./weeklyReportHistory";
 
 const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RSSI"], ["mosaic", "Sugarcane Mosaic"], ["rust", "Sugarcane Rust"], ["smut", "Sugarcane Smut"]];
 
 // Separate a closed delivery gate from a district that simply has no official recipient set yet.
-function sendUnavailableMessage(meta: z.infer<typeof listSchema>["meta"]) {
+function sendUnavailableMessage(meta: ReportListMeta) {
   return meta.delivery_gate_open && !meta.recipients_configured
     ? "No official recipients configured. Add them in Admin Settings."
     : "Office delivery gate closed.";
