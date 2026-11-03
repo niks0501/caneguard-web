@@ -18,6 +18,7 @@ use App\Notifications\OfficeReviewCompletedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
@@ -294,6 +295,33 @@ class NotificationTest extends TestCase
             ->assertJsonFragment(['event_type' => FollowUpDueNotification::EVENT_TYPE]);
         $this->assertCount(1, $reviewer->notifications()->get());
         $this->assertCount(1, $admin->notifications()->get());
+    }
+
+    public function test_follow_up_due_notification_uses_the_manila_day_boundary(): void
+    {
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'case_state' => Report::CASE_STATE_OPEN,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-11-04',
+        ]);
+        Sanctum::actingAs($assignee, ['notification:read']);
+
+        // 2026-11-04 23:00 Manila: not overdue yet.
+        Carbon::setTestNow('2026-11-04T15:00:00Z');
+        $this->getJson('/api/v1/mobile/notifications')->assertOk()->assertJsonCount(0, 'data');
+
+        // 2026-11-05 01:00 Manila (still 2026-11-04 in UTC): overdue.
+        Carbon::setTestNow('2026-11-04T17:00:00Z');
+        $this->getJson('/api/v1/mobile/notifications')->assertOk()->assertJsonCount(1, 'data');
+
+        Carbon::setTestNow();
     }
 
     public function test_final_office_review_notifies_submitter_and_validator_but_metadata_corrections_are_quiet(): void

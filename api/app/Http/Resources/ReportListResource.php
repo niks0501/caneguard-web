@@ -48,8 +48,8 @@ class ReportListResource extends JsonResource
             'follow_up' => [
                 'due_on' => $this->fieldValidationAssignment?->target_visit_date?->format('Y-m-d'),
                 'overdue' => $this->fieldValidationAssignment?->target_visit_date !== null
-                    && $this->fieldValidationAssignment->target_visit_date
-                        ->lt(now()->startOfDay()),
+                    && $this->fieldValidationAssignment->target_visit_date->format('Y-m-d')
+                        < now('Asia/Manila')->toDateString(),
             ],
             'mismatch_reported' => $this->mismatch_reported,
             'machine_facts' => $this->machineFacts(),

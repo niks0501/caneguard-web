@@ -148,7 +148,7 @@ class CreateLifecycleNotifications
      */
     public function ensureFollowUpDueNotifications(): int
     {
-        $today = CarbonImmutable::now()->startOfDay();
+        $today = CarbonImmutable::now('Asia/Manila')->startOfDay();
         $created = 0;
 
         FieldValidationAssignment::query()

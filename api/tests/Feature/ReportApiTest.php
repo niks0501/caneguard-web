@@ -402,6 +402,34 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.0.uuid', $assigned->uuid);
     }
 
+    public function test_follow_up_overdue_badge_rolls_over_at_the_manila_day_boundary(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $assignee = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create();
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+            'target_visit_date' => '2026-11-04',
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        // 2026-11-04 23:00 Manila: the target day is still today.
+        CarbonImmutable::setTestNow('2026-11-04T15:00:00Z');
+        $this->getJson('/api/v1/reports')
+            ->assertOk()
+            ->assertJsonPath('data.0.follow_up.overdue', false);
+
+        // 2026-11-05 01:00 Manila (still 2026-11-04 in UTC): now overdue.
+        CarbonImmutable::setTestNow('2026-11-04T17:00:00Z');
+        $this->getJson('/api/v1/reports')
+            ->assertOk()
+            ->assertJsonPath('data.0.follow_up.overdue', true);
+
+        CarbonImmutable::setTestNow();
+    }
+
     public function test_report_queue_rows_expose_operational_priority_without_confidence_sorting(): void
     {
         $reviewer = User::factory()->reviewer()->create();
