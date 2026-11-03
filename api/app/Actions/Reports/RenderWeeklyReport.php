@@ -15,7 +15,7 @@ final class RenderWeeklyReport
 
     public function data(DistrictReportVersion $version, ?string $disease = null, bool $appendix = false): array
     {
-        abort_unless(($version->content['contract'] ?? null) === 'weekly-report-content-v1', 409, 'Prepare an official weekly version first.');
+        abort_unless(in_array($version->content['contract'] ?? null, BuildWeeklyReportContent::CONTRACTS, true), 409, 'Prepare an official weekly version first.');
         abort_unless(hash_equals($version->content['map']['asset_digest'], $this->graphics->assetDigest()), 409, 'The report renderer assets changed. Prepare a new version.');
         $content = $version->content;
         if (! $appendix) {

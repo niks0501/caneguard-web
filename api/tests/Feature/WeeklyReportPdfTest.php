@@ -61,6 +61,34 @@ class WeeklyReportPdfTest extends TestCase
         $this->get($path.'/pdf')->assertConflict();
     }
 
+    public function test_v2_document_prints_comparison_and_sealed_v1_downloads_byte_identical(): void
+    {
+        $district = $this->pilotDistrict();
+        $officer = User::factory()->admin()->inDistrict($district)->create();
+        DistrictGrant::query()->create(['user_id' => $officer->id, 'district_id' => $district->id, 'ability' => 'report:approve']);
+        Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-29 10:00:00', 'barangay' => 'Banilad']);
+        $workflow = app(DistrictReportWorkflow::class);
+        $version = $workflow->prepare($officer, '2026-W40');
+        $this->assertSame('weekly-report-content-v2', $version->content['contract']);
+        $this->actingAs($officer, 'web');
+        $path = '/api/v1/district-reports/'.$version->uuid;
+        $this->get($path.'/document')->assertOk()->assertSee('vs previous week (2026-W39)')->assertSee('0 → 1 (+1)', false)
+            ->assertSee('Week over week')->assertSee('First cases in 4 weeks')->assertSee('Banilad (1)');
+        $approved = $workflow->approve($officer, $version, $version->content_hash);
+        $bytes = app(RenderWeeklyReport::class)->approvedBytes($approved);
+        $this->assertSame($bytes, $this->get($path.'/pdf')->assertOk()->getContent());
+
+        // A sealed v1 version (no comparison block) keeps its bytes and still downloads and renders.
+        $v1 = $approved->content;
+        $v1['contract'] = 'weekly-report-content-v1';
+        unset($v1['comparison']);
+        $v1Bytes = base64_encode($bytes);
+        DB::table('district_report_versions')->where('id', $version->id)->update(['content' => json_encode($v1)]);
+        $this->assertSame($bytes, $this->get($path.'/pdf')->assertOk()->getContent());
+        $this->assertSame($v1Bytes, base64_encode($bytes));
+        $this->get($path.'/document')->assertOk()->assertDontSee('vs previous week')->assertDontSee('Week over week');
+    }
+
     public function test_privacy_requires_explicit_preparation_enablement_and_named_officer_access(): void
     {
         $district = $this->pilotDistrict();

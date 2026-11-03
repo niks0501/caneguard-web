@@ -16,6 +16,8 @@ The five rows are Healthy, RSSI, Sugarcane Mosaic, Sugarcane Rust and Sugarcane 
 
 `DistrictReportVersion.content.contract = weekly-report-content-v1` contains district, ISO week, case/source/duplicate/out-of-scope counts, five disjoint disease status rows, unclassified buckets, open/closed counts, barangays with confirmed-by-disease and per-disease area, approximate named farmer/farm references, report count carrying farmer information, recorded actions, late evidence, seven daily SQL-aggregated receipt counts, coarse case-location clusters, method statements, an evidence digest, and an optional restricted appendix.
 
+New preparations carry `weekly-report-content-v2`: v1 plus a `comparison` block (previous-week case total and delta, per-disease suspected/under review/confirmed previous vs now, barangays with first cases in four weeks, and a method statement signers can review). Approval and the renderer accept both contracts; sealed v1 versions are never rewritten and download their stored bytes. Previous-week figures use the same receipt-week rules, so late evidence is counted once, in the week it was received.
+
 All weeks are half-open UTC query intervals corresponding to Monday 12:00 AM through Sunday 11:59 PM Asia/Manila. Counts use server `submitted_at` (receipt), never the observation week. Late arrivals list affected prior observation weeks. Re-preparing an earlier week also records observations from that week received later, without adding them to its case counts. Those later rows join source evidence so reconciliation creates a new version.
 
 - Case counts exclude `canonical_report_id` rows, but all duplicate source references remain sealed.

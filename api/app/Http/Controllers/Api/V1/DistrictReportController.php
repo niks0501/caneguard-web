@@ -54,7 +54,7 @@ class DistrictReportController extends Controller
     public function document(Request $request, DistrictReportVersion $version, DistrictAccess $access, DistrictReportWorkflow $workflow, RenderWeeklyReport $renderer): Response
     {
         Gate::authorize('view', $version);
-        abort_unless(($version->content['contract'] ?? null) === 'weekly-report-content-v1', 409);
+        abort_unless(in_array($version->content['contract'] ?? null, BuildWeeklyReportContent::CONTRACTS, true), 409);
         $input = $request->validate(['disease' => ['sometimes', Rule::in(array_keys(BuildWeeklyReportContent::DISEASES))], 'appendix' => ['sometimes', 'boolean']]);
         $appendix = $request->boolean('appendix');
         abort_if($appendix && ! $workflow->appendixAllowed($request->user()), 403);
@@ -68,7 +68,7 @@ class DistrictReportController extends Controller
         // Filtered HTML is a derived convenience, never an alternative approved PDF.
         $request->validate(['disease' => ['prohibited'], 'appendix' => ['prohibited']]);
         abort_if(($version->content['appendix_enabled'] ?? false) && ! $workflow->appendixAllowed($request->user()), 403);
-        abort_unless(($version->content['contract'] ?? null) === 'weekly-report-content-v1', 409);
+        abort_unless(in_array($version->content['contract'] ?? null, BuildWeeklyReportContent::CONTRACTS, true), 409);
         $bytes = $version->approved_at ? $renderer->approvedBytes($version) : $renderer->pdf($version);
 
         return response($bytes)->header('Content-Type', 'application/pdf')
