@@ -1,30 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { z } from "zod";
 import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
 import { useAuth } from "../../auth/useAuth";
 import { env } from "../../config/env";
 import { formatDateTime } from "../../lib/formatters";
 import { Button } from "../ui/Button";
+import { listSchema } from "./weeklyReportHistory";
 
-const transmissionSchema = z.object({
-  id: z.number().int(), state: z.enum(["pending", "delivering", "sent", "failed", "cancelled"]),
-  transport_receipt: z.string().nullable(), failure_reason: z.string().nullable(),
-  requested_name: z.string().nullable(), requested_by_id: z.number().int(),
-  completed_at: z.string().nullable(), created_at: z.string(),
-});
-const versionSchema = z.object({
-  uuid: z.string().uuid(), version: z.number().int(), content_hash: z.string().regex(/^[a-f0-9]{64}$/),
-  approved_at: z.string().nullable(), approved_name: z.string().nullable().optional(),
-  approved_title: z.string().nullable().optional(), prepared_name: z.string().nullable().optional(),
-  created_at: z.string().optional(), version_reason: z.string().optional(),
-  appendix_enabled: z.boolean().optional(), document_sha256: z.string().nullable().optional(),
-  transmissions: z.array(transmissionSchema).default([]),
-});
-const listSchema = z.object({
-  data: z.array(versionSchema), meta: z.object({ send_enabled: z.boolean(), appendix_allowed: z.boolean().default(false) }),
-});
 const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RSSI"], ["mosaic", "Sugarcane Mosaic"], ["rust", "Sugarcane Rust"], ["smut", "Sugarcane Smut"]];
 
 export function WeeklyReportApproval({ week }: { week: string }) {
@@ -62,7 +45,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
         ...(kind === "send" ? { idempotency_key: intentKeys.current.get(intentScope) } : {}),
       });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["district-report-versions", user?.uuid] }),
   });
   const officer = user?.role === "admin";
   const canApprove = officer;

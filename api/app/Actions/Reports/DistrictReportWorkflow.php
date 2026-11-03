@@ -183,6 +183,17 @@ final class DistrictReportWorkflow
         abort_unless($this->isCurrent($version, $hash), 409);
     }
 
+    /** Null when the version is current; otherwise why it is not. Never needs the caller's hash. */
+    public function staleReason(DistrictReportVersion $version): ?string
+    {
+        if (DistrictReportVersion::query()->where('district_id', $version->district_id)
+            ->where('week_start', $version->week_start)->where('version', '>', $version->version)->exists()) {
+            return 'newer_version';
+        }
+
+        return $this->isCurrent($version, $version->content_hash) ? null : 'evidence_changed';
+    }
+
     private function isCurrent(DistrictReportVersion $version, string $hash): bool
     {
         return hash_equals($version->content_hash, $hash)

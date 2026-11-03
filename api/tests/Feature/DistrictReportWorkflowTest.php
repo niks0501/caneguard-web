@@ -139,6 +139,29 @@ class DistrictReportWorkflowTest extends TestCase
         $this->assertDatabaseCount('district_report_transmissions', 0);
     }
 
+    public function test_index_exposes_currency_stale_reason_and_a_counts_only_headline(): void
+    {
+        [$officer, $district] = $this->officer();
+        $report = Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-29 10:00:00']);
+        $this->actingAs($officer, 'web');
+        $first = $this->prepare();
+        $this->getJson('/api/v1/district-reports')->assertOk()
+            ->assertJsonPath('data.0.is_current', true)->assertJsonPath('data.0.stale_reason', null)
+            ->assertJsonPath('data.0.week', '2026-W40')->assertJsonPath('data.0.headline.cases', 1);
+
+        $report->update(['review_notes' => 'Late office decision', 'lock_version' => 1]);
+        $row = $this->getJson('/api/v1/district-reports')->assertOk()->json('data.0');
+        $this->assertFalse($row['is_current']);
+        $this->assertSame('evidence_changed', $row['stale_reason']);
+        $this->assertSame(['cases', 'confirmed', 'late_evidence'], array_keys($row['headline']));
+
+        $second = $this->prepare();
+        $rows = $this->getJson('/api/v1/district-reports')->assertOk()->json('data');
+        $this->assertSame([$second['uuid'], $first['uuid']], array_column($rows, 'uuid'));
+        $this->assertSame([true, false], array_column($rows, 'is_current'));
+        $this->assertSame([null, 'newer_version'], array_column($rows, 'stale_reason'));
+    }
+
     public function test_disabled_sender_cancels_queued_intent_and_reenable_does_not_resurrect_it(): void
     {
         config(['caneguard.weekly_send_enabled' => true]);
