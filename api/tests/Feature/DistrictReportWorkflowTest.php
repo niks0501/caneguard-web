@@ -65,6 +65,7 @@ class DistrictReportWorkflowTest extends TestCase
         $payload = ['content_hash' => $version['content_hash'], 'idempotency_key' => (string) Str::uuid(),
             'sender_id' => 99999, 'recipients' => ['forged@example.test']];
         $path = '/api/v1/district-reports/'.$version['uuid'];
+        $this->getJson('/api/v1/district-reports')->assertOk()->assertJsonPath('meta.recipient_count', 1);
         $this->postJson($path.'/send', $payload)->assertConflict();
         $this->postJson($path.'/approve', ['content_hash' => str_repeat('0', 64)])->assertConflict();
         $this->postJson($path.'/approve', $payload)->assertOk()->assertJsonPath('data.approved_by_id', $officer->id);

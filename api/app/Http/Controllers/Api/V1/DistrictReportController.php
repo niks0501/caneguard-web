@@ -23,6 +23,7 @@ class DistrictReportController extends Controller
     {
         $input = $request->validate(['week' => ['sometimes', 'regex:/^\d{4}-W\d{2}$/']]);
         $start = isset($input['week']) ? $builder->period($input['week'])['start']->toDateString() : null;
+        $recipientSet = DistrictRecipientSet::query()->where('district_id', $access->pilotId())->whereNull('revoked_at')->orderByDesc('id')->first();
         $versions = DistrictReportVersion::query()->with('transmissions')->where('district_id', $access->pilotId())
             ->when($start, fn ($query) => $query->where('week_start', $start))
             ->orderByDesc('week_start')->orderByDesc('version')->limit(50)->get();
@@ -44,8 +45,8 @@ class DistrictReportController extends Controller
                         'late_evidence' => (int) ($content['late_evidence']['received_later_for_this_week'] ?? 0)],
                     'appendix_enabled' => $content['appendix_enabled'] ?? false, 'transmissions' => $version->transmissions];
         }), 'meta' => [
-            'send_enabled' => config('caneguard.weekly_send_enabled') === true
-                && DistrictRecipientSet::query()->where('district_id', $access->pilotId())->whereNull('revoked_at')->exists(),
+            'send_enabled' => config('caneguard.weekly_send_enabled') === true && $recipientSet !== null,
+            'recipient_count' => $recipientSet === null ? 0 : count($recipientSet->recipients),
             'appendix_allowed' => $workflow->appendixAllowed($request->user()),
         ]])->header('Cache-Control', 'private, no-store');
     }

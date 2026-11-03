@@ -75,10 +75,41 @@ describe("weekly district approval", () => {
     await screen.findByTitle("Official weekly report version 1");
     expect(screen.getByRole("button", { name: "Request send" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Approve version" }));
+    await user.click(screen.getByRole("button", { name: "Confirm approval" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Request send" })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: "Request send" }));
+    await user.click(screen.getByRole("button", { name: "Confirm send" }));
     expect(await screen.findByText("Send intent recorded. Delivery is not confirmed.")).toBeInTheDocument();
     expect(sendBody).toEqual({ content_hash: version.content_hash, idempotency_key: expect.stringMatching(/^[a-f0-9-]{36}$/) });
+  });
+
+  it.each([
+    ["approve", "Approve version", "Confirm approval", null, /cannot be undone/],
+    ["send", "Request send", "Confirm send", "2026-10-01T04:00:00Z", /emails the signed PDF.*cannot be undone/],
+  ] as const)("confirms %s in a dialog: Cancel posts nothing, Confirm posts once", async (kind, trigger, confirmLabel, approvedAt, sentence) => {
+    auth("admin", []);
+    let posts = 0;
+    server.use(
+      http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: approvedAt }], meta: { send_enabled: true, recipient_count: 3 } })),
+      http.post(`${base}/${version.uuid}/${kind}`, () => { posts += 1; return HttpResponse.json({ data: { state: "pending" } }, { status: 202 }); }),
+    );
+    const user = userEvent.setup();
+    renderApproval();
+    await screen.findByTitle("Official weekly report version 1");
+    await user.click(screen.getByRole("button", { name: trigger }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("2026-W40");
+    expect(dialog).toHaveTextContent("1");
+    expect(dialog).toHaveTextContent("aaaaaaaaaaaa");
+    expect(dialog).toHaveTextContent("Recipients3");
+    expect(dialog).toHaveTextContent(sentence);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(posts).toBe(0);
+    await user.click(screen.getByRole("button", { name: trigger }));
+    await user.dblClick(screen.getByRole("button", { name: confirmLabel }));
+    await waitFor(() => expect(posts).toBe(1));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("shows an honest SMTP receipt and never calls acceptance inbox delivery", async () => {
@@ -130,6 +161,7 @@ describe("weekly district approval", () => {
     renderApproval();
     await screen.findByTitle("Official weekly report version 1");
     await user.click(screen.getByRole("button", { name: "Approve version" }));
+    await user.click(screen.getByRole("button", { name: "Confirm approval" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Prepare a new version and review it again");
   });
 });
