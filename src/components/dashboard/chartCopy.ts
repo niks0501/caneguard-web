@@ -52,3 +52,31 @@ export const throughputCopy = {
     empty: "No completed validations in this period.",
   },
 } as const;
+
+/**
+ * Condition and barangay trends (Trends). The rising rule is not worded
+ * here: the API sends the ratio and the minimum case count, and the section
+ * prints them from that payload, so the page never restates a threshold.
+ */
+export const trendsCopy = {
+  heading: "Condition trends",
+  staff: {
+    title: "Staff classification over time",
+    empty: "No staff-classified reports in this period.",
+  },
+  ai: {
+    title: "Possible Condition (AI) over time",
+    empty: "No reports in this period.",
+  },
+  barangays: {
+    title: "Top barangays",
+    empty: "No reports with a barangay in this period.",
+  },
+  rising: "Rising",
+  unclassified: "Not classified",
+} as const;
+
+/** The plain rising rule, printed once from the API payload's thresholds. */
+export function risingRuleLine(rule: { ratio: number; minCases: number }): string {
+  return `Rising: at least ${rule.ratio}× the previous period and at least ${rule.minCases} reports.`;
+}

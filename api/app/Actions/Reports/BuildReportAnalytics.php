@@ -43,6 +43,7 @@ final class BuildReportAnalytics
         private readonly ApplyReportFilters $applyReportFilters,
         private readonly ApplyOperationalQueueFilter $applyOperationalQueueFilter,
         private readonly BuildMonthlyReportSummary $buildMonthlyReportSummary,
+        private readonly BuildConditionBarangayTrends $buildConditionBarangayTrends,
     ) {}
 
     /**
@@ -114,6 +115,13 @@ final class BuildReportAnalytics
                 'current_total' => $total,
                 'delta' => $total - $previousTotal,
             ],
+            ...$this->buildConditionBarangayTrends->handle(
+                clone $base,
+                clone $previousBase,
+                $start,
+                $end,
+                $granularity,
+            ),
             'reported_concern' => $this->reportedConcern(clone $base, $total),
             'possible_condition' => $this->possibleCondition(clone $base),
             'verification_outcome' => $this->verificationOutcome(clone $base),

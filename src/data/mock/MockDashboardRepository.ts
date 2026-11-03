@@ -15,6 +15,7 @@ import {
   legacyLifecycleForReviewStatus,
 } from "../api/mappers/lifecycle.mapper";
 import { filterMockOperationalQueue, isCanonicalWorkReport } from "./mockOperationalQueues";
+import { buildMockTrends } from "./mockConditionTrends";
 import { mockReports } from "./mockReports";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -338,6 +339,15 @@ export class MockDashboardRepository implements DashboardRepository {
         buckets: backlogBuckets.map(({ label, count }) => ({ label, count })),
         oldestWaitingDays: waitingDays.length > 0 ? Math.max(...waitingDays) : null,
       },
+      ...buildMockTrends(
+        reports,
+        previousReports,
+        (report) => {
+          const date = reportDate(report);
+          return granularity === "week" ? mondayFor(date) : date;
+        },
+        [...series.keys()],
+      ),
       reportedConcern,
       possibleCondition,
       verificationOutcome,

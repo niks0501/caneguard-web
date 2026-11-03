@@ -1,4 +1,6 @@
 import type {
+  ConditionTrend,
+  ConditionTrendGroup,
   DashboardSummary,
   ReportAnalytics,
   ReviewTime,
@@ -6,6 +8,27 @@ import type {
 import type { AnalyticsResponseDto } from "../schemas/analytics.schema";
 import type { DashboardResponseDto } from "../schemas/dashboard.schema";
 import { mapReportListItem } from "./report.mapper";
+
+function mapConditionTrend(
+  dto: AnalyticsResponseDto["data"]["series_by_condition"]["staff_classification"]["unclassified"],
+): ConditionTrend {
+  return {
+    condition: dto.condition,
+    total: dto.total,
+    previousTotal: dto.previous_total,
+    rising: dto.rising,
+    series: dto.series.map((point) => ({ label: point.label, count: point.count })),
+  };
+}
+
+function mapConditionTrendGroup(
+  dto: AnalyticsResponseDto["data"]["series_by_condition"]["staff_classification"],
+): ConditionTrendGroup {
+  return {
+    conditions: dto.conditions.map(mapConditionTrend),
+    unclassified: mapConditionTrend(dto.unclassified),
+  };
+}
 
 export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
   const { data } = dto;
@@ -34,6 +57,21 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
       currentSeries: data.comparison.current_series?.map((point) => ({ ...point })),
       currentTotal: data.comparison.current_total,
       delta: data.comparison.delta,
+    },
+    risingRule: { ratio: data.rising_rule.ratio, minCases: data.rising_rule.min_cases },
+    seriesByCondition: {
+      staffClassification: mapConditionTrendGroup(data.series_by_condition.staff_classification),
+      possibleCondition: mapConditionTrendGroup(data.series_by_condition.possible_condition),
+    },
+    seriesByBarangay: {
+      topN: data.series_by_barangay.top_n,
+      rows: data.series_by_barangay.rows.map((row) => ({
+        barangay: row.barangay,
+        total: row.total,
+        previousTotal: row.previous_total,
+        delta: row.delta,
+        rising: row.rising,
+      })),
     },
     reportedConcern: data.reported_concern.map((item) => ({ ...item })),
     possibleCondition: data.possible_condition.map((item) => ({ ...item })),

@@ -5,6 +5,7 @@ import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { ANALYTICS_FORBIDDEN_WORDS } from "../components/dashboard/analyticsCopy";
+import { quietTrends } from "../components/dashboard/trendsFixture";
 import {
   DASHBOARD_PREFERENCES_STORAGE_KEY,
   DASHBOARD_PREFERENCES_VERSION,
@@ -59,6 +60,7 @@ const summary = {
 };
 
 const analytics = {
+  ...quietTrends,
   period: {
     from: "2026-09-01",
     to: "2026-09-24",
