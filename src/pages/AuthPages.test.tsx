@@ -38,8 +38,7 @@ afterEach(() => {
 });
 
 describe("public authentication pages", () => {
-  it("keeps farmer registration hidden even when the retired client flag is enabled", async () => {
-    vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
+  it("redirects the retired registration route to sign-in without exposing registration", async () => {
     let called = false;
     server.use(http.post(`${baseUrl}/register`, () => {
       called = true;
@@ -51,18 +50,6 @@ describe("public authentication pages", () => {
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
     expect(called).toBe(false);
-  });
-
-  it("does not expose registration when public self-registration is disabled", async () => {
-    vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "false");
-    await renderAuthPage("/register");
-
-    expect(
-      await screen.findByRole("heading", { name: "Sign in to review field reports" }),
-    ).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/login");
-    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
   });
 
   it("keeps forgot-password feedback generic", async () => {

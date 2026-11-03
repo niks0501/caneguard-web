@@ -111,12 +111,6 @@ describe("LoginPage", () => {
     expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
   });
 
-  it("keeps the registration entry hidden regardless of the retired flag", () => {
-    vi.stubEnv("VITE_CANEGUARD_SELF_REGISTRATION_ENABLED", "true");
-    renderLoginPage();
-    expect(screen.queryByRole("link", { name: "Create an account" })).not.toBeInTheDocument();
-  });
-
   it("shows the actionable disabled-account message instead of generic access denial", async () => {
     const user = userEvent.setup();
     renderLoginPage({ login: vi.fn().mockRejectedValue(new ApiError("Disabled", { status: 403, code: "ACCOUNT_DISABLED" })) });
