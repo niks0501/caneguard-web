@@ -28,6 +28,19 @@ const reviewTimeSchema = z.object({
   max_hours: z.number().nonnegative().nullable(),
 });
 
+const conditionTrendSchema = z.object({
+  condition: z.string(),
+  total: z.number().int().nonnegative(),
+  previous_total: z.number().int().nonnegative(),
+  rising: z.boolean(),
+  series: z.array(analyticsSeriesPointSchema),
+});
+
+const conditionTrendGroupSchema = z.object({
+  conditions: z.array(conditionTrendSchema),
+  unclassified: conditionTrendSchema,
+});
+
 export const analyticsResponseSchema = z.object({
   data: z.object({
     period: z.object({
@@ -51,6 +64,26 @@ export const analyticsResponseSchema = z.object({
       current_series: z.array(analyticsSeriesPointSchema).optional(),
       current_total: z.number().int().nonnegative(),
       delta: z.number().int(),
+    }),
+    rising_rule: z.object({
+      ratio: z.number().int().positive(),
+      min_cases: z.number().int().positive(),
+    }),
+    series_by_condition: z.object({
+      staff_classification: conditionTrendGroupSchema,
+      possible_condition: conditionTrendGroupSchema,
+    }),
+    series_by_barangay: z.object({
+      top_n: z.number().int().positive(),
+      rows: z.array(
+        z.object({
+          barangay: z.string(),
+          total: z.number().int().nonnegative(),
+          previous_total: z.number().int().nonnegative(),
+          delta: z.number().int(),
+          rising: z.boolean(),
+        }),
+      ),
     }),
     reported_concern: z.array(
       z.object({

@@ -70,6 +70,11 @@ test("validateDashboardWrapRules requires min-width 0, max-width 100% and wrappi
     .decision-chart-card { min-width: 0; max-width: 100%; }
     .decision-chart-card__title { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .decision-chart-card__hint { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .trend-multiples { min-width: 0; max-width: 100%; }
+    .trend-multiple { min-width: 0; max-width: 100%; }
+    .trend-multiple__label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .trend-table { min-width: 0; max-width: 100%; }
+    .trend-table th { overflow-wrap: anywhere; }
     .dashboard-report-table { min-width: 0; max-width: 100%; }
     .dashboard-report-table th { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .dashboard-report-table td { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }

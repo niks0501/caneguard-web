@@ -31,6 +31,30 @@ export interface ReportAnalyticsSeriesPoint {
   count: number;
 }
 
+export interface ConditionTrend {
+  condition: string;
+  total: number;
+  previousTotal: number;
+  /** Set by the API: at least `ratio` times the previous period and `minCases` cases. */
+  rising: boolean;
+  /** Same buckets as `ReportAnalytics.series`. */
+  series: ReportAnalyticsSeriesPoint[];
+}
+
+export interface ConditionTrendGroup {
+  conditions: ConditionTrend[];
+  /** Reports with no recognised value; keeps the group summing to the total series. */
+  unclassified: ConditionTrend;
+}
+
+export interface BarangayTrendRow {
+  barangay: string;
+  total: number;
+  previousTotal: number;
+  delta: number;
+  rising: boolean;
+}
+
 export interface ReportAnalytics {
   period: ReportAnalyticsPeriod;
   totalSubmitted: number;
@@ -44,6 +68,12 @@ export interface ReportAnalytics {
     currentTotal: number;
     delta: number;
   };
+  risingRule: { ratio: number; minCases: number };
+  seriesByCondition: {
+    staffClassification: ConditionTrendGroup;
+    possibleCondition: ConditionTrendGroup;
+  };
+  seriesByBarangay: { topN: number; rows: BarangayTrendRow[] };
   reportedConcern: ReportedConcernCount[];
   possibleCondition: PossibleConditionCount[];
   verificationOutcome: VerificationOutcomeSplit;

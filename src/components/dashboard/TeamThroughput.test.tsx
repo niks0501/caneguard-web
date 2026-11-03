@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ReportAnalytics } from "../../domain/dashboard.types";
 import { ANALYTICS_FORBIDDEN_WORDS } from "./analyticsCopy";
 import { TeamThroughput } from "./TeamThroughput";
+import { quietTrends } from "./trendsFixture";
 
 const scopeLabel = "1 Sep – 7 Sep 2026";
 const reviewTime = (reviewedCases: number, medianHours: number | null) => ({
@@ -15,6 +16,7 @@ const reviewTime = (reviewedCases: number, medianHours: number | null) => ({
 });
 
 const analytics: ReportAnalytics = {
+  ...quietTrends,
   period: {
     from: "2026-09-01",
     to: "2026-09-07",

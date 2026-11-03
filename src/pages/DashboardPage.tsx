@@ -52,6 +52,11 @@ const BarangayValidationBars = lazy(() =>
     default: module.BarangayValidationBars,
   })),
 );
+const ConditionTrends = lazy(() =>
+  import("../components/dashboard/ConditionTrends").then((module) => ({
+    default: module.ConditionTrends,
+  })),
+);
 const TeamThroughput = lazy(() =>
   import("../components/dashboard/TeamThroughput").then((module) => ({
     default: module.TeamThroughput,
@@ -379,6 +384,17 @@ export function DashboardPage() {
               </div>
             )}
           </section>
+          {scopedAnalytics ? (
+            <Suspense
+              fallback={
+                <div aria-hidden="true">
+                  <Skeleton label="Loading condition trends" />
+                </div>
+              }
+            >
+              <ConditionTrends analytics={scopedAnalytics} scopeLabel={scopeLabel} />
+            </Suspense>
+          ) : null}
           {scopedAnalytics ? (
             <Suspense
               fallback={
