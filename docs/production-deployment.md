@@ -59,6 +59,8 @@ Production currently runs no queue worker and no mail. Until both are provisione
 
 Enabling the send flag requires a supervised `php artisan queue:work` and working SMTP first.
 
+Local proof without real mail: `cd api && php artisan test --filter=WeeklyReportMailEndToEndTest` queues a report and delivers it through the real `weekly_smtp` transport (TLS verified) into `api/tests/Support/fake_smtp_mailbox.py`, a local mailbox that relays nothing. For production variable names and ordered steps, see the "Production checklist: enable weekly report email" GitHub issue.
+
 ## Scheduler for weekly preparation reminders
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. Add one cron entry for the application user, from the `api` directory of the active release:
 
