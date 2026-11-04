@@ -22,7 +22,7 @@ class MobileReportUploadV2ContractTest extends TestCase
         $this->assertSame('POST', $contract['wire']['method']);
         $this->assertSame('/api/v2/mobile/reports', $contract['wire']['path']);
         $this->assertSame(
-            ['healthy', 'mosaic', 'rust', 'smut'],
+            ['healthy', 'mosaic', 'rust', 'smut', 'rssi'],
             $contract['fields']['predicted_label']['enum'],
         );
         $this->assertSame(

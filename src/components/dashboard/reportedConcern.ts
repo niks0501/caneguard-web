@@ -31,6 +31,7 @@ export const POSSIBLE_CONDITIONS: PossibleConditionEntry[] = [
   { value: "mosaic", label: "Mosaic" },
   { value: "rust", label: "Rust" },
   { value: "smut", label: "Smut" },
+  { value: "rssi", label: "RSSI" },
 ];
 
 export function reportedConcernLabel(value: string): string {

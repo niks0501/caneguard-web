@@ -19,6 +19,7 @@ export const diseaseLabels: Record<DiseaseKey, string> = {
   mosaic: "Possible Condition: Mosaic",
   rust: "Possible Condition: Rust",
   smut: "Possible Condition: Smut",
+  rssi: "Possible Condition: RSSI",
 };
 
 /** Values offered when recording a new staff classification. */

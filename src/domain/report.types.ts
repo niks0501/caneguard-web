@@ -2,7 +2,7 @@ import type { ReportAffectedField } from "./fieldSurvey.types";
 import type { OperationalQueue } from "./operationalQueue";
 import type { WorkflowStatus } from "./workflowStatus";
 
-export type DiseaseKey = "healthy" | "mosaic" | "rust" | "smut";
+export type DiseaseKey = "healthy" | "mosaic" | "rust" | "smut" | "rssi";
 export type AttentionBand = "green" | "amber" | "red";
 
 /** Stable reporter-observation value sent by Mobile for the RSSI quick choice. */

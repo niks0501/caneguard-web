@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ReportFactory extends Factory
 {
+    /** The deployed Model V1 evidence shape stays four-class; RSSI arrives with a later model. */
+    private const MODEL_V1_LABELS = ['healthy', 'mosaic', 'rust', 'smut'];
+
     /** @var array<int, array{barangay: string, latitude: float, longitude: float}> */
     private const NASUGBU_LOCATIONS = [
         ['barangay' => 'Aga', 'latitude' => 14.0900, 'longitude' => 120.7792],
@@ -109,7 +112,7 @@ class ReportFactory extends Factory
     public function mobileModelV1(): static
     {
         return $this->state([
-            'predicted_label' => fake()->randomElement(Report::v2Labels()),
+            'predicted_label' => fake()->randomElement(self::MODEL_V1_LABELS),
             'model_version' => 'v1.0-mobilenetv2',
         ]);
     }
@@ -126,7 +129,7 @@ class ReportFactory extends Factory
             })
             ->afterCreating(function (Report $report): void {
                 $labels = $report->model_version === 'v1.0-mobilenetv2'
-                    ? Report::v2Labels()
+                    ? self::MODEL_V1_LABELS
                     : Report::labels();
                 $scores = collect($labels)
                     ->map(fn (string $label) => [

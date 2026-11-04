@@ -91,6 +91,15 @@ describe("parseReportListUrl", () => {
     expect(state.invalid).toBe(false);
   });
 
+  it("accepts the RSSI fifth-class label as a Possible Condition filter", () => {
+    const state = parseReportListUrl(
+      new URLSearchParams("predicted_label=rssi"),
+    );
+
+    expect(state.filters.disease).toBe("rssi");
+    expect(state.invalid).toBe(false);
+  });
+
   it.each([
     ["page=0"],
     ["page=not-a-number"],
