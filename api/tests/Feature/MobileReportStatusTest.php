@@ -214,6 +214,52 @@ class MobileReportStatusTest extends TestCase
         ], $response->json('data.0'));
     }
 
+    public function test_v3_feed_adds_lifecycle_and_workflow_status_without_touching_legacy_fields(): void
+    {
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create([
+            'reporter_id' => $reporter,
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+            'referral_state' => Report::REFERRAL_STATE_NOT_REFERRED,
+        ]);
+        $token = $reporter->createToken('v3-lifecycle-status-test')->plainTextToken;
+
+        $query = '?sync_before='.urlencode(now()->addMinute()->toISOString());
+        $v3 = $this->withToken($token)->getJson('/api/v3/mobile/reports/statuses'.$query)->assertOk();
+        $v2 = $this->withToken($token)->getJson('/api/v2/mobile/reports/statuses'.$query)->assertOk();
+
+        $this->assertSame([
+            'case_state' => 'closed',
+            'verification_outcome' => 'verified',
+            'field_validation_state' => 'completed',
+            'referral_state' => 'not_referred',
+        ], $v3->json('data.0.lifecycle'));
+        $this->assertSame('resolved', $v3->json('data.0.workflow_status'));
+        $this->assertSame(Report::STATUS_VERIFIED_BY_STAFF, $v3->json('data.0.review_status'));
+        $this->assertArrayNotHasKey('lifecycle', $v2->json('data.0'));
+        $this->assertArrayNotHasKey('workflow_status', $v2->json('data.0'));
+    }
+
+    public function test_workflow_status_follows_web_derivation_precedence(): void
+    {
+        $open = ['case_state' => Report::CASE_STATE_OPEN];
+        $cases = [
+            'resolved' => ['case_state' => Report::CASE_STATE_CLOSED, 'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED],
+            'field_validation' => $open + ['field_validation_state' => Report::FIELD_VALIDATION_STATE_IN_PROGRESS, 'referral_state' => Report::REFERRAL_STATE_REFERRED],
+            'referred' => $open + ['referral_state' => Report::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED, 'scheduled_revisit' => true],
+            'follow_up' => $open + ['scheduled_revisit' => true, 'first_reviewed_at' => now()],
+            'under_review' => $open + ['first_reviewed_at' => now()],
+            'needs_review' => $open,
+        ];
+
+        foreach ($cases as $expected => $attributes) {
+            $this->assertSame($expected, Report::factory()->make($attributes)->workflowStatus(), $expected);
+        }
+    }
+
     public function test_reviewer_cannot_read_mobile_status_feed(): void
     {
         $reviewer = User::factory()->reviewer()->create();

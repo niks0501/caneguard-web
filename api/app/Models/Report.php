@@ -537,6 +537,40 @@ class Report extends Model
     }
 
     /**
+     * Reviewer-facing workflow status, mirroring deriveWorkflowStatus in
+     * src/domain/workflowStatus.ts. Precedence: resolved, field_validation,
+     * referred, follow_up, under_review, needs_review.
+     */
+    public function workflowStatus(): string
+    {
+        $lifecycle = $this->lifecycleSnapshot();
+
+        if ($lifecycle['case_state'] === self::CASE_STATE_CLOSED) {
+            return 'resolved';
+        }
+
+        if (in_array($lifecycle['field_validation_state'], [
+            self::FIELD_VALIDATION_STATE_ASSIGNED,
+            self::FIELD_VALIDATION_STATE_IN_PROGRESS,
+        ], true)) {
+            return 'field_validation';
+        }
+
+        if (in_array($lifecycle['referral_state'], [
+            self::REFERRAL_STATE_REFERRED,
+            self::REFERRAL_STATE_EXPERT_RESPONSE_RECEIVED,
+        ], true)) {
+            return 'referred';
+        }
+
+        if ($this->scheduled_revisit === true) {
+            return 'follow_up';
+        }
+
+        return $this->first_reviewed_at !== null ? 'under_review' : 'needs_review';
+    }
+
+    /**
      * @return array<int, string>
      */
     public function uniqueIds(): array
