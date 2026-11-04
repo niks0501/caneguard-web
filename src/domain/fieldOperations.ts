@@ -241,8 +241,7 @@ export function groupFieldWorkloadByBarangay(
  */
 export function deriveReasonForVisit(item: FieldWorkloadItem): string | null {
   if (item.scheduledRevisit || item.followUpOutcome) return "Follow-up visit";
-  if (item.fieldValidationState === "in_progress") return "Continue field validation";
-  if (item.fieldValidationState === "assigned") return "Scheduled field validation";
+  if (item.fieldValidationState === "assigned" || item.fieldValidationState === "in_progress") return "Scheduled field validation";
   if (item.fieldValidationState === "unassigned" && item.reviewStatus === "for_field_validation") {
     return "Field validation required";
   }

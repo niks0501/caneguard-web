@@ -97,9 +97,14 @@ export const verificationOutcomeLabels: Record<VerificationOutcome, string> = {
 export const fieldValidationStateLabels: Record<FieldValidationState, string> = {
   unassigned: "Unassigned",
   assigned: "Assigned",
-  in_progress: "In progress",
+  in_progress: "Assigned",
   completed: "Completed",
 };
+
+/** Filter choices: `in_progress` is phone-local and never set on the web, so it is not offered. */
+export const fieldValidationFilterOptions = (
+  Object.keys(fieldValidationStateLabels) as FieldValidationState[]
+).filter((state) => state !== "in_progress");
 
 export const followUpOutcomeLabels: Record<FollowUpOutcome, string> = {
   improved: "Improved",

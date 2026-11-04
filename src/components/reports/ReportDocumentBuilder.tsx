@@ -16,6 +16,7 @@ import {
   authorityClassifiedConditionLabels,
   caseStateLabels,
   diseaseLabels,
+  fieldValidationFilterOptions,
   fieldValidationStateLabels,
   verificationOutcomeLabels,
 } from "../../domain/report.metadata";
@@ -346,7 +347,7 @@ export function ReportDocumentBuilder({
         <label><span>Possible Condition</span><select value={state.filters.predicted_label} onChange={(event) => updateFilter("predicted_label", event.target.value)}><option value="">All conditions</option>{Object.entries(diseaseLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label><span>Case state</span><select value={state.filters.case_state} onChange={(event) => updateFilter("case_state", event.target.value)}><option value="">All case states</option>{Object.entries(caseStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label><span>Verification</span><select value={state.filters.verification_outcome} onChange={(event) => updateFilter("verification_outcome", event.target.value)}><option value="">All outcomes</option>{Object.entries(verificationOutcomeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label><span>Field validation</span><select value={state.filters.field_validation_state} onChange={(event) => updateFilter("field_validation_state", event.target.value)}><option value="">All states</option>{Object.entries(fieldValidationStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label><span>Field validation</span><select value={state.filters.field_validation_state} onChange={(event) => updateFilter("field_validation_state", event.target.value)}><option value="">All states</option>{fieldValidationFilterOptions.map((value) => <option key={value} value={value}>{fieldValidationStateLabels[value]}</option>)}</select></label>
         <label><span>Staff condition</span><select value={state.filters.authority_classified_condition} onChange={(event) => updateFilter("authority_classified_condition", event.target.value)}><option value="">All classifications</option>{Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label><span>Operational queue</span><select value={state.filters.queue} onChange={(event) => updateFilter("queue", event.target.value)}><option value="">All queues</option><option value="needs_review">Needs review</option><option value="needs_visit">Needs visit</option><option value="follow_up_due">Follow-up due</option><option value="upcoming">Upcoming visits</option><option value="unverified_no_active_work">Unverified, no active work</option></select></label>
         <label className="report-builder__check"><input type="checkbox" checked={state.appendix} onChange={(event) => update("appendix", event.target.checked)} /><span>Include farmer/farm identifier appendix</span></label>
