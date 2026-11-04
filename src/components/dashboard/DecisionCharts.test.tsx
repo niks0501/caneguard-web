@@ -263,12 +263,12 @@ describe("ConcernVsConditionBars", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/what the reporter observed/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Neither is a diagnosis/)).not.toBeInTheDocument();
-    // Every reported row is prefixed; RSSI appears only there.
+    // Every row is prefixed; RSSI appears in both vocabularies, never merged.
     const table = screen.getByRole("table");
     expect(within(table).getByText("Reported: RSSI")).toBeInTheDocument();
     expect(within(table).getByText("Reported: Mosaic")).toBeInTheDocument();
     expect(within(table).getByText("Possible: Mosaic")).toBeInTheDocument();
-    expect(within(table).queryByText("Possible: RSSI")).not.toBeInTheDocument();
+    expect(within(table).getByText("Possible: RSSI")).toBeInTheDocument();
     expect(within(table).getByText("Possible: Smut")).toBeInTheDocument();
     // The axis labels carry the same prefixed names on the marks themselves.
     const axisText = [...container.querySelectorAll("svg text")]
@@ -276,7 +276,7 @@ describe("ConcernVsConditionBars", () => {
       .join(" ");
     expect(axisText).toContain("Reported: RSSI");
     expect(axisText).toContain("Possible: Rust");
-    expect(axisText).not.toContain("Possible: RSSI");
+    expect(axisText).toContain("Possible: RSSI");
     // Solid fills back every series. No pattern definition and no `url(#…)`
     // paint reference may survive; separation rides on the shared four-step
     // band ramp plus the printed `Reported:` / `Possible:` row labels.

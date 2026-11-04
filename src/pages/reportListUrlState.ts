@@ -17,7 +17,7 @@ const statusSchema = z.enum([
   "resolved",
 ]);
 const queueSchema = z.enum(operationalQueueValues);
-const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
+const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut", "rssi"]);
 const sortSchema = z.enum(["newest", "oldest", "due_soonest"]);
 const caseStateSchema = z.enum(["open", "closed"]);
 const verificationOutcomeSchema = z.enum([

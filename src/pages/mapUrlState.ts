@@ -14,7 +14,7 @@ const statusSchema = z.enum([
   "resolved",
 ]);
 const queueSchema = z.enum(fieldValidationQueueValues);
-const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
+const diseaseSchema = z.enum(["healthy", "mosaic", "rust", "smut", "rssi"]);
 const dateSchema = z.iso.date();
 
 export interface MapUrlState {

@@ -7,6 +7,7 @@ const DEFAULT_ARTIFACT_PATH = path.resolve(
   '../docs/contracts/mobile-report-upload-v3.json',
 );
 const EXPECTED_LABELS = ['healthy', 'mosaic', 'rust', 'smut'];
+const EXPECTED_PREDICTED_LABELS = [...EXPECTED_LABELS, 'rssi'];
 
 export class MobileReportUploadV3ArtifactError extends Error {
   constructor(source, issues) {
@@ -54,8 +55,8 @@ export function validateMobileReportUploadV3Artifact(
   if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
     issues.push('fields must be a non-empty object');
   }
-  if (JSON.stringify(fields?.predicted_label?.enum) !== JSON.stringify(EXPECTED_LABELS)) {
-    issues.push('predicted_label must enumerate all four Model V1 labels');
+  if (JSON.stringify(fields?.predicted_label?.enum) !== JSON.stringify(EXPECTED_PREDICTED_LABELS)) {
+    issues.push('predicted_label must enumerate the four Model V1 labels plus rssi');
   }
   const modelKeys = Array.isArray(classScores?.conditions)
     ? classScores.conditions.find((condition) => condition?.rule === 'model_class_keys')

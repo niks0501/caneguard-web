@@ -189,7 +189,8 @@
         "healthy",
         "mosaic",
         "rust",
-        "smut"
+        "smut",
+        "rssi"
       ]
     },
     "confidence": {

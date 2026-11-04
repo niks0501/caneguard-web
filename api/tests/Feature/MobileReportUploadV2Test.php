@@ -127,13 +127,67 @@ class MobileReportUploadV2Test extends TestCase
         );
     }
 
-    public function test_v2_rejects_rssi_and_legacy_downy_mildew_as_ai_predictions(): void
+    public function test_v2_accepts_rssi_as_a_fifth_class_prediction_and_stores_its_score(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-rssi-test', ['report:submit'])->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, [
+                'predicted_label' => 'rssi',
+                'confidence' => 0.9,
+                'class_scores' => [
+                    'healthy' => 0.02,
+                    'mosaic' => 0.02,
+                    'rust' => 0.02,
+                    'smut' => 0.04,
+                    'rssi' => 0.9,
+                ],
+                'symptom_keys' => ['unable-to-tell'],
+                'model_version' => 'v2.0-test',
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('data.model.predicted_label', 'rssi')
+            ->assertJsonCount(5, 'data.model.class_scores');
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertSame('rssi', $report->predicted_label);
+        $this->assertSame(0.9, (float) $report->classScores()->where('label', 'rssi')->value('score'));
+    }
+
+    public function test_v2_keeps_model_v1_to_its_four_class_scores_even_for_rssi(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('mobile-v2-rssi-v1-test', ['report:submit'])->plainTextToken;
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [
+                'class_scores' => [
+                    'healthy' => 0.01,
+                    'mosaic' => 0.01,
+                    'rust' => 0.01,
+                    'smut' => 0.96,
+                    'rssi' => 0.01,
+                ],
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('class_scores');
+
+        $this->assertDatabaseCount('reports', 0);
+    }
+
+    public function test_v2_rejects_unknown_and_legacy_classes_as_ai_predictions(): void
     {
         Storage::fake('local');
         $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('mobile-v2-class-boundary-test', ['report:submit'])->plainTextToken;
 
-        foreach (['RSSI', 'rssi', 'downy_mildew'] as $unsupportedPrediction) {
+        foreach (['RSSI', 'downy_mildew', 'red_stripe'] as $unsupportedPrediction) {
             $this->withToken($token)
                 ->withHeader('Accept', 'application/json')
                 ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), [

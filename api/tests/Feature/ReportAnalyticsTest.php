@@ -313,13 +313,14 @@ class ReportAnalyticsTest extends TestCase
         $this->assertSame(5, array_sum(array_column($analytics['reported_concern'], 'count')));
         $this->assertEqualsWithDelta(1.0, array_sum(array_column($analytics['reported_concern'], 'share')), 0.001);
 
-        // Model V1 includes Smut; reporter-only RSSI never enters the AI series.
+        // The AI series lists all five classes; reporter-only RSSI text does not count toward it.
         $this->assertSame(
             [
                 ['condition' => Report::LABEL_HEALTHY, 'count' => 1],
                 ['condition' => Report::LABEL_MOSAIC, 'count' => 2],
                 ['condition' => Report::LABEL_RUST, 'count' => 1],
                 ['condition' => Report::LABEL_SMUT, 'count' => 1],
+                ['condition' => 'rssi', 'count' => 0],
             ],
             $analytics['possible_condition'],
         );
@@ -400,7 +401,7 @@ class ReportAnalyticsTest extends TestCase
         }
     }
 
-    public function test_possible_condition_includes_supported_smut_but_never_reporter_only_rssi(): void
+    public function test_possible_condition_counts_rssi_only_from_the_predicted_label_not_reporter_text(): void
     {
         Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
         Report::factory()->inDistrict($this->pilotDistrict())->create([
@@ -408,11 +409,18 @@ class ReportAnalyticsTest extends TestCase
             'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
             'submitted_at' => CarbonImmutable::parse('2026-09-03T02:00:00Z'),
         ]);
+        $before = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-07')
+            ->assertOk()->json('data');
+        $this->assertContains(['condition' => 'rssi', 'count' => 0], $before['possible_condition']);
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'predicted_label' => 'rssi',
+            'submitted_at' => CarbonImmutable::parse('2026-09-04T02:00:00Z'),
+        ]);
         $data = $this->getJson('/api/v1/reports/analytics?from=2026-09-01&to=2026-09-07')
             ->assertOk()->json('data');
         $this->assertContains(['condition' => Report::LABEL_SMUT, 'count' => 1], $data['possible_condition']);
-        $this->assertNotContains('rssi', array_column($data['possible_condition'], 'condition'));
-        $this->assertSame(1, array_sum(array_column($data['possible_condition'], 'count')));
+        $this->assertContains(['condition' => 'rssi', 'count' => 1], $data['possible_condition']);
+        $this->assertSame(2, array_sum(array_column($data['possible_condition'], 'count')));
     }
 
     public function test_analytics_splits_validation_attention_per_barangay_with_nasugbu_scope(): void

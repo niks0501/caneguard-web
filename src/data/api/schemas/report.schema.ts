@@ -6,7 +6,7 @@ import {
 } from "./common.schema";
 import { fieldSurveyPolygonSchema } from "./fieldSurvey.schema";
 
-export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust", "smut"]);
+export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust", "smut", "rssi"]);
 export const authorityClassifiedConditionSchema = z.enum([
   "healthy",
   "smut",

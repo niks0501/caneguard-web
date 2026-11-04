@@ -134,6 +134,15 @@ describe("report API schemas", () => {
     expect(reportListResponseSchema.parse(smut).data[0]?.predicted_label).toBe("smut");
   });
 
+  it("accepts the RSSI fifth-class label", () => {
+    const rssi = {
+      ...paginatedReportsDto,
+      data: [{ ...paginatedReportsDto.data[0], predicted_label: "rssi" }],
+    };
+
+    expect(reportListResponseSchema.parse(rssi).data[0]?.predicted_label).toBe("rssi");
+  });
+
   it("rejects an unknown backend disease label", () => {
     const invalid = {
       ...paginatedReportsDto,
