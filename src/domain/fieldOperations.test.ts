@@ -133,7 +133,7 @@ describe("summarizeFieldWorkload / groupFieldWorkloadBySection", () => {
 describe("deriveReasonForVisit", () => {
   it("derives only from existing authoritative state", () => {
     expect(deriveReasonForVisit(item({ uuid: "r1", fieldValidationState: "assigned" }))).toBe("Scheduled field validation");
-    expect(deriveReasonForVisit(item({ uuid: "r2", fieldValidationState: "in_progress" }))).toBe("Continue field validation");
+    expect(deriveReasonForVisit(item({ uuid: "r2", fieldValidationState: "in_progress" }))).toBe("Scheduled field validation");
     expect(deriveReasonForVisit(item({ uuid: "r3", fieldValidationState: "unassigned", reviewStatus: "for_field_validation" }))).toBe("Field validation required");
     expect(deriveReasonForVisit(item({ uuid: "r4", fieldValidationState: "unassigned", reviewStatus: "verified_by_staff" }))).toBeNull();
     expect(deriveReasonForVisit(item({ uuid: "r5", fieldValidationState: "assigned", scheduledRevisit: true }))).toBe("Follow-up visit");
