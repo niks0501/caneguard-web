@@ -140,7 +140,9 @@ A successful login or enrollment returns this shape:
 }
 ```
 
-Authorized verified pilot inspectors receive `report:submit`, `report:status`, `assignment:read`, `assignment:complete`, and `notification:read`. Farmers and inspectors without pilot membership receive only `account:security`; token abilities never bypass role, verification, district, assignment or ownership checks. Mobile auth user payloads include current `district_id`, the pilot `district_code` (both `null` without active membership) and server-derived `capabilities`.
+Authorized verified pilot inspectors receive `report:submit`, `survey:submit`, `report:status`, `assignment:read`, `assignment:complete`, and `notification:read`. Farmers and inspectors without pilot membership receive only `account:security`; token abilities never bypass role, verification, district, assignment or ownership checks. Mobile auth user payloads include current `district_id`, the pilot `district_code` (both `null` without active membership) and server-derived `capabilities`.
+
+`survey:submit` is the dedicated field-boundary survey grant: it is issued in the mobile sign-in token abilities and in `user.capabilities` from `/mobile/auth/me`, alongside, and not replacing, `report:submit`. `report:submit` keeps its meaning (report upload, possible-match lookup and `POST /mobile/field-surveys` ingestion). The phone's field-survey screen (`field-survey.tsx`) should authorize on `survey:submit` found in `user.capabilities`; this is the contract surface for that follow-up phone lane. The server does not yet require `survey:submit` on `POST /mobile/field-surveys`, so tokens issued before this grant keep working until they are re-issued at the next sign-in.
 
 All bearer tokens have a finite maximum lifetime of **30 days**, including re-enrollment. Sanctum rejects expired, null-expiry, overlong and older-than-30-day tokens with `401 UNAUTHENTICATED`. The district migration revokes legacy tokens, sessions and remember tokens rather than grandfathering unlimited credentials. Office workspace endpoints reject bearer credentials even if an officer token has wildcard abilities.
 

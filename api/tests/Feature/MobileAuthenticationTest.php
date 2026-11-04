@@ -47,7 +47,7 @@ class MobileAuthenticationTest extends TestCase
         $this->assertNotNull($accessToken);
         $this->assertSame('caneguard-mobile:Test Android', $accessToken->name);
         $this->assertSame(
-            ['report:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read'],
+            ['report:submit', 'survey:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read'],
             $accessToken->abilities,
         );
         $this->assertTrue($accessToken->expires_at->equalTo($accessToken->created_at->copy()->addDays(30)));
@@ -66,6 +66,19 @@ class MobileAuthenticationTest extends TestCase
                     'district_code' => 'test-pilot',
                 ],
             ]);
+    }
+
+    public function test_mobile_me_issues_survey_grant_alongside_upload_grant_only_to_inspectors(): void
+    {
+        // Proposal - proves intent: a dedicated survey grant is issued by sign-in next to, not instead of, the upload grant.
+        $this->pilotDistrict();
+        $reporter = User::factory()->fieldReporter()->create();
+        $this->actingAs($reporter, 'sanctum')->getJson('/api/v1/mobile/auth/me')
+            ->assertOk()
+            ->assertJsonPath('user.capabilities', fn ($caps) => in_array('survey:submit', $caps, true) && in_array('report:submit', $caps, true));
+
+        // Proposal - proves intent: the survey grant is not issued to identities that lack inspector access.
+        $this->assertSame(['account:security'], IssueMobileToken::abilities(User::factory()->farmer()->create()));
     }
 
     public function test_mobile_me_omits_district_code_without_active_membership(): void
