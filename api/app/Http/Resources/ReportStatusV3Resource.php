@@ -20,6 +20,8 @@ class ReportStatusV3Resource extends JsonResource
             'review_notes' => $this->review_notes,
             'reviewed_at' => $this->reviewed_at?->utc()->toISOString(),
             'updated_at' => $this->updated_at->utc()->toISOString(),
+            'lifecycle' => $this->resource->lifecycleSnapshot(),
+            'workflow_status' => $this->resource->workflowStatus(),
             'advisory' => $advisory ? [
                 'uuid' => $advisory->uuid,
                 'code' => $advisory->code,

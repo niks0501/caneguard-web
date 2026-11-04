@@ -8,6 +8,13 @@
       "review_notes": "Office guidance is ready.",
       "reviewed_at": "2026-09-20T10:00:00.000000Z",
       "updated_at": "2026-09-20T10:00:00.000000Z",
+      "lifecycle": {
+        "case_state": "closed",
+        "verification_outcome": "verified",
+        "field_validation_state": "completed",
+        "referral_state": "not_referred"
+      },
+      "workflow_status": "resolved",
       "advisory": {
         "uuid": "advisory-uuid",
         "code": "ADV-SMUT-001",
@@ -28,6 +35,13 @@
       "review_notes": null,
       "reviewed_at": null,
       "updated_at": "2026-09-20T10:05:00.000000Z",
+      "lifecycle": {
+        "case_state": "open",
+        "verification_outcome": "not_determined",
+        "field_validation_state": "unassigned",
+        "referral_state": "not_referred"
+      },
+      "workflow_status": "needs_review",
       "advisory": null
     }
   ],

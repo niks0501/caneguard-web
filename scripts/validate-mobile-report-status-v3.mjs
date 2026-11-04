@@ -14,6 +14,8 @@ const FIELD_NAMES = [
   'review_notes',
   'reviewed_at',
   'updated_at',
+  'lifecycle',
+  'workflow_status',
   'advisory',
 ];
 const ADVISORY_FIELD_NAMES = [

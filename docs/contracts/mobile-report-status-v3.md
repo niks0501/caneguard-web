@@ -14,6 +14,19 @@ semantics are the same as [`mobile-report-status-v2.md`](mobile-report-status-v2
 The v3 checkpoint remains `sync.before`; clients must follow `links.next` and
 retain the original checkpoint for all pages.
 
+## Lifecycle and workflow status
+
+Each item also carries the lifecycle dimensions beside the legacy
+`review_status`, which is unchanged. A completed visit therefore no longer has
+to read as "field validation needed" on the client.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `lifecycle` | Object | `case_state`, `verification_outcome`, `field_validation_state` and `referral_state`, as in [`report-lifecycle-v1.md`](report-lifecycle-v1.md). Never null; legacy rows fall back to the projection of `review_status`. |
+| `workflow_status` | String enum | Server-derived reviewer-facing status: `resolved`, `field_validation`, `referred`, `follow_up`, `under_review` or `needs_review`, in that precedence. It mirrors `deriveWorkflowStatus` in `src/domain/workflowStatus.ts`. |
+
+These are additive v3 fields; v2 keeps its exact shape.
+
 ## Advisory payload
 
 The `advisory` payload is delivered only after office validation. A later retirement remains visible for an already selected case so the reporter retains the guidance they received:

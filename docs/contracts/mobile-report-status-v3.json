@@ -28,6 +28,25 @@
     "review_notes": { "type": "string", "required": true, "nullable": true, "max_length": 1000 },
     "reviewed_at": { "type": "date-time", "required": true, "nullable": true },
     "updated_at": { "type": "date-time", "required": true, "nullable": false },
+    "lifecycle": {
+      "type": "object",
+      "required": true,
+      "nullable": false,
+      "required_keys": ["case_state", "verification_outcome", "field_validation_state", "referral_state"],
+      "additional_properties": false,
+      "properties": {
+        "case_state": { "type": "string", "required": true, "nullable": false, "enum": ["open", "closed"] },
+        "verification_outcome": { "type": "string", "required": true, "nullable": false, "enum": ["not_determined", "verified", "unable_to_verify"] },
+        "field_validation_state": { "type": "string", "required": true, "nullable": false, "enum": ["unassigned", "assigned", "in_progress", "completed"] },
+        "referral_state": { "type": "string", "required": true, "nullable": false, "enum": ["not_referred", "referred", "expert_response_received"] }
+      }
+    },
+    "workflow_status": {
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "enum": ["needs_review", "under_review", "field_validation", "referred", "follow_up", "resolved"]
+    },
     "advisory": {
       "type": "object",
       "required": true,
