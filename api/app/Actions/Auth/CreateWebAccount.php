@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 /** Admin-issued account: unverified until the invitee completes the password-reset flow. */
 final class CreateWebAccount
 {
-    public const ROLES = [User::ROLE_FIELD_REPORTER, User::ROLE_REVIEWER, User::ROLE_ADMIN];
+    public const ROLES = [User::ROLE_FARMER, User::ROLE_FIELD_REPORTER, User::ROLE_REVIEWER, User::ROLE_ADMIN];
 
     public const OFFICE_REFERENCE = 'Admin account creation';
 

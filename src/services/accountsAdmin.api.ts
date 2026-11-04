@@ -39,11 +39,11 @@ export async function changeAccount(uuid: string, command: AccountCommand, passw
   })).data);
 }
 
-export const newAccountRoles = { field_reporter: "Field reporter", reviewer: "Reviewer", admin: "Admin" } as const;
+export const newAccountRoles = { farmer: "Farmer", field_reporter: "Field reporter", reviewer: "Reviewer", admin: "Admin" } as const;
 export type NewAccountRole = keyof typeof newAccountRoles;
 export type NewAccountCommand = { name: string; email: string; role: NewAccountRole };
 const createdSchema = z.object({
-  data: z.object({ uuid: z.uuid(), name: z.string(), email: z.email(), role: z.enum(["field_reporter", "reviewer", "admin"]) }),
+  data: z.object({ uuid: z.uuid(), name: z.string(), email: z.email(), role: z.enum(["farmer", "field_reporter", "reviewer", "admin"]) }),
   invite_sent: z.boolean(),
 });
 export async function createAccount(command: NewAccountCommand, password: string) {
