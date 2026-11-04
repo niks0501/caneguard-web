@@ -43,7 +43,9 @@ The job rechecks `checkPending()` under the district lock immediately before a d
 
 SMTP acceptance is **not** guaranteed inbox delivery. SMTP Message-ID is the accepted message's correlation identifier; SMTP does not universally supply a separate provider queue ID or final delivery notification. The website states that distinction. A failed/cancelled attempt can be replaced only by a fresh explicit send key with all gates current. Replaying the same key never creates another attempt. Corrections require their own approval and send; an already-sent version is not resent.
 
-The dedicated `weekly_smtp` mailer cannot fall back to log/array/default mailers. Symfony requires TLS/STARTTLS and uses normal certificate verification. Configure `CANEGUARD_WEEKLY_SMTP_SCHEME` (`smtp` for STARTTLS, `smtps` for implicit TLS), host, port, username and password in the environment, plus the existing `MAIL_FROM_*` identity. No credentials or real recipient are seeded. The captain's dummy test address must first be entered through the Admin Settings **Official recipients** panel; keep the send gate closed until that decision is recorded. No SMTP connection or email is attempted by the test suites.
+The dedicated `weekly_smtp` mailer cannot fall back to log/array/default mailers. Symfony requires TLS/STARTTLS and uses normal certificate verification. Configure `CANEGUARD_WEEKLY_SMTP_SCHEME` (`smtp` for STARTTLS, `smtps` for implicit TLS), host, port, username and password in the environment, plus the existing `MAIL_FROM_*` identity. No credentials or real recipient are seeded. The captain's dummy test address must first be entered through the Admin Settings **Official recipients** panel; keep the send gate closed until that decision is recorded.
+
+`WeeklyReportMailEndToEndTest` is the only suite that opens an SMTP connection: it queues a report and delivers it through this same `weekly_smtp` transport into `tests/Support/fake_smtp_mailbox.py`, a loopback STARTTLS mailbox that stores messages and relays nothing. Certificate verification stays on against a locally generated certificate trusted via `SSL_CERT_FILE`, never bypassed. The test skips when `openssl` or `python3` is unavailable; no other suite connects or sends.
 
 ## Website schedule
 
@@ -57,6 +59,6 @@ The Admin Settings **Official recipients** panel shows the current set with its 
 
 ## Verification and operational limits
 
-Targeted suites: `WeeklyReportContentTest`, `WeeklyReportPdfTest`, `DeliverDistrictReportTest`, `DistrictReportingSettingsTest`, `DistrictRecipientSetTest`, and the existing `DistrictReportWorkflowTest`; website tests cover authority, derived filters, receipt honesty, offline controls, schedule persistence and official-recipient replace.
+Targeted suites: `WeeklyReportContentTest`, `WeeklyReportPdfTest`, `DeliverDistrictReportTest`, `WeeklyReportMailEndToEndTest`, `DistrictReportingSettingsTest`, `DistrictRecipientSetTest`, and the existing `DistrictReportWorkflowTest`; website tests cover authority, derived filters, receipt honesty, offline controls, schedule persistence and official-recipient replace.
 
 Approved bytes increase database storage; retaining them is deliberate so approved artifacts survive renderer/font changes. Migration rollback must not be run after multiple attempts exist for a version, because restoring the original one-transmission uniqueness would fail; deployment rollback should roll code forward, preserving history. Real SRA recipient, production schedule, certified boundary updates, geometric survey linking and bounce tracking remain external/out of scope.
