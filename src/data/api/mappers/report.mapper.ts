@@ -15,9 +15,25 @@ import { mapReportLifecycle } from "./lifecycle.mapper";
 
 const humanize = (value: string) =>
   value
-    .split("_")
+    .split(/[_-]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+
+/** Observation labels for the mobile checklist `symptom_keys` (checklistConsistency.ts). */
+const SYMPTOM_KEY_LABELS: Record<string, string> = {
+  mosaic:
+    "Contrasting islands or streaks of normal green among paler green or yellowish leaf areas",
+  rust: "Raised rust-colored or orange-brown spots or pustules, mainly on the leaf underside",
+  "yellow-midrib":
+    "Bright yellow midrib on lower or older leaves, or yellowing spreading outward from the midrib",
+  smut: "Dark, whip-like growth emerging from the central shoot or stalk",
+  none: "No visible symptom from Mosaic, Rust, or Smut",
+  "something-else": "Something else",
+  "unable-to-tell": "Unable to tell",
+};
+
+export const symptomKeyLabel = (key: string) =>
+  Object.hasOwn(SYMPTOM_KEY_LABELS, key) ? SYMPTOM_KEY_LABELS[key] : humanize(key);
 
 /** Resolve app-relative API links and rebase legacy host-local URLs onto the API host. */
 export function resolveApiUrl(
@@ -220,7 +236,7 @@ export function mapReportDetail(
     sourceHeight: dto.image.source_height ?? undefined,
     symptoms: dto.observations.symptom_keys.map((key) => ({
       id: key,
-      label: humanize(key),
+      label: symptomKeyLabel(key),
       answer: "yes",
     })),
     classScores: dto.model.class_scores,

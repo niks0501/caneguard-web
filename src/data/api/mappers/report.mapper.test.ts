@@ -12,6 +12,7 @@ import {
   mapReportDetail,
   mapReportListItem,
   resolveReportImageUrl,
+  symptomKeyLabel,
 } from "./report.mapper";
 
 describe("report mappers", () => {
@@ -95,6 +96,15 @@ describe("report mappers", () => {
       "http://192.168.1.42:8000/storage/reports/detail-photo.jpg",
     );
     expect(absoluteReport.imageUrl).toBe(reportDetailDto.image.url);
+  });
+
+  it("labels mobile checklist symptom keys and falls back to humanized text", () => {
+    expect(symptomKeyLabel("yellow-midrib")).toMatch(/^Bright yellow midrib/);
+    expect(symptomKeyLabel("unable-to-tell")).toBe("Unable to tell");
+    expect(symptomKeyLabel("none")).toBe("No visible symptom from Mosaic, Rust, or Smut");
+    expect(symptomKeyLabel("mosaic")).not.toBe("Mosaic");
+    expect(symptomKeyLabel("constructor")).toBe("Constructor");
+    expect(symptomKeyLabel("orange_spots")).toBe("Orange Spots");
   });
 
   it("maps detail observations and review data", () => {
