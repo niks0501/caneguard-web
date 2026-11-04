@@ -73,7 +73,10 @@ Five fields are required and the affected-area evidence is optional:
   the database's supported years 1000–9999.
 - `district_code`: must equal the configured pilot district code. The inspector
   must have an active membership in that district. Missing/unknown pilot
-  configuration fails closed.
+  configuration fails closed. The phone should not ask for it by hand: the
+  mobile login, refresh and `GET /api/v1/mobile/auth/me` responses carry
+  `user.district_code` (with `user.district_id`) for an inspector with an
+  active membership, and `null` otherwise. Prefill the field from there.
 
 The synthetic district code above is only an example, not a production default.
 Inspector and district database IDs are derived by the server; client-supplied

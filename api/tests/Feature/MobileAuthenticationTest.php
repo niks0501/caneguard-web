@@ -6,6 +6,7 @@ use App\Actions\Auth\IssueMobileToken;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -62,8 +63,19 @@ class MobileAuthenticationTest extends TestCase
                     'role' => User::ROLE_FIELD_REPORTER,
                     'capabilities' => IssueMobileToken::abilities(),
                     'district_id' => $this->pilotDistrict()->id,
+                    'district_code' => 'test-pilot',
                 ],
             ]);
+    }
+
+    public function test_mobile_me_omits_district_code_without_active_membership(): void
+    {
+        $this->pilotDistrict();
+        $reporter = User::factory()->fieldReporter()->create();
+        DB::table('district_memberships')->where('user_id', $reporter->id)->delete();
+
+        $this->actingAs($reporter, 'sanctum')->getJson('/api/v1/mobile/auth/me')
+            ->assertOk()->assertJsonPath('user.district_id', null)->assertJsonPath('user.district_code', null);
     }
 
     public function test_invalid_credentials_are_rejected_without_a_token(): void

@@ -140,7 +140,7 @@ A successful login or enrollment returns this shape:
 }
 ```
 
-Authorized verified pilot inspectors receive `report:submit`, `report:status`, `assignment:read`, `assignment:complete`, and `notification:read`. Farmers and inspectors without pilot membership receive only `account:security`; token abilities never bypass role, verification, district, assignment or ownership checks. `/api/v1/me` includes current `district_id` and server-derived `capabilities`.
+Authorized verified pilot inspectors receive `report:submit`, `report:status`, `assignment:read`, `assignment:complete`, and `notification:read`. Farmers and inspectors without pilot membership receive only `account:security`; token abilities never bypass role, verification, district, assignment or ownership checks. Mobile auth user payloads include current `district_id`, the pilot `district_code` (both `null` without active membership) and server-derived `capabilities`.
 
 All bearer tokens have a finite maximum lifetime of **30 days**, including re-enrollment. Sanctum rejects expired, null-expiry, overlong and older-than-30-day tokens with `401 UNAUTHENTICATED`. The district migration revokes legacy tokens, sessions and remember tokens rather than grandfathering unlimited credentials. Office workspace endpoints reject bearer credentials even if an officer token has wildcard abilities.
 
