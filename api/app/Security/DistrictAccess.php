@@ -84,7 +84,7 @@ final class DistrictAccess
     public function capabilities(User $user): array
     {
         return $this->inspector($user)
-            ? ['report:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read']
+            ? ['report:submit', 'survey:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read']
             : [];
     }
 }

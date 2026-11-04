@@ -23,6 +23,7 @@ final class IssueMobileToken
 
         return [
             'report:submit',
+            'survey:submit',
             'report:status',
             'assignment:read',
             'assignment:complete',
