@@ -6,6 +6,7 @@ use App\Actions\Auth\IssueMobileToken;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -71,7 +72,7 @@ class MobileAuthenticationTest extends TestCase
     {
         $this->pilotDistrict();
         $reporter = User::factory()->fieldReporter()->create();
-        \Illuminate\Support\Facades\DB::table('district_memberships')->where('user_id', $reporter->id)->delete();
+        DB::table('district_memberships')->where('user_id', $reporter->id)->delete();
 
         $this->actingAs($reporter, 'sanctum')->getJson('/api/v1/mobile/auth/me')
             ->assertOk()->assertJsonPath('user.district_id', null)->assertJsonPath('user.district_code', null);
