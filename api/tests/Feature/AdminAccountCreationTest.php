@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AccountAccessEvent;
 use App\Models\User;
+use App\Security\AccountsDirectory;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -54,13 +55,13 @@ class AdminAccountCreationTest extends TestCase
         $this->assertSame('admin', User::query()->where('email', 'a@example.test')->value('role'));
     }
 
-    public function test_role_allow_list_rejects_farmer_and_unknown_roles_and_extra_fields(): void
+    public function test_role_allow_list_rejects_unknown_roles_and_extra_fields(): void
     {
         Notification::fake();
         $this->pilotDistrict();
         $this->actingAs(User::factory()->admin()->create(), 'web');
 
-        foreach (['farmer', 'disabled', 'superuser', ''] as $role) {
+        foreach (['disabled', 'superuser', ''] as $role) {
             $this->postJson('/api/v1/admin/accounts', $this->payload(['role' => $role]))->assertUnprocessable();
         }
         $this->postJson('/api/v1/admin/accounts', $this->payload(['email_verified_at' => now()->toISOString()]))->assertUnprocessable();
@@ -144,5 +145,52 @@ class AdminAccountCreationTest extends TestCase
         $user->refresh();
         $this->assertNotNull($user->email_verified_at);
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'email_verification', 'outcome' => 'success']);
+    }
+
+    public function test_office_issued_farmer_sets_password_then_gets_account_security_only_mobile_token(): void
+    {
+        Notification::fake();
+        $district = $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'farmer@example.test', 'role' => 'farmer']))
+            ->assertCreated()->assertJsonPath('data.role', 'farmer')->assertJsonPath('invite_sent', true);
+        $farmer = User::query()->where('email', 'farmer@example.test')->firstOrFail();
+        $this->assertNull($farmer->email_verified_at);
+        $this->assertSame('office_certified', $farmer->registration_origin);
+        $this->assertDatabaseMissing('district_memberships', ['user_id' => $farmer->id, 'district_id' => $district->id]);
+        $token = null;
+        Notification::assertSentTo($farmer, ResetPassword::class, function (ResetPassword $n) use (&$token) {
+            $token = $n->token;
+
+            return true;
+        });
+        Auth::forgetGuards();
+        $this->postJson('/reset-password', ['email' => 'farmer@example.test', 'token' => $token,
+            'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
+
+        $this->postJson('/api/v1/mobile/auth/login', ['email' => 'farmer@example.test', 'password' => 'Str0ng-Passphrase!42',
+            'device_name' => 'Farmer phone', 'device_id' => 'farmer-phone-1'])->assertOk()->assertJsonPath('user.role', 'farmer');
+        $this->assertSame(['account:security'], $farmer->refresh()->tokens()->firstOrFail()->abilities);
+    }
+
+    public function test_office_issued_farmer_is_listed_for_office_triage(): void
+    {
+        Notification::fake();
+        $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'farmer@example.test', 'role' => 'farmer']))->assertCreated();
+        $farmer = User::query()->where('email', 'farmer@example.test')->firstOrFail();
+
+        $this->assertTrue(app(AccountsDirectory::class)->scope()->whereKey($farmer->id)->exists());
+        $detail = app(AccountsDirectory::class)->detail($farmer, User::query()->where('role', 'admin')->firstOrFail());
+        $this->assertSame('office_certified', $detail['origin']);
+        $this->assertContains('keep_farmer', $detail['allowed_actions']);
+    }
+
+    public function test_public_registration_stays_disabled(): void
+    {
+        $this->postJson('/register', ['name' => 'X Y', 'email' => 'x@example.test', 'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])
+            ->assertStatus(403)->assertJsonPath('code', 'REGISTRATION_DISABLED');
+        $this->assertDatabaseMissing('users', ['email' => 'x@example.test']);
     }
 }

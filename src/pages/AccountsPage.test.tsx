@@ -44,7 +44,7 @@ describe("User Management", () => {
 
     await user.click(screen.getByRole("button", { name: "Add account" }));
     const dialog = await screen.findByRole("dialog", { name: "Add account" });
-    expect(within(dialog).getAllByRole("option").map(node => node.textContent)).toEqual(["Field reporter", "Reviewer", "Admin"]);
+    expect(within(dialog).getAllByRole("option").map(node => node.textContent)).toEqual(["Farmer", "Field reporter", "Reviewer", "Admin"]);
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(api.createAccount).not.toHaveBeenCalled();
 
