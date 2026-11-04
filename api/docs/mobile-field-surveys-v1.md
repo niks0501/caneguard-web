@@ -4,9 +4,10 @@
 and a real Sanctum bearer token obtained from the existing mobile login.
 The existing verified identity, inspector access, mobile-token freshness and
 `report:submit` ability middleware apply, with the existing 30 requests/minute
-submission limit. A verified inspector session is also supported by Sanctum.
-Farmers, reviewers and administrators cannot ingest surveys, even with wildcard
-tokens.
+submission limit. The dedicated `survey:submit` grant authorizes the phone's
+survey screen; it is not accepted here. A verified inspector session is also
+supported by Sanctum. Farmers, reviewers and administrators cannot ingest
+surveys, even with wildcard tokens.
 
 ## Request
 
