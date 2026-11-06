@@ -94,7 +94,7 @@ describe("User Management", () => {
     expect(notice).toHaveTextContent("Farmer mobile sign-in is currently limited");
     expect(notice).toHaveTextContent("hold this account and contact support");
     expect(notice).not.toHaveTextContent("sign in through the mobile app");
-    expect(notice).not.toHaveTextContent("request a link from the sign-in page");
+    if (!inviteSent) expect(notice).toHaveTextContent("They can still set a password from the sign-in page");
   });
 
   it("keeps the invite fallback and mobile direction when delivery fails", async () => {

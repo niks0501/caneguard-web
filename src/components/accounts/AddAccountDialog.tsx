@@ -14,7 +14,7 @@ const nextSteps: Record<NewAccountRole, string> = {
   admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
 };
 const inviteFallbacks: Record<NewAccountRole, string> = {
-  farmer: "They cannot finish set-up from the sign-in page yet.",
+  farmer: "They can still set a password from the sign-in page.",
   field_reporter: "They can request a link from the sign-in page.",
   reviewer: "They can request a link from the sign-in page.",
   admin: "They can request a link from the sign-in page.",
