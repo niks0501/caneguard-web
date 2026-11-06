@@ -37,7 +37,7 @@ describe("User Management", () => {
   });
   it("offers Add account, submits once with step-up, and Cancel sends nothing", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "New Person", email: "new@example.test", role: "reviewer" }, invite_sent: true });
+    vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "New Person", email: "new@example.test", role: "field_reporter" }, invite_sent: true });
     renderPage();
     await screen.findByRole("link", { name: "Alex Sample" });
     expect(screen.queryByText(/does not\s+create accounts/i)).not.toBeInTheDocument();
@@ -58,6 +58,62 @@ describe("User Management", () => {
     await waitFor(() => expect(api.createAccount).toHaveBeenCalledTimes(1));
     expect(api.createAccount).toHaveBeenCalledWith({ name: "New Person", email: "new@example.test", role: "field_reporter" }, "synthetic");
     expect(await screen.findByText(/set-password link was emailed to new@example.test/)).toBeInTheDocument();
+    expect(screen.getByText(/Next step: Tell them to sign in through the mobile app/)).toBeInTheDocument();
+  });
+
+  it("directs web-role users to the web sign-in and workspace", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "Web Person", email: "web@example.test", role: "reviewer" }, invite_sent: true });
+    renderPage();
+    await screen.findByRole("link", { name: "Alex Sample" });
+    await user.click(screen.getByRole("button", { name: "Add account" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add account" });
+    await user.type(within(dialog).getByLabelText("Full name"), "Web Person");
+    await user.type(within(dialog).getByLabelText("Work email"), "web@example.test");
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "reviewer");
+    await user.type(within(dialog).getByLabelText("Your current password"), "synthetic");
+    await user.click(within(dialog).getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByText(/Next step: Tell them to sign in at the web sign-in page, then use the web workspace/)).toBeInTheDocument();
+  });
+
+  it.each([true, false])("holds Farmer accounts instead of sending them to mobile sign-in (invite sent: %s)", async inviteSent => {
+    const user = userEvent.setup();
+    vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "Farm Person", email: "farm@example.test", role: "farmer" }, invite_sent: inviteSent });
+    renderPage();
+    await screen.findByRole("link", { name: "Alex Sample" });
+    await user.click(screen.getByRole("button", { name: "Add account" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add account" });
+    await user.type(within(dialog).getByLabelText("Full name"), "Farm Person");
+    await user.type(within(dialog).getByLabelText("Work email"), "farm@example.test");
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "farmer");
+    await user.type(within(dialog).getByLabelText("Your current password"), "synthetic");
+    await user.click(within(dialog).getByRole("button", { name: "Create account" }));
+
+    const notice = await screen.findByText(/Account created for Farm Person/);
+    expect(notice).toHaveTextContent("Farmer mobile sign-in is currently limited");
+    expect(notice).toHaveTextContent("hold this account and contact support");
+    expect(notice).not.toHaveTextContent("sign in through the mobile app");
+    if (!inviteSent) expect(notice).toHaveTextContent("They can still set a password from the sign-in page");
+  });
+
+  it("keeps the invite fallback and mobile direction when delivery fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "Field Person", email: "field@example.test", role: "field_reporter" }, invite_sent: false });
+    renderPage();
+    await screen.findByRole("link", { name: "Alex Sample" });
+    await user.click(screen.getByRole("button", { name: "Add account" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add account" });
+    await user.type(within(dialog).getByLabelText("Full name"), "Field Person");
+    await user.type(within(dialog).getByLabelText("Work email"), "field@example.test");
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "field_reporter");
+    await user.type(within(dialog).getByLabelText("Your current password"), "synthetic");
+    await user.click(within(dialog).getByRole("button", { name: "Create account" }));
+
+    const notice = await screen.findByText(/Account created for Field Person/);
+    expect(notice).toHaveTextContent("the set-password email could not be sent");
+    expect(notice).toHaveTextContent("They can request a link from the sign-in page.");
+    expect(notice).toHaveTextContent("Next step: Tell them to sign in through the mobile app.");
   });
 
   it("shows server validation errors in the dialog and keeps it open", async () => {
