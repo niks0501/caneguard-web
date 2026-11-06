@@ -77,6 +77,26 @@ describe("User Management", () => {
     expect(await screen.findByText(/Next step: Tell them to sign in at the web sign-in page, then use the web workspace/)).toBeInTheDocument();
   });
 
+  it.each([true, false])("holds Farmer accounts instead of sending them to mobile sign-in (invite sent: %s)", async inviteSent => {
+    const user = userEvent.setup();
+    vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "Farm Person", email: "farm@example.test", role: "farmer" }, invite_sent: inviteSent });
+    renderPage();
+    await screen.findByRole("link", { name: "Alex Sample" });
+    await user.click(screen.getByRole("button", { name: "Add account" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add account" });
+    await user.type(within(dialog).getByLabelText("Full name"), "Farm Person");
+    await user.type(within(dialog).getByLabelText("Work email"), "farm@example.test");
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "farmer");
+    await user.type(within(dialog).getByLabelText("Your current password"), "synthetic");
+    await user.click(within(dialog).getByRole("button", { name: "Create account" }));
+
+    const notice = await screen.findByText(/Account created for Farm Person/);
+    expect(notice).toHaveTextContent("Farmer mobile sign-in is currently limited");
+    expect(notice).toHaveTextContent("hold this account and contact support");
+    expect(notice).not.toHaveTextContent("sign in through the mobile app");
+    expect(notice).not.toHaveTextContent("request a link from the sign-in page");
+  });
+
   it("keeps the invite fallback and mobile direction when delivery fails", async () => {
     const user = userEvent.setup();
     vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "Field Person", email: "field@example.test", role: "field_reporter" }, invite_sent: false });

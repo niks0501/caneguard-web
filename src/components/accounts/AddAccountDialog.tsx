@@ -8,10 +8,16 @@ import { Modal } from "../ui/Modal";
 
 const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "" };
 const nextSteps: Record<NewAccountRole, string> = {
-  farmer: "Next step: Tell them to sign in through the mobile app.",
+  farmer: "Next step: Farmer mobile sign-in is currently limited, so hold this account and contact support instead of sending them to mobile sign-in.",
   field_reporter: "Next step: Tell them to sign in through the mobile app.",
   reviewer: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
   admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
+};
+const inviteFallbacks: Record<NewAccountRole, string> = {
+  farmer: "They cannot finish set-up from the sign-in page yet.",
+  field_reporter: "They can request a link from the sign-in page.",
+  reviewer: "They can request a link from the sign-in page.",
+  admin: "They can request a link from the sign-in page.",
 };
 
 export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) => Promise<void> | void }) {
@@ -39,7 +45,7 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
       setForm(emptyForm);
       const inviteNotice = created.invite_sent
         ? `Account created for ${created.data.name}. A set-password link was emailed to ${created.data.email}.`
-        : `Account created for ${created.data.name}, but the set-password email could not be sent. They can request a link from the sign-in page.`;
+        : `Account created for ${created.data.name}, but the set-password email could not be sent. ${inviteFallbacks[created.data.role]}`;
       await onCreated(`${inviteNotice} ${nextSteps[created.data.role]}`);
     } catch (failure) {
       setError(failure instanceof ApiError && failure.status === 422
