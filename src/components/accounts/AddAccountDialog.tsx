@@ -7,6 +7,12 @@ import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
 const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "" };
+const nextSteps: Record<NewAccountRole, string> = {
+  farmer: "Next step: Tell them to sign in through the mobile app.",
+  field_reporter: "Next step: Tell them to sign in through the mobile app.",
+  reviewer: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
+  admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
+};
 
 export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) => Promise<void> | void }) {
   const [open, setOpen] = useState(false);
@@ -31,9 +37,10 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
       const created = await createAccount({ name: name.trim(), email: email.trim(), role }, password);
       setOpen(false);
       setForm(emptyForm);
-      await onCreated(created.invite_sent
+      const inviteNotice = created.invite_sent
         ? `Account created for ${created.data.name}. A set-password link was emailed to ${created.data.email}.`
-        : `Account created for ${created.data.name}, but the set-password email could not be sent. They can request a link from the sign-in page.`);
+        : `Account created for ${created.data.name}, but the set-password email could not be sent. They can request a link from the sign-in page.`;
+      await onCreated(`${inviteNotice} ${nextSteps[created.data.role]}`);
     } catch (failure) {
       setError(failure instanceof ApiError && failure.status === 422
         ? (failure.errors ? Object.values(failure.errors).flat().join(" ") : failure.message)
