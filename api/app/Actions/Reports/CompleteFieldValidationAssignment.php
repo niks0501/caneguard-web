@@ -8,6 +8,7 @@ use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use App\Security\DistrictAccess;
+use App\Security\MobileCapabilityRevoked;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -57,7 +58,9 @@ class CompleteFieldValidationAssignment
                     ->findOrFail($assignment->getKey());
                 $access = app(DistrictAccess::class);
                 $access->requireMobileCapability($user, 'assignment:complete');
-                abort_unless($access->allows($user->fresh(), $report->district_id), 403);
+                if (! $access->allows($user->fresh(), $report->district_id)) {
+                    throw new MobileCapabilityRevoked;
+                }
                 $locked->setRelation('report', $report);
                 if ($locked->assignee_id !== $user->getKey()) {
                     throw new FieldValidationCompletionConflict(

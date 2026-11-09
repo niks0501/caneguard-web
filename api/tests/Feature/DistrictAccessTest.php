@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\Auth\IssueMobileToken;
 use App\Actions\Auth\ReconcileDistrictAccess;
 use App\Models\District;
+use App\Models\DistrictGrant;
 use App\Models\DistrictMembership;
 use App\Models\Report;
 use App\Models\User;
@@ -232,6 +233,27 @@ class DistrictAccessTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('code', 'CAPABILITY_REVOKED');
         $this->assertSame(1, $deactivated->tokens()->count());
+    }
+
+    public function test_reconciliation_demotion_keeps_the_reporter_bearer_out_of_401(): void
+    {
+        $district = $this->pilotDistrict();
+        $reporter = User::factory()->inDistrict($district)->fieldReporter()->create();
+        DistrictGrant::query()->create(['user_id' => $reporter->id, 'district_id' => $district->id, 'ability' => 'report:send']);
+        $token = app(IssueMobileToken::class)->handle($reporter, 'Test Android', 'reconciled-device')->plainTextToken;
+
+        app(ReconcileDistrictAccess::class)->handle($reporter->fresh(), $district, User::ROLE_FARMER, [], false, 'synthetic demotion');
+
+        $this->assertSame(1, $reporter->tokens()->count());
+        $this->withToken($token)
+            ->getJson('/api/v1/mobile/auth/me')
+            ->assertUnauthorized()
+            ->assertJsonPath('code', 'ACCOUNT_DISABLED');
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/reports', [])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        $this->assertSame(1, $reporter->tokens()->count());
     }
 
     public function test_all_pat_entry_points_deny_null_overlong_and_thirty_day_old_credentials(): void
