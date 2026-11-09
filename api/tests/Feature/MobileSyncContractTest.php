@@ -130,17 +130,48 @@ class MobileSyncContractTest extends TestCase
         $assignee = User::query()->where('email', 'field@caneguard.test')->firstOrFail();
         Sanctum::actingAs($assignee, ['assignment:read', 'notification:read']);
 
-        $assignments = $this->getJson('/api/v1/mobile/assignments?per_page=100')->assertOk()->json('data');
-        $this->assertNotEmpty($assignments);
+        $perPage = 100;
+        $assignments = $this->feedRows('/api/v1/mobile/assignments?per_page='.$perPage);
+        $seededAssignments = FieldValidationAssignment::query()
+            ->where('assignee_id', $assignee->getKey())
+            ->count();
+        $this->assertGreaterThan($perPage, $seededAssignments, 'Seeded assignments must span more than one page.');
+        $this->assertCount($seededAssignments, $assignments, 'The assignment feed did not return every seeded assignment.');
+        $this->assertCount($seededAssignments, array_unique(array_column($assignments, 'uuid')), 'The assignment feed repeated a row.');
         foreach ($assignments as $row) {
             $this->assertContract($assignmentContract['fields'], $row, 'assignment '.($row['reference_code'] ?? '?'));
         }
 
-        $notifications = $this->getJson('/api/v1/mobile/notifications')->assertOk()->json('data');
-        $this->assertNotEmpty($notifications);
+        $notifications = $this->feedRows('/api/v1/mobile/notifications?per_page='.$perPage);
+        $seededNotifications = DatabaseNotification::query()
+            ->where('notifiable_type', $assignee->getMorphClass())
+            ->where('notifiable_id', $assignee->getKey())
+            ->count();
+        $this->assertGreaterThan($perPage, $seededNotifications, 'Seeded notifications must span more than one page.');
+        $this->assertCount($seededNotifications, $notifications, 'The notification feed did not return every seeded notification.');
+        $this->assertCount($seededNotifications, array_unique(array_column($notifications, 'id')), 'The notification feed repeated a row.');
         foreach ($notifications as $row) {
             $this->assertContract($notificationContract['fields'], $row, 'notification '.$row['id']);
         }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function feedRows(string $path): array
+    {
+        $rows = [];
+        $next = $path;
+        $pages = 0;
+        while ($next !== null) {
+            $page = $this->getJson($next)->assertOk();
+            $rows = array_merge($rows, $page->json('data'));
+            $next = $page->json('links.next');
+            $next = is_string($next) ? (string) preg_replace('#^https?://[^/]+#', '', $next) : null;
+            $this->assertLessThan(50, ++$pages, "{$path} pagination never reached the last page.");
+        }
+
+        return $rows;
     }
 
     /** @return array<class-string, Notification> */

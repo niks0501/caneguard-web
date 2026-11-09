@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Cursor;
 
 class MobileFieldValidationAssignmentRequest extends ApiFormRequest
@@ -24,16 +23,6 @@ class MobileFieldValidationAssignmentRequest extends ApiFormRequest
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     $cursor = Cursor::fromEncoded($value);
                     $parameters = $cursor?->toArray();
-                    $validTimestamp = false;
-
-                    if (is_array($parameters) && is_string($parameters['updated_at'] ?? null)) {
-                        try {
-                            CarbonImmutable::parse($parameters['updated_at']);
-                            $validTimestamp = true;
-                        } catch (\Throwable) {
-                            // Keep malformed cursor failures on the API error contract.
-                        }
-                    }
 
                     $validId = is_int($parameters['id'] ?? null)
                         || (
@@ -43,8 +32,7 @@ class MobileFieldValidationAssignmentRequest extends ApiFormRequest
 
                     if (
                         ! is_array($parameters)
-                        || count($parameters) !== 3
-                        || ! $validTimestamp
+                        || count($parameters) !== 2
                         || ! $validId
                         || (int) ($parameters['id'] ?? 0) < 1
                         || ! is_bool($parameters['_pointsToNextItems'] ?? null)
