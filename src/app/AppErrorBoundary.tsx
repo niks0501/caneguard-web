@@ -1,5 +1,14 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
+export function AppErrorFallback() {
+  return (
+    <main className="app-render-fallback" role="alert">
+      <h1>CaneGuard could not display this page</h1>
+      <p>Refresh the page to try again. Your session may still be active.</p>
+    </main>
+  );
+}
+
 export class AppErrorBoundary extends Component<
   { children: ReactNode },
   { failed: boolean }
@@ -15,14 +24,7 @@ export class AppErrorBoundary extends Component<
   }
 
   render() {
-    if (this.state.failed) {
-      return (
-        <main className="app-render-fallback" role="alert">
-          <h1>CaneGuard could not display this page</h1>
-          <p>Refresh the page to try again. Your account is still signed in.</p>
-        </main>
-      );
-    }
+    if (this.state.failed) return <AppErrorFallback />;
     return this.props.children;
   }
 }
