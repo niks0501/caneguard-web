@@ -7,7 +7,22 @@ interface StateProps {
   message: string;
   action?: ReactNode;
   role?: "status" | "alert";
+  /** Stable agent marker for the panel's state; never carries identifiers. */
+  state: "loading" | "empty" | "no-results" | "error";
+  errorKind?: ErrorKind;
 }
+
+/** Closed vocabulary for `data-error-kind`; extend here, never with free text. */
+export type ErrorKind =
+  | "invalid-query"
+  | "access-denied"
+  | "not-found"
+  | "malformed-data"
+  | "unreachable"
+  | "rate-limited"
+  | "unavailable"
+  | "session-unavailable"
+  | "render";
 
 function StatePanel({
   icon,
@@ -15,9 +30,16 @@ function StatePanel({
   message,
   action,
   role = "status",
+  state,
+  errorKind,
 }: StateProps & { icon: ReactNode }) {
   return (
-    <div className="state-panel" role={role}>
+    <div
+      className="state-panel"
+      role={role}
+      data-state={state}
+      data-error-kind={errorKind}
+    >
       <div className="state-panel__icon">{icon}</div>
       <h2>{title}</h2>
       <p>{message}</p>
@@ -32,6 +54,7 @@ export function LoadingState({ message = "Loading submitted reports..." }) {
       icon={<LoaderCircle className="spin" aria-hidden="true" />}
       title="Loading"
       message={message}
+      state="loading"
     />
   );
 }
@@ -51,6 +74,7 @@ export function EmptyState({ title = "No submitted reports yet", message = "New 
       icon={<FileQuestion aria-hidden="true" />}
       title={title}
       message={message}
+      state="empty"
     />
   );
 }
@@ -70,6 +94,7 @@ export function NoResultsState({
       message={scopeLabel
         ? "No report matches this queue and the filters set. Clear the filters to leave the queue."
         : "Try another keyword or clear the filters to view the full work queue."}
+      state="no-results"
       action={
         <Button type="button" variant="secondary" onClick={onClear}>
           Clear filters
@@ -83,7 +108,9 @@ export function ErrorState({
   message = "The reports could not be loaded. Please try again.",
   onRetry,
   detail,
+  kind = "unavailable",
 }: {
+  kind?: ErrorKind;
   message?: string;
   onRetry?: () => void;
   /** Developer detail, kept out of the staff-facing message. */
@@ -95,6 +122,8 @@ export function ErrorState({
       title="Something went wrong"
       message={message}
       role="alert"
+      state="error"
+      errorKind={kind}
       action={
         <>
           {onRetry ? (

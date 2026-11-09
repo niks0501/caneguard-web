@@ -337,6 +337,30 @@ export function SubmittedReportsPage({
     hasCachedData && !accessDenied && !urlState.invalid;
   const showInitialError =
     reportsQuery.isError && (!hasCachedData || accessDenied);
+  const queueState = urlState.invalid
+    ? "error"
+    : reportsQuery.isPending
+      ? "loading"
+      : showInitialError
+        ? "error"
+        : hasDisplayableData && meta?.total === 0
+          ? urlState.hasActiveFilters ? "no-results" : "empty"
+          : hasDisplayableData
+            ? reportsQuery.isFetching ? "refreshing" : "ready"
+            : undefined;
+  const queueErrorKind = queueState !== "error"
+    ? undefined
+    : urlState.invalid || invalidQuery
+      ? "invalid-query"
+      : accessDenied
+        ? "access-denied"
+        : malformedData
+          ? "malformed-data"
+          : connectionError
+            ? "unreachable"
+            : rateLimited
+              ? "rate-limited"
+              : "unavailable";
 
   return (
     <PageContent className={embedded ? "page-content--embedded" : undefined}>
@@ -629,6 +653,8 @@ export function SubmittedReportsPage({
           role="tabpanel"
           id="report-queue-panel"
           aria-labelledby={activeQueueTabId}
+          data-state={queueState}
+          data-error-kind={queueErrorKind}
         >
           {reportsQuery.isFetching && hasDisplayableData ? (
             <p className="queue-refresh-status" role="status">
@@ -649,6 +675,7 @@ export function SubmittedReportsPage({
 
           {urlState.invalid ? (
             <ErrorState
+              kind="invalid-query"
               message="The report URL contains an invalid filter or page. Clear the filters to return to the queue."
               onRetry={clearFilters}
             />
@@ -656,21 +683,25 @@ export function SubmittedReportsPage({
           {!urlState.invalid && reportsQuery.isPending ? <LoadingState /> : null}
           {!urlState.invalid && showInitialError && invalidQuery ? (
             <ErrorState
+              kind="invalid-query"
               message="The server rejected one or more report filters. Clear them and try again."
               onRetry={clearFilters}
             />
           ) : null}
           {!urlState.invalid && showInitialError && accessDenied ? (
-            <ErrorState message="Your account does not have access to the submitted report queue." />
+            <ErrorState
+              kind="access-denied" message="Your account does not have access to the submitted report queue." />
           ) : null}
           {!urlState.invalid && showInitialError && malformedData ? (
             <ErrorState
+              kind="malformed-data"
               message="CaneGuard returned report data in an unexpected format. Refresh after the service is corrected."
               onRetry={() => reportsQuery.refetch()}
             />
           ) : null}
           {!urlState.invalid && showInitialError && connectionError ? (
             <ErrorState
+              kind="unreachable"
               message={serviceUnreachableMessage}
               detail={apiEndpointDetail(env.apiBaseUrl)}
               onRetry={() => reportsQuery.refetch()}
@@ -678,6 +709,7 @@ export function SubmittedReportsPage({
           ) : null}
           {!urlState.invalid && showInitialError && rateLimited ? (
             <ErrorState
+              kind="rate-limited"
               message="The report queue is receiving too many requests. Wait a moment, then try again."
               onRetry={() => reportsQuery.refetch()}
             />
@@ -690,6 +722,7 @@ export function SubmittedReportsPage({
           !rateLimited &&
           !malformedData ? (
             <ErrorState
+              kind="unavailable"
               message="The submitted report service is unavailable. Please try again."
               onRetry={() => reportsQuery.refetch()}
             />

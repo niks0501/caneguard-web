@@ -561,7 +561,7 @@ function CaseReviewContent() {
   };
 
   if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report..." /></PageContent>;
-  if (reportQuery.isSuccess && !report) return <PageContent><ErrorState message="This report does not exist in the current submitted report queue." /></PageContent>;
+  if (reportQuery.isSuccess && !report) return <PageContent><ErrorState kind="not-found" message="This report does not exist in the current submitted report queue." /></PageContent>;
   if ((reportQuery.isError && (!report || suppressCachedDetail)) || !report) return <PageContent><ErrorState message={detailErrorMessage} onRetry={suppressCachedDetail ? undefined : () => reportQuery.refetch()} /></PageContent>;
 
   // Every review-mutation failure is reported once, inside the pop-up that owns
