@@ -81,7 +81,7 @@
   "authentication": {
     "transport": "Sanctum bearer token",
     "required_ability": "report:submit",
-    "server_authority": "field reporter role and Report::create policy"
+    "server_authority": "current field reporter role, active pilot membership and report:submit capability re-checked at write time; Report::create policy"
   },
   "fields": {
     "client_uuid": {

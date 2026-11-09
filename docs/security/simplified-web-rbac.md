@@ -45,9 +45,9 @@ Self role/status changes and failed password confirmation return 422; stale targ
 
 ## Revocation
 
-`is_active` defaults true. Disabling an account immediately deletes its Sanctum tokens and database sessions and rotates its hidden `auth_version`. Protected requests compare the session's login-time version with the current identity; this also invalidates file/Redis/array sessions and in-flight sessions saved after deletion. Re-enabling does not restore old credentials. A fresh login is required.
+`is_active` defaults true. Disabling an account deletes its Sanctum tokens and database sessions and rotates its hidden `auth_version`. A field reporter is the exception: its Mobile bearer session survives so uploads answer `CAPABILITY_REVOKED` rather than signing the phone out, and [auth-v1](../contracts/auth-v1.md) owns exactly which credentials each authority change revokes. Protected requests compare the session's login-time version with the current identity; this also invalidates file/Redis/array sessions and in-flight sessions saved after deletion. Re-enabling does not restore old credentials. A fresh login is required.
 
-Role and existing password/email security changes also revoke authentication. Sessions created before the versioned gate was introduced require a fresh login on their next protected request.
+Role and existing password/email security changes also revoke authentication, with the same field-reporter Mobile bearer exception. Sessions created before the versioned gate was introduced require a fresh login on their next protected request.
 
 Disabled login reports **Account disabled — contact your administrator.** An already-open client becomes signed out on its next protected server response; hiding UI is never the security boundary.
 
