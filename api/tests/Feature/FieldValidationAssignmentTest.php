@@ -544,6 +544,44 @@ class FieldValidationAssignmentTest extends TestCase
             ->assertJsonValidationErrors('follow_up_outcome');
     }
 
+    public function test_completion_maps_authority_loss_before_the_request_check_to_capability_revoked(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $assignee->getKey(),
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        $revoked = false;
+        DB::listen(function (QueryExecuted $query) use (&$revoked, $assignee): void {
+            if ($revoked || ! str_contains($query->sql, 'district_memberships')) {
+                return;
+            }
+            $revoked = true;
+            DistrictMembership::query()->where('user_id', $assignee->getKey())->update(['revoked_at' => now()]);
+        });
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->postJson("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        $this->assertDatabaseCount('field_validation_completions', 0);
+    }
+
     public function test_completion_maps_a_mid_request_authority_loss_to_capability_revoked(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();

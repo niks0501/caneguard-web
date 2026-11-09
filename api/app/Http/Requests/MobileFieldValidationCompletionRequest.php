@@ -6,6 +6,7 @@ use App\Contracts\MobileFieldValidationCompletionContract;
 use App\Models\FieldValidationAssignment;
 use App\Models\User;
 use App\Security\DistrictAccess;
+use App\Security\MobileCapabilityRevoked;
 use DateTimeImmutable;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Validator;
@@ -40,13 +41,18 @@ class MobileFieldValidationCompletionRequest extends ApiFormRequest
         $assignment = $this->route('assignment');
         $user = $this->user();
 
-        if ($user?->role === User::ROLE_FIELD_REPORTER
-            && $assignment instanceof FieldValidationAssignment
-            && $assignment->assignee_id !== $user->getKey()) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'This assignment is no longer assigned to the authenticated field reporter.',
-                'code' => 'ASSIGNMENT_REASSIGNED',
-            ], 403));
+        if ($assignment instanceof FieldValidationAssignment) {
+            if ($user?->role === User::ROLE_FIELD_REPORTER
+                && $assignment->assignee_id !== $user->getKey()) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'This assignment is no longer assigned to the authenticated field reporter.',
+                    'code' => 'ASSIGNMENT_REASSIGNED',
+                ], 403));
+            }
+
+            if (! app(DistrictAccess::class)->report($user, $assignment->report, true)) {
+                throw new MobileCapabilityRevoked;
+            }
         }
 
         parent::failedAuthorization();
