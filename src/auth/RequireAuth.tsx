@@ -20,6 +20,7 @@ export function RequireAuth() {
     return (
       <div className="auth-state">
         <ErrorState
+          kind="session-unavailable"
           message="CaneGuard could not confirm your session or complete sign-out because the service is unavailable. You have not been logged out."
           onRetry={() => auth.restoreSession()}
         />

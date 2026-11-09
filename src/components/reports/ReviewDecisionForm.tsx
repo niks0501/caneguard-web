@@ -112,6 +112,28 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const invalid = Object.values(errors).some(Boolean);
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
   const conflict = stale || apiError?.status === 409;
+  const formState = saved
+    ? "saved"
+    : !online
+      ? "offline"
+      : conflict
+        ? "conflict"
+        : mutation.isPending
+          ? "saving"
+          : mutation.isError
+            ? "error"
+            : dirty ? "dirty" : "idle";
+  const formErrorKind = formState !== "error"
+    ? undefined
+    : mutation.error instanceof ZodError
+      ? "malformed-data"
+      : apiError?.status === 429
+        ? "rate-limited"
+        : apiError?.status === 403
+          ? "access-denied"
+          : apiError?.status === 422
+            ? "validation"
+            : "unavailable";
   const changed = () => { setDirty(true); setSaved(false); setOfflineResumed(false); mutation.reset(); };
 
   // A clean form can safely follow a sibling writer's newer version. Keep the
@@ -262,7 +284,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     finally { setNextPending(false); }
   };
 
-  return <form id="review-decision" tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
+  return <form id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
     <fieldset className="review-card review-finding" disabled={mutation.isPending}>
       <legend>Record Finding</legend>
       <div className="review-finding__fields">

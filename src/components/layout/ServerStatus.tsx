@@ -101,6 +101,7 @@ export function ServerStatus({
     <span
       className={`server-status server-status--${status}`}
       role="status"
+      data-state={status}
       aria-label={`Connectivity: Network ${networkLabel}; CaneGuard server ${serverLabel}`}
       aria-live={isDegraded ? "polite" : "off"}
     >

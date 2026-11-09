@@ -2,7 +2,12 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 export function AppErrorFallback() {
   return (
-    <main className="app-render-fallback" role="alert">
+    <main
+      className="app-render-fallback"
+      role="alert"
+      data-state="error"
+      data-error-kind="render"
+    >
       <h1>CaneGuard could not display this page</h1>
       <p>Refresh the page to try again. Your session may still be active.</p>
     </main>

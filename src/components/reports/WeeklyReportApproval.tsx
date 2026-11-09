@@ -80,6 +80,18 @@ export function WeeklyReportApproval({ week }: { week: string }) {
     : status === 403 ? "Your account access changed. Refresh your session before continuing."
       : status === 503 ? "The office delivery gate is closed. No send was requested."
         : "The weekly report could not be confirmed. Retry when the service is available.";
+  const approvalState = !online
+    ? "offline"
+    : error
+      ? "error"
+      : action.isPending ? "working" : versions.isLoading ? "loading" : "ready";
+  const approvalErrorKind = approvalState !== "error"
+    ? undefined
+    : status === 409
+      ? "conflict"
+      : status === 403
+        ? "access-denied"
+        : status === 503 ? "delivery-closed" : "unavailable";
   const busy = action.isPending || versions.isFetching || !online;
   const blockedSend = receipt && ["pending", "delivering", "sent"].includes(receipt.state);
   const params = new URLSearchParams({ ...(disease ? { disease } : {}), ...(appendix && versions.data?.meta.appendix_allowed ? { appendix: "1" } : {}) });
@@ -95,7 +107,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
   if (env.dataSource !== "api") return null;
 
   return (
-    <section className="report-builder__weekly" aria-label="Official weekly report">
+    <section className="report-builder__weekly" aria-label="Official weekly report" data-state={approvalState} data-error-kind={approvalErrorKind}>
       <h3>Official weekly report</h3>
       {!online ? <p role="status">Weekly reports are online-only. Preparation, approval and sending are not queued offline.</p> : null}
       <div className="report-builder__actions">

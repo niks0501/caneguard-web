@@ -17,6 +17,7 @@ export function RealtimeStatus({
     <span
       className={`realtime-status realtime-status--${connected ? "connected" : "degraded"}`}
       role="status"
+      data-state={connected ? "connected" : "degraded"}
       aria-label={label}
       aria-live="polite"
     >
