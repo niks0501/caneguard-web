@@ -27,7 +27,7 @@ class MobileFieldValidationCompletionController extends Controller
         } catch (FieldValidationCompletionConflict $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
-                'code' => 'CONFLICT',
+                'code' => $exception->reasonCode,
                 'client_uuid' => $request->validated()['client_uuid'],
             ], 409);
         }

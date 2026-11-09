@@ -12,11 +12,19 @@ class DistrictMembership extends Model
     protected static function booted(): void
     {
         $invalidate = function (self $membership): void {
-            if (User::findOrFail($membership->user_id)->isWebUser()) {
+            $user = User::findOrFail($membership->user_id);
+            if ($user->isWebUser()) {
                 return; // District metadata is not Web authority.
             }
+
             User::query()->whereKey($membership->user_id)->increment('access_version');
-            app(RevokeUserAuthentication::class)->handle(User::findOrFail($membership->user_id));
+            if ($user->role === User::ROLE_FIELD_REPORTER) {
+                // Mobile bearer sessions survive membership changes so upload
+                // endpoints can return a record-scoped CAPABILITY_REVOKED.
+                return;
+            }
+
+            app(RevokeUserAuthentication::class)->handle($user);
         };
         static::saved($invalidate);
         static::deleted($invalidate);

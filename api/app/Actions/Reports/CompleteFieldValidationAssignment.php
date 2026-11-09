@@ -55,12 +55,14 @@ class CompleteFieldValidationAssignment
                 $locked = FieldValidationAssignment::query()
                     ->lockForUpdate()
                     ->findOrFail($assignment->getKey());
-                abort_unless(app(DistrictAccess::class)->inspector($user)
-                    && app(DistrictAccess::class)->allows($user, $report->district_id), 403);
+                $access = app(DistrictAccess::class);
+                $access->requireMobileCapability($user, 'assignment:complete');
+                abort_unless($access->allows($user, $report->district_id), 403);
                 $locked->setRelation('report', $report);
                 if ($locked->assignee_id !== $user->getKey()) {
                     throw new FieldValidationCompletionConflict(
                         'This assignment does not belong to the authenticated field reporter.',
+                        FieldValidationCompletionConflict::ASSIGNMENT_REASSIGNED,
                     );
                 }
 
@@ -192,4 +194,14 @@ class CompleteFieldValidationAssignment
     }
 }
 
-class FieldValidationCompletionConflict extends RuntimeException {}
+class FieldValidationCompletionConflict extends RuntimeException
+{
+    public const CONFLICT = 'CONFLICT';
+
+    public const ASSIGNMENT_REASSIGNED = 'ASSIGNMENT_REASSIGNED';
+
+    public function __construct(string $message, public readonly string $reasonCode = self::CONFLICT)
+    {
+        parent::__construct($message);
+    }
+}

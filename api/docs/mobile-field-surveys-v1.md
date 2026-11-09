@@ -2,12 +2,14 @@
 
 `POST /api/v1/mobile/field-surveys` accepts JSON. Send `Accept: application/json`
 and a real Sanctum bearer token obtained from the existing mobile login.
-The existing verified identity, inspector access, mobile-token freshness and
-`report:submit` ability middleware apply, with the existing 30 requests/minute
-submission limit. The dedicated `survey:submit` grant authorizes the phone's
-survey screen; it is not accepted here. A verified inspector session is also
-supported by Sanctum. Farmers, reviewers and administrators cannot ingest
-surveys, even with wildcard tokens.
+The existing verified identity, inspector access, mobile-token freshness,
+`report:submit` ability middleware and current server-side `report:submit`
+capability lookup apply, with the existing 30 requests/minute submission limit.
+The dedicated `survey:submit` grant authorizes the phone's survey screen; the
+server authority for this endpoint remains `report:submit`, and it is not
+accepted here. A verified inspector session is also supported by Sanctum.
+Farmers, reviewers and administrators cannot ingest surveys, even with wildcard
+tokens.
 
 ## Request
 
@@ -153,8 +155,10 @@ The phone can display each `errors[field]` string array. Geometry errors use the
 `polygon` key; the affected-area evidence reports under
 `affected_area_polygons`, `affected_area_polygons.N`, `affected_area_sqm`,
 `measurement_provenance` and `affected_area_waypoints`.
-Unauthorized/expired/revoked credentials return **401**; a verified
-identity without inspector authority or pilot membership returns **403**.
+Missing, expired or deleted bearer credentials return **401** with
+`UNAUTHENTICATED`; a current membership or capability loss on a surviving
+inspector bearer session returns **403** with `CAPABILITY_REVOKED`. A verified
+identity without inspector authority returns **403** with `FORBIDDEN`.
 Rate limiting returns **429**. None of these failures creates a survey.
 
 ## Scope and persistence

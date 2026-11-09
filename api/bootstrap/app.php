@@ -2,9 +2,11 @@
 
 use App\Http\Middleware\EnsureActiveIdentity;
 use App\Http\Middleware\EnsureInspectorAccess;
+use App\Http\Middleware\EnsureMobileCapability;
 use App\Http\Middleware\EnsureMobileTokenFresh;
 use App\Http\Middleware\EnsureOfficeAccess;
 use App\Http\Middleware\SecurityHeaders;
+use App\Security\MobileCapabilityRevoked;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -42,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
             'mobile.token' => EnsureMobileTokenFresh::class,
+            'mobile.capability' => EnsureMobileCapability::class,
             'office.access' => EnsureOfficeAccess::class,
             'inspector.access' => EnsureInspectorAccess::class,
             'access.identity' => EnsureActiveIdentity::class,
@@ -97,6 +100,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 'message' => 'Unauthenticated.',
                 'code' => 'UNAUTHENTICATED',
             ], 401);
+        });
+        $exceptions->render(function (
+            MobileCapabilityRevoked $exception,
+            Request $request,
+        ) use ($respond) {
+            return $respond($request, [
+                'message' => 'The mobile capability is no longer current.',
+                'code' => MobileCapabilityRevoked::CODE,
+            ], 403);
         });
         $exceptions->render(function (
             AuthorizationException $exception,

@@ -27,7 +27,7 @@ class StoreReport
      */
     public function handle(User $reporter, array $data, UploadedFile $image): array
     {
-        abort_unless(app(DistrictAccess::class)->inspector($reporter), 403);
+        app(DistrictAccess::class)->requireMobileCapability($reporter, 'report:submit');
         $existing = $this->findExisting($reporter, $data['client_uuid']);
 
         if ($existing) {

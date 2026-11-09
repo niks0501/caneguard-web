@@ -14,6 +14,7 @@ class MobileFieldSurveyController extends Controller
 {
     public function __invoke(StoreFieldSurveyRequest $request, DistrictAccess $access): JsonResponse
     {
+        $access->requireMobileCapability($request->user(), 'report:submit');
         $data = $request->validated();
         $districtId = $access->pilotId();
 

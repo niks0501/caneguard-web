@@ -13,8 +13,11 @@ class MobileSessionRequest extends ApiFormRequest
             return false;
         }
 
-        return $user->isMobileUser()
-            && ($this->bearerToken() === null || $user->currentAccessToken() instanceof PersonalAccessToken);
+        $hasMobileCredential = $this->bearerToken() === null
+            || $user->currentAccessToken() instanceof PersonalAccessToken;
+
+        return $hasMobileCredential
+            && ($this->routeIs('api.v1.mobile.auth.me') || $user->isMobileUser());
     }
 
     public function rules(): array
