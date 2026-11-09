@@ -16,3 +16,5 @@ php artisan db:seed --class='Database\Seeders\DemoAnalyticsSeeder'
 ```
 
 Reseeding updates stable fixture keys without deleting unrelated rows or duplicating reports, evidence, assignments, or completions.
+
+Inserting demo rows with SQL instead? Follow [mobile-direct-sql-rulebook.md](mobile-direct-sql-rulebook.md) and run `php artisan caneguard:check-mobile-data` before any phone refreshes.
