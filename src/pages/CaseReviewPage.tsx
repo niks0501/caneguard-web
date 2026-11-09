@@ -605,6 +605,7 @@ function CaseReviewContent() {
     }
     if (!correctionReason.trim()) return;
     if (metadataBaseVersion === undefined) return;
+    if (!report) return;
 
     try {
       await reviewMutation.mutateAsync({
