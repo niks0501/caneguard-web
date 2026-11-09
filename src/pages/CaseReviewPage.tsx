@@ -353,9 +353,11 @@ function CaseReviewContent() {
   const { reportId = "" } = useParams();
   const location = useLocation();
   const queueContext = reviewQueueContext(location.state);
-  const [metadataDraftOverride, setMetadataDraftOverride] = useState<MetadataDraft | null>(
-    null,
-  );
+  // Sparse: only the fields this reviewer edited, so a newer value saved by
+  // someone else is never sent back as if it were this reviewer's correction.
+  const [metadataEdits, setMetadataEdits] = useState<Partial<MetadataDraft>>({});
+  // Review version the correction pop-up was opened against.
+  const [metadataBaseVersion, setMetadataBaseVersion] = useState<number | undefined>();
   const [correctionReason, setCorrectionReason] = useState("");
   const [canonicalReportUuid, setCanonicalReportUuid] = useState("");
   const [canonicalReportLabel, setCanonicalReportLabel] = useState<string | null>(null);
@@ -419,8 +421,13 @@ function CaseReviewContent() {
       ? "No prior entries"
       : `${mergedHistory.length} ${mergedHistory.length === 1 ? "entry" : "entries"}${latestHistoryDate ? ` · last ${formatShortDate(latestHistoryDate)}` : ""}`;
   const metadataDraft = report
-    ? metadataDraftOverride ?? metadataDraftFor(report)
+    ? { ...metadataDraftFor(report), ...metadataEdits }
     : undefined;
+  const metadataStale =
+    metadataCorrectionModalOpen &&
+    report?.reviewVersion !== undefined &&
+    metadataBaseVersion !== undefined &&
+    report.reviewVersion !== metadataBaseVersion;
   const metadataCorrections =
     report && metadataDraft
       ? metadataCorrectionsFor(report, metadataDraft)
@@ -433,7 +440,7 @@ function CaseReviewContent() {
     canonicalReportUuid.trim() || duplicateLinkReason.trim(),
   );
   const metadataCorrectionDirty = Boolean(
-    metadataCorrections !== undefined || correctionReason.trim(),
+    Object.keys(metadataEdits).length > 0 || correctionReason.trim(),
   );
   useUnsavedWorkGuard(duplicateLinkModalOpen && duplicateLinkDirty);
   useUnsavedWorkGuard(metadataCorrectionModalOpen && metadataCorrectionDirty);
@@ -446,7 +453,7 @@ function CaseReviewContent() {
 
   const updateMetadataDraft = (field: keyof MetadataDraft, value: string) => {
     if (!metadataDraft) return;
-    setMetadataDraftOverride({ ...metadataDraft, [field]: value });
+    setMetadataEdits({ ...metadataEdits, [field]: value });
     setCorrectionSubmitted(false);
     reviewMutation.reset();
   };
@@ -537,21 +544,31 @@ function CaseReviewContent() {
     }
   };
 
+  const openMetadataCorrectionModal = () => {
+    setMetadataBaseVersion(report?.reviewVersion);
+    setMetadataCorrectionModalOpen(true);
+  };
+
   const saveMetadataCorrection = async () => {
+    if (metadataStale) return;
     setCorrectionSubmitted(true);
     if (!metadataCorrections) {
       setMetadataCorrectionModalOpen(false);
       return;
     }
     if (!correctionReason.trim()) return;
-    if (report?.reviewVersion === undefined) return;
+    const expectedVersion = metadataBaseVersion ?? report?.reviewVersion;
+    if (expectedVersion === undefined) return;
 
     try {
       await reviewMutation.mutateAsync({
         metadataCorrections,
         correctionReason,
-        expectedVersion: report.reviewVersion,
+        expectedVersion,
       });
+      setMetadataEdits({});
+      setCorrectionReason("");
+      setCorrectionSubmitted(false);
       setMetadataCorrectionModalOpen(false);
       setSaveNotice(`${report.referenceCode} - Case information corrected.`);
       await reportQuery.refetch();
@@ -1006,7 +1023,7 @@ function CaseReviewContent() {
               type="button"
               variant="secondary"
               icon={<Link2 aria-hidden="true" />}
-              onClick={() => setMetadataCorrectionModalOpen(true)}
+              onClick={openMetadataCorrectionModal}
             >
               Correct case information
             </Button>
@@ -1191,7 +1208,7 @@ function CaseReviewContent() {
             </Button>
             <Button
               type="button"
-              disabled={reviewMutation.isPending}
+              disabled={reviewMutation.isPending || metadataStale}
               onClick={saveMetadataCorrection}
             >
               {reviewMutation.isPending ? "Saving correction..." : "Save correction"}
@@ -1200,6 +1217,18 @@ function CaseReviewContent() {
         }
       >
         <div className="metadata-correction">
+          {metadataStale ? (
+            <div className="review-conflict" role="alert" data-state="stale">
+              <p>This report changed after you opened this pop-up. Fields you did not edit now show the latest values.</p>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setMetadataBaseVersion(report.reviewVersion)}
+              >
+                Review latest values
+              </Button>
+            </div>
+          ) : null}
           <p className="authority-classification-help">
             Corrections preserve the submitted value, corrected value, actor, timestamp, and reason. Submitted AI and observation evidence cannot be edited here.
           </p>
