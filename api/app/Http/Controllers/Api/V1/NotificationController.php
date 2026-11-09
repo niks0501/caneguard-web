@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Actions\Notifications\CreateLifecycleNotifications;
 use App\Actions\Notifications\ScopeNotifications;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListNotificationsRequest;
@@ -16,9 +15,7 @@ class NotificationController extends Controller
 {
     public function index(
         ListNotificationsRequest $request,
-        CreateLifecycleNotifications $notifications,
     ): AnonymousResourceCollection {
-        $notifications->ensureFollowUpDueNotifications();
         $user = $request->user();
         $limit = $request->integer('limit', 20);
         $notifications = app(ScopeNotifications::class)->handle($user->notifications(), $user)

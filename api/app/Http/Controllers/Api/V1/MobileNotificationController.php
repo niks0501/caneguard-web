@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Actions\Notifications\CreateLifecycleNotifications;
 use App\Actions\Notifications\ScopeNotifications;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MobileNotificationMutationRequest;
@@ -16,11 +15,15 @@ use Illuminate\Notifications\DatabaseNotification;
 
 class MobileNotificationController extends Controller
 {
+    /** Unread items plus this many days of history are served. */
+    public const FEED_WINDOW_DAYS = 60;
+
+    /** Hard ceiling on rows in one feed window, newest first. */
+    public const FEED_MAX_ROWS = 500;
+
     public function __invoke(
         MobileNotificationRequest $request,
-        CreateLifecycleNotifications $notifications,
     ): AnonymousResourceCollection {
-        $notifications->ensureFollowUpDueNotifications();
         $syncBefore = CarbonImmutable::parse(
             $request->validated('sync_before') ?? now(),
         )->utc();
@@ -31,8 +34,32 @@ class MobileNotificationController extends Controller
         }
 
         $user = $request->user();
-        $items = app(ScopeNotifications::class)->handle($user->notifications(), $user)
+        $window = app(ScopeNotifications::class)->handle($user->notifications(), $user)
             ->where('created_at', '<=', $syncBefore)
+            // Anchored to the pinned checkpoint so every page of one sync
+            // sees the same window.
+            ->where(function ($query) use ($syncBefore): void {
+                $query->whereNull('read_at')
+                    ->orWhere('created_at', '>=', $syncBefore->subDays(self::FEED_WINDOW_DAYS));
+            });
+
+        $oldest = (clone $window)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->offset(self::FEED_MAX_ROWS - 1)
+            ->limit(1)
+            ->first(['id', 'created_at']);
+        if ($oldest !== null) {
+            $window->where(function ($query) use ($oldest): void {
+                $query->where('created_at', '>', $oldest->created_at)
+                    ->orWhere(function ($tie) use ($oldest): void {
+                        $tie->where('created_at', $oldest->created_at)
+                            ->where('id', '>=', $oldest->id);
+                    });
+            });
+        }
+
+        $items = $window
             ->orderBy('created_at')
             ->orderBy('id')
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))

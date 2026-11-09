@@ -12,3 +12,8 @@ Schedule::command('reports:send-weekly-reminders')
     ->everyFifteenMinutes()
     ->timezone('Asia/Manila')
     ->withoutOverlapping(10);
+
+Schedule::command('notifications:derive-follow-up-due')
+    ->everyFifteenMinutes()
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping(10);
