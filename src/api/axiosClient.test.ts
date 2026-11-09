@@ -9,6 +9,7 @@ describe("createAxiosClient", () => {
     const client = createAxiosClient({ apiBaseUrl: "https://api.test" });
 
     expect(client.defaults.baseURL).toBe("https://api.test");
+    expect(client.defaults.timeout).toBe(30_000);
     expect(client.defaults.withCredentials).toBe(true);
     expect(client.defaults.withXSRFToken).toBe(true);
     expect(client.defaults.headers.common.Accept).toBe("application/json");

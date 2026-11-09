@@ -7,6 +7,7 @@ import { toApiError } from "./ApiError";
 export function createAxiosClient(config: Pick<AppEnv, "apiBaseUrl"> = env) {
   const client = axios.create({
     baseURL: config.apiBaseUrl,
+    timeout: 30_000,
     withCredentials: true,
     withXSRFToken: true,
     headers: {
