@@ -425,6 +425,7 @@ class AdvisorDemoSeeder extends Seeder
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
+                'origin' => Report::ORIGIN_OFFICE,
                 'reporter_id' => $reporter->getKey(),
                 'district_id' => $districtId,
                 'affected_area_measurement' => $attributes['affected_area_measurement']

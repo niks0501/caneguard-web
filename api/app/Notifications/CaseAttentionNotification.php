@@ -32,7 +32,7 @@ abstract class CaseAttentionNotification extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
-        return [
+        return NotificationPayload::assertDeliverable([
             'event_type' => $this->eventType,
             'title' => $this->title,
             'message' => $this->message,
@@ -40,7 +40,7 @@ abstract class CaseAttentionNotification extends Notification
             'reference_code' => $this->referenceCode,
             'assignment_uuid' => $this->assignmentUuid,
             ...$this->additionalData(),
-        ];
+        ]);
     }
 
     /**

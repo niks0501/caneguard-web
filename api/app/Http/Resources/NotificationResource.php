@@ -15,12 +15,13 @@ class NotificationResource extends JsonResource
     public function toArray(Request $request): array
     {
         $data = is_array($this->data) ? $this->data : [];
+        $title = $this->text($data['title'] ?? null) ?? 'CaneGuard notification';
 
         return [
             'id' => $this->id,
             'event_type' => $data['event_type'] ?? $this->type,
-            'title' => $data['title'] ?? 'CaneGuard notification',
-            'message' => $data['message'] ?? '',
+            'title' => $title,
+            'message' => $this->text($data['message'] ?? null) ?? $title,
             'case' => [
                 'uuid' => $data['report_uuid'] ?? null,
                 'reference_code' => $data['reference_code'] ?? null,
@@ -32,5 +33,10 @@ class NotificationResource extends JsonResource
             'read_at' => $this->read_at?->utc()->toISOString(),
             'created_at' => $this->created_at?->utc()->toISOString(),
         ];
+    }
+
+    private function text(mixed $value): ?string
+    {
+        return is_string($value) && trim($value) !== '' ? $value : null;
     }
 }

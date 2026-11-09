@@ -28,12 +28,12 @@ class NewCaseSubmittedNotification extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
-        return [
+        return NotificationPayload::assertDeliverable([
             'event_type' => self::EVENT_TYPE,
             'title' => 'New case ready for review',
             'message' => "{$this->referenceCode} was submitted and is ready for review.",
             'report_uuid' => $this->reportUuid,
             'reference_code' => $this->referenceCode,
-        ];
+        ]);
     }
 }
