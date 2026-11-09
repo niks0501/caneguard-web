@@ -268,7 +268,7 @@ class MobileSyncContractTest extends TestCase
                     $this->assertContains($value, $spec['enum'], "{$path} enum");
                 }
                 if (($spec['format'] ?? null) === 'date') {
-                    $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $value, $path);
+                    $this->assertContractDate($value, $path);
                 }
                 break;
             case 'boolean':
@@ -284,7 +284,8 @@ class MobileSyncContractTest extends TestCase
                 }
                 break;
             case 'date-time':
-                $this->assertTrue(is_string($value) && strtotime($value) !== false, "{$path} is not a date-time");
+                $this->assertIsString($value, $path);
+                $this->assertContractDateTime($value, $path);
                 break;
             case 'object':
                 $this->assertIsArray($value, $path);
@@ -302,6 +303,32 @@ class MobileSyncContractTest extends TestCase
                 break;
             default:
                 $this->fail("{$path}: unknown contract type {$spec['type']}");
+        }
+    }
+
+    private function assertContractDate(string $value, string $path): void
+    {
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        $this->assertNotFalse($parsed, "{$path} is not a YYYY-MM-DD date");
+        $this->assertSame($value, $parsed->format('Y-m-d'), "{$path} is not a calendar date");
+    }
+
+    private function assertContractDateTime(string $value, string $path): void
+    {
+        $matched = preg_match(
+            '/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?(?:Z|([+-])(\d{2}):(\d{2}))$/',
+            $value,
+            $parts,
+        );
+        $this->assertSame(1, $matched, "{$path} is not an RFC 3339 date-time");
+
+        $instant = \DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s', $parts[1].'T'.$parts[2]);
+        $this->assertNotFalse($instant, "{$path} is not a date-time");
+        $this->assertSame($parts[1].'T'.$parts[2], $instant->format('Y-m-d\\TH:i:s'), "{$path} is not a real instant");
+
+        if (($parts[3] ?? '') !== '') {
+            $this->assertLessThan(24, (int) $parts[4], "{$path} offset hours");
+            $this->assertLessThan(60, (int) $parts[5], "{$path} offset minutes");
         }
     }
 }
