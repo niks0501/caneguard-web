@@ -47,6 +47,6 @@ final class DistrictAccessController extends Controller
         abort_unless($input['grants'] === [] || ($input['role'] === User::ROLE_ADMIN && $user->hasVerifiedEmail()), 403);
         $event = $reconcile->handle($user, District::findOrFail($access->pilotId()), $input['role'], $input['grants'], $input['revoke'], $input['office_reference'], $actor);
 
-        return response()->json(['message' => $event === null ? 'District access unchanged; prior credentials retained.' : 'District access updated; prior credentials revoked.']);
+        return response()->json(['message' => $event === null ? 'District access unchanged; prior credentials retained.' : 'District access updated.']);
     }
 }
