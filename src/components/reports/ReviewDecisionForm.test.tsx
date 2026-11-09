@@ -56,6 +56,15 @@ describe("Progressive review resilience", () => {
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: base.reviewVersion }));
   });
 
+  it("follows a sibling save when the decision draft is still clean", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderForm();
+    rerender(<MemoryRouter><ReviewDecisionForm report={{ ...base, reviewVersion: base.reviewVersion! + 1 }} onRefresh={vi.fn()} /></MemoryRouter>);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: base.reviewVersion! + 1 }));
+  });
+
   it("guards a second immediate submit even before mutation state rerenders", async () => {
     const user = userEvent.setup();
     let resolve!: (report: DiseaseReport) => void;
@@ -67,6 +76,19 @@ describe("Progressive review resilience", () => {
     expect(save).toHaveBeenCalledTimes(1);
     await act(async () => resolve({ ...base, reviewVersion: base.reviewVersion! + 1 }));
     expect(await screen.findByText(/Review confirmed/)).toBeInTheDocument();
+  });
+
+  it("does not rewind after its own write when a stale sibling refresh arrives", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderForm();
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[0][0]).toMatchObject({ expectedVersion: base.reviewVersion });
+
+    rerender(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
+    await user.type(screen.getByRole("textbox"), " Follow-up");
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[1][0]).toMatchObject({ expectedVersion: base.reviewVersion! + 1 });
   });
 
   it("retains classification, notes and action after a recoverable failure, without false success", async () => {

@@ -67,6 +67,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [conflictLoading, setConflictLoading] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const online = useOnlineStatus();
+  const lastSelfWriteVersion = useRef<number | undefined>(undefined);
   // Online-only writes: a draft is never queued for replay after an outage.
   const [offlineResumed, setOfflineResumed] = useState(false);
   const wasOffline = useRef(!online);
@@ -112,6 +113,21 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
   const conflict = stale || apiError?.status === 409;
   const changed = () => { setDirty(true); setSaved(false); setOfflineResumed(false); mutation.reset(); };
+
+  // A clean form can safely follow a sibling writer's newer version. Keep the
+  // last successful write so a stale refetch cannot rewind the token and make
+  // the next save conflict with this form's own earlier write.
+  useEffect(() => {
+    const incomingVersion = report.reviewVersion;
+    if (incomingVersion === undefined || dirty) return;
+    const selfWriteVersion = lastSelfWriteVersion.current;
+    if (selfWriteVersion !== undefined && incomingVersion < selfWriteVersion) return;
+    if (selfWriteVersion !== undefined && incomingVersion >= selfWriteVersion) {
+      lastSelfWriteVersion.current = undefined;
+    }
+    setExpectedVersion((current) => current === undefined || incomingVersion > current ? incomingVersion : current);
+  }, [dirty, report.reviewVersion]);
+
   useUnsavedWorkGuard(dirty);
   useEffect(() => {
     document.title = `${submitted && invalid ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
@@ -140,7 +156,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     saving.current = true;
     try {
       const updated = await mutation.mutateAsync(input);
-      setExpectedVersion(updated?.reviewVersion ?? expectedVersion + 1);
+      const nextVersion = updated?.reviewVersion ?? expectedVersion + 1;
+      lastSelfWriteVersion.current = nextVersion;
+      setExpectedVersion(nextVersion);
       setDirty(false); setSaved(true); setSubmitted(false);
       setConflictLatest(null); setConflictError(null);
       onRefresh();
@@ -204,6 +222,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     setInspectorUuid(resolved.inspector);
     setTargetDate(resolved.targetDate);
     setExpectedVersion(conflictLatest.reviewVersion);
+    lastSelfWriteVersion.current = undefined;
     setStale(false);
     setSubmitted(false);
     setConflictLatest(null);
