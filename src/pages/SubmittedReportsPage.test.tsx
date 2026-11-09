@@ -462,6 +462,22 @@ describe("SubmittedReportsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("marks placeholder filter rows busy, dimmed, and updating", () => {
+    vi.mocked(useReports).mockReturnValue(
+      reportsResult({
+        isFetching: true,
+        isPlaceholderData: true,
+      }),
+    );
+    renderPage("/reports?queue=needs_review");
+
+    const results = screen.getByRole("tabpanel");
+    expect(results).toHaveAttribute("aria-busy", "true");
+    expect(within(results).getByRole("status")).toHaveTextContent("Updating…");
+    expect(within(results).getByRole("table")).toHaveClass("report-table--stale");
+    expect(within(results).getAllByRole("row")[1]).toHaveClass("report-row--stale");
+  });
+
   it("keeps a cached no-match state visible after refresh failure", () => {
     vi.mocked(useReports).mockReturnValue(
       reportsResult({

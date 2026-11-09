@@ -4648,6 +4648,10 @@ textarea:focus-visible {
   outline-offset: -2px;
 }
 
+.report-table tbody tr.report-row--stale {
+  opacity: 0.55;
+}
+
 .report-status-cell .status-badge {
   flex: 0 1 auto;
   max-width: none;
