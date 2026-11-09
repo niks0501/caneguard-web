@@ -18,7 +18,7 @@ class DistrictMembership extends Model
             }
 
             User::query()->whereKey($membership->user_id)->increment('access_version');
-            if ($user->isMobileUser()) {
+            if ($user->role === User::ROLE_FIELD_REPORTER || $user->holdsMobileInspectorSession()) {
                 // Mobile bearer sessions survive membership changes, including a
                 // demotion that already changed the role, so upload endpoints can
                 // answer a record-scoped CAPABILITY_REVOKED.

@@ -233,6 +233,31 @@ class DistrictAccessTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('code', 'CAPABILITY_REVOKED');
         $this->assertSame(1, $deactivated->tokens()->count());
+
+        $farmer = User::factory()->inDistrict($district)->farmer()->create();
+        $farmerToken = app(IssueMobileToken::class)->handle($farmer, 'Test Android', 'farmer-device')->plainTextToken;
+        Auth::forgetGuards();
+
+        foreach (['/api/v1/mobile/reports', '/api/v1/mobile/field-surveys'] as $path) {
+            $this->withToken($farmerToken)
+                ->postJson($path, [])
+                ->assertForbidden()
+                ->assertJsonPath('code', 'FORBIDDEN');
+        }
+    }
+
+    public function test_farmer_membership_and_grant_changes_still_revoke_credentials(): void
+    {
+        $district = $this->pilotDistrict();
+        $farmer = User::factory()->inDistrict($district)->farmer()->create();
+        app(IssueMobileToken::class)->handle($farmer, 'Test Android', 'farmer-metadata-device');
+
+        DistrictGrant::query()->create(['user_id' => $farmer->id, 'district_id' => $district->id, 'ability' => 'report:send']);
+        $this->assertSame(0, $farmer->tokens()->count());
+
+        app(IssueMobileToken::class)->handle($farmer, 'Test Android', 'farmer-metadata-device');
+        DistrictMembership::query()->where('user_id', $farmer->id)->firstOrFail()->update(['revoked_at' => now()]);
+        $this->assertSame(0, $farmer->tokens()->count());
     }
 
     public function test_reconciliation_demotion_keeps_the_reporter_bearer_out_of_401(): void

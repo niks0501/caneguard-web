@@ -22,7 +22,7 @@ class DistrictGrant extends Model
                 return; // Legacy keys no longer authorize or revoke Web access.
             }
             User::query()->whereKey($grant->user_id)->increment('access_version');
-            if ($user->isMobileUser()) {
+            if ($user->role === User::ROLE_FIELD_REPORTER || $user->holdsMobileInspectorSession()) {
                 return;
             }
             app(RevokeUserAuthentication::class)->handle($user);

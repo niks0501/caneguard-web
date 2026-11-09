@@ -105,6 +105,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasVerifiedEmail() && in_array($this->role, [self::ROLE_FARMER, self::ROLE_FIELD_REPORTER], true);
     }
 
+    public function holdsMobileInspectorSession(): bool
+    {
+        return $this->tokens->contains(
+            static fn (PersonalAccessToken $token): bool => $token->isMobileInspectorSession(),
+        );
+    }
+
     protected static function booted(): void
     {
         static::updating(function (self $user): void {
