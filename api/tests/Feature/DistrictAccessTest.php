@@ -217,6 +217,21 @@ class DistrictAccessTest extends TestCase
             ->postJson('/api/v1/mobile/reports', [])
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
+
+        $deactivated = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $deactivatedToken = app(IssueMobileToken::class)->handle($deactivated, 'Test Android', 'deactivated-device')->plainTextToken;
+        $deactivated->forceFill(['is_active' => false])->save();
+        Auth::forgetGuards();
+
+        $this->withToken($deactivatedToken)
+            ->getJson('/api/v1/mobile/auth/me')
+            ->assertUnauthorized()
+            ->assertJsonPath('code', 'ACCOUNT_DISABLED');
+        $this->withToken($deactivatedToken)
+            ->postJson('/api/v1/mobile/reports', [])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        $this->assertSame(1, $deactivated->tokens()->count());
     }
 
     public function test_all_pat_entry_points_deny_null_overlong_and_thirty_day_old_credentials(): void

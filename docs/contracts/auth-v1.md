@@ -102,7 +102,7 @@ Wrong step-up credentials return `422 STEP_UP_REQUIRED`.
 
 Role and status changes require an active verified `admin` Web role, an office-cookie session, and password step-up; they cannot target the acting administrator. The `admin` role is the authority for user management, weekly approval and send: [simplified Web RBAC](../security/simplified-web-rbac.md) is the single maintained role/action matrix. Legacy `staff:manage`, `report:approve` and `report:send` grant rows are compatibility storage; they are not required for role changes and do not confer or withhold approval/send authority. The gated [accounts-access-v1](accounts-access-v1.md) v2 contract adds scoped signup discovery and documented admission/triage/transfer without changing farmer authentication or verification. V1 roles/access and the console share its singleton, revision and durable-history reconciliation path; v1 responses remain compatible and v1 still cannot admit unassigned identities. `/api/v1/me` exposes optional `accounts_enabled: true` only when the new gate is enabled; old gate-off auth fixtures are unchanged.
 
-A role change revokes the target user's Web sessions and legacy named-grant rows; a field reporter whose account stays active keeps its Mobile bearer session, including when the role change moves it to an office role, so uploads answer `CAPABILITY_REVOKED` instead of signing the phone out. District membership changes follow the same rule and invalidate pending weekly authority.
+A role or status change revokes the target user's Web sessions and legacy named-grant rows, except that a field reporter keeps its Mobile bearer session, including when the change moves it to an office role or deactivates it, so uploads answer `CAPABILITY_REVOKED` instead of signing the phone out. District membership changes follow the same rule and invalidate pending weekly authority.
 
 Password changes, email changes, biometric disablement, and password resets revoke active sessions and all personal access tokens as appropriate to the changed account.
 
@@ -148,7 +148,7 @@ All bearer tokens have a finite maximum lifetime of **30 days**, including re-en
 
 `GET /api/v1/mobile/auth/me` is unthrottled. It returns `403 EMAIL_NOT_VERIFIED` for an unverified account and `401 ACCOUNT_DISABLED` for an inactive one, and lists the current server-derived capabilities.
 
-A token can be revoked earlier by logout, account-security changes or account deactivation. Losing pilot membership or the field-reporter role is record-scoped at upload time: the Mobile bearer remains valid so the write endpoint returns `CAPABILITY_REVOKED` rather than signing the inspector out, and `401` stays limited to missing, unknown, expired or deleted credentials.
+A token can be revoked earlier by logout or account-security changes. A field reporter's Mobile bearer survives membership, role and status changes: uploads answer `CAPABILITY_REVOKED` at write time, and `/me` answers `401 ACCOUNT_DISABLED` once the account is deactivated, so `401 UNAUTHENTICATED` stays limited to missing, unknown, expired or deleted credentials.
 
 A fresh password login or enrollment replaces the token for that device identity only.
 

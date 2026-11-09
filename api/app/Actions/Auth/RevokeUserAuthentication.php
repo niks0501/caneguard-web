@@ -31,9 +31,10 @@ final class RevokeUserAuthentication
 
     public function handleAuthorityChange(User $user, ?string $previousRole): void
     {
-        // A mobile field reporter keeps its bearer session so write endpoints can
-        // answer CAPABILITY_REVOKED; deactivation still revokes every credential.
-        if ($user->is_active && $previousRole === User::ROLE_FIELD_REPORTER) {
+        // A mobile field reporter keeps its bearer session so uploads answer
+        // CAPABILITY_REVOKED and /me can report ACCOUNT_DISABLED. Every other
+        // authority change still revokes credentials immediately.
+        if ($previousRole === User::ROLE_FIELD_REPORTER) {
             return;
         }
 
