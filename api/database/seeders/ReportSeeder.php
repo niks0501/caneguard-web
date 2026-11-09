@@ -158,6 +158,7 @@ class ReportSeeder extends Seeder
                     ['reference_code' => $referenceCode],
                     [
                         'uuid' => $reportUuid,
+                        'origin' => Report::ORIGIN_OFFICE,
                         'reporter_id' => $reporter->getKey(),
                         'district_id' => $districtId,
                         'client_uuid' => $clientUuid,

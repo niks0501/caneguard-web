@@ -34,7 +34,7 @@ class WeeklyReportReminderNotification extends Notification
         $label = 'W'.substr($this->week, -2);
         $prepared = $this->state === self::STATE_AWAITING_APPROVAL;
 
-        return [
+        return NotificationPayload::assertDeliverable([
             'event_type' => self::EVENT_TYPE,
             'title' => $prepared ? "Week {$label} awaiting approval" : "Week {$label} not prepared",
             'message' => $prepared
@@ -45,6 +45,6 @@ class WeeklyReportReminderNotification extends Notification
             'assignment_uuid' => null,
             'week' => $this->week,
             'state' => $this->state,
-        ];
+        ]);
     }
 }

@@ -277,6 +277,7 @@ class DemoAnalyticsSeeder extends Seeder
 
         return [
             'uuid' => $existing?->uuid ?? (string) Str::uuid(),
+            'origin' => Report::ORIGIN_OFFICE,
             'reporter_id' => $reporter->getKey(),
             'client_uuid' => $existing?->client_uuid ?? (string) Str::uuid(),
             'scan_record_client_uuid' => $existing?->scan_record_client_uuid ?? (string) Str::uuid(),

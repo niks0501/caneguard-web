@@ -381,6 +381,7 @@ class DashboardReportSeeder extends Seeder
                 ['reference_code' => $referenceCode],
                 [
                     ...$definition['report'],
+                    'origin' => Report::ORIGIN_OFFICE,
                     'uuid' => $existing?->uuid ?? $definition['report']['uuid'],
                     'client_uuid' => $existing?->client_uuid ?? $definition['report']['client_uuid'],
                     'scan_record_client_uuid' => $existing?->scan_record_client_uuid
@@ -945,6 +946,7 @@ class DashboardReportSeeder extends Seeder
             ['reference_code' => $referenceCode],
             [
                 ...$attributes,
+                'origin' => Report::ORIGIN_OFFICE,
                 'reporter_id' => $reporter->getKey(),
                 'district_id' => $districtId,
                 'image_path' => sprintf(

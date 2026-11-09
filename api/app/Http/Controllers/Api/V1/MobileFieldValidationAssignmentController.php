@@ -44,7 +44,6 @@ class MobileFieldValidationAssignmentController extends Controller
                 ),
             )
             ->where('updated_at', '<=', $syncBefore)
-            ->orderBy('updated_at')
             ->orderBy('id')
             ->with([
                 'assignee',

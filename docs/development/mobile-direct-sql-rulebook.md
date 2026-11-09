@@ -19,7 +19,7 @@ One bad row can break more than itself: the assignment feed serializes a whole p
 | `client_uuid` | A real UUID (mint one on the server for office rows); unique per `reporter_id`. |
 | `reference_code` | Non-empty, at most 32 characters, unique. |
 | `reporter_id` | An existing `users.id`; that user needs a UUID and a name. |
-| `origin` | `office` for SQL-inserted rows, once the column exists (planned `reports.origin`, `mobile` or `office`). Until it exists the check skips it. |
+| `origin` | `office` for SQL-inserted rows; `mobile` is the phone-upload default. It records that the case was born in the office rather than uploaded by a phone, so a hand-made row left at the default misreports its source. |
 | `case_state` | `open` for work meant for a phone. The assignment feed lists open cases only; `closed` hides the row. |
 | `field_validation_state` | `assigned` (or `in_progress`, `completed`) for a row meant for a phone; `unassigned` rows are never on the assignment feed. |
 | `district_id` | The configured pilot district (`CANEGUARD_PILOT_DISTRICT_CODE`); anything else, or empty, is hidden. |
@@ -43,10 +43,10 @@ A report reaches a phone only through a `field_validation_assignments` row, and 
 | `assignee_id` | An active, email-verified `field_reporter` with an active membership in the pilot district. |
 | `assigned_by_id` | An existing user. |
 | `activated_at` | Set (UTC). |
-| `created_at`, `updated_at` | Set to now or earlier (UTC); the feed orders and syncs by `updated_at`. |
+| `created_at`, `updated_at` | Set to now or earlier (UTC); the feed syncs by `updated_at` and pages in `id` order. |
 
 Demo flow: insert the report, run the check, assign it to the demo inspector (in the web app, or with this row), run the check again, then refresh the phone. Reports that are not assigned to anyone are not shown on phones.
 
 ## What the check reports
 
-Per report: bad `uuid` or `client_uuid`, empty `reference_code`, missing reporter, empty dates, unknown `predicted_label`, `confidence` outside 0-1, empty `barangay`, out-of-range affected area or portion, unknown `case_state` or `field_validation_state`, and `origin` once present. For assigned work, also: no pilot district, wrong district, `case_state` not `open`, an assigned state with no assignment row, or an assignment with a future `updated_at`, a missing assignee, an assignee who cannot sign in on a phone, or no district membership. Assignments whose report is missing are listed as `(assignment <id>)`.
+Per report: bad `uuid` or `client_uuid`, empty `reference_code`, missing reporter, empty dates, unknown `predicted_label`, `confidence` outside 0-1, empty `barangay`, out-of-range affected area or portion, unknown `case_state` or `field_validation_state`, and an `origin` other than `mobile` or `office`. For assigned work, also: no pilot district, wrong district, `case_state` not `open`, an assigned state with no assignment row, or an assignment with a future `updated_at`, a missing assignee, an assignee who cannot sign in on a phone, or no district membership. Assignments whose report is missing are listed as `(assignment <id>)`.

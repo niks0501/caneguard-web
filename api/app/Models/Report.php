@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'uuid',
+    'origin',
     'reference_code',
     'reporter_id',
     'district_id',
@@ -97,6 +98,10 @@ class Report extends Model
     public const LABEL_RUST = 'rust';
 
     public const LABEL_SMUT = 'smut';
+
+    public const ORIGIN_MOBILE = 'mobile';
+
+    public const ORIGIN_OFFICE = 'office';
 
     /** Stable free-text value used when Mobile reports RSSI as field evidence. */
     public const REPORTER_CONCERN_RSSI = 'RSSI';
