@@ -1,5 +1,4 @@
 import {
-  useDeferredValue,
   useEffect,
   useRef,
   useState,
@@ -54,6 +53,7 @@ import { manilaDateAt } from "../domain/reportingTime";
 import { reportKeys } from "../hooks/reportQueries";
 import { useFieldReporters } from "../hooks/useFieldReporters";
 import { useExportReports, useReports } from "../hooks/useReports";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import {
   parseReportListUrl,
 } from "./reportListUrlState";
@@ -218,14 +218,14 @@ export function SubmittedReportsPage({
     () => parseReportListUrl(searchParams),
     [searchParams],
   );
-  const deferredSearch = useDeferredValue(urlState.filters.search);
+  const debouncedSearch = useDebouncedValue(urlState.filters.search, 300);
   const queryFilters = useMemo<ReportFilters>(
     () => ({
       ...urlState.filters,
-      search: deferredSearch?.trim() || undefined,
+      search: debouncedSearch?.trim() || undefined,
       barangay: urlState.filters.barangay?.trim() || undefined,
     }),
-    [deferredSearch, urlState.filters],
+    [debouncedSearch, urlState.filters],
   );
   const exportFilters = useMemo<ReportFilters>(
     () => ({

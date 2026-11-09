@@ -33,6 +33,7 @@ export function ApiConnectivityProvider({
   const auth = useAuth();
   const queryClient = useQueryClient();
   const requestVersion = useRef(0);
+  const inFlight = useRef<Promise<ApiHealthResult | null> | null>(null);
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>(
     getInitialNetworkStatus,
   );
@@ -40,7 +41,7 @@ export function ApiConnectivityProvider({
     getInitialNetworkStatus() === "unavailable" ? "unreachable" : "unknown",
   );
 
-  const checkApiReachability = useCallback(async () => {
+  const runApiReachabilityCheck = useCallback(async () => {
     const version = ++requestVersion.current;
 
     if (env.dataSource !== "api" || auth.status !== "authenticated") {
@@ -75,10 +76,21 @@ export function ApiConnectivityProvider({
     return result;
   }, [auth.status, healthCheck, networkStatus]);
 
+  // Concurrent callers share one in-flight health request.
+  const checkApiReachability = useCallback(() => {
+    if (inFlight.current) return inFlight.current;
+    const pending = runApiReachabilityCheck().finally(() => {
+      if (inFlight.current === pending) inFlight.current = null;
+    });
+    inFlight.current = pending;
+    return pending;
+  }, [runApiReachabilityCheck]);
+
   useEffect(() => {
     const handleOnline = () => setNetworkStatus("available");
     const handleOffline = () => {
       requestVersion.current += 1;
+      inFlight.current = null;
       setNetworkStatus("unavailable");
       setApiReachability("unreachable");
     };
@@ -94,6 +106,7 @@ export function ApiConnectivityProvider({
   useEffect(() => {
     if (auth.status !== "authenticated" || env.dataSource !== "api") {
       requestVersion.current += 1;
+      inFlight.current = null;
       return;
     }
 

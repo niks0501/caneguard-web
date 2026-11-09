@@ -57,6 +57,44 @@ describe("ApiConnectivityProvider", () => {
     });
   });
 
+  it("shares one in-flight health check between concurrent triggers", async () => {
+    let resolve!: (value: ApiHealthResult) => void;
+    const healthCheck = vi.fn(
+      () => new Promise<ApiHealthResult>((r) => { resolve = r; }),
+    );
+    function Trigger() {
+      const { checkApiReachability } = useApiConnectivity();
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            void checkApiReachability();
+            void checkApiReachability();
+          }}
+        >
+          check
+        </button>
+      );
+    }
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AuthContext value={authValue("authenticated")}>
+          <ApiConnectivityProvider healthCheck={healthCheck}>
+            <Trigger />
+          </ApiConnectivityProvider>
+        </AuthContext>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(healthCheck).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "check" }));
+    expect(healthCheck).toHaveBeenCalledOnce();
+    await act(async () => {
+      resolve({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
+    });
+    fireEvent.click(screen.getByRole("button", { name: "check" }));
+    expect(healthCheck).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps network availability separate from a reachable API", async () => {
     const healthCheck = vi.fn().mockResolvedValue({
       reachability: "reachable",
