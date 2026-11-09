@@ -4,6 +4,8 @@ The `mobile-notifications-v1` contract is the owner-scoped REST feed for durable
 
 The API returns the authenticated field reporter's notifications only.
 The `sync.before` checkpoint and cursor links describe one complete snapshot boundary.
+The feed serves a bounded window anchored to that checkpoint: every unread item, plus read items created in the 60 days before `sync.before`, capped at the 500 newest rows of that window.
+Read history older than the window is never served, so a long-lived account refreshes in a bounded number of pages instead of paging through every item it was ever sent.
 Advisory notifications include the validated office content in both `content`
 and the structured `advisory` payload; clients may render either representation.
 The client replaces its local snapshot only after every page validates successfully.
@@ -11,7 +13,8 @@ The client replaces its local snapshot only after every page validates successfu
 Mobile does not connect to Reverb or any WebSocket service.
 Refresh is lifecycle-driven by the Mobile application and failed refreshes leave the last successful local snapshot visible.
 
-Follow-up due items are derived when a notification feed is read.
+Reading the feed never writes.
+Follow-up due items are derived by the scheduled `notifications:derive-follow-up-due` command, which runs every 15 minutes on the Laravel scheduler; an install whose scheduler does not run never creates them.
 The derivation requires a target visit date, a date before the API's current date, and incomplete field validation.
 No service-level deadline is invented for assignments without a target date.
 
