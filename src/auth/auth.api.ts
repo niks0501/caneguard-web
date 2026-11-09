@@ -31,7 +31,16 @@ export async function loginRequest(
   credentials: LoginCredentials,
 ): Promise<void> {
   await initializeCsrf();
-  await axiosClient.post("/login", credentials);
+  try {
+    await axiosClient.post("/login", credentials);
+  } catch (error) {
+    // An expired CSRF token (419) is recoverable: refresh it once and retry.
+    if (!(error instanceof ApiError) || error.status !== 419) {
+      throw error;
+    }
+    await initializeCsrf();
+    await axiosClient.post("/login", credentials);
+  }
 }
 
 export async function resendVerificationRequest(email: string) {
