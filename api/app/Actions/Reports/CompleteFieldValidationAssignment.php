@@ -57,7 +57,7 @@ class CompleteFieldValidationAssignment
                     ->findOrFail($assignment->getKey());
                 $access = app(DistrictAccess::class);
                 $access->requireMobileCapability($user, 'assignment:complete');
-                abort_unless($access->allows($user, $report->district_id), 403);
+                abort_unless($access->allows($user->fresh(), $report->district_id), 403);
                 $locked->setRelation('report', $report);
                 if ($locked->assignee_id !== $user->getKey()) {
                     throw new FieldValidationCompletionConflict(

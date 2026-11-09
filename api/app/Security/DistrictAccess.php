@@ -100,15 +100,19 @@ final class DistrictAccess
 
     public function hasMobileCapability(?User $user, string $ability): bool
     {
+        // Current identity is re-read so a role or status change committed after
+        // the request loaded the user is not trusted. No lock spans this check and
+        // the write, so a revocation committing after it is enforced on the next
+        // request instead of being rolled into the current one.
         return in_array($ability, self::MOBILE_CAPABILITIES, true)
             && $user instanceof User
-            && $this->inspector($user);
+            && $this->inspector($user->fresh());
     }
 
-    public function requireMobileCapability(User $user, string $ability): void
+    public function requireMobileCapability(?User $user, string $ability): void
     {
         if (! $this->hasMobileCapability($user, $ability)) {
-            throw new MobileCapabilityRevoked($ability);
+            throw new MobileCapabilityRevoked;
         }
     }
 

@@ -157,8 +157,8 @@ The phone can display each `errors[field]` string array. Geometry errors use the
 `measurement_provenance` and `affected_area_waypoints`.
 Missing, expired or deleted bearer credentials return **401** with
 `UNAUTHENTICATED`; a current membership or capability loss on a surviving
-inspector bearer session returns **403** with `CAPABILITY_REVOKED`. A verified
-identity without inspector authority returns **403** with `FORBIDDEN`.
+field-reporter bearer session returns **403** with `CAPABILITY_REVOKED`. Web
+office roles return **403** with `FORBIDDEN`.
 Rate limiting returns **429**. None of these failures creates a survey.
 
 ## Scope and persistence

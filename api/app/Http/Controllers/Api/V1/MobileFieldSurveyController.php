@@ -14,9 +14,12 @@ class MobileFieldSurveyController extends Controller
 {
     public function __invoke(StoreFieldSurveyRequest $request, DistrictAccess $access): JsonResponse
     {
-        $access->requireMobileCapability($request->user(), 'report:submit');
         $data = $request->validated();
         $districtId = $access->pilotId();
+
+        // Authority is re-checked at the insert because only a revocation that
+        // commits after this point is left to the next request to reject.
+        $access->requireMobileCapability($request->user(), 'report:submit');
 
         // The unique key and createOrFirst's savepoint also protect simultaneous retries.
         $survey = FieldSurvey::query()->createOrFirst(['client_uuid' => $data['client_uuid']], [

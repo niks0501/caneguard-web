@@ -102,7 +102,7 @@ Wrong step-up credentials return `422 STEP_UP_REQUIRED`.
 
 Role and status changes require an active verified `admin` Web role, an office-cookie session, and password step-up; they cannot target the acting administrator. The `admin` role is the authority for user management, weekly approval and send: [simplified Web RBAC](../security/simplified-web-rbac.md) is the single maintained role/action matrix. Legacy `staff:manage`, `report:approve` and `report:send` grant rows are compatibility storage; they are not required for role changes and do not confer or withhold approval/send authority. The gated [accounts-access-v1](accounts-access-v1.md) v2 contract adds scoped signup discovery and documented admission/triage/transfer without changing farmer authentication or verification. V1 roles/access and the console share its singleton, revision and durable-history reconciliation path; v1 responses remain compatible and v1 still cannot admit unassigned identities. `/api/v1/me` exposes optional `accounts_enabled: true` only when the new gate is enabled; old gate-off auth fixtures are unchanged.
 
-A role change revokes the target user's sessions, bearer tokens and legacy named-grant rows. District membership changes also revoke credentials and invalidate pending weekly authority.
+A role change revokes the target user's Web sessions and legacy named-grant rows; a field reporter whose account stays active keeps its Mobile bearer session so uploads answer `CAPABILITY_REVOKED` instead of signing the phone out. District membership changes follow the same rule and invalidate pending weekly authority.
 
 Password changes, email changes, biometric disablement, and password resets revoke active sessions and all personal access tokens as appropriate to the changed account.
 
@@ -146,11 +146,13 @@ Authorized verified pilot inspectors receive `report:submit`, `survey:submit`, `
 
 All bearer tokens have a finite maximum lifetime of **30 days**, including re-enrollment. Sanctum rejects expired, null-expiry, overlong and older-than-30-day tokens with `401 UNAUTHENTICATED`. The district migration revokes legacy tokens, sessions and remember tokens rather than grandfathering unlimited credentials. Office workspace endpoints reject bearer credentials even if an officer token has wildcard abilities.
 
-A token can be revoked earlier by logout, security changes, district reconciliation or role changes. Loss of an active field reporter's pilot membership is record-scoped at upload time: the mobile bearer remains valid so the write endpoint can return `CAPABILITY_REVOKED` rather than signing the inspector out.
+`GET /api/v1/mobile/auth/me` is unthrottled. It returns `403 EMAIL_NOT_VERIFIED` for an unverified account and `401 ACCOUNT_DISABLED` for an inactive one, and lists the current server-derived capabilities.
+
+A token can be revoked earlier by logout, account-security changes or account deactivation. Losing pilot membership or the field-reporter role is record-scoped at upload time: the Mobile bearer remains valid so the write endpoint returns `CAPABILITY_REVOKED` rather than signing the inspector out, and `401` stays limited to missing, unknown, expired or deleted credentials.
 
 A fresh password login or enrollment replaces the token for that device identity only.
 
-Password reset, password change, email change, biometric disablement, and role change revoke all tokens for the affected account.
+Password reset, password change, email change, and biometric disablement revoke all tokens for the affected account.
 
 Mobile logout revokes only the current token.
 

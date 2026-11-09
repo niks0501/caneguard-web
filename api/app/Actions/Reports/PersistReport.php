@@ -35,11 +35,14 @@ class PersistReport
             $path,
             $referenceCode,
         ) {
+            $access = app(DistrictAccess::class);
+            $access->requireMobileCapability($reporter, 'report:submit');
+
             $report = Report::query()->create([
                 'uuid' => $uuid,
                 'reference_code' => $referenceCode,
                 'reporter_id' => $reporter->getKey(),
-                'district_id' => app(DistrictAccess::class)->pilotId(),
+                'district_id' => $access->pilotId(),
                 'client_uuid' => $data['client_uuid'],
                 'scan_record_client_uuid' => $data['scan_record_client_uuid'] ?? null,
                 'field_survey_client_uuid' => $data['field_survey_client_uuid'] ?? null,

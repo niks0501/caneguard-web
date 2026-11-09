@@ -29,6 +29,17 @@ final class RevokeUserAuthentication
             ->delete();
     }
 
+    public function handleAuthorityChange(User $user, ?string $previousRole): void
+    {
+        // A mobile field reporter keeps its bearer session so write endpoints can
+        // answer CAPABILITY_REVOKED; deactivation still revokes every credential.
+        if ($user->is_active && $previousRole === User::ROLE_FIELD_REPORTER) {
+            return;
+        }
+
+        $this->handle($user);
+    }
+
     public function logoutCurrentWebSession(Request $request, User $user): void
     {
         if ((string) Auth::guard('web')->id() !== (string) $user->getAuthIdentifier()) {

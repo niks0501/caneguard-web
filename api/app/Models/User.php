@@ -119,7 +119,10 @@ class User extends Authenticatable implements MustVerifyEmail
                     'revoked_at' => now()->utc(),
                     'revision' => DB::raw('revision + 1'),
                 ]);
-                app(RevokeUserAuthentication::class)->handle($user);
+                app(RevokeUserAuthentication::class)->handleAuthorityChange(
+                    $user,
+                    (string) $user->getOriginal('role'),
+                );
             }
         });
     }

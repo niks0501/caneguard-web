@@ -154,10 +154,10 @@ class DistrictAccessTest extends TestCase
     public function test_roster_and_grant_changes_are_audited_revoke_auth_and_never_reactivate_retired_experts(): void
     {
         $district = $this->pilotDistrict();
-        $user = User::factory()->create();
+        $user = User::factory()->reviewer()->create();
         $token = $user->createToken('old')->plainTextToken;
         DB::table('sessions')->insert(['id' => 'old-session', 'user_id' => $user->id, 'payload' => '', 'last_activity' => time()]);
-        app(ReconcileDistrictAccess::class)->handle($user, $district, 'field_reporter', [], false, 'test-office-decision');
+        app(ReconcileDistrictAccess::class)->handle($user, $district, 'reviewer', [], false, 'test-office-decision');
         $this->assertDatabaseCount('personal_access_tokens', 0);
         $this->assertDatabaseCount('sessions', 0);
         $this->assertDatabaseHas('security_audits', ['action' => 'district_access_changed', 'target_user_id' => $user->id]);
@@ -165,6 +165,38 @@ class DistrictAccessTest extends TestCase
         $disabled = User::factory()->create(['role' => 'disabled']);
         $this->expectException(\InvalidArgumentException::class);
         app(ReconcileDistrictAccess::class)->handle($disabled, $district, 'reviewer', [], false, 'must-not-reactivate');
+    }
+
+    public function test_field_reporter_bearer_survives_capability_loss_and_gets_record_scoped_403(): void
+    {
+        $district = $this->pilotDistrict();
+        $reporter = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $token = app(IssueMobileToken::class)->handle($reporter, 'Test Android', 'revoked-member-device')->plainTextToken;
+
+        DistrictMembership::query()->where('user_id', $reporter->id)->firstOrFail()->update(['revoked_at' => now()]);
+
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/reports', [])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        $this->assertSame(1, $reporter->tokens()->count());
+
+        $demoted = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $demotedToken = app(IssueMobileToken::class)->handle($demoted, 'Test Android', 'demoted-device')->plainTextToken;
+        $demoted->forceFill(['role' => User::ROLE_FARMER])->save();
+
+        foreach ([
+            '/api/v1/mobile/reports',
+            '/api/v1/mobile/field-surveys',
+            '/api/v2/mobile/reports',
+            '/api/v3/mobile/reports',
+        ] as $path) {
+            $this->withToken($demotedToken)
+                ->postJson($path, [])
+                ->assertForbidden()
+                ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        }
+        $this->assertSame(1, $demoted->tokens()->count());
     }
 
     public function test_all_pat_entry_points_deny_null_overlong_and_thirty_day_old_credentials(): void
