@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Link, MemoryRouter, Route, Routes } from "react-router";
+import { createMemoryRouter, Link, MemoryRouter, Outlet, Route, RouterProvider, Routes } from "react-router";
 import { ZodError } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
@@ -26,6 +26,7 @@ import {
   useUpdateReportReview,
   useUpdateReportAffectedFields,
 } from "../hooks/useReports";
+import { UnsavedWorkProvider } from "../components/ui/UnsavedWorkGuard";
 import { CaseReviewPage } from "./CaseReviewPage";
 
 vi.mock("../hooks/useReports", () => ({
@@ -242,6 +243,25 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Correct case information" }));
     expect(screen.getByLabelText("Farmer or farm owner")).toHaveValue("Next farm owner");
     discard.mockRestore();
+  });
+
+  it("blocks in-app navigation while the correction modal holds a dirty draft", async () => {
+    const user = userEvent.setup();
+    const router = createMemoryRouter([{
+      element: <UnsavedWorkProvider><Outlet /></UnsavedWorkProvider>,
+      children: [
+        { path: "/reports/:reportId", element: <><CaseReviewPage /><Link to="/elsewhere">Leave case</Link></> },
+        { path: "/elsewhere", element: <p>Elsewhere</p> },
+      ],
+    }], { initialEntries: [`/reports/${report.uuid}`] });
+    render(<RouterProvider router={router} />);
+    await user.click(screen.getByText("Other case actions"));
+    await user.click(screen.getByRole("button", { name: "Correct case information" }));
+    const correction = screen.getByRole("dialog", { name: "Correct case information" });
+    await user.type(within(correction).getByLabelText("Farmer or farm owner"), " edited");
+    await user.click(screen.getByRole("link", { name: "Leave case", hidden: true }));
+    expect(await screen.findByRole("dialog", { name: "Discard unsaved changes?" })).toBeInTheDocument();
+    expect(screen.queryByText("Elsewhere")).not.toBeInTheDocument();
   });
 
   it("offers no decision jump for a Follow-Up case", () => {

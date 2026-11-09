@@ -33,6 +33,7 @@ import { ClampedText } from "../components/ui/ClampedText";
 import { Modal } from "../components/ui/Modal";
 import { Toast } from "../components/ui/Toast";
 import { confirmDiscardUnsavedChanges } from "../components/ui/confirmDiscard";
+import { useUnsavedWorkGuard } from "../components/ui/unsavedWorkContext";
 import {
   actionTakenLabels,
   authorityClassifiedConditionLabels,
@@ -434,6 +435,8 @@ function CaseReviewContent() {
   const metadataCorrectionDirty = Boolean(
     metadataCorrections !== undefined || correctionReason.trim(),
   );
+  useUnsavedWorkGuard(duplicateLinkModalOpen && duplicateLinkDirty);
+  useUnsavedWorkGuard(metadataCorrectionModalOpen && metadataCorrectionDirty);
   const closeDuplicateLinkModal = () => {
     if (confirmDiscardUnsavedChanges(duplicateLinkDirty)) setDuplicateLinkModalOpen(false);
   };
