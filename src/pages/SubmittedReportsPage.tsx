@@ -9,6 +9,7 @@ import { ClipboardCheck, Download, RefreshCw, SlidersHorizontal } from "lucide-r
 import {
   Link,
   useLocation,
+  useNavigate,
   useSearchParams,
 } from "react-router";
 import { ZodError } from "zod";
@@ -212,6 +213,7 @@ export function SubmittedReportsPage({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersTriggerRef = useRef<HTMLButtonElement | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const urlState = useMemo(
@@ -325,7 +327,16 @@ export function SubmittedReportsPage({
       exact: true,
     });
 
-  const reviewNotice = (location.state as { notice?: string } | null)?.notice;
+  const locationNotice = (location.state as { notice?: string } | null)?.notice;
+  // Show the notice once: keep it locally and drop it from history state so a
+  // reload does not bring it back.
+  const [reviewNotice, setReviewNotice] = useState(locationNotice);
+  if (locationNotice && locationNotice !== reviewNotice) {
+    setReviewNotice(locationNotice);
+  }
+  useEffect(() => {
+    if (locationNotice) navigate(location, { replace: true, state: null });
+  }, [location, locationNotice, navigate]);
   const invalidQuery =
     urlState.invalid || isInvalidQueryError(reportsQuery.error);
   const accessDenied = isAccessDeniedError(reportsQuery.error);

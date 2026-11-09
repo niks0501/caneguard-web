@@ -9,7 +9,7 @@ export function AppErrorFallback() {
       data-error-kind="render"
     >
       <h1>CaneGuard could not display this page</h1>
-      <p>Refresh the page to try again. Your session may still be active.</p>
+      <p>Refresh the page to try again.</p>
     </main>
   );
 }
