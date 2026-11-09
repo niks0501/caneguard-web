@@ -246,6 +246,31 @@ class DistrictAccessTest extends TestCase
         }
     }
 
+    public function test_stale_mobile_bearer_answers_401_before_lost_authority(): void
+    {
+        $district = $this->pilotDistrict();
+        $reporter = User::factory()->inDistrict($district)->fieldReporter()->create();
+        DistrictMembership::query()->where('user_id', $reporter->id)->firstOrFail()->update(['revoked_at' => now()]);
+
+        foreach (['null' => null, 'expired' => now()->subMinute()] as $kind => $expiresAt) {
+            $token = app(IssueMobileToken::class)->handle($reporter, 'Test Android', 'stale-authority-'.$kind);
+            $token->accessToken->forceFill(['expires_at' => $expiresAt])->save();
+            Auth::forgetGuards();
+
+            foreach ([
+                '/api/v1/mobile/reports',
+                '/api/v1/mobile/field-surveys',
+                '/api/v2/mobile/reports',
+                '/api/v3/mobile/reports',
+            ] as $path) {
+                $this->withToken($token->plainTextToken)
+                    ->postJson($path, [])
+                    ->assertUnauthorized()
+                    ->assertJsonPath('code', 'UNAUTHENTICATED');
+            }
+        }
+    }
+
     public function test_farmer_membership_and_grant_changes_still_revoke_credentials(): void
     {
         $district = $this->pilotDistrict();
