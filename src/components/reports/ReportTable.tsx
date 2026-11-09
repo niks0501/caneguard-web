@@ -31,9 +31,11 @@ const QUEUE_HEADERS = [
 export function ReportTable({
   reports,
   variant = "default",
+  isStale = false,
 }: {
   reports: DiseaseReport[];
   variant?: "default" | "monitoring";
+  isStale?: boolean;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,7 +82,7 @@ export function ReportTable({
   return (
     <>
     <div className="table-scroll">
-      <table className={`report-table report-table--queue${isMonitoring ? " report-table--monitoring" : ""}`}>
+      <table className={`report-table report-table--queue${isMonitoring ? " report-table--monitoring" : ""}${isStale ? " report-table--stale" : ""}`}>
         <thead>
           <tr>
             {QUEUE_HEADERS.map((header) => (
@@ -93,7 +95,7 @@ export function ReportTable({
             const row: QueueRowView = report;
             return (
               <tr
-                className={`report-row report-row--${report.reviewStatus}`}
+                className={`report-row report-row--${report.reviewStatus}${isStale ? " report-row--stale" : ""}`}
                 data-review-status={report.reviewStatus}
                 key={report.uuid}
                 tabIndex={0}

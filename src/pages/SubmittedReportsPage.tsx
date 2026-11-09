@@ -335,6 +335,10 @@ export function SubmittedReportsPage({
   const hasCachedData = Boolean(reportsQuery.data);
   const hasDisplayableData =
     hasCachedData && !accessDenied && !urlState.invalid;
+  const queueIsUpdating = reportsQuery.isFetching && hasDisplayableData;
+  const showingPlaceholderData = Boolean(
+    reportsQuery.isPlaceholderData && hasDisplayableData,
+  );
   const showInitialError =
     reportsQuery.isError && (!hasCachedData || accessDenied);
   const queueState = urlState.invalid
@@ -439,7 +443,7 @@ export function SubmittedReportsPage({
 
       <WorkspaceFreshness
         updatedAt={reportsQuery.dataUpdatedAt}
-        fetching={reportsQuery.isFetching && hasDisplayableData}
+        fetching={queueIsUpdating && !showingPlaceholderData}
         refreshFailed={Boolean(reportsQuery.isRefetchError)}
         onRetry={refreshQueue}
       />
@@ -653,10 +657,15 @@ export function SubmittedReportsPage({
           role="tabpanel"
           id="report-queue-panel"
           aria-labelledby={activeQueueTabId}
+          aria-busy={queueIsUpdating || showingPlaceholderData}
           data-state={queueState}
           data-error-kind={queueErrorKind}
         >
-          {reportsQuery.isFetching && hasDisplayableData ? (
+          {showingPlaceholderData ? (
+            <p className="queue-refresh-status" role="status">
+              Updating…
+            </p>
+          ) : queueIsUpdating ? (
             <p className="queue-refresh-status" role="status">
               Refreshing this server-filtered queue…
             </p>
@@ -742,6 +751,7 @@ export function SubmittedReportsPage({
               <ReportTable
                 reports={reports}
                 variant={isMonitoring ? "monitoring" : "default"}
+                isStale={showingPlaceholderData}
               />
               <Pagination
                 currentPage={meta.currentPage}
