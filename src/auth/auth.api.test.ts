@@ -37,6 +37,44 @@ describe("auth API", () => {
     expect(requests).toEqual(["csrf", "login"]);
   });
 
+  it("refreshes the CSRF cookie once and retries login after a 419", async () => {
+    const requests: string[] = [];
+    let loginAttempts = 0;
+    server.use(
+      http.get(`${baseUrl}/sanctum/csrf-cookie`, () => {
+        requests.push("csrf");
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.post(`${baseUrl}/login`, () => {
+        requests.push("login");
+        loginAttempts += 1;
+        return loginAttempts === 1
+          ? HttpResponse.json({ message: "CSRF token mismatch." }, { status: 419 })
+          : new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    await loginRequest({ email: "reviewer@example.test", password: "secret" });
+
+    expect(requests).toEqual(["csrf", "login", "csrf", "login"]);
+  });
+
+  it("surfaces a second consecutive 419 without retrying again", async () => {
+    let loginAttempts = 0;
+    server.use(
+      http.get(`${baseUrl}/sanctum/csrf-cookie`, () => new HttpResponse(null, { status: 204 })),
+      http.post(`${baseUrl}/login`, () => {
+        loginAttempts += 1;
+        return HttpResponse.json({ message: "CSRF token mismatch." }, { status: 419 });
+      }),
+    );
+
+    await expect(
+      loginRequest({ email: "reviewer@example.test", password: "secret" }),
+    ).rejects.toMatchObject({ status: 419 });
+    expect(loginAttempts).toBe(2);
+  });
+
   it("loads only reviewer or admin web users", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/me`, () =>

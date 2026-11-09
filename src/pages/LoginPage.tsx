@@ -68,6 +68,8 @@ export function LoginPage() {
     } catch (error) {
       if (error instanceof ApiError && error.status === 422) {
         setErrorMessage("The email or password is incorrect.");
+      } else if (error instanceof ApiError && error.status === 419) {
+        setErrorMessage("Your sign-in page expired. Please try again.");
       } else if (error instanceof ApiError && error.code === "ACCOUNT_DISABLED") {
         setErrorMessage("Account disabled — contact your administrator.");
       } else if (error instanceof ApiError && error.status === 429) {
