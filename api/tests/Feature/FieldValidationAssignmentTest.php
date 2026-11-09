@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Contracts\MobileFieldValidationAssignmentContract;
 use App\Contracts\MobileFieldValidationCompletionContract;
+use App\Models\DistrictMembership;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -538,6 +540,84 @@ class FieldValidationAssignmentTest extends TestCase
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('follow_up_outcome');
+    }
+
+    public function test_completion_maps_authority_loss_before_the_request_check_to_capability_revoked(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $assignee->getKey(),
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        $revoked = false;
+        DB::listen(function (QueryExecuted $query) use (&$revoked, $assignee): void {
+            if ($revoked || ! str_contains($query->sql, 'district_memberships')) {
+                return;
+            }
+            $revoked = true;
+            DistrictMembership::query()->where('user_id', $assignee->getKey())->update(['revoked_at' => now()]);
+        });
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->postJson("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        $this->assertDatabaseCount('field_validation_completions', 0);
+    }
+
+    public function test_completion_maps_an_authority_loss_after_the_request_check_to_capability_revoked(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $assignee->getKey(),
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        $checks = 0;
+        DB::listen(function (QueryExecuted $query) use (&$checks, $assignee): void {
+            if (! str_starts_with(strtolower(ltrim($query->sql)), 'select') || ! str_contains($query->sql, 'district_memberships')) {
+                return;
+            }
+            if (++$checks !== 3) {
+                return;
+            }
+            DistrictMembership::query()->where('user_id', $assignee->getKey())->update(['revoked_at' => now()]);
+        });
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->postJson("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation',
+            'field_finding' => 'Finding',
+            'action_taken' => 'Action',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        $this->assertDatabaseCount('field_validation_completions', 0);
     }
 
     public function test_completion_requires_assignment_ownership_and_completion_ability(): void

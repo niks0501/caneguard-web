@@ -9,8 +9,25 @@ use App\Models\Report;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
+use function in_array;
+
 final class DistrictAccess
 {
+    /**
+     * Mobile write authority is derived from current inspector access, not
+     * copied from the abilities minted into a bearer token at sign-in.
+     *
+     * @var array<int, string>
+     */
+    public const MOBILE_CAPABILITIES = [
+        'report:submit',
+        'survey:submit',
+        'report:status',
+        'assignment:read',
+        'assignment:complete',
+        'notification:read',
+    ];
+
     public function pilotId(): ?int
     {
         $code = trim((string) config('caneguard.pilot_district_code'));
@@ -81,10 +98,26 @@ final class DistrictAccess
                     || ($assigned && $report->fieldValidationAssignment?->assignee_id === $user->getKey()))));
     }
 
+    public function hasMobileCapability(?User $user, string $ability): bool
+    {
+        // Current identity is re-read so a role or status change committed after
+        // the request loaded the user is not trusted. No lock spans this check and
+        // the write, so a revocation committing after it is enforced on the next
+        // request instead of being rolled into the current one.
+        return in_array($ability, self::MOBILE_CAPABILITIES, true)
+            && $user instanceof User
+            && $this->inspector($user->fresh());
+    }
+
+    public function requireMobileCapability(?User $user, string $ability): void
+    {
+        if (! $this->hasMobileCapability($user, $ability)) {
+            throw new MobileCapabilityRevoked;
+        }
+    }
+
     public function capabilities(User $user): array
     {
-        return $this->inspector($user)
-            ? ['report:submit', 'survey:submit', 'report:status', 'assignment:read', 'assignment:complete', 'notification:read']
-            : [];
+        return $this->inspector($user) ? self::MOBILE_CAPABILITIES : [];
     }
 }

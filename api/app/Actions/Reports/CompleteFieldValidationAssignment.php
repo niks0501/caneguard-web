@@ -8,6 +8,7 @@ use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use App\Security\DistrictAccess;
+use App\Security\MobileCapabilityRevoked;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -55,12 +56,16 @@ class CompleteFieldValidationAssignment
                 $locked = FieldValidationAssignment::query()
                     ->lockForUpdate()
                     ->findOrFail($assignment->getKey());
-                abort_unless(app(DistrictAccess::class)->inspector($user)
-                    && app(DistrictAccess::class)->allows($user, $report->district_id), 403);
+                $access = app(DistrictAccess::class);
+                $access->requireMobileCapability($user, 'assignment:complete');
+                if (! $access->allows($user->fresh(), $report->district_id)) {
+                    throw new MobileCapabilityRevoked;
+                }
                 $locked->setRelation('report', $report);
                 if ($locked->assignee_id !== $user->getKey()) {
                     throw new FieldValidationCompletionConflict(
                         'This assignment does not belong to the authenticated field reporter.',
+                        FieldValidationCompletionConflict::ASSIGNMENT_REASSIGNED,
                     );
                 }
 
@@ -192,4 +197,14 @@ class CompleteFieldValidationAssignment
     }
 }
 
-class FieldValidationCompletionConflict extends RuntimeException {}
+class FieldValidationCompletionConflict extends RuntimeException
+{
+    public const CONFLICT = 'CONFLICT';
+
+    public const ASSIGNMENT_REASSIGNED = 'ASSIGNMENT_REASSIGNED';
+
+    public function __construct(string $message, public readonly string $reasonCode = self::CONFLICT)
+    {
+        parent::__construct($message);
+    }
+}

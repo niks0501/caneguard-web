@@ -11,6 +11,10 @@ The contract is owned by the Laravel API in this repository and is consumed by t
 The contract applies to `POST /api/v1/mobile/reports` with `multipart/form-data`.
 
 The request must use a Sanctum bearer token with the `report:submit` ability.
+At write time Laravel also looks up the current `report:submit` capability from
+active field-reporter membership; the minted token ability alone is not current
+authority. A surviving session whose membership or capability is revoked gets
+HTTP 403 with `CAPABILITY_REVOKED`, and the bearer token is not deleted.
 
 Laravel remains the authority for authentication, the field-reporter role, the `Report::create` policy, persistence, and review state.
 

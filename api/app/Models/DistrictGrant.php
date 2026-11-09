@@ -17,11 +17,15 @@ class DistrictGrant extends Model
             $grant->revision = ((int) $grant->getOriginal('revision')) + 1;
         });
         $invalidate = function (self $grant): void {
-            if (User::findOrFail($grant->user_id)->isWebUser()) {
+            $user = User::findOrFail($grant->user_id);
+            if ($user->isWebUser()) {
                 return; // Legacy keys no longer authorize or revoke Web access.
             }
             User::query()->whereKey($grant->user_id)->increment('access_version');
-            app(RevokeUserAuthentication::class)->handle(User::findOrFail($grant->user_id));
+            if ($user->role === User::ROLE_FIELD_REPORTER || $user->holdsMobileInspectorSession()) {
+                return;
+            }
+            app(RevokeUserAuthentication::class)->handle($user);
         };
         static::saved($invalidate);
         static::deleted($invalidate);

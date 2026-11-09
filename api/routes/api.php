@@ -78,6 +78,9 @@ Route::prefix('v2/admin/accounts')->middleware([
 
 Route::post('/v1/mobile/auth/login', [MobileAuthController::class, 'login'])
     ->middleware('throttle:login');
+Route::get('/v1/mobile/auth/me', [MobileAuthController::class, 'me'])
+    ->middleware(['auth:sanctum', 'access.identity', 'mobile.token'])
+    ->name('api.v1.mobile.auth.me');
 Route::get('/v1/reference/locations', LocationReferenceController::class)
     ->middleware(['auth:sanctum', 'verified', 'access.identity', 'mobile.token']);
 
@@ -173,8 +176,6 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
 
     });
 
-    Route::get('/mobile/auth/me', [MobileAuthController::class, 'me'])
-        ->middleware('mobile.token');
     Route::get('/mobile/auth/devices', [MobileAuthController::class, 'devices'])
         ->middleware('mobile.token')
         ->name('api.v1.mobile.auth.devices');
@@ -187,54 +188,54 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         ->name('api.v1.mobile.auth.enroll');
     Route::delete('/mobile/auth/logout', [MobileAuthController::class, 'logout'])
         ->middleware('mobile.token');
-
-    Route::middleware('inspector.access')->group(function () {
-        Route::post('/mobile/field-surveys', MobileFieldSurveyController::class)
-            ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1'])
-            ->name('api.v1.mobile.field-surveys.store');
-        Route::get('/mobile/reports/possible-matches', MobilePossibleRecentMatchesController::class)
-            ->middleware(['mobile.token', 'abilities:report:submit'])
-            ->name('api.v1.mobile.reports.possible-matches');
-        Route::post('/mobile/reports', [MobileReportController::class, 'store'])
-            ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1']);
-        Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
-            ->middleware(['mobile.token', 'abilities:report:status']);
-        Route::get('/mobile/map-tiles/{z}/{x}/{y}.png', MobileMapTileController::class)
-            ->middleware(['mobile.token', 'abilities:report:status'])
-            ->whereNumber(['z', 'x', 'y'])
-            ->name('api.v1.mobile.map-tiles');
-        Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
-            ->middleware(['mobile.token', 'abilities:assignment:read']);
-        Route::get('/mobile/assignments/{assignment}/previous-evidence-photo', MobilePreviousEvidencePhotoController::class)
-            ->middleware(['mobile.token', 'abilities:assignment:read'])
-            ->name('api.v1.mobile.assignments.previous-evidence-photo');
-        Route::get('/mobile/notifications', MobileNotificationController::class)
-            ->middleware(['mobile.token', 'abilities:notification:read']);
-        Route::post('/mobile/notifications/read-all', [MobileNotificationController::class, 'markAllAsRead'])
-            ->middleware(['mobile.token', 'abilities:notification:read'])
-            ->name('api.v1.mobile.notifications.read-all');
-        Route::patch('/mobile/notifications/{notification}/read', [MobileNotificationController::class, 'markRead'])
-            ->middleware(['mobile.token', 'abilities:notification:read'])
-            ->name('api.v1.mobile.notifications.read');
-        Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
-            ->middleware(['mobile.token', 'abilities:assignment:complete', 'throttle:30,1']);
-    });
 });
 
-Route::prefix('v2')->middleware(['auth:sanctum', 'verified', 'inspector.access'])->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access', 'access.identity'])->group(function () {
+    Route::post('/mobile/field-surveys', MobileFieldSurveyController::class)
+        ->middleware(['abilities:report:submit', 'throttle:30,1'])
+        ->name('api.v1.mobile.field-surveys.store');
+    Route::get('/mobile/reports/possible-matches', MobilePossibleRecentMatchesController::class)
+        ->middleware(['abilities:report:submit'])
+        ->name('api.v1.mobile.reports.possible-matches');
+    Route::post('/mobile/reports', [MobileReportController::class, 'store'])
+        ->middleware(['abilities:report:submit', 'throttle:30,1']);
+    Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
+        ->middleware(['abilities:report:status']);
+    Route::get('/mobile/map-tiles/{z}/{x}/{y}.png', MobileMapTileController::class)
+        ->middleware(['abilities:report:status'])
+        ->whereNumber(['z', 'x', 'y'])
+        ->name('api.v1.mobile.map-tiles');
+    Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
+        ->middleware(['abilities:assignment:read']);
+    Route::get('/mobile/assignments/{assignment}/previous-evidence-photo', MobilePreviousEvidencePhotoController::class)
+        ->middleware(['abilities:assignment:read'])
+        ->name('api.v1.mobile.assignments.previous-evidence-photo');
+    Route::get('/mobile/notifications', MobileNotificationController::class)
+        ->middleware(['abilities:notification:read']);
+    Route::post('/mobile/notifications/read-all', [MobileNotificationController::class, 'markAllAsRead'])
+        ->middleware(['abilities:notification:read'])
+        ->name('api.v1.mobile.notifications.read-all');
+    Route::patch('/mobile/notifications/{notification}/read', [MobileNotificationController::class, 'markRead'])
+        ->middleware(['abilities:notification:read'])
+        ->name('api.v1.mobile.notifications.read');
+    Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
+        ->middleware(['abilities:assignment:complete', 'throttle:30,1']);
+});
+
+Route::prefix('v2')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access'])->group(function () {
     Route::post('/mobile/reports', [MobileV2ReportController::class, 'store'])
-        ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1'])
+        ->middleware(['abilities:report:submit', 'throttle:30,1'])
         ->name('api.v2.mobile.reports.store');
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
-        ->middleware(['mobile.token', 'abilities:report:status'])
+        ->middleware(['abilities:report:status'])
         ->name('api.v2.mobile.reports.statuses');
 });
 
-Route::prefix('v3')->middleware(['auth:sanctum', 'verified', 'inspector.access'])->group(function () {
+Route::prefix('v3')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access'])->group(function () {
     Route::post('/mobile/reports', [MobileV3ReportController::class, 'store'])
-        ->middleware(['mobile.token', 'abilities:report:submit', 'throttle:30,1'])
+        ->middleware(['abilities:report:submit', 'throttle:30,1'])
         ->name('api.v3.mobile.reports.store');
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
-        ->middleware(['mobile.token', 'abilities:report:status'])
+        ->middleware(['abilities:report:status'])
         ->name('api.v3.mobile.reports.statuses');
 });

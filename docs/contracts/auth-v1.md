@@ -102,7 +102,7 @@ Wrong step-up credentials return `422 STEP_UP_REQUIRED`.
 
 Role and status changes require an active verified `admin` Web role, an office-cookie session, and password step-up; they cannot target the acting administrator. The `admin` role is the authority for user management, weekly approval and send: [simplified Web RBAC](../security/simplified-web-rbac.md) is the single maintained role/action matrix. Legacy `staff:manage`, `report:approve` and `report:send` grant rows are compatibility storage; they are not required for role changes and do not confer or withhold approval/send authority. The gated [accounts-access-v1](accounts-access-v1.md) v2 contract adds scoped signup discovery and documented admission/triage/transfer without changing farmer authentication or verification. V1 roles/access and the console share its singleton, revision and durable-history reconciliation path; v1 responses remain compatible and v1 still cannot admit unassigned identities. `/api/v1/me` exposes optional `accounts_enabled: true` only when the new gate is enabled; old gate-off auth fixtures are unchanged.
 
-A role change revokes the target user's sessions, bearer tokens and legacy named-grant rows. District membership changes also revoke credentials and invalidate pending weekly authority.
+A role or status change revokes the target user's Web sessions and legacy named-grant rows, except that a field reporter keeps its Mobile bearer session, including when the change moves it to an office role or deactivates it, so uploads answer `CAPABILITY_REVOKED` instead of signing the phone out. District membership changes follow the same rule and invalidate pending weekly authority.
 
 Password changes, email changes, biometric disablement, and password resets revoke active sessions and all personal access tokens as appropriate to the changed account.
 
@@ -142,15 +142,17 @@ A successful login or enrollment returns this shape:
 
 Authorized verified pilot inspectors receive `report:submit`, `survey:submit`, `report:status`, `assignment:read`, `assignment:complete`, and `notification:read`. Farmers and inspectors without pilot membership receive only `account:security`; token abilities never bypass role, verification, district, assignment or ownership checks. Mobile auth user payloads include current `district_id`, the pilot `district_code` (both `null` without active membership) and server-derived `capabilities`.
 
-`survey:submit` is the dedicated field-boundary survey grant, issued alongside, not replacing, `report:submit` in Mobile sign-in token abilities and in `user.capabilities` from `GET /api/v1/mobile/auth/me`. `report:submit` keeps its existing meaning: report upload, possible-match lookup and `POST /api/v1/mobile/field-surveys` ingestion, whose required ability is unchanged ([field survey receive contract](../../api/docs/mobile-field-surveys-v1.md)). The phone's field-survey screen must authorize on `survey:submit` from `user.capabilities`. Tokens minted before this grant keep their existing access and gain `survey:submit` only at the next sign-in or enrollment.
+`survey:submit` is the dedicated field-boundary survey grant, issued alongside, not replacing, `report:submit` in Mobile sign-in token abilities and in `user.capabilities` from `GET /api/v1/mobile/auth/me`. `report:submit` keeps its existing meaning: report upload, possible-match lookup and `POST /api/v1/mobile/field-surveys` ingestion, whose required server ability remains `report:submit` ([field survey receive contract](../../api/docs/mobile-field-surveys-v1.md)). The phone's field-survey screen must authorize on `survey:submit` from `user.capabilities`, but the API re-checks current `report:submit` authority at survey write time. Every official report, survey and completion write also re-checks current membership/capability; a surviving bearer session that loses it receives HTTP 403 with `CAPABILITY_REVOKED` and keeps the token.
 
 All bearer tokens have a finite maximum lifetime of **30 days**, including re-enrollment. Sanctum rejects expired, null-expiry, overlong and older-than-30-day tokens with `401 UNAUTHENTICATED`. The district migration revokes legacy tokens, sessions and remember tokens rather than grandfathering unlimited credentials. Office workspace endpoints reject bearer credentials even if an officer token has wildcard abilities.
 
-A token can be revoked earlier by logout, security changes, district reconciliation or role changes.
+`GET /api/v1/mobile/auth/me` is unthrottled. It returns `403 EMAIL_NOT_VERIFIED` for an unverified account and `401 ACCOUNT_DISABLED` for an inactive one, and lists the current server-derived capabilities.
+
+A token can be revoked earlier by logout or account-security changes. A field reporter's Mobile bearer survives membership, role and status changes: uploads answer `CAPABILITY_REVOKED` at write time, and `/me` answers `401 ACCOUNT_DISABLED` once the account is deactivated, so `401 UNAUTHENTICATED` stays limited to missing, unknown, expired or deleted credentials.
 
 A fresh password login or enrollment replaces the token for that device identity only.
 
-Password reset, password change, email change, biometric disablement, and role change revoke all tokens for the affected account.
+Password reset, password change, email change, and biometric disablement revoke all tokens for the affected account.
 
 Mobile logout revokes only the current token.
 

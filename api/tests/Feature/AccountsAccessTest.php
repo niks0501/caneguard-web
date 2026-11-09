@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Auth\IssueMobileToken;
 use App\Actions\Auth\ReconcileDistrictAccess;
 use App\Models\AccountAccessEvent;
 use App\Models\District;
@@ -100,6 +101,21 @@ class AccountsAccessTest extends TestCase
         $this->assertFalse($target->fresh()->hasVerifiedEmail());
         $this->assertSame('farmer', $target->fresh()->role);
         $this->assertDatabaseCount('account_access_events', 3);
+    }
+
+    public function test_revoking_a_field_reporter_keeps_the_bearer_and_reports_no_credential_revocation(): void
+    {
+        [$actor, $district] = $this->manager();
+        $reporter = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $token = app(IssueMobileToken::class)->handle($reporter, 'Test Android', 'reporter-device');
+        $this->actingAs($actor, 'web');
+
+        $this->putJson($this->path($reporter), $this->accessPayload($reporter->fresh(), 'revoke', User::ROLE_FARMER))
+            ->assertOk()->assertJsonPath('data.role', 'farmer')->assertJsonPath('data.is_active', false)
+            ->assertJsonPath('credentials_revoked', false);
+
+        $this->assertDatabaseHas('personal_access_tokens', ['id' => $token->accessToken->id]);
+        $this->assertDatabaseCount('account_access_events', 1);
     }
 
     public function test_invalid_contract_transition_step_up_self_and_unknown_authority_have_no_effect(): void

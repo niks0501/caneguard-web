@@ -187,10 +187,24 @@ class MobileAuthController extends Controller
 
     public function me(MobileSessionRequest $request): JsonResponse
     {
+        $user = $request->user();
+
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Verify your email address before using Mobile.',
+                'code' => 'EMAIL_NOT_VERIFIED',
+            ], 403);
+        }
+
+        if (! $user->isMobileUser()) {
+            return response()->json([
+                'message' => 'This account cannot access Mobile.',
+                'code' => 'FORBIDDEN',
+            ], 403);
+        }
+
         return response()->json([
-            'user' => (new AuthenticatedUserResource(
-                $request->user(),
-            ))->resolve($request),
+            'user' => (new AuthenticatedUserResource($user))->resolve($request),
         ]);
     }
 

@@ -6,7 +6,7 @@ The machine-readable source of truth is [`mobile-report-upload-v3.json`](mobile-
 
 ## Endpoint
 
-`POST /api/v3/mobile/reports`, `multipart/form-data`, Sanctum bearer token with the `report:submit` ability. Success is `201`; an idempotent retry is `200`.
+`POST /api/v3/mobile/reports`, `multipart/form-data`, Sanctum bearer token with the `report:submit` ability. Laravel re-checks the current `report:submit` capability from active field-reporter membership before writing; the minted token ability alone is not current authority. A surviving session whose membership or capability is revoked receives HTTP 403 with `CAPABILITY_REVOKED`, without bearer-token deletion. Success is `201`; an idempotent retry is `200`.
 
 ## Added field
 

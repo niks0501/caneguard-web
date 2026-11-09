@@ -4,9 +4,9 @@ The machine-readable source of truth is [`mobile-field-validation-completion-v1.
 
 The contract applies to `POST /api/v1/mobile/assignments/{assignment}/completion`.
 
-The endpoint requires an authenticated `field_reporter` bearer token with the `assignment:complete` ability.
+The endpoint requires an authenticated `field_reporter` bearer token with the `assignment:complete` ability. Laravel re-checks the current `assignment:complete` capability from active field-reporter membership before writing; the minted token ability alone is not current authority. A surviving session whose membership or capability is revoked receives HTTP 403 with `CAPABILITY_REVOKED`, without bearer-token deletion.
 
-The authenticated reporter must own the assignment.
+The authenticated reporter must own the assignment. If the visit was reassigned, the old assignee receives HTTP 403 with `ASSIGNMENT_REASSIGNED`; a reassignment race under the write lock returns HTTP 409 with the same code.
 
 The request requires fresh field observation, field finding evidence, action taken, visit time, and a recorded GPS attempt. Newer Mobile builds may also send the optional `follow_up_outcome` value: `improved`, `unchanged`, `worsened`, or `unable_to_determine`.
 

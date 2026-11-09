@@ -83,7 +83,7 @@ class AuthSecurityTest extends TestCase
         $this->withToken($token)
             ->getJson('/api/v1/mobile/auth/me')
             ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->assertJsonPath('code', 'EMAIL_NOT_VERIFIED');
     }
 
     public function test_signed_email_verification_is_idempotent_and_enables_authentication(): void

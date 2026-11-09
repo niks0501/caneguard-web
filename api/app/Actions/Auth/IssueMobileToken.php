@@ -21,14 +21,7 @@ final class IssueMobileToken
             return ['account:security'];
         }
 
-        return [
-            'report:submit',
-            'survey:submit',
-            'report:status',
-            'assignment:read',
-            'assignment:complete',
-            'notification:read',
-        ];
+        return DistrictAccess::MOBILE_CAPABILITIES;
     }
 
     public function handle(

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Security\AccountsDirectory;
 use App\Security\DistrictAccess;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
@@ -91,6 +92,10 @@ final class ManageAccounts
             }
             $operationId = (string) Str::uuid();
             $target = $targets->first();
+            // Rotating auth_version is what actually invalidates sessions and bearer
+            // tokens, so the response flag reports real revocation rather than merely a
+            // changed decision. A preserved field-reporter bearer leaves it untouched.
+            $authVersions = $this->authVersions($targets);
             $event = null;
             if ($kind === 'transfer') {
                 [$from, $to] = $targets->all();
@@ -141,7 +146,8 @@ final class ManageAccounts
             $response = ['contract_version' => 'accounts-access-v1', 'code' => $kind === 'review' ? 'ACCOUNT_REVIEW_UPDATED' : ($event === null ? 'ACCOUNT_ACCESS_UNCHANGED' : 'ACCOUNT_ACCESS_UPDATED'),
                 'data' => $this->directory->detail($this->directory->target($target->uuid), $actor),
                 'event_id' => $event?->id, 'operation_id' => $operationId, 'access_version' => $target->fresh()->access_version,
-                'credentials_revoked' => $kind !== 'review' && $event !== null];
+                'credentials_revoked' => $kind !== 'review' && $event !== null
+                    && array_diff_assoc($this->authVersions($targets), $authVersions) !== []];
             if ($kind === 'transfer') {
                 $response['affected'] = $targets->map(fn ($u) => $this->directory->detail($this->directory->target($u->uuid), $actor))->all();
             }
@@ -152,5 +158,15 @@ final class ManageAccounts
 
             return $response;
         }, attempts: 3);
+    }
+
+    /**
+     * @param  Collection<int, User>  $targets
+     * @return array<int, int>
+     */
+    private function authVersions($targets): array
+    {
+        return DB::table('users')->whereIn('id', $targets->pluck('id')->all())
+            ->pluck('auth_version', 'id')->map(fn ($version): int => (int) $version)->all();
     }
 }

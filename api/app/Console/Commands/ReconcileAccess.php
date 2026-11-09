@@ -31,7 +31,7 @@ final class ReconcileAccess extends Command
 
             return self::FAILURE;
         }
-        $this->info('Documented access applied. Existing credentials were revoked.');
+        $this->info('Documented access applied.');
 
         return self::SUCCESS;
     }

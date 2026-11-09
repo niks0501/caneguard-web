@@ -92,8 +92,7 @@ final class ReconcileDistrictAccess
             if ($target->access_version === $beforeVersion) {
                 $target->increment('access_version');
             }
-            // A role-only or membership-only change still invalidates old credentials.
-            app(RevokeUserAuthentication::class)->handle($target);
+            app(RevokeUserAuthentication::class)->handleAuthorityChange($target, $before['role']);
             $event = AccountAccessEvent::query()->create([
                 'operation_id' => $operationId ?? (string) Str::uuid(), 'district_id' => $district->id,
                 'target_id' => $target->id, 'actor_id' => $actor?->id,
