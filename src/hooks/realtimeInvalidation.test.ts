@@ -4,6 +4,7 @@ import { fieldValidationKeys } from "./fieldValidationQueries";
 import {
   domainsFromRealtimePayload,
   invalidateRealtimeQueries,
+  realtimeReconnectDelayMs,
 } from "./realtimeInvalidation";
 import { reportKeys } from "./reportQueries";
 import { dashboardKeys } from "./useDashboard";
@@ -81,5 +82,26 @@ describe("real-time invalidation", () => {
     expect(domainsFromRealtimePayload({ domains: ["unknown", 1] })).toEqual(
       [],
     );
+  });
+
+  it("refreshes open report details and summaries on a reports signal", async () => {
+    const client = queryClient();
+    client.setQueryData(reportKeys.detail("case-1"), { id: "case-1" });
+    client.setQueryData(reportKeys.possibleMatches("case-1"), []);
+    client.setQueryData(reportKeys.summary(), { total: 0 });
+
+    await invalidateRealtimeQueries(client, ["reports"]);
+
+    expect(client.getQueryState(reportKeys.detail("case-1"))?.isInvalidated).toBe(true);
+    expect(
+      client.getQueryState(reportKeys.possibleMatches("case-1"))?.isInvalidated,
+    ).toBe(true);
+    expect(client.getQueryState(reportKeys.summary())?.isInvalidated).toBe(true);
+  });
+
+  it("doubles the reconnect delay from 5s up to a 60s cap", () => {
+    expect([0, 1, 2, 3, 4, 5, 20].map(realtimeReconnectDelayMs)).toEqual([
+      5_000, 10_000, 20_000, 40_000, 60_000, 60_000, 60_000,
+    ]);
   });
 });

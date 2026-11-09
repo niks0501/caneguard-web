@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
 import { env } from "../config/env";
+import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
 import { notificationsKeys } from "./notificationQueries";
 import { reportKeys } from "./reportQueries";
@@ -61,6 +62,7 @@ describe("useRealtimeInvalidation", () => {
     connector: {
       onConnectionChange: ReturnType<typeof vi.fn>;
       pusher: {
+        connect: ReturnType<typeof vi.fn>;
         connection: {
           bind: ReturnType<typeof vi.fn>;
           unbind: ReturnType<typeof vi.fn>;
@@ -101,6 +103,7 @@ describe("useRealtimeInvalidation", () => {
           return vi.fn();
         }),
         pusher: {
+          connect: vi.fn(),
           connection: {
             bind: vi.fn((_event: string, callback: () => void) => {
               connectionError = callback;
@@ -213,6 +216,133 @@ describe("useRealtimeInvalidation", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("realtime-status")).toHaveTextContent("degraded");
+    });
+  });
+
+  describe("recovery", () => {
+    function seededClient() {
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      client.setQueryData(reportKeys.list({}), { reports: [] });
+      client.setQueryData(reportKeys.detail("case-1"), { id: "case-1" });
+      client.setQueryData(dashboardKeys.summary(), { totalSubmitted: 0 });
+      client.setQueryData(notificationsKeys.feed(), { notifications: [] });
+      client.setQueryData(fieldValidationKeys.queue({}), { items: [] });
+      return client;
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("resumes the socket after a connection error and catches up once it reconnects", () => {
+      const client = seededClient();
+      renderProbe(client);
+      act(() => connectionChange?.("connecting"));
+      act(() => connectionError?.());
+      act(() => {
+        vi.advanceTimersByTime(0);
+      });
+      expect(echo.disconnect).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("realtime-status")).toHaveTextContent("degraded");
+
+      act(() => {
+        vi.advanceTimersByTime(4_999);
+      });
+      expect(echo.connector.pusher.connect).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(echo.connector.pusher.connect).toHaveBeenCalledTimes(1);
+
+      act(() => connectionChange?.("connected"));
+      expect(screen.getByTestId("realtime-status")).toHaveTextContent("connected");
+      expect(client.getQueryState(reportKeys.list({}))?.isInvalidated).toBe(true);
+      expect(client.getQueryState(reportKeys.detail("case-1"))?.isInvalidated).toBe(true);
+      expect(client.getQueryState(dashboardKeys.summary())?.isInvalidated).toBe(true);
+      expect(client.getQueryState(notificationsKeys.feed())?.isInvalidated).toBe(true);
+      expect(client.getQueryState(fieldValidationKeys.queue({}))?.isInvalidated).toBe(true);
+    });
+
+    it("does not catch up on the first connection", () => {
+      const client = seededClient();
+      renderProbe(client);
+
+      act(() => connectionChange?.("connecting"));
+      act(() => connectionChange?.("connected"));
+
+      expect(client.getQueryState(reportKeys.list({}))?.isInvalidated).toBe(false);
+      expect(client.getQueryState(reportKeys.detail("case-1"))?.isInvalidated).toBe(false);
+    });
+
+    it("catches up after a dropped connection that the socket resumes by itself", () => {
+      const client = seededClient();
+      renderProbe(client);
+      act(() => connectionChange?.("connected"));
+      act(() => connectionChange?.("disconnected"));
+      expect(screen.getByTestId("realtime-status")).toHaveTextContent("degraded");
+
+      act(() => connectionChange?.("connected"));
+
+      expect(client.getQueryState(reportKeys.detail("case-1"))?.isInvalidated).toBe(true);
+    });
+
+    it("re-arms with a growing delay when the retry fails again", () => {
+      renderProbe(new QueryClient());
+      act(() => connectionError?.());
+      act(() => {
+        vi.advanceTimersByTime(5_000);
+      });
+      expect(echo.connector.pusher.connect).toHaveBeenCalledTimes(1);
+
+      act(() => connectionError?.());
+      act(() => {
+        vi.advanceTimersByTime(9_999);
+      });
+      expect(echo.connector.pusher.connect).toHaveBeenCalledTimes(1);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(echo.connector.pusher.connect).toHaveBeenCalledTimes(2);
+      expect(echo.disconnect).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops retrying after unmount", () => {
+      const { unmount } = renderProbe(new QueryClient());
+      act(() => connectionError?.());
+      unmount();
+      act(() => {
+        vi.advanceTimersByTime(60_000);
+      });
+      expect(echo.connector.pusher.connect).not.toHaveBeenCalled();
+    });
+
+    it("retries creating Echo and catches up once it starts", () => {
+      const client = seededClient();
+      vi.mocked(createEchoClient).mockImplementationOnce(() => {
+        throw new Error("Reverb is unavailable");
+      });
+
+      renderProbe(client);
+      act(() => {
+        vi.advanceTimersByTime(0);
+      });
+      expect(screen.getByTestId("realtime-status")).toHaveTextContent("degraded");
+      expect(createEchoClient).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        vi.advanceTimersByTime(5_000);
+      });
+      expect(createEchoClient).toHaveBeenCalledTimes(2);
+      act(() => connectionChange?.("connected"));
+
+      expect(screen.getByTestId("realtime-status")).toHaveTextContent("connected");
+      expect(client.getQueryState(reportKeys.detail("case-1"))?.isInvalidated).toBe(true);
     });
   });
 });

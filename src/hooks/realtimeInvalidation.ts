@@ -13,6 +13,20 @@ const defaultDomains = [
   "notifications",
 ] as const;
 
+/** Every domain a missed signal could have touched; used to catch up after a gap. */
+export const allRealtimeDomains = [
+  ...defaultDomains,
+  "field-validation",
+] as const;
+
+const reconnectBaseMs = 5_000;
+const reconnectMaxMs = 60_000;
+
+/** Delay before reconnect attempt `attempt` (0-based): 5s, 10s, 20s, 40s, then 60s. */
+export function realtimeReconnectDelayMs(attempt: number) {
+  return Math.min(reconnectBaseMs * 2 ** Math.max(0, attempt), reconnectMaxMs);
+}
+
 type RealtimePayload = {
   domains?: unknown;
 };
@@ -25,7 +39,7 @@ export function invalidateRealtimeQueries(
 
   if (domains.includes("reports")) {
     invalidations.push(
-      queryClient.invalidateQueries({ queryKey: reportKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: reportKeys.all }),
     );
   }
   if (domains.includes("dashboard")) {
