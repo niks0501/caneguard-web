@@ -58,7 +58,12 @@ function reportsResult(
 
 function LocationProbe() {
   const location = useLocation();
-  return <output data-testid="location">{location.search}</output>;
+  return (
+    <>
+      <output data-testid="location">{location.search}</output>
+      <output data-testid="location-state">{JSON.stringify(location.state)}</output>
+    </>
+  );
 }
 
 function renderPage(
@@ -106,6 +111,25 @@ beforeEach(() => {
 });
 
 describe("SubmittedReportsPage", () => {
+  // Proposal (unpromoted); proves W-G9: the review notice shows once and does not return on reload.
+  it("shows the review notice and clears it from history state so a reload drops it", async () => {
+    const queryClient = createQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter
+          initialEntries={[{ pathname: "/reports", state: { notice: "Review confirmed." } }]}
+        >
+          <SubmittedReportsPage />
+          <LocationProbe />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText("Review confirmed.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("location-state")).toHaveTextContent("null"));
+    expect(screen.getByText("Review confirmed.")).toBeInTheDocument();
+  });
+
   it("uses URL filters for the server query and renders Laravel pagination", () => {
     renderPage(
       "/reports?page=2&status=submitted_unverified&predicted_label=rust&barangay=Mabini&date_from=2026-07-01&date_to=2026-07-27&sort=oldest",
