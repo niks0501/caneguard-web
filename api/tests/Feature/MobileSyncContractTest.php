@@ -132,20 +132,22 @@ class MobileSyncContractTest extends TestCase
 
         $perPage = 100;
         $assignments = $this->feedRows('/api/v1/mobile/assignments?per_page='.$perPage);
-        $eligibleAssignments = FieldValidationAssignment::query()
+        $seededAssignments = FieldValidationAssignment::query()
             ->where('assignee_id', $assignee->getKey())
-            ->whereHas('report', fn ($query) => $query
-                ->visibleTo($assignee, false)
-                ->where('case_state', Report::CASE_STATE_OPEN)
-                ->whereIn('field_validation_state', [
-                    Report::FIELD_VALIDATION_STATE_ASSIGNED,
-                    Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
-                    Report::FIELD_VALIDATION_STATE_COMPLETED,
-                ]))
-            ->count();
-        $this->assertGreaterThan($perPage, $eligibleAssignments, 'Eligible seeded assignments must span more than one page.');
-        $this->assertCount($eligibleAssignments, $assignments, 'The assignment feed did not return every eligible assignment.');
-        $this->assertCount($eligibleAssignments, array_unique(array_column($assignments, 'uuid')), 'The assignment feed repeated a row.');
+            ->with('report:id,reference_code,case_state,field_validation_state')
+            ->get();
+        foreach ($seededAssignments as $assignment) {
+            $reference = (string) $assignment->report?->reference_code;
+            $this->assertSame(Report::CASE_STATE_OPEN, $assignment->report?->case_state, "Seeded assignment {$reference} targets a case the assignment feed never serves");
+            $this->assertContains($assignment->report?->field_validation_state, [
+                Report::FIELD_VALIDATION_STATE_ASSIGNED,
+                Report::FIELD_VALIDATION_STATE_IN_PROGRESS,
+                Report::FIELD_VALIDATION_STATE_COMPLETED,
+            ], "Seeded assignment {$reference} is outside the field-validation feed");
+        }
+        $this->assertGreaterThan($perPage, $seededAssignments->count(), 'Seeded assignments must span more than one page.');
+        $this->assertCount($seededAssignments->count(), $assignments, 'The assignment feed did not return every seeded assignment.');
+        $this->assertCount($seededAssignments->count(), array_unique(array_column($assignments, 'uuid')), 'The assignment feed repeated a row.');
         foreach ($assignments as $row) {
             $this->assertContract($assignmentContract['fields'], $row, 'assignment '.($row['reference_code'] ?? '?'));
         }
