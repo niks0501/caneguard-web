@@ -184,6 +184,7 @@ class DistrictAccessTest extends TestCase
         $demoted = User::factory()->inDistrict($district)->fieldReporter()->create();
         $demotedToken = app(IssueMobileToken::class)->handle($demoted, 'Test Android', 'demoted-device')->plainTextToken;
         $demoted->forceFill(['role' => User::ROLE_FARMER])->save();
+        Auth::forgetGuards();
 
         foreach ([
             '/api/v1/mobile/reports',
@@ -197,6 +198,25 @@ class DistrictAccessTest extends TestCase
                 ->assertJsonPath('code', 'CAPABILITY_REVOKED');
         }
         $this->assertSame(1, $demoted->tokens()->count());
+
+        $moved = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $movedToken = app(IssueMobileToken::class)->handle($moved, 'Test Android', 'office-role-device')->plainTextToken;
+        $moved->forceFill(['role' => User::ROLE_REVIEWER])->save();
+        Auth::forgetGuards();
+
+        $this->withToken($movedToken)
+            ->postJson('/api/v1/mobile/reports', [])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'CAPABILITY_REVOKED');
+        $this->assertSame(1, $moved->tokens()->count());
+
+        $officeBearer = User::factory()->inDistrict($district)->reviewer()->create()
+            ->createToken('office-reviewer', ['report:submit'])->plainTextToken;
+        Auth::forgetGuards();
+        $this->withToken($officeBearer)
+            ->postJson('/api/v1/mobile/reports', [])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
     }
 
     public function test_all_pat_entry_points_deny_null_overlong_and_thirty_day_old_credentials(): void

@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\Auth\IssueMobileToken;
+use App\Models\PersonalAccessToken;
 use App\Security\DistrictAccess;
 use App\Security\MobileCapabilityRevoked;
 use Closure;
@@ -18,10 +20,18 @@ final class EnsureInspectorAccess
             return $next($request);
         }
 
-        if ($user?->isWebUser() === true) {
+        if ($user?->isWebUser() === true && ! $this->isMobileSession($request)) {
             abort(403);
         }
 
         throw new MobileCapabilityRevoked;
+    }
+
+    private function isMobileSession(Request $request): bool
+    {
+        $token = $request->user()?->currentAccessToken();
+
+        return $token instanceof PersonalAccessToken
+            && str_starts_with($token->name, IssueMobileToken::TOKEN_NAME_PREFIX);
     }
 }
