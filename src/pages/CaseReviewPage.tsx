@@ -302,6 +302,32 @@ function metadataCorrectionsFor(
   return Object.keys(corrections).length ? corrections : undefined;
 }
 
+function metadataValuesMatch(
+  field: keyof MetadataDraft,
+  left: string,
+  right: string,
+): boolean {
+  if (field === "affectedAreaHectares" || field === "affectedPortionPercent") {
+    return numberOrNull(left) === numberOrNull(right);
+  }
+  return left === right;
+}
+
+function metadataEditsAgainst(
+  report: DiseaseReport,
+  edits: Partial<MetadataDraft>,
+): Partial<MetadataDraft> {
+  const baseline = metadataDraftFor(report);
+  const kept: Partial<MetadataDraft> = { ...edits };
+  for (const field of Object.keys(kept) as Array<keyof MetadataDraft>) {
+    const value = kept[field];
+    if (value === undefined || metadataValuesMatch(field, value, baseline[field])) {
+      delete kept[field];
+    }
+  }
+  return kept;
+}
+
 function humanLocationFor(report: DiseaseReport): string {
   const parts = [
     report.barangay ? `Brgy. ${report.barangay}` : null,
@@ -440,20 +466,34 @@ function CaseReviewContent() {
     canonicalReportUuid.trim() || duplicateLinkReason.trim(),
   );
   const metadataCorrectionDirty = Boolean(
-    Object.keys(metadataEdits).length > 0 || correctionReason.trim(),
+    metadataCorrections !== undefined || correctionReason.trim(),
   );
   useUnsavedWorkGuard(duplicateLinkModalOpen && duplicateLinkDirty);
   useUnsavedWorkGuard(metadataCorrectionModalOpen && metadataCorrectionDirty);
   const closeDuplicateLinkModal = () => {
     if (confirmDiscardUnsavedChanges(duplicateLinkDirty)) setDuplicateLinkModalOpen(false);
   };
+  // A correction draft belongs to the pop-up session that pinned its version.
+  // Closing, discarding, or saving ends that session, so an abandoned edit can
+  // never resurface against a newer report version.
+  const clearMetadataCorrection = () => {
+    setMetadataEdits({});
+    setCorrectionReason("");
+    setCorrectionSubmitted(false);
+    setMetadataBaseVersion(undefined);
+    reviewMutation.reset();
+  };
   const closeMetadataCorrectionModal = () => {
-    if (confirmDiscardUnsavedChanges(metadataCorrectionDirty)) setMetadataCorrectionModalOpen(false);
+    if (!confirmDiscardUnsavedChanges(metadataCorrectionDirty)) return;
+    setMetadataCorrectionModalOpen(false);
+    clearMetadataCorrection();
   };
 
   const updateMetadataDraft = (field: keyof MetadataDraft, value: string) => {
-    if (!metadataDraft) return;
-    setMetadataEdits({ ...metadataEdits, [field]: value });
+    if (!report) return;
+    setMetadataEdits(
+      metadataEditsAgainst(report, { ...metadataEdits, [field]: value }),
+    );
     setCorrectionSubmitted(false);
     reviewMutation.reset();
   };
@@ -549,27 +589,31 @@ function CaseReviewContent() {
     setMetadataCorrectionModalOpen(true);
   };
 
+  const adoptLatestMetadata = () => {
+    if (!report) return;
+    setMetadataEdits(metadataEditsAgainst(report, metadataEdits));
+    setMetadataBaseVersion(report.reviewVersion);
+  };
+
   const saveMetadataCorrection = async () => {
     if (metadataStale) return;
     setCorrectionSubmitted(true);
     if (!metadataCorrections) {
       setMetadataCorrectionModalOpen(false);
+      clearMetadataCorrection();
       return;
     }
     if (!correctionReason.trim()) return;
-    const expectedVersion = metadataBaseVersion ?? report?.reviewVersion;
-    if (expectedVersion === undefined) return;
+    if (metadataBaseVersion === undefined) return;
 
     try {
       await reviewMutation.mutateAsync({
         metadataCorrections,
         correctionReason,
-        expectedVersion,
+        expectedVersion: metadataBaseVersion,
       });
-      setMetadataEdits({});
-      setCorrectionReason("");
-      setCorrectionSubmitted(false);
       setMetadataCorrectionModalOpen(false);
+      clearMetadataCorrection();
       setSaveNotice(`${report.referenceCode} - Case information corrected.`);
       await reportQuery.refetch();
     } catch {
@@ -1223,7 +1267,7 @@ function CaseReviewContent() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setMetadataBaseVersion(report.reviewVersion)}
+                onClick={adoptLatestMetadata}
               >
                 Review latest values
               </Button>
