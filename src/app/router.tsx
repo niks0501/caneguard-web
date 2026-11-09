@@ -27,6 +27,7 @@ import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 import { SettingsPage } from "../pages/SettingsPage";
+import { AppErrorFallback } from "./AppErrorBoundary";
 import { routes } from "./routes";
 
 const FieldValidationMapPage = lazy(() =>
@@ -42,6 +43,7 @@ const FieldValidationMapPage = lazy(() =>
  */
 const appRoutes: RouteObject[] = [
   {
+    errorElement: <AppErrorFallback />,
     element: (
       <UnsavedWorkProvider>
         <Outlet />
