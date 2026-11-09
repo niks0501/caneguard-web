@@ -1,7 +1,8 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { diseaseLabels } from "../../domain/report.metadata";
 import type { DiseaseReport } from "../../domain/report.types";
 import { useReports } from "../../hooks/useReports";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { formatDate } from "../../lib/formatters";
 import { Button } from "../ui/Button";
 import { buildReportPickerLabel } from "./reportPickerLabel";
@@ -9,15 +10,6 @@ import { buildReportPickerLabel } from "./reportPickerLabel";
 export interface ReportPickerSelection {
   uuid: string;
   label: string;
-}
-
-function useDebouncedValue(value: string, delayMs: number): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [value, delayMs]);
-  return debounced;
 }
 
 interface ReportPickerProps {
