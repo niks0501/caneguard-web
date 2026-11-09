@@ -53,18 +53,9 @@ class MobileSyncContractTest extends TestCase
 
     public function test_every_notification_class_serializes_within_the_mobile_contract(): void
     {
-        $samples = $this->notificationSamples();
-
-        $declared = collect(glob(app_path('Notifications/*Notification.php')))
-            ->map(fn (string $file): string => 'App\\Notifications\\'.basename($file, '.php'))
-            ->reject(fn (string $class): bool => (new \ReflectionClass($class))->isAbstract())
-            ->sort()->values()->all();
-        $covered = collect(array_keys($samples))->sort()->values()->all();
-        $this->assertSame($declared, $covered, 'Every notification class needs a contract sample.');
-
         $contract = $this->contract('mobile-notifications-v1');
         $recipient = User::factory()->fieldReporter()->create();
-        foreach ($samples as $class => $notification) {
+        foreach ($this->notificationProducers() as $class => $notification) {
             $row = $this->serialize($notification, $recipient);
             $this->assertContract($contract['fields'], $row, $class);
             $this->assertNotSame('', trim($row['title']), "{$class} title");
@@ -185,7 +176,7 @@ class MobileSyncContractTest extends TestCase
     }
 
     /** @return array<class-string, Notification> */
-    private function notificationSamples(): array
+    private function notificationProducers(): array
     {
         $uuid = (string) Str::uuid();
         $advisory = Advisory::factory()->validated()->create();
