@@ -166,7 +166,7 @@ final class ManageAccounts
      */
     private function authVersions($targets): array
     {
-        return DB::table('users')->whereIn('id', $targets->modelKeys())
+        return DB::table('users')->whereIn('id', $targets->pluck('id')->all())
             ->pluck('auth_version', 'id')->map(fn ($version): int => (int) $version)->all();
     }
 }
