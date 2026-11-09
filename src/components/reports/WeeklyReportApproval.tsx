@@ -7,7 +7,7 @@ import { env } from "../../config/env";
 import { formatDateTime } from "../../lib/formatters";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
-import { listSchema, type ReportListMeta } from "./weeklyReportHistory";
+import { listSchema, type ReportListMeta, type ReportVersion } from "./weeklyReportHistory";
 
 const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RSSI"], ["mosaic", "Sugarcane Mosaic"], ["rust", "Sugarcane Rust"], ["smut", "Sugarcane Smut"]];
 
@@ -16,6 +16,20 @@ function sendUnavailableMessage(meta: ReportListMeta) {
   return meta.delivery_gate_open && !meta.recipients_configured
     ? "No official recipients configured. Add them in Admin Settings."
     : "Office delivery gate closed.";
+}
+
+const staleConflict = "This version or its approval is no longer current. Prepare a new version and review it again.";
+
+// The server answers every conflict with one CONFLICT code, so name the cause from the refreshed version state.
+function conflictMessage(latest: ReportVersion | undefined, kind: "prepare" | "approve" | "send" | undefined) {
+  if (!latest) return staleConflict;
+  const receipt = latest.transmissions[0];
+  if (latest.stale_reason === "newer_version") return "A newer version of this week's report exists. Review that version instead.";
+  if (latest.stale_reason === "evidence_changed") return "Evidence changed after this version was prepared. Prepare a new version and review it again.";
+  if (kind === "approve" && latest.approved_at) return "This version is already approved. No further approval is needed.";
+  if (kind === "send" && receipt && ["pending", "delivering", "sent"].includes(receipt.state)) return "A send is already recorded for this version. Check the delivery receipt before ordering another.";
+  if (kind === "send" && !latest.approved_at) return "This version is not approved yet. Approve it before requesting a send.";
+  return staleConflict;
 }
 
 export function WeeklyReportApproval({ week }: { week: string }) {
@@ -62,7 +76,7 @@ export function WeeklyReportApproval({ week }: { week: string }) {
   const error = action.error ?? versions.error;
   const status = error ? toApiError(error).status : undefined;
   const errorMessage = status === 409
-    ? "This version or its approval is no longer current. Prepare a new version and review it again."
+    ? (versions.isFetching ? staleConflict : conflictMessage(latest, action.error ? action.variables : undefined))
     : status === 403 ? "Your account access changed. Refresh your session before continuing."
       : status === 503 ? "The office delivery gate is closed. No send was requested."
         : "The weekly report could not be confirmed. Retry when the service is available.";

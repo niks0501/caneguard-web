@@ -208,4 +208,28 @@ describe("weekly district approval", () => {
     await user.click(screen.getByRole("button", { name: "Confirm approval" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Prepare a new version and review it again");
   });
+
+  it("names the real cause of a conflict from the refreshed version state", async () => {
+    auth("admin", []);
+    const cases = [
+      [{ stale_reason: "newer_version", is_current: false }, "Approve version", "Confirm approval", /newer version of this week/],
+      [{ stale_reason: "evidence_changed", is_current: false }, "Approve version", "Confirm approval", /Evidence changed/],
+      [{}, "Request send", "Confirm send", /not approved yet/],
+    ] as const;
+    for (const [patch, button, confirm, expected] of cases) {
+      let approved: string | null = button === "Request send" ? "2026-10-01T04:00:00Z" : null;
+      server.use(
+        http.get(base, () => HttpResponse.json({ data: [{ ...version, approved_at: approved, ...patch }], meta: { send_enabled: true, delivery_gate_open: true, recipients_configured: true } })),
+        http.post(`${base}/${version.uuid}/approve`, () => HttpResponse.json({ code: "CONFLICT" }, { status: 409 })),
+        http.post(`${base}/${version.uuid}/send`, () => { approved = null; return HttpResponse.json({ code: "CONFLICT" }, { status: 409 }); }),
+      );
+      const user = userEvent.setup();
+      const view = renderApproval();
+      await screen.findByTitle("Official weekly report version 1");
+      await user.click(screen.getByRole("button", { name: button }));
+      await user.click(screen.getByRole("button", { name: confirm }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(expected);
+      view.unmount();
+    }
+  });
 });
