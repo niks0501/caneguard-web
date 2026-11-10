@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Contracts\MobileFieldValidationAssignmentContract;
+use App\Models\Report;
 use App\Support\MobilePreviousVisit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,6 +18,7 @@ class MobileFieldValidationAssignmentResource extends JsonResource
         $report = $this->report;
         $assignment = $this->resource;
         $lifecycle = $report->lifecycleSnapshot();
+        $isOffice = $report->origin === Report::ORIGIN_OFFICE;
 
         return [
             'uuid' => $assignment->uuid,
@@ -52,8 +54,75 @@ class MobileFieldValidationAssignmentResource extends JsonResource
                 'submitted_at' => $report->submitted_at->utc()->toISOString(),
                 'predicted_label' => $report->predicted_label,
                 'confidence' => (float) $report->confidence,
+            ] + ($isOffice ? $this->officeCaseProjection($report) : []),
+            'previous_visit' => $this->previousVisitPayload($isOffice),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function previousVisitPayload(bool $isOffice): ?array
+    {
+        // The feed version digests the shared payload, so the serializer and
+        // the digest must never drift apart.
+        $payload = MobilePreviousVisit::payload($this->resource);
+        if ($payload === null) {
+            return null;
+        }
+
+        // Field rows keep the exact legacy payload; only office-born cases
+        // carry a fetchable reference to the last visit's photo.
+        $completion = MobilePreviousVisit::resolve($this->resource)?->completion;
+        if ($isOffice && $completion !== null) {
+            $payload['photo'] = $completion->fresh_photo_path === null ? null : [
+                'url' => route('api.v1.mobile.assignments.previous-evidence-photo', [
+                    'assignment' => $this->resource->uuid,
+                ], false),
+                'content_type' => $completion->fresh_photo_mime_type,
+                'bytes' => $completion->fresh_photo_size_bytes === null
+                    ? null
+                    : (int) $completion->fresh_photo_size_bytes,
+            ];
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Optional projection that lets the phone treat an office-born case as
+     * its own kind. Field-born rows never carry these keys, so their wire
+     * shape stays byte-identical to the legacy feed.
+     *
+     * @return array<string, mixed>
+     */
+    private function officeCaseProjection(Report $report): array
+    {
+        $lifecycle = $report->lifecycleSnapshot();
+
+        return [
+            'origin' => Report::ORIGIN_OFFICE,
+            'version' => (int) $report->lock_version,
+            'status' => [
+                'workflow_status' => $report->workflowStatus(),
+                'case_state' => $lifecycle['case_state'],
+                'review_status' => $report->review_status,
+                'updated_at' => $report->updated_at->utc()->toISOString(),
             ],
-            'previous_visit' => MobilePreviousVisit::payload($this->resource),
+            'reporter_concern' => [
+                'suspected_condition' => $report->reporter_suspected_condition,
+                'observation_text' => $report->reporter_observation_text === null
+                    ? null
+                    : mb_substr($report->reporter_observation_text, 0, 1000),
+            ],
+            'photo' => $report->image_path === null || $report->image_path === '' ? null : [
+                'url' => route('api.v1.mobile.assignments.report-photo', [
+                    'assignment' => $this->resource->uuid,
+                ], false),
+                'content_type' => $report->image_mime_type,
+                'bytes' => (int) $report->image_size_bytes,
+                'immutable' => true,
+            ],
         ];
     }
 }

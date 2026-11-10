@@ -115,7 +115,47 @@
         "observed_at": { "type": "date-time", "required": true, "nullable": true },
         "submitted_at": { "type": "date-time", "required": true, "nullable": false },
         "predicted_label": { "type": "string", "required": true, "nullable": false, "enum": ["healthy", "mosaic", "rust", "smut"] },
-        "confidence": { "type": "number", "required": true, "nullable": false, "minimum": 0, "maximum": 1 }
+        "confidence": { "type": "number", "required": true, "nullable": false, "minimum": 0, "maximum": 1 },
+        "origin": { "type": "string", "required": false, "nullable": false, "enum": ["office"], "note": "Present only on office-born cases; absent means field-born." },
+        "version": { "type": "number", "required": false, "nullable": false, "minimum": 0, "note": "Report lock_version. Office-born cases only." },
+        "status": {
+          "type": "object",
+          "required": false,
+          "nullable": false,
+          "required_keys": ["workflow_status", "case_state", "review_status", "updated_at"],
+          "additional_properties": false,
+          "properties": {
+            "workflow_status": { "type": "string", "required": true, "nullable": false },
+            "case_state": { "type": "string", "required": true, "nullable": false },
+            "review_status": { "type": "string", "required": true, "nullable": false },
+            "updated_at": { "type": "date-time", "required": true, "nullable": false }
+          }
+        },
+        "reporter_concern": {
+          "type": "object",
+          "required": false,
+          "nullable": false,
+          "required_keys": ["suspected_condition", "observation_text"],
+          "additional_properties": false,
+          "properties": {
+            "suspected_condition": { "type": "string", "required": true, "nullable": true },
+            "observation_text": { "type": "string", "required": true, "nullable": true, "max_length": 1000 }
+          }
+        },
+        "photo": {
+          "type": "object",
+          "required": false,
+          "nullable": true,
+          "required_keys": ["url", "content_type", "bytes", "immutable"],
+          "additional_properties": false,
+          "note": "Fetched with the same bearer token from GET /api/v1/mobile/assignments/{assignment}/report-photo (assignee only).",
+          "properties": {
+            "url": { "type": "string", "required": true, "nullable": false },
+            "content_type": { "type": "string", "required": true, "nullable": false },
+            "bytes": { "type": "number", "required": true, "nullable": false, "minimum": 0 },
+            "immutable": { "type": "boolean", "required": true, "nullable": false }
+          }
+        }
       }
     },
     "previous_visit": {
@@ -148,7 +188,20 @@
           "nullable": true,
           "enum": ["improved", "unchanged", "worsened", "unable_to_determine"]
         },
-        "fresh_photo_available": { "type": "boolean", "required": true, "nullable": false }
+        "fresh_photo_available": { "type": "boolean", "required": true, "nullable": false },
+        "photo": {
+          "type": "object",
+          "required": false,
+          "nullable": true,
+          "required_keys": ["url", "content_type", "bytes"],
+          "additional_properties": false,
+          "note": "Present only on office-born cases. Fetched from the previous-evidence-photo route.",
+          "properties": {
+            "url": { "type": "string", "required": true, "nullable": false },
+            "content_type": { "type": "string", "required": true, "nullable": true },
+            "bytes": { "type": "number", "required": true, "nullable": true, "minimum": 0 }
+          }
+        }
       }
     }
   },

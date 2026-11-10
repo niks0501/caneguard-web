@@ -27,6 +27,8 @@ A failed refresh must leave the last valid local snapshot available.
 
 The `case` object contains the original report identity, submitter-independent field context, observation dates, possible AI result, and confidence needed to render assigned work and support the later T07 completion contract.
 
+Office-born cases (`reports.origin = office`) additionally carry optional `case.origin` (`office`), `case.version` (the report `lock_version`), `case.status` (`workflow_status`, `case_state`, `review_status`, `updated_at`), `case.reporter_concern` (`suspected_condition`, `observation_text` up to 1000 characters) and `case.photo` (`url`, `content_type`, `bytes`, `immutable`), plus `previous_visit.photo` (`url`, `content_type`, `bytes`) when a previous visit has a photo. These keys are absent on field-born rows, whose payload is unchanged, so absence means field-born. The case photo is served only to the authenticated assignment owner inside their district through `GET /api/v1/mobile/assignments/{assignment}/report-photo` (403 otherwise, 404 when no file), with `Cache-Control: private, max-age=31536000, immutable` and `nosniff`.
+
 The optional `previous_visit` object carries the latest earlier validation for the same farm when one exists, including its nullable `follow_up_outcome` (`improved`, `unchanged`, `worsened`, or `unable_to_determine`). It is nullable and may be omitted by older producers. Its evidence photo is served only to the authenticated assignment owner through `GET /api/v1/mobile/assignments/{assignment}/previous-evidence-photo`; the route uses private storage, private caching, and `nosniff` headers.
 
 Field-validation completion and synchronization back to the API use the separate `mobile-field-validation-completion-v1` contract.
