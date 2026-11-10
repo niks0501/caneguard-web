@@ -346,7 +346,15 @@ class ReportSchemaAndSeederTest extends TestCase
         $assignmentContract = MobileFieldValidationAssignmentContract::definition();
         foreach ($assignments as $assignment) {
             $this->assertSame(array_keys($assignmentContract['fields']), array_keys($assignment));
-            $this->assertSame($assignmentContract['fields']['case']['required_keys'], array_keys($assignment['case']));
+            // Office-born (seeded) cases append the contract's optional projection keys.
+            $this->assertSame(
+                $assignmentContract['fields']['case']['required_keys'],
+                array_slice(array_keys($assignment['case']), 0, count($assignmentContract['fields']['case']['required_keys'])),
+            );
+            $this->assertEmpty(array_diff(
+                array_keys($assignment['case']),
+                array_keys($assignmentContract['fields']['case']['properties']),
+            ));
         }
 
         $unlocated = Report::query()->where('reference_code', 'BGO-20260702-0915')->firstOrFail();

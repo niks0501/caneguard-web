@@ -1008,6 +1008,131 @@ class FieldValidationAssignmentTest extends TestCase
         $this->get($path)->assertForbidden();
     }
 
+    public function test_office_case_projects_origin_concern_and_a_photo_the_assignee_can_fetch(): void
+    {
+        // Proves: an office case arrives with origin=office, its reporter concern, and a fetchable photo through the guarded endpoint.
+        Storage::fake('local');
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        Storage::disk('local')->put('reports/office/photo.jpg', 'office-photo');
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'origin' => Report::ORIGIN_OFFICE,
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+            'reporter_observation_text' => 'Stunted ratoon stools near the canal.',
+            'image_path' => 'reports/office/photo.jpg',
+            'image_mime_type' => 'image/jpeg',
+            'image_size_bytes' => 12,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($owner, ['assignment:read']);
+        $case = $this->getJson('/api/v1/mobile/assignments')->assertOk()->json('data.0.case');
+        $this->assertSame('office', $case['origin']);
+        $this->assertSame((int) $report->fresh()->lock_version, $case['version']);
+        $this->assertSame('field_validation', $case['status']['workflow_status']);
+        $this->assertSame(
+            ['suspected_condition' => Report::REPORTER_CONCERN_RSSI, 'observation_text' => 'Stunted ratoon stools near the canal.'],
+            $case['reporter_concern'],
+        );
+        $this->assertSame(
+            ['url' => "/api/v1/mobile/assignments/{$assignment->uuid}/report-photo", 'content_type' => 'image/jpeg', 'bytes' => 12],
+            $case['photo'],
+        );
+
+        $response = $this->get($case['photo']['url'])->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-cache', $response->headers->get('Cache-Control'));
+    }
+
+    public function test_report_photo_stops_serving_reassigned_cases(): void
+    {
+        // Proves: the photo is authorized per retrieval, so a transferred case is refused at once.
+        Storage::fake('local');
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        Storage::disk('local')->put('reports/office/transfer.jpg', 'transfer');
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'origin' => Report::ORIGIN_OFFICE,
+            'image_path' => 'reports/office/transfer.jpg',
+            'image_mime_type' => 'image/jpeg',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $path = "/api/v1/mobile/assignments/{$assignment->uuid}/report-photo";
+
+        Sanctum::actingAs($owner, ['assignment:read']);
+        $this->get($path)->assertOk();
+
+        $assignment->update(['assignee_id' => $other->getKey()]);
+
+        $this->get($path)->assertForbidden();
+    }
+
+    public function test_field_case_wire_shape_has_no_office_projection_keys(): void
+    {
+        // Proves: a field case is byte-identical to before (no new keys).
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($owner, ['assignment:read']);
+        $case = $this->getJson('/api/v1/mobile/assignments')->assertOk()->json('data.0.case');
+        $this->assertSame(
+            MobileFieldValidationAssignmentContract::definition()['fields']['case']['required_keys'],
+            array_keys($case),
+        );
+    }
+
+    public function test_report_photo_refuses_non_assignees_and_out_of_district_callers(): void
+    {
+        // Proves: an unauthorized photo request is refused.
+        Storage::fake('local');
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        Storage::disk('local')->put('reports/office/guarded.jpg', 'guarded');
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'origin' => Report::ORIGIN_OFFICE,
+            'image_path' => 'reports/office/guarded.jpg',
+            'image_mime_type' => 'image/jpeg',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $path = "/api/v1/mobile/assignments/{$assignment->uuid}/report-photo";
+
+        Sanctum::actingAs($other, ['assignment:read']);
+        $this->get($path)->assertForbidden();
+        Sanctum::actingAs($reviewer, ['assignment:read']);
+        $this->get($path)->assertForbidden();
+        Sanctum::actingAs($owner, ['report:status']);
+        $this->get($path)->assertForbidden();
+    }
+
     public function test_assignment_contract_artifact_matches_the_mobile_response_boundary(): void
     {
         $contract = MobileFieldValidationAssignmentContract::definition();
