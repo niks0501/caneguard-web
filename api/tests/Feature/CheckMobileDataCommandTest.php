@@ -65,6 +65,28 @@ class CheckMobileDataCommandTest extends TestCase
         $this->assertStringContainsString('no field_validation_assignments row', $output);
     }
 
+    // Proves: an assigned case without an AI scan is reported as hidden from builds that do not ask for it.
+    public function test_an_assigned_scanless_office_report_is_reported_as_hidden(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($district)->officeWithoutAiScan()->create([
+            'case_state' => Report::CASE_STATE_OPEN,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->id,
+            'assignee_id' => $inspector->id,
+        ]);
+
+        $this->assertSame(1, Artisan::call('caneguard:check-mobile-data'));
+        $output = Artisan::output();
+
+        $this->assertStringContainsString($report->reference_code, $output);
+        $this->assertStringContainsString('only builds that send supports=no_ai_scan receive this assignment', $output);
+        $this->assertStringNotContainsString('predicted_label must be one of', $output);
+    }
+
     // Proves: the check is read-only (it never writes).
     public function test_the_check_never_writes(): void
     {

@@ -53,7 +53,7 @@ class MobileFieldValidationAssignmentResource extends JsonResource
                 'observed_at' => $report->observed_at?->utc()->toISOString(),
                 'submitted_at' => $report->submitted_at->utc()->toISOString(),
                 'predicted_label' => $report->predicted_label,
-                'confidence' => (float) $report->confidence,
+                'confidence' => $report->confidence === null ? null : (float) $report->confidence,
             ] + (self::caseProjection($assignment) ?? []),
             'previous_visit' => self::previousVisitPayload($assignment),
         ];

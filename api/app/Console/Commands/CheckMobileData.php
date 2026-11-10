@@ -202,6 +202,9 @@ final class CheckMobileData extends Command
         if (! $assignedState) {
             $hide('field_validation_state is '.($report->field_validation_state ?? 'NULL').'; the assignment feed needs assigned, in_progress or completed');
         }
+        if ($report->predicted_label === null || $report->confidence === null) {
+            $hide('predicted_label or confidence is empty; only builds that send supports=no_ai_scan receive this assignment');
+        }
     }
 
     private function checkAssignment(object $assignment, string $ref, ?object $assignee, bool $member): void

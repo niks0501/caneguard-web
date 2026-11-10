@@ -71,7 +71,7 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         $this->assertNull($queued['confidence']);
     }
 
-    /** Proves: the CSV and the printed document name the no-scan state instead of leaving it blank. */
+    /** Proves: the CSV, the monthly summary and the printed document name the no-scan state for humans. */
     public function test_export_and_document_name_the_no_scan_state(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
@@ -91,13 +91,21 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         $this->assertNotNull($exported);
         $this->assertSame(Report::NO_AI_SCAN_LABEL, $exported[4]);
 
+        $conditionBuckets = collect(
+            $this->getJson('/api/v1/reports/summary?month=2026-09')
+                ->assertOk()
+                ->json('data.cases_by_possible_condition'),
+        );
+        $this->assertContains(Report::NO_AI_SCAN_LABEL, $conditionBuckets->pluck('possible_condition')->all());
+
         $this->get('/api/v1/reports/documents/report?'.http_build_query([
             'period_type' => 'weekly',
             'week' => '2026-W38',
             'appendix' => 1,
         ]))->assertOk()
             ->assertSee($scanless->reference_code)
-            ->assertSee(Report::NO_AI_SCAN_LABEL);
+            ->assertSee(Report::NO_AI_SCAN_LABEL)
+            ->assertDontSee(Report::NO_AI_SCAN);
     }
 
     /** Proves: charts show the no-AI bucket with correct counts; field rows unchanged. */
@@ -116,8 +124,8 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         $this->assertSame(3, $data['total_submitted']);
     }
 
-    /** Proves: the assignment feed serves only cases that carry an AI result. */
-    public function test_mobile_feed_withholds_an_assignment_without_an_ai_scan(): void
+    /** Proves: assigned scanless work reaches only builds that ask for it. */
+    public function test_mobile_feed_delivers_scanless_rows_only_to_builds_that_ask(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
@@ -136,17 +144,19 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         }
         Sanctum::actingAs($assignee, ['assignment:read']);
 
-        foreach (['', '?supports=no_ai_scan'] as $query) {
-            $feed = $this->getJson('/api/v1/mobile/assignments'.$query)->assertOk();
-            $feed->assertJsonCount(1, 'data')
-                ->assertJsonPath('data.0.report_uuid', $scanned->uuid)
-                ->assertJsonPath('sync.total', 1);
-            $this->assertNotContains(
-                $scanless->uuid,
-                array_column($feed->json('data'), 'report_uuid'),
-            );
-            $this->assertSame($scanned->predicted_label, $feed->json('data.0.case.predicted_label'));
-            $this->assertIsNumeric($feed->json('data.0.case.confidence'));
-        }
+        $old = $this->getJson('/api/v1/mobile/assignments')->assertOk();
+        $old->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.report_uuid', $scanned->uuid)
+            ->assertJsonPath('sync.total', 1);
+
+        $new = $this->getJson('/api/v1/mobile/assignments?supports=no_ai_scan')->assertOk();
+        $new->assertJsonCount(2, 'data')->assertJsonPath('sync.total', 2);
+        $row = collect($new->json('data'))->firstWhere('report_uuid', $scanless->uuid);
+        $this->assertNull($row['case']['predicted_label']);
+        $this->assertNull($row['case']['confidence']);
+        $this->assertNull($row['case']['photo']);
+        $this->assertNotSame($old->json('sync.version'), $new->json('sync.version'));
+
+        $this->getJson('/api/v1/mobile/assignments?supports=other')->assertUnprocessable();
     }
 }

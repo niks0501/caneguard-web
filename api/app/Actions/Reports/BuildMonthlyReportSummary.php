@@ -98,7 +98,7 @@ final class BuildMonthlyReportSummary
             ->get()
             ->map(fn (Report $report): array => [
                 $outputKey => $report->getAttribute($column)
-                    ?? ($column === 'predicted_label' ? Report::NO_AI_SCAN : null),
+                    ?? ($column === 'predicted_label' ? Report::NO_AI_SCAN_LABEL : null),
                 'reported_cases' => (int) $report->getAttribute('reported_cases'),
             ])
             ->values()
