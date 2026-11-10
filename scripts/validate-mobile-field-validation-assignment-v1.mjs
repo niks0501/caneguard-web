@@ -196,7 +196,10 @@ function validateCaseNullability(definition, issues) {
   if (!isObject(properties)) return;
   const wantNullable = definition.version === 2;
   for (const name of AI_CASE_FIELDS) {
-    if (isObject(properties[name]) && properties[name].nullable !== wantNullable) {
+    const field = properties[name];
+    if (!isObject(field)) {
+      issues.push(`case.${name} must be declared as a property in v${definition.version}`);
+    } else if (field.nullable !== wantNullable) {
       issues.push(`case.${name}.nullable must be ${wantNullable} in v${definition.version}`);
     }
   }

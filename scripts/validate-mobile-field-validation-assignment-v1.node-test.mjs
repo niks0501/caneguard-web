@@ -58,23 +58,29 @@ function artifact() {
         },
       },
     },
-    fields: Object.fromEntries(ITEM_FIELDS.map((name) => [name, {
-      type: name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit'
-        ? 'object'
-        : 'string',
-      required: name !== 'previous_visit',
-      nullable: name === 'previous_visit',
-      ...(name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit'
-        ? {
-            required_keys: name === 'case'
-              ? ['barangay', 'province', 'municipality', 'farmer_or_farm_owner_name', 'affected_area_hectares', 'affected_portion_percent', 'captured_at', 'observed_at', 'submitted_at', 'predicted_label', 'confidence']
-              : name === 'previous_visit'
-                ? ['reference_code', 'visited_at', 'reporter_suspected_condition', 'authority_classified_condition', 'action_taken', 'field_observation', 'field_finding', 'follow_up_outcome', 'fresh_photo_available']
-                : ['uuid', 'name'],
-            properties: {},
-          }
-        : {}),
-    }])),
+    fields: Object.fromEntries(ITEM_FIELDS.map((name) => {
+      const objectField = name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit';
+      const requiredKeys = name === 'case'
+        ? ['barangay', 'province', 'municipality', 'farmer_or_farm_owner_name', 'affected_area_hectares', 'affected_portion_percent', 'captured_at', 'observed_at', 'submitted_at', 'predicted_label', 'confidence']
+        : name === 'previous_visit'
+          ? ['reference_code', 'visited_at', 'reporter_suspected_condition', 'authority_classified_condition', 'action_taken', 'field_observation', 'field_finding', 'follow_up_outcome', 'fresh_photo_available']
+          : ['uuid', 'name'];
+      return [name, {
+        type: objectField ? 'object' : 'string',
+        required: name !== 'previous_visit',
+        nullable: name === 'previous_visit',
+        ...(objectField
+          ? {
+              required_keys: requiredKeys,
+              properties: Object.fromEntries(requiredKeys.map((key) => [key, {
+                type: 'string',
+                required: true,
+                nullable: false,
+              }])),
+            }
+          : {}),
+      }];
+    })),
     versioning: { same_major_compatible_widening: ['optional'], new_major_required: ['breaking'] },
   };
 }
@@ -190,4 +196,22 @@ test('rejects a v2 artifact whose AI fields are not nullable', async () => {
   const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
   v2.fields.case.properties.confidence.nullable = false;
   assert.throws(() => validateMobileFieldValidationAssignmentArtifact(v2), (e) => e.issues.includes('case.confidence.nullable must be true in v2'));
+});
+
+// Intent: an AI case field the contract declares required must carry a definition in both versions.
+test('rejects an artifact whose AI case property is undeclared', async () => {
+  const v1 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(DEFAULT_ARTIFACT_PATH)));
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  delete v1.fields.case.properties.predicted_label;
+  delete v2.fields.case.properties.confidence;
+  v2.fields.case.properties.predicted_label = 'string';
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v1),
+    (e) => e.issues.includes('case.predicted_label must be declared as a property in v1'),
+  );
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v2),
+    (e) => e.issues.includes('case.predicted_label must be declared as a property in v2')
+      && e.issues.includes('case.confidence must be declared as a property in v2'),
+  );
 });
