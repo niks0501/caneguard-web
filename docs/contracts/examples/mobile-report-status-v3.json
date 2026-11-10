@@ -47,5 +47,11 @@
   ],
   "links": { "next": null },
   "meta": {},
-  "sync": { "before": "2026-09-20T10:00:05.000000Z" }
+  "sync": {
+    "before": "2026-09-20T10:00:05.000000Z",
+    "version": "45c48cce2e2d7fbdea1afc51c7c6ad26",
+    "total": 2,
+    "truncated": false,
+    "unchanged": false
+  }
 }

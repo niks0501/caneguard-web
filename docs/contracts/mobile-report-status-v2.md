@@ -30,6 +30,7 @@ Reviewer, administrator, and tokens without the `report:status` ability cannot r
 | `per_page` | Integer from 1 through 100 | No | Page size. The default is 100. |
 | `cursor` | Opaque cursor string | No | Cursor returned by `links.next`. Clients must follow the returned URL rather than constructing a cursor. |
 | `sync_version` | String | Only with `cursor` | The `sync.version` the download started with; `links.next` carries it. A continuation whose version does not match the current set is refused with `409 SYNC_RESTART`. |
+| `since` | String | No | A `sync.version` from an earlier response. A first request whose `since` matches the current version returns no rows with `sync.unchanged: true`; `since` is ignored once a `cursor` is present. |
 
 The first request establishes a feed checkpoint in `sync.before`.
 
@@ -57,7 +58,7 @@ Each item contains exactly these fields:
 | `review_status` | String enum | Non-null | Current authority-review status. |
 | `review_notes` | String | Nullable | Latest authority feedback, or `null` when no feedback exists. |
 | `reviewed_at` | ISO-8601 date-time string | Nullable | Time of the latest authority review, or `null` when the report has not been reviewed. |
-| `updated_at` | ISO-8601 date-time string | Non-null | Last report update time used by incremental synchronization. |
+| `updated_at` | ISO-8601 date-time string | Non-null | Last report update time. |
 
 The supported `review_status` values are:
 
@@ -71,7 +72,7 @@ The supported `review_status` values are:
 
 `links.next` is either an absolute continuation URL string or `null` when there are no more pages.
 
-The continuation URL may include `cursor` and `sync_before` query parameters.
+The continuation URL may include `cursor`, `sync_before` and `sync_version` query parameters.
 
 The `sync_before` query parameter in a continuation URL is transport state and does not replace the canonical response checkpoint.
 
