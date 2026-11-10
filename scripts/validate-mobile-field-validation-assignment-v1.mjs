@@ -13,8 +13,14 @@ const V2_ARTIFACT_PATH = path.resolve(
 // v1 is frozen with non-null AI fields; v2 widens them (a nullability change
 // is new_major_required) and declares the office projection.
 const CONTRACT_VERSIONS = { 'mobile-field-validation-assignment-v1': 1, 'mobile-field-validation-assignment-v2': 2 };
-const OFFICE_CASE_FIELDS = ['origin', 'version', 'status', 'reporter_concern', 'photo'];
-const AI_CASE_FIELDS = ['predicted_label', 'confidence'];
+const OFFICE_CASE_FIELDS = {
+  origin: { type: 'string' },
+  version: { type: 'number' },
+  status: { required_keys: ['workflow_status', 'case_state', 'review_status', 'updated_at'] },
+  reporter_concern: { required_keys: ['suspected_condition', 'observation_text'] },
+  photo: { required_keys: ['url', 'content_type', 'bytes'] },
+};
+const AI_CASE_FIELDS = { predicted_label: 'string', confidence: 'number' };
 // The artifact declares the bounded-download cap; the controller constant is
 // its runtime source of truth, so both are compared instead of hand-copied.
 const DEFAULT_CONTROLLER_PATH = path.resolve(
@@ -195,19 +201,36 @@ function validateCaseNullability(definition, issues) {
   const properties = definition.fields.case?.properties;
   if (!isObject(properties)) return;
   const wantNullable = definition.version === 2;
-  for (const name of AI_CASE_FIELDS) {
+  for (const [name, expectedType] of Object.entries(AI_CASE_FIELDS)) {
     const field = properties[name];
     if (!isObject(field)) {
       issues.push(`case.${name} must be declared as a property in v${definition.version}`);
-    } else if (field.nullable !== wantNullable) {
+      continue;
+    }
+    if (field.type !== expectedType) issues.push(`case.${name}.type must be ${expectedType}`);
+    if (field.required !== true) {
+      issues.push(`case.${name}.required must be true in v${definition.version}`);
+    }
+    if (field.nullable !== wantNullable) {
       issues.push(`case.${name}.nullable must be ${wantNullable} in v${definition.version}`);
     }
   }
-  if (definition.version === 2) {
-    for (const name of OFFICE_CASE_FIELDS) {
-      const field = properties[name];
-      if (!isObject(field) || field.required !== false) {
-        issues.push(`case.${name} must be declared as an optional office field in v2`);
+  if (definition.version !== 2) return;
+  for (const [name, spec] of Object.entries(OFFICE_CASE_FIELDS)) {
+    const field = properties[name];
+    if (!isObject(field) || field.required !== false) {
+      issues.push(`case.${name} must be declared as an optional office field in v2`);
+      continue;
+    }
+    if (!spec.required_keys) {
+      if (field.type !== spec.type) issues.push(`case.${name}.type must be ${spec.type}`);
+      continue;
+    }
+    validateObjectField(field, `case.${name}`, spec.required_keys, issues);
+    const nested = isObject(field.properties) ? field.properties : {};
+    for (const key of spec.required_keys) {
+      if (!isObject(nested[key])) {
+        issues.push(`case.${name}.${key} must be declared as a property`);
       }
     }
   }

@@ -73,7 +73,7 @@ function artifact() {
           ? {
               required_keys: requiredKeys,
               properties: Object.fromEntries(requiredKeys.map((key) => [key, {
-                type: 'string',
+                type: key === 'confidence' ? 'number' : 'string',
                 required: true,
                 nullable: false,
               }])),
@@ -213,5 +213,29 @@ test('rejects an artifact whose AI case property is undeclared', async () => {
     () => validateMobileFieldValidationAssignmentArtifact(v2),
     (e) => e.issues.includes('case.predicted_label must be declared as a property in v2')
       && e.issues.includes('case.confidence must be declared as a property in v2'),
+  );
+});
+
+// Intent: the AI pair stays required and typed as published, even though v2 makes it nullable.
+test('rejects AI case properties that contradict the published shape', async () => {
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  v2.fields.case.properties.confidence = { type: 'string', required: false, nullable: true };
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v2),
+    (e) => e.issues.includes('case.confidence.type must be number')
+      && e.issues.includes('case.confidence.required must be true in v2'),
+  );
+});
+
+// Intent: office projection fields keep their declared type and nested schema in v2.
+test('rejects office case properties that contradict the published shape', async () => {
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  v2.fields.case.properties.origin = { required: false };
+  v2.fields.case.properties.status = { type: 'object', required: false, properties: {} };
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v2),
+    (e) => e.issues.includes('case.origin.type must be string')
+      && e.issues.includes('field case.status.required_keys must declare workflow_status, case_state, review_status, updated_at')
+      && e.issues.includes('case.status.workflow_status must be declared as a property'),
   );
 });
