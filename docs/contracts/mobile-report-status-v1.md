@@ -25,8 +25,8 @@ Reviewer, administrator, and tokens without the `report:status` ability cannot r
 
 | Parameter | Type | Required | Semantics |
 | --- | --- | --- | --- |
-| `updated_after` | ISO-8601 date-time | No | Returns reports whose `updated_at` is strictly later than this value. |
-| `sync_before` | ISO-8601 date-time | No | Sets the inclusive upper bound for the feed traversal. If omitted, the API creates the checkpoint from the current time. |
+| `updated_after` | ISO-8601 date-time | No | Returns reports updated in or after the second containing this value. Stored status timestamps have one-second precision, so the checkpoint's own second is repeated. |
+| `sync_before` | ISO-8601 date-time | No | Sets the inclusive upper bound for the feed traversal, covering the whole second of the value. If omitted, the API creates the checkpoint at the response instant. |
 | `per_page` | Integer from 1 through 100 | No | Page size. The default is 100. |
 | `cursor` | Opaque cursor string | No | Cursor returned by `links.next`. Clients must follow the returned URL rather than constructing a cursor. |
 
@@ -90,7 +90,7 @@ Do not read `meta.sync_before` or root-level `sync_before` as alternatives to th
 
 All pages in one feed traversal use the same `sync.before` value.
 
-Every response carries `sync.version` (a digest of the reporter's whole status set as serialized for this version, not only the `updated_after` slice), `sync.total` (statuses held), `sync.truncated` (always `false`; this feed is not capped) and `sync.unchanged`. Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the set has not changed; `since` is ignored once a `cursor` is present.
+Every response carries `sync.version` (a digest of the reporter's whole status set as serialized for this version, not only the `updated_after` slice), `sync.total` (statuses held), `sync.truncated` (always `false`; this feed is not capped) and `sync.unchanged`. Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the set has not changed; `since` is ignored once a `cursor` is present. A `since` value that does not match the current version returns the whole stamped snapshot, so `updated_after` cannot narrow it.
 
 ## Privacy boundary
 

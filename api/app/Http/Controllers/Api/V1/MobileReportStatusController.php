@@ -19,16 +19,11 @@ class MobileReportStatusController extends Controller
         $syncBefore = CarbonImmutable::parse(
             $request->validated('sync_before') ?? now(),
         )->utc();
-        if ($request->validated('sync_before') === null) {
-            // Database timestamps may truncate the instant used for the
-            // checkpoint; the ceiling keeps a just-updated report in this feed.
-            $syncBefore = $syncBefore->addSecond();
-        }
         $isV3 = $request->routeIs('api.v3.mobile.reports.statuses');
         $owned = Report::query()->visibleTo(request()->user())
             ->when($isV3, fn ($query) => $query->with('advisory'))
             ->whereBelongsTo($request->user(), 'reporter')
-            ->where('updated_at', '<=', $syncBefore);
+            ->where('updated_at', '<=', $syncBefore->ceilSecond());
 
         // The version covers the reporter's whole status set as serialized for
         // this API version, not just the `updated_after` slice.
@@ -39,19 +34,24 @@ class MobileReportStatusController extends Controller
                     : new ReportStatusResource($report))->resolve($request),
             ),
         );
-        $unchanged = $request->validated('cursor') === null
-            && $request->validated('since') === $stamp['version'];
+        $since = $request->validated('cursor') === null
+            && filled($request->validated('since'))
+            ? $request->validated('since')
+            : null;
+        $unchanged = $since === $stamp['version'];
+        $updatedAfter = $since === null
+            ? $request->validated('updated_after')
+            : null;
 
         $reports = $owned
             ->when($unchanged, fn ($query) => $query->whereRaw('1 = 0'))
             ->when(
-                $request->validated('updated_after'),
-                fn ($query, string $updatedAfter) => $query
-                    ->where(
-                        'updated_at',
-                        '>',
-                        CarbonImmutable::parse($updatedAfter)->utc(),
-                    ),
+                $updatedAfter,
+                fn ($query, string $after) => $query->where(
+                    'updated_at',
+                    '>=',
+                    CarbonImmutable::parse($after)->utc()->startOfSecond(),
+                ),
             )
             ->orderBy('updated_at')
             ->orderBy('id')

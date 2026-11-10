@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\NewCaseSubmittedNotification;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
@@ -118,5 +120,111 @@ class MobileFeedSyncVersionTest extends TestCase
         $this->assertNotSame($v1, $after['sync']['version']);
         $this->assertFalse($after['sync']['unchanged']);
         $this->assertCount(1, $after['data']);
+    }
+
+    // Proves: sync.before is the response instant, so a review committed in
+    // that second reaches the phone instead of being skipped past.
+    public function test_the_status_checkpoint_is_never_in_the_future(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-10T12:00:00.200000Z');
+        try {
+            $reviewed = Report::factory()->inDistrict($this->pilotDistrict())->create([
+                'reporter_id' => $this->owner->getKey(),
+            ]);
+            $roundedUp = Report::factory()->inDistrict($this->pilotDistrict())->create([
+                'reporter_id' => $this->owner->getKey(),
+            ]);
+            DB::table('reports')->where('id', $roundedUp->id)->update([
+                'updated_at' => '2026-11-10 12:00:01',
+            ]);
+
+            $first = $this->feed('/api/v1/mobile/reports/statuses');
+            $this->assertCount(2, $first['data']);
+            $checkpoint = $first['sync']['before'];
+            $this->assertTrue(
+                CarbonImmutable::parse($checkpoint)->lessThanOrEqualTo(CarbonImmutable::now()),
+            );
+
+            DB::table('reports')->where('id', $reviewed->id)->update([
+                'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+                'review_notes' => 'Reviewed inside the checkpoint second.',
+                'updated_at' => '2026-11-10 12:00:00.800',
+            ]);
+
+            $after = $this->feed('/api/v1/mobile/reports/statuses?since='
+                .$first['sync']['version']
+                .'&updated_after='.urlencode($checkpoint));
+
+            $this->assertNotSame($first['sync']['version'], $after['sync']['version']);
+            $this->assertFalse($after['sync']['unchanged']);
+            $delivered = collect($after['data'])->firstWhere('uuid', $reviewed->uuid);
+            $this->assertSame(Report::STATUS_VERIFIED_BY_STAFF, $delivered['review_status']);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    // Proves: a legacy delta poll still receives a review whose stored second
+    // is the checkpoint's own second.
+    public function test_a_delta_poll_receives_a_review_stored_in_the_checkpoint_second(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-10T12:00:00.200000Z');
+        try {
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+                'reporter_id' => $this->owner->getKey(),
+            ]);
+            $checkpoint = $this->feed('/api/v1/mobile/reports/statuses')['sync']['before'];
+
+            DB::table('reports')->where('id', $report->id)->update([
+                'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+                'review_notes' => 'Reviewed inside the checkpoint second.',
+                'updated_at' => '2026-11-10 12:00:00.800',
+            ]);
+
+            $delta = $this->feed(
+                '/api/v1/mobile/reports/statuses?updated_after='.urlencode($checkpoint),
+            );
+
+            $this->assertCount(1, $delta['data']);
+            $this->assertSame(Report::STATUS_VERIFIED_BY_STAFF, $delta['data'][0]['review_status']);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    // Proves: a v3 change carried by the related advisory reaches the phone
+    // with the version that describes it.
+    public function test_a_retired_advisory_reaches_a_version_aware_v3_poll(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $advisory = Advisory::factory()->validated($reviewer, 'Validated by the office field guide.')->create([
+            'code' => 'ADV-SYNC-001',
+            'title' => 'Sanitize tools',
+            'content' => 'Disinfect tools before the next row.',
+        ]);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+            'advisory_id' => $advisory->getKey(),
+            'advisory_selected_by_id' => $reviewer->getKey(),
+            'advisory_selected_at' => now()->utc(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+            'advisory_delivered_at' => now()->utc(),
+        ]);
+
+        $first = $this->feed('/api/v3/mobile/reports/statuses');
+        $this->assertSame(Advisory::STATUS_VALIDATED, $first['data'][0]['advisory']['status']);
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/advisories/{$advisory->uuid}/retire", [])->assertOk();
+
+        $after = $this->feed('/api/v3/mobile/reports/statuses?since='
+            .$first['sync']['version']
+            .'&updated_after='.urlencode($first['sync']['before']));
+
+        $this->assertNotSame($first['sync']['version'], $after['sync']['version']);
+        $this->assertFalse($after['sync']['unchanged']);
+        $this->assertCount(1, $after['data']);
+        $this->assertSame($report->uuid, $after['data'][0]['uuid']);
+        $this->assertSame(Advisory::STATUS_RETIRED, $after['data'][0]['advisory']['status']);
     }
 }
