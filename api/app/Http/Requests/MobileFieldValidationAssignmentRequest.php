@@ -15,8 +15,10 @@ class MobileFieldValidationAssignmentRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
-            'updated_after' => ['sometimes', 'date'],
             'sync_before' => ['sometimes', 'date'],
+            'since' => ['sometimes', 'string', 'max:64'],
+            'sync_version' => ['sometimes', 'string', 'max:64'],
+            'limit' => ['sometimes', 'integer', 'min:1'],
             'cursor' => [
                 'sometimes',
                 'string',

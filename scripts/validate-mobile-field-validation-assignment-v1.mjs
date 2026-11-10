@@ -6,6 +6,14 @@ const DEFAULT_ARTIFACT_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../docs/contracts/mobile-field-validation-assignment-v1.json',
 );
+// The artifact declares the bounded-download cap; the controller constant is
+// its runtime source of truth, so both are compared instead of hand-copied.
+const DEFAULT_CONTROLLER_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../api/app/Http/Controllers/Api/V1/MobileFieldValidationAssignmentController.php',
+);
+const SYNC_ENVELOPE_KEYS = ['required_keys', 'version', 'cap', 'bounded_continuation'];
+const SYNC_KEYS = ['before', 'version', 'total', 'truncated', 'unchanged'];
 const TOP_LEVEL_KEYS = [
   '$id',
   'artifact_format',
@@ -63,7 +71,10 @@ export async function readMobileFieldValidationAssignmentArtifact(
     ]);
   }
 
-  return validateMobileFieldValidationAssignmentArtifact(definition, artifactPath);
+  const validated = validateMobileFieldValidationAssignmentArtifact(definition, artifactPath);
+  assertAssignmentSyncSurface(validated, artifactPath);
+
+  return validated;
 }
 
 export function validateMobileFieldValidationAssignmentArtifact(definition, source = 'artifact') {
@@ -162,6 +173,138 @@ export function validateMobileFieldValidationAssignmentArtifact(definition, sour
   return definition;
 }
 
+/**
+ * The prose contract makes snapshot consistency depend on more than the
+ * `sync.before` checkpoint, so the artifact must declare that surface too.
+ */
+export function assertAssignmentSyncSurface(definition, source = 'artifact') {
+  const issues = [];
+  const envelope = isObject(definition?.envelope) ? definition.envelope : undefined;
+  const sync = isObject(envelope?.sync) ? envelope.sync : undefined;
+  if (!isObject(sync)) {
+    throw new AssignmentContractArtifactError(source, [
+      'envelope.sync must describe the version, cap and bounded-continuation surface',
+    ]);
+  }
+
+  if (!sameList(Object.keys(sync), SYNC_ENVELOPE_KEYS)) {
+    issues.push(`envelope.sync must be ordered as ${SYNC_ENVELOPE_KEYS.join(', ')}`);
+  }
+  if (!sameList(sync.required_keys, SYNC_KEYS)) {
+    issues.push(`envelope.sync.required_keys must declare ${SYNC_KEYS.join(', ')}`);
+  }
+
+  const version = sync.version;
+  if (!isObject(version)) {
+    issues.push('envelope.sync.version must be an object');
+  } else {
+    if (!isNonEmptyStringList(version.changes_on)) {
+      issues.push('envelope.sync.version.changes_on must list the changes that move the version');
+    }
+    if (!isNonEmptyString(version.ignores)) {
+      issues.push('envelope.sync.version.ignores must name the data the version does not track');
+    }
+    if (version.unchanged_request !== 'since') {
+      issues.push('envelope.sync.version.unchanged_request must be since');
+    }
+  }
+
+  const cap = sync.cap;
+  if (!isObject(cap)) {
+    issues.push('envelope.sync.cap must be an object');
+  } else {
+    if (cap.request_parameter !== 'limit') {
+      issues.push('envelope.sync.cap.request_parameter must be limit');
+    }
+    if (!Number.isInteger(cap.limit_max) || cap.limit_max <= 0) {
+      issues.push('envelope.sync.cap.limit_max must be a positive integer');
+    }
+    if (cap.total_flag !== 'sync.total') {
+      issues.push('envelope.sync.cap.total_flag must be sync.total');
+    }
+    if (cap.truncated_flag !== 'sync.truncated') {
+      issues.push('envelope.sync.cap.truncated_flag must be sync.truncated');
+    }
+    if (!isNonEmptyString(cap.without_limit)) {
+      issues.push('envelope.sync.cap.without_limit must state what an unbounded request receives');
+    }
+    if (!isNonEmptyStringList(cap.keep_order)) {
+      issues.push('envelope.sync.cap.keep_order must list the priority the cap keeps');
+    }
+  }
+
+  const continuation = sync.bounded_continuation;
+  if (!isObject(continuation)) {
+    issues.push('envelope.sync.bounded_continuation must be an object');
+  } else {
+    if (continuation.link_parameter !== 'sync_version') {
+      issues.push('envelope.sync.bounded_continuation.link_parameter must be sync_version');
+    }
+    if (continuation.request_parameter !== 'sync_version') {
+      issues.push('envelope.sync.bounded_continuation.request_parameter must be sync_version');
+    }
+    const restart = continuation.restart;
+    if (!isObject(restart)) {
+      issues.push('envelope.sync.bounded_continuation.restart must be an object');
+    } else {
+      if (restart.status !== 409) {
+        issues.push('envelope.sync.bounded_continuation.restart.status must be 409');
+      }
+      if (restart.code !== 'SYNC_RESTART') {
+        issues.push('envelope.sync.bounded_continuation.restart.code must be SYNC_RESTART');
+      }
+    }
+  }
+
+  if (issues.length) throw new AssignmentContractArtifactError(source, issues);
+}
+
+/**
+ * Compares the declared download cap against the controller constant that
+ * enforces it, so the artifact cannot drift from the served cap.
+ */
+export function assertWorkSetCapMatchesController(
+  definition,
+  controllerSource,
+  source = 'controller',
+) {
+  const cap = isObject(definition?.envelope?.sync) ? definition.envelope.sync.cap : undefined;
+  if (!isObject(cap)) {
+    throw new AssignmentContractArtifactError(source, [
+      'cannot be compared: the artifact declares no envelope.sync.cap object',
+    ]);
+  }
+
+  const match = /const\s+WORK_SET_CAP\s*=\s*(\d+)\s*;/.exec(controllerSource);
+  if (match === null) {
+    throw new AssignmentContractArtifactError(source, ['does not declare const WORK_SET_CAP']);
+  }
+  const declared = Number(match[1]);
+  if (cap.limit_max !== declared) {
+    throw new AssignmentContractArtifactError(source, [
+      `envelope.sync.cap.limit_max is ${cap.limit_max} but WORK_SET_CAP is ${declared}`,
+    ]);
+  }
+}
+
+export async function readAssignmentControllerSource(controllerPath = DEFAULT_CONTROLLER_PATH) {
+  try {
+    return await readFile(controllerPath, 'utf8');
+  } catch (error) {
+    throw new AssignmentContractArtifactError(controllerPath, [
+      `could not be read: ${error.message}`,
+    ]);
+  }
+}
+
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function isNonEmptyStringList(value) {
+  return Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString);
+}
+
 function validateObjectField(field, name, requiredKeys, issues) {
   if (!isObject(field)) return;
   if (field.type !== 'object') issues.push(`field ${name}.type must be object`);
@@ -182,8 +325,11 @@ function isObject(value) {
 
 async function main() {
   const artifactPath = process.argv[2] ?? DEFAULT_ARTIFACT_PATH;
+  const controllerPath = process.argv[3] ?? DEFAULT_CONTROLLER_PATH;
   const definition = await readMobileFieldValidationAssignmentArtifact(artifactPath);
-  console.log(`[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} assignment fields and owner-scoped envelope are structurally valid.`);
+  const controllerSource = await readAssignmentControllerSource(controllerPath);
+  assertWorkSetCapMatchesController(definition, controllerSource, controllerPath);
+  console.log(`[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} assignment fields, owner-scoped envelope and the version/${definition.envelope.sync.cap.limit_max}-row cap surface match the controller.`);
 }
 
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
@@ -200,4 +346,4 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   }
 }
 
-export { DEFAULT_ARTIFACT_PATH, ITEM_FIELDS };
+export { DEFAULT_ARTIFACT_PATH, DEFAULT_CONTROLLER_PATH, ITEM_FIELDS, SYNC_KEYS };

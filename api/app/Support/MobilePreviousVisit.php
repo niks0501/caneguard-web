@@ -7,6 +7,37 @@ use Illuminate\Support\Collection;
 
 final class MobilePreviousVisit
 {
+    private const CANDIDATES_ATTRIBUTE = 'mobile_previous_visit_candidates';
+
+    /**
+     * The `previous_visit` object the mobile assignment feed delivers, or null
+     * when no earlier visit resolves. The feed version digests this payload,
+     * so the serializer and the digest share one definition.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function payload(FieldValidationAssignment $assignment): ?array
+    {
+        $previous = self::resolve($assignment);
+        if ($previous === null) {
+            return null;
+        }
+
+        $completion = $previous->completion;
+
+        return [
+            'reference_code' => $previous->report->reference_code,
+            'visited_at' => $completion->visited_at->utc()->toISOString(),
+            'reporter_suspected_condition' => $previous->report->reporter_suspected_condition,
+            'authority_classified_condition' => $previous->report->authority_classified_condition,
+            'action_taken' => $completion->action_taken,
+            'field_observation' => $completion->field_observation,
+            'field_finding' => $completion->field_finding,
+            'follow_up_outcome' => $completion->follow_up_outcome,
+            'fresh_photo_available' => $completion->fresh_photo_path !== null,
+        ];
+    }
+
     public static function resolve(FieldValidationAssignment $assignment): ?FieldValidationAssignment
     {
         $assignment->loadMissing(['report', 'completion']);
@@ -15,16 +46,8 @@ final class MobilePreviousVisit
         $barangay = self::normalize($report->barangay);
         $currentVisitedAt = $assignment->completion?->visited_at;
 
-        /** @var Collection<int, FieldValidationAssignment> $candidates */
-        $candidates = FieldValidationAssignment::query()
-            ->whereKeyNot($assignment->getKey())
-            // Previous-visit context is part of the owner-scoped assignment
-            // feed; never match a completion assigned to another reporter.
-            ->where('assignee_id', $assignment->assignee_id)
-            ->whereHas('completion')
-            ->whereHas('report', fn ($query) => $query->where('district_id', $report->district_id))
-            ->with(['report', 'completion'])
-            ->get()
+        $candidates = self::candidates($report->district_id, $assignment->assignee_id)
+            ->reject(fn (FieldValidationAssignment $candidate): bool => (string) $candidate->getKey() === (string) $assignment->getKey())
             ->filter(function (FieldValidationAssignment $candidate) use (
                 $barangay,
                 $farmReference,
@@ -69,6 +92,35 @@ final class MobilePreviousVisit
             ->values();
 
         return $candidates->first();
+    }
+
+    /**
+     * Earlier visits of the same owner in the same district, loaded once per
+     * request so every row of one feed page reuses the same candidate set.
+     *
+     * @return Collection<int, FieldValidationAssignment>
+     */
+    private static function candidates(int|string|null $districtId, int|string|null $assigneeId): Collection
+    {
+        $request = request();
+        $key = self::CANDIDATES_ATTRIBUTE.'|'.$districtId.'|'.$assigneeId;
+        $cached = $request->attributes->get($key);
+        if ($cached instanceof Collection) {
+            return $cached;
+        }
+
+        // Previous-visit context is part of the owner-scoped assignment feed;
+        // never match a completion assigned to another reporter.
+        $candidates = FieldValidationAssignment::query()
+            ->where('assignee_id', $assigneeId)
+            ->whereHas('completion')
+            ->whereHas('report', fn ($query) => $query->where('district_id', $districtId))
+            ->with(['report', 'completion'])
+            ->get();
+
+        $request->attributes->set($key, $candidates);
+
+        return $candidates;
     }
 
     private static function normalize(?string $value): string

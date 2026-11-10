@@ -13,7 +13,41 @@
     "required_keys": ["data", "links", "meta", "sync"],
     "data_key": "data",
     "next_link": "links.next",
-    "checkpoint": "sync.before"
+    "checkpoint": "sync.before",
+    "sync": {
+      "required_keys": ["before", "version", "total", "truncated", "unchanged"],
+      "version": {
+        "changes_on": [
+          "reassignment",
+          "unassignment",
+          "case close",
+          "edit to a case field this feed delivers",
+          "edit to the earlier report a delivered previous_visit is built from"
+        ],
+        "ignores": "fields this feed withholds",
+        "unchanged_request": "since"
+      },
+      "cap": {
+        "request_parameter": "limit",
+        "limit_max": 300,
+        "total_flag": "sync.total",
+        "truncated_flag": "sync.truncated",
+        "without_limit": "the complete snapshot",
+        "keep_order": [
+          "active work before completed visits",
+          "earliest target_visit_date, undated last",
+          "oldest assignment"
+        ]
+      },
+      "bounded_continuation": {
+        "link_parameter": "sync_version",
+        "request_parameter": "sync_version",
+        "restart": {
+          "status": 409,
+          "code": "SYNC_RESTART"
+        }
+      }
+    }
   },
   "fields": {
     "uuid": { "type": "uuid", "required": true, "nullable": false },
