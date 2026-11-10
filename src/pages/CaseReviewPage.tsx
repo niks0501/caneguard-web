@@ -790,9 +790,11 @@ function CaseReviewContent() {
               </section>
               <section aria-labelledby="reporter-observation-heading">
                 <h3 id="reporter-observation-heading">What the reporter saw</h3>
-                {report.mismatchReported === true ? <p className="observation-mismatch" role="status">The reporter said the AI result does not match what they observed.</p>
-                  : report.mismatchReported === false ? <p>The reporter said the AI result matches what they observed.</p>
-                  : <p>AI result agreement was not collected for this report.</p>}
+                {report.predictedDisease ? (
+                  report.mismatchReported === true ? <p className="observation-mismatch" role="status">The reporter said the AI result does not match what they observed.</p>
+                    : report.mismatchReported === false ? <p>The reporter said the AI result matches what they observed.</p>
+                    : <p>AI result agreement was not collected for this report.</p>
+                ) : null}
                 {isRssiReporterConcern(report) ? <p role="status"><strong>RSSI reported as a field concern</strong> — reporter-observed evidence only; the AI result does not cover RSSI.</p> : null}
                 <dl className="detail-list">
                   <DetailField label="Observed or suspected concern">{report.reporterSuspectedCondition?.trim() || "None reported"}</DetailField>

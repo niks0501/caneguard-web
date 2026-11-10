@@ -416,6 +416,7 @@ describe("CaseReviewPage", () => {
             confidence: null,
             class_scores: [],
             model_version: null,
+            model_version_recognised: null,
             timings_ms: { preprocess: null, inference: null, total: null },
           },
           observations: {
@@ -433,6 +434,9 @@ describe("CaseReviewPage", () => {
     expect(possibleCondition).toHaveTextContent("No AI scan");
     expect(possibleCondition).not.toHaveTextContent("Rust");
     expect(screen.queryByText(/AI-assisted result\./)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Model version not recognised/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/AI result agreement/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/The reporter said the AI result/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: /Submitted sugarcane photo/i }),
     ).not.toBeInTheDocument();

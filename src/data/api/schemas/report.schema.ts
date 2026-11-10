@@ -441,7 +441,7 @@ export const reportDetailSchema = z.object({
       }),
     ),
     model_version: z.string().nullable(),
-    model_version_recognised: z.boolean().optional(),
+    model_version_recognised: z.boolean().nullable().optional(),
     timings_ms: z.object({
       preprocess: z.number().nonnegative().nullable(),
       inference: z.number().nonnegative().nullable(),

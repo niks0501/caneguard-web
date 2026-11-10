@@ -89,6 +89,7 @@ describe("ApiReportsRepository", () => {
         confidence: null,
         class_scores: [],
         model_version: null,
+        model_version_recognised: null,
         timings_ms: { preprocess: null, inference: null, total: null },
       },
       observations: {
@@ -124,6 +125,7 @@ describe("ApiReportsRepository", () => {
       imageMimeType: null,
       imageSizeBytes: null,
       modelVersion: null,
+      modelVersionRecognised: null,
       checklistConsistency: null,
     });
   });

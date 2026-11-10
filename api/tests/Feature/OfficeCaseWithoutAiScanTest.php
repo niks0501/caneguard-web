@@ -41,6 +41,7 @@ class OfficeCaseWithoutAiScanTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.model.predicted_label', null)
             ->assertJsonPath('data.model.confidence', null)
+            ->assertJsonPath('data.model.model_version_recognised', null)
             ->assertJsonPath('data.image.url', null);
         $this->getJson('/api/v1/reports')->assertOk()->assertJsonPath('data.0.image_url', null);
         $this->getJson('/api/v1/reports/'.$fresh->uuid.'/image')->assertNotFound();
@@ -68,6 +69,35 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         $this->assertNotNull($queued);
         $this->assertNull($queued['predicted_label']);
         $this->assertNull($queued['confidence']);
+    }
+
+    /** Proves: the CSV and the printed document name the no-scan state instead of leaving it blank. */
+    public function test_export_and_document_name_the_no_scan_state(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $scanless = Report::factory()->inDistrict($this->pilotDistrict())->officeWithoutAiScan()->create([
+            'reference_code' => 'CG-NO-SCAN',
+            'submitted_at' => CarbonImmutable::parse('2026-09-17T08:00:00Z'),
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $rows = array_map(
+            'str_getcsv',
+            array_filter(preg_split('/\r\n|\r|\n/', trim(
+                $this->get('/api/v1/reports/export')->assertOk()->streamedContent(),
+            )) ?: []),
+        );
+        $exported = collect($rows)->first(fn (array $row): bool => ($row[0] ?? null) === $scanless->reference_code);
+        $this->assertNotNull($exported);
+        $this->assertSame(Report::NO_AI_SCAN_LABEL, $exported[4]);
+
+        $this->get('/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+            'appendix' => 1,
+        ]))->assertOk()
+            ->assertSee($scanless->reference_code)
+            ->assertSee(Report::NO_AI_SCAN_LABEL);
     }
 
     /** Proves: charts show the no-AI bucket with correct counts; field rows unchanged. */

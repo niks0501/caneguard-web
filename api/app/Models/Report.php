@@ -106,6 +106,9 @@ class Report extends Model
     /** Chart and API bucket for a case that has no AI prediction (office-born without a scan). */
     public const NO_AI_SCAN = 'no_ai_scan';
 
+    /** Printed label for that same case, wherever a reader names the possible condition. */
+    public const NO_AI_SCAN_LABEL = 'No AI scan';
+
     /** Stable free-text value used when Mobile reports RSSI as field evidence. */
     public const REPORTER_CONCERN_RSSI = 'RSSI';
 

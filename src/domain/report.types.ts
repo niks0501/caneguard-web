@@ -365,7 +365,7 @@ export interface DiseaseReport {
   fieldNotes?: string;
   classScores?: Array<{ label: string; score: number }>;
   modelVersion?: string | null;
-  modelVersionRecognised?: boolean;
+  modelVersionRecognised?: boolean | null;
   processingTimingsMs?: {
     preprocess: number | null;
     inference: number | null;
