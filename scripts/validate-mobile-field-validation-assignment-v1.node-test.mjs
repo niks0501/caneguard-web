@@ -239,3 +239,21 @@ test('rejects office case properties that contradict the published shape', async
       && e.issues.includes('case.status.workflow_status must be declared as a property'),
   );
 });
+
+// Intent: malformed nested office subfields (wrong type, required or nullable) fail v2 validation.
+test('rejects wrongly-shaped nested office subfields', async () => {
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  const { status, reporter_concern: concern, photo } = v2.fields.case.properties;
+  status.properties.updated_at.type = 'string';
+  status.nullable = true;
+  concern.properties.observation_text.nullable = false;
+  photo.properties.bytes = { type: 'string', required: false, nullable: false };
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v2),
+    (e) => e.issues.includes('case.status.updated_at.type must be date-time')
+      && e.issues.includes('case.status.nullable must be false in v2')
+      && e.issues.includes('case.reporter_concern.observation_text.nullable must be true')
+      && e.issues.includes('case.photo.bytes.type must be number')
+      && e.issues.includes('case.photo.bytes.required must be true'),
+  );
+});
