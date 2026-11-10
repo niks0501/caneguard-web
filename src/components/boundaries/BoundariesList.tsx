@@ -1,4 +1,6 @@
+import { Link } from "react-router";
 import { RefreshCw } from "lucide-react";
+import { routes } from "../../app/routes";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
 import { Button } from "../ui/Button";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
@@ -59,6 +61,7 @@ export function BoundariesList({
                   <span className="boundaries-list__source">device-reported</span>
                 </th>
                 <th scope="col">Inspector</th>
+                <th scope="col">Case</th>
                 <th scope="col"><span className="sr-only">Map action</span></th>
               </tr>
             </thead>
@@ -82,6 +85,18 @@ export function BoundariesList({
                     </td>
                     <td>{formatAffectedArea(feature.properties.areaSqm / 10_000)}</td>
                     <td>{feature.properties.inspector.name}</td>
+                    <td>
+                      {feature.properties.cases.length === 0 ? <span aria-hidden="true">—</span> : (
+                        <ul className="boundaries-list__cases">
+                          {feature.properties.cases.map((link) => (
+                            <li key={link.uuid}>
+                              <Link to={routes.reportDetail(link.uuid)}>{link.referenceCode}</Link>
+                              {link.link === "attached" ? <span className="boundaries-list__source">attached</span> : null}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
                     <td className="field-validation-table__action-cell">
                       <button
                         type="button"

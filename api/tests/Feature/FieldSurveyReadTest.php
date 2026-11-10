@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\District;
 use App\Models\FieldSurvey;
+use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,8 +43,11 @@ class FieldSurveyReadTest extends TestCase
         $feature = $response->json('features.0');
         $this->assertSame(['type', 'id', 'geometry', 'properties'], array_keys($feature));
         $this->assertSame([
-            'id', 'captured_at', 'area_sqm', 'area_source', 'inspector',
+            'id', 'captured_at', 'area_sqm', 'area_source', 'affected_areas', 'affected_area_sqm', 'cases', 'inspector',
         ], array_keys($feature['properties']));
+        $this->assertSame([], $feature['properties']['affected_areas']);
+        $this->assertNull($feature['properties']['affected_area_sqm']);
+        $this->assertSame([], $feature['properties']['cases']);
         $this->assertSame('FeatureCollection', $response->json('type'));
         $this->assertSame((string) $survey->id, $feature['id']);
         $this->assertSame($polygon, $feature['geometry']);
@@ -68,6 +72,66 @@ class FieldSurveyReadTest extends TestCase
         $response->assertJsonMissingPath('features.0.properties.client_uuid')
             ->assertJsonMissingPath('features.0.properties.waypoints_json')
             ->assertJsonMissingPath('features.0.properties.inspector.email');
+    }
+
+    public function test_office_map_receives_damage_areas_and_the_cases_that_use_each_boundary(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create();
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $damage = [[
+            'type' => 'Polygon',
+            'coordinates' => [[[122.9502, 10.7002], [122.9504, 10.7002], [122.9502, 10.7004], [122.9502, 10.7002]]],
+        ]];
+        $confirmed = $this->storeSurvey($district, $inspector, [
+            'affected_area_polygons' => $damage,
+            'affected_area_sqm' => 412.5,
+            'captured_at' => CarbonImmutable::parse('2026-10-05T02:00:00Z'),
+        ]);
+        $attached = $this->storeSurvey($district, $inspector, [
+            'captured_at' => CarbonImmutable::parse('2026-10-04T02:00:00Z'),
+        ]);
+        $unused = $this->storeSurvey($district, $inspector, [
+            'captured_at' => CarbonImmutable::parse('2026-10-03T02:00:00Z'),
+        ]);
+        $officeCase = Report::factory()->inDistrict($district)->create([
+            'field_survey_client_uuid' => $confirmed->client_uuid,
+        ]);
+        $officeCase->affectedFieldSurveys()->attach($confirmed->id, ['loss_rate_percent' => 20]);
+        $phoneCase = Report::factory()->inDistrict($district)->create([
+            'field_survey_client_uuid' => $attached->client_uuid,
+        ]);
+
+        $features = collect($this->actingAs($reviewer, 'web')->getJson(self::ENDPOINT)->assertOk()->json('features'))
+            ->keyBy('properties.id');
+
+        $this->assertSame($damage, $features[$confirmed->id]['properties']['affected_areas']);
+        $this->assertSame(412.5, $features[$confirmed->id]['properties']['affected_area_sqm']);
+        $this->assertSame([[
+            'uuid' => $officeCase->uuid,
+            'reference_code' => $officeCase->reference_code,
+            'link' => 'confirmed',
+        ]], $features[$confirmed->id]['properties']['cases']);
+        $this->assertSame([[
+            'uuid' => $phoneCase->uuid,
+            'reference_code' => $phoneCase->reference_code,
+            'link' => 'attached',
+        ]], $features[$attached->id]['properties']['cases']);
+        $this->assertSame([], $features[$unused->id]['properties']['cases']);
+    }
+
+    public function test_cases_from_another_district_are_not_listed_against_a_boundary(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create();
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        $survey = $this->storeSurvey($district, $inspector);
+        $foreign = District::query()->create(['code' => 'foreign-case', 'name' => 'Foreign case']);
+        Report::factory()->inDistrict($foreign)->create(['field_survey_client_uuid' => $survey->client_uuid]);
+
+        $this->actingAs($reviewer, 'web')->getJson(self::ENDPOINT)
+            ->assertOk()
+            ->assertJsonPath('features.0.properties.cases', []);
     }
 
     public function test_results_are_pilot_district_scoped_and_missing_pilot_id_fails_closed(): void

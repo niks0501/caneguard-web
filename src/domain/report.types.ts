@@ -1,4 +1,4 @@
-import type { ReportAffectedField } from "./fieldSurvey.types";
+import type { InspectorBoundaryAttachment, ReportAffectedField } from "./fieldSurvey.types";
 import type { OperationalQueue } from "./operationalQueue";
 import type { WorkflowStatus } from "./workflowStatus";
 
@@ -403,6 +403,7 @@ export interface DiseaseReport {
   metadataCorrectionAudits?: ReportAudit[];
   canonicalLinkage?: CanonicalCaseLink;
   affectedFields?: ReportAffectedField[];
+  inspectorAttachment?: InspectorBoundaryAttachment | null;
   advisory?: (Advisory & {
     selectedAt?: string | null;
     deliveryState?: AdvisoryDeliveryState;

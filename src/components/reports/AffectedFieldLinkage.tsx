@@ -5,6 +5,7 @@ import { ApiError, isApiConnectionError } from "../../api/ApiError";
 import {
   FIELD_SURVEYS_MAX_LIMIT,
   type FieldSurveyBoundaryFeature,
+  type InspectorBoundaryAttachment,
   type FieldSurveyPolygon,
   type ReportAffectedField,
 } from "../../domain/fieldSurvey.types";
@@ -12,6 +13,7 @@ import type { DiseaseReport } from "../../domain/report.types";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
 import { serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../../lib/serviceMessages";
 import { useFieldSurveys } from "../../hooks/fieldSurveys";
+import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { useUpdateReportAffectedFields } from "../../hooks/useReports";
 import { routes } from "../../app/routes";
 import { Button } from "../ui/Button";
@@ -19,6 +21,7 @@ import { Pagination } from "../ui/Pagination";
 import { Skeleton } from "../ui/States";
 import { DetailField } from "../layout/Page";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
+import { affectedFieldFormState } from "./affectedFieldFormState";
 import { boundaryCentroid, boundaryOutline } from "./boundaryShape";
 
 type BoundaryChoice = {
@@ -26,10 +29,8 @@ type BoundaryChoice = {
   capturedAt: string;
   areaSqm: number;
   inspectorName: string;
-  /** The Field boundaries viewer can resolve this boundary by id. */
-  inArchive: boolean;
-  /** This boundary is already linked from the report's earlier saved list. */
-  linked: boolean;
+  /** The inspector attached this boundary to the case on the phone. */
+  attachedByInspector: boolean;
   geometry?: FieldSurveyPolygon;
 };
 
@@ -60,17 +61,17 @@ function boundaryChoices(
   features: FieldSurveyBoundaryFeature[],
   linkedFields: ReportAffectedField[],
   draftChoices: BoundaryChoice[],
-  archivePage: boolean,
+  attachment: InspectorBoundaryAttachment | null | undefined,
 ): BoundaryChoice[] {
   const choices = new Map<number, BoundaryChoice>();
+  const attachedId = attachment?.boundary?.fieldSurveyId;
   for (const feature of features) {
     choices.set(feature.properties.id, {
       id: feature.properties.id,
       capturedAt: feature.properties.capturedAt,
       areaSqm: feature.properties.areaSqm,
       inspectorName: feature.properties.inspector.name,
-      inArchive: archivePage,
-      linked: false,
+      attachedByInspector: feature.properties.id === attachedId,
       geometry: feature.geometry,
     });
   }
@@ -81,14 +82,23 @@ function boundaryChoices(
         capturedAt: field.capturedAt,
         areaSqm: field.areaSqm,
         inspectorName: field.inspector.name,
-        inArchive: false,
-        linked: true,
+        attachedByInspector: field.fieldSurveyId === attachedId,
         geometry: field.geometry,
       });
     }
   }
+  if (attachment?.boundary && !choices.has(attachment.boundary.fieldSurveyId)) {
+    choices.set(attachment.boundary.fieldSurveyId, {
+      id: attachment.boundary.fieldSurveyId,
+      capturedAt: attachment.boundary.capturedAt,
+      areaSqm: attachment.boundary.areaSqm,
+      inspectorName: attachment.boundary.inspector.name,
+      attachedByInspector: true,
+      geometry: attachment.boundary.geometry,
+    });
+  }
   for (const choice of draftChoices) {
-    if (!choices.has(choice.id)) choices.set(choice.id, { ...choice, inArchive: false });
+    if (!choices.has(choice.id)) choices.set(choice.id, choice);
   }
   return [...choices.values()];
 }
@@ -129,15 +139,14 @@ export function AffectedFieldLinkage({
   const [draftChoices, setDraftChoices] = useState<BoundaryChoice[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const online = useOnlineStatus();
   const linkedFields = report.affectedFields ?? [];
-  // The Field boundaries viewer loads the newest page only, so only that page's
-  // rows can be resolved by the link this table offers.
-  const archivePage = !surveysQuery.isPlaceholderData && lookupPage === 1 && lookupSearch === "";
+  const attachment = report.inspectorAttachment ?? null;
   const choices = boundaryChoices(
     surveysQuery.data?.features ?? [],
     linkedFields,
     draftChoices,
-    archivePage,
+    attachment,
   );
   const metadata = surveysQuery.data?.metadata;
   const previewChoice = choices.find((choice) => choice.id === previewId) ?? null;
@@ -158,10 +167,22 @@ export function AffectedFieldLinkage({
   const existingById = new Map(linkedFields.map((field) => [field.fieldSurveyId, field.lossRatePercent]));
   const unchanged = selectedIds.length === linkedFields.length
     && parsedFields.every((field) => existingById.get(field.fieldSurveyId) === field.lossRatePercent);
-  const canSave = !unchanged && ratesValid && !updateMutation.isPending;
+  const canSave = !unchanged && ratesValid && !updateMutation.isPending && online;
   useUnsavedWorkGuard(!unchanged || draftChoices.length > 0);
   const mutationError = updateMutation.error;
   const staleVersion = mutationError instanceof ApiError && mutationError.status === 409;
+  const formState = affectedFieldFormState({
+    saved: savedNotice !== null,
+    online,
+    conflict: staleVersion,
+    saving: updateMutation.isPending,
+    failed: updateMutation.isError,
+    dirty: !unchanged,
+  });
+  const attachedBoundaryId = attachment?.boundary?.fieldSurveyId ?? null;
+  const attachmentConfirmed = attachedBoundaryId !== null
+    && (attachment?.confirmed === true || linkedFields.some((field) => field.fieldSurveyId === attachedBoundaryId));
+  const attachmentInDraft = attachedBoundaryId !== null && Object.hasOwn(draft, String(attachedBoundaryId));
 
   const setBoundarySelected = (id: number, selected: boolean) => {
     setDraft((current) => {
@@ -223,7 +244,11 @@ export function AffectedFieldLinkage({
   };
 
   return (
-    <section className="review-card affected-field-linkage" aria-labelledby="affected-field-linkage-heading">
+    <section
+      className="review-card affected-field-linkage"
+      aria-labelledby="affected-field-linkage-heading"
+      data-state={formState}
+    >
       <div className="section-heading affected-field-linkage__heading">
         <h2 id="affected-field-linkage-heading">Affected field boundaries</h2>
         <Link
@@ -261,6 +286,40 @@ export function AffectedFieldLinkage({
               ? "The boundary lookup refresh was rate limited. Wait a moment before trying again; previously loaded choices remain visible."
               : "The boundary archive could not be refreshed. Previously loaded choices remain visible and may be stale."}
         </p>
+      ) : null}
+      {attachment ? (
+        <div className="affected-field-linkage__attachment" role="group" aria-label="Boundary attached by the inspector">
+          {attachment.boundary ? (
+            <>
+              <p>
+                <strong>Attached by the inspector</strong>
+                {" · "}
+                Boundary {attachment.boundary.fieldSurveyId}
+                {" · "}
+                {formatAffectedArea(attachment.boundary.areaSqm / 10_000)}
+              </p>
+              {attachmentConfirmed ? (
+                <span className="affected-field-linkage__attachment-state">Confirmed</span>
+              ) : attachmentInDraft ? (
+                <span className="affected-field-linkage__attachment-state">Enter the loss rate, then save</span>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setBoundarySelected(attachment.boundary!.fieldSurveyId, true)}
+                >
+                  Confirm boundary
+                </Button>
+              )}
+            </>
+          ) : (
+            <p role="status">
+              <strong>Attached by the inspector</strong>
+              {" · "}
+              <span>This boundary has not reached the office yet.</span>
+            </p>
+          )}
+        </div>
       ) : null}
       <form
         className="affected-field-linkage__lookup"
@@ -380,16 +439,15 @@ export function AffectedFieldLinkage({
                           <time dateTime={choice.capturedAt}>{formatDateTime(choice.capturedAt)}</time>
                           <span> · {choice.inspectorName}</span>
                         </span>
-                        {choice.inArchive ? (
-                          <Link
-                            className="table-action"
-                            to={`${routes.monitoring}?view=boundaries&boundary=${choice.id}`}
-                          >
-                            Show on Field boundaries
-                          </Link>
-                        ) : choice.linked ? (
-                          <span className="affected-field-linkage__unavailable">Linked from an earlier boundary list</span>
+                        {choice.attachedByInspector ? (
+                          <span className="affected-field-linkage__source">Attached by the inspector</span>
                         ) : null}
+                        <Link
+                          className="table-action"
+                          to={`${routes.monitoring}?view=boundaries&boundary=${choice.id}`}
+                        >
+                          Show on Field boundaries
+                        </Link>
                         {choice.geometry ? (
                           <button
                             type="button"
@@ -450,6 +508,9 @@ export function AffectedFieldLinkage({
         ) : null}
         {submitted && draftVersion === undefined ? (
           <p className="form-error" role="alert">Refresh this case before saving affected boundaries.</p>
+        ) : null}
+        {!online && !unchanged ? (
+          <p className="form-error" role="alert">You are offline. Your changes stay in this tab until you reconnect.</p>
         ) : null}
         {mutationError ? (
           <div className="affected-field-linkage__error" role="alert">

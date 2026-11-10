@@ -4,7 +4,7 @@ import type {
   PaginationMeta,
   ReportCaseHistory,
 } from "../../../domain/report.types";
-import type { ReportAffectedField } from "../../../domain/fieldSurvey.types";
+import type { InspectorBoundaryAttachment, ReportAffectedField } from "../../../domain/fieldSurvey.types";
 import type {
   ReportDetailDto,
   ReportListItemDto,
@@ -196,6 +196,26 @@ export function mapReportAffectedField(
     areaSource: dto.area_source,
     inspector: dto.inspector,
     lossRatePercent: dto.loss_rate_percent,
+  };
+}
+
+function mapInspectorAttachment(
+  dto: NonNullable<ReportDetailDto["inspector_attachment"]>,
+): InspectorBoundaryAttachment {
+  return {
+    clientUuid: dto.client_uuid,
+    arrived: dto.arrived,
+    confirmed: dto.confirmed,
+    boundary: dto.field_survey
+      ? {
+          fieldSurveyId: dto.field_survey.field_survey_id,
+          geometry: dto.field_survey.geometry,
+          capturedAt: dto.field_survey.captured_at,
+          areaSqm: dto.field_survey.area_sqm,
+          areaSource: dto.field_survey.area_source,
+          inspector: dto.field_survey.inspector,
+        }
+      : null,
   };
 }
 
@@ -401,6 +421,7 @@ export function mapReportDetail(
       reason: audit.reason,
     })),
     affectedFields: dto.affected_fields?.map(mapReportAffectedField) ?? [],
+    inspectorAttachment: dto.inspector_attachment ? mapInspectorAttachment(dto.inspector_attachment) : null,
     canonicalLinkage: dto.duplicate_linkage
       ? {
           isDuplicate: dto.duplicate_linkage.is_duplicate,

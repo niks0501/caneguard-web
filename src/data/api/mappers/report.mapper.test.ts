@@ -193,6 +193,54 @@ describe("report mappers", () => {
     }]);
   });
 
+  it("maps the boundary the inspector attached, arrived or not", () => {
+    const attached = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          inspector_attachment: {
+            client_uuid: "client-1",
+            arrived: true,
+            confirmed: false,
+            field_survey: {
+              field_survey_id: 41,
+              geometry: {
+                type: "Polygon",
+                coordinates: [[[122.95, 10.7], [122.951, 10.7], [122.95, 10.701], [122.95, 10.7]]],
+              },
+              captured_at: "2026-10-04T02:30:12.123456Z",
+              area_sqm: 5000.5,
+              area_source: "device_reported",
+              inspector: { uuid: "inspector-1", name: "Field Inspector" },
+            },
+          },
+        },
+      }).data,
+    );
+    expect(attached.inspectorAttachment).toMatchObject({
+      clientUuid: "client-1",
+      arrived: true,
+      confirmed: false,
+      boundary: { fieldSurveyId: 41, areaSqm: 5000.5 },
+    });
+
+    const waiting = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          inspector_attachment: { client_uuid: "client-2", arrived: false, confirmed: false, field_survey: null },
+        },
+      }).data,
+    );
+    expect(waiting.inspectorAttachment).toEqual({
+      clientUuid: "client-2",
+      arrived: false,
+      confirmed: false,
+      boundary: null,
+    });
+    expect(mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data).inspectorAttachment).toBeNull();
+  });
+
   it("preserves RSSI as reporter observation evidence while keeping the model result unchanged", () => {
     const rssi = mapReportDetail(
       reportDetailResponseSchema.parse({

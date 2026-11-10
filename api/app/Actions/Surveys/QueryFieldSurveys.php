@@ -3,6 +3,7 @@
 namespace App\Actions\Surveys;
 
 use App\Models\FieldSurvey;
+use App\Models\Report;
 use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -49,11 +50,18 @@ class QueryFieldSurveys
             ->orderByDesc('id')
             ->offset($offset)
             ->limit($limit + 1)
-            ->get(['id', 'inspector_id', 'polygon', 'area_sqm', 'captured_at']);
+            ->get([
+                'id', 'client_uuid', 'inspector_id', 'polygon', 'area_sqm',
+                'affected_area_polygons', 'affected_area_sqm', 'captured_at',
+            ]);
         $hasMore = $surveys->count() > $limit;
 
         if ($hasMore) {
             $surveys->pop();
+        }
+
+        if ($districtId !== null) {
+            $this->attachCaseLinks($surveys, $districtId);
         }
 
         return [
@@ -65,6 +73,54 @@ class QueryFieldSurveys
             'page' => $page,
             'page_count' => $pageCount,
         ];
+    }
+
+    /**
+     * Mark each boundary with the cases that use it: `confirmed` when the office
+     * linked it with a loss rate, `attached` when only the inspector attached it
+     * on the phone. A boundary the office confirmed is never listed twice.
+     *
+     * @param  Collection<int, FieldSurvey>  $surveys
+     */
+    private function attachCaseLinks(Collection $surveys, int $districtId): void
+    {
+        if ($surveys->isEmpty()) {
+            return;
+        }
+
+        $links = [];
+        $confirmed = Report::query()
+            ->where('district_id', $districtId)
+            ->join('report_affected_field_surveys', 'report_affected_field_surveys.report_id', '=', 'reports.id')
+            ->whereIn('report_affected_field_surveys.field_survey_id', $surveys->modelKeys())
+            ->orderBy('reports.id')
+            ->get(['reports.uuid', 'reports.reference_code', 'report_affected_field_surveys.field_survey_id']);
+        foreach ($confirmed as $report) {
+            $links[(int) $report->field_survey_id][$report->uuid] = [
+                'uuid' => $report->uuid,
+                'reference_code' => $report->reference_code,
+                'link' => 'confirmed',
+            ];
+        }
+
+        $byClientUuid = $surveys->keyBy('client_uuid');
+        $attached = Report::query()
+            ->where('district_id', $districtId)
+            ->whereIn('field_survey_client_uuid', $byClientUuid->keys()->all())
+            ->orderBy('id')
+            ->get(['uuid', 'reference_code', 'field_survey_client_uuid']);
+        foreach ($attached as $report) {
+            $surveyId = (int) $byClientUuid->get($report->field_survey_client_uuid)->getKey();
+            $links[$surveyId][$report->uuid] ??= [
+                'uuid' => $report->uuid,
+                'reference_code' => $report->reference_code,
+                'link' => 'attached',
+            ];
+        }
+
+        foreach ($surveys as $survey) {
+            $survey->setAttribute('case_links', array_values($links[(int) $survey->getKey()] ?? []));
+        }
     }
 
     private function applySearch(Builder $query, string $search): void

@@ -272,6 +272,7 @@ class ReviewReportController extends Controller
             'fieldValidationAssignment.assignee',
             'fieldValidationAssignment.assignedBy',
             'affectedFieldSurveys.inspector',
+            'attachedFieldSurvey.inspector',
             'classScores',
             'symptoms',
             'qualityWarnings',

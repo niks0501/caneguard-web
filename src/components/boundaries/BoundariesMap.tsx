@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Layer, Map, NavigationControl, Popup, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
+import { Layer, Map, Marker, NavigationControl, Popup, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
+import { Link } from "react-router";
 import { X } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
 import { env } from "../../config/env";
+import { routes } from "../../app/routes";
 import { useMapPaint } from "../../theme/mapTheme";
 import { useTheme } from "../../theme/useTheme";
 import { resolveBasemapStyle } from "../fieldValidation/localBasemap";
+import { boundaryCentroid } from "../reports/boundaryShape";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -15,6 +18,9 @@ const OPERATING_AREA_VIEW = {
   latitude: 14.09,
   zoom: 9,
 } as const;
+
+/** Size and case labels stay off until the map is close enough to read them. */
+const LABEL_MIN_ZOOM = 12;
 
 type MapProviderState = "loading" | "ready" | "error";
 type Bounds = [[number, number], [number, number]];
@@ -78,11 +84,22 @@ function MapProviderStatus({
   );
 }
 
+function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
+  const { areaSqm, cases } = feature.properties;
+  const size = formatAffectedArea(areaSqm / 10_000);
+  return {
+    size,
+    cases: cases.length,
+    text: cases.length > 0 ? `${size} · ${cases.length === 1 ? "1 case" : `${cases.length} cases`}` : size,
+  };
+}
+
 function BoundaryLegend() {
   return (
     <div className="validation-map__legend boundaries-map__legend" role="group" aria-label="Boundary legend">
       <ul>
         <li><span className="boundaries-map__swatch" aria-hidden="true" /><span>Recorded field boundary</span></li>
+        <li><span className="boundaries-map__swatch boundaries-map__swatch--damage" aria-hidden="true" /><span>Damage area</span></li>
         <li><span className="boundaries-map__swatch boundaries-map__swatch--selected" aria-hidden="true" /><span>Selected boundary</span></li>
       </ul>
     </div>
@@ -105,6 +122,7 @@ export function BoundariesMap({
   const [providerState, setProviderState] = useState<MapProviderState>("loading");
   const [transientError, setTransientError] = useState(false);
   const [mapInstanceKey, setMapInstanceKey] = useState(0);
+  const [zoom, setZoom] = useState<number>(OPERATING_AREA_VIEW.zoom);
   const mapRef = useRef<MapRef | null>(null);
   const hasLoadedMap = useRef(false);
   const hasFittedInitialData = useRef(false);
@@ -121,6 +139,14 @@ export function BoundariesMap({
       ...feature,
       properties: { boundary_id: String(feature.properties.id) },
     })),
+  }), [data.features]);
+  const damageData = useMemo(() => ({
+    type: "FeatureCollection" as const,
+    features: data.features.flatMap((feature) => feature.properties.affectedAreas.map((geometry) => ({
+      type: "Feature" as const,
+      geometry,
+      properties: { boundary_id: String(feature.properties.id) },
+    }))),
   }), [data.features]);
   const selectedFeature = selectedBoundaryId
     ? data.features.find((feature) => String(feature.properties.id) === selectedBoundaryId) ?? null
@@ -193,6 +219,7 @@ export function BoundariesMap({
     hasFittedInitialData.current = false;
     lastFittedSelection.current = null;
     mapRef.current = null;
+    setZoom(OPERATING_AREA_VIEW.zoom);
     setTransientError(false);
     setProviderState("loading");
     setMapInstanceKey((key) => key + 1);
@@ -221,11 +248,12 @@ export function BoundariesMap({
               ref={mapRef}
               initialViewState={OPERATING_AREA_VIEW}
               mapStyle={basemapStyle}
-              interactiveLayerIds={["field-boundaries-fill", "field-boundaries-outline"]}
+              interactiveLayerIds={["field-boundaries-fill", "field-boundaries-outline", "field-boundaries-damage-fill"]}
               onClick={handleClick}
               onLoad={handleMapLoad}
               onError={handleMapError}
               onSourceData={handleSourceData}
+              onZoomEnd={(event) => setZoom(event.viewState.zoom)}
             >
               <NavigationControl position="top-right" showCompass={false} />
               <Source id="field-boundaries" type="geojson" data={sourceData}>
@@ -240,6 +268,18 @@ export function BoundariesMap({
                   paint={{ "line-color": paint.boundaryLine, "line-width": 2 }}
                 />
               </Source>
+              <Source id="field-boundaries-damage" type="geojson" data={damageData}>
+                <Layer
+                  id="field-boundaries-damage-fill"
+                  type="fill"
+                  paint={{ "fill-color": paint.boundaryDamage, "fill-opacity": 0.5 }}
+                />
+                <Layer
+                  id="field-boundaries-damage-line"
+                  type="line"
+                  paint={{ "line-color": paint.boundaryDamage, "line-width": 1.5 }}
+                />
+              </Source>
               <Source id="field-boundaries-selected" type="geojson" data={selectedSource}>
                 <Layer
                   id="field-boundaries-selected-line"
@@ -247,6 +287,26 @@ export function BoundariesMap({
                   paint={{ "line-color": paint.boundarySelected, "line-width": 3 }}
                 />
               </Source>
+              {zoom >= LABEL_MIN_ZOOM ? data.features.map((feature) => {
+                const centre = boundaryCentroid(feature.geometry);
+                if (!centre) return null;
+                const label = boundaryLabel(feature);
+                return (
+                  <Marker
+                    key={feature.properties.id}
+                    longitude={centre.longitude}
+                    latitude={centre.latitude}
+                    anchor="center"
+                  >
+                    <span
+                      className={`boundaries-map__label${label.cases > 0 ? " boundaries-map__label--case" : ""}`}
+                      data-boundary-label={feature.properties.id}
+                    >
+                      {label.text}
+                    </span>
+                  </Marker>
+                );
+              }) : null}
               {selectedFeature && popupPosition ? (
                 <Popup
                   longitude={popupPosition[0]}
@@ -267,7 +327,32 @@ export function BoundariesMap({
                     <dl>
                       <div><dt>Captured</dt><dd>{formatDateTime(selectedFeature.properties.capturedAt)}</dd></div>
                       <div><dt>Area · device-reported</dt><dd>{formatAffectedArea(selectedFeature.properties.areaSqm / 10_000)}</dd></div>
+                      {selectedFeature.properties.affectedAreas.length > 0 ? (
+                        <div>
+                          <dt>Damage · device-reported</dt>
+                          <dd>
+                            {selectedFeature.properties.affectedAreaSqm === null
+                              ? `${selectedFeature.properties.affectedAreas.length} drawn`
+                              : formatAffectedArea(selectedFeature.properties.affectedAreaSqm / 10_000)}
+                          </dd>
+                        </div>
+                      ) : null}
                       <div><dt>Inspector</dt><dd>{selectedFeature.properties.inspector.name}</dd></div>
+                      {selectedFeature.properties.cases.length > 0 ? (
+                        <div>
+                          <dt>Cases</dt>
+                          <dd>
+                            <ul className="boundaries-map__cases">
+                              {selectedFeature.properties.cases.map((link) => (
+                                <li key={link.uuid}>
+                                  <Link to={routes.reportDetail(link.uuid)}>{link.referenceCode}</Link>
+                                  {link.link === "attached" ? " · attached" : " · confirmed"}
+                                </li>
+                              ))}
+                            </ul>
+                          </dd>
+                        </div>
+                      ) : null}
                     </dl>
                   </div>
                 </Popup>

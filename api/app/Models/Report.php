@@ -659,6 +659,17 @@ class Report extends Model
     }
 
     /**
+     * The boundary the inspector attached on the phone, matched by the client
+     * identity the report carries. Null until that boundary has been uploaded.
+     *
+     * @return BelongsTo<FieldSurvey, $this>
+     */
+    public function attachedFieldSurvey(): BelongsTo
+    {
+        return $this->belongsTo(FieldSurvey::class, 'field_survey_client_uuid', 'client_uuid');
+    }
+
+    /**
      * @return HasOne<FieldValidationAssignment, $this>
      */
     public function fieldValidationAssignment(): HasOne

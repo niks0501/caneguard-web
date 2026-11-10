@@ -50,6 +50,31 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
     expect(parsed.features[0].geometry.coordinates[0][0]).toEqual([122.95, 10.7]);
   });
 
+  it("defaults damage areas and case links for a response that predates them, and keeps them when sent", () => {
+    const parsed = fieldSurveyBoundariesResponseSchema.parse(response());
+    expect(parsed.features[0].properties.affected_areas).toEqual([]);
+    expect(parsed.features[0].properties.affected_area_sqm).toBeNull();
+    expect(parsed.features[0].properties.cases).toEqual([]);
+
+    const damage = { type: "Polygon", coordinates: [ring] };
+    const withDamage = response();
+    Object.assign(withDamage.features[0].properties, {
+      affected_areas: [damage],
+      affected_area_sqm: 412.5,
+      cases: [{ uuid: "case-1", reference_code: "CG-1", link: "attached" }],
+    });
+    const sent = fieldSurveyBoundariesResponseSchema.parse(withDamage).features[0].properties;
+    expect(sent.affected_areas).toEqual([damage]);
+    expect(sent.affected_area_sqm).toBe(412.5);
+    expect(sent.cases).toEqual([{ uuid: "case-1", reference_code: "CG-1", link: "attached" }]);
+  });
+
+  it("rejects a case link that is neither confirmed nor attached", () => {
+    const bad = response();
+    Object.assign(bad.features[0].properties, { cases: [{ uuid: "c", reference_code: "CG-1", link: "guess" }] });
+    expect(() => fieldSurveyBoundariesResponseSchema.parse(bad)).toThrow();
+  });
+
   it("rejects out-of-range or swapped coordinates", () => {
     const invalidRing = [[10.7, 122.95], [10.8, 122.95], [10.8, 122.96], [10.7, 122.95]];
     expect(fieldSurveyBoundariesResponseSchema.safeParse(response({

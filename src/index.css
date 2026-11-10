@@ -9198,6 +9198,63 @@ button.monitoring-calendar__day-number:focus-visible {
   border-radius: var(--radius-sm);
 }
 
+.boundaries-map__swatch--damage {
+  background: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.boundaries-map__label {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-dark);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.boundaries-map__label--case {
+  border-width: 2px;
+  border-color: var(--color-warning);
+}
+
+.affected-field-linkage__attachment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.affected-field-linkage__attachment p {
+  margin: 0;
+}
+
+.affected-field-linkage__attachment-state {
+  font-weight: 700;
+}
+
+.boundaries-list__cases {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.boundaries-map__cases {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .boundaries-map__swatch--selected {
   background: transparent;
   border: 3px solid var(--color-accent-dark);

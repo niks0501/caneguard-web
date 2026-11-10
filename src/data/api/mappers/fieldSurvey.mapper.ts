@@ -13,6 +13,13 @@ export function mapFieldSurveyBoundaries(
       capturedAt: feature.properties.captured_at,
       areaSqm: feature.properties.area_sqm,
       areaSource: feature.properties.area_source,
+      affectedAreas: feature.properties.affected_areas,
+      affectedAreaSqm: feature.properties.affected_area_sqm,
+      cases: feature.properties.cases.map((link) => ({
+        uuid: link.uuid,
+        referenceCode: link.reference_code,
+        link: link.link,
+      })),
       inspector: feature.properties.inspector,
     },
   }));

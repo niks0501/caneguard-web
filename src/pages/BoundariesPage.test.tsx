@@ -8,10 +8,10 @@ import { env } from "../config/env";
 import { apiEndpointDetail } from "../lib/serviceMessages";
 import { ZodError } from "zod";
 import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyBoundariesData } from "../domain/fieldSurvey.types";
-import { useFieldSurveys } from "../hooks/fieldSurveys";
+import { useFieldSurveyById, useFieldSurveys } from "../hooks/fieldSurveys";
 import { BoundariesPage } from "./BoundariesPage";
 
-vi.mock("../hooks/fieldSurveys", () => ({ useFieldSurveys: vi.fn() }));
+vi.mock("../hooks/fieldSurveys", () => ({ useFieldSurveys: vi.fn(), useFieldSurveyById: vi.fn() }));
 vi.mock("../components/boundaries/BoundariesMap", () => ({
   BoundariesMap: ({
     selectedBoundaryId,
@@ -44,6 +44,9 @@ const oneBoundary: FieldSurveyBoundariesData = {
       capturedAt: "2026-10-04T02:30:12.123456Z",
       areaSqm: 6075.123,
       areaSource: "device_reported",
+      affectedAreas: [],
+      affectedAreaSqm: null,
+      cases: [],
       inspector: { uuid: "inspector-1", name: "Maria Santos" },
     },
   }],
@@ -64,6 +67,13 @@ function queryResult(data: FieldSurveyBoundariesData | undefined, overrides: Rec
   } as never;
 }
 
+function lookupResult(feature: FieldSurveyBoundariesData["features"][number] | null, overrides: Record<string, unknown> = {}) {
+  return {
+    feature,
+    query: { isError: false, isFetching: false, isSuccess: true, ...overrides },
+  } as never;
+}
+
 function LocationProbe() {
   const location = useLocation();
   return <output data-testid="location">{location.pathname}{location.search}</output>;
@@ -80,6 +90,7 @@ function renderPage(initialEntry = "/monitoring?view=boundaries", embedded = tru
 
 beforeEach(() => {
   vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary));
+  vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(null));
 });
 
 describe("BoundariesPage", () => {
@@ -107,7 +118,7 @@ describe("BoundariesPage", () => {
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(undefined, { isPending: true }));
     renderPage("/monitoring?view=boundaries&boundary=999");
     expect(screen.getByText("Loading field boundaries...")).toBeInTheDocument();
-    expect(screen.queryByText("The requested boundary is not available in the loaded field boundaries.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
   });
 
   it("shows the honest empty state when no field boundaries have synced", () => {
@@ -132,7 +143,7 @@ describe("BoundariesPage", () => {
     renderPage("/monitoring?view=boundaries&boundary=999");
 
     expect(screen.getByRole("alert")).toHaveTextContent("Your account does not have access to field boundaries.");
-    expect(screen.queryByText("The requested boundary is not available in the loaded field boundaries.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalledOnce();
   });
@@ -195,7 +206,7 @@ describe("BoundariesPage", () => {
     renderPage("/monitoring?view=boundaries&boundary=999");
     expect(screen.getByRole("alert")).toHaveTextContent("most recently loaded boundaries are still shown and may be stale");
     expect(screen.getByText("Maria Santos")).toBeInTheDocument();
-    expect(screen.queryByText("The requested boundary is not available in the loaded field boundaries.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
   });
 
   it("does not imply the raced total is complete when the truncated count is not greater", () => {
@@ -287,21 +298,64 @@ describe("BoundariesPage", () => {
     expect(useFieldSurveys).toHaveBeenCalledWith(FIELD_SURVEYS_MAX_LIMIT);
     expect(screen.getByTestId("map-selection")).toHaveTextContent("150");
     expect(screen.getByRole("button", { name: /Selected boundary 150 captured/ })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.queryByText("The requested boundary is not available in the loaded field boundaries.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
   });
 
   it("announces an unavailable deep-linked boundary after a successful lookup", () => {
     renderPage("/monitoring?view=boundaries&boundary=999");
 
-    expect(screen.getByText("The requested boundary is not available in the loaded field boundaries.")).toHaveAttribute("role", "status");
+    expect(screen.getByText("Boundary 999 was not found.")).toHaveAttribute("role", "status");
     expect(screen.getByTestId("map-selection")).toHaveTextContent("none");
+    expect(document.querySelector(".boundaries-workspace")).toHaveAttribute("data-selection-state", "missing");
+  });
+
+  it("opens a boundary older than the loaded page by fetching it by its number", () => {
+    const older = {
+      ...oneBoundary.features[0],
+      id: "7",
+      properties: { ...oneBoundary.features[0].properties, id: 7 },
+    };
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(older));
+    renderPage("/monitoring?view=boundaries&boundary=7");
+
+    expect(useFieldSurveyById).toHaveBeenCalledWith("7");
+    expect(screen.getByTestId("map-selection")).toHaveTextContent("7");
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
+    expect(document.querySelector(".boundaries-workspace")).toHaveAttribute("data-selection-state", "list");
+  });
+
+  it("does not look up a boundary that the loaded page already holds", () => {
+    renderPage("/monitoring?view=boundaries&boundary=123");
+
+    expect(useFieldSurveyById).toHaveBeenCalledWith(null);
+    expect(document.querySelector(".boundaries-workspace")).toHaveAttribute("data-selection-state", "list");
+  });
+
+  it("says a looked-up boundary is loading rather than missing, and reports a failed lookup", () => {
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(null, { isSuccess: false, isFetching: true }));
+    const { unmount } = renderPage("/monitoring?view=boundaries&boundary=7");
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
+    expect(document.querySelector(".boundaries-workspace")).toHaveAttribute("data-selection-state", "loading");
+    unmount();
+
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(null, { isError: true, isSuccess: false }));
+    renderPage("/monitoring?view=boundaries&boundary=7");
+    expect(screen.getByText("Boundary 7 could not be loaded. Try again in a moment.")).toHaveAttribute("role", "alert");
+    expect(document.querySelector(".boundaries-workspace")).toHaveAttribute("data-selection-state", "unavailable");
+  });
+
+  it("treats a boundary that is not a number as not found without a lookup", () => {
+    renderPage("/monitoring?view=boundaries&boundary=abc");
+
+    expect(useFieldSurveyById).toHaveBeenCalledWith(null);
+    expect(screen.getByText("Boundary abc was not found.")).toBeInTheDocument();
   });
 
   it("does not announce a boundary as unavailable while a refresh is in progress", () => {
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary, { isFetching: true }));
     renderPage("/monitoring?view=boundaries&boundary=999");
 
-    expect(screen.queryByText("The requested boundary is not available in the loaded field boundaries.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
   });
 
   it("restores selection from a deep link and clears the boundary parameter from the map", async () => {

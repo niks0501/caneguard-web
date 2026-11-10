@@ -8,7 +8,12 @@ import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyPosition } from "../domain/fieldSurvey.types";
-import { useFieldSurveys } from "../hooks/fieldSurveys";
+import { useFieldSurveyById, useFieldSurveys } from "../hooks/fieldSurveys";
+import {
+  boundaryNeedsLookup,
+  boundarySelectionState,
+  type BoundaryLookup,
+} from "../components/boundaries/boundarySelection";
 import { env } from "../config/env";
 import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { useSearchParams } from "react-router";
@@ -44,22 +49,35 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
   const data = cannotDisplayCachedData ? undefined : query.data;
   const hasCachedData = Boolean(query.data);
   const boundaryParam = searchParams.get("boundary");
-  const selectedFeature = boundaryParam && data
+  const loadedFeature = boundaryParam && data
     ? data.features.find((feature) => String(feature.properties.id) === boundaryParam) ?? null
     : null;
-  const boundaryUnavailable = Boolean(
-    boundaryParam
-      && data
-      && query.isSuccess
-      && !query.isFetching
-      && !query.isError
-      && !query.isRefetchError
-      && !selectedFeature,
-  );
+  const listSettled = Boolean(data) && query.isSuccess && !query.isFetching && !query.isError && !query.isRefetchError;
+  // A boundary older than the newest page is fetched by its number, so every
+  // boundary the office can link to is also one the viewer can open.
+  const lookupId = boundaryNeedsLookup(boundaryParam, loadedFeature, listSettled) ? boundaryParam : null;
+  const lookup = useFieldSurveyById(lookupId);
+  const selectedFeature = loadedFeature ?? lookup.feature;
+  const lookupStatus: BoundaryLookup = lookupId === null
+    ? "idle"
+    : lookup.query.isError
+      ? "error"
+      : lookup.query.isSuccess && !lookup.query.isFetching
+        ? "done"
+        : "loading";
   const selectedBoundaryId = selectedFeature ? boundaryParam : null;
   const popupCoordinates = selectedBoundaryId && popupSelection?.id === selectedBoundaryId
     ? popupSelection.coordinates
     : null;
+  const selectionState = boundarySelectionState({
+    requestedId: boundaryParam,
+    feature: selectedFeature,
+    lookup: lookupStatus,
+    openedOnMap: popupCoordinates !== null,
+  });
+  const mapData = data && selectedFeature && !loadedFeature
+    ? { ...data, features: [...data.features, selectedFeature] }
+    : data;
 
   const updateBoundaryParam = (id: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -110,9 +128,14 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
               : "The latest boundary refresh failed. The most recently loaded boundaries are still shown and may be stale."}
         </p>
       ) : null}
-      {boundaryUnavailable ? (
+      {selectionState === "missing" ? (
         <p className="queue-refresh-status" role="status">
-          The requested boundary is not available in the loaded field boundaries.
+          Boundary {boundaryParam} was not found.
+        </p>
+      ) : null}
+      {selectionState === "unavailable" ? (
+        <p className="queue-refresh-warning" role="alert">
+          Boundary {boundaryParam} could not be loaded. Try again in a moment.
         </p>
       ) : null}
       {query.isPending && !data ? <LoadingState message="Loading field boundaries..." /> : null}
@@ -124,9 +147,9 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
         />
       ) : null}
       {data ? (
-        <div className="boundaries-workspace">
+        <div className="boundaries-workspace" data-selection-state={selectionState}>
           <BoundariesMap
-            data={data}
+            data={mapData ?? data}
             selectedBoundaryId={selectedBoundaryId}
             popupCoordinates={popupCoordinates}
             onSelect={selectFromMap}

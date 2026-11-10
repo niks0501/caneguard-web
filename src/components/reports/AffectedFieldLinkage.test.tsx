@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { AxiosError } from "axios";
@@ -29,6 +29,9 @@ function boundary(id: number, areaSqm: number): FieldSurveyBoundaryFeature {
       capturedAt,
       areaSqm,
       areaSource: "device_reported",
+      affectedAreas: [],
+      affectedAreaSqm: null,
+      cases: [],
       inspector: { uuid: `inspector-${id}`, name: `Inspector ${id}` },
     },
   };
@@ -177,9 +180,10 @@ describe("AffectedFieldLinkage", () => {
     expect(lookup).not.toHaveTextContent("This read stopped before the last matching boundary");
     expect(screen.getByRole("button", { name: "Go to page 2" })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Link boundary 9" })).toBeChecked();
-    expect(screen.getByText("Linked from an earlier boundary list")).toBeInTheDocument();
+    // The viewer opens any boundary by its number, so an older link is still openable.
+    expect(screen.queryByText("Linked from an earlier boundary list")).not.toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Show on Field boundaries" })
-      .some((link) => link.getAttribute("href") === "/monitoring?view=boundaries&boundary=9")).toBe(false);
+      .some((link) => link.getAttribute("href") === "/monitoring?view=boundaries&boundary=9")).toBe(true);
   });
 
   it("states a truncated single-page read instead of showing a complete-looking list", () => {
@@ -235,17 +239,76 @@ describe("AffectedFieldLinkage", () => {
 
     expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ search: "Mateo", page: 1 });
     expect(screen.getByRole("status")).not.toHaveTextContent("This read stopped before the last matching boundary");
-    // Rows found beyond the viewer's loaded page cannot be opened there.
-    expect(screen.queryByRole("link", { name: "Show on Field boundaries" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Linked from an earlier boundary list")).not.toBeInTheDocument();
+    // Every row opens in the viewer, whichever page the lookup is on.
+    expect(screen.getAllByRole("link", { name: "Show on Field boundaries" })).toHaveLength(2);
 
     await user.click(screen.getByRole("button", { name: "Go to page 2" }));
     expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ page: 2 });
-    expect(screen.queryByRole("link", { name: "Show on Field boundaries" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Show on Field boundaries" })).toHaveLength(2);
 
     await user.click(screen.getByRole("button", { name: "Clear search" }));
     expect(vi.mocked(useFieldSurveys).mock.calls.at(-1)?.[0]).toMatchObject({ search: "", page: 1 });
     expect(screen.getAllByRole("link", { name: "Show on Field boundaries" }).length).toBeGreaterThan(0);
+  });
+
+  it("shows the boundary the inspector attached and lets the reviewer confirm it", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([]));
+    const { lossRatePercent: _rate, ...attached } = affectedField(41, 5000, 0);
+    void _rate;
+
+    renderLinkage(report({
+      inspectorAttachment: { clientUuid: "client-41", arrived: true, confirmed: false, boundary: attached },
+    }));
+
+    const banner = screen.getByRole("group", { name: "Boundary attached by the inspector" });
+    expect(within(banner).getByText("Attached by the inspector")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Link boundary 41" })).not.toBeChecked();
+
+    await user.click(within(banner).getByRole("button", { name: "Confirm boundary" }));
+
+    expect(screen.getByRole("checkbox", { name: "Link boundary 41" })).toBeChecked();
+    expect(within(banner).getByText("Enter the loss rate, then save")).toBeInTheDocument();
+    expect(within(banner).queryByRole("button", { name: "Confirm boundary" })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Office loss rate for boundary 41/), "12");
+    expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeEnabled();
+  });
+
+  it("says when the attached boundary has not reached the office and when it is already confirmed", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([]));
+    const { unmount } = renderLinkage(report({
+      inspectorAttachment: { clientUuid: "client-41", arrived: false, confirmed: false, boundary: null },
+    }));
+    expect(screen.getByText("This boundary has not reached the office yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirm boundary" })).not.toBeInTheDocument();
+    unmount();
+
+    const { lossRatePercent: _rate, ...attached } = affectedField(41, 5000, 20);
+    void _rate;
+    renderLinkage(report({
+      affectedFields: [affectedField(41, 5000, 20)],
+      inspectorAttachment: { clientUuid: "client-41", arrived: true, confirmed: true, boundary: attached },
+    }));
+    expect(screen.getByText("Confirmed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirm boundary" })).not.toBeInTheDocument();
+  });
+
+  it("publishes one named form state, including offline", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([boundary(123, 6075.12)]));
+    const { container } = renderLinkage();
+    const section = container.querySelector("section.affected-field-linkage");
+    expect(section).toHaveAttribute("data-state", "idle");
+
+    await user.click(screen.getByRole("checkbox", { name: "Link boundary 123" }));
+    expect(section).toHaveAttribute("data-state", "dirty");
+
+    const online = vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+    window.dispatchEvent(new Event("offline"));
+    await waitFor(() => expect(section).toHaveAttribute("data-state", "offline"));
+    expect(screen.getByRole("alert")).toHaveTextContent("You are offline.");
+    expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeDisabled();
+    online.mockRestore();
   });
 
   it("previews a boundary shape without disturbing the draft", async () => {

@@ -35,6 +35,7 @@ class ReportController extends Controller
             'fieldValidationAssignment.assignedBy',
             'fieldValidationAssignment.completion',
             'affectedFieldSurveys.inspector',
+            'attachedFieldSurvey.inspector',
             'referral.referredBy',
             'referral.expert',
             'referral.responseRecordedBy',
