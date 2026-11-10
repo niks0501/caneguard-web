@@ -1046,8 +1046,38 @@ class FieldValidationAssignmentTest extends TestCase
         );
 
         $response = $this->get($case['photo']['url'])->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
-        $this->assertStringContainsString('immutable', $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-cache', $response->headers->get('Cache-Control'));
+    }
+
+    public function test_report_photo_stops_serving_reassigned_cases(): void
+    {
+        // Proves: the photo is authorized per retrieval, so a transferred case is refused at once.
+        Storage::fake('local');
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $other = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        Storage::disk('local')->put('reports/office/transfer.jpg', 'transfer');
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'origin' => Report::ORIGIN_OFFICE,
+            'image_path' => 'reports/office/transfer.jpg',
+            'image_mime_type' => 'image/jpeg',
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $owner->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $path = "/api/v1/mobile/assignments/{$assignment->uuid}/report-photo";
+
+        Sanctum::actingAs($owner, ['assignment:read']);
+        $this->get($path)->assertOk();
+
+        $assignment->update(['assignee_id' => $other->getKey()]);
+
+        $this->get($path)->assertForbidden();
     }
 
     public function test_field_case_wire_shape_has_no_office_projection_keys(): void

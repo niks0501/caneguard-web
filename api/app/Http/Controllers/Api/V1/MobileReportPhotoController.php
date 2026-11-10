@@ -30,14 +30,12 @@ class MobileReportPhotoController extends Controller
             404,
         );
 
-        // The original report photo never changes after submission, so the
-        // phone may keep it for a year without revalidating.
         return Storage::disk('local')->response(
             $path,
             null,
             [
                 'Content-Type' => $report->image_mime_type,
-                'Cache-Control' => 'private, max-age=31536000, immutable',
+                'Cache-Control' => 'private, no-cache',
                 'X-Content-Type-Options' => 'nosniff',
             ],
         );

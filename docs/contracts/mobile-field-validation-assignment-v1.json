@@ -150,12 +150,12 @@
           "nullable": true,
           "required_keys": ["url", "content_type", "bytes", "immutable"],
           "additional_properties": false,
-          "note": "Fetched with the same bearer token from GET /api/v1/mobile/assignments/{assignment}/report-photo (assignee only).",
+          "note": "Fetched with the same bearer token from GET /api/v1/mobile/assignments/{assignment}/report-photo (assignee only). The response is `private, no-cache`: it revalidates the caller's assignment on every retrieval, so a transferred or revoked assignment stops serving the photo.",
           "properties": {
             "url": { "type": "string", "required": true, "nullable": false },
             "content_type": { "type": "string", "required": true, "nullable": false },
             "bytes": { "type": "number", "required": true, "nullable": false, "minimum": 0 },
-            "immutable": { "type": "boolean", "required": true, "nullable": false }
+            "immutable": { "type": "boolean", "required": true, "nullable": false, "note": "The file's bytes do not change; it does not permit reusing the response without revalidating." }
           }
         }
       }
