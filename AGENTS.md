@@ -27,6 +27,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 - After modifying code, run `npm run graphify:refresh` to keep the graph current and contract-valid.
 - Include that refresh in the completion checklist: `graphify update .` alone omits normalization and clustering. Report a failed or unavailable refresh rather than silently skipping it.
 - When the user explicitly invokes `/graphify`, follow the installed Graphify skill or instructions before doing anything else.
+- `.graphifyignore` scopes the graph to product `src`, `api` and contract docs; agent mirrors, scripts and data are excluded, so read those directly. `npm run graphify:refresh` builds without a viewer and prunes dated backups; do not keep `graphify-out/YYYY-MM-DD/` or `graph.html` in a worktree.
 
 ## Verification
 
