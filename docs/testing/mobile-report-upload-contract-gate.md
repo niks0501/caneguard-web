@@ -18,7 +18,7 @@ Mobile device acceptance is owned by the companion [Agent Device guide](https://
 
 `contract:v2:artifact` validates the Model V1 four-class upload artifact used by the current Mobile producer.
 
-`contract:assignment-artifact` validates the assignment artifact identity, owner-scoped JSON envelope, item fields, assignment states, and pagination checkpoint.
+`contract:assignment-artifact` validates the assignment artifact identity, owner-scoped JSON envelope, item fields, assignment states, pagination checkpoint, the `sync` version/total/truncated/unchanged surface, and the bounded-download `limit` cap against the controller constant that enforces it.
 
 `contract:completion-artifact` validates the completion multipart artifact.
 
