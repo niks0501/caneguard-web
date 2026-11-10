@@ -171,12 +171,31 @@ class MobileAssignmentSyncVersionTest extends TestCase
             ->assertStatus(409)
             ->assertJsonPath('code', 'SYNC_RESTART')
             ->assertJsonPath('sync.total', 2)
-            ->assertJsonPath('sync.truncated', false);
+            ->assertJsonPath('sync.truncated', false)
+            ->assertJsonPath('sync.unchanged', false);
 
         $this->getJson('/api/v1/mobile/assignments?per_page=2')
             ->assertOk()
             ->assertJsonPath('sync.total', 2)
             ->assertJsonCount(2, 'data');
+    }
+
+    // Proves: data the feed withholds does not move the version.
+    public function test_editing_data_the_feed_withholds_does_not_change_the_version(): void
+    {
+        $assignment = $this->assign();
+        $before = $this->sync();
+
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $case = $this->getJson('/api/v1/mobile/assignments')->assertOk()->json('data.0.case');
+        $this->assertArrayNotHasKey('review_notes', $case);
+        $this->assertArrayNotHasKey('image_path', $case);
+
+        $assignment->report->update([
+            'review_notes' => 'Internal office note',
+        ]);
+
+        $this->assertSame($before['version'], $this->sync()['version']);
     }
 
     // Proves: an unchanged set returns "unchanged".
