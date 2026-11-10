@@ -22,9 +22,11 @@
           "unassignment",
           "case close",
           "edit to a case field this feed delivers",
-          "edit to the earlier report a delivered previous_visit is built from"
+          "edit to the earlier report a delivered previous_visit is built from",
+          "edit to an office-born case's delivered version, status, reporter concern or photo",
+          "edit to the delivered previous_visit.photo of an office-born case"
         ],
-        "ignores": "fields this feed withholds",
+        "ignores": "fields this feed withholds from field-born cases",
         "unchanged_request": "since"
       },
       "cap": {

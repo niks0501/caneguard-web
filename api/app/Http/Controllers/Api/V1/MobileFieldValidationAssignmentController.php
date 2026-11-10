@@ -7,7 +7,6 @@ use App\Http\Requests\MobileFieldValidationAssignmentRequest;
 use App\Http\Resources\MobileFieldValidationAssignmentResource;
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
-use App\Support\MobilePreviousVisit;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -170,8 +169,9 @@ class MobileFieldValidationAssignmentController extends Controller
 
     /**
      * A digest of everything the feed would store for this owner: every held
-     * assignment with the report and identity fields it serializes, plus the
-     * `previous_visit` payload each delivered row resolves.
+     * assignment with the report and identity fields it serializes, the
+     * office-born case projection it delivers, plus the `previous_visit`
+     * payload each delivered row resolves.
      *
      * @param  Collection<int, FieldValidationAssignment>  $rows
      * @param  array<int, int>  $selectedIds
@@ -181,18 +181,27 @@ class MobileFieldValidationAssignmentController extends Controller
         $wanted = array_flip($selectedIds);
         $previousVisits = $rows
             ->filter(fn (FieldValidationAssignment $row): bool => isset($wanted[(int) $row->getKey()]))
-            ->map(fn (FieldValidationAssignment $row): ?array => MobilePreviousVisit::payload($row))
+            ->map(fn (FieldValidationAssignment $row): ?array => MobileFieldValidationAssignmentResource::previousVisitPayload($row))
             ->values()
             ->all();
 
         $payload = [
-            'rows' => $rows->map(fn (FieldValidationAssignment $row): array => [
-                Arr::only($row->getAttributes(), self::ASSIGNMENT_VERSION_FIELDS),
-                Arr::only($row->report->getAttributes(), self::REPORT_VERSION_FIELDS),
-                $row->report->lifecycleSnapshot()['field_validation_state'],
-                [$row->assignee?->uuid, $row->assignee?->name],
-                [$row->report->reporter?->uuid, $row->report->reporter?->name],
-            ])->all(),
+            'rows' => $rows->map(function (FieldValidationAssignment $row): array {
+                $entry = [
+                    Arr::only($row->getAttributes(), self::ASSIGNMENT_VERSION_FIELDS),
+                    Arr::only($row->report->getAttributes(), self::REPORT_VERSION_FIELDS),
+                    $row->report->lifecycleSnapshot()['field_validation_state'],
+                    [$row->assignee?->uuid, $row->assignee?->name],
+                    [$row->report->reporter?->uuid, $row->report->reporter?->name],
+                ];
+
+                $projection = MobileFieldValidationAssignmentResource::caseProjection($row);
+                if ($projection !== null) {
+                    $entry[] = $projection;
+                }
+
+                return $entry;
+            })->all(),
             'previous_visits' => $previousVisits,
         ];
 

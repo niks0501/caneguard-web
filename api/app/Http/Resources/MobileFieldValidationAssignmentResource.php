@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Contracts\MobileFieldValidationAssignmentContract;
+use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Support\MobilePreviousVisit;
 use Illuminate\Http\Request;
@@ -18,7 +19,6 @@ class MobileFieldValidationAssignmentResource extends JsonResource
         $report = $this->report;
         $assignment = $this->resource;
         $lifecycle = $report->lifecycleSnapshot();
-        $isOffice = $report->origin === Report::ORIGIN_OFFICE;
 
         return [
             'uuid' => $assignment->uuid,
@@ -54,30 +54,30 @@ class MobileFieldValidationAssignmentResource extends JsonResource
                 'submitted_at' => $report->submitted_at->utc()->toISOString(),
                 'predicted_label' => $report->predicted_label,
                 'confidence' => (float) $report->confidence,
-            ] + ($isOffice ? $this->officeCaseProjection($report) : []),
-            'previous_visit' => $this->previousVisitPayload($isOffice),
+            ] + (self::caseProjection($assignment) ?? []),
+            'previous_visit' => self::previousVisitPayload($assignment),
         ];
     }
 
     /**
      * @return array<string, mixed>|null
      */
-    private function previousVisitPayload(bool $isOffice): ?array
+    public static function previousVisitPayload(FieldValidationAssignment $assignment): ?array
     {
         // The feed version digests the shared payload, so the serializer and
         // the digest must never drift apart.
-        $payload = MobilePreviousVisit::payload($this->resource);
+        $payload = MobilePreviousVisit::payload($assignment);
         if ($payload === null) {
             return null;
         }
 
         // Field rows keep the exact legacy payload; only office-born cases
         // carry a fetchable reference to the last visit's photo.
-        $completion = MobilePreviousVisit::resolve($this->resource)?->completion;
-        if ($isOffice && $completion !== null) {
+        $completion = MobilePreviousVisit::resolve($assignment)?->completion;
+        if ($completion !== null && $assignment->report->origin === Report::ORIGIN_OFFICE) {
             $payload['photo'] = $completion->fresh_photo_path === null ? null : [
                 'url' => route('api.v1.mobile.assignments.previous-evidence-photo', [
-                    'assignment' => $this->resource->uuid,
+                    'assignment' => $assignment->uuid,
                 ], false),
                 'content_type' => $completion->fresh_photo_mime_type,
                 'bytes' => $completion->fresh_photo_size_bytes === null
@@ -92,12 +92,19 @@ class MobileFieldValidationAssignmentResource extends JsonResource
     /**
      * Optional projection that lets the phone treat an office-born case as
      * its own kind. Field-born rows never carry these keys, so their wire
-     * shape stays byte-identical to the legacy feed.
+     * shape stays byte-identical to the legacy feed. The feed version digests
+     * the whole returned array, so the serializer and the digest share one
+     * definition.
      *
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function officeCaseProjection(Report $report): array
+    public static function caseProjection(FieldValidationAssignment $assignment): ?array
     {
+        $report = $assignment->report;
+        if ($report->origin !== Report::ORIGIN_OFFICE) {
+            return null;
+        }
+
         $lifecycle = $report->lifecycleSnapshot();
 
         return [
@@ -117,7 +124,7 @@ class MobileFieldValidationAssignmentResource extends JsonResource
             ],
             'photo' => $report->image_path === null || $report->image_path === '' ? null : [
                 'url' => route('api.v1.mobile.assignments.report-photo', [
-                    'assignment' => $this->resource->uuid,
+                    'assignment' => $assignment->uuid,
                 ], false),
                 'content_type' => $report->image_mime_type,
                 'bytes' => (int) $report->image_size_bytes,

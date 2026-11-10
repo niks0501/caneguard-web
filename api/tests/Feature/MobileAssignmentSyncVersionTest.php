@@ -183,6 +183,96 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->assertNotSame($before['version'], $this->sync()['version']);
     }
 
+    // Proves: an office case's delivered reporter concern moves the version.
+    public function test_editing_an_office_case_concern_changes_the_version(): void
+    {
+        $assignment = $this->assign(report: [
+            'origin' => Report::ORIGIN_OFFICE,
+            'reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI,
+        ]);
+        $before = $this->sync();
+
+        DB::table('reports')
+            ->where('id', $assignment->report_id)
+            ->update(['reporter_suspected_condition' => 'brown spots along the canal']);
+
+        $after = $this->sync('?since='.$before['version']);
+        $this->assertNotSame($before['version'], $after['version']);
+        $this->assertFalse($after['unchanged']);
+    }
+
+    // Proves: a handoff note on an office case moves the version and reaches the phone.
+    public function test_a_handoff_note_on_an_office_case_changes_the_version(): void
+    {
+        $assignment = $this->assign(report: ['origin' => Report::ORIGIN_OFFICE]);
+        $before = $this->sync();
+
+        $assignment->report->update(['review_notes' => 'Called the barangay captain.']);
+
+        $after = $this->sync('?since='.$before['version']);
+        $this->assertFalse($after['unchanged']);
+        $this->assertNotSame($before['version'], $after['version']);
+
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $case = $this->getJson('/api/v1/mobile/assignments')->assertOk()->json('data.0.case');
+        $this->assertSame((int) $assignment->report->fresh()->lock_version, $case['version']);
+        $this->assertSame(
+            $assignment->report->fresh()->updated_at->utc()->toISOString(),
+            $case['status']['updated_at'],
+        );
+    }
+
+    // Proves: an office case's delivered previous-visit photo moves the version.
+    public function test_an_office_previous_visit_photo_change_changes_the_version(): void
+    {
+        $previousReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+        ]);
+        $previousAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $previousReport->getKey(),
+            'assignee_id' => $this->inspector->getKey(),
+            'assigned_by_id' => $this->reviewer->getKey(),
+        ]);
+        $completion = FieldValidationCompletion::factory()->create([
+            'assignment_id' => $previousAssignment->getKey(),
+            'visited_at' => '2026-09-10T08:30:00.000Z',
+            'fresh_photo_path' => 'field-validation/previous/evidence.jpg',
+            'fresh_photo_mime_type' => 'image/jpeg',
+        ]);
+        $this->assign(report: [
+            'origin' => Report::ORIGIN_OFFICE,
+            'barangay' => 'mabini',
+            'farmer_or_farm_owner_name' => 'farm alpha',
+        ]);
+
+        $before = $this->sync();
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $photo = $this->getJson('/api/v1/mobile/assignments')->assertOk()
+            ->json('data.0.previous_visit.photo');
+        $this->assertSame('image/jpeg', $photo['content_type']);
+
+        $completion->update(['fresh_photo_mime_type' => 'image/png']);
+
+        $this->assertNotSame($before['version'], $this->sync()['version']);
+    }
+
+    // Proves: office-only data on a field-born case leaves its legacy version alone.
+    public function test_editing_office_only_data_on_a_field_case_does_not_change_the_version(): void
+    {
+        $assignment = $this->assign();
+        $before = $this->sync();
+
+        DB::table('reports')
+            ->where('id', $assignment->report_id)
+            ->update(['reporter_suspected_condition' => Report::REPORTER_CONCERN_RSSI]);
+
+        $this->assertSame($before['version'], $this->sync()['version']);
+    }
+
     // Proves: a set that changes mid-download asks the phone to restart.
     public function test_a_set_that_changes_mid_download_requires_a_restart(): void
     {
