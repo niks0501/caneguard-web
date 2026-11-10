@@ -399,6 +399,49 @@ class MobileFeedSyncVersionTest extends TestCase
         $this->assertCount(3, $restarted->unique());
     }
 
+    // Proves: a row that moves past the checkpoint mid-download refuses the
+    // open continuation, and the restarted feed still delivers every owned row
+    // exactly once.
+    public function test_a_status_row_moving_past_the_checkpoint_mid_download_requires_a_restart(): void
+    {
+        $reports = Report::factory()->count(5)->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+        ]);
+        $tied = CarbonImmutable::now()->subMinute()->startOfSecond();
+        DB::table('reports')->whereIn('id', $reports->pluck('id'))->update(['updated_at' => $tied]);
+
+        $before = $tied->addSecond()->toISOString();
+        $first = $this->feed(
+            '/api/v1/mobile/reports/statuses',
+            '?per_page=2&sync_before='.urlencode($before),
+        );
+        $this->assertCount(2, $first['data']);
+        $next = $first['links']['next'];
+        $this->assertNotNull($next);
+        $nextPath = parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
+
+        DB::table('reports')->where('uuid', $first['data'][0]['uuid'])->update([
+            'updated_at' => $tied->addMinute(),
+        ]);
+
+        Sanctum::actingAs($this->owner, ['notification:read', 'report:status']);
+        $this->getJson($nextPath)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART')
+            ->assertJsonPath('sync.unchanged', false);
+
+        $restarted = $this->traverse(
+            '/api/v1/mobile/reports/statuses?per_page=2&sync_before='
+            .urlencode($tied->addMinutes(2)->toISOString()),
+        );
+        $this->assertCount(5, $restarted);
+        $this->assertCount(5, $restarted->unique());
+        $this->assertSame(
+            $reports->pluck('uuid')->sort()->values()->all(),
+            $restarted->sort()->values()->all(),
+        );
+    }
+
     // Proves: a continuation that drops the version cannot silently complete
     // a traversal against a different snapshot.
     public function test_a_status_continuation_without_its_version_is_refused(): void
