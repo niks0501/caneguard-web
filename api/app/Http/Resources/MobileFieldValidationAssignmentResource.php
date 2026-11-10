@@ -53,32 +53,7 @@ class MobileFieldValidationAssignmentResource extends JsonResource
                 'predicted_label' => $report->predicted_label,
                 'confidence' => (float) $report->confidence,
             ],
-            'previous_visit' => $this->previousVisitPayload(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function previousVisitPayload(): ?array
-    {
-        $previous = MobilePreviousVisit::resolve($this->resource);
-        if ($previous === null) {
-            return null;
-        }
-
-        $completion = $previous->completion;
-
-        return [
-            'reference_code' => $previous->report->reference_code,
-            'visited_at' => $completion->visited_at->utc()->toISOString(),
-            'reporter_suspected_condition' => $previous->report->reporter_suspected_condition,
-            'authority_classified_condition' => $previous->report->authority_classified_condition,
-            'action_taken' => $completion->action_taken,
-            'field_observation' => $completion->field_observation,
-            'field_finding' => $completion->field_finding,
-            'follow_up_outcome' => $completion->follow_up_outcome,
-            'fresh_photo_available' => $completion->fresh_photo_path !== null,
+            'previous_visit' => MobilePreviousVisit::payload($this->resource),
         ];
     }
 }

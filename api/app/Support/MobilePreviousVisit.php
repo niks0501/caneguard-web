@@ -7,6 +7,35 @@ use Illuminate\Support\Collection;
 
 final class MobilePreviousVisit
 {
+    /**
+     * The `previous_visit` object the mobile assignment feed delivers, or null
+     * when no earlier visit resolves. The feed version digests this payload,
+     * so the serializer and the digest share one definition.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function payload(FieldValidationAssignment $assignment): ?array
+    {
+        $previous = self::resolve($assignment);
+        if ($previous === null) {
+            return null;
+        }
+
+        $completion = $previous->completion;
+
+        return [
+            'reference_code' => $previous->report->reference_code,
+            'visited_at' => $completion->visited_at->utc()->toISOString(),
+            'reporter_suspected_condition' => $previous->report->reporter_suspected_condition,
+            'authority_classified_condition' => $previous->report->authority_classified_condition,
+            'action_taken' => $completion->action_taken,
+            'field_observation' => $completion->field_observation,
+            'field_finding' => $completion->field_finding,
+            'follow_up_outcome' => $completion->follow_up_outcome,
+            'fresh_photo_available' => $completion->fresh_photo_path !== null,
+        ];
+    }
+
     public static function resolve(FieldValidationAssignment $assignment): ?FieldValidationAssignment
     {
         $assignment->loadMissing(['report', 'completion']);

@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MobileFieldValidationAssignmentRequest;
 use App\Http\Resources\MobileFieldValidationAssignmentResource;
 use App\Models\FieldValidationAssignment;
-use App\Models\FieldValidationCompletion;
 use App\Models\Report;
+use App\Support\MobilePreviousVisit;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -30,11 +30,12 @@ class MobileFieldValidationAssignmentController extends Controller
         'updated_at',
     ];
 
-    /** Report columns the feed serializes in `case`. */
+    /** Report columns the feed serializes in `case`, plus the district its previous visit resolves in. */
     private const REPORT_VERSION_FIELDS = [
         'uuid',
         'client_uuid',
         'reference_code',
+        'district_id',
         'barangay',
         'province',
         'municipality',
@@ -46,33 +47,6 @@ class MobileFieldValidationAssignmentController extends Controller
         'submitted_at',
         'predicted_label',
         'confidence',
-    ];
-
-    /** Completion columns that steer the previous-visit match of a held row. */
-    private const COMPLETION_VERSION_FIELDS = [
-        'visited_at',
-    ];
-
-    /** Earlier-report columns the feed resolves and serializes as `previous_visit`. */
-    private const PREVIOUS_VISIT_REPORT_FIELDS = [
-        'district_id',
-        'barangay',
-        'farmer_or_farm_owner_name',
-        'reference_code',
-        'reporter_suspected_condition',
-        'authority_classified_condition',
-    ];
-
-    /** Earlier-completion columns the feed serializes as `previous_visit`. */
-    private const PREVIOUS_VISIT_COMPLETION_FIELDS = [
-        'id',
-        'visited_at',
-        'created_at',
-        'action_taken',
-        'field_observation',
-        'field_finding',
-        'follow_up_outcome',
-        'fresh_photo_path',
     ];
 
     public function __invoke(
@@ -109,7 +83,7 @@ class MobileFieldValidationAssignmentController extends Controller
         $total = $ownedRows->count();
         $selectedIds = $this->selectWorkSet($ownedRows);
         $truncated = $total > count($selectedIds);
-        $version = $this->workSetVersion($ownedRows, $request->user()->getKey());
+        $version = $this->workSetVersion($ownedRows, $selectedIds);
 
         $cursor = $request->validated('cursor');
         $resumedVersion = $request->validated('sync_version');
@@ -201,26 +175,19 @@ class MobileFieldValidationAssignmentController extends Controller
 
     /**
      * A digest of everything the feed would store for this owner: every held
-     * assignment with the report, completion and identity fields it
-     * serializes, plus the earlier visits its `previous_visit` context is
-     * built from.
+     * assignment with the report and identity fields it serializes, plus the
+     * `previous_visit` payload each delivered row resolves.
      *
      * @param  Collection<int, FieldValidationAssignment>  $rows
+     * @param  array<int, int>  $selectedIds
      */
-    private function workSetVersion(Collection $rows, int|string $assigneeId): string
+    private function workSetVersion(Collection $rows, array $selectedIds): string
     {
-        $previousVisits = FieldValidationCompletion::query()
-            ->whereHas('assignment', fn ($query) => $query->where('assignee_id', $assigneeId))
-            ->orderBy('id')
-            ->with('assignment.report')
-            ->get()
-            ->map(fn (FieldValidationCompletion $completion): array => [
-                Arr::only($completion->getAttributes(), self::PREVIOUS_VISIT_COMPLETION_FIELDS),
-                Arr::only(
-                    $completion->assignment?->report?->getAttributes() ?? [],
-                    self::PREVIOUS_VISIT_REPORT_FIELDS,
-                ),
-            ])
+        $wanted = array_flip($selectedIds);
+        $previousVisits = $rows
+            ->filter(fn (FieldValidationAssignment $row): bool => isset($wanted[(int) $row->getKey()]))
+            ->map(fn (FieldValidationAssignment $row): ?array => MobilePreviousVisit::payload($row))
+            ->values()
             ->all();
 
         $payload = [
@@ -228,7 +195,6 @@ class MobileFieldValidationAssignmentController extends Controller
                 Arr::only($row->getAttributes(), self::ASSIGNMENT_VERSION_FIELDS),
                 Arr::only($row->report->getAttributes(), self::REPORT_VERSION_FIELDS),
                 $row->report->lifecycleSnapshot()['field_validation_state'],
-                Arr::only($row->completion?->getAttributes() ?? [], self::COMPLETION_VERSION_FIELDS),
                 [$row->assignee?->uuid, $row->assignee?->name],
                 [$row->report->reporter?->uuid, $row->report->reporter?->name],
             ])->all(),

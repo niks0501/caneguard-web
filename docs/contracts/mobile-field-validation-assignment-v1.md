@@ -16,7 +16,7 @@ The assignment state remains a separate `field_validation_state` dimension.
 
 The response uses `sync.before` as the feed checkpoint and `links.next` for cursor pagination.
 
-Every response carries `sync.version` (a digest of the owner's whole work set and of the earlier visits its `previous_visit` context is built from), `sync.total` (assignments the owner holds), `sync.truncated` and `sync.unchanged`.
+Every response carries `sync.version` (a digest of the owner's whole work set and of the `previous_visit` payload resolved for each delivered row), `sync.total` (assignments the owner holds), `sync.truncated` and `sync.unchanged`.
 The feed returns at most 300 assignments. When the owner holds more, `sync.truncated` is `true` and the rows kept are active work first (completed visits last), then the earliest target visit date (undated last), then the oldest assignment; `sync.total` still counts every assignment.
 Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the set has not changed; otherwise the full feed follows. `since` is ignored once a `cursor` is present.
 Every `links.next` carries `sync_version`, and a continuation request must send that version back. When the set changed since the download started, the API answers `409` with `code: SYNC_RESTART` and the current `sync` block, and the phone discards the partial download and starts the feed again.

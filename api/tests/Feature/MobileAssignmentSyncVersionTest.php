@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
@@ -223,11 +222,14 @@ class MobileAssignmentSyncVersionTest extends TestCase
     // Proves: an oversized set shows "N of M" instead of failing.
     public function test_an_oversized_set_is_capped_with_total_and_priority_order(): void
     {
-        $cap = MobileFieldValidationAssignmentController::WORK_SET_CAP;
+        // The published v1 contract caps the feed at 300 assignments.
+        $cap = 300;
         $completed = $this->assign(report: ['field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED]);
-        for ($i = 0; $i < $cap + 1; $i++) {
-            $this->assign();
+        $kept = [];
+        for ($i = 0; $i < $cap; $i++) {
+            $kept[] = $this->assign();
         }
+        $newest = $this->assign();
 
         Sanctum::actingAs($this->inspector, ['assignment:read']);
         $uuids = [];
@@ -245,6 +247,9 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->assertTrue($sync['truncated']);
         $this->assertCount($cap, $uuids);
         $this->assertNotContains($completed->uuid, $uuids);
+        $this->assertNotContains($newest->uuid, $uuids);
+        $this->assertContains($kept[0]->uuid, $uuids);
+        $this->assertContains($kept[$cap - 1]->uuid, $uuids);
 
         $before = $sync['version'];
         $completed->report->update(['barangay' => 'Corrected Barangay']);
