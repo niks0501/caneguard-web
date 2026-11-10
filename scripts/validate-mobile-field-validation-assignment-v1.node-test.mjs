@@ -7,6 +7,8 @@ import {
   ITEM_FIELDS,
   assertAssignmentSyncSurface,
   assertWorkSetCapMatchesController,
+  DEFAULT_ARTIFACT_PATH,
+  V2_ARTIFACT_PATH,
   readMobileFieldValidationAssignmentArtifact,
   validateMobileFieldValidationAssignmentArtifact,
 } from './validate-mobile-field-validation-assignment-v1.mjs';
@@ -56,23 +58,29 @@ function artifact() {
         },
       },
     },
-    fields: Object.fromEntries(ITEM_FIELDS.map((name) => [name, {
-      type: name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit'
-        ? 'object'
-        : 'string',
-      required: name !== 'previous_visit',
-      nullable: name === 'previous_visit',
-      ...(name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit'
-        ? {
-            required_keys: name === 'case'
-              ? ['barangay', 'province', 'municipality', 'farmer_or_farm_owner_name', 'affected_area_hectares', 'affected_portion_percent', 'captured_at', 'observed_at', 'submitted_at', 'predicted_label', 'confidence']
-              : name === 'previous_visit'
-                ? ['reference_code', 'visited_at', 'reporter_suspected_condition', 'authority_classified_condition', 'action_taken', 'field_observation', 'field_finding', 'follow_up_outcome', 'fresh_photo_available']
-                : ['uuid', 'name'],
-            properties: {},
-          }
-        : {}),
-    }])),
+    fields: Object.fromEntries(ITEM_FIELDS.map((name) => {
+      const objectField = name === 'case' || name === 'submitter' || name === 'assignee' || name === 'previous_visit';
+      const requiredKeys = name === 'case'
+        ? ['barangay', 'province', 'municipality', 'farmer_or_farm_owner_name', 'affected_area_hectares', 'affected_portion_percent', 'captured_at', 'observed_at', 'submitted_at', 'predicted_label', 'confidence']
+        : name === 'previous_visit'
+          ? ['reference_code', 'visited_at', 'reporter_suspected_condition', 'authority_classified_condition', 'action_taken', 'field_observation', 'field_finding', 'follow_up_outcome', 'fresh_photo_available']
+          : ['uuid', 'name'];
+      return [name, {
+        type: objectField ? 'object' : 'string',
+        required: name !== 'previous_visit',
+        nullable: name === 'previous_visit',
+        ...(objectField
+          ? {
+              required_keys: requiredKeys,
+              properties: Object.fromEntries(requiredKeys.map((key) => [key, {
+                type: key === 'confidence' ? 'number' : 'string',
+                required: true,
+                nullable: false,
+              }])),
+            }
+          : {}),
+      }];
+    })),
     versioning: { same_major_compatible_widening: ['optional'], new_major_required: ['breaking'] },
   };
 }
@@ -166,5 +174,68 @@ test('rejects a changed owner-scoped endpoint', () => {
   assert.throws(
     () => validateMobileFieldValidationAssignmentArtifact(invalid),
     /not a valid mobile-field-validation-assignment-v1 artifact/,
+  );
+});
+
+// Intent: the frozen v1 keeps non-null AI fields while v2 carries the scanless widening and office projection.
+test('v1 stays non-null and v2 widens the AI fields', async () => {
+  const v1 = await readMobileFieldValidationAssignmentArtifact(DEFAULT_ARTIFACT_PATH);
+  const v2 = await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH);
+  assert.equal(v1.version, 1);
+  assert.equal(v2.version, 2);
+  assert.equal(v1.fields.case.properties.predicted_label.nullable, false);
+  assert.equal(v2.fields.case.properties.predicted_label.nullable, true);
+  assert.equal(v2.fields.case.properties.confidence.nullable, true);
+  for (const name of ['origin', 'version', 'status', 'reporter_concern', 'photo']) {
+    assert.equal(v2.fields.case.properties[name].required, false);
+  }
+});
+
+// Intent: v2 must not validate with a v1 nullability stance.
+test('rejects a v2 artifact whose AI fields are not nullable', async () => {
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  v2.fields.case.properties.confidence.nullable = false;
+  assert.throws(() => validateMobileFieldValidationAssignmentArtifact(v2), (e) => e.issues.includes('case.confidence.nullable must be true in v2'));
+});
+
+// Intent: an AI case field the contract declares required must carry a definition in both versions.
+test('rejects an artifact whose AI case property is undeclared', async () => {
+  const v1 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(DEFAULT_ARTIFACT_PATH)));
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  delete v1.fields.case.properties.predicted_label;
+  delete v2.fields.case.properties.confidence;
+  v2.fields.case.properties.predicted_label = 'string';
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v1),
+    (e) => e.issues.includes('case.predicted_label must be declared as a property in v1'),
+  );
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v2),
+    (e) => e.issues.includes('case.predicted_label must be declared as a property in v2')
+      && e.issues.includes('case.confidence must be declared as a property in v2'),
+  );
+});
+
+// Intent: the AI pair stays required and typed as published, even though v2 makes it nullable.
+test('rejects AI case properties that contradict the published shape', async () => {
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  v2.fields.case.properties.confidence = { type: 'string', required: false, nullable: true };
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v2),
+    (e) => e.issues.includes('case.confidence.type must be number')
+      && e.issues.includes('case.confidence.required must be true in v2'),
+  );
+});
+
+// Intent: office projection fields keep their declared type and nested schema in v2.
+test('rejects office case properties that contradict the published shape', async () => {
+  const v2 = JSON.parse(JSON.stringify(await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH)));
+  v2.fields.case.properties.origin = { required: false };
+  v2.fields.case.properties.status = { type: 'object', required: false, properties: {} };
+  assert.throws(
+    () => validateMobileFieldValidationAssignmentArtifact(v2),
+    (e) => e.issues.includes('case.origin.type must be string')
+      && e.issues.includes('field case.status.required_keys must declare workflow_status, case_state, review_status, updated_at')
+      && e.issues.includes('case.status.workflow_status must be declared as a property'),
   );
 });

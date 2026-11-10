@@ -6,6 +6,21 @@ const DEFAULT_ARTIFACT_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../docs/contracts/mobile-field-validation-assignment-v1.json',
 );
+const V2_ARTIFACT_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../docs/contracts/mobile-field-validation-assignment-v2.json',
+);
+// v1 is frozen with non-null AI fields; v2 widens them (a nullability change
+// is new_major_required) and declares the office projection.
+const CONTRACT_VERSIONS = { 'mobile-field-validation-assignment-v1': 1, 'mobile-field-validation-assignment-v2': 2 };
+const OFFICE_CASE_FIELDS = {
+  origin: { type: 'string' },
+  version: { type: 'number' },
+  status: { required_keys: ['workflow_status', 'case_state', 'review_status', 'updated_at'] },
+  reporter_concern: { required_keys: ['suspected_condition', 'observation_text'] },
+  photo: { required_keys: ['url', 'content_type', 'bytes'] },
+};
+const AI_CASE_FIELDS = { predicted_label: 'string', confidence: 'number' };
 // The artifact declares the bounded-download cap; the controller constant is
 // its runtime source of truth, so both are compared instead of hand-copied.
 const DEFAULT_CONTROLLER_PATH = path.resolve(
@@ -41,8 +56,8 @@ const ITEM_FIELDS = [
 ];
 
 export class AssignmentContractArtifactError extends Error {
-  constructor(source, issues) {
-    super(`[artifact] ${source} is not a valid mobile-field-validation-assignment-v1 artifact.`);
+  constructor(source, issues, contract = 'mobile-field-validation-assignment-v1') {
+    super(`[artifact] ${source} is not a valid ${contract} artifact.`);
     this.name = 'AssignmentContractArtifactError';
     this.category = 'artifact';
     this.source = source;
@@ -89,10 +104,12 @@ export function validateMobileFieldValidationAssignmentArtifact(definition, sour
   if (definition.artifact_format !== 'caneguard-json-contract') {
     issues.push('artifact_format must be caneguard-json-contract');
   }
-  if (definition.contract !== 'mobile-field-validation-assignment-v1') {
-    issues.push('contract must be mobile-field-validation-assignment-v1');
+  const expectedVersion = CONTRACT_VERSIONS[definition.contract];
+  if (expectedVersion === undefined) {
+    issues.push('contract must be mobile-field-validation-assignment-v1 or -v2');
+  } else if (definition.version !== expectedVersion) {
+    issues.push(`version must be numeric v${expectedVersion} (${expectedVersion}) for ${definition.contract}`);
   }
-  if (definition.version !== 1) issues.push('version must be numeric v1 (1)');
 
   const wire = definition.wire;
   if (!isObject(wire)) {
@@ -155,6 +172,7 @@ export function validateMobileFieldValidationAssignmentArtifact(definition, sour
       'predicted_label',
       'confidence',
     ], issues);
+    validateCaseNullability(definition, issues);
     validateObjectField(definition.fields.previous_visit, 'previous_visit', [
       'reference_code',
       'visited_at',
@@ -169,8 +187,53 @@ export function validateMobileFieldValidationAssignmentArtifact(definition, sour
   }
 
   if (!isObject(definition.versioning)) issues.push('versioning must be an object');
-  if (issues.length) throw new AssignmentContractArtifactError(source, issues);
+  if (issues.length) {
+    throw new AssignmentContractArtifactError(
+      source,
+      issues,
+      definition.contract in CONTRACT_VERSIONS ? definition.contract : undefined,
+    );
+  }
   return definition;
+}
+
+function validateCaseNullability(definition, issues) {
+  const properties = definition.fields.case?.properties;
+  if (!isObject(properties)) return;
+  const wantNullable = definition.version === 2;
+  for (const [name, expectedType] of Object.entries(AI_CASE_FIELDS)) {
+    const field = properties[name];
+    if (!isObject(field)) {
+      issues.push(`case.${name} must be declared as a property in v${definition.version}`);
+      continue;
+    }
+    if (field.type !== expectedType) issues.push(`case.${name}.type must be ${expectedType}`);
+    if (field.required !== true) {
+      issues.push(`case.${name}.required must be true in v${definition.version}`);
+    }
+    if (field.nullable !== wantNullable) {
+      issues.push(`case.${name}.nullable must be ${wantNullable} in v${definition.version}`);
+    }
+  }
+  if (definition.version !== 2) return;
+  for (const [name, spec] of Object.entries(OFFICE_CASE_FIELDS)) {
+    const field = properties[name];
+    if (!isObject(field) || field.required !== false) {
+      issues.push(`case.${name} must be declared as an optional office field in v2`);
+      continue;
+    }
+    if (!spec.required_keys) {
+      if (field.type !== spec.type) issues.push(`case.${name}.type must be ${spec.type}`);
+      continue;
+    }
+    validateObjectField(field, `case.${name}`, spec.required_keys, issues);
+    const nested = isObject(field.properties) ? field.properties : {};
+    for (const key of spec.required_keys) {
+      if (!isObject(nested[key])) {
+        issues.push(`case.${name}.${key} must be declared as a property`);
+      }
+    }
+  }
 }
 
 /**
@@ -324,12 +387,14 @@ function isObject(value) {
 }
 
 async function main() {
-  const artifactPath = process.argv[2] ?? DEFAULT_ARTIFACT_PATH;
+  const artifactPaths = process.argv[2] ? [process.argv[2]] : [DEFAULT_ARTIFACT_PATH, V2_ARTIFACT_PATH];
   const controllerPath = process.argv[3] ?? DEFAULT_CONTROLLER_PATH;
-  const definition = await readMobileFieldValidationAssignmentArtifact(artifactPath);
   const controllerSource = await readAssignmentControllerSource(controllerPath);
-  assertWorkSetCapMatchesController(definition, controllerSource, controllerPath);
-  console.log(`[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} assignment fields, owner-scoped envelope and the version/${definition.envelope.sync.cap.limit_max}-row cap surface match the controller.`);
+  for (const artifactPath of artifactPaths) {
+    const definition = await readMobileFieldValidationAssignmentArtifact(artifactPath);
+    assertWorkSetCapMatchesController(definition, controllerSource, controllerPath);
+    console.log(`[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} assignment fields, owner-scoped envelope and the version/${definition.envelope.sync.cap.limit_max}-row cap surface match the controller.`);
+  }
 }
 
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
@@ -346,4 +411,4 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   }
 }
 
-export { DEFAULT_ARTIFACT_PATH, DEFAULT_CONTROLLER_PATH, ITEM_FIELDS, SYNC_KEYS };
+export { V2_ARTIFACT_PATH, DEFAULT_ARTIFACT_PATH, DEFAULT_CONTROLLER_PATH, ITEM_FIELDS, SYNC_KEYS };

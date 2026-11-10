@@ -2,6 +2,8 @@
 
 The machine-readable source of truth is [`mobile-field-validation-assignment-v1.json`](mobile-field-validation-assignment-v1.json).
 
+Version 2 ([`mobile-field-validation-assignment-v2.md`](mobile-field-validation-assignment-v2.md)) supersedes this contract, which stays frozen as the pre-widening baseline for requests that do not send `supports=no_ai_scan`: v2 makes `case.predicted_label` and `case.confidence` nullable on an office-born case with no AI scan.
+
 The contract applies to `GET /api/v1/mobile/assignments`.
 
 The endpoint requires an authenticated `field_reporter` bearer token with the `assignment:read` ability.
@@ -24,8 +26,6 @@ Reassigning, unassigning, closing a case and editing the case information the fe
 
 The Mobile client must consume the complete feed before replacing its owner-scoped local snapshot.
 A failed refresh must leave the last valid local snapshot available.
-
-An office-born case may have no AI prediction and no photo. Such a row is delivered only when the request sends `supports=no_ai_scan` (a bounded feed's `links.next` keeps it, because the feed echoes the request query); its `case.predicted_label` and `case.confidence` are then both `null`, and `case.photo` is `null`. Without that parameter the row is withheld, and also left out of `sync.total` and `sync.version`, so older builds keep refreshing exactly as before. Phone uploads still require a prediction and a photo.
 
 The `case` object contains the original report identity, submitter-independent field context, observation dates, possible AI result, and confidence needed to render assigned work and support the later T07 completion contract.
 
