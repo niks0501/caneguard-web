@@ -21,6 +21,7 @@ Mobile device acceptance is owned by the companion [Agent Device guide](https://
 `contract:assignment-artifact` validates the v1 and v2 assignment artifacts: identity, owner-scoped JSON envelope, item fields, assignment states, pagination checkpoint, the `sync` version/total/truncated/unchanged surface, and the bounded-download `limit` cap against the controller constant that enforces it. It holds v1 to its frozen non-null AI pair and v2 to the nullable pair plus the declared office projection shapes.
 
 The assignment artifact is published ahead of its runtime switch: the Laravel consumer (`api/app/Contracts/MobileFieldValidationAssignmentContract.php`) and the assignment pin in `ci/mobile-report-upload-gate.json` still select `mobile-field-validation-assignment-v1`, so v2 is artifact-validated but no consumer or producer boundary runs against it yet.
+The lifecycle artifact's `payload_contracts` inventory follows the current mobile transport and therefore also lists only v1 until that switch lands.
 
 `contract:completion-artifact` validates the completion multipart artifact.
 
