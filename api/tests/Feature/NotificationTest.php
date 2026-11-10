@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -279,6 +280,12 @@ class NotificationTest extends TestCase
         ]);
         Sanctum::actingAs($assignee, ['notification:read']);
 
+        // Feed reads never write; the scheduled command derives the item.
+        $this->getJson('/api/v1/mobile/notifications')->assertOk()->assertJsonCount(0, 'data');
+        $this->assertSame(0, DatabaseNotification::query()->count());
+        $this->artisan('notifications:derive-follow-up-due')->assertSuccessful();
+        $this->artisan('notifications:derive-follow-up-due')->assertSuccessful();
+
         $this->getJson('/api/v1/mobile/notifications')
             ->assertOk()
             ->assertJsonCount(1, 'data')
@@ -315,10 +322,12 @@ class NotificationTest extends TestCase
 
         // 2026-11-04 23:00 Manila: not overdue yet.
         Carbon::setTestNow('2026-11-04T15:00:00Z');
+        $this->artisan('notifications:derive-follow-up-due')->assertSuccessful();
         $this->getJson('/api/v1/mobile/notifications')->assertOk()->assertJsonCount(0, 'data');
 
         // 2026-11-05 01:00 Manila (still 2026-11-04 in UTC): overdue.
         Carbon::setTestNow('2026-11-04T17:00:00Z');
+        $this->artisan('notifications:derive-follow-up-due')->assertSuccessful();
         $this->getJson('/api/v1/mobile/notifications')->assertOk()->assertJsonCount(1, 'data');
 
         Carbon::setTestNow();
@@ -403,6 +412,87 @@ class NotificationTest extends TestCase
             ->getJson('/api/v1/mobile/notifications')
             ->assertOk()
             ->assertJsonCount(0, 'data');
+    }
+
+    // Proposal (unpromoted) - proves: a user with 60,000 historical notifications refreshes successfully on an old build.
+    public function test_mobile_feed_is_bounded_for_an_account_with_sixty_thousand_old_notifications(): void
+    {
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $owner->getKey()]);
+        $now = now()->utc()->toImmutable();
+        $row = fn (string $id, $createdAt, $readAt) => [
+            'id' => $id,
+            'type' => NewCaseSubmittedNotification::class,
+            'notifiable_type' => $owner->getMorphClass(),
+            'notifiable_id' => $owner->getKey(),
+            'data' => json_encode(['event_type' => 'new_case_submitted', 'report_uuid' => $report->uuid, 'reference_code' => $report->reference_code]),
+            'read_at' => $readAt,
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ];
+        $old = $now->subDays(200);
+        $rows = [];
+        for ($i = 0; $i < 60000; $i++) {
+            $rows[] = $row((string) Str::uuid(), $old->addSeconds($i), $old);
+            if (count($rows) === 1000) {
+                DatabaseNotification::query()->insert($rows);
+                $rows = [];
+            }
+        }
+        // Old but unread stays; read items inside the 60-day window stay.
+        $unreadOld = $row((string) Str::uuid(), $now->subDays(300), null);
+        $recentRead = $row((string) Str::uuid(), $now->subDays(59), $now);
+        $tooOldRead = $row((string) Str::uuid(), $now->subDays(61), $now);
+        DatabaseNotification::query()->insert([$unreadOld, $recentRead, $tooOldRead]);
+
+        Sanctum::actingAs($owner, ['notification:read']);
+        $ids = [];
+        $url = '/api/v1/mobile/notifications?per_page=100';
+        $pages = 0;
+        while ($url !== null) {
+            $response = $this->getJson($url)->assertOk();
+            $ids = array_merge($ids, array_column($response->json('data'), 'id'));
+            $url = $response->json('links.next');
+            $pages++;
+            $this->assertLessThanOrEqual(5, $pages);
+        }
+
+        $this->assertSame([$recentRead['id'], $unreadOld['id']], $ids);
+    }
+
+    // Proposal (unpromoted) - proves: the mobile feed is capped at 500 rows, newest kept, and pages end.
+    public function test_mobile_feed_is_capped_at_five_hundred_newest_rows(): void
+    {
+        $owner = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['reporter_id' => $owner->getKey()]);
+        $start = now()->utc()->subDays(10)->toImmutable();
+        $ids = [];
+        $rows = [];
+        for ($i = 0; $i < 650; $i++) {
+            $ids[] = $id = (string) Str::uuid();
+            $rows[] = [
+                'id' => $id,
+                'type' => NewCaseSubmittedNotification::class,
+                'notifiable_type' => $owner->getMorphClass(),
+                'notifiable_id' => $owner->getKey(),
+                'data' => json_encode(['event_type' => 'new_case_submitted', 'report_uuid' => $report->uuid, 'reference_code' => $report->reference_code]),
+                'read_at' => null,
+                'created_at' => $start->addMinutes($i),
+                'updated_at' => $start->addMinutes($i),
+            ];
+        }
+        DatabaseNotification::query()->insert($rows);
+
+        Sanctum::actingAs($owner, ['notification:read']);
+        $seen = [];
+        $url = '/api/v1/mobile/notifications?per_page=100';
+        while ($url !== null) {
+            $response = $this->getJson($url)->assertOk();
+            $seen = array_merge($seen, array_column($response->json('data'), 'id'));
+            $url = $response->json('links.next');
+        }
+
+        $this->assertSame(array_reverse(array_slice($ids, 150)), $seen);
     }
 
     public function test_mobile_mark_read_acknowledges_only_the_owners_notification(): void

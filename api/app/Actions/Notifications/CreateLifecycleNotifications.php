@@ -142,9 +142,9 @@ class CreateLifecycleNotifications
     }
 
     /**
-     * Derive overdue attention when a notification feed is read. This avoids
-     * inventing a service-level deadline or requiring a scheduler for a rule
-     * that depends only on the assignment target date and current state.
+     * Derive overdue attention from the assignment target date and current
+     * state. Run by the scheduled notifications:derive-follow-up-due command so
+     * notification feed reads never write.
      */
     public function ensureFollowUpDueNotifications(): int
     {

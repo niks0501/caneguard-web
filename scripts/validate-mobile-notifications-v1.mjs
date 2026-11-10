@@ -6,6 +6,17 @@ const DEFAULT_ARTIFACT_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../docs/contracts/mobile-notifications-v1.json',
 );
+// The artifact declares the feed-selection bound; the controller constants are
+// its runtime source of truth, so both are compared instead of hand-copied.
+const DEFAULT_CONTROLLER_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../api/app/Http/Controllers/Api/V1/MobileNotificationController.php',
+);
+const SELECTION_KEYS = ['anchor', 'unread', 'read_history_days', 'max_rows', 'cap_order'];
+const SELECTION_CONTROLLER_CONSTANTS = {
+  read_history_days: 'FEED_WINDOW_DAYS',
+  max_rows: 'FEED_MAX_ROWS',
+};
 const TOP_LEVEL_KEYS = [
   '$id',
   'artifact_format',
@@ -105,6 +116,7 @@ export function validateMobileNotificationsArtifact(definition, source = 'artifa
     if (envelope.data_key !== 'data') issues.push('envelope.data_key must be data');
     if (envelope.next_link !== 'links.next') issues.push('envelope.next_link must be links.next');
     if (envelope.checkpoint !== 'sync.before') issues.push('envelope.checkpoint must be sync.before');
+    validateSelection(envelope.selection, issues);
   }
 
   if (!isObject(definition.fields)) {
@@ -139,6 +151,76 @@ export function validateMobileNotificationsArtifact(definition, source = 'artifa
   return definition;
 }
 
+function validateSelection(selection, issues) {
+  if (!isObject(selection)) {
+    issues.push('envelope.selection must be an object');
+    return;
+  }
+  if (!sameList(Object.keys(selection), SELECTION_KEYS)) {
+    issues.push(`envelope.selection must be ordered as ${SELECTION_KEYS.join(', ')}`);
+  }
+  if (selection.anchor !== 'sync.before') {
+    issues.push('envelope.selection.anchor must be sync.before');
+  }
+  if (selection.unread !== 'always included') {
+    issues.push('envelope.selection.unread must be always included');
+  }
+  for (const key of Object.keys(SELECTION_CONTROLLER_CONSTANTS)) {
+    const value = selection[key];
+    if (!Number.isInteger(value) || value <= 0) {
+      issues.push(`envelope.selection.${key} must be a positive integer`);
+    }
+  }
+  if (typeof selection.cap_order !== 'string' || selection.cap_order.trim() === '') {
+    issues.push('envelope.selection.cap_order must be a non-empty string');
+  }
+}
+
+/**
+ * Compares the declared feed-selection bound against the controller constants
+ * that actually enforce it, so the artifact cannot drift from the served window.
+ */
+export function assertSelectionBoundMatchesController(
+  definition,
+  controllerSource,
+  source = 'controller',
+) {
+  const issues = [];
+  const selection = isObject(definition?.envelope) ? definition.envelope.selection : undefined;
+  if (!isObject(selection)) {
+    throw new NotificationContractArtifactError(source, [
+      'cannot be compared: the artifact declares no envelope.selection object',
+    ]);
+  }
+
+  for (const [key, constant] of Object.entries(SELECTION_CONTROLLER_CONSTANTS)) {
+    const pattern = new RegExp(`const\\s+${constant}\\s*=\\s*(\\d+)\\s*;`);
+    const match = pattern.exec(controllerSource);
+    if (match === null) {
+      issues.push(`does not declare const ${constant}`);
+      continue;
+    }
+    const declared = Number(match[1]);
+    if (selection[key] !== declared) {
+      issues.push(
+        `envelope.selection.${key} is ${selection[key]} but ${constant} is ${declared}`,
+      );
+    }
+  }
+
+  if (issues.length > 0) throw new NotificationContractArtifactError(source, issues);
+}
+
+export async function readNotificationControllerSource(controllerPath = DEFAULT_CONTROLLER_PATH) {
+  try {
+    return await readFile(controllerPath, 'utf8');
+  } catch (error) {
+    throw new NotificationContractArtifactError(controllerPath, [
+      `could not be read: ${error.message}`,
+    ]);
+  }
+}
+
 function validateObjectField(field, name, requiredKeys, issues) {
   if (!isObject(field)) return;
   if (field.type !== 'object') issues.push(`field ${name}.type must be object`);
@@ -160,9 +242,12 @@ function isObject(value) {
 
 async function main() {
   const artifactPath = process.argv[2] ?? DEFAULT_ARTIFACT_PATH;
+  const controllerPath = process.argv[3] ?? DEFAULT_CONTROLLER_PATH;
   const definition = await readMobileNotificationsArtifact(artifactPath);
+  const controllerSource = await readNotificationControllerSource(controllerPath);
+  assertSelectionBoundMatchesController(definition, controllerSource, controllerPath);
   console.log(
-    `[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} notification fields and owner-scoped envelope are structurally valid.`,
+    `[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} notification fields, owner-scoped envelope and the ${definition.envelope.selection.read_history_days}-day/${definition.envelope.selection.max_rows}-row selection bound match the controller.`,
   );
 }
 
@@ -180,4 +265,4 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   }
 }
 
-export { DEFAULT_ARTIFACT_PATH, FIELD_NAMES };
+export { DEFAULT_ARTIFACT_PATH, DEFAULT_CONTROLLER_PATH, FIELD_NAMES };
