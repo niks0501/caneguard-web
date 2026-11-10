@@ -211,35 +211,6 @@ function validateCaseNullability(definition, issues) {
 }
 
 /**
- * Validates one served assignment row against a validated artifact: required
- * keys, nullability, enums and the AI-field pairing. Returns the issue list.
- */
-export function validateAssignmentRow(definition, row) {
-  const issues = [];
-  if (!isObject(row)) return ['row must be an object'];
-  const caseField = definition.fields.case;
-  const caseRow = row.case;
-  if (!isObject(caseRow)) return ['case must be an object'];
-  for (const [name, spec] of Object.entries(caseField.properties)) {
-    if (!(name in caseRow)) {
-      if (spec.required) issues.push(`case.${name} is required`);
-      continue;
-    }
-    const value = caseRow[name];
-    if (value === null) {
-      if (!spec.nullable) issues.push(`case.${name} must not be null`);
-      continue;
-    }
-    if (spec.enum && !spec.enum.includes(value)) issues.push(`case.${name} must be one of ${spec.enum.join(', ')}`);
-    if (spec.type === 'number' && typeof value !== 'number') issues.push(`case.${name} must be a number`);
-  }
-  if ((caseRow.predicted_label === null) !== (caseRow.confidence === null)) {
-    issues.push('case.predicted_label and case.confidence must both be set or both be null');
-  }
-  return issues;
-}
-
-/**
  * The prose contract makes snapshot consistency depend on more than the
  * `sync.before` checkpoint, so the artifact must declare that surface too.
  */

@@ -10,7 +10,6 @@ import {
   DEFAULT_ARTIFACT_PATH,
   V2_ARTIFACT_PATH,
   readMobileFieldValidationAssignmentArtifact,
-  validateAssignmentRow,
   validateMobileFieldValidationAssignmentArtifact,
 } from './validate-mobile-field-validation-assignment-v1.mjs';
 import { producerArtifact } from './run-mobile-field-validation-assignment-producer-contract.mjs';
@@ -172,22 +171,6 @@ test('rejects a changed owner-scoped endpoint', () => {
   );
 });
 
-function officeRow(overrides = {}) {
-  return {
-    case: {
-      barangay: 'Poblacion', province: null, municipality: null, farmer_or_farm_owner_name: null,
-      affected_area_hectares: null, affected_portion_percent: null,
-      captured_at: '2026-11-10T00:00:00Z', observed_at: null, submitted_at: '2026-11-10T00:00:00Z',
-      predicted_label: null, confidence: null,
-      origin: 'office', version: 1,
-      status: { workflow_status: 'new', case_state: 'open', review_status: 'pending', updated_at: '2026-11-10T00:00:00Z' },
-      reporter_concern: { suspected_condition: null, observation_text: null },
-      photo: null,
-      ...overrides,
-    },
-  };
-}
-
 // Intent: the frozen v1 keeps non-null AI fields while v2 carries the scanless widening and office projection.
 test('v1 stays non-null and v2 widens the AI fields', async () => {
   const v1 = await readMobileFieldValidationAssignmentArtifact(DEFAULT_ARTIFACT_PATH);
@@ -200,26 +183,6 @@ test('v1 stays non-null and v2 widens the AI fields', async () => {
   for (const name of ['origin', 'version', 'status', 'reporter_concern', 'photo']) {
     assert.equal(v2.fields.case.properties[name].required, false);
   }
-});
-
-// Intent: a scanless office fixture validates under v2 and fails under v1.
-test('scanless office row passes v2 and fails v1', async () => {
-  const v1 = await readMobileFieldValidationAssignmentArtifact(DEFAULT_ARTIFACT_PATH);
-  const v2 = await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH);
-  assert.deepEqual(validateAssignmentRow(v2, officeRow()), []);
-  const v1Issues = validateAssignmentRow(v1, officeRow());
-  assert.ok(v1Issues.includes('case.predicted_label must not be null'));
-  assert.ok(v1Issues.includes('case.confidence must not be null'));
-});
-
-// Intent: a scanned row validates under both versions, and v2 rejects a half-set AI pair.
-test('scanned row passes both versions; half-set AI pair fails v2', async () => {
-  const v1 = await readMobileFieldValidationAssignmentArtifact(DEFAULT_ARTIFACT_PATH);
-  const v2 = await readMobileFieldValidationAssignmentArtifact(V2_ARTIFACT_PATH);
-  const scanned = officeRow({ predicted_label: 'rust', confidence: 0.9 });
-  assert.deepEqual(validateAssignmentRow(v1, scanned), []);
-  assert.deepEqual(validateAssignmentRow(v2, scanned), []);
-  assert.ok(validateAssignmentRow(v2, officeRow({ predicted_label: 'rust' })).length > 0);
 });
 
 // Intent: v2 must not validate with a v1 nullability stance.
