@@ -9,7 +9,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Collection;
 
@@ -23,7 +23,7 @@ class MobileFieldValidationAssignmentController extends Controller
 
     public function __invoke(
         MobileFieldValidationAssignmentRequest $request,
-    ): AnonymousResourceCollection {
+    ): AnonymousResourceCollection|JsonResponse {
         $syncBefore = CarbonImmutable::parse(
             $request->validated('sync_before') ?? now(),
         )->utc();
@@ -46,19 +46,43 @@ class MobileFieldValidationAssignmentController extends Controller
             })
             ->where('updated_at', '<=', $syncBefore);
 
-        [$selectedIds, $total] = $this->selectWorkSet($owned);
+        /** @var Collection<int, FieldValidationAssignment> $ownedRows */
+        $ownedRows = (clone $owned)
+            ->orderBy('id')
+            ->with(['assignee', 'report.reporter', 'completion'])
+            ->get();
+
+        $total = $ownedRows->count();
+        $selectedIds = $this->selectWorkSet($ownedRows);
         $truncated = $total > count($selectedIds);
-        $version = $this->workSetVersion($selectedIds, $total, $request->user()->getKey());
+        $version = $this->workSetVersion($ownedRows, $request->user()->getKey());
+
+        $cursor = $request->validated('cursor');
+        $resumedVersion = $request->validated('sync_version');
+        if ($cursor !== null && $resumedVersion !== null && $resumedVersion !== $version) {
+            // The rows of one download must all come from the same snapshot;
+            // a mid-download change would silently skip or duplicate rows.
+            return response()->json([
+                'message' => 'The assignment set changed during the download. Start the feed again.',
+                'code' => 'SYNC_RESTART',
+                'sync' => [
+                    'before' => $syncBefore->toISOString(),
+                    'version' => $version,
+                    'total' => $total,
+                    'truncated' => $truncated,
+                ],
+            ], 409);
+        }
 
         // A phone that already holds this version needs no rows. A cursor
         // means it is mid-download, so the version shortcut never applies.
-        $unchanged = $request->validated('cursor') === null
+        $unchanged = $cursor === null
             && $request->validated('since') === $version;
         if ($unchanged) {
             $selectedIds = [];
         }
 
-        $query = FieldValidationAssignment::query()
+        $query = (clone $owned)
             ->whereIn('id', $selectedIds)
             ->when(
                 $request->validated('updated_after'),
@@ -77,7 +101,10 @@ class MobileFieldValidationAssignmentController extends Controller
         $assignments = $query
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))
             ->withQueryString()
-            ->appends(['sync_before' => $syncBefore->toISOString()]);
+            ->appends([
+                'sync_before' => $syncBefore->toISOString(),
+                'sync_version' => $version,
+            ]);
 
         return MobileFieldValidationAssignmentResource::collection($assignments)->additional([
             'sync' => [
@@ -95,16 +122,12 @@ class MobileFieldValidationAssignmentController extends Controller
      * waiting on the office last), then the earliest target visit date with
      * undated work after dated work, then the oldest assignment.
      *
-     * @param  Builder<FieldValidationAssignment>  $owned
-     * @return array{0: array<int, int>, 1: int}
+     * @param  Collection<int, FieldValidationAssignment>  $rows
+     * @return array<int, int>
      */
-    private function selectWorkSet(Builder $owned): array
+    private function selectWorkSet(Collection $rows): array
     {
-        $rows = (clone $owned)
-            ->with('report:id,field_validation_state')
-            ->get(['id', 'report_id', 'target_visit_date', 'activated_at']);
-
-        $ids = $rows
+        return $rows
             ->sortBy([
                 fn ($a, $b) => (int) ($a->report->field_validation_state === Report::FIELD_VALIDATION_STATE_COMPLETED)
                     <=> (int) ($b->report->field_validation_state === Report::FIELD_VALIDATION_STATE_COMPLETED),
@@ -119,41 +142,37 @@ class MobileFieldValidationAssignmentController extends Controller
             ->sort()
             ->values()
             ->all();
-
-        return [$ids, $rows->count()];
     }
 
     /**
-     * A digest of everything the phone would store for the selected rows.
-     * It hashes raw assignment, report and completion attributes, so a
-     * reassignment, removal, closure or case-information edit changes it.
+     * A digest of everything the phone would store for this owner: every held
+     * assignment with its report, completion and identities, plus the earlier
+     * visits the feed resolves as previous-visit context.
      *
-     * @param  array<int, int>  $ids
+     * @param  Collection<int, FieldValidationAssignment>  $rows
      */
-    private function workSetVersion(array $ids, int $total, int|string $assigneeId): string
+    private function workSetVersion(Collection $rows, int|string $assigneeId): string
     {
-        /** @var Collection<int, FieldValidationAssignment> $rows */
-        $rows = FieldValidationAssignment::query()
-            ->whereIn('id', $ids)
-            ->orderBy('id')
-            ->with(['report', 'completion'])
-            ->get();
-
-        // Previous-visit context comes from earlier completions of the same
-        // owner, so their count and latest change are part of the digest.
-        $completions = FieldValidationCompletion::query()
+        $previousVisits = FieldValidationCompletion::query()
             ->whereHas('assignment', fn ($query) => $query->where('assignee_id', $assigneeId))
-            ->selectRaw('count(*) as total, max(id) as latest_id, max(updated_at) as latest_at')
-            ->first();
+            ->orderBy('id')
+            ->with('assignment.report')
+            ->get()
+            ->map(fn (FieldValidationCompletion $completion): array => [
+                $completion->getAttributes(),
+                $completion->assignment?->report?->getAttributes(),
+            ])
+            ->all();
 
         $payload = [
-            'total' => $total,
-            'completions' => $completions?->getAttributes(),
             'rows' => $rows->map(fn (FieldValidationAssignment $row): array => [
                 $row->getAttributes(),
                 $row->report->getAttributes(),
                 $row->completion?->getAttributes(),
+                [$row->assignee?->uuid, $row->assignee?->name],
+                [$row->report->reporter?->uuid, $row->report->reporter?->name],
             ])->all(),
+            'previous_visits' => $previousVisits,
         ];
 
         return substr(hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE)), 0, 32);

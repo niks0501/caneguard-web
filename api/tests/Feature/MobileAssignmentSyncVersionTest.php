@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
 use App\Models\FieldValidationAssignment;
+use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,6 +115,70 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->assertNotSame($before, $this->sync()['version']);
     }
 
+    // Proves: a closed previous visit still drives the version.
+    public function test_editing_a_closed_previous_visit_changes_the_version(): void
+    {
+        $previousReport = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'barangay' => 'Mabini',
+            'farmer_or_farm_owner_name' => 'Farm Alpha',
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_RSSI,
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+        ]);
+        $previousAssignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $previousReport->getKey(),
+            'assignee_id' => $this->inspector->getKey(),
+            'assigned_by_id' => $this->reviewer->getKey(),
+        ]);
+        FieldValidationCompletion::factory()->create([
+            'assignment_id' => $previousAssignment->getKey(),
+            'visited_at' => '2026-09-10T08:30:00.000Z',
+        ]);
+        $this->assign(report: [
+            'barangay' => 'mabini',
+            'farmer_or_farm_owner_name' => 'farm alpha',
+        ]);
+
+        $before = $this->sync();
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $this->assertSame(
+            Report::AUTHORITY_CONDITION_RSSI,
+            $this->getJson('/api/v1/mobile/assignments')->assertOk()
+                ->json('data.0.previous_visit.authority_classified_condition'),
+        );
+
+        $previousReport->update(['authority_classified_condition' => Report::AUTHORITY_CONDITION_RUST]);
+
+        $this->assertNotSame($before['version'], $this->sync()['version']);
+    }
+
+    // Proves: a set that changes mid-download asks the phone to restart.
+    public function test_a_set_that_changes_mid_download_requires_a_restart(): void
+    {
+        $assignments = [$this->assign(), $this->assign(), $this->assign()];
+
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $first = $this->getJson('/api/v1/mobile/assignments?per_page=2')->assertOk();
+        $next = $first->json('links.next');
+        $this->assertNotNull($next);
+        $nextPath = parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
+        $this->assertStringContainsString('sync_version='.$first->json('sync.version'), $nextPath);
+
+        $assignments[2]->report->update(['case_state' => Report::CASE_STATE_CLOSED]);
+
+        $this->getJson($nextPath)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART')
+            ->assertJsonPath('sync.total', 2)
+            ->assertJsonPath('sync.truncated', false);
+
+        $this->getJson('/api/v1/mobile/assignments?per_page=2')
+            ->assertOk()
+            ->assertJsonPath('sync.total', 2)
+            ->assertJsonCount(2, 'data');
+    }
+
     // Proves: an unchanged set returns "unchanged".
     public function test_an_unchanged_set_answers_unchanged_with_no_rows(): void
     {
@@ -161,6 +226,11 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->assertTrue($sync['truncated']);
         $this->assertCount($cap, $uuids);
         $this->assertNotContains($completed->uuid, $uuids);
+
+        $before = $sync['version'];
+        $completed->report->update(['barangay' => 'Corrected Barangay']);
+
+        $this->assertNotSame($before, $this->sync()['version']);
     }
 
     public function test_a_set_within_the_cap_is_not_truncated(): void
