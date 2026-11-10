@@ -13,7 +13,14 @@
     "required_keys": ["data", "links", "meta", "sync"],
     "data_key": "data",
     "next_link": "links.next",
-    "checkpoint": "sync.before"
+    "checkpoint": "sync.before",
+    "selection": {
+      "anchor": "sync.before",
+      "unread": "always included",
+      "read_history_days": 60,
+      "max_rows": 500,
+      "cap_order": "created_at descending, id descending"
+    }
   },
   "fields": {
     "id": { "type": "uuid", "required": true, "nullable": false },
@@ -62,6 +69,7 @@
       "changing a field type or nullability",
       "changing owner-scope or read-state semantics",
       "changing pagination checkpoint semantics"
-    ]
+    ],
+    "selection_bound": "The envelope.selection window bounds served read history only: every unread row is still served, and no field, type, nullability, owner scope, read-state meaning or checkpoint meaning changes, so it stays within v1."
   }
 }
