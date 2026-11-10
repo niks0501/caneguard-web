@@ -143,7 +143,10 @@ class ReportResource extends JsonResource
                 fn () => ReportAffectedFieldResource::collection($this->affectedFieldSurveys)
                     ->resolve($request),
             ),
-            'inspector_attachment' => $this->inspectorAttachment($request),
+            'inspector_attachment' => $this->when(
+                $this->relationLoaded('attachedFieldSurvey') && $this->relationLoaded('affectedFieldSurveys'),
+                fn () => $this->inspectorAttachment($request),
+            ),
             'field_validation_assignment' => $this->when(
                 $this->relationLoaded('fieldValidationAssignment'),
                 fn () => $this->fieldValidationAssignment
