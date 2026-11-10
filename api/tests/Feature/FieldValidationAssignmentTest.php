@@ -1041,7 +1041,7 @@ class FieldValidationAssignmentTest extends TestCase
             $case['reporter_concern'],
         );
         $this->assertSame(
-            ['url' => "/api/v1/mobile/assignments/{$assignment->uuid}/report-photo", 'content_type' => 'image/jpeg', 'bytes' => 12, 'immutable' => true],
+            ['url' => "/api/v1/mobile/assignments/{$assignment->uuid}/report-photo", 'content_type' => 'image/jpeg', 'bytes' => 12],
             $case['photo'],
         );
 

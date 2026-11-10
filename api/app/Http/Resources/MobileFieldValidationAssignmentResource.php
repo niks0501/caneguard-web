@@ -128,7 +128,6 @@ class MobileFieldValidationAssignmentResource extends JsonResource
                 ], false),
                 'content_type' => $report->image_mime_type,
                 'bytes' => (int) $report->image_size_bytes,
-                'immutable' => true,
             ],
         ];
     }
