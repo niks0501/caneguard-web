@@ -5,6 +5,7 @@ The `mobile-notifications-v1` contract is the owner-scoped REST feed for durable
 The API returns the authenticated field reporter's notifications only.
 The `sync.before` checkpoint and cursor links describe one complete snapshot boundary.
 The feed serves a bounded window anchored to that checkpoint: every unread item, plus read items created in the 60 days before `sync.before`, capped at the 500 newest rows of that window.
+Every response carries `sync.version` (a digest of the served rows as the phone receives them plus the reported `total` and `truncated`, so a new, read or aged-out item moves it), `sync.total` (items in the window before the 500-row cap), `sync.truncated` and `sync.unchanged`. Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the window has not changed; `since` is ignored once a `cursor` is present. Every continuation page is bound to the version the download started with: `links.next` carries `sync_version`, and a window that changes mid-download answers `409 SYNC_RESTART` with the new `sync` envelope so the phone starts the feed again instead of acknowledging items it never received.
 Read history older than the window is never served, so a long-lived account refreshes in a bounded number of pages instead of paging through every item it was ever sent.
 Advisory notifications include the validated office content in both `content`
 and the structured `advisory` payload; clients may render either representation.

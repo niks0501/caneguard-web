@@ -8,6 +8,7 @@ use App\Http\Requests\MobileNotificationMutationRequest;
 use App\Http\Requests\MobileNotificationRequest;
 use App\Http\Resources\MobileNotificationResource;
 use App\Models\Report;
+use App\Support\MobileFeedVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,7 +24,7 @@ class MobileNotificationController extends Controller
 
     public function __invoke(
         MobileNotificationRequest $request,
-    ): AnonymousResourceCollection {
+    ): AnonymousResourceCollection|JsonResponse {
         $syncBefore = CarbonImmutable::parse(
             $request->validated('sync_before') ?? now(),
         )->utc();
@@ -43,6 +44,37 @@ class MobileNotificationController extends Controller
                     ->orWhere('created_at', '>=', $syncBefore->subDays(self::FEED_WINDOW_DAYS));
             });
 
+        // The version covers the whole served window, serialized exactly as the
+        // phone receives it, so a new, read or aged-out item moves it.
+        $total = (clone $window)->count();
+        $truncated = $total > self::FEED_MAX_ROWS;
+        $stamp = MobileFeedVersion::digest(
+            (clone $window)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(self::FEED_MAX_ROWS)
+                ->get()
+                ->map(fn ($item): array => (new MobileNotificationResource($item))->resolve($request)),
+            ['total' => $total, 'truncated' => $truncated],
+        );
+        $cursor = $request->validated('cursor');
+        if ($cursor !== null && $request->validated('sync_version') !== $stamp['version']) {
+            return response()->json([
+                'message' => 'The notification window changed during the download. Start the feed again.',
+                'code' => 'SYNC_RESTART',
+                'sync' => [
+                    'before' => $syncBefore->toISOString(),
+                    'version' => $stamp['version'],
+                    'total' => $total,
+                    'truncated' => $truncated,
+                    'unchanged' => false,
+                ],
+            ], 409);
+        }
+
+        $unchanged = $cursor === null
+            && $request->validated('since') === $stamp['version'];
+
         $oldest = (clone $window)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -59,16 +91,27 @@ class MobileNotificationController extends Controller
             });
         }
 
+        if ($unchanged) {
+            $window->whereRaw('1 = 0');
+        }
+
         $items = $window
             ->orderBy('created_at')
             ->orderBy('id')
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))
             ->withQueryString()
-            ->appends(['sync_before' => $syncBefore->toISOString()]);
+            ->appends([
+                'sync_before' => $syncBefore->toISOString(),
+                'sync_version' => $stamp['version'],
+            ]);
 
         return MobileNotificationResource::collection($items)->additional([
             'sync' => [
                 'before' => $syncBefore->toISOString(),
+                'version' => $stamp['version'],
+                'total' => $total,
+                'truncated' => $truncated,
+                'unchanged' => $unchanged,
             ],
         ]);
     }

@@ -24,6 +24,10 @@
   },
   "meta": {},
   "sync": {
-    "before": "2026-08-19T10:00:05.000000Z"
+    "before": "2026-08-19T10:00:05.000000Z",
+    "version": "8f14e45fceea167a5a36dedd4bea2543",
+    "total": 2,
+    "truncated": false,
+    "unchanged": false
   }
 }

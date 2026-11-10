@@ -108,10 +108,54 @@ class MobileReportSecurityContractMySqlTest extends TestCase
             ->assertJsonPath('sync.before', $syncBefore);
         $seen = collect($first->json('data'))->pluck('uuid');
         $nextUrl = $first->json('links.next');
+        $version = $first->json('sync.version');
 
+        $forgedCursor = (new Cursor([
+            // One position before the shared timestamp, so an unscoped feed
+            // would surface the other reporter's row.
+            'updated_at' => $tiedTimestamp->subSecond()->format('Y-m-d H:i:s'),
+            'id' => 1,
+        ]))->encode();
+        Auth::forgetGuards();
+        $forgedResponse = $this->withToken($statusToken)
+            ->getJson('/api/v1/mobile/reports/statuses?'.http_build_query([
+                'cursor' => $forgedCursor,
+                'sync_before' => $syncBefore,
+                'sync_version' => $version,
+            ]))
+            ->assertOk()
+            ->assertJsonCount(5, 'data');
+
+        $this->assertNotContains(
+            $otherReport->uuid,
+            collect($forgedResponse->json('data'))->pluck('uuid')->all(),
+        );
+
+        // A row that moves past the checkpoint changes the stamped set, so the
+        // open traversal is refused rather than completed against a different
+        // snapshot.
         DB::table('reports')
             ->where('uuid', $seen->first())
             ->update(['updated_at' => $tiedTimestamp->addMinute()]);
+
+        $this->assertNotNull($nextUrl);
+        $nextPath = parse_url($nextUrl, PHP_URL_PATH).'?'
+            .parse_url($nextUrl, PHP_URL_QUERY);
+        Auth::forgetGuards();
+        $this->withToken($statusToken)
+            ->getJson($nextPath)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART')
+            ->assertJsonPath('sync.unchanged', false);
+
+        // Restarting the feed after the mid-sync update still delivers every
+        // owned row exactly once across pages with tied timestamps.
+        $restartBefore = $tiedTimestamp->addMinutes(2)->toISOString();
+        $seen = collect();
+        $nextUrl = '/api/v1/mobile/reports/statuses?'.http_build_query([
+            'per_page' => 2,
+            'sync_before' => $restartBefore,
+        ]);
 
         while ($nextUrl !== null) {
             $nextPath = parse_url($nextUrl, PHP_URL_PATH).'?'
@@ -120,7 +164,7 @@ class MobileReportSecurityContractMySqlTest extends TestCase
             $page = $this->withToken($statusToken)
                 ->getJson($nextPath)
                 ->assertOk()
-                ->assertJsonPath('sync.before', $syncBefore);
+                ->assertJsonPath('sync.before', $restartBefore);
             $seen = $seen->merge(collect($page->json('data'))->pluck('uuid'));
             $nextUrl = $page->json('links.next');
         }
@@ -130,23 +174,6 @@ class MobileReportSecurityContractMySqlTest extends TestCase
         $this->assertSame(
             $ownedReports->pluck('uuid')->sort()->values()->all(),
             $seen->sort()->values()->all(),
-        );
-
-        $forgedCursor = (new Cursor([
-            'updated_at' => $otherReport->updated_at->format('Y-m-d H:i:s'),
-            'id' => $otherReport->id,
-        ]))->encode();
-        Auth::forgetGuards();
-        $forgedResponse = $this->withToken($statusToken)
-            ->getJson('/api/v1/mobile/reports/statuses?'.http_build_query([
-                'cursor' => $forgedCursor,
-                'sync_before' => $syncBefore,
-            ]))
-            ->assertOk();
-
-        $this->assertNotContains(
-            $otherReport->uuid,
-            collect($forgedResponse->json('data'))->pluck('uuid')->all(),
         );
     }
 

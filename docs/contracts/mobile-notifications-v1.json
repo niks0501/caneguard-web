@@ -14,6 +14,10 @@
     "data_key": "data",
     "next_link": "links.next",
     "checkpoint": "sync.before",
+    "sync": {
+      "required_keys": ["before", "version", "total", "truncated", "unchanged"],
+      "version": { "unchanged_request": "since", "continuation_request": "sync_version" }
+    },
     "selection": {
       "anchor": "sync.before",
       "unread": "always included",
