@@ -17,6 +17,7 @@ class MobileFieldValidationAssignmentRequest extends ApiFormRequest
         return [
             'updated_after' => ['sometimes', 'date'],
             'sync_before' => ['sometimes', 'date'],
+            'since' => ['sometimes', 'string', 'max:64'],
             'cursor' => [
                 'sometimes',
                 'string',

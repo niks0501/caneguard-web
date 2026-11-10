@@ -16,6 +16,11 @@ The assignment state remains a separate `field_validation_state` dimension.
 
 The response uses `sync.before` as the feed checkpoint and `links.next` for cursor pagination.
 
+Every response carries `sync.version` (a digest of the delivered set), `sync.total` (assignments the owner holds), `sync.truncated` and `sync.unchanged`.
+The feed returns at most 300 assignments. When the owner holds more, `sync.truncated` is `true` and the rows kept are active work first (completed visits last), then the earliest target visit date (undated last), then the oldest assignment; `sync.total` still counts every assignment.
+Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the set has not changed; otherwise the full feed follows. `since` is ignored once a `cursor` is present.
+Reassigning, unassigning, closing a case and editing case information each change the version. The feed stays a full snapshot with no tombstones, and older builds that ignore these fields keep working.
+
 The Mobile client must consume the complete feed before replacing its owner-scoped local snapshot.
 A failed refresh must leave the last valid local snapshot available.
 
