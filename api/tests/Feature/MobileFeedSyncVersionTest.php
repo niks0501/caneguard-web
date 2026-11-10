@@ -122,8 +122,8 @@ class MobileFeedSyncVersionTest extends TestCase
         $this->assertCount(1, $after['data']);
     }
 
-    // Proves: sync.before is the response instant, so a review committed in
-    // that second reaches the phone instead of being skipped past.
+    // Proves: sync.before is the response instant and its own second is the
+    // snapshot ceiling, so a review committed in that second reaches the phone.
     public function test_the_status_checkpoint_is_never_in_the_future(): void
     {
         CarbonImmutable::setTestNow('2026-11-10T12:00:00.200000Z');
@@ -131,15 +131,15 @@ class MobileFeedSyncVersionTest extends TestCase
             $reviewed = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'reporter_id' => $this->owner->getKey(),
             ]);
-            $roundedUp = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            $nextSecond = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'reporter_id' => $this->owner->getKey(),
             ]);
-            DB::table('reports')->where('id', $roundedUp->id)->update([
+            DB::table('reports')->where('id', $nextSecond->id)->update([
                 'updated_at' => '2026-11-10 12:00:01',
             ]);
 
             $first = $this->feed('/api/v1/mobile/reports/statuses');
-            $this->assertCount(2, $first['data']);
+            $this->assertSame([$reviewed->uuid], collect($first['data'])->pluck('uuid')->all());
             $checkpoint = $first['sync']['before'];
             $this->assertTrue(
                 CarbonImmutable::parse($checkpoint)->lessThanOrEqualTo(CarbonImmutable::now()),
@@ -226,5 +226,42 @@ class MobileFeedSyncVersionTest extends TestCase
         $this->assertCount(1, $after['data']);
         $this->assertSame($report->uuid, $after['data'][0]['uuid']);
         $this->assertSame(Advisory::STATUS_RETIRED, $after['data'][0]['advisory']['status']);
+    }
+
+    // Proves: a stale version keeps the whole snapshot on every continuation
+    // page instead of letting the stale delta filter drop rows.
+    public function test_a_stale_version_serves_the_whole_snapshot_across_pages(): void
+    {
+        $reports = Report::factory()->count(3)->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+        ]);
+        DB::table('reports')->whereIn('id', $reports->pluck('id'))->update([
+            'updated_at' => now()->subMinute()->startOfSecond(),
+        ]);
+        $first = $this->feed('/api/v3/mobile/reports/statuses');
+        $this->assertCount(3, $first['data']);
+
+        DB::table('reports')->where('id', $reports->first()->id)->update([
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+        ]);
+
+        $page = $this->feed('/api/v3/mobile/reports/statuses?per_page=2&since='
+            .$first['sync']['version']
+            .'&updated_after='.urlencode($first['sync']['before']));
+        $this->assertFalse($page['sync']['unchanged']);
+        $this->assertCount(2, $page['data']);
+        $next = $page['links']['next'];
+        $this->assertNotNull($next);
+
+        $seen = collect($page['data'])->pluck('uuid');
+        $continuation = $this->feed(
+            parse_url($next, PHP_URL_PATH),
+            '?'.parse_url($next, PHP_URL_QUERY),
+        );
+
+        $continuationUuids = collect($continuation['data'])->pluck('uuid');
+        $this->assertSame($page['sync']['before'], $continuation['sync']['before']);
+        $this->assertCount(1, $continuationUuids);
+        $this->assertCount(3, $seen->merge($continuationUuids)->unique());
     }
 }

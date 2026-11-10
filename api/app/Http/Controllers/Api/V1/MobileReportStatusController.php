@@ -23,7 +23,7 @@ class MobileReportStatusController extends Controller
         $owned = Report::query()->visibleTo(request()->user())
             ->when($isV3, fn ($query) => $query->with('advisory'))
             ->whereBelongsTo($request->user(), 'reporter')
-            ->where('updated_at', '<=', $syncBefore->ceilSecond());
+            ->where('updated_at', '<', $syncBefore->startOfSecond()->addSecond());
 
         // The version covers the reporter's whole status set as serialized for
         // this API version, not just the `updated_after` slice.
@@ -34,11 +34,11 @@ class MobileReportStatusController extends Controller
                     : new ReportStatusResource($report))->resolve($request),
             ),
         );
-        $since = $request->validated('cursor') === null
-            && filled($request->validated('since'))
+        $since = filled($request->validated('since'))
             ? $request->validated('since')
             : null;
-        $unchanged = $since === $stamp['version'];
+        $unchanged = $request->validated('cursor') === null
+            && $since === $stamp['version'];
         $updatedAfter = $since === null
             ? $request->validated('updated_after')
             : null;

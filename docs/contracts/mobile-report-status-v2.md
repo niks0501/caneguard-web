@@ -90,7 +90,7 @@ Do not read `meta.sync_before` or root-level `sync_before` as alternatives to th
 
 All pages in one feed traversal use the same `sync.before` value.
 
-Every response carries `sync.version` (a digest of the reporter's whole status set as serialized for this version, not only the `updated_after` slice), `sync.total` (statuses held), `sync.truncated` (always `false`; this feed is not capped) and `sync.unchanged`. Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the set has not changed; `since` is ignored once a `cursor` is present. A `since` value that does not match the current version returns the whole stamped snapshot, so `updated_after` cannot narrow it.
+Every response carries `sync.version` (a digest of the reporter's whole status set as serialized for this version, not only the `updated_after` slice), `sync.total` (statuses held), `sync.truncated` (always `false`; this feed is not capped) and `sync.unchanged`. Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the set has not changed; `since` never answers `unchanged` once a `cursor` is present. A `since` value that does not match the current version returns the whole stamped snapshot, so `updated_after` cannot narrow it.
 
 ## Privacy boundary
 
