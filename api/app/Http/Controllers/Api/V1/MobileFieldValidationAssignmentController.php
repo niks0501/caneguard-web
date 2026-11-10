@@ -116,14 +116,6 @@ class MobileFieldValidationAssignmentController extends Controller
 
         $query = (clone $owned)
             ->whereIn('id', $selectedIds)
-            ->when(
-                $request->validated('updated_after'),
-                fn ($query, string $updatedAfter) => $query->where(
-                    'updated_at',
-                    '>',
-                    CarbonImmutable::parse($updatedAfter)->utc(),
-                ),
-            )
             ->orderBy('id')
             ->with([
                 'assignee',

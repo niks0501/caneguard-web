@@ -380,6 +380,20 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->getJson($nextPath)->assertOk();
     }
 
+    // Proves: a legacy delta filter cannot narrow the snapshot.
+    public function test_the_legacy_updated_after_filter_cannot_narrow_the_snapshot(): void
+    {
+        $this->assign();
+        $this->assign();
+
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $page = $this->getJson('/api/v1/mobile/assignments?updated_after='.now()->addMinute()->toISOString())
+            ->assertOk();
+
+        $this->assertCount(2, $page->json('data'));
+        $this->assertSame(2, $page->json('sync.total'));
+    }
+
     // Proves: previous-visit resolution does not add a query per row.
     public function test_previous_visit_resolution_queries_do_not_scale_with_the_row_count(): void
     {
