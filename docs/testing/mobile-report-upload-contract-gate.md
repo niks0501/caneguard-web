@@ -22,7 +22,9 @@ Mobile device acceptance is owned by the companion [Agent Device guide](https://
 
 `contract:completion-artifact` validates the completion multipart artifact.
 
-`contract:notification-artifact` validates the owner-scoped notification envelope and fields, and checks the artifact's declared feed-selection bound against the controller constants that enforce it.
+`contract:status-v3-artifact` validates the v3 status artifact's envelope, fields and advisory payload, including the declared `sync` stamp keys (`before`, `version`, `total`, `truncated`, `unchanged`) with their `since` and `sync_version` request bindings, and checks the v1, v2 and v3 status fixtures in [`docs/contracts/examples`](../contracts/examples) against that declared envelope so a fixture cannot drift silently.
+
+`contract:notification-artifact` validates the owner-scoped notification envelope and fields, checks the artifact's declared feed-selection bound against the controller constants that enforce it, and enforces the declared `sync` stamp keys with their `since` and `sync_version` request bindings.
 
 `contract:lifecycle-artifact` validates lifecycle dimensions, legacy projections, transition rules, and linked payload contracts.
 
@@ -73,6 +75,7 @@ Run all artifact and helper tests:
 npm run contract:test
 npm run contract:artifact
 npm run contract:v2:artifact
+npm run contract:status-v3-artifact
 npm run contract:assignment-artifact
 npm run contract:completion-artifact
 npm run contract:notification-artifact
