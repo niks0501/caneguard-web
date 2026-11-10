@@ -137,8 +137,12 @@ class MobileSyncContractTest extends TestCase
             ], "Seeded assignment {$reference} is outside the field-validation feed");
         }
         $this->assertGreaterThan($perPage, $seededAssignments->count(), 'Seeded assignments must span more than one page.');
-        $this->assertCount($seededAssignments->count(), $assignments, 'The assignment feed did not return every seeded assignment.');
-        $this->assertCount($seededAssignments->count(), array_unique(array_column($assignments, 'uuid')), 'The assignment feed repeated a row.');
+        $expected = min($seededAssignments->count(), 300);
+        $this->assertCount($expected, $assignments, 'The assignment feed did not return the capped seeded assignments.');
+        $this->assertCount($expected, array_unique(array_column($assignments, 'uuid')), 'The assignment feed repeated a row.');
+        $sync = $this->getJson('/api/v1/mobile/assignments?per_page='.$perPage)->assertOk()->json('sync');
+        $this->assertSame($seededAssignments->count(), $sync['total']);
+        $this->assertSame($seededAssignments->count() > 300, $sync['truncated']);
         foreach ($assignments as $row) {
             $this->assertContract($assignmentContract['fields'], $row, 'assignment '.($row['reference_code'] ?? '?'));
         }
