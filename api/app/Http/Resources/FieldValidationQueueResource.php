@@ -21,7 +21,7 @@ class FieldValidationQueueResource extends JsonResource
             'submitted_at' => $this->submitted_at->utc()->toISOString(),
             'first_reviewed_at' => $this->first_reviewed_at?->utc()->toISOString(),
             'predicted_label' => $this->predicted_label,
-            'confidence' => (float) $this->confidence,
+            'confidence' => $this->confidence === null ? null : (float) $this->confidence,
             'review_status' => $this->review_status,
             'lifecycle' => $this->resource->lifecycleSnapshot(),
             'authority_classified_condition' => $this->authority_classified_condition,

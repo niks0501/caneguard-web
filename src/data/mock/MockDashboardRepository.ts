@@ -350,6 +350,7 @@ export class MockDashboardRepository implements DashboardRepository {
       ),
       reportedConcern,
       possibleCondition,
+      noAiScan: 0,
       verificationOutcome,
       validationByBarangay,
       barangayScope,

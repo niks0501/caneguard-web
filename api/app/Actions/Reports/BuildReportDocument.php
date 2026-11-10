@@ -278,7 +278,7 @@ final class BuildReportDocument
                 'submitted_date' => $report->submitted_at?->timezone(self::TIMEZONE)->toDateString(),
                 'barangay' => $report->barangay,
                 'farmer_or_farm_reference' => $report->farmer_or_farm_owner_name,
-                'possible_ai_condition' => $report->predicted_label,
+                'possible_ai_condition' => $report->predicted_label ?? Report::NO_AI_SCAN_LABEL,
                 'affected_area_hectares' => $report->affected_area_hectares,
                 'work_status' => $report->review_status,
                 'verification_outcome' => $report->verification_outcome,

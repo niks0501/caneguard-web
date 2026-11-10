@@ -350,27 +350,28 @@ export interface DiseaseReport {
   locationSource?: LocationSource;
   gpsAccuracy?: number;
   scanRecordClientUuid?: string;
-  predictedDisease: DiseaseKey;
+  /** Null on an office-born case saved without an AI scan. */
+  predictedDisease: DiseaseKey | null;
   /** Present in Case Review detail; intentionally absent from queue/list DTOs. */
-  confidence?: number;
+  confidence?: number | null;
   imageUrl?: string;
   imageStatus: ImageStatus;
-  imageMimeType?: string;
-  imageSizeBytes?: number;
-  imageSourceType?: string;
+  imageMimeType?: string | null;
+  imageSizeBytes?: number | null;
+  imageSourceType?: string | null;
   sourceWidth?: number;
   sourceHeight?: number;
   symptoms: SymptomResponse[];
   fieldNotes?: string;
   classScores?: Array<{ label: string; score: number }>;
-  modelVersion?: string;
-  modelVersionRecognised?: boolean;
+  modelVersion?: string | null;
+  modelVersionRecognised?: boolean | null;
   processingTimingsMs?: {
-    preprocess: number;
-    inference: number;
-    total: number;
+    preprocess: number | null;
+    inference: number | null;
+    total: number | null;
   };
-  checklistConsistency?: string;
+  checklistConsistency?: string | null;
   reportedSeverity?: string;
   qualityWarnings?: string[];
   sugarcaneVariety?: string;

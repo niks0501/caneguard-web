@@ -39,7 +39,7 @@ class ReportResource extends JsonResource
                 'submitted_at' => $this->submitted_at->utc()->toISOString(),
             ],
             'image' => [
-                'url' => route(
+                'url' => $this->image_path === null || $this->image_path === '' ? null : route(
                     'api.v1.reports.image',
                     ['report' => $this->uuid],
                     false,
@@ -52,7 +52,7 @@ class ReportResource extends JsonResource
             ],
             'model' => [
                 'predicted_label' => $this->predicted_label,
-                'confidence' => (float) $this->confidence,
+                'confidence' => $this->confidence === null ? null : (float) $this->confidence,
                 'class_scores' => $this->classScores
                     ->map(fn ($score) => [
                         'label' => $score->label,
@@ -60,11 +60,13 @@ class ReportResource extends JsonResource
                     ])
                     ->values(),
                 'model_version' => $this->model_version,
-                'model_version_recognised' => in_array($this->model_version, config('caneguard.accepted_model_versions', ['v1.0-mobilenetv2']), true),
+                'model_version_recognised' => $this->model_version === null
+                    ? null
+                    : in_array($this->model_version, config('caneguard.accepted_model_versions', ['v1.0-mobilenetv2']), true),
                 'timings_ms' => [
-                    'preprocess' => (float) $this->preprocess_ms,
-                    'inference' => (float) $this->inference_ms,
-                    'total' => (float) $this->total_ms,
+                    'preprocess' => $this->preprocess_ms === null ? null : (float) $this->preprocess_ms,
+                    'inference' => $this->inference_ms === null ? null : (float) $this->inference_ms,
+                    'total' => $this->total_ms === null ? null : (float) $this->total_ms,
                 ],
             ],
             'observations' => [

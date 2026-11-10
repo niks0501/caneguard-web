@@ -137,7 +137,9 @@ final class ExportReports
                 $report->submitted_at?->timezone('Asia/Manila')->toDateString() ?? '',
                 $report->barangay,
                 $report->farmer_or_farm_owner_name ?? '',
-                'Possible '.$report->predicted_label,
+                $report->predicted_label === null
+                    ? Report::NO_AI_SCAN_LABEL
+                    : 'Possible '.$report->predicted_label,
                 $report->affected_area_hectares ?? '',
                 $areaMeasurement === Report::MEASUREMENT_NOT_MEASURED
                     ? 'Not measured'

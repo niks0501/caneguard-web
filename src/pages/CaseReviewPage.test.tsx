@@ -398,6 +398,50 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText("80%")).toBeInTheDocument();
   });
 
+  it("names an office case saved without an AI scan and claims no AI evidence for it", () => {
+    const scanlessReport = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          image: {
+            url: null,
+            mime_type: null,
+            size_bytes: null,
+            source_type: null,
+            source_width: null,
+            source_height: null,
+          },
+          model: {
+            predicted_label: null,
+            confidence: null,
+            class_scores: [],
+            model_version: null,
+            model_version_recognised: null,
+            timings_ms: { preprocess: null, inference: null, total: null },
+          },
+          observations: {
+            ...reportDetailDto.observations,
+            symptom_keys: [],
+            checklist_consistency: null,
+          },
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: scanlessReport }));
+    renderPage();
+
+    const possibleCondition = screen.getByRole("region", { name: "Possible Condition" });
+    expect(possibleCondition).toHaveTextContent("No AI scan");
+    expect(possibleCondition).not.toHaveTextContent("Rust");
+    expect(screen.queryByText(/AI-assisted result\./)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Model version not recognised/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/AI result agreement/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/The reporter said the AI result/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: /Submitted sugarcane photo/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders the submitted photo, Possible Condition, observations, and review detail", async () => {
     const user = userEvent.setup();
     renderPage();

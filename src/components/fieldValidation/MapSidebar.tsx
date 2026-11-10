@@ -2,11 +2,11 @@ import { Link } from "react-router";
 import { ArrowLeft, X } from "lucide-react";
 import { routes } from "../../app/routes";
 import type { FieldValidationMapFeature } from "../../domain/fieldValidation.types";
-import { diseaseLabels, fieldValidationStateLabels, reviewStatusLabels } from "../../domain/report.metadata";
+import { fieldValidationStateLabels, predictedDiseaseLabel, reviewStatusLabels } from "../../domain/report.metadata";
 import { formatValidationDate } from "./fieldValidation.format";
 
 function conditionLabel(feature: FieldValidationMapFeature) {
-  return diseaseLabels[feature.properties.predictedDisease].replace(/^Possible Condition: /, "");
+  return predictedDiseaseLabel(feature.properties.predictedDisease).replace(/^Possible Condition: /, "");
 }
 
 function statusLabel(feature: FieldValidationMapFeature) {

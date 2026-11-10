@@ -346,7 +346,7 @@ export const reportListItemSchema = z.object({
   captured_at: z.iso.datetime({ offset: true }),
   submitted_at: z.iso.datetime({ offset: true }),
   first_reviewed_at: z.iso.datetime({ offset: true }).nullable().optional(),
-  predicted_label: diseaseKeySchema,
+  predicted_label: diseaseKeySchema.nullable(),
   review_status: reviewStatusSchema,
   lifecycle: reportLifecycleSchema.optional(),
   authority_classified_condition: authorityClassifiedConditionSchema.nullable().optional(),
@@ -392,7 +392,7 @@ export const reportListItemSchema = z.object({
   attention_band_reasons: z.array(z.string()).optional(),
   identification_gap: identificationGapSchema.optional(),
   version: z.number().int().nonnegative().optional(),
-  image_url: z.string(),
+  image_url: z.string().nullable(),
 });
 
 export const reportListResponseSchema = z.object({
@@ -424,33 +424,33 @@ export const reportDetailSchema = z.object({
     submitted_at: z.iso.datetime({ offset: true }),
   }),
   image: z.object({
-    url: z.string(),
-    mime_type: z.string(),
-    size_bytes: z.number().int().nonnegative(),
-    source_type: z.string(),
+    url: z.string().nullable(),
+    mime_type: z.string().nullable(),
+    size_bytes: z.number().int().nonnegative().nullable(),
+    source_type: z.string().nullable(),
     source_width: z.number().int().positive().nullable(),
     source_height: z.number().int().positive().nullable(),
   }),
   model: z.object({
-    predicted_label: diseaseKeySchema,
-    confidence: z.number().min(0).max(1),
+    predicted_label: diseaseKeySchema.nullable(),
+    confidence: z.number().min(0).max(1).nullable(),
     class_scores: z.array(
       z.object({
         label: z.string().min(1).max(32),
         score: z.number().min(0).max(1),
       }),
     ),
-    model_version: z.string(),
-    model_version_recognised: z.boolean().optional(),
+    model_version: z.string().nullable(),
+    model_version_recognised: z.boolean().nullable().optional(),
     timings_ms: z.object({
-      preprocess: z.number().nonnegative(),
-      inference: z.number().nonnegative(),
-      total: z.number().nonnegative(),
+      preprocess: z.number().nonnegative().nullable(),
+      inference: z.number().nonnegative().nullable(),
+      total: z.number().nonnegative().nullable(),
     }),
   }),
   observations: z.object({
     symptom_keys: z.array(z.string()),
-    checklist_consistency: z.string(),
+    checklist_consistency: z.string().nullable(),
     reported_severity: z.string().nullable(),
     quality_warnings: z.array(z.string()),
     sugarcane_variety: z.string().nullable(),

@@ -2,6 +2,7 @@
 
 namespace Tests\Support;
 
+use App\Models\Report;
 use Illuminate\Support\Collection;
 
 final class ReportMetricExpectations
@@ -17,7 +18,14 @@ final class ReportMetricExpectations
 
         $groups = [];
         foreach ($counts as $value => $count) {
-            $groups[] = [$key => $value === '' ? null : $value, 'reported_cases' => $count];
+            $groups[] = [
+                $key => match (true) {
+                    $value !== '' => $value,
+                    $field === 'predicted_label' => Report::NO_AI_SCAN_LABEL,
+                    default => null,
+                },
+                'reported_cases' => $count,
+            ];
         }
         usort($groups, fn (array $left, array $right): int => ($right['reported_cases'] <=> $left['reported_cases'])
             ?: strcmp((string) $left[$key], (string) $right[$key])

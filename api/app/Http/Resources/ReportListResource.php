@@ -57,7 +57,7 @@ class ReportListResource extends JsonResource
             'attention_band_reasons' => $this->attention_band_reasons ?? [],
             'identification_gap' => app(AssessIdentificationGap::class)->handle($this->resource),
             'version' => $this->lock_version,
-            'image_url' => route(
+            'image_url' => $this->image_path === null || $this->image_path === '' ? null : route(
                 'api.v1.reports.image',
                 ['report' => $this->uuid],
                 false,

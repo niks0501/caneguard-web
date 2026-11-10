@@ -14,7 +14,8 @@ class ReportImageController extends Controller
         $this->authorize('view', $report);
 
         abort_unless(
-            Storage::disk('local')->exists($report->image_path),
+            $report->image_path !== null
+                && Storage::disk('local')->exists($report->image_path),
             404,
         );
 

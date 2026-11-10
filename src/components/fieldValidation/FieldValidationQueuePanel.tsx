@@ -6,7 +6,7 @@ import type {
   FieldValidationQueueData,
   FieldValidationQueueItem,
 } from "../../domain/fieldValidation.types";
-import { diseaseLabels, reviewStatusLabels } from "../../domain/report.metadata";
+import { predictedDiseaseLabel, reviewStatusLabels } from "../../domain/report.metadata";
 import { routes } from "../../app/routes";
 import { formatValidationDate } from "./fieldValidation.format";
 
@@ -63,7 +63,7 @@ function QueueItem({ item }: { item: FieldValidationQueueItem }) {
       <p className="validation-queue-item__place">{item.barangay}</p>
       <dl>
         <div><dt>Observed</dt><dd>{formatValidationDate(item.observedAt)}</dd></div>
-        <div><dt>Possible Condition</dt><dd>{diseaseLabels[item.predictedDisease]}</dd></div>
+        <div><dt>Possible Condition</dt><dd>{predictedDiseaseLabel(item.predictedDisease)}</dd></div>
         <div><dt>Assigned to</dt><dd>{item.assignee?.name ?? "Unassigned"}</dd></div>
         <div><dt>Visit details</dt><dd>{queueItemMeta(item)}</dd></div>
       </dl>

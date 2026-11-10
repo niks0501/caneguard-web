@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { diseaseLabels } from "../../domain/report.metadata";
+import { predictedDiseaseLabel } from "../../domain/report.metadata";
 import type { DiseaseReport } from "../../domain/report.types";
 import { useReports } from "../../hooks/useReports";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -150,7 +150,7 @@ export function ReportPicker({ excludeUuid, value, onSelect, disabled = false }:
               <strong>{report.referenceCode}</strong>
               <small>
                 {contactName(report)} · Barangay {report.barangay} ·{" "}
-                {formatDate(report.submittedAt)} · {diseaseLabels[report.predictedDisease]}
+                {formatDate(report.submittedAt)} · {predictedDiseaseLabel(report.predictedDisease)}
               </small>
             </li>
           ))}

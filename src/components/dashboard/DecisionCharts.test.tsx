@@ -71,6 +71,7 @@ const analytics = {
     { condition: "mosaic", count: 6 },
     { condition: "rust", count: 4 },
   ],
+  noAiScan: 0,
   verificationOutcome: {
     not_determined: 7,
     verified: 3,
@@ -249,6 +250,21 @@ describe("InflowComparisonBars", () => {
 });
 
 describe("ConcernVsConditionBars", () => {
+  // Proposal test - proves: charts show the No-AI-scan bucket with its own count, apart from the AI conditions.
+  it("shows office cases without a scan as their own bucket", () => {
+    renderWithRouter(
+      <ConcernVsConditionBars
+        analytics={{ ...analytics, noAiScan: 3 }}
+        scopeLabel={scopeLabel}
+      />,
+    );
+
+    const row = within(screen.getByRole("table")).getByText("Possible: No AI scan")
+      .closest("tr");
+    expect(row).not.toBeNull();
+    expect(within(row as HTMLElement).getByText("3")).toBeInTheDocument();
+  });
+
   it("keeps the two vocabularies side by side without merging them", () => {
     const { container } = renderWithRouter(
       <ConcernVsConditionBars analytics={analytics} scopeLabel={scopeLabel} />,

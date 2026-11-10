@@ -61,10 +61,15 @@ class MobileFieldValidationAssignmentController extends Controller
             // keeps an immediately activated assignment in the first feed.
             $syncBefore = $syncBefore->addSecond();
         }
+        $supportsNoAiScan = $request->validated('supports') === Report::NO_AI_SCAN;
         $owned = FieldValidationAssignment::query()
             ->where('assignee_id', $request->user()->getKey())
-            ->whereHas('report', function ($query) use ($request): void {
+            ->whereHas('report', function ($query) use ($request, $supportsNoAiScan): void {
                 $query->visibleTo($request->user(), false)
+                    ->when(
+                        ! $supportsNoAiScan,
+                        fn ($scanned) => $scanned->whereNotNull('predicted_label')->whereNotNull('confidence'),
+                    )
                     ->where('case_state', Report::CASE_STATE_OPEN)
                     ->whereIn('field_validation_state', [
                         Report::FIELD_VALIDATION_STATE_ASSIGNED,

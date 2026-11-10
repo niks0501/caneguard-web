@@ -22,6 +22,13 @@ export const diseaseLabels: Record<DiseaseKey, string> = {
   rssi: "Possible Condition: RSSI",
 };
 
+/** Shown for an office-born case saved without an AI scan. */
+export const noAiScanLabel = "No AI scan";
+
+export function predictedDiseaseLabel(disease: DiseaseKey | null): string {
+  return disease ? diseaseLabels[disease] : noAiScanLabel;
+}
+
 /** Values offered when recording a new staff classification. */
 export const activeAuthorityClassifiedConditions = [
   "healthy",

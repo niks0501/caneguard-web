@@ -68,6 +68,24 @@ class SecureReportImagesCommandTest extends TestCase
         Storage::disk('public')->assertExists($verified->image_path);
     }
 
+    public function test_command_removes_verified_public_images_alongside_scanless_office_cases(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        $verified = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'image_path' => 'reports/verified.png',
+        ]);
+        Report::factory()->inDistrict($this->pilotDistrict())->officeWithoutAiScan()->create();
+        Storage::disk('local')->put($verified->image_path, 'verified');
+        Storage::disk('public')->put($verified->image_path, 'verified');
+
+        $this->artisan('reports:secure-images', ['--remove-public' => true])
+            ->assertSuccessful();
+
+        Storage::disk('local')->assertExists($verified->image_path);
+        Storage::disk('public')->assertMissing($verified->image_path);
+    }
+
     public function test_command_refuses_a_foreign_link_before_public_deletion(): void
     {
         Storage::fake('local');

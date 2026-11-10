@@ -135,4 +135,66 @@ describe("ApiFieldValidationRepository", () => {
     expect(result.oldest?.locationUnavailable).toBe(true);
     expect(result.oldest?.locationUnavailableReason).toBe("offline_no_map");
   });
+
+  it("reads office cases saved without an AI scan on the map and in the queue", async () => {
+    const scanless = {
+      uuid: "report-scanless",
+      reference_code: "CG-2026-0009",
+      barangay: "Balaytigui",
+      province: "Batangas",
+      municipality: "Nasugbu",
+      observed_at: null,
+      submitted_at: "2026-08-13T11:00:00.000Z",
+      predicted_label: null,
+      confidence: null,
+      review_status: "for_field_validation",
+      final_latitude: 14.126,
+      final_longitude: 120.6039,
+      location_source: "gps",
+      gps_accuracy: 8.5,
+      affected_area_hectares: 2.5,
+      affected_portion_percent: 18,
+    };
+    server.use(
+      http.get(`${baseUrl}/api/v1/reports/map`, () =>
+        HttpResponse.json({
+          ...mapDto,
+          features: [
+            {
+              ...mapDto.features[0],
+              id: scanless.uuid,
+              properties: {
+                ...mapDto.features[0].properties,
+                ...scanless,
+                observed_at: null,
+              },
+            },
+          ],
+        }),
+      ),
+      http.get(`${baseUrl}/api/v1/reports/field-validation-queue`, () =>
+        HttpResponse.json({
+          data: { queue: "follow_up_due", count: 1, oldest: scanless, items: [scanless] },
+        }),
+      ),
+    );
+    const repository = new ApiFieldValidationRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    const map = await repository.getMap({});
+    expect(map.features[0].properties).toMatchObject({
+      referenceCode: "CG-2026-0009",
+      predictedDisease: null,
+      confidence: null,
+    });
+
+    const queue = await repository.getQueue({ queue: "follow_up_due" });
+    expect(queue.items[0]).toMatchObject({
+      referenceCode: "CG-2026-0009",
+      predictedDisease: null,
+      confidence: null,
+    });
+    expect(queue.oldest?.predictedDisease).toBeNull();
+  });
 });

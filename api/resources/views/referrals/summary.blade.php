@@ -136,11 +136,15 @@
 
         <section>
             <h2>Possible AI result - decision support only</h2>
-            <p class="notice">Possible result: {{ $summary['possible_ai_result']['label_text'] }}. Confidence is included as model support context only. This is not a diagnosis or an authority finding.</p>
-            <dl class="model-details">
-                <div><dt>Model confidence</dt><dd>{{ $summary['possible_ai_result']['confidence'] }}</dd></div>
-                <div><dt>Model version</dt><dd>{{ $summary['possible_ai_result']['model_version'] }}</dd></div>
-            </dl>
+            @if ($summary['possible_ai_result']['label'] === null)
+                <p class="notice">Possible result: {{ $summary['possible_ai_result']['label_text'] }}. No model confidence or model version was recorded for this case.</p>
+            @else
+                <p class="notice">Possible result: {{ $summary['possible_ai_result']['label_text'] }}. Confidence is included as model support context only. This is not a diagnosis or an authority finding.</p>
+                <dl class="model-details">
+                    <div><dt>Model confidence</dt><dd>{{ $summary['possible_ai_result']['confidence'] ?? 'Not provided' }}</dd></div>
+                    <div><dt>Model version</dt><dd>{{ $summary['possible_ai_result']['model_version'] ?? 'Not provided' }}</dd></div>
+                </dl>
+            @endif
         </section>
 
         <section>

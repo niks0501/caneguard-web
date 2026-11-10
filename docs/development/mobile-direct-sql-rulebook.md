@@ -25,12 +25,12 @@ One bad row can break more than itself: the assignment feed serializes a whole p
 | `district_id` | The configured pilot district (`CANEGUARD_PILOT_DISTRICT_CODE`); anything else, or empty, is hidden. |
 | `captured_at`, `submitted_at` | Set (UTC, millisecond precision). Empty values crash the assignment serializer. |
 | `created_at`, `updated_at` | Set to now or earlier (UTC). Phones sync by `updated_at`; empty or future values are never received. |
-| `predicted_label` | One of `healthy`, `mosaic`, `rust`, `smut` (the phone contract does not allow empty yet). |
-| `confidence` | A number from 0 to 1. |
+| `predicted_label` | One of `healthy`, `mosaic`, `rust`, `smut`, or empty on an office row with no AI scan (phone uploads still require one). |
+| `confidence` | A number from 0 to 1, or empty exactly when `predicted_label` is empty. |
 | `barangay` | Non-empty. |
 | `affected_portion_percent`, `affected_area_hectares` | Empty, or 0-100 and 0 or more. |
 
-The NOT NULL columns of the `reports` table (image and model columns) still need values; copy a mobile-submitted row as a template.
+The image and model columns are nullable for office rows, so a row without a scan or a photo saves; leave them empty together rather than half-filled. A row a phone should receive still copies a mobile-submitted row as a template, because a scanless row reaches only builds that ask for it (see below).
 
 ## Reaching a phone: the assignment row
 
@@ -45,8 +45,10 @@ A report reaches a phone only through a `field_validation_assignments` row, and 
 | `activated_at` | Set (UTC). |
 | `created_at`, `updated_at` | Set to now or earlier (UTC); the feed syncs by `updated_at` and pages in `id` order. |
 
+An assigned report with an empty `predicted_label` or `confidence` reaches only a build that sends `supports=no_ai_scan`; assignment alone does not deliver it to an older build. The wire contract is [mobile field-validation assignment v1](../contracts/mobile-field-validation-assignment-v1.md).
+
 Demo flow: insert the report, run the check, assign it to the demo inspector (in the web app, or with this row), run the check again, then refresh the phone. Reports that are not assigned to anyone are not shown on phones.
 
 ## What the check reports
 
-Per report: bad `uuid` or `client_uuid`, empty `reference_code`, missing reporter, empty dates, unknown `predicted_label`, `confidence` outside 0-1, empty `barangay`, out-of-range affected area or portion, unknown `case_state` or `field_validation_state`, and an `origin` other than `mobile` or `office`. For assigned work, also: no pilot district, wrong district, `case_state` not `open`, an assigned state with no assignment row, or an assignment with a future `updated_at`, a missing assignee, an assignee who cannot sign in on a phone, or no district membership. Assignments whose report is missing are listed as `(assignment <id>)`.
+Per report: bad `uuid` or `client_uuid`, empty `reference_code`, missing reporter, empty dates, unknown `predicted_label`, `confidence` outside 0-1, only one of `predicted_label` and `confidence` empty on an office row, empty `barangay`, out-of-range affected area or portion, unknown `case_state` or `field_validation_state`, and an `origin` other than `mobile` or `office`. For assigned work, also: no pilot district, wrong district, `case_state` not `open`, an assigned state with no assignment row, an empty `predicted_label` or `confidence` (listed as hidden, because only a build that sends `supports=no_ai_scan` receives it), or an assignment with a future `updated_at`, a missing assignee, an assignee who cannot sign in on a phone, or no district membership. Assignments whose report is missing are listed as `(assignment <id>)`.

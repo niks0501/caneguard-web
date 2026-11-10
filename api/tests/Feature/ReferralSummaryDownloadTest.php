@@ -195,6 +195,28 @@ class ReferralSummaryDownloadTest extends TestCase
             ->assertSee('src="'.route('api.v1.reports.image', ['report' => $report->uuid], false).'"', false);
     }
 
+    #[DataProvider('summaryRoutes')]
+    public function test_summary_states_absent_ai_evidence_instead_of_claiming_confidence(string $summaryPath): void
+    {
+        $scanned = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $scanless = Report::factory()->inDistrict($this->pilotDistrict())->officeWithoutAiScan()->create();
+        foreach ([$scanned, $scanless] as $report) {
+            ReportReferral::factory()->for($report)->create();
+        }
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+
+        $this->get("/api/v1/reports/{$scanned->uuid}/{$summaryPath}")
+            ->assertOk()
+            ->assertSee('Confidence is included as model support context only.')
+            ->assertSee('Model confidence');
+
+        $this->get("/api/v1/reports/{$scanless->uuid}/{$summaryPath}")
+            ->assertOk()
+            ->assertSee('No AI scan (office record)')
+            ->assertDontSee('Confidence is included as model support context only.')
+            ->assertDontSee('Model confidence');
+    }
+
     public static function summaryRoutes(): array
     {
         return [

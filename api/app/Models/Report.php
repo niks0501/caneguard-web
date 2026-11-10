@@ -103,6 +103,12 @@ class Report extends Model
 
     public const ORIGIN_OFFICE = 'office';
 
+    /** Chart and API bucket for a case that has no AI prediction (office-born without a scan). */
+    public const NO_AI_SCAN = 'no_ai_scan';
+
+    /** Printed label for that same case, wherever a reader names the possible condition. */
+    public const NO_AI_SCAN_LABEL = 'No AI scan';
+
     /** Stable free-text value used when Mobile reports RSSI as field evidence. */
     public const REPORTER_CONCERN_RSSI = 'RSSI';
 
@@ -581,6 +587,23 @@ class Report extends Model
     public function uniqueIds(): array
     {
         return ['uuid'];
+    }
+
+    /**
+     * Cases that carry no AI prediction. Only office-born cases may be saved
+     * this way; phone uploads still require a prediction.
+     *
+     * @param  Builder<Report>  $query
+     * @return Builder<Report>
+     */
+    public function scopeWithoutAiScan(Builder $query): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('predicted_label'));
+    }
+
+    public function hasAiScan(): bool
+    {
+        return $this->predicted_label !== null;
     }
 
     public function scopeVisibleTo(Builder $query, ?User $user, bool $ownerOnly = true): Builder

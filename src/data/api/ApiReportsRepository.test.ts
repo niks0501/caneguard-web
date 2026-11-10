@@ -68,6 +68,68 @@ describe("ApiReportsRepository", () => {
   });
 
 
+  it("reads an office case saved without an AI scan from the list and detail endpoints", async () => {
+    const scanlessListItem = {
+      ...paginatedReportsDto.data[0],
+      predicted_label: null,
+      image_url: null,
+    };
+    const scanlessDetail = {
+      ...reportDetailDto,
+      image: {
+        url: null,
+        mime_type: null,
+        size_bytes: null,
+        source_type: null,
+        source_width: null,
+        source_height: null,
+      },
+      model: {
+        predicted_label: null,
+        confidence: null,
+        class_scores: [],
+        model_version: null,
+        model_version_recognised: null,
+        timings_ms: { preprocess: null, inference: null, total: null },
+      },
+      observations: {
+        ...reportDetailDto.observations,
+        symptom_keys: [],
+        checklist_consistency: null,
+      },
+    };
+    server.use(
+      http.get(`${baseUrl}/api/v1/reports`, () =>
+        HttpResponse.json({
+          ...paginatedReportsDto,
+          data: [scanlessListItem],
+        }),
+      ),
+      http.get(`${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}`, () =>
+        HttpResponse.json({ data: scanlessDetail }),
+      ),
+    );
+    const repository = new ApiReportsRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+
+    const list = await repository.listReports();
+    expect(list.reports[0].predictedDisease).toBeNull();
+    expect(list.reports[0].imageStatus).toBe("unavailable");
+
+    const detail = await repository.getReportById(reportDetailDto.identity.uuid);
+    expect(detail).toMatchObject({
+      predictedDisease: null,
+      confidence: null,
+      imageStatus: "unavailable",
+      imageMimeType: null,
+      imageSizeBytes: null,
+      modelVersion: null,
+      modelVersionRecognised: null,
+      checklistConsistency: null,
+    });
+  });
+
   it("requests a filter-scoped CSV without pagination parameters", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports/export`, ({ request }) => {

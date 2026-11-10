@@ -784,13 +784,17 @@ function CaseReviewContent() {
               <section aria-labelledby="possible-condition-heading">
                 <h3 id="possible-condition-heading">Possible Condition</h3>
                 <DiseaseBadge disease={report.predictedDisease} includePossibleConditionPrefix={false} />
-                <p>AI-assisted result. Decision support, not a diagnosis.</p>
+                {report.predictedDisease ? (
+                  <p>AI-assisted result. Decision support, not a diagnosis.</p>
+                ) : null}
               </section>
               <section aria-labelledby="reporter-observation-heading">
                 <h3 id="reporter-observation-heading">What the reporter saw</h3>
-                {report.mismatchReported === true ? <p className="observation-mismatch" role="status">The reporter said the AI result does not match what they observed.</p>
-                  : report.mismatchReported === false ? <p>The reporter said the AI result matches what they observed.</p>
-                  : <p>AI result agreement was not collected for this report.</p>}
+                {report.predictedDisease ? (
+                  report.mismatchReported === true ? <p className="observation-mismatch" role="status">The reporter said the AI result does not match what they observed.</p>
+                    : report.mismatchReported === false ? <p>The reporter said the AI result matches what they observed.</p>
+                    : <p>AI result agreement was not collected for this report.</p>
+                ) : null}
                 {isRssiReporterConcern(report) ? <p role="status"><strong>RSSI reported as a field concern</strong> — reporter-observed evidence only; the AI result does not cover RSSI.</p> : null}
                 <dl className="detail-list">
                   <DetailField label="Observed or suspected concern">{report.reporterSuspectedCondition?.trim() || "None reported"}</DetailField>
@@ -818,7 +822,7 @@ function CaseReviewContent() {
               <dl className="detail-list">
                 <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
                 <DetailField label="Field notes"><ClampedText text={report.fieldNotes ?? "Not provided"} /></DetailField>
-                <DetailField label="Confidence">{report.confidence !== undefined ? `${Math.round(report.confidence * 100)}%` : "Not provided"}</DetailField>
+                <DetailField label="Confidence">{typeof report.confidence === "number" ? `${Math.round(report.confidence * 100)}%` : "Not provided"}</DetailField>
                 <DetailField label="Model version">{report.modelVersion ?? "Not provided"}</DetailField>
               </dl>
               {report.modelVersionRecognised === false || report.classScores?.some(({ label }) => !Object.hasOwn(diseaseLabels, label)) ? <div role="status">

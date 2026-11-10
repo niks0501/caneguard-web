@@ -16,7 +16,8 @@ class ReferralSummaryResource extends JsonResource
         $report = $this->resource;
         $referral = $report->referral;
         $lifecycle = $report->lifecycleSnapshot();
-        $primaryImageAvailable = Storage::disk('local')->exists($report->image_path);
+        $primaryImageAvailable = $report->image_path !== null
+            && Storage::disk('local')->exists($report->image_path);
         $redactPersonalContext = false;
 
         return [
@@ -83,9 +84,11 @@ class ReferralSummaryResource extends JsonResource
             ],
             'possible_ai_result' => [
                 'label' => $report->predicted_label,
-                'confidence' => (float) $report->confidence,
+                'confidence' => $report->confidence === null ? null : (float) $report->confidence,
                 'role' => 'decision_support_only',
-                'label_text' => 'Possible '.str_replace('_', ' ', $report->predicted_label),
+                'label_text' => $report->predicted_label === null
+                    ? 'No AI scan (office record)'
+                    : 'Possible '.str_replace('_', ' ', $report->predicted_label),
                 'model_version' => $report->model_version,
             ],
             'advisory' => $report->advisory ? [

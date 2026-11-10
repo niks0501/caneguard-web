@@ -16,7 +16,7 @@ import type {
   ReportReviewInput,
   HandoffNoteInput,
 } from "../../domain/review.types";
-import { diseaseLabels } from "../../domain/report.metadata";
+import { noAiScanLabel, predictedDiseaseLabel } from "../../domain/report.metadata";
 import { deriveWorkflowStatus } from "../../domain/workflowStatus";
 import { manilaDateAt, manilaMonthAt } from "../../domain/reportingTime";
 import {
@@ -82,7 +82,7 @@ export class MockReportsRepository implements ReportsRepository {
             report.referenceCode,
             report.barangay,
             report.submittedByName,
-            diseaseLabels[report.predictedDisease],
+            predictedDiseaseLabel(report.predictedDisease),
           ].some((value) => value.toLowerCase().includes(search));
         const matchesStatus =
           !filters?.status ||
@@ -186,7 +186,9 @@ export class MockReportsRepository implements ReportsRepository {
         manilaDateAt(new Date(report.submittedAt)),
         report.barangay,
         report.farmerOrFarmOwnerName ?? report.farmReference,
-        `Possible ${report.predictedDisease}`,
+        report.predictedDisease === null
+          ? noAiScanLabel
+          : `Possible ${report.predictedDisease}`,
         report.affectedAreaHectares,
         report.affectedPortionPercent,
         lifecycle.verificationOutcome,

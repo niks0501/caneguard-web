@@ -10,7 +10,7 @@ import {
   type FieldWorkloadAssignee,
   type FieldWorkloadItem,
 } from "../../domain/fieldOperations";
-import { diseaseLabels } from "../../domain/report.metadata";
+import { predictedDiseaseLabel } from "../../domain/report.metadata";
 import { useUpdateReportReview } from "../../hooks/useReports";
 import { Button } from "../ui/Button";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
@@ -94,7 +94,7 @@ export function FieldOperationsEditor({
 
       <dl className="field-operations-editor__facts">
         <div><dt>Location</dt><dd>{item.farmReference || item.barangay}</dd></div>
-        <div><dt>Possible Condition</dt><dd>{diseaseLabels[item.predictedDisease]}</dd></div>
+        <div><dt>Possible Condition</dt><dd>{predictedDiseaseLabel(item.predictedDisease)}</dd></div>
         {reason ? <div><dt>Reason for Visit</dt><dd>{reason}</dd></div> : null}
         <div><dt>Observed</dt><dd>{formatValidationDate(item.observedAt)}</dd></div>
         <div><dt>Target visit</dt><dd>{item.targetVisitDate ?? "Not scheduled"}</dd></div>
