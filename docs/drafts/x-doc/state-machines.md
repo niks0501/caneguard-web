@@ -11,6 +11,8 @@ Verified against `main` at `41bd5d8`. Line numbers are omitted on purpose; searc
 | State panels | `LoadingState`, `EmptyState`, `NoResultsState`, `ErrorState` | `loading`, `empty`, `no-results`, `error` | `invalid-query`, `access-denied`, `not-found`, `malformed-data`, `unreachable`, `rate-limited`, `unavailable`, `session-unavailable`, `render` |
 | Report queue | results panel in `SubmittedReportsPage` | `loading`, `error`, `empty`, `no-results`, `refreshing`, `ready` | as panels |
 | Review form | `form#review-decision` | `idle`, `dirty`, `saving`, `saved`, `offline`, `conflict`, `error` | `malformed-data`, `rate-limited`, `access-denied`, `validation`, others per `formErrorKind` |
+| Affected boundaries | `section.affected-field-linkage` on a case | `idle`, `dirty`, `saving`, `saved`, `offline`, `conflict`, `error` | none |
+| Field boundaries viewer | `.boundaries-workspace`, attribute `data-selection-state` | `none`, `list`, `map`, `loading`, `missing`, `unavailable` | none |
 | Weekly report | `section[aria-label="Official weekly report"]` | `loading`, `ready`, `working`, `offline`, `error` | `conflict`, `access-denied`, `delivery-closed`, `unavailable` |
 | Header pills | `ServerStatus`, `RealtimeStatus` | `connected`, `refreshing`, `degraded`, `unavailable`, `offline`; realtime `connected`, `degraded` | none |
 | Render failure | `AppErrorFallback` | `error` | `render` |
@@ -105,6 +107,14 @@ The URL is the only source of truth (`parseReportListUrl`); invalid values never
 | any | offline | `offline` (draft stays in tab, never queued) |
 
 Server: `lockForUpdate` on `lock_version`; every write bumps it. A network failure after commit retries into 409 and reconciles, never double-applies. Version follows sibling saves (**closed**, #344).
+
+### SM-11b Affected-boundary form (case page)
+
+Same vocabulary as SM-11, derived by `affectedFieldFormState`. `saving` wins, then `offline` (only while there are unsaved changes; save is disabled and the draft stays in the tab), `conflict` (409, offers a refresh that discards the draft), `error`, `saved`, `dirty`, `idle`. The inspector's attached boundary (`inspector_attachment` on the case) is confirmed by ticking it and entering the loss rate through this same form; `arrived: false` means the boundary has not reached the office yet.
+
+### SM-11c Field boundaries viewer selection
+
+`?boundary=` names the selection. `none` | `list` (opened from the list or a link) | `map` (clicked on the map, popup at the click) | `loading` | `missing` | `unavailable`. A number not in the loaded newest page is fetched by id (`useFieldSurveyById`), so every boundary is linkable; `missing` means the id does not exist or is not a number, `unavailable` means the lookup failed.
 
 ### SM-12 Sibling writers on `lock_version`
 

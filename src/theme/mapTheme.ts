@@ -31,6 +31,8 @@ export interface MapPaint {
   boundaryFill: string;
   boundaryLine: string;
   boundarySelected: string;
+  /** Damage areas the inspector drew inside a boundary. */
+  boundaryDamage: string;
 }
 
 type PaintToken =
@@ -71,6 +73,7 @@ export function readMapPaint(): MapPaint {
     boundaryFill: readToken("--color-primary"),
     boundaryLine: readToken("--color-primary-dark"),
     boundarySelected: readToken("--color-accent-dark"),
+    boundaryDamage: readToken("--color-warning"),
   };
 }
 

@@ -22,6 +22,15 @@ describe("report API schemas", () => {
     ).toBe(reportDetailDto.identity.uuid);
   });
 
+  it("requires a case to carry the boundary its inspector attached", () => {
+    const withoutAttachment: Record<string, unknown> = { ...reportDetailDto };
+    delete withoutAttachment.inspector_attachment;
+    expect(() => reportDetailResponseSchema.parse({ data: withoutAttachment })).toThrow();
+    expect(
+      reportDetailResponseSchema.parse({ data: { ...reportDetailDto, inspector_attachment: null } }).data.inspector_attachment,
+    ).toBeNull();
+  });
+
   it("accepts possible-match and canonical-linkage response fields", () => {
     const linked = {
       ...reportDetailDto,

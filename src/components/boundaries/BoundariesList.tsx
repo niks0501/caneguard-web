@@ -20,12 +20,16 @@ export function BoundariesList({
   isFetching?: boolean;
   onRefresh?: () => void;
 }) {
+  const shown = data.features.length;
+  const selectedOutsidePage = selectedBoundaryId !== null
+    && !data.features.some((feature) => String(feature.properties.id) === selectedBoundaryId);
+
   return (
     <section className="field-validation-table-card boundaries-list-card" aria-labelledby="boundaries-list-heading">
       <div className="workspace-heading boundaries-list__heading">
         <h2 id="boundaries-list-heading">Boundary records</h2>
         <div className="boundaries-list__heading-actions">
-          <span>{data.metadata.returnedCount} shown</span>
+          <span>{shown} shown</span>
           {onRefresh ? (
             <Button
               variant="secondary"
@@ -41,9 +45,9 @@ export function BoundariesList({
       </div>
       {data.metadata.truncated ? (
         <p className="boundaries-list__truncated" role="status">
-          {data.metadata.totalCount > data.metadata.returnedCount
-            ? `Showing the newest ${data.metadata.returnedCount} of ${data.metadata.totalCount} boundaries. The rest are not on this map.`
-            : `Showing the newest ${data.metadata.returnedCount} boundaries. More exist beyond this view.`}
+          {data.metadata.totalCount > shown
+            ? `Showing the newest ${shown} of ${data.metadata.totalCount} boundaries. ${selectedOutsidePage ? "The selected boundary is also on this map; the rest are not." : "The rest are not on this map."}`
+            : `Showing the newest ${shown} boundaries. ${selectedOutsidePage ? "The selected boundary is also on this map; more exist beyond this view." : "More exist beyond this view."}`}
         </p>
       ) : null}
       {data.features.length === 0 ? (

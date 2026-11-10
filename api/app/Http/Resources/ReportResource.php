@@ -143,6 +143,10 @@ class ReportResource extends JsonResource
                 fn () => ReportAffectedFieldResource::collection($this->affectedFieldSurveys)
                     ->resolve($request),
             ),
+            'inspector_attachment' => $this->when(
+                $this->relationLoaded('attachedFieldSurvey') && $this->relationLoaded('affectedFieldSurveys'),
+                fn () => $this->inspectorAttachment($request),
+            ),
             'field_validation_assignment' => $this->when(
                 $this->relationLoaded('fieldValidationAssignment'),
                 fn () => $this->fieldValidationAssignment
@@ -350,6 +354,45 @@ class ReportResource extends JsonResource
             'location_source' => $this->location_source,
             'reporter_concern' => $this->reporter_suspected_condition,
             'reporter_mismatch' => $this->mismatch_reported,
+        ];
+    }
+
+    /**
+     * The boundary the inspector attached on the phone. `arrived` says whether
+     * that boundary has reached the server; `confirmed` says whether the office
+     * already counts it as an affected field with a loss rate. A boundary from
+     * another district is never shown, only reported as not arrived.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function inspectorAttachment(Request $request): ?array
+    {
+        $clientUuid = $this->field_survey_client_uuid;
+        if ($clientUuid === null) {
+            return null;
+        }
+
+        $survey = $this->attachedFieldSurvey;
+        if ($survey !== null && (int) $survey->district_id !== (int) $this->district_id) {
+            $survey = null;
+        }
+
+        return [
+            'client_uuid' => $clientUuid,
+            'arrived' => $survey !== null,
+            'confirmed' => $survey !== null
+                && $this->affectedFieldSurveys->contains(fn ($linked): bool => $linked->getKey() === $survey->getKey()),
+            'field_survey' => $survey === null ? null : [
+                'field_survey_id' => (int) $survey->getKey(),
+                'geometry' => $survey->polygon,
+                'captured_at' => $survey->captured_at->utc()->format('Y-m-d\\TH:i:s.u\\Z'),
+                'area_sqm' => (float) $survey->area_sqm,
+                'area_source' => 'device_reported',
+                'inspector' => [
+                    'uuid' => $survey->inspector->uuid,
+                    'name' => $survey->inspector->name,
+                ],
+            ],
         ];
     }
 

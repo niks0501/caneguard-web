@@ -77,5 +77,42 @@ rate is the only value this route adds, and no combined or server-measured area
 is stored or returned.
 
 `GET /api/v1/reports/{report}` and the review, duplicate-link, and handoff-note
-responses include the same `affected_fields` array. Responses use
+responses include the same `affected_fields` array, plus the
+`inspector_attachment` described below. Responses use
 `Cache-Control: private, no-store`.
+
+## The inspector-attached boundary
+
+The v3 upload records the survey `client_uuid` the phone used, and the office case
+shows that boundary as `data.inspector_attachment`:
+
+```json
+{
+  "inspector_attachment": {
+    "client_uuid": "90b2b84c-92c3-4cd6-b50f-cb0933e1a3aa",
+    "arrived": true,
+    "confirmed": false,
+    "field_survey": {
+      "field_survey_id": 123,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[122.95, 10.7], [122.951, 10.7], [122.95, 10.701], [122.95, 10.7]]]
+      },
+      "captured_at": "2026-10-04T02:30:12.123456Z",
+      "area_sqm": 6075.12,
+      "area_source": "device_reported",
+      "inspector": { "uuid": "…", "name": "…" }
+    }
+  }
+}
+```
+
+`inspector_attachment` is `null` when the case carries no survey `client_uuid`.
+`arrived` says whether that boundary has reached the server. While the upload is
+still pending, and also when the stored boundary belongs to another district, it
+is `false` and `field_survey` is `null`, so another district's polygon, area and
+inspector are never disclosed. `confirmed` says this case already links the
+boundary as an affected field with a loss rate. Confirming is an ordinary write of
+this route: send the boundary's `field_survey_id` with the loss rate, and the same
+replacement array unlinks it again. Mobile upload responses never carry
+`inspector_attachment`.

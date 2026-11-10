@@ -1,7 +1,8 @@
 import { createElement, useEffect, type ReactNode } from "react";
 import { act, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { FieldSurveyBoundariesData, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
+import type { FieldSurveyBoundariesData, FieldSurveyPolygon, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
 import { BoundariesMap } from "./BoundariesMap";
 
 type CapturedMapProps = {
@@ -13,6 +14,7 @@ type CapturedMapProps = {
   onError?: () => void;
   onLoad?: (event: never) => void;
   onSourceData?: (event: { sourceId?: string; tile?: unknown }) => void;
+  onZoomEnd?: (event: { viewState: { zoom: number } }) => void;
 };
 
 const envState = vi.hoisted(() => ({ mapTilerKey: "test-map-key" }));
@@ -46,6 +48,7 @@ vi.mock("react-map-gl/maplibre", () => {
       return null;
     },
     Map: Boundary,
+    Marker: Child,
     NavigationControl: () => null,
     Popup: Child,
     Source: (props: { id: string; children?: ReactNode; data?: { features: unknown[] } }) => {
@@ -70,6 +73,9 @@ function boundaryData(): FieldSurveyBoundariesData {
         capturedAt: "2026-10-04T02:30:12.123456Z",
         areaSqm: 6075.123,
         areaSource: "device_reported",
+        affectedAreas: [],
+        affectedAreaSqm: null,
+        cases: [],
         inspector: { uuid: "inspector-1", name: "Maria Santos" },
       },
     }],
@@ -94,6 +100,19 @@ beforeEach(() => {
 });
 
 describe("BoundariesMap", () => {
+  it("counts the boundaries it draws, including one opened outside the newest page", () => {
+    const data = boundaryData();
+    data.features.push({
+      ...data.features[0],
+      id: "7",
+      properties: { ...data.features[0].properties, id: 7 },
+    });
+    data.metadata = { ...data.metadata, returnedCount: 1 };
+    render(<BoundariesMap data={data} />);
+
+    expect(screen.getByText("2 shown")).toBeInTheDocument();
+  });
+
   it("draws stored polygon geometry with the specified fill and outline layers", () => {
     const data = boundaryData();
     render(<BoundariesMap data={data} />);
@@ -113,7 +132,58 @@ describe("BoundariesMap", () => {
     expect(mapTestState.latestProps?.interactiveLayerIds).toEqual([
       "field-boundaries-fill",
       "field-boundaries-outline",
+      "field-boundaries-damage-fill",
     ]);
+  });
+
+  it("draws the damage areas inside a boundary as their own layer that selects the boundary", () => {
+    const data = boundaryData();
+    const damage: FieldSurveyPolygon = {
+      type: "Polygon",
+      coordinates: [[[122.9502, 10.7002], [122.9504, 10.7002], [122.9504, 10.7004], [122.9502, 10.7002]]],
+    };
+    data.features[0].properties.affectedAreas = [damage];
+    render(<BoundariesMap data={data} />);
+
+    expect(mapTestState.sources["field-boundaries-damage"].data?.features).toEqual([
+      { type: "Feature", geometry: damage, properties: { boundary_id: "123" } },
+    ]);
+    expect(mapTestState.layers["field-boundaries-damage-fill"]).toMatchObject({
+      type: "fill",
+      paint: { "fill-color": "#8a4a06" },
+    });
+    expect(mapTestState.layers["field-boundaries-damage-line"]).toMatchObject({ type: "line" });
+  });
+
+  it("labels each boundary with its size and case once the map is close enough", () => {
+    const data = boundaryData();
+    data.features[0].properties.cases = [
+      { uuid: "case-1", referenceCode: "CG-1", link: "confirmed" },
+      { uuid: "case-2", referenceCode: "CG-2", link: "attached" },
+    ];
+    const { container } = render(<MemoryRouter><BoundariesMap data={data} /></MemoryRouter>);
+
+    expect(container.querySelector("[data-boundary-label]")).toBeNull();
+    act(() => { mapTestState.latestProps?.onZoomEnd?.({ viewState: { zoom: 13 } } as never); });
+
+    const label = container.querySelector("[data-boundary-label='123']");
+    expect(label).toHaveTextContent("0.61 ha · 2 cases");
+    expect(label).toHaveClass("boundaries-map__label--case");
+  });
+
+  it("shows the damage size and the cases that use the selected boundary", () => {
+    const data = boundaryData();
+    data.features[0].properties.affectedAreas = [{
+      type: "Polygon",
+      coordinates: [[[122.9502, 10.7002], [122.9504, 10.7002], [122.9504, 10.7004], [122.9502, 10.7002]]],
+    }];
+    data.features[0].properties.affectedAreaSqm = 412.5;
+    data.features[0].properties.cases = [{ uuid: "case-1", referenceCode: "CG-1", link: "attached" }];
+    render(<MemoryRouter><BoundariesMap data={data} selectedBoundaryId="123" /></MemoryRouter>);
+
+    expect(screen.getByText("Damage · device-reported")).toBeInTheDocument();
+    expect(screen.getByText("0.04 ha")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "CG-1" })).toHaveAttribute("href", "/reports/case-1");
   });
 
   it("adds the selected boundary outline and a labelled detail popup", () => {

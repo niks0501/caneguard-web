@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\Reports\PersistReport;
 use App\Actions\Reports\StoreReport;
 use App\Contracts\MobileReportUploadV2Contract;
+use App\Models\FieldSurvey;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -739,6 +740,41 @@ class MobileReportUploadTest extends TestCase
         $this->assertDatabaseCount('report_quality_warnings', 1);
         Storage::disk('local')->assertExists($imagePath);
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
+    }
+
+    public function test_retrying_a_report_that_carries_a_survey_uuid_does_not_return_that_survey(): void
+    {
+        Storage::fake('local');
+        $district = $this->pilotDistrict();
+        $reporter = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $otherInspector = User::factory()->inDistrict($district)->create(['name' => 'Other Inspector']);
+        $survey = FieldSurvey::query()->create([
+            'client_uuid' => fake()->uuid(),
+            'inspector_id' => $otherInspector->id,
+            'district_id' => $district->id,
+            'polygon' => [
+                'type' => 'Polygon',
+                'coordinates' => [[
+                    [122.95, 10.7], [122.951, 10.7], [122.95, 10.701], [122.95, 10.7],
+                ]],
+            ],
+            'area_sqm' => 6075.12,
+            'captured_at' => '2026-10-04 02:30:12.123456',
+        ]);
+        $clientUuid = fake()->uuid();
+        Report::factory()->inDistrict($district)->create([
+            'reporter_id' => $reporter,
+            'client_uuid' => $clientUuid,
+            'field_survey_client_uuid' => $survey->client_uuid,
+        ]);
+
+        $this->withToken($reporter->createToken('mobile-upload-test')->plainTextToken)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid))
+            ->assertOk()
+            ->assertJsonPath('data.identity.client_uuid', $clientUuid)
+            ->assertJsonMissingPath('data.inspector_attachment')
+            ->assertJsonMissingPath('data.affected_fields');
     }
 
     public function test_upload_ignores_spoofed_reporter_and_reviewer_fields(): void

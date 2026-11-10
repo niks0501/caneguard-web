@@ -160,6 +160,56 @@ class ReportAffectedFieldSurveyTest extends TestCase
         ]);
     }
 
+    public function test_case_detail_shows_the_boundary_the_inspector_attached_and_whether_the_office_confirmed_it(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create(['name' => 'Field Inspector']);
+        $reviewer = User::factory()->reviewer()->create();
+        $survey = $this->storeSurvey($district, $inspector, 5000.5);
+        $report = Report::factory()->inDistrict($district)->create([
+            'field_survey_client_uuid' => $survey->client_uuid,
+        ]);
+
+        $attachment = $this->actingAs($reviewer, 'web')
+            ->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->json('data.inspector_attachment');
+        $this->assertSame($survey->client_uuid, $attachment['client_uuid']);
+        $this->assertTrue($attachment['arrived']);
+        $this->assertFalse($attachment['confirmed']);
+        $this->assertSame($survey->id, $attachment['field_survey']['field_survey_id']);
+        $this->assertSame(5000.5, $attachment['field_survey']['area_sqm']);
+        $this->assertSame('Field Inspector', $attachment['field_survey']['inspector']['name']);
+
+        $report->affectedFieldSurveys()->attach($survey->id, ['loss_rate_percent' => 30]);
+
+        $this->actingAs($reviewer, 'web')
+            ->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertJsonPath('data.inspector_attachment.confirmed', true);
+    }
+
+    public function test_an_attachment_whose_boundary_has_not_arrived_is_reported_as_such(): void
+    {
+        $district = $this->pilotDistrict();
+        $reviewer = User::factory()->reviewer()->create();
+        $clientUuid = (string) Str::uuid();
+        $report = Report::factory()->inDistrict($district)->create(['field_survey_client_uuid' => $clientUuid]);
+        $plain = Report::factory()->inDistrict($district)->create();
+
+        $this->actingAs($reviewer, 'web')
+            ->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.inspector_attachment', [
+                'client_uuid' => $clientUuid,
+                'arrived' => false,
+                'confirmed' => false,
+                'field_survey' => null,
+            ]);
+        $this->actingAs($reviewer, 'web')
+            ->getJson("/api/v1/reports/{$plain->uuid}")
+            ->assertJsonPath('data.inspector_attachment', null);
+    }
+
     public function test_only_office_sessions_can_update_case_polygon_links(): void
     {
         $district = $this->pilotDistrict();

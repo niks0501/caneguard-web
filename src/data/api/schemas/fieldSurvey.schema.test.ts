@@ -20,6 +20,9 @@ function response(overrides: Record<string, unknown> = {}) {
         captured_at: "2026-10-04T02:30:12.123456Z",
         area_sqm: 6075.123,
         area_source: "device_reported",
+        affected_areas: [],
+        affected_area_sqm: null,
+        cases: [],
         inspector: { uuid: "inspector-1", name: "Maria Santos" },
       },
     }],
@@ -48,6 +51,41 @@ describe("fieldSurveyBoundariesResponseSchema", () => {
 
     expect(parsed.features[0].geometry.coordinates).toHaveLength(2);
     expect(parsed.features[0].geometry.coordinates[0][0]).toEqual([122.95, 10.7]);
+  });
+
+  it("keeps the damage areas, damage size and case links the API sends, including empty ones", () => {
+    const empty = fieldSurveyBoundariesResponseSchema.parse(response()).features[0].properties;
+    expect(empty.affected_areas).toEqual([]);
+    expect(empty.affected_area_sqm).toBeNull();
+    expect(empty.cases).toEqual([]);
+
+    const damage = { type: "Polygon", coordinates: [ring] };
+    const withDamage = response();
+    Object.assign(withDamage.features[0].properties, {
+      affected_areas: [damage],
+      affected_area_sqm: 412.5,
+      cases: [{ uuid: "case-1", reference_code: "CG-1", link: "attached" }],
+    });
+    const sent = fieldSurveyBoundariesResponseSchema.parse(withDamage).features[0].properties;
+    expect(sent.affected_areas).toEqual([damage]);
+    expect(sent.affected_area_sqm).toBe(412.5);
+    expect(sent.cases).toEqual([{ uuid: "case-1", reference_code: "CG-1", link: "attached" }]);
+  });
+
+  it("rejects a boundary that omits its damage areas, damage size or case links", () => {
+    for (const key of ["affected_areas", "affected_area_sqm", "cases"] as const) {
+      const withoutField: Record<string, unknown> = { ...response().features[0].properties };
+      delete withoutField[key];
+      expect(() => fieldSurveyBoundariesResponseSchema.parse(response({
+        features: [{ ...response().features[0], properties: withoutField }],
+      }))).toThrow();
+    }
+  });
+
+  it("rejects a case link that is neither confirmed nor attached", () => {
+    const bad = response();
+    Object.assign(bad.features[0].properties, { cases: [{ uuid: "c", reference_code: "CG-1", link: "guess" }] });
+    expect(() => fieldSurveyBoundariesResponseSchema.parse(bad)).toThrow();
   });
 
   it("rejects out-of-range or swapped coordinates", () => {

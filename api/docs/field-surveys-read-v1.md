@@ -54,6 +54,16 @@ A successful response is a GeoJSON `FeatureCollection`, newest capture first
         "captured_at": "2026-10-04T02:30:12.123456Z",
         "area_sqm": 6075.123456789,
         "area_source": "device_reported",
+        "affected_areas": [
+          {
+            "type": "Polygon",
+            "coordinates": [[[122.95, 10.7], [122.9502, 10.7], [122.95, 10.7002], [122.95, 10.7]]]
+          }
+        ],
+        "affected_area_sqm": 4860.5,
+        "cases": [
+          { "uuid": "…", "reference_code": "CG-2026-0001", "link": "confirmed" }
+        ],
         "inspector": { "uuid": "…", "name": "…" }
       }
     }
@@ -76,6 +86,21 @@ microseconds. `area_sqm` is the phone-supplied value and is explicitly labelled
 `device_reported`; the endpoint does not independently measure or validate the
 area. The inspector object contains only UUID and name. The response omits the
 survey `client_uuid`, waypoints, and inspector email.
+
+`affected_areas` holds the affected-area polygons the phone drew inside the plot,
+passed through unchanged, and is empty when none were drawn. `affected_area_sqm`
+is the phone-supplied combined damage size, or `null` when the survey carried
+none. Both keep the same `device_reported` provenance as `area_sqm` and are never
+recalculated or validated by the server.
+
+`cases` lists the cases in the pilot district that use the boundary, each as
+`{ "uuid", "reference_code", "link" }`. `link` is `confirmed` when the office
+linked the boundary to that case with a loss rate, and `attached` when the case
+only carries the phone's attachment. A case that confirmed the boundary is listed
+once, as `confirmed`, and attachment is matched on the stored survey
+`client_uuid`, which the response itself never returns. The array is empty when no
+case uses the boundary. Confirming an attachment is the write contract linked
+below.
 
 `total_count` is the number of surveys in the pilot district that match the
 search, while `returned_count` is the number in `features` on this page and never

@@ -56,6 +56,7 @@ class LinkDuplicateReportController extends Controller
             'fieldValidationAssignment.assignedBy',
             'fieldValidationAssignment.completion',
             'affectedFieldSurveys.inspector',
+            'attachedFieldSurvey.inspector',
             'classScores',
             'symptoms',
             'qualityWarnings',

@@ -16,6 +16,13 @@ export interface FieldSurveyPolygon {
   coordinates: FieldSurveyLinearRing[];
 }
 
+/** A case that uses a boundary: confirmed by the office, or only attached on the phone. */
+export interface FieldSurveyCaseLink {
+  uuid: string;
+  referenceCode: string;
+  link: "confirmed" | "attached";
+}
+
 export interface FieldSurveyBoundaryFeature {
   type: "Feature";
   id: string;
@@ -25,6 +32,10 @@ export interface FieldSurveyBoundaryFeature {
     capturedAt: string;
     areaSqm: number;
     areaSource: "device_reported";
+    /** Damage areas the inspector drew inside the plot. */
+    affectedAreas: FieldSurveyPolygon[];
+    affectedAreaSqm: number | null;
+    cases: FieldSurveyCaseLink[];
     inspector: {
       uuid: string;
       name: string;
@@ -57,6 +68,16 @@ export interface ReportAffectedField {
     name: string;
   };
   lossRatePercent: number;
+}
+
+/** The boundary an inspector attached to a case on the phone. */
+export interface InspectorBoundaryAttachment {
+  clientUuid: string;
+  /** The boundary has reached the server. */
+  arrived: boolean;
+  /** The office already counts it as an affected field. */
+  confirmed: boolean;
+  boundary: Omit<ReportAffectedField, "lossRatePercent"> | null;
 }
 
 export interface AffectedFieldLinkInput {

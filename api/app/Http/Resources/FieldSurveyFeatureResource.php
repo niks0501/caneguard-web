@@ -18,6 +18,11 @@ class FieldSurveyFeatureResource extends JsonResource
                 'captured_at' => $this->captured_at->utc()->format('Y-m-d\\TH:i:s.u\\Z'),
                 'area_sqm' => (float) $this->area_sqm,
                 'area_source' => 'device_reported',
+                'affected_areas' => $this->affected_area_polygons ?? [],
+                'affected_area_sqm' => $this->affected_area_sqm === null
+                    ? null
+                    : (float) $this->affected_area_sqm,
+                'cases' => $this->resource->getAttribute('case_links') ?? [],
                 'inspector' => [
                     'uuid' => $this->inspector->uuid,
                     'name' => $this->inspector->name,

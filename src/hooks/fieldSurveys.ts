@@ -36,3 +36,17 @@ export const fieldSurveysQueryOptions = (query: FieldSurveysQuery | number = {})
 export function useFieldSurveys(query: FieldSurveysQuery | number = {}) {
   return useQuery(fieldSurveysQueryOptions(query));
 }
+
+/**
+ * One boundary by its number, for a boundary older than the newest page the
+ * viewer loads. The server search accepts a boundary id and returns one row.
+ */
+export function useFieldSurveyById(id: string | null) {
+  const query = useQuery({
+    ...fieldSurveysQueryOptions({ limit: 1, search: id ?? "" }),
+    placeholderData: undefined,
+    enabled: id !== null,
+  });
+  const feature = query.data?.features.find((item) => String(item.properties.id) === id) ?? null;
+  return { query, feature };
+}

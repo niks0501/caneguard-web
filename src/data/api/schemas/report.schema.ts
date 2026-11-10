@@ -85,6 +85,12 @@ export const reportAffectedFieldSchema = z.object({
   inspector: userSchema.pick({ uuid: true, name: true }),
   loss_rate_percent: z.number().min(0).max(100),
 });
+export const inspectorAttachmentSchema = z.object({
+  client_uuid: z.string().min(1),
+  arrived: z.boolean(),
+  confirmed: z.boolean(),
+  field_survey: reportAffectedFieldSchema.omit({ loss_rate_percent: true }).nullable(),
+});
 export const possibleMatchBasisSchema = z.enum([
   "same_condition",
   "nearby_location",
@@ -485,6 +491,7 @@ export const reportDetailSchema = z.object({
   }),
   duplicate_linkage: duplicateLinkageSchema.optional(),
   affected_fields: z.array(reportAffectedFieldSchema).optional(),
+  inspector_attachment: inspectorAttachmentSchema.nullable(),
   audit: z.object({
     metadata_corrections: z.array(
       z.object({
