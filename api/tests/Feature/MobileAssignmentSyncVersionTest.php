@@ -7,6 +7,7 @@ use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -53,6 +54,18 @@ class MobileAssignmentSyncVersionTest extends TestCase
         Sanctum::actingAs($as ?? $this->inspector, ['assignment:read']);
 
         return $this->getJson('/api/v1/mobile/assignments'.$query)->assertOk()->json('sync');
+    }
+
+    private function feedQueryCount(): int
+    {
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->getJson('/api/v1/mobile/assignments')->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
     }
 
     // Proves: reassign changes the version.
@@ -265,5 +278,19 @@ class MobileAssignmentSyncVersionTest extends TestCase
 
         $this->assertSame(1, $sync['total']);
         $this->assertFalse($sync['truncated']);
+    }
+
+    // Proves: previous-visit resolution does not add a query per row.
+    public function test_previous_visit_resolution_queries_do_not_scale_with_the_row_count(): void
+    {
+        $this->assign();
+        $this->assign();
+        $twoRows = $this->feedQueryCount();
+
+        for ($i = 0; $i < 6; $i++) {
+            $this->assign();
+        }
+
+        $this->assertSame($twoRows, $this->feedQueryCount());
     }
 }
