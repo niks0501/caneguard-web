@@ -1,0 +1,227 @@
+{
+  "$id": "https://github.com/niks0501/caneguard-web/blob/main/docs/contracts/mobile-field-validation-assignment-v2.json",
+  "artifact_format": "caneguard-json-contract",
+  "contract": "mobile-field-validation-assignment-v2",
+  "version": 2,
+  "wire": {
+    "method": "GET",
+    "path": "/api/v1/mobile/assignments",
+    "content_type": "application/json",
+    "undeclared_fields": "ignored",
+    "optional_request_capabilities": {
+      "request_parameter": "supports",
+      "values": ["no_ai_scan"],
+      "no_ai_scan": "A row without an AI prediction or photo is delivered only when the request sends supports=no_ai_scan; without it such a row is withheld from rows, sync.total and sync.version so older builds keep refreshing unchanged."
+    }
+  },
+  "envelope": {
+    "required_keys": ["data", "links", "meta", "sync"],
+    "data_key": "data",
+    "next_link": "links.next",
+    "checkpoint": "sync.before",
+    "sync": {
+      "required_keys": ["before", "version", "total", "truncated", "unchanged"],
+      "version": {
+        "changes_on": [
+          "reassignment",
+          "unassignment",
+          "case close",
+          "edit to a case field this feed delivers",
+          "edit to the earlier report a delivered previous_visit is built from",
+          "edit to an office-born case's delivered version, status, reporter concern or photo",
+          "edit to the delivered previous_visit.photo of an office-born case"
+        ],
+        "ignores": "fields this feed withholds from field-born cases",
+        "unchanged_request": "since"
+      },
+      "cap": {
+        "request_parameter": "limit",
+        "limit_max": 300,
+        "total_flag": "sync.total",
+        "truncated_flag": "sync.truncated",
+        "without_limit": "the complete snapshot",
+        "keep_order": [
+          "active work before completed visits",
+          "earliest target_visit_date, undated last",
+          "oldest assignment"
+        ]
+      },
+      "bounded_continuation": {
+        "link_parameter": "sync_version",
+        "request_parameter": "sync_version",
+        "restart": {
+          "status": 409,
+          "code": "SYNC_RESTART"
+        }
+      }
+    }
+  },
+  "fields": {
+    "uuid": { "type": "uuid", "required": true, "nullable": false },
+    "report_uuid": { "type": "uuid", "required": true, "nullable": false },
+    "report_client_uuid": { "type": "uuid", "required": true, "nullable": false },
+    "reference_code": { "type": "string", "required": true, "nullable": false, "max_length": 32 },
+    "submitter": {
+      "type": "object",
+      "required": true,
+      "nullable": false,
+      "required_keys": ["uuid", "name"],
+      "additional_properties": false,
+      "properties": {
+        "uuid": { "type": "uuid", "required": true, "nullable": false },
+        "name": { "type": "string", "required": true, "nullable": false, "max_length": 255 }
+      }
+    },
+    "assignee": {
+      "type": "object",
+      "required": true,
+      "nullable": false,
+      "required_keys": ["uuid", "name"],
+      "additional_properties": false,
+      "properties": {
+        "uuid": { "type": "uuid", "required": true, "nullable": false },
+        "name": { "type": "string", "required": true, "nullable": false, "max_length": 255 }
+      }
+    },
+    "submitter_is_assignee": { "type": "boolean", "required": true, "nullable": false },
+    "target_visit_date": { "type": "string", "required": true, "nullable": true, "format": "date" },
+    "field_validation_state": {
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "enum": ["unassigned", "assigned", "in_progress", "completed"]
+    },
+    "assigned_at": { "type": "date-time", "required": true, "nullable": false },
+    "updated_at": { "type": "date-time", "required": true, "nullable": false },
+    "case": {
+      "type": "object",
+      "required": true,
+      "nullable": false,
+      "required_keys": [
+        "barangay",
+        "province",
+        "municipality",
+        "farmer_or_farm_owner_name",
+        "affected_area_hectares",
+        "affected_portion_percent",
+        "captured_at",
+        "observed_at",
+        "submitted_at",
+        "predicted_label",
+        "confidence"
+      ],
+      "additional_properties": false,
+      "properties": {
+        "barangay": { "type": "string", "required": true, "nullable": false, "max_length": 120 },
+        "province": { "type": "string", "required": true, "nullable": true, "max_length": 120 },
+        "municipality": { "type": "string", "required": true, "nullable": true, "max_length": 120 },
+        "farmer_or_farm_owner_name": { "type": "string", "required": true, "nullable": true, "max_length": 160 },
+        "affected_area_hectares": { "type": "number", "required": true, "nullable": true, "minimum": 0 },
+        "affected_portion_percent": { "type": "number", "required": true, "nullable": true, "minimum": 0, "maximum": 100 },
+        "captured_at": { "type": "date-time", "required": true, "nullable": false },
+        "observed_at": { "type": "date-time", "required": true, "nullable": true },
+        "submitted_at": { "type": "date-time", "required": true, "nullable": false },
+        "predicted_label": { "type": "string", "required": true, "nullable": true, "enum": ["healthy", "mosaic", "rust", "smut"], "note": "Null only on an office-born case with no AI scan, and only for requests that send supports=no_ai_scan." },
+        "confidence": { "type": "number", "required": true, "nullable": true, "minimum": 0, "maximum": 1, "note": "Null exactly when predicted_label is null." },
+        "origin": { "type": "string", "required": false, "nullable": false, "enum": ["office"], "note": "Present only on office-born cases; absent means field-born." },
+        "version": { "type": "number", "required": false, "nullable": false, "minimum": 0, "note": "Report lock_version. Office-born cases only." },
+        "status": {
+          "type": "object",
+          "required": false,
+          "nullable": false,
+          "required_keys": ["workflow_status", "case_state", "review_status", "updated_at"],
+          "additional_properties": false,
+          "properties": {
+            "workflow_status": { "type": "string", "required": true, "nullable": false },
+            "case_state": { "type": "string", "required": true, "nullable": false },
+            "review_status": { "type": "string", "required": true, "nullable": false },
+            "updated_at": { "type": "date-time", "required": true, "nullable": false }
+          }
+        },
+        "reporter_concern": {
+          "type": "object",
+          "required": false,
+          "nullable": false,
+          "required_keys": ["suspected_condition", "observation_text"],
+          "additional_properties": false,
+          "properties": {
+            "suspected_condition": { "type": "string", "required": true, "nullable": true },
+            "observation_text": { "type": "string", "required": true, "nullable": true, "max_length": 1000 }
+          }
+        },
+        "photo": {
+          "type": "object",
+          "required": false,
+          "nullable": true,
+          "required_keys": ["url", "content_type", "bytes"],
+          "additional_properties": false,
+          "note": "Fetched with the same bearer token from GET /api/v1/mobile/assignments/{assignment}/report-photo (assignee only). The response is `private, no-cache`: it revalidates the caller's assignment on every retrieval, so a transferred or revoked assignment stops serving the photo.",
+          "properties": {
+            "url": { "type": "string", "required": true, "nullable": false },
+            "content_type": { "type": "string", "required": true, "nullable": false },
+            "bytes": { "type": "number", "required": true, "nullable": false, "minimum": 0 }
+          }
+        }
+      }
+    },
+    "previous_visit": {
+      "type": "object",
+      "required": false,
+      "nullable": true,
+      "required_keys": [
+        "reference_code",
+        "visited_at",
+        "reporter_suspected_condition",
+        "authority_classified_condition",
+        "action_taken",
+        "field_observation",
+        "field_finding",
+        "follow_up_outcome",
+        "fresh_photo_available"
+      ],
+      "additional_properties": false,
+      "properties": {
+        "reference_code": { "type": "string", "required": true, "nullable": false, "max_length": 32 },
+        "visited_at": { "type": "date-time", "required": true, "nullable": false },
+        "reporter_suspected_condition": { "type": "string", "required": true, "nullable": true },
+        "authority_classified_condition": { "type": "string", "required": true, "nullable": true },
+        "action_taken": { "type": "string", "required": true, "nullable": false },
+        "field_observation": { "type": "string", "required": true, "nullable": true },
+        "field_finding": { "type": "string", "required": true, "nullable": true },
+        "follow_up_outcome": {
+          "type": "string",
+          "required": true,
+          "nullable": true,
+          "enum": ["improved", "unchanged", "worsened", "unable_to_determine"]
+        },
+        "fresh_photo_available": { "type": "boolean", "required": true, "nullable": false },
+        "photo": {
+          "type": "object",
+          "required": false,
+          "nullable": true,
+          "required_keys": ["url", "content_type", "bytes"],
+          "additional_properties": false,
+          "note": "Present only on office-born cases. Fetched from the previous-evidence-photo route.",
+          "properties": {
+            "url": { "type": "string", "required": true, "nullable": false },
+            "content_type": { "type": "string", "required": true, "nullable": true },
+            "bytes": { "type": "number", "required": true, "nullable": true, "minimum": 0 }
+          }
+        }
+      }
+    }
+  },
+  "versioning": {
+    "same_major_compatible_widening": [
+      "adding optional response fields",
+      "adding enum values while preserving existing meanings",
+      "increasing documented text or numeric bounds"
+    ],
+    "new_major_required": [
+      "removing or renaming a field",
+      "changing a field type or nullability",
+      "changing owner-scope or assignment-state semantics",
+      "changing pagination checkpoint semantics"
+    ]
+  }
+}
