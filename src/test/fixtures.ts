@@ -100,6 +100,7 @@ export const reportDetailDto = {
     reviewer: null,
     reviewed_at: null,
   },
+  inspector_attachment: null,
   audit: {
     metadata_corrections: [],
   },

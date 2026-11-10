@@ -31,13 +31,13 @@ export const fieldSurveyFeatureSchema = z.object({
     captured_at: z.iso.datetime({ offset: true }),
     area_sqm: z.number().nonnegative(),
     area_source: z.literal("device_reported"),
-    affected_areas: z.array(fieldSurveyPolygonSchema).default([]),
-    affected_area_sqm: z.number().nonnegative().nullable().default(null),
+    affected_areas: z.array(fieldSurveyPolygonSchema),
+    affected_area_sqm: z.number().nonnegative().nullable(),
     cases: z.array(z.object({
       uuid: z.string().min(1),
       reference_code: z.string().min(1),
       link: z.enum(["confirmed", "attached"]),
-    })).default([]),
+    })),
     inspector: z.object({
       uuid: z.string().min(1),
       name: z.string().min(1),

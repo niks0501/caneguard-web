@@ -23,9 +23,9 @@ export function isBoundaryNumber(value: string | null): value is string {
 export function boundaryNeedsLookup(
   requestedId: string | null,
   loaded: FieldSurveyBoundaryFeature | null,
-  listSettled: boolean,
+  listLoaded: boolean,
 ): boolean {
-  return isBoundaryNumber(requestedId) && listSettled && loaded === null;
+  return isBoundaryNumber(requestedId) && listLoaded && loaded === null;
 }
 
 export function boundarySelectionState({

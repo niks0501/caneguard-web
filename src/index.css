@@ -9243,12 +9243,6 @@ button.monitoring-calendar__day-number:focus-visible {
   font-weight: 700;
 }
 
-.boundaries-list__cases {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 .boundaries-map__cases {
   margin: 0;
   padding: 0;

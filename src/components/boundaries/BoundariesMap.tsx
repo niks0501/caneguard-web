@@ -238,7 +238,7 @@ export function BoundariesMap({
     <section className="validation-map-card boundaries-map-card" aria-labelledby="boundaries-map-heading">
       <div className="validation-map-card__heading">
         <h2 id="boundaries-map-heading">Boundary map</h2>
-        <span>{data.metadata.returnedCount} shown</span>
+        <span>{data.features.length} shown</span>
       </div>
       <div className="validation-map boundaries-map" role="region" aria-label="Map of recorded field boundaries">
         {basemapStyle ? (

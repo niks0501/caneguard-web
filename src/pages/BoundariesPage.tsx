@@ -52,10 +52,11 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
   const loadedFeature = boundaryParam && data
     ? data.features.find((feature) => String(feature.properties.id) === boundaryParam) ?? null
     : null;
-  const listSettled = Boolean(data) && query.isSuccess && !query.isFetching && !query.isError && !query.isRefetchError;
   // A boundary older than the newest page is fetched by its number, so every
-  // boundary the office can link to is also one the viewer can open.
-  const lookupId = boundaryNeedsLookup(boundaryParam, loadedFeature, listSettled) ? boundaryParam : null;
+  // boundary the office can link to is also one the viewer can open. The lookup
+  // target survives a refresh or a failed refresh once the newest page has been
+  // shown, and drops only when there is nothing to display.
+  const lookupId = boundaryNeedsLookup(boundaryParam, loadedFeature, data !== undefined) ? boundaryParam : null;
   const lookup = useFieldSurveyById(lookupId);
   const selectedFeature = loadedFeature ?? lookup.feature;
   const lookupStatus: BoundaryLookup = lookupId === null

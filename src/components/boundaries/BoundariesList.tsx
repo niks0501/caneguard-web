@@ -1,6 +1,4 @@
-import { Link } from "react-router";
 import { RefreshCw } from "lucide-react";
-import { routes } from "../../app/routes";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
 import { Button } from "../ui/Button";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
@@ -22,12 +20,16 @@ export function BoundariesList({
   isFetching?: boolean;
   onRefresh?: () => void;
 }) {
+  const shown = data.features.length;
+  const selectedOutsidePage = selectedBoundaryId !== null
+    && !data.features.some((feature) => String(feature.properties.id) === selectedBoundaryId);
+
   return (
     <section className="field-validation-table-card boundaries-list-card" aria-labelledby="boundaries-list-heading">
       <div className="workspace-heading boundaries-list__heading">
         <h2 id="boundaries-list-heading">Boundary records</h2>
         <div className="boundaries-list__heading-actions">
-          <span>{data.metadata.returnedCount} shown</span>
+          <span>{shown} shown</span>
           {onRefresh ? (
             <Button
               variant="secondary"
@@ -43,9 +45,9 @@ export function BoundariesList({
       </div>
       {data.metadata.truncated ? (
         <p className="boundaries-list__truncated" role="status">
-          {data.metadata.totalCount > data.metadata.returnedCount
-            ? `Showing the newest ${data.metadata.returnedCount} of ${data.metadata.totalCount} boundaries. The rest are not on this map.`
-            : `Showing the newest ${data.metadata.returnedCount} boundaries. More exist beyond this view.`}
+          {data.metadata.totalCount > shown
+            ? `Showing the newest ${shown} of ${data.metadata.totalCount} boundaries. ${selectedOutsidePage ? "The selected boundary is also on this map; the rest are not." : "The rest are not on this map."}`
+            : `Showing the newest ${shown} boundaries. ${selectedOutsidePage ? "The selected boundary is also on this map; more exist beyond this view." : "More exist beyond this view."}`}
         </p>
       ) : null}
       {data.features.length === 0 ? (
@@ -61,7 +63,6 @@ export function BoundariesList({
                   <span className="boundaries-list__source">device-reported</span>
                 </th>
                 <th scope="col">Inspector</th>
-                <th scope="col">Case</th>
                 <th scope="col"><span className="sr-only">Map action</span></th>
               </tr>
             </thead>
@@ -85,18 +86,6 @@ export function BoundariesList({
                     </td>
                     <td>{formatAffectedArea(feature.properties.areaSqm / 10_000)}</td>
                     <td>{feature.properties.inspector.name}</td>
-                    <td>
-                      {feature.properties.cases.length === 0 ? <span aria-hidden="true">—</span> : (
-                        <ul className="boundaries-list__cases">
-                          {feature.properties.cases.map((link) => (
-                            <li key={link.uuid}>
-                              <Link to={routes.reportDetail(link.uuid)}>{link.referenceCode}</Link>
-                              {link.link === "attached" ? <span className="boundaries-list__source">attached</span> : null}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
                     <td className="field-validation-table__action-cell">
                       <button
                         type="button"

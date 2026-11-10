@@ -491,7 +491,7 @@ export const reportDetailSchema = z.object({
   }),
   duplicate_linkage: duplicateLinkageSchema.optional(),
   affected_fields: z.array(reportAffectedFieldSchema).optional(),
-  inspector_attachment: inspectorAttachmentSchema.nullable().optional(),
+  inspector_attachment: inspectorAttachmentSchema.nullable(),
   audit: z.object({
     metadata_corrections: z.array(
       z.object({

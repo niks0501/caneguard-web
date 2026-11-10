@@ -100,6 +100,19 @@ beforeEach(() => {
 });
 
 describe("BoundariesMap", () => {
+  it("counts the boundaries it draws, including one opened outside the newest page", () => {
+    const data = boundaryData();
+    data.features.push({
+      ...data.features[0],
+      id: "7",
+      properties: { ...data.features[0].properties, id: 7 },
+    });
+    data.metadata = { ...data.metadata, returnedCount: 1 };
+    render(<BoundariesMap data={data} />);
+
+    expect(screen.getByText("2 shown")).toBeInTheDocument();
+  });
+
   it("draws stored polygon geometry with the specified fill and outline layers", () => {
     const data = boundaryData();
     render(<BoundariesMap data={data} />);

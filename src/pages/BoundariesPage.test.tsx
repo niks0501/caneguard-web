@@ -53,6 +53,12 @@ const oneBoundary: FieldSurveyBoundariesData = {
   metadata: { totalCount: 1, returnedCount: 1, limit: FIELD_SURVEYS_MAX_LIMIT, truncated: false, page: 1, pageCount: 1 },
 };
 
+const olderBoundary = {
+  ...oneBoundary.features[0],
+  id: "7",
+  properties: { ...oneBoundary.features[0].properties, id: 7 },
+};
+
 function queryResult(data: FieldSurveyBoundariesData | undefined, overrides: Record<string, unknown> = {}) {
   return {
     data,
@@ -197,7 +203,8 @@ describe("BoundariesPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("CaneGuard returned an unexpected boundary format.");
   });
 
-  it("keeps the table and warns when a refresh fails without claiming a deep-linked boundary is unavailable", () => {
+  it("keeps the table and warns when a refresh fails without claiming a pending deep-linked boundary is unavailable", () => {
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(null, { isSuccess: false, isFetching: true }));
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary, {
       error: new Error("refresh failed"),
       isError: true,
@@ -206,7 +213,7 @@ describe("BoundariesPage", () => {
     renderPage("/monitoring?view=boundaries&boundary=999");
     expect(screen.getByRole("alert")).toHaveTextContent("most recently loaded boundaries are still shown and may be stale");
     expect(screen.getByText("Maria Santos")).toBeInTheDocument();
-    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
   });
 
   it("does not imply the raced total is complete when the truncated count is not greater", () => {
@@ -263,6 +270,31 @@ describe("BoundariesPage", () => {
     expect(screen.getByRole("button", { name: /^Show boundary 1 captured Oct 4, 2026, 10:30 AM by Maria Santos on map$/ })).toBeInTheDocument();
   });
 
+  it("says the separately opened boundary is also on the map", () => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult({
+      ...oneBoundary,
+      features: Array.from({ length: FIELD_SURVEYS_MAX_LIMIT }, (_, index) => ({
+        ...oneBoundary.features[0],
+        id: String(index + 101),
+        properties: { ...oneBoundary.features[0].properties, id: index + 101 },
+      })),
+      metadata: {
+        totalCount: FIELD_SURVEYS_MAX_LIMIT + 50,
+        returnedCount: FIELD_SURVEYS_MAX_LIMIT,
+        limit: FIELD_SURVEYS_MAX_LIMIT,
+        truncated: true,
+        page: 1,
+        pageCount: 2,
+      },
+    }));
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(olderBoundary));
+    renderPage("/monitoring?view=boundaries&boundary=7");
+
+    expect(useFieldSurveyById).toHaveBeenCalledWith("7");
+    expect(screen.getByText(`${FIELD_SURVEYS_MAX_LIMIT} shown`)).toBeInTheDocument();
+    expect(screen.getByText(`Showing the newest ${FIELD_SURVEYS_MAX_LIMIT} of ${FIELD_SURVEYS_MAX_LIMIT + 50} boundaries. The selected boundary is also on this map; the rest are not.`)).toHaveAttribute("role", "status");
+  });
+
   it("selects a row in the map and replaces only the boundary URL state", async () => {
     const user = userEvent.setup();
     renderPage("/monitoring?view=boundaries&sort=newest");
@@ -310,12 +342,7 @@ describe("BoundariesPage", () => {
   });
 
   it("opens a boundary older than the loaded page by fetching it by its number", () => {
-    const older = {
-      ...oneBoundary.features[0],
-      id: "7",
-      properties: { ...oneBoundary.features[0].properties, id: 7 },
-    };
-    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(older));
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(olderBoundary));
     renderPage("/monitoring?view=boundaries&boundary=7");
 
     expect(useFieldSurveyById).toHaveBeenCalledWith("7");
@@ -351,11 +378,28 @@ describe("BoundariesPage", () => {
     expect(screen.getByText("Boundary abc was not found.")).toBeInTheDocument();
   });
 
-  it("does not announce a boundary as unavailable while a refresh is in progress", () => {
+  it("keeps an older boundary open while the newest page refreshes", () => {
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(olderBoundary));
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary, { isFetching: true }));
-    renderPage("/monitoring?view=boundaries&boundary=999");
+    renderPage("/monitoring?view=boundaries&boundary=7");
 
-    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
+    expect(useFieldSurveyById).toHaveBeenCalledWith("7");
+    expect(screen.getByTestId("map-selection")).toHaveTextContent("7");
+    expect(document.querySelector(".boundaries-workspace")).toHaveAttribute("data-selection-state", "list");
+  });
+
+  it("keeps an older boundary open when a refresh fails", () => {
+    vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(olderBoundary));
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary, {
+      error: new Error("refresh failed"),
+      isError: true,
+      isRefetchError: true,
+    }));
+    renderPage("/monitoring?view=boundaries&boundary=7");
+
+    expect(useFieldSurveyById).toHaveBeenCalledWith("7");
+    expect(screen.getByTestId("map-selection")).toHaveTextContent("7");
+    expect(screen.getByRole("alert")).toHaveTextContent("most recently loaded boundaries are still shown and may be stale");
   });
 
   it("restores selection from a deep link and clears the boundary parameter from the map", async () => {

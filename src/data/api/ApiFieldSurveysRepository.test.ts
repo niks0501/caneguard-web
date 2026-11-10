@@ -20,6 +20,12 @@ const boundariesDto = {
       captured_at: "2026-10-04T02:30:12.123456Z",
       area_sqm: 6075.123,
       area_source: "device_reported",
+      affected_areas: [{
+        type: "Polygon",
+        coordinates: [[[122.9502, 10.7002], [122.9504, 10.7002], [122.9504, 10.7004], [122.9502, 10.7002]]],
+      }],
+      affected_area_sqm: 412.5,
+      cases: [{ uuid: "case-1", reference_code: "CG-2026-0001", link: "attached" }],
       inspector: { uuid: "inspector-1", name: "Maria Santos" },
     },
   }],
@@ -46,6 +52,9 @@ describe("ApiFieldSurveysRepository", () => {
         capturedAt: "2026-10-04T02:30:12.123456Z",
         areaSqm: 6075.123,
         areaSource: "device_reported",
+        affectedAreas: boundariesDto.features[0].properties.affected_areas,
+        affectedAreaSqm: 412.5,
+        cases: [{ uuid: "case-1", referenceCode: "CG-2026-0001", link: "attached" }],
         inspector: { uuid: "inspector-1", name: "Maria Santos" },
       },
     });

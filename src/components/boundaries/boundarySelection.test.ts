@@ -18,7 +18,7 @@ describe("boundarySelectionState", () => {
 });
 
 describe("boundaryNeedsLookup", () => {
-  it("fetches by number only for a numeric id missing from a settled list", () => {
+  it("fetches by number only for a numeric id missing from the loaded page", () => {
     expect(boundaryNeedsLookup("7", null, true)).toBe(true);
     expect(boundaryNeedsLookup("7", feature, true)).toBe(false);
     expect(boundaryNeedsLookup("7", null, false)).toBe(false);
