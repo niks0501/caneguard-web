@@ -45,7 +45,7 @@ A report reaches a phone only through a `field_validation_assignments` row, and 
 | `activated_at` | Set (UTC). |
 | `created_at`, `updated_at` | Set to now or earlier (UTC); the feed syncs by `updated_at` and pages in `id` order. |
 
-An assigned report with an empty `predicted_label` or `confidence` reaches only a build that sends `supports=no_ai_scan`; assignment alone does not deliver it to an older build. The wire contract is [mobile field-validation assignment v1](../contracts/mobile-field-validation-assignment-v1.md).
+An assigned report with an empty `predicted_label` or `confidence` reaches only a build that sends `supports=no_ai_scan`; assignment alone does not deliver it to an older build. The wire contract is [mobile field-validation assignment v2](../contracts/mobile-field-validation-assignment-v2.md).
 
 Demo flow: insert the report, run the check, assign it to the demo inspector (in the web app, or with this row), run the check again, then refresh the phone. Reports that are not assigned to anyone are not shown on phones.
 
