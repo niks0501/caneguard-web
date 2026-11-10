@@ -30,6 +30,10 @@ const valid = {
     data_key: 'data',
     next_link: 'links.next',
     checkpoint: 'sync.before',
+    sync: {
+      required_keys: ['before', 'version', 'total', 'truncated', 'unchanged'],
+      version: { unchanged_request: 'since', continuation_request: 'sync_version' },
+    },
     selection: {
       anchor: 'sync.before',
       unread: 'always included',
@@ -130,5 +134,16 @@ test('rejects a notification artifact without an envelope selection bound', () =
       error instanceof Error &&
       Array.isArray(error.issues) &&
       error.issues.includes('envelope.selection must be an object'),
+  );
+});
+
+// Proves: a notification artifact that drops a declared sync stamp key is rejected.
+test('rejects a notification artifact missing a declared sync stamp key', () => {
+  assert.throws(
+    () => validateMobileNotificationsArtifact({
+      ...valid,
+      envelope: { ...valid.envelope, sync: { ...valid.envelope.sync, required_keys: ['before'] } },
+    }),
+    (error) => error.issues.some((issue) => issue.startsWith('envelope.sync.required_keys')),
   );
 });

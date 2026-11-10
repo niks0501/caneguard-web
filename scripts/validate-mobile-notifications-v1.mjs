@@ -116,6 +116,7 @@ export function validateMobileNotificationsArtifact(definition, source = 'artifa
     if (envelope.data_key !== 'data') issues.push('envelope.data_key must be data');
     if (envelope.next_link !== 'links.next') issues.push('envelope.next_link must be links.next');
     if (envelope.checkpoint !== 'sync.before') issues.push('envelope.checkpoint must be sync.before');
+    validateSyncEnvelope(envelope.sync, issues);
     validateSelection(envelope.selection, issues);
   }
 
@@ -149,6 +150,21 @@ export function validateMobileNotificationsArtifact(definition, source = 'artifa
   if (!isObject(definition.versioning)) issues.push('versioning must be an object');
   if (issues.length > 0) throw new NotificationContractArtifactError(source, issues);
   return definition;
+}
+
+function validateSyncEnvelope(sync, issues) {
+  const expected = ['before', 'version', 'total', 'truncated', 'unchanged'];
+  if (!isObject(sync)) {
+    issues.push('envelope.sync must declare the version stamp keys');
+    return;
+  }
+  if (!sameList(sync.required_keys, expected)) {
+    issues.push(`envelope.sync.required_keys must declare ${expected.join(', ')}`);
+  }
+  if (sync.version?.unchanged_request !== 'since') issues.push('envelope.sync.version.unchanged_request must be since');
+  if (sync.version?.continuation_request !== 'sync_version') {
+    issues.push('envelope.sync.version.continuation_request must be sync_version');
+  }
 }
 
 function validateSelection(selection, issues) {

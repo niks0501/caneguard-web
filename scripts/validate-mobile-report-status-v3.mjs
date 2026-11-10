@@ -6,6 +6,10 @@ const DEFAULT_ARTIFACT_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../docs/contracts/mobile-report-status-v3.json',
 );
+const SYNC_KEYS = ['before', 'version', 'total', 'truncated', 'unchanged'];
+const EXAMPLE_PATHS = ['v1', 'v2', 'v3'].map((version) =>
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), `../docs/contracts/examples/mobile-report-status-${version}.json`),
+);
 const FIELD_NAMES = [
   'uuid',
   'client_uuid',
@@ -69,6 +73,10 @@ export function validateMobileReportStatusV3Artifact(definition, source = 'artif
   if (definition?.wire?.path !== '/api/v3/mobile/reports/statuses') issues.push('wire.path must be /api/v3/mobile/reports/statuses');
   if (!sameList(definition?.envelope?.required_keys, ['data', 'links', 'meta', 'sync'])) issues.push('envelope.required_keys must declare data, links, meta, sync');
   if (definition?.envelope?.checkpoint !== 'sync.before') issues.push('envelope.checkpoint must be sync.before');
+  const sync = definition?.envelope?.sync;
+  if (!sameList(sync?.required_keys, SYNC_KEYS)) issues.push(`envelope.sync.required_keys must declare ${SYNC_KEYS.join(', ')}`);
+  if (sync?.version?.unchanged_request !== 'since') issues.push('envelope.sync.version.unchanged_request must be since');
+  if (sync?.version?.continuation_request !== 'sync_version') issues.push('envelope.sync.version.continuation_request must be sync_version');
 
   const fields = definition?.fields;
   if (!isObject(fields)) {
@@ -85,6 +93,45 @@ export function validateMobileReportStatusV3Artifact(definition, source = 'artif
   }
   if (issues.length > 0) throw new MobileReportStatusV3ContractError(source, issues);
   return definition;
+}
+
+/**
+ * Checks one example response against the envelope the artifact declares, so a
+ * fixture cannot drift from the stamped sync surface.
+ */
+export function validateMobileReportStatusExample(example, definition, source = 'example') {
+  const issues = [];
+  const envelope = definition.envelope;
+  if (!isObject(example)) issues.push('the JSON root must be an object');
+  for (const key of envelope.required_keys) {
+    if (!isObject(example) || !(key in example)) issues.push(`missing envelope key ${key}`);
+  }
+  const sync = example?.sync;
+  if (isObject(sync)) {
+    for (const key of envelope.sync.required_keys) {
+      if (!(key in sync)) issues.push(`missing sync key ${key}`);
+    }
+    if ('before' in sync && typeof sync.before !== 'string') issues.push('sync.before must be a string');
+    if ('version' in sync && typeof sync.version !== 'string') issues.push('sync.version must be a string');
+    if ('total' in sync && !Number.isInteger(sync.total)) issues.push('sync.total must be an integer');
+    if ('truncated' in sync && typeof sync.truncated !== 'boolean') issues.push('sync.truncated must be boolean');
+    if ('unchanged' in sync && typeof sync.unchanged !== 'boolean') issues.push('sync.unchanged must be boolean');
+  } else if (isObject(example) && 'sync' in example) {
+    issues.push('sync must be an object');
+  }
+  if (issues.length > 0) throw new MobileReportStatusV3ContractError(source, issues);
+}
+
+export async function readMobileReportStatusExamples(definition, examplePaths = EXAMPLE_PATHS) {
+  for (const examplePath of examplePaths) {
+    let example;
+    try {
+      example = JSON.parse(await readFile(examplePath, 'utf8'));
+    } catch (error) {
+      throw new MobileReportStatusV3ContractError(examplePath, [`could not be read as JSON: ${error.message}`]);
+    }
+    validateMobileReportStatusExample(example, definition, examplePath);
+  }
 }
 
 function validateField(field, name, issues) {
@@ -110,7 +157,8 @@ function isObject(value) {
 async function main() {
   const artifactPath = process.argv[2] ?? DEFAULT_ARTIFACT_PATH;
   const definition = await readMobileReportStatusV3Artifact(artifactPath);
-  console.log(`[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} v3 status fields and advisory payload are structurally valid.`);
+  await readMobileReportStatusExamples(definition);
+  console.log(`[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} v3 status fields, advisory payload and ${EXAMPLE_PATHS.length} example fixtures match the declared sync envelope.`);
 }
 
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
@@ -127,4 +175,4 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   }
 }
 
-export { DEFAULT_ARTIFACT_PATH, FIELD_NAMES, ADVISORY_FIELD_NAMES };
+export { DEFAULT_ARTIFACT_PATH, EXAMPLE_PATHS, SYNC_KEYS, FIELD_NAMES, ADVISORY_FIELD_NAMES };
