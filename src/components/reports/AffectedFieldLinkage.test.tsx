@@ -251,11 +251,17 @@ describe("AffectedFieldLinkage", () => {
     expect(screen.getAllByRole("link", { name: "Show on Field boundaries" }).length).toBeGreaterThan(0);
   });
 
-  it("shows the boundary the inspector attached and lets the reviewer confirm it", async () => {
+  it("confirms and saves the boundary the inspector attached", async () => {
     const user = userEvent.setup();
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult([]));
     const { lossRatePercent: _rate, ...attached } = affectedField(41, 5000, 0);
     void _rate;
+    const save = vi.fn().mockResolvedValue({
+      affectedFields: [affectedField(41, 5000, 12)],
+      version: 5,
+      updatedAt: "2026-10-04T04:00:00.000Z",
+    });
+    vi.mocked(useUpdateReportAffectedFields).mockReturnValue(mutationResult({ mutateAsync: save }));
 
     renderLinkage(report({
       inspectorAttachment: { clientUuid: "client-41", arrived: true, confirmed: false, boundary: attached },
@@ -272,6 +278,14 @@ describe("AffectedFieldLinkage", () => {
     expect(within(banner).queryByRole("button", { name: "Confirm boundary" })).not.toBeInTheDocument();
     await user.type(screen.getByLabelText(/Office loss rate for boundary 41/), "12");
     expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Save affected boundaries" }));
+
+    expect(save).toHaveBeenCalledWith({
+      expectedVersion: 4,
+      affectedFields: [{ fieldSurveyId: 41, lossRatePercent: 12 }],
+    });
+    expect(await screen.findByRole("status")).toHaveTextContent("Affected field boundaries saved.");
   });
 
   it("says when the attached boundary has not reached the office and when it is already confirmed", () => {
