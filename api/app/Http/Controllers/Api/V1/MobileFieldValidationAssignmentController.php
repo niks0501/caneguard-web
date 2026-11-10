@@ -17,8 +17,9 @@ use Illuminate\Support\Collection;
 class MobileFieldValidationAssignmentController extends Controller
 {
     /**
-     * The most assignments one phone downloads. A larger work set is cut to
-     * the highest-priority rows and reported through sync.total/truncated.
+     * The most assignments one bounded download may contain. A larger work set
+     * is cut to the highest-priority rows and reported through
+     * sync.total/truncated.
      */
     public const WORK_SET_CAP = 300;
 
@@ -81,7 +82,9 @@ class MobileFieldValidationAssignmentController extends Controller
             ->get();
 
         $total = $ownedRows->count();
-        $selectedIds = $this->selectWorkSet($ownedRows);
+        $requestedLimit = $request->validated('limit');
+        $limit = $requestedLimit === null ? null : min((int) $requestedLimit, self::WORK_SET_CAP);
+        $selectedIds = $this->selectWorkSet($ownedRows, $limit);
         $truncated = $total > count($selectedIds);
         $version = $this->workSetVersion($ownedRows, $selectedIds);
 
@@ -130,10 +133,10 @@ class MobileFieldValidationAssignmentController extends Controller
         $assignments = $query
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))
             ->withQueryString()
-            ->appends([
-                'sync_before' => $syncBefore->toISOString(),
-                'sync_version' => $version,
-            ]);
+            ->appends(['sync_before' => $syncBefore->toISOString()]);
+        if ($truncated) {
+            $assignments->appends(['sync_version' => $version]);
+        }
 
         return MobileFieldValidationAssignmentResource::collection($assignments)->additional([
             'sync' => [
@@ -154,18 +157,18 @@ class MobileFieldValidationAssignmentController extends Controller
      * @param  Collection<int, FieldValidationAssignment>  $rows
      * @return array<int, int>
      */
-    private function selectWorkSet(Collection $rows): array
+    private function selectWorkSet(Collection $rows, ?int $limit): array
     {
-        return $rows
-            ->sortBy([
-                fn ($a, $b) => (int) ($a->report->field_validation_state === Report::FIELD_VALIDATION_STATE_COMPLETED)
-                    <=> (int) ($b->report->field_validation_state === Report::FIELD_VALIDATION_STATE_COMPLETED),
-                fn ($a, $b) => (int) ($a->target_visit_date === null) <=> (int) ($b->target_visit_date === null),
-                fn ($a, $b) => $a->target_visit_date?->format('Y-m-d') <=> $b->target_visit_date?->format('Y-m-d'),
-                fn ($a, $b) => $a->activated_at <=> $b->activated_at,
-                fn ($a, $b) => $a->getKey() <=> $b->getKey(),
-            ])
-            ->take(self::WORK_SET_CAP)
+        $ranked = $rows->sortBy([
+            fn ($a, $b) => (int) ($a->report->field_validation_state === Report::FIELD_VALIDATION_STATE_COMPLETED)
+                <=> (int) ($b->report->field_validation_state === Report::FIELD_VALIDATION_STATE_COMPLETED),
+            fn ($a, $b) => (int) ($a->target_visit_date === null) <=> (int) ($b->target_visit_date === null),
+            fn ($a, $b) => $a->target_visit_date?->format('Y-m-d') <=> $b->target_visit_date?->format('Y-m-d'),
+            fn ($a, $b) => $a->activated_at <=> $b->activated_at,
+            fn ($a, $b) => $a->getKey() <=> $b->getKey(),
+        ]);
+
+        return ($limit === null ? $ranked : $ranked->take($limit))
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->sort()

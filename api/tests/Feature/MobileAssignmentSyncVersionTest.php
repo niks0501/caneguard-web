@@ -32,14 +32,14 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->inspector = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
     }
 
-    private function assign(?User $assignee = null, array $report = []): FieldValidationAssignment
+    private function assign(?User $assignee = null, array $report = [], array $assignment = []): FieldValidationAssignment
     {
         $report = Report::factory()->inDistrict($this->pilotDistrict())->create($report + [
             'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
 
-        return FieldValidationAssignment::factory()->create([
+        return FieldValidationAssignment::factory()->create($assignment + [
             'report_id' => $report->getKey(),
             'assignee_id' => ($assignee ?? $this->inspector)->getKey(),
             'assigned_by_id' => $this->reviewer->getKey(),
@@ -66,6 +66,24 @@ class MobileAssignmentSyncVersionTest extends TestCase
         DB::disableQueryLog();
 
         return $count;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function feedUuids(string $path): array
+    {
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $uuids = [];
+        $url = $path;
+        while ($url !== null) {
+            $page = $this->getJson($url)->assertOk();
+            array_push($uuids, ...array_column($page->json('data'), 'uuid'));
+            $next = $page->json('links.next');
+            $url = $next === null ? null : parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
+        }
+
+        return $uuids;
     }
 
     // Proves: reassign changes the version.
@@ -171,7 +189,7 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $assignments = [$this->assign(), $this->assign(), $this->assign()];
 
         Sanctum::actingAs($this->inspector, ['assignment:read']);
-        $first = $this->getJson('/api/v1/mobile/assignments?per_page=2')->assertOk();
+        $first = $this->getJson('/api/v1/mobile/assignments?limit=2&per_page=1')->assertOk();
         $next = $first->json('links.next');
         $this->assertNotNull($next);
         $nextPath = parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
@@ -186,10 +204,10 @@ class MobileAssignmentSyncVersionTest extends TestCase
             ->assertJsonPath('sync.truncated', false)
             ->assertJsonPath('sync.unchanged', false);
 
-        $this->getJson('/api/v1/mobile/assignments?per_page=2')
+        $this->getJson('/api/v1/mobile/assignments?limit=2&per_page=1')
             ->assertOk()
             ->assertJsonPath('sync.total', 2)
-            ->assertJsonCount(2, 'data');
+            ->assertJsonCount(1, 'data');
     }
 
     // Proves: data the feed withholds does not move the version.
@@ -232,49 +250,71 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->assertCount(3, $stale->json('data'));
     }
 
-    // Proves: an oversized set shows "N of M" instead of failing.
-    public function test_an_oversized_set_is_capped_with_total_and_priority_order(): void
+    // Proves: a bounded feed is cut by priority and reports the full total.
+    public function test_a_bounded_feed_is_cut_by_priority_and_reports_the_full_total(): void
     {
-        // The published v1 contract caps the feed at 300 assignments.
-        $cap = 300;
-        $completed = $this->assign(report: ['field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED]);
-        $kept = [];
-        for ($i = 0; $i < $cap; $i++) {
-            $kept[] = $this->assign();
-        }
-        $newest = $this->assign();
+        $completed = $this->assign(
+            report: ['field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED],
+            assignment: ['target_visit_date' => null],
+        );
+        $later = $this->assign(assignment: ['target_visit_date' => '2026-11-20']);
+        $earlier = $this->assign(assignment: ['target_visit_date' => '2026-11-01']);
+        $undated = $this->assign(assignment: ['target_visit_date' => null]);
 
         Sanctum::actingAs($this->inspector, ['assignment:read']);
-        $uuids = [];
-        $url = '/api/v1/mobile/assignments?per_page=100';
-        $sync = null;
-        while ($url !== null) {
-            $page = $this->getJson($url)->assertOk();
-            $sync ??= $page->json('sync');
-            array_push($uuids, ...array_column($page->json('data'), 'uuid'));
-            $next = $page->json('links.next');
-            $url = $next === null ? null : parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
-        }
+        $page = $this->getJson('/api/v1/mobile/assignments?limit=2')->assertOk();
+        $sync = $page->json('sync');
 
+        $this->assertSame(4, $sync['total']);
+        $this->assertTrue($sync['truncated']);
+        $this->assertEqualsCanonicalizing([$earlier->uuid, $later->uuid], array_column($page->json('data'), 'uuid'));
+        $this->assertNotContains($completed->uuid, array_column($page->json('data'), 'uuid'));
+        $this->assertNotContains($undated->uuid, array_column($page->json('data'), 'uuid'));
+    }
+
+    // Proves: an unbounded feed still delivers every row to older builds.
+    public function test_an_unbounded_feed_delivers_every_row_above_the_documented_maximum(): void
+    {
+        // The published v1 contract honours at most 300 rows per bounded feed.
+        $cap = 300;
+        $completed = $this->assign(
+            report: ['field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED],
+            assignment: ['target_visit_date' => null],
+        );
+        $kept = [];
+        for ($i = 0; $i < $cap; $i++) {
+            $kept[] = $this->assign(assignment: [
+                'target_visit_date' => null,
+                'activated_at' => now()->subMinutes($cap - $i),
+            ]);
+        }
+        $newest = $this->assign(assignment: ['target_visit_date' => null, 'activated_at' => now()]);
+
+        $unbounded = $this->feedUuids('/api/v1/mobile/assignments?per_page=100');
+        $this->assertCount($cap + 2, $unbounded);
+
+        $bounded = $this->feedUuids('/api/v1/mobile/assignments?per_page=100&limit='.$cap);
+        $this->assertCount($cap, $bounded);
+        $this->assertNotContains($completed->uuid, $bounded);
+        $this->assertNotContains($newest->uuid, $bounded);
+        $this->assertContains($kept[0]->uuid, $bounded);
+        $this->assertContains($kept[$cap - 1]->uuid, $bounded);
+
+        $sync = $this->sync('?limit='.$cap);
         $this->assertSame($cap + 2, $sync['total']);
         $this->assertTrue($sync['truncated']);
-        $this->assertCount($cap, $uuids);
-        $this->assertNotContains($completed->uuid, $uuids);
-        $this->assertNotContains($newest->uuid, $uuids);
-        $this->assertContains($kept[0]->uuid, $uuids);
-        $this->assertContains($kept[$cap - 1]->uuid, $uuids);
 
         $before = $sync['version'];
         $completed->report->update(['barangay' => 'Corrected Barangay']);
 
-        $this->assertNotSame($before, $this->sync()['version']);
+        $this->assertNotSame($before, $this->sync('?limit='.$cap)['version']);
     }
 
-    public function test_a_set_within_the_cap_is_not_truncated(): void
+    public function test_a_feed_within_the_requested_limit_is_not_truncated(): void
     {
         $this->assign();
 
-        $sync = $this->sync();
+        $sync = $this->sync('?limit=5');
 
         $this->assertSame(1, $sync['total']);
         $this->assertFalse($sync['truncated']);
