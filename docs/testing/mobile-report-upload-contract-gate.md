@@ -22,7 +22,7 @@ Mobile device acceptance is owned by the companion [Agent Device guide](https://
 
 `contract:completion-artifact` validates the completion multipart artifact.
 
-`contract:notification-artifact` validates the owner-scoped notification envelope and fields.
+`contract:notification-artifact` validates the owner-scoped notification envelope and fields, and checks the artifact's declared feed-selection bound against the controller constants that enforce it.
 
 `contract:lifecycle-artifact` validates lifecycle dimensions, legacy projections, transition rules, and linked payload contracts.
 
