@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { MapPin } from "lucide-react";
 import { routes } from "../../app/routes";
-import { diseaseLabels } from "../../domain/report.metadata";
+import { predictedDiseaseLabel } from "../../domain/report.metadata";
 import { deriveReasonForVisit, hasUsableReportLocation, relativeVisitTiming, type FieldWorkloadItem } from "../../domain/fieldOperations";
 import { Button } from "../ui/Button";
 
@@ -47,7 +47,7 @@ export function FieldOperationsRow({
         </div>
       </div>
       <dl className="field-operations-row__facts">
-        <div><dt>Possible Condition</dt><dd>{diseaseLabels[item.predictedDisease]}</dd></div>
+        <div><dt>Possible Condition</dt><dd>{predictedDiseaseLabel(item.predictedDisease)}</dd></div>
         {reason ? <div><dt>Reason for Visit</dt><dd>{reason}</dd></div> : null}
         <div><dt>Assigned Inspector</dt><dd>{item.assignee?.name ?? "Unassigned"}</dd></div>
         <div><dt>Target visit</dt><dd>{item.targetVisitDate ?? "Not scheduled"}</dd></div>

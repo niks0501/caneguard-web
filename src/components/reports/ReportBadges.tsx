@@ -1,14 +1,14 @@
-import { reviewStatusLabels, diseaseLabels } from "../../domain/report.metadata";
+import { reviewStatusLabels, predictedDiseaseLabel } from "../../domain/report.metadata";
 import type { DiseaseKey, IdentificationGapState, ReviewStatus } from "../../domain/report.types";
 
 export function DiseaseBadge({
   disease,
   includePossibleConditionPrefix = true,
 }: {
-  disease: DiseaseKey;
+  disease: DiseaseKey | null;
   includePossibleConditionPrefix?: boolean;
 }) {
-  const label = diseaseLabels[disease];
+  const label = predictedDiseaseLabel(disease);
   return (
     <span className="badge disease-badge">
       <span aria-hidden="true" />

@@ -181,6 +181,21 @@ describe("ReportTable - six queue columns", () => {
     expect(within(row).getByText("Staff: Sugarcane Smut")).toBeInTheDocument();
   });
 
+  it("names an office case saved without an AI scan instead of a condition", () => {
+    renderTable([
+      report({
+        predictedDisease: null,
+        confidence: null,
+        imageUrl: undefined,
+        imageStatus: "unavailable",
+      }),
+    ]);
+
+    const row = rowFor("CG-2026-0001");
+    expect(within(row).getByText("No AI scan")).toBeInTheDocument();
+    expect(within(row).queryByText(/Rust/)).not.toBeInTheDocument();
+  });
+
   it("moves the submitted timestamp off the row", () => {
     renderTable([report()]);
 

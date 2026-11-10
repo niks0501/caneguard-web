@@ -32,7 +32,7 @@ export interface QueueRowView {
   mismatchReported?: boolean | null;
   machineFacts?: ReportMachineFacts;
   locationUnavailable?: boolean;
-  predictedDisease: DiseaseKey;
+  predictedDisease: DiseaseKey | null;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   affectedAreaHectares?: number | null;
   affectedAreaMeasurement?: MeasurementProvenance | null;

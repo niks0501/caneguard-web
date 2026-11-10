@@ -784,7 +784,9 @@ function CaseReviewContent() {
               <section aria-labelledby="possible-condition-heading">
                 <h3 id="possible-condition-heading">Possible Condition</h3>
                 <DiseaseBadge disease={report.predictedDisease} includePossibleConditionPrefix={false} />
-                <p>AI-assisted result. Decision support, not a diagnosis.</p>
+                {report.predictedDisease ? (
+                  <p>AI-assisted result. Decision support, not a diagnosis.</p>
+                ) : null}
               </section>
               <section aria-labelledby="reporter-observation-heading">
                 <h3 id="reporter-observation-heading">What the reporter saw</h3>
@@ -818,7 +820,7 @@ function CaseReviewContent() {
               <dl className="detail-list">
                 <DetailField label="Reported severity">{report.reportedSeverity ?? "Not provided"}</DetailField>
                 <DetailField label="Field notes"><ClampedText text={report.fieldNotes ?? "Not provided"} /></DetailField>
-                <DetailField label="Confidence">{report.confidence !== undefined ? `${Math.round(report.confidence * 100)}%` : "Not provided"}</DetailField>
+                <DetailField label="Confidence">{typeof report.confidence === "number" ? `${Math.round(report.confidence * 100)}%` : "Not provided"}</DetailField>
                 <DetailField label="Model version">{report.modelVersion ?? "Not provided"}</DetailField>
               </dl>
               {report.modelVersionRecognised === false || report.classScores?.some(({ label }) => !Object.hasOwn(diseaseLabels, label)) ? <div role="status">

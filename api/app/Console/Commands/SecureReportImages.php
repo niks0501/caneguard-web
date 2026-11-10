@@ -41,6 +41,14 @@ class SecureReportImages extends Command
                 ): void {
                     $path = $report->image_path;
 
+                    if ($path === null || $path === '') {
+                        $this->line(
+                            "{$report->reference_code}: no image on record; skipped.",
+                        );
+
+                        return;
+                    }
+
                     if (! $this->isSafeReportPath($path)) {
                         $this->error(
                             "{$report->reference_code}: unsafe image path; skipped.",

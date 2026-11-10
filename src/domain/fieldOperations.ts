@@ -48,7 +48,7 @@ export interface FieldWorkloadItem {
   farmReference: string | null;
   municipality: string | null;
   province: string | null;
-  predictedDisease: DiseaseKey;
+  predictedDisease: DiseaseKey | null;
   observedAt: string | null;
   submittedAt: string;
   reviewStatus: ReviewStatus;

@@ -46,6 +46,30 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         $this->getJson('/api/v1/reports/'.$fresh->uuid.'/image')->assertNotFound();
     }
 
+    /** Proves: map and field-validation queue readers keep a scanless row's absent AI data absent. */
+    public function test_map_and_field_validation_queue_keep_absent_ai_data_absent(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Sanctum::actingAs($reviewer);
+        $scanless = Report::factory()->inDistrict($this->pilotDistrict())->officeWithoutAiScan()->create([
+            'review_status' => Report::STATUS_FOR_FIELD_VALIDATION,
+        ]);
+
+        $feature = collect(
+            $this->getJson('/api/v1/reports/map')->assertOk()->json('features'),
+        )->firstWhere('id', $scanless->uuid);
+        $this->assertNotNull($feature);
+        $this->assertNull($feature['properties']['predicted_label']);
+        $this->assertNull($feature['properties']['confidence']);
+
+        $queued = collect(
+            $this->getJson('/api/v1/reports/field-validation-queue?queue=needs_visit')->assertOk()->json('data.items'),
+        )->firstWhere('uuid', $scanless->uuid);
+        $this->assertNotNull($queued);
+        $this->assertNull($queued['predicted_label']);
+        $this->assertNull($queued['confidence']);
+    }
+
     /** Proves: charts show the no-AI bucket with correct counts; field rows unchanged. */
     public function test_analytics_counts_the_no_ai_bucket_without_touching_field_rows(): void
     {

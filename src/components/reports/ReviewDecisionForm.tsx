@@ -7,7 +7,7 @@ import { DetailField } from "../layout/Page";
 import { Button } from "../ui/Button";
 import { SelectFilter, TextArea } from "../ui/FormControls";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
-import { activeAuthorityClassifiedConditions, authorityClassifiedConditionLabels, caseStateLabels, diseaseLabels, isLegacyAuthorityClassifiedCondition, verificationOutcomeLabels } from "../../domain/report.metadata";
+import { activeAuthorityClassifiedConditions, authorityClassifiedConditionLabels, caseStateLabels, isLegacyAuthorityClassifiedCondition, predictedDiseaseLabel, verificationOutcomeLabels } from "../../domain/report.metadata";
 import type { AuthorityClassifiedCondition, DiseaseReport, VerificationOutcome } from "../../domain/report.types";
 import type { ReportReviewInput } from "../../domain/review.types";
 import { legacyLifecycleForReviewStatus } from "../../data/api/mappers/lifecycle.mapper";
@@ -365,7 +365,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
       <h2 id="review-summary-heading">Review Summary</h2>
       <dl className="decision-summary__grid">
-        <DetailField label="Possible Condition">{diseaseLabels[report.predictedDisease]?.replace(/^Possible Condition:\s*/, "") ?? report.predictedDisease}</DetailField>
+        <DetailField label="Possible Condition">{predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}</DetailField>
         <DetailField label="Staff-Classified Condition">{classification ? authorityClassifiedConditionLabels[classification] : "Not classified"}</DetailField>
         <DetailField label="Verification">{verificationOutcomeLabels[verification]}</DetailField>
         <DetailField label="Next Action">{actions.find((item) => item.value === action)?.label ?? "Pending decision"}</DetailField>

@@ -43,8 +43,8 @@ export interface FieldValidationMapProperties {
   observedAt: string | null;
   submittedAt: string;
   firstReviewedAt?: string | null;
-  predictedDisease: DiseaseKey;
-  confidence: number;
+  predictedDisease: DiseaseKey | null;
+  confidence: number | null;
   reviewStatus: ReviewStatus;
   lifecycle?: ReportLifecycle;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
@@ -93,8 +93,8 @@ export interface FieldValidationQueueItem {
   municipality: string | null;
   observedAt: string | null;
   submittedAt: string;
-  predictedDisease: DiseaseKey;
-  confidence: number;
+  predictedDisease: DiseaseKey | null;
+  confidence: number | null;
   reviewStatus: ReviewStatus;
   lifecycle?: ReportLifecycle;
   targetVisitDate?: string | null;
