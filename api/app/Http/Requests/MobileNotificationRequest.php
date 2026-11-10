@@ -17,6 +17,7 @@ class MobileNotificationRequest extends ApiFormRequest
     {
         return [
             'sync_before' => ['sometimes', 'date'],
+            'since' => ['sometimes', 'string', 'max:64'],
             'cursor' => [
                 'sometimes',
                 'string',

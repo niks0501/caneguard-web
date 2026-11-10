@@ -8,6 +8,7 @@ use App\Http\Requests\MobileNotificationMutationRequest;
 use App\Http\Requests\MobileNotificationRequest;
 use App\Http\Resources\MobileNotificationResource;
 use App\Models\Report;
+use App\Support\MobileFeedVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -43,6 +44,21 @@ class MobileNotificationController extends Controller
                     ->orWhere('created_at', '>=', $syncBefore->subDays(self::FEED_WINDOW_DAYS));
             });
 
+        // The version covers the whole served window, serialized exactly as the
+        // phone receives it, so a new, read or aged-out item moves it.
+        $stamp = MobileFeedVersion::digest(
+            (clone $window)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(self::FEED_MAX_ROWS)
+                ->get()
+                ->map(fn ($item): array => (new MobileNotificationResource($item))->resolve($request)),
+        );
+        $total = (clone $window)->count();
+        $truncated = $total > self::FEED_MAX_ROWS;
+        $unchanged = $request->validated('cursor') === null
+            && $request->validated('since') === $stamp['version'];
+
         $oldest = (clone $window)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -59,6 +75,10 @@ class MobileNotificationController extends Controller
             });
         }
 
+        if ($unchanged) {
+            $window->whereRaw('1 = 0');
+        }
+
         $items = $window
             ->orderBy('created_at')
             ->orderBy('id')
@@ -69,6 +89,10 @@ class MobileNotificationController extends Controller
         return MobileNotificationResource::collection($items)->additional([
             'sync' => [
                 'before' => $syncBefore->toISOString(),
+                'version' => $stamp['version'],
+                'total' => $total,
+                'truncated' => $truncated,
+                'unchanged' => $unchanged,
             ],
         ]);
     }
