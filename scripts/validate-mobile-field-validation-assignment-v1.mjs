@@ -13,12 +13,27 @@ const V2_ARTIFACT_PATH = path.resolve(
 // v1 is frozen with non-null AI fields; v2 widens them (a nullability change
 // is new_major_required) and declares the office projection.
 const CONTRACT_VERSIONS = { 'mobile-field-validation-assignment-v1': 1, 'mobile-field-validation-assignment-v2': 2 };
+// Nested office subfields declare [type, nullable]; each is required inside its object.
 const OFFICE_CASE_FIELDS = {
   origin: { type: 'string' },
   version: { type: 'number' },
-  status: { required_keys: ['workflow_status', 'case_state', 'review_status', 'updated_at'] },
-  reporter_concern: { required_keys: ['suspected_condition', 'observation_text'] },
-  photo: { required_keys: ['url', 'content_type', 'bytes'] },
+  status: {
+    nullable: false,
+    nested: {
+      workflow_status: ['string', false],
+      case_state: ['string', false],
+      review_status: ['string', false],
+      updated_at: ['date-time', false],
+    },
+  },
+  reporter_concern: {
+    nullable: false,
+    nested: { suspected_condition: ['string', true], observation_text: ['string', true] },
+  },
+  photo: {
+    nullable: true,
+    nested: { url: ['string', false], content_type: ['string', false], bytes: ['number', false] },
+  },
 };
 const AI_CASE_FIELDS = { predicted_label: 'string', confidence: 'number' };
 // The artifact declares the bounded-download cap; the controller constant is
@@ -222,16 +237,25 @@ function validateCaseNullability(definition, issues) {
       issues.push(`case.${name} must be declared as an optional office field in v2`);
       continue;
     }
-    if (!spec.required_keys) {
+    if (!spec.nested) {
       if (field.type !== spec.type) issues.push(`case.${name}.type must be ${spec.type}`);
       continue;
     }
-    validateObjectField(field, `case.${name}`, spec.required_keys, issues);
+    const keys = Object.keys(spec.nested);
+    validateObjectField(field, `case.${name}`, keys, issues);
+    if (field.nullable !== spec.nullable) {
+      issues.push(`case.${name}.nullable must be ${spec.nullable} in v2`);
+    }
     const nested = isObject(field.properties) ? field.properties : {};
-    for (const key of spec.required_keys) {
-      if (!isObject(nested[key])) {
+    for (const [key, [type, nullable]] of Object.entries(spec.nested)) {
+      const child = nested[key];
+      if (!isObject(child)) {
         issues.push(`case.${name}.${key} must be declared as a property`);
+        continue;
       }
+      if (child.type !== type) issues.push(`case.${name}.${key}.type must be ${type}`);
+      if (child.required !== true) issues.push(`case.${name}.${key}.required must be true`);
+      if (child.nullable !== nullable) issues.push(`case.${name}.${key}.nullable must be ${nullable}`);
     }
   }
 }
