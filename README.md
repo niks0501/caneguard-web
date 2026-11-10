@@ -456,6 +456,7 @@ cd "$HOME/src/caneguard/caneguard-web"
 npm run contract:test
 npm run contract:artifact
 npm run contract:v2:artifact
+npm run contract:status-v3-artifact
 npm run contract:assignment-artifact
 npm run contract:completion-artifact
 npm run contract:notification-artifact
