@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Api\V1\MobileNotificationController;
 use App\Models\Advisory;
 use App\Models\Report;
 use App\Models\User;
@@ -120,6 +121,55 @@ class MobileFeedSyncVersionTest extends TestCase
         $this->assertNotSame($v1, $after['sync']['version']);
         $this->assertFalse($after['sync']['unchanged']);
         $this->assertCount(1, $after['data']);
+    }
+
+    // Proves: a window total that shrinks below the row cap moves the version,
+    // so an aged-out item is never reported as an unchanged feed.
+    public function test_a_window_total_change_moves_the_notifications_version(): void
+    {
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+        ]);
+        $now = CarbonImmutable::parse('2026-11-10T12:00:00Z');
+        $rows = [];
+        for ($index = 1; $index <= MobileNotificationController::FEED_MAX_ROWS + 1; $index++) {
+            $rows[] = [
+                'id' => (string) Str::uuid(),
+                'type' => NewCaseSubmittedNotification::class,
+                'notifiable_type' => $this->owner->getMorphClass(),
+                'notifiable_id' => $this->owner->getKey(),
+                'data' => json_encode([
+                    'event_type' => 'new_case_submitted',
+                    'title' => 'T'.$index,
+                    'report_uuid' => $report->uuid,
+                    'reference_code' => $report->reference_code,
+                ]),
+                'read_at' => $now,
+                'created_at' => $index > MobileNotificationController::FEED_MAX_ROWS
+                    ? $now->subDays(60)->addHour()
+                    : $now->subHour(),
+                'updated_at' => $now,
+            ];
+        }
+
+        CarbonImmutable::setTestNow($now);
+        try {
+            DatabaseNotification::query()->insert($rows);
+
+            $first = $this->feed('/api/v1/mobile/notifications');
+            $this->assertSame(MobileNotificationController::FEED_MAX_ROWS + 1, $first['sync']['total']);
+            $this->assertTrue($first['sync']['truncated']);
+
+            CarbonImmutable::setTestNow($now->addDay());
+            $after = $this->feed('/api/v1/mobile/notifications?since='.$first['sync']['version']);
+
+            $this->assertSame(MobileNotificationController::FEED_MAX_ROWS, $after['sync']['total']);
+            $this->assertFalse($after['sync']['truncated']);
+            $this->assertNotSame($first['sync']['version'], $after['sync']['version']);
+            $this->assertFalse($after['sync']['unchanged']);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     // Proves: sync.before is the response instant and its own second is the

@@ -46,6 +46,8 @@ class MobileNotificationController extends Controller
 
         // The version covers the whole served window, serialized exactly as the
         // phone receives it, so a new, read or aged-out item moves it.
+        $total = (clone $window)->count();
+        $truncated = $total > self::FEED_MAX_ROWS;
         $stamp = MobileFeedVersion::digest(
             (clone $window)
                 ->orderByDesc('created_at')
@@ -53,9 +55,8 @@ class MobileNotificationController extends Controller
                 ->limit(self::FEED_MAX_ROWS)
                 ->get()
                 ->map(fn ($item): array => (new MobileNotificationResource($item))->resolve($request)),
+            ['total' => $total, 'truncated' => $truncated],
         );
-        $total = (clone $window)->count();
-        $truncated = $total > self::FEED_MAX_ROWS;
         $unchanged = $request->validated('cursor') === null
             && $request->validated('since') === $stamp['version'];
 
