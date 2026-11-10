@@ -137,10 +137,11 @@ export function AffectedFieldLinkage({
   const [draft, setDraft] = useState<RateDraft>(() => ratesFor(report.affectedFields));
   const [draftVersion, setDraftVersion] = useState<number | undefined>(() => report.reviewVersion);
   const [draftChoices, setDraftChoices] = useState<BoundaryChoice[]>([]);
+  const [savedFields, setSavedFields] = useState<{ report: DiseaseReport; fields: ReportAffectedField[] } | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const online = useOnlineStatus();
-  const linkedFields = report.affectedFields ?? [];
+  const linkedFields = savedFields?.report === report ? savedFields.fields : report.affectedFields ?? [];
   const attachment = report.inspectorAttachment ?? null;
   const choices = boundaryChoices(
     surveysQuery.data?.features ?? [],
@@ -181,7 +182,7 @@ export function AffectedFieldLinkage({
   });
   const attachedBoundaryId = attachment?.boundary?.fieldSurveyId ?? null;
   const attachmentConfirmed = attachedBoundaryId !== null
-    && (attachment?.confirmed === true || linkedFields.some((field) => field.fieldSurveyId === attachedBoundaryId));
+    && linkedFields.some((field) => field.fieldSurveyId === attachedBoundaryId);
   const attachmentInDraft = attachedBoundaryId !== null && Object.hasOwn(draft, String(attachedBoundaryId));
 
   const setBoundarySelected = (id: number, selected: boolean) => {
@@ -219,6 +220,7 @@ export function AffectedFieldLinkage({
         })),
       });
       setDraft(ratesFor(result.affectedFields));
+      setSavedFields({ report, fields: result.affectedFields });
       setDraftVersion(result.version);
       setDraftChoices([]);
       setSubmitted(false);
@@ -233,6 +235,7 @@ export function AffectedFieldLinkage({
       const result = await onRefresh();
       if (result.data && !result.isError) {
         setDraft(ratesFor(result.data.affectedFields));
+        setSavedFields({ report: result.data, fields: result.data.affectedFields ?? [] });
         setDraftVersion(result.data.reviewVersion);
         setDraftChoices([]);
         updateMutation.reset();

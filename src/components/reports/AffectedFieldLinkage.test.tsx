@@ -159,6 +159,7 @@ describe("AffectedFieldLinkage", () => {
       ],
     });
     expect(await screen.findByRole("status")).toHaveTextContent("Affected field boundaries saved.");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save affected boundaries" })).toBeDisabled());
   });
 
   it("keeps saved links selectable while paging through older boundary pages", () => {
@@ -305,6 +306,34 @@ describe("AffectedFieldLinkage", () => {
     }));
     expect(screen.getByText("Confirmed")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirm boundary" })).not.toBeInTheDocument();
+  });
+
+  it("stops saying confirmed when the reviewer unlinks the attached boundary and saves", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult([]));
+    const { lossRatePercent: _rate, ...attached } = affectedField(41, 5000, 20);
+    void _rate;
+    const save = vi.fn().mockResolvedValue({
+      affectedFields: [],
+      version: 5,
+      updatedAt: "2026-10-04T04:00:00.000Z",
+    });
+    vi.mocked(useUpdateReportAffectedFields).mockReturnValue(mutationResult({ mutateAsync: save }));
+
+    renderLinkage(report({
+      affectedFields: [affectedField(41, 5000, 20)],
+      inspectorAttachment: { clientUuid: "client-41", arrived: true, confirmed: true, boundary: attached },
+    }));
+
+    const banner = screen.getByRole("group", { name: "Boundary attached by the inspector" });
+    expect(within(banner).getByText("Confirmed")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Link boundary 41" }));
+    await user.click(screen.getByRole("button", { name: "Save affected boundaries" }));
+
+    expect(save).toHaveBeenCalledWith({ expectedVersion: 4, affectedFields: [] });
+    await waitFor(() => expect(within(banner).queryByText("Confirmed")).not.toBeInTheDocument());
+    expect(within(banner).getByRole("button", { name: "Confirm boundary" })).toBeInTheDocument();
   });
 
   it("publishes one named form state, including offline", async () => {
