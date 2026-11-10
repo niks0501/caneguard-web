@@ -90,7 +90,7 @@ class MobileFieldValidationAssignmentController extends Controller
 
         $cursor = $request->validated('cursor');
         $resumedVersion = $request->validated('sync_version');
-        if ($cursor !== null && $resumedVersion !== null && $resumedVersion !== $version) {
+        if ($limit !== null && $cursor !== null && $resumedVersion !== $version) {
             // The rows of one download must all come from the same snapshot;
             // a mid-download change would silently skip or duplicate rows.
             return response()->json([
@@ -134,7 +134,7 @@ class MobileFieldValidationAssignmentController extends Controller
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))
             ->withQueryString()
             ->appends(['sync_before' => $syncBefore->toISOString()]);
-        if ($truncated) {
+        if ($limit !== null) {
             $assignments->appends(['sync_version' => $version]);
         }
 

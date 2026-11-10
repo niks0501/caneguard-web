@@ -320,6 +320,66 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->assertFalse($sync['truncated']);
     }
 
+    // Proves: a bounded download that fits its bound is still version-bound.
+    public function test_a_bounded_download_that_fits_its_bound_still_binds_every_page(): void
+    {
+        $this->assign();
+        $this->assign();
+
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $first = $this->getJson('/api/v1/mobile/assignments?limit=5&per_page=1')->assertOk();
+        $this->assertFalse($first->json('sync.truncated'));
+        $next = $first->json('links.next');
+        $this->assertNotNull($next);
+        $nextPath = parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
+        $this->assertStringContainsString('sync_version='.$first->json('sync.version'), $nextPath);
+
+        $this->getJson($nextPath)->assertOk();
+
+        FieldValidationAssignment::query()->first()->report->update(['barangay' => 'Corrected Barangay']);
+
+        $this->getJson($nextPath)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART');
+    }
+
+    // Proves: a bounded continuation must carry the version it started with.
+    public function test_a_bounded_continuation_without_the_version_is_refused(): void
+    {
+        $this->assign();
+        $this->assign();
+
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $first = $this->getJson('/api/v1/mobile/assignments?limit=5&per_page=1')->assertOk();
+        $next = $first->json('links.next');
+        $this->assertNotNull($next);
+
+        parse_str((string) parse_url($next, PHP_URL_QUERY), $query);
+        unset($query['sync_version']);
+        $withoutVersion = parse_url($next, PHP_URL_PATH).'?'.http_build_query($query);
+
+        $this->getJson($withoutVersion)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART');
+    }
+
+    // Proves: an unbounded continuation stays compatible with older builds.
+    public function test_an_unbounded_continuation_is_not_version_bound(): void
+    {
+        $this->assign();
+        $this->assign();
+
+        Sanctum::actingAs($this->inspector, ['assignment:read']);
+        $first = $this->getJson('/api/v1/mobile/assignments?per_page=1')->assertOk();
+        $next = $first->json('links.next');
+        $this->assertNotNull($next);
+        $nextPath = parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
+
+        FieldValidationAssignment::query()->first()->report->update(['barangay' => 'Corrected Barangay']);
+
+        $this->getJson($nextPath)->assertOk();
+    }
+
     // Proves: previous-visit resolution does not add a query per row.
     public function test_previous_visit_resolution_queries_do_not_scale_with_the_row_count(): void
     {
