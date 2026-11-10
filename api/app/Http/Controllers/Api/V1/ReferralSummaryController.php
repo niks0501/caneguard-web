@@ -66,6 +66,10 @@ class ReferralSummaryController extends Controller
 
     private function embeddedEvidenceUrl(Report $report): ?string
     {
+        if ($report->image_path === null) {
+            return null;
+        }
+
         $stream = Storage::disk('local')->readStream($report->image_path);
         if (! is_resource($stream)) {
             return null;

@@ -99,6 +99,7 @@ export const analyticsResponseSchema = z.object({
         count: z.number().int().nonnegative(),
       }),
     ),
+    no_ai_scan: z.number().int().nonnegative().default(0),
     verification_outcome: z.object({
       not_determined: z.number().int().nonnegative(),
       verified: z.number().int().nonnegative(),

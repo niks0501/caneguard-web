@@ -76,6 +76,8 @@ export interface ReportAnalytics {
   seriesByBarangay: { topN: number; rows: BarangayTrendRow[] };
   reportedConcern: ReportedConcernCount[];
   possibleCondition: PossibleConditionCount[];
+  /** Office-born cases saved without an AI scan; never part of `possibleCondition`. */
+  noAiScan: number;
   verificationOutcome: VerificationOutcomeSplit;
   validationByBarangay: BarangayValidationRow[];
   barangayScope: BarangayScope;

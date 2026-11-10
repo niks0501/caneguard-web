@@ -124,6 +124,9 @@ final class BuildReportAnalytics
             ),
             'reported_concern' => $this->reportedConcern(clone $base, $total),
             'possible_condition' => $this->possibleCondition(clone $base),
+            // Office-born cases without a scan are their own bucket; they never
+            // inflate or hide a condition above.
+            'no_ai_scan' => (clone $base)->withoutAiScan()->count('reports.id'),
             'verification_outcome' => $this->verificationOutcome(clone $base),
             'validation_by_barangay' => $this->validationByBarangay(clone $base),
             'barangay_scope' => [

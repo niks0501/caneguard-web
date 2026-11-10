@@ -19,6 +19,9 @@ class MobileFieldValidationAssignmentRequest extends ApiFormRequest
             'since' => ['sometimes', 'string', 'max:64'],
             'sync_version' => ['sometimes', 'string', 'max:64'],
             'limit' => ['sometimes', 'integer', 'min:1'],
+            // Builds that can render a case without an AI result ask for it;
+            // older builds never send it and keep receiving only scanned rows.
+            'supports' => ['sometimes', 'string', 'in:no_ai_scan'],
             'cursor' => [
                 'sometimes',
                 'string',

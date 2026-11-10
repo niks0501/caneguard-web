@@ -79,6 +79,7 @@ const analytics: ReportAnalytics = {
   },
   reportedConcern: [],
   possibleCondition: [],
+  noAiScan: 0,
   verificationOutcome: { not_determined: 0, verified: 0, unable_to_verify: 0 },
   validationByBarangay: [],
   barangayScope: { municipality: "Nasugbu", province: "Batangas", barangays: [] },

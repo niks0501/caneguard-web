@@ -77,7 +77,13 @@ export function ConcernVsConditionBars({
       band: kpiBandForIndex(offset + index),
     };
   });
-  const rows = [...reportedRows, ...aiRows];
+  const noAiRow: ConcernRow = {
+    key: "possible-no-ai-scan",
+    rowLabel: "Possible: No AI scan",
+    count: analytics.noAiScan,
+    band: kpiBandForIndex(offset + aiRows.length),
+  };
+  const rows = [...reportedRows, ...aiRows, noAiRow];
   const verification = analytics.verificationOutcome;
   const empty = analytics.totalSubmitted === 0;
 
@@ -86,7 +92,7 @@ export function ConcernVsConditionBars({
       titleId="chart-concern-condition"
       title={copy.title}
       periodLine={`${scopeLabel} · submitted reports`}
-      chartLabel={`${copy.title}: reported ${analytics.reportedConcern.map((item) => `${reportedConcernLabel(item.concern)} ${reportCount(item.count)}`).join(", ")}; possible condition ${POSSIBLE_CONDITIONS.map((entry) => `${entry.label} ${reportCount(analytics.possibleCondition.find((item) => item.condition === entry.value)?.count ?? 0)}`).join(", ")}`}
+      chartLabel={`${copy.title}: reported ${analytics.reportedConcern.map((item) => `${reportedConcernLabel(item.concern)} ${reportCount(item.count)}`).join(", ")}; possible condition ${POSSIBLE_CONDITIONS.map((entry) => `${entry.label} ${reportCount(analytics.possibleCondition.find((item) => item.condition === entry.value)?.count ?? 0)}`).join(", ")}, no AI scan ${reportCount(analytics.noAiScan)}`}
       empty={empty}
       emptyMessage="No submitted reports in this period."
       tableCaption={`${copy.title}. ${scopeLabel}`}

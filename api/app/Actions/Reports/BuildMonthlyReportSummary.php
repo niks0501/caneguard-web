@@ -97,7 +97,8 @@ final class BuildMonthlyReportSummary
             ->orderBy($column)
             ->get()
             ->map(fn (Report $report): array => [
-                $outputKey => $report->getAttribute($column),
+                $outputKey => $report->getAttribute($column)
+                    ?? ($column === 'predicted_label' ? Report::NO_AI_SCAN : null),
                 'reported_cases' => (int) $report->getAttribute('reported_cases'),
             ])
             ->values()

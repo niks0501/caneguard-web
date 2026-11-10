@@ -143,11 +143,19 @@ final class CheckMobileData extends Command
         if ($report->updated_at === null) {
             $fail('updated_at is empty; phones sync by updated_at and the status feed crashes');
         }
-        if (! in_array($report->predicted_label, self::LABELS, true)) {
+        // An office-born case may exist without an AI prediction (the phone shows
+        // "No AI scan"); a value that is present must still be valid.
+        $noScanAllowed = $this->hasOrigin && ($report->origin ?? null) === 'office';
+        if (! ($noScanAllowed && $report->predicted_label === null)
+            && ! in_array($report->predicted_label, self::LABELS, true)) {
             $fail('predicted_label must be one of '.implode('/', self::LABELS));
         }
-        if (! is_numeric($report->confidence) || $report->confidence < 0 || $report->confidence > 1) {
+        if (! ($noScanAllowed && $report->confidence === null)
+            && (! is_numeric($report->confidence) || $report->confidence < 0 || $report->confidence > 1)) {
             $fail('confidence must be a number between 0 and 1');
+        }
+        if ($noScanAllowed && ($report->predicted_label === null) !== ($report->confidence === null)) {
+            $fail('predicted_label and confidence must both be set or both be empty');
         }
         if (trim((string) $report->barangay) === '') {
             $fail('barangay is empty');

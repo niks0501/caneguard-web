@@ -139,7 +139,7 @@
             <p class="notice">Possible result: {{ $summary['possible_ai_result']['label_text'] }}. Confidence is included as model support context only. This is not a diagnosis or an authority finding.</p>
             <dl class="model-details">
                 <div><dt>Model confidence</dt><dd>{{ $summary['possible_ai_result']['confidence'] }}</dd></div>
-                <div><dt>Model version</dt><dd>{{ $summary['possible_ai_result']['model_version'] }}</dd></div>
+                <div><dt>Model version</dt><dd>{{ $summary['possible_ai_result']['model_version'] ?? 'No AI scan' }}</dd></div>
             </dl>
         </section>
 

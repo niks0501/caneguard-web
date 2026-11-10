@@ -117,6 +117,25 @@ class ReportFactory extends Factory
         ]);
     }
 
+    /** An office-born case saved without an AI scan or a photo. */
+    public function officeWithoutAiScan(): static
+    {
+        return $this->state([
+            'origin' => Report::ORIGIN_OFFICE,
+            'image_path' => null,
+            'image_mime_type' => null,
+            'image_size_bytes' => null,
+            'image_source_type' => null,
+            'predicted_label' => null,
+            'confidence' => null,
+            'checklist_consistency' => null,
+            'model_version' => null,
+            'preprocess_ms' => null,
+            'inference_ms' => null,
+            'total_ms' => null,
+        ]);
+    }
+
     public function configure(): static
     {
         return $this
@@ -128,6 +147,10 @@ class ReportFactory extends Factory
                 }
             })
             ->afterCreating(function (Report $report): void {
+                if ($report->predicted_label === null) {
+                    return;
+                }
+
                 $labels = $report->model_version === 'v1.0-mobilenetv2'
                     ? self::MODEL_V1_LABELS
                     : Report::labels();

@@ -75,6 +75,7 @@ export function mapReportAnalytics(dto: AnalyticsResponseDto): ReportAnalytics {
     },
     reportedConcern: data.reported_concern.map((item) => ({ ...item })),
     possibleCondition: data.possible_condition.map((item) => ({ ...item })),
+    noAiScan: data.no_ai_scan,
     verificationOutcome: { ...data.verification_outcome },
     validationByBarangay: data.validation_by_barangay.map((item) => ({
       barangay: item.barangay,
