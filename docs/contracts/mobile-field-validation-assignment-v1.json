@@ -7,12 +7,7 @@
     "method": "GET",
     "path": "/api/v1/mobile/assignments",
     "content_type": "application/json",
-    "undeclared_fields": "ignored",
-    "optional_request_capabilities": {
-      "request_parameter": "supports",
-      "values": ["no_ai_scan"],
-      "no_ai_scan": "Rows without an AI prediction or photo are delivered only when the request sends supports=no_ai_scan; without it they are withheld from rows, sync.total and sync.version so older builds keep refreshing."
-    }
+    "undeclared_fields": "ignored"
   },
   "envelope": {
     "required_keys": ["data", "links", "meta", "sync"],
@@ -121,8 +116,8 @@
         "captured_at": { "type": "date-time", "required": true, "nullable": false },
         "observed_at": { "type": "date-time", "required": true, "nullable": true },
         "submitted_at": { "type": "date-time", "required": true, "nullable": false },
-        "predicted_label": { "type": "string", "required": true, "nullable": true, "enum": ["healthy", "mosaic", "rust", "smut"], "note": "Null only on an office-born case with no AI scan, and only for requests that send supports=no_ai_scan." },
-        "confidence": { "type": "number", "required": true, "nullable": true, "minimum": 0, "maximum": 1, "note": "Null exactly when predicted_label is null." },
+        "predicted_label": { "type": "string", "required": true, "nullable": false, "enum": ["healthy", "mosaic", "rust", "smut"] },
+        "confidence": { "type": "number", "required": true, "nullable": false, "minimum": 0, "maximum": 1 },
         "origin": { "type": "string", "required": false, "nullable": false, "enum": ["office"], "note": "Present only on office-born cases; absent means field-born." },
         "version": { "type": "number", "required": false, "nullable": false, "minimum": 0, "note": "Report lock_version. Office-born cases only." },
         "status": {

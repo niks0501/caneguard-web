@@ -143,8 +143,8 @@ final class CheckMobileData extends Command
         if ($report->updated_at === null) {
             $fail('updated_at is empty; phones sync by updated_at and the status feed crashes');
         }
-        // An office-born case may exist without an AI prediction (the phone shows
-        // "No AI scan"); a value that is present must still be valid.
+        // An office-born case may exist without an AI prediction; a value that
+        // is present must still be valid.
         $noScanAllowed = $this->hasOrigin && ($report->origin ?? null) === 'office';
         if (! ($noScanAllowed && $report->predicted_label === null)
             && ! in_array($report->predicted_label, self::LABELS, true)) {

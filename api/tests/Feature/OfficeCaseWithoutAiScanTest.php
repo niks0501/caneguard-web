@@ -86,8 +86,8 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         $this->assertSame(3, $data['total_submitted']);
     }
 
-    /** Proves: the API exposes ?supports=no_ai_scan and old builds keep refreshing. */
-    public function test_mobile_feed_delivers_scanless_rows_only_to_builds_that_ask(): void
+    /** Proves: the assignment feed serves only cases that carry an AI result. */
+    public function test_mobile_feed_withholds_an_assignment_without_an_ai_scan(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
@@ -106,19 +106,17 @@ class OfficeCaseWithoutAiScanTest extends TestCase
         }
         Sanctum::actingAs($assignee, ['assignment:read']);
 
-        $old = $this->getJson('/api/v1/mobile/assignments')->assertOk();
-        $old->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.report_uuid', $scanned->uuid)
-            ->assertJsonPath('sync.total', 1);
-
-        $new = $this->getJson('/api/v1/mobile/assignments?supports=no_ai_scan')->assertOk();
-        $new->assertJsonCount(2, 'data')->assertJsonPath('sync.total', 2);
-        $row = collect($new->json('data'))->firstWhere('report_uuid', $scanless->uuid);
-        $this->assertNull($row['case']['predicted_label']);
-        $this->assertNull($row['case']['confidence']);
-        $this->assertNull($row['case']['photo']);
-        $this->assertNotSame($old->json('sync.version'), $new->json('sync.version'));
-
-        $this->getJson('/api/v1/mobile/assignments?supports=other')->assertUnprocessable();
+        foreach (['', '?supports=no_ai_scan'] as $query) {
+            $feed = $this->getJson('/api/v1/mobile/assignments'.$query)->assertOk();
+            $feed->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.report_uuid', $scanned->uuid)
+                ->assertJsonPath('sync.total', 1);
+            $this->assertNotContains(
+                $scanless->uuid,
+                array_column($feed->json('data'), 'report_uuid'),
+            );
+            $this->assertSame($scanned->predicted_label, $feed->json('data.0.case.predicted_label'));
+            $this->assertIsNumeric($feed->json('data.0.case.confidence'));
+        }
     }
 }
