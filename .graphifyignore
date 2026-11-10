@@ -1,2 +1,37 @@
-# CLAUDE.md only aliases the canonical project guidance in AGENTS.md.
+# Scope: product src + API + the docs/contracts needed for cross-repo questions.
+# Anything not listed here as product is excluded so a refresh stays small and fast.
+
+# Guidance aliases and duplicated agent/tool mirrors (~65% of nodes when scanned)
 CLAUDE.md
+.agents/
+.pi/
+.opencode/
+.claude/
+.codex/
+.akidev/
+.github/
+.qa-staging/
+
+# Generated output, caches, dependencies, build artifacts
+graphify-out/
+node_modules/
+dist/
+api/vendor/
+api/storage/
+api/bootstrap/cache/
+api/public/
+public/
+*.log
+
+# Non-product material
+data/
+brand/
+demo/
+ci/
+scripts/
+IMPLEMENTATION_BOARD.md
+api/CHANGELOG.md
+docs/screenshots/
+docs/evidence/
+docs/drafts/
+docs/CaneGuard_P0A-P0F_Stabilization_Plans/
