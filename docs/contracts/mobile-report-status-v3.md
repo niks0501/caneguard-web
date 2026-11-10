@@ -13,7 +13,7 @@ Authentication, field-reporter ownership, cursor ordering, and checkpoint
 semantics are the same as [`mobile-report-status-v2.md`](mobile-report-status-v2.md).
 The v3 checkpoint remains `sync.before`; clients must follow `links.next` and
 retain the original checkpoint for all pages.
-The `sync` block also carries `version`, `total`, `truncated` and `unchanged` as described in v2; the v3 version digest covers the lifecycle and advisory fields.
+The `sync` block also carries `version`, `total`, `truncated` and `unchanged` as described in v2, including the `sync_version` binding on continuation pages; the v3 version digest covers the lifecycle and advisory fields.
 
 ## Lifecycle and workflow status
 

@@ -19,6 +19,7 @@ class ReportStatusesRequest extends ApiFormRequest
             'updated_after' => ['sometimes', 'date'],
             'sync_before' => ['sometimes', 'date'],
             'since' => ['sometimes', 'string', 'max:64'],
+            'sync_version' => ['sometimes', 'string', 'max:64'],
             'cursor' => [
                 'sometimes',
                 'string',

@@ -25,10 +25,11 @@ Reviewer, administrator, and tokens without the `report:status` ability cannot r
 
 | Parameter | Type | Required | Semantics |
 | --- | --- | --- | --- |
-| `updated_after` | ISO-8601 date-time | No | Returns reports updated in or after the second containing this value. Stored status timestamps have one-second precision, so the checkpoint's own second is repeated. |
+| `updated_after` | ISO-8601 date-time | No | Accepted for compatibility and validated, but never narrows the feed: every response is the complete stamped snapshot. |
 | `sync_before` | ISO-8601 date-time | No | Sets the inclusive upper bound for the feed traversal, covering the whole second of the value. If omitted, the API creates the checkpoint at the response instant. |
 | `per_page` | Integer from 1 through 100 | No | Page size. The default is 100. |
 | `cursor` | Opaque cursor string | No | Cursor returned by `links.next`. Clients must follow the returned URL rather than constructing a cursor. |
+| `sync_version` | String | Only with `cursor` | The `sync.version` the download started with; `links.next` carries it. A continuation whose version does not match the current set is refused with `409 SYNC_RESTART`. |
 
 The first request establishes a feed checkpoint in `sync.before`.
 
@@ -90,7 +91,7 @@ Do not read `meta.sync_before` or root-level `sync_before` as alternatives to th
 
 All pages in one feed traversal use the same `sync.before` value.
 
-Every response carries `sync.version` (a digest of the reporter's whole status set as serialized for this version, not only the `updated_after` slice), `sync.total` (statuses held), `sync.truncated` (always `false`; this feed is not capped) and `sync.unchanged`. Sending `since=<version>` on the first request returns no rows and `sync.unchanged: true` when the set has not changed; `since` never answers `unchanged` once a `cursor` is present. A `since` value that does not match the current version returns the whole stamped snapshot, so `updated_after` cannot narrow it.
+Every response carries `sync.version` (a digest of the reporter's whole status set as serialized for this version), `sync.total` (statuses held), `sync.truncated` (always `false`; this feed is not capped) and `sync.unchanged`. A request without `since`, or with a `since` that does not match the current version, returns the whole stamped snapshot; `updated_after` cannot narrow it. Sending the matching `since` on the first request returns no rows and `sync.unchanged: true`; `since` never answers `unchanged` once a `cursor` is present. Every page of one download is bound to the version it started with, so a set that changes mid-download answers `409 SYNC_RESTART` with the new `sync` envelope and the phone restarts the feed.
 
 ## Privacy boundary
 

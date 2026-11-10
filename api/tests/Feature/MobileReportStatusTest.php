@@ -27,7 +27,7 @@ class MobileReportStatusTest extends TestCase
             ->assertJsonPath('code', 'UNAUTHENTICATED');
     }
 
-    public function test_field_reporter_receives_only_owned_statuses_updated_after_cursor(): void
+    public function test_the_legacy_updated_after_filter_cannot_narrow_the_status_snapshot(): void
     {
         $reporter = User::factory()->fieldReporter()->create();
         $otherReporter = User::factory()->fieldReporter()->create();
@@ -48,23 +48,27 @@ class MobileReportStatusTest extends TestCase
 
         $token = $reporter->createToken('mobile-status-test')->plainTextToken;
 
-        $this->withToken($token)
+        $response = $this->withToken($token)
             ->getJson('/api/v1/mobile/reports/statuses?'.http_build_query([
                 'updated_after' => now()->subHour()->toISOString(),
                 'per_page' => 25,
             ]))
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.uuid', $matching->uuid)
-            ->assertJsonPath(
-                'data.0.review_status',
-                Report::STATUS_VERIFIED_BY_STAFF,
-            )
-            ->assertJsonPath(
-                'data.0.review_notes',
-                'Verified by office staff.',
-            )
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('sync.total', 2)
             ->assertJsonStructure(['data', 'links', 'meta']);
+
+        $returned = collect($response->json('data'));
+        $this->assertContains($older->uuid, $returned->pluck('uuid'));
+        $this->assertContains($matching->uuid, $returned->pluck('uuid'));
+        $this->assertSame(
+            Report::STATUS_VERIFIED_BY_STAFF,
+            $returned->firstWhere('uuid', $matching->uuid)['review_status'],
+        );
+        $this->assertSame(
+            'Verified by office staff.',
+            $returned->firstWhere('uuid', $matching->uuid)['review_notes'],
+        );
     }
 
     public function test_status_feed_rejects_malformed_checkpoints_and_page_sizes(): void
@@ -110,10 +114,15 @@ class MobileReportStatusTest extends TestCase
             'id' => $other->id,
         ]))->encode();
         $token = $reporter->createToken('forged-cursor-test')->plainTextToken;
+        $version = $this->withToken($token)
+            ->getJson('/api/v1/mobile/reports/statuses')
+            ->assertOk()
+            ->json('sync.version');
 
         $response = $this->withToken($token)
             ->getJson('/api/v1/mobile/reports/statuses?'.http_build_query([
                 'cursor' => $cursor,
+                'sync_version' => $version,
             ]))
             ->assertOk();
 
@@ -297,7 +306,7 @@ class MobileReportStatusTest extends TestCase
             ->assertJsonPath('code', 'FORBIDDEN');
     }
 
-    public function test_status_cursor_does_not_skip_or_duplicate_rows_after_mid_sync_update(): void
+    public function test_a_mid_sync_status_update_restarts_the_traversal_without_skipping_rows(): void
     {
         $reporter = User::factory()->fieldReporter()->create();
         $reports = Report::factory()->count(5)->create([
@@ -313,34 +322,37 @@ class MobileReportStatusTest extends TestCase
         $first = $this->withToken($token)
             ->getJson('/api/v1/mobile/reports/statuses?per_page=2')
             ->assertOk();
-        $syncBefore = $first->json('sync.before');
-        $seen = collect($first->json('data'))->pluck('uuid');
         $nextUrl = $first->json('links.next');
+        $this->assertNotNull($nextUrl);
 
         DB::table('reports')
-            ->where('uuid', $seen->first())
-            ->update(['updated_at' => now()->addMinute()]);
+            ->where('uuid', $first->json('data.0.uuid'))
+            ->update(['updated_at' => now()]);
 
-        while ($nextUrl !== null) {
-            $nextPath = parse_url($nextUrl, PHP_URL_PATH).'?'
-                .parse_url($nextUrl, PHP_URL_QUERY);
-            $page = $this->withToken($token)
-                ->getJson($nextPath)
-                ->assertOk()
-                ->assertJsonPath('sync.before', $syncBefore);
-            $seen = $seen->merge(collect($page->json('data'))->pluck('uuid'));
-            $nextUrl = $page->json('links.next');
+        $nextPath = parse_url($nextUrl, PHP_URL_PATH).'?'
+            .parse_url($nextUrl, PHP_URL_QUERY);
+        $this->withToken($token)
+            ->getJson($nextPath)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART');
+
+        $restarted = collect();
+        $url = '/api/v1/mobile/reports/statuses?per_page=2';
+        while ($url !== null) {
+            $page = $this->withToken($token)->getJson($url)->assertOk();
+            $restarted = $restarted->merge(collect($page->json('data'))->pluck('uuid'));
+            $url = $page->json('links.next');
         }
 
-        $this->assertCount(5, $seen);
-        $this->assertCount(5, $seen->unique());
+        $this->assertCount(5, $restarted);
+        $this->assertCount(5, $restarted->unique());
         $this->assertSame(
             $reports->pluck('uuid')->sort()->values()->all(),
-            $seen->sort()->values()->all(),
+            $restarted->sort()->values()->all(),
         );
     }
 
-    public function test_status_cursor_is_stable_across_ties_and_mid_sync_updates(): void
+    public function test_status_cursor_is_stable_across_tied_timestamps(): void
     {
         $reporter = User::factory()->fieldReporter()->create();
         $reports = Report::factory()->count(4)->create([
@@ -361,10 +373,11 @@ class MobileReportStatusTest extends TestCase
         $firstUuids = collect($first->json('data'))->pluck('uuid');
         $syncBefore = $first->json('sync.before');
         $nextUrl = $first->json('links.next');
-
-        DB::table('reports')
-            ->where('uuid', $firstUuids->first())
-            ->update(['updated_at' => now()->addMinute()]);
+        $this->assertNotNull($nextUrl);
+        $this->assertStringContainsString(
+            'sync_version='.$first->json('sync.version'),
+            urldecode($nextUrl),
+        );
 
         $nextPath = parse_url($nextUrl, PHP_URL_PATH).'?'
             .parse_url($nextUrl, PHP_URL_QUERY);

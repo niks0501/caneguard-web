@@ -16,7 +16,7 @@
     "checkpoint": "sync.before",
     "sync": {
       "required_keys": ["before", "version", "total", "truncated", "unchanged"],
-      "version": { "unchanged_request": "since" }
+      "version": { "unchanged_request": "since", "continuation_request": "sync_version" }
     },
     "selection": {
       "anchor": "sync.before",

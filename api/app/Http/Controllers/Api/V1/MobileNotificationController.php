@@ -24,7 +24,7 @@ class MobileNotificationController extends Controller
 
     public function __invoke(
         MobileNotificationRequest $request,
-    ): AnonymousResourceCollection {
+    ): AnonymousResourceCollection|JsonResponse {
         $syncBefore = CarbonImmutable::parse(
             $request->validated('sync_before') ?? now(),
         )->utc();
@@ -57,7 +57,22 @@ class MobileNotificationController extends Controller
                 ->map(fn ($item): array => (new MobileNotificationResource($item))->resolve($request)),
             ['total' => $total, 'truncated' => $truncated],
         );
-        $unchanged = $request->validated('cursor') === null
+        $cursor = $request->validated('cursor');
+        if ($cursor !== null && $request->validated('sync_version') !== $stamp['version']) {
+            return response()->json([
+                'message' => 'The notification window changed during the download. Start the feed again.',
+                'code' => 'SYNC_RESTART',
+                'sync' => [
+                    'before' => $syncBefore->toISOString(),
+                    'version' => $stamp['version'],
+                    'total' => $total,
+                    'truncated' => $truncated,
+                    'unchanged' => false,
+                ],
+            ], 409);
+        }
+
+        $unchanged = $cursor === null
             && $request->validated('since') === $stamp['version'];
 
         $oldest = (clone $window)
@@ -85,7 +100,10 @@ class MobileNotificationController extends Controller
             ->orderBy('id')
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))
             ->withQueryString()
-            ->appends(['sync_before' => $syncBefore->toISOString()]);
+            ->appends([
+                'sync_before' => $syncBefore->toISOString(),
+                'sync_version' => $stamp['version'],
+            ]);
 
         return MobileNotificationResource::collection($items)->additional([
             'sync' => [

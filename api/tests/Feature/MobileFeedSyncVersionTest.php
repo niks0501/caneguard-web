@@ -10,6 +10,7 @@ use App\Notifications\NewCaseSubmittedNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -214,14 +215,20 @@ class MobileFeedSyncVersionTest extends TestCase
         }
     }
 
-    // Proves: a legacy delta poll still receives a review whose stored second
-    // is the checkpoint's own second.
-    public function test_a_delta_poll_receives_a_review_stored_in_the_checkpoint_second(): void
+    // Proves: a legacy delta poll receives the whole stamped snapshot, including
+    // a review whose stored second is the checkpoint's own second.
+    public function test_a_legacy_delta_poll_receives_a_review_stored_in_the_checkpoint_second(): void
     {
         CarbonImmutable::setTestNow('2026-11-10T12:00:00.200000Z');
         try {
+            $older = Report::factory()->inDistrict($this->pilotDistrict())->create([
+                'reporter_id' => $this->owner->getKey(),
+            ]);
             $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
                 'reporter_id' => $this->owner->getKey(),
+            ]);
+            DB::table('reports')->where('id', $older->id)->update([
+                'updated_at' => '2026-11-10 09:00:00',
             ]);
             $checkpoint = $this->feed('/api/v1/mobile/reports/statuses')['sync']['before'];
 
@@ -235,11 +242,56 @@ class MobileFeedSyncVersionTest extends TestCase
                 '/api/v1/mobile/reports/statuses?updated_after='.urlencode($checkpoint),
             );
 
-            $this->assertCount(1, $delta['data']);
-            $this->assertSame(Report::STATUS_VERIFIED_BY_STAFF, $delta['data'][0]['review_status']);
+            $uuids = collect($delta['data'])->pluck('uuid');
+            $this->assertCount(2, $delta['data']);
+            $this->assertSame(2, $delta['sync']['total']);
+            $this->assertContains($report->uuid, $uuids);
+            $this->assertContains($older->uuid, $uuids);
+            $this->assertSame(
+                Report::STATUS_VERIFIED_BY_STAFF,
+                collect($delta['data'])->firstWhere('uuid', $report->uuid)['review_status'],
+            );
         } finally {
             CarbonImmutable::setTestNow();
         }
+    }
+
+    // Proves: a first version-aware contact bootstraps the whole snapshot even
+    // when the phone only carries a legacy updated_after checkpoint.
+    public function test_a_first_version_aware_poll_bootstraps_the_whole_snapshot(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $advisory = Advisory::factory()->validated($reviewer, 'Validated by the office field guide.')->create([
+            'code' => 'ADV-SYNC-002',
+            'title' => 'Sanitize tools',
+            'content' => 'Disinfect tools before the next row.',
+        ]);
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+            'advisory_id' => $advisory->getKey(),
+            'advisory_selected_by_id' => $reviewer->getKey(),
+            'advisory_selected_at' => now()->utc(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+            'advisory_delivered_at' => now()->utc(),
+        ]);
+        DB::table('reports')->where('id', $report->id)->update([
+            'updated_at' => now()->subMinute(),
+        ]);
+
+        $first = $this->feed('/api/v3/mobile/reports/statuses');
+        $this->assertSame(Advisory::STATUS_VALIDATED, $first['data'][0]['advisory']['status']);
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/advisories/{$advisory->uuid}/retire", [])->assertOk();
+
+        $bootstrap = $this->feed('/api/v3/mobile/reports/statuses?updated_after='
+            .urlencode($first['sync']['before']));
+
+        $this->assertNotSame($first['sync']['version'], $bootstrap['sync']['version']);
+        $this->assertFalse($bootstrap['sync']['unchanged']);
+        $this->assertCount(1, $bootstrap['data']);
+        $this->assertSame($report->uuid, $bootstrap['data'][0]['uuid']);
+        $this->assertSame(Advisory::STATUS_RETIRED, $bootstrap['data'][0]['advisory']['status']);
     }
 
     // Proves: a v3 change carried by the related advisory reaches the phone
@@ -313,5 +365,131 @@ class MobileFeedSyncVersionTest extends TestCase
         $this->assertSame($page['sync']['before'], $continuation['sync']['before']);
         $this->assertCount(1, $continuationUuids);
         $this->assertCount(3, $seen->merge($continuationUuids)->unique());
+    }
+
+    // Proves: every continuation page is bound to the version the download
+    // started with, so a changed set is refused instead of stamped.
+    public function test_a_changed_status_set_mid_download_requires_a_restart(): void
+    {
+        $reports = Report::factory()->count(3)->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+        ]);
+        DB::table('reports')->whereIn('id', $reports->pluck('id'))->update([
+            'updated_at' => now()->subMinute()->startOfSecond(),
+        ]);
+
+        $first = $this->feed('/api/v3/mobile/reports/statuses?per_page=2');
+        $next = $first['links']['next'];
+        $this->assertNotNull($next);
+        $nextPath = parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
+        $this->assertStringContainsString('sync_version='.$first['sync']['version'], $nextPath);
+
+        DB::table('reports')->where('id', $reports->last()->id)->update([
+            'review_status' => Report::STATUS_VERIFIED_BY_STAFF,
+        ]);
+
+        Sanctum::actingAs($this->owner, ['notification:read', 'report:status']);
+        $this->getJson($nextPath)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART')
+            ->assertJsonPath('sync.unchanged', false);
+
+        $restarted = $this->traverse('/api/v3/mobile/reports/statuses?per_page=2');
+        $this->assertCount(3, $restarted);
+        $this->assertCount(3, $restarted->unique());
+    }
+
+    // Proves: a continuation that drops the version cannot silently complete
+    // a traversal against a different snapshot.
+    public function test_a_status_continuation_without_its_version_is_refused(): void
+    {
+        $reports = Report::factory()->count(3)->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+        ]);
+        DB::table('reports')->whereIn('id', $reports->pluck('id'))->update([
+            'updated_at' => now()->subMinute()->startOfSecond(),
+        ]);
+
+        $first = $this->feed('/api/v1/mobile/reports/statuses?per_page=2');
+        $next = $first['links']['next'];
+        $this->assertNotNull($next);
+
+        parse_str((string) parse_url($next, PHP_URL_QUERY), $query);
+        unset($query['sync_version']);
+        $withoutVersion = parse_url($next, PHP_URL_PATH).'?'.http_build_query($query);
+
+        Sanctum::actingAs($this->owner, ['notification:read', 'report:status']);
+        $this->getJson($withoutVersion)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART');
+    }
+
+    // Proves: a notification window that changes mid-download is refused
+    // rather than stamped over rows an earlier page already delivered.
+    public function test_a_changed_notification_window_mid_download_requires_a_restart(): void
+    {
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+        ]);
+        $ids = [$this->notify($report), $this->notify($report), $this->notify($report)];
+
+        $first = $this->feed('/api/v1/mobile/notifications?per_page=2');
+        $next = $first['links']['next'];
+        $this->assertNotNull($next);
+        $nextPath = parse_url($next, PHP_URL_PATH).'?'.parse_url($next, PHP_URL_QUERY);
+        $this->assertStringContainsString('sync_version='.$first['sync']['version'], $nextPath);
+
+        DatabaseNotification::query()->whereKey($ids[0])->update(['read_at' => now()]);
+
+        Sanctum::actingAs($this->owner, ['notification:read', 'report:status']);
+        $this->getJson($nextPath)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART')
+            ->assertJsonPath('sync.unchanged', false);
+
+        $restarted = $this->traverse('/api/v1/mobile/notifications?per_page=2', 'id');
+        $this->assertCount(3, $restarted);
+        $this->assertCount(3, $restarted->unique());
+    }
+
+    // Proves: a notification continuation must carry the version it started with.
+    public function test_a_notification_continuation_without_its_version_is_refused(): void
+    {
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $this->owner->getKey(),
+        ]);
+        $this->notify($report);
+        $this->notify($report);
+
+        $first = $this->feed('/api/v1/mobile/notifications?per_page=1');
+        $next = $first['links']['next'];
+        $this->assertNotNull($next);
+
+        parse_str((string) parse_url($next, PHP_URL_QUERY), $query);
+        unset($query['sync_version']);
+        $withoutVersion = parse_url($next, PHP_URL_PATH).'?'.http_build_query($query);
+
+        Sanctum::actingAs($this->owner, ['notification:read', 'report:status']);
+        $this->getJson($withoutVersion)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'SYNC_RESTART');
+    }
+
+    /** @return Collection<int, string> */
+    private function traverse(string $path, string $key = 'uuid'): Collection
+    {
+        $seen = collect();
+        $url = $path;
+        while ($url !== null) {
+            Sanctum::actingAs($this->owner, ['notification:read', 'report:status']);
+            $page = $this->getJson($url)->assertOk();
+            $seen = $seen->merge(collect($page->json('data'))->pluck($key));
+            $next = $page->json('links.next');
+            $url = is_string($next)
+                ? (string) preg_replace('#^https?://[^/]+#', '', $next)
+                : null;
+        }
+
+        return $seen;
     }
 }
