@@ -229,6 +229,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const restore = useRestoreAerialAnalysis(report.uuid);
   const [undo, setUndo] = useState<UndoState | null>(null);
   const nextOperation = useRef(0);
+  const lastUploadSeq = useRef(0);
   const [problem, setProblem] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
   const analyses = report.aerialAnalyses ?? [];
@@ -245,6 +246,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
     add.mutate(file, {
       onSuccess: () => {
         setLastFile(null);
+        lastUploadSeq.current = Math.max(lastUploadSeq.current, uploadSeq);
         setUndo((current) => (current && current.target.removalSeq < uploadSeq ? null : current));
       },
       onError: (error) => {
@@ -260,8 +262,10 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const removeConfirmed = (analysis: AerialAnalysis) => {
     const removalSeq = ++nextOperation.current;
     remove.mutate(analysis.uuid, {
-      onSuccess: (removal) =>
-        setUndo({ target: { analysis, removalId: removal.removalId, removalSeq }, notice: null }),
+      onSuccess: (removal) => {
+        if (removalSeq < lastUploadSeq.current) return;
+        setUndo({ target: { analysis, removalId: removal.removalId, removalSeq }, notice: null });
+      },
     });
   };
   const undoRemoval = (target: UndoTarget) =>

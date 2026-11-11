@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -313,9 +314,11 @@ class ReportAerialAnalysisTest extends TestCase
         $delete = "/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}";
         $restore = "{$delete}/restore";
         $firstRemoval = $this->deleteJson($delete)->json('data.removal_id');
+        $staleRemoval = (string) Str::uuid();
 
-        $this->postJson($restore)->assertStatus(409);
-        $this->postJson($restore, ['removal_id' => 'a-stale-removal'])->assertStatus(409);
+        $this->postJson($restore)->assertStatus(422);
+        $this->postJson($restore, ['removal_id' => 'not-a-uuid'])->assertStatus(422);
+        $this->postJson($restore, ['removal_id' => $staleRemoval])->assertStatus(409);
         $this->assertNotNull(ReportAerialAnalysis::query()->where('uuid', $uuid)->value('removed_at'));
 
         $this->postJson($restore, ['removal_id' => $firstRemoval])->assertOk();

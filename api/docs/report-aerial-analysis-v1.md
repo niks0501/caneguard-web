@@ -38,11 +38,12 @@ Field reporters and mobile tokens get `403`.
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/image` | The stored photo, private cache, `nosniff`. |
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/mask` | 8-bit PNG class mask, same orientation as the displayed photo. |
 | `DELETE /api/v1/reports/{report}/aerial-analyses/{analysis}` | `200` with `{"data":{"removal_id":"…"}}`. Soft removal: the row is hidden, the files are kept and a new removal identity is minted. |
-| `POST /api/v1/reports/{report}/aerial-analyses/{analysis}/restore` | `200` with the analysis. Body `{"removal_id":"…"}` must name the current removal; undoing an already undone removal is returned unchanged. |
+| `POST /api/v1/reports/{report}/aerial-analyses/{analysis}/restore` | `200` with the analysis. Body `{"removal_id":"<uuid>"}` must name the current removal; undoing an already undone removal is returned unchanged. |
 
 Errors: `404` flag off, unknown analysis, or a removed analysis on any route but
-restore; `409` the restore body does not name the analysis's current removal
-(stale or missing identity); `422` bad file; `429`
+restore; `409` the well-formed restore identity no longer names the analysis's
+current removal; `422` a missing or malformed removal identity, or a bad file;
+`429`
 another check is running (single-run lock) or the upload rate limit was reached;
 `503` the check could not run. On failure the server attempts to delete the
 image and mask; cleanup failures are logged and can leave orphaned files.

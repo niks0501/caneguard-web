@@ -492,6 +492,26 @@ describe("AerialCheckCard", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 
+  // Intent: a removal whose callback finishes after a later-started upload is expired by that photo.
+  it("shows no Undo when the upload succeeds before the earlier removal finishes", async () => {
+    const removals = pending();
+    const uploads = pending();
+    const { remove } = setup({ mutate: uploads.mutate });
+    remove.mutate = removals.mutate;
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+
+    await userEvent.upload(
+      screen.getByLabelText(/another aerial photo/i),
+      new File(["x"], "field.jpg", { type: "image/jpeg" }),
+    );
+    act(() => uploads.callbacks[0]?.onSuccess?.());
+    act(() => removals.callbacks[0]?.onSuccess?.({ removalId: "rm-1" }));
+
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
   // Intent: a failed undo says so and keeps Undo available to try again.
   it("keeps Undo available when restoring fails", async () => {
     const restoreMutate = fails();

@@ -80,20 +80,18 @@ class ReportAerialAnalysisController extends Controller
     {
         $this->gate($report, $analysis, allowRemoved: true);
 
-        $removalId = $request->input('removal_id');
-        $restored = is_string($removalId)
-            ? ReportAerialAnalysis::query()
-                ->whereKey($analysis->getKey())
-                ->where('removal_id', $removalId)
-                ->whereNotNull('removed_at')
-                ->update(['removed_at' => null, 'removed_by' => null])
-            : 0;
+        $request->validate(['removal_id' => ['required', 'uuid']]);
+        $removalId = (string) $request->input('removal_id');
+        $restored = ReportAerialAnalysis::query()
+            ->whereKey($analysis->getKey())
+            ->where('removal_id', $removalId)
+            ->whereNotNull('removed_at')
+            ->update(['removed_at' => null, 'removed_by' => null]);
 
         if ($restored === 0) {
             $current = $analysis->fresh();
             abort_if(
                 $current === null
-                    || ! is_string($removalId)
                     || $current->removal_id !== $removalId
                     || $current->removed_at !== null,
                 409,
