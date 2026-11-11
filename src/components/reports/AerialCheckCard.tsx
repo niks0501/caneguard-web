@@ -240,11 +240,11 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       return;
     }
     setProblem(null);
-    const undoBeforeUpload = undo;
+    const targetBeforeUpload = undo?.target ?? null;
     add.mutate(file, {
       onSuccess: () => {
         setLastFile(null);
-        setUndo((current) => (current === undoBeforeUpload ? null : current));
+        setUndo((current) => ((current?.target ?? null) === targetBeforeUpload ? null : current));
       },
       onError: (error) => {
         if (!(error instanceof ApiError && error.status === 429)) setLastFile(null);
@@ -261,14 +261,14 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       onSuccess: (removal) =>
         setUndo({ target: { analysis, removalId: removal.removalId }, notice: null }),
     });
-  const undoRemoval = (state: UndoState) =>
+  const undoRemoval = (target: UndoTarget) =>
     restore.mutate(
-      { analysisUuid: state.target.analysis.uuid, removalId: state.target.removalId },
+      { analysisUuid: target.analysis.uuid, removalId: target.removalId },
       {
-        onSuccess: () => setUndo((current) => (current === state ? null : current)),
+        onSuccess: () => setUndo((current) => (current?.target === target ? null : current)),
         onError: (error) => {
           const notice = error instanceof ApiError && error.status === 409 ? "stale" : "failed";
-          setUndo((current) => (current === state ? { target: state.target, notice } : current));
+          setUndo((current) => (current?.target === target ? { target, notice } : current));
         },
       },
     );
@@ -324,7 +324,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       {undo && undo.notice !== "stale" ? (
         <p className="aerial-check__undo" role="status">
           Check removed.{" "}
-          <Button type="button" variant="secondary" onClick={() => undoRemoval(undo)} disabled={restore.isPending}>
+          <Button type="button" variant="secondary" onClick={() => undoRemoval(undo.target)} disabled={restore.isPending}>
             Undo
           </Button>
         </p>

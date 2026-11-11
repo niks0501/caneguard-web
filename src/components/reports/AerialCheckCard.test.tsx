@@ -354,7 +354,9 @@ describe("AerialCheckCard", () => {
     const uploads = pending();
     const restore = pending();
     const { remove } = setup({ mutate: uploads.mutate, restoreMutate: restore.mutate });
-    remove.mutate = succeeds();
+    remove.mutate = vi.fn((_arg: unknown, options?: Settle) =>
+      options?.onSuccess?.({ removalId: `rm-${remove.mutate.mock.calls.length}` }),
+    );
     render(<AerialCheckCard report={report([analysis()])} />);
     await userEvent.click(screen.getByRole("button", { name: "Remove" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
@@ -364,13 +366,16 @@ describe("AerialCheckCard", () => {
       new File(["x"], "field.jpg", { type: "image/jpeg" }),
     );
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    act(() => restore.callbacks[0]?.onSuccess?.());
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+
     await userEvent.click(screen.getByRole("button", { name: "Remove" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
     act(() => uploads.callbacks[0]?.onSuccess?.());
 
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(restore.mutate).toHaveBeenLastCalledWith(
-      { analysisUuid: "a1", removalId: "rm-1" },
+      { analysisUuid: "a1", removalId: "rm-2" },
       expect.any(Object),
     );
   });
@@ -437,6 +442,32 @@ describe("AerialCheckCard", () => {
       { analysisUuid: "a0", removalId: "rm-1" },
       expect.any(Object),
     );
+  });
+
+  // Intent: a notice on the same removal must not stop an added photo from clearing Undo.
+  it.each([
+    ["failed", () => fails()],
+    ["stale", () => fails(new ApiError("The check was changed by someone else.", { status: 409 }))],
+  ])("clears Undo after an added photo despite a %s undo notice", async (_kind, makeRestore) => {
+    const uploads = pending();
+    const restoreMutate = makeRestore();
+    const { remove } = setup({ mutate: uploads.mutate, restoreMutate, restoreError: true });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+
+    await userEvent.upload(
+      screen.getByLabelText(/another aerial photo/i),
+      new File(["x"], "field.jpg", { type: "image/jpeg" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    act(() => uploads.callbacks[0]?.onSuccess?.());
+
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   // Intent: a failed undo says so and keeps Undo available to try again.
