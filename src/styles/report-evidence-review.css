@@ -128,5 +128,5 @@
 .review-decision-flow .review-action-pill strong svg, .workflow-status-badge__icon { flex: none; }
 
 .review-decision-flow .review-step-indicator { margin: 0 0 var(--space-1); color: var(--color-muted); font-size: var(--text-body-sm); font-weight: 600; }
-.review-decision-flow .review-consequence { margin: var(--space-3) 0 0; font-weight: 500; overflow-wrap: anywhere; }
+.review-decision-flow .review-consequence { margin: var(--space-3) 0 0; font-weight: 500; overflow-wrap: anywhere; white-space: pre-wrap; }
 .review-decision-flow .review-step-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }

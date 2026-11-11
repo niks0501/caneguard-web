@@ -428,7 +428,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     {step === "review" ? (
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
       <h2 id="review-summary-heading" ref={headingRef} tabIndex={-1}>Review Summary</h2>
-      <p className="review-consequence">{[consequence ?? "No action chosen yet.", `Staff finding: ${classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, ${verificationOutcomeLabels[effectiveVerification].toLowerCase()}.`, report.predictedDisease ? `The AI Possible Condition was ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}.` : "There is no AI scan for this case.", notes.trim() ? `Review notes: ${notes.trim()}` : "There are no review notes."].join(" ")}</p>
+      <p className="review-consequence">{[consequence ?? "No action chosen yet.", `Staff finding: ${classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, ${verificationOutcomeLabels[effectiveVerification].toLowerCase()}.`, report.predictedDisease ? `The AI Possible Condition was ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}.` : "There is no AI scan for this case.", notes.trim() ? `Review notes: ${notes}` : "There are no review notes."].join(" ")}</p>
       {!online ? (
         <div className="review-offline" role="alert">
           <p>Not saved. CaneGuard is offline, so this review cannot be confirmed. Your draft stays in this tab and is not queued to send later.</p>

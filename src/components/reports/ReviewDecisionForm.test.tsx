@@ -417,6 +417,21 @@ describe("Progressive review resilience", () => {
     expect(save.mock.calls[0][0]).not.toHaveProperty("fieldValidationAssigneeUuid");
   });
 
+  it("shows the review note text verbatim in the summary", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "First line.\n  Indented second line." },
+    });
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+
+    const summary = screen.getByRole("region", { name: "Review Summary" });
+    expect(summary.textContent).toContain("Review notes: First line.\n  Indented second line.");
+  });
+
   // A failed save flags only the step it failed on; advancing must not reveal new errors.
   it("holds validation feedback to the step and draft that failed to save", async () => {
     const user = userEvent.setup();
