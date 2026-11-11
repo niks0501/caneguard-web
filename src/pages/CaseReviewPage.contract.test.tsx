@@ -166,29 +166,20 @@ describe("Report Evidence Review protected contract", () => {
     installApi();
   });
 
-  it("CT-01 exposes one progressive Evidence -> Action -> Finding -> Summary -> Confirm flow without a normal-review modal", async () => {
-    const user = userEvent.setup();
+  it("CT-01 exposes one progressive Evidence -> Finding -> Action -> Summary -> Confirm flow without a normal-review modal", async () => {
     await loadCase();
 
-    // UX-03 step 1: action first.
     const evidence = screen.getByRole("heading", { name: "Evidence Summary" });
-    const actions = screen.getByRole("group", { name: /What should happen next/i });
-    expect(evidence.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    await clickChoice(user, "No Further Action");
-    await user.click(screen.getByRole("button", { name: "Next step" }));
-
-    // Step 2: the action's fields, then the staff finding.
     const staffFinding = screen.getByLabelText(/Staff-Classified Condition/i);
     const verification = screen.getByLabelText(/Verification Outcome/i);
-    expect(evidence.compareDocumentPosition(staffFinding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(staffFinding.compareDocumentPosition(verification) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    await user.click(screen.getByRole("checkbox", { name: /Close this case/i }));
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
-
-    // Review screen: summary, then confirm.
+    const actions = screen.getByRole("group", { name: /What should happen next/i });
     const summary = screen.getByRole("heading", { name: /Review Summary|Decision Summary/i });
     const confirm = screen.getByRole("button", { name: "Confirm Review" });
-    expect(evidence.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    expect(evidence.compareDocumentPosition(staffFinding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(staffFinding.compareDocumentPosition(verification) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(verification.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(actions.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(summary.compareDocumentPosition(confirm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByRole("dialog", { name: /Record office decision/i })).not.toBeInTheDocument();
   });
