@@ -244,6 +244,42 @@ describe("AerialCheckCard", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 
+  // Intent: a refused file is not an added photo, so the pending Undo stays available.
+  it("keeps Undo when the chosen file is refused", async () => {
+    const mutate = vi.fn();
+    const { remove } = setup({ mutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+
+    const oversized = new File(["x"], "huge.jpg", { type: "image/jpeg" });
+    Object.defineProperty(oversized, "size", { value: 20 * 1024 * 1024 + 1 });
+    fireEvent.change(screen.getByLabelText(/another aerial photo/i), { target: { files: [oversized] } });
+
+    expect(mutate).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Use a JPG, PNG or WebP under 20 MB.");
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+  });
+
+  // Intent: a failed later removal never replaces the earlier Undo target.
+  it("keeps the previous Undo target when another removal fails", async () => {
+    const restoreMutate = succeeds();
+    const { remove } = setup({ restoreMutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+
+    remove.mutate = vi.fn();
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(restoreMutate).toHaveBeenCalledWith("a1", expect.any(Object));
+  });
+
   // Intent: a failed undo says so and keeps Undo available to try again.
   it("keeps Undo available when restoring fails", async () => {
     const restoreMutate = vi.fn();

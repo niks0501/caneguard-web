@@ -232,14 +232,16 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
 
   const submit = (file: File) => {
     setLastFile(file);
-    setRemoved(null);
     if (!ACCEPTED_TYPES.includes(file.type) || file.size > MAX_BYTES) {
       setProblem(fileHint);
       return;
     }
     setProblem(null);
     add.mutate(file, {
-      onSuccess: () => setLastFile(null),
+      onSuccess: () => {
+        setLastFile(null);
+        setRemoved(null);
+      },
       onError: (error) => {
         if (!(error instanceof ApiError && error.status === 429)) setLastFile(null);
         setProblem(errorMessage(error));
@@ -251,7 +253,6 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
   const closeRemoval = () => setPendingRemoval(null);
   const removeConfirmed = (analysis: AerialAnalysis) => {
-    setRemoved(null);
     restore.reset();
     remove.mutate(analysis.uuid, { onSuccess: () => setRemoved(analysis) });
   };
