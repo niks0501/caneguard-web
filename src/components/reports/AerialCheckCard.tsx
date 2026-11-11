@@ -9,6 +9,7 @@ import {
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { formatDateTime } from "../../lib/formatters";
 import { Button } from "../ui/Button";
+import { Modal } from "../ui/Modal";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -19,8 +20,8 @@ type Highlights = "off" | "abnormal" | "both";
 function errorMessage(error: unknown): string {
   const status = error instanceof ApiError ? error.status : undefined;
   if (status === 422) return fileHint;
-  if (status === 429) return "Another aerial check is running. Try again shortly.";
-  return "The upload outcome is unknown. Refresh the case and check for the photo before adding it again.";
+  if (status === 429) return "Another photo is being checked. Try again in a moment.";
+  return "We could not confirm the photo was added. Refresh the case and check before adding it again.";
 }
 
 function tokenRgb(name: string): [number, number, number] | null {
@@ -102,7 +103,7 @@ function AerialResult({
   onRemove: () => void;
   removing: boolean;
 }) {
-  const [highlights, setHighlights] = useState<Highlights>("both");
+  const [highlights, setHighlights] = useState<Highlights>("abnormal");
   const [reveal, setReveal] = useState(100);
   const mask = useAerialMask(analysis.maskUrl);
   const abnormal = analysis.abnormalCanopyPercent;
@@ -134,20 +135,21 @@ function AerialResult({
                 checked={highlights === value}
                 onChange={() => setHighlights(value)}
               />
-              <span>{value === "off" ? "Off" : value === "abnormal" ? "Abnormal only" : "Both"}</span>
+              <span>{value === "off" ? "Photo only" : value === "abnormal" ? "Problem areas" : "Problem and healthy"}</span>
             </label>
           ))}
         </fieldset>
         <label className="aerial-check__compare">
-          <span>Compare</span>
+          <span>Photo</span>
           <input
             type="range"
             min={0}
             max={100}
             value={reveal}
             onChange={(event) => setReveal(Number(event.currentTarget.value))}
-            aria-label="Compare the photo with highlights"
+            aria-label="Highlight reveal"
           />
+          <span>Problem areas</span>
         </label>
       </div>
 
@@ -241,9 +243,9 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
     });
   };
 
-  const confirmRemove = (analysis: AerialAnalysis) => {
-    if (window.confirm("Remove this aerial check from the case?")) remove.mutate(analysis.uuid);
-  };
+  const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
+  const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
+  const closeRemoval = () => setPendingRemoval(null);
 
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
@@ -293,6 +295,32 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         />
       ) : null}
       {remove.isError ? <p className="form-error" role="alert">Could not remove the check. Try again.</p> : null}
+
+      <Modal
+        id="aerial-remove"
+        title="Remove this aerial check?"
+        description="The photo and its result are removed from the case. You can add the photo again later."
+        open={pendingRemoval !== null}
+        onClose={closeRemoval}
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={closeRemoval}>
+              Keep it
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (pendingRemoval) remove.mutate(pendingRemoval.uuid);
+                closeRemoval();
+              }}
+            >
+              Remove check
+            </Button>
+          </>
+        }
+      >
+        {pendingRemoval ? <p>Added {formatDateTime(pendingRemoval.createdAt)}</p> : null}
+      </Modal>
 
       <GroundVersusPhoto report={report} analysis={latest} />
 

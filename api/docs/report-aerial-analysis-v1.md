@@ -17,10 +17,11 @@ step: stage `model.onnx`, create the Python environment and set
 
 When enabled, the Aerial check card appears after Affected field boundaries.
 Choose a photo while online; the latest result shows canopy shares and photo
-highlights. Use Highlights and Compare to inspect the overlay, or expand Earlier
-aerial checks to see previous uploads. Remove hides a check from the case but
-retains its files. If an upload's outcome is unknown, refresh the case before
-trying again to avoid a duplicate.
+highlights, opening on Problem areas. Use Highlights and the Photo / Problem
+areas compare slider to inspect the overlay, or expand Earlier aerial checks
+to see previous uploads. Remove hides a check from the case but retains its
+files. If an upload's outcome is unknown, refresh the case before trying again
+to avoid a duplicate.
 
 ## Authorization
 

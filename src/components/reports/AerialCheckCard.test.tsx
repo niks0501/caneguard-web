@@ -88,7 +88,7 @@ describe("AerialCheckCard", () => {
       render(<AerialCheckCard report={report([])} />);
 
       await userEvent.upload(screen.getByLabelText(/add aerial photo/i), new File(["x"], "field.png", { type: "image/png" }));
-      expect(screen.getByRole("alert")).toHaveTextContent("The upload outcome is unknown. Refresh the case and check for the photo before adding it again.");
+      expect(screen.getByRole("alert")).toHaveTextContent("We could not confirm the photo was added. Refresh the case and check before adding it again.");
       expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
     },
   );
@@ -154,14 +154,40 @@ describe("AerialCheckCard", () => {
     expect(screen.getByText("Aerial image estimate · experimental")).toBeInTheDocument();
   });
 
-  // Intent: removal is confirmed first; earlier checks collapse under one summary.
-  it("confirms removal and collapses earlier checks", async () => {
+  // Intent: removal is confirmed in-app first; earlier checks collapse under one summary.
+  it("confirms removal in an in-app dialog and collapses earlier checks", async () => {
     const { remove } = setup();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const nativeConfirm = vi.spyOn(window, "confirm");
     render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
 
     expect(screen.getByText("Earlier aerial checks (1)")).toBeInTheDocument();
     await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    expect(remove.mutate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
     expect(remove.mutate).toHaveBeenCalledWith("a1");
+    expect(nativeConfirm).not.toHaveBeenCalled();
+  });
+
+  // Intent: declining the in-app confirm leaves the check in place.
+  it("keeps the check when removal is declined", async () => {
+    const { remove } = setup();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Keep it" }));
+    expect(remove.mutate).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  // Intent: the aerial check opens on problem areas only, and the compare slider keeps one accurate name in every mode.
+  it("defaults to problem areas and keeps the compare slider name mode-neutral", async () => {
+    setup();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    expect(screen.getByRole("radio", { name: "Problem areas" })).toBeChecked();
+
+    for (const mode of ["Photo only", "Problem and healthy", "Problem areas"]) {
+      await userEvent.click(screen.getByRole("radio", { name: mode }));
+      expect(screen.getByRole("radio", { name: mode })).toBeChecked();
+      expect(screen.getByRole("slider", { name: "Highlight reveal" })).toBeInTheDocument();
+    }
   });
 });
