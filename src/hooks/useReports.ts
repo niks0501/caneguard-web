@@ -163,7 +163,7 @@ export function useAddAerialAnalysis(reportId: string) {
 
   return useMutation({
     mutationFn: (image: File) => reportsRepository.addAerialAnalysis(reportId, image),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) }),
   });
 }
 

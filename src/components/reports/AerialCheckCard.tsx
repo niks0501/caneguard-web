@@ -20,7 +20,7 @@ function errorMessage(error: unknown): string {
   const status = error instanceof ApiError ? error.status : undefined;
   if (status === 422) return fileHint;
   if (status === 429) return "Another aerial check is running. Try again shortly.";
-  return "The aerial check is unavailable right now. Nothing was saved.";
+  return "The upload outcome is unknown. Refresh the case and check for the photo before adding it again.";
 }
 
 function tokenRgb(name: string): [number, number, number] | null {
@@ -234,7 +234,10 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
     setProblem(null);
     add.mutate(file, {
       onSuccess: () => setLastFile(null),
-      onError: (error) => setProblem(errorMessage(error)),
+      onError: (error) => {
+        if (!(error instanceof ApiError && error.status === 429)) setLastFile(null);
+        setProblem(errorMessage(error));
+      },
     });
   };
 

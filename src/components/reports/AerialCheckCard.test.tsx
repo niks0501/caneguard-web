@@ -80,18 +80,26 @@ describe("AerialCheckCard", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Use a JPG, PNG or WebP under 20 MB.");
   });
 
-  // Intent: the server's failure copy says nothing was saved and offers Retry.
-  it("explains an unavailable check and retries the same file", async () => {
+  it.each([new Error("network lost"), new Error("invalid response"), new ApiError("down", { status: 503 })])(
+    "reports an unknown outcome without offering an immediate retry",
+    async (error) => {
+      const mutate = vi.fn((_file: File, callbacks: { onError: (e: unknown) => void }) => callbacks.onError(error));
+      setup({ mutate });
+      render(<AerialCheckCard report={report([])} />);
+
+      await userEvent.upload(screen.getByLabelText(/add aerial photo/i), new File(["x"], "field.png", { type: "image/png" }));
+      expect(screen.getByRole("alert")).toHaveTextContent("The upload outcome is unknown. Refresh the case and check for the photo before adding it again.");
+      expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    },
+  );
+
+  it("offers a retry when the server rejects a concurrent check", async () => {
     const mutate = vi.fn((_file: File, callbacks: { onError: (e: unknown) => void }) =>
-      callbacks.onError(new ApiError("down", { status: 503 })),
+      callbacks.onError(new ApiError("busy", { status: 429 })),
     );
     setup({ mutate });
     render(<AerialCheckCard report={report([])} />);
-    const file = new File(["x"], "field.png", { type: "image/png" });
-
-    await userEvent.upload(screen.getByLabelText(/add aerial photo/i), file);
-    expect(screen.getByRole("alert")).toHaveTextContent("The aerial check is unavailable right now. Nothing was saved.");
-
+    await userEvent.upload(screen.getByLabelText(/add aerial photo/i), new File(["x"], "field.png", { type: "image/png" }));
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(mutate).toHaveBeenCalledTimes(2);
   });
