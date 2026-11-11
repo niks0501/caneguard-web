@@ -20,3 +20,6 @@ graphify-out/graph.json merge=graphify
 /.akidev/managed.tsv text eol=lf
 /opencode.jsonc text eol=lf
 # <<< AkiDev line endings <<<
+
+# CaneGuard experimental aerial V3 checkpoint
+/aerial-inference/model-assets/v3/*.safetensors filter=lfs diff=lfs merge=lfs -text
