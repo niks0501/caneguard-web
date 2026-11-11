@@ -61,7 +61,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [notes, setNotes] = useState(report.reviewNotes ?? "");
   const [closedConfirmed, setClosedConfirmed] = useState(false);
   const [reopenConfirmed, setReopenConfirmed] = useState(false);
-  const [attemptedStep, setAttemptedStep] = useState<DecisionStep | null>(null);
+  const [failedErrors, setFailedErrors] = useState<(keyof typeof errors)[]>([]);
   const [step, setStep] = useState<DecisionStep>("action");
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -105,20 +105,21 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     }
   }, [location.hash]);
   const fieldSelected = action === "field";
+  const effectiveVerification: VerificationOutcome = fieldSelected ? "not_determined" : verification;
   const resultingState = fieldSelected ? "open" : action === "close" ? "closed" : lifecycle.caseState;
   const validated = (advisories.data ?? []).filter((item) => item.status === "validated");
   const selectedAdvisory = validated.find((item) => item.uuid === advisoryUuid);
   const selectedInspector = (inspectors.data ?? []).find((item) => item.uuid === inspectorUuid)
     ?? report.fieldValidationAssignment?.assignee;
   const errors = {
-    classification: verification === "verified" && !classification ? "What you found is required for Verified." : null,
+    classification: effectiveVerification === "verified" && !classification ? "Staff-Classified Condition is required for Verified." : null,
     action: !action ? "Choose what should happen next." : null,
     advisory: action === "support" && support === "advisory" && !selectedAdvisory ? "Select a validated advisory for Advisory Guidance." : null,
     inspector: assignmentNeeded && !inspectorUuid ? "Select a Field Inspector before saving field validation." : null,
     reopen: fieldSelected && currentClosed && !reopenConfirmed ? "Reopen the case before assigning a field validation visit." : null,
     close: action === "close" && !closedConfirmed ? "Confirm that you want to close this case." : null,
     notes: notes.length > 1000 ? "Review notes must be 1,000 characters or fewer."
-      : verification === "unable_to_verify" && !notes.trim() ? "Add a note explaining why the evidence cannot be verified."
+      : effectiveVerification === "unable_to_verify" && !notes.trim() ? "Add a note explaining why the evidence cannot be verified."
       : action === "support" && support === "technical" && !notes.trim() ? "Meaningful Technical Assistance details are required." : null,
   };
   const invalid = Object.values(errors).some(Boolean);
@@ -146,7 +147,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
           : apiError?.status === 422
             ? "validation"
             : "unavailable";
-  const changed = () => { setDirty(true); setSaved(false); setOfflineResumed(false); setAttemptedStep(null); mutation.reset(); };
+  const changed = () => { setDirty(true); setSaved(false); setOfflineResumed(false); mutation.reset(); };
 
   // A clean form can safely follow a sibling writer's newer version. Keep the
   // last successful write so a stale refetch cannot rewind the token and make
@@ -163,11 +164,12 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   }, [dirty, report.reviewVersion]);
 
   useUnsavedWorkGuard(dirty);
-  const validating = attemptedStep === step;
+  const failed = failedErrors.some((key) => !!errors[key]);
   useEffect(() => {
-    document.title = `${validating && invalid ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
-  }, [validating, invalid, report.referenceCode]);
-  const error = (key: keyof typeof errors) => validating && errors[key]
+    document.title = `${failed ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
+  }, [failed, report.referenceCode]);
+  const showsError = (key: keyof typeof errors) => failedErrors.includes(key) && !!errors[key];
+  const error = (key: keyof typeof errors) => showsError(key)
     ? <p id={`review-error-${key}`} className="form-error" role="alert">{errors[key]}</p> : null;
 
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -187,14 +189,13 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const confirm = async () => {
     if (!online || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
     if (invalid) {
-      const failedStep: DecisionStep = errors.action ? "action" : "details";
-      setAttemptedStep(failedStep);
-      setStep(failedStep);
+      setFailedErrors((Object.keys(errors) as (keyof typeof errors)[]).filter((key) => !!errors[key]));
+      setStep(errors.action ? "action" : "details");
       return;
     }
     const input: ReportReviewInput = {
       authorityClassifiedCondition: classification,
-      verificationOutcome: fieldSelected ? "not_determined" : verification,
+      verificationOutcome: effectiveVerification,
       notes: notes.trim(),
       expectedVersion,
       ...(action === "support" ? {
@@ -213,7 +214,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       const nextVersion = updated?.reviewVersion ?? expectedVersion + 1;
       lastSelfWriteVersion.current = nextVersion;
       setExpectedVersion(nextVersion);
-      setDirty(false); setSaved(true); setAttemptedStep(null);
+      setDirty(false); setSaved(true); setFailedErrors([]);
       setConflictLatest(null); setConflictError(null);
       onRefresh();
     } catch (error) {
@@ -278,7 +279,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     setExpectedVersion(conflictLatest.reviewVersion);
     lastSelfWriteVersion.current = undefined;
     setStale(false);
-    setAttemptedStep(null);
+    setFailedErrors([]);
     setConflictLatest(null);
     setConflictError(null);
     mutation.reset();
@@ -345,8 +346,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         {fieldSelected ? <div className="review-subform">
           <p role="status">The case stays open until the visit is done.</p>
           {activeValidation ? <p>Field validation active — assigned to {report.fieldValidationAssignment?.assignee.name}. Active assignments and submitted field-validation evidence are not reassigned here.</p> : <>
-            <SelectFilter label="Field Inspector assignee" value={inspectorUuid} aria-invalid={validating && !!errors.inspector}
-              aria-describedby={validating && errors.inspector ? "review-error-inspector" : undefined}
+            <SelectFilter label="Field Inspector assignee" value={inspectorUuid} aria-invalid={showsError("inspector")}
+              aria-describedby={showsError("inspector") ? "review-error-inspector" : undefined}
               onChange={(event) => { setInspectorUuid(event.target.value); changed(); }}>
               <option value="">Select a Field Inspector</option>
               {(inspectors.data ?? []).map((item) => <option key={item.uuid} value={item.uuid}>{item.name}</option>)}
@@ -363,7 +364,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
             <label><input type="radio" name="support-type" checked={support === "technical"} onChange={() => { setSupport("technical"); changed(); }} /> Technical Assistance</label>
           </fieldset>
           {support === "advisory" ? <><SelectFilter label="Validated advisory" value={advisoryUuid}
-            aria-invalid={validating && !!errors.advisory} aria-describedby={validating && errors.advisory ? "review-error-advisory" : undefined}
+            aria-invalid={showsError("advisory")} aria-describedby={showsError("advisory") ? "review-error-advisory" : undefined}
             onChange={(event) => { setAdvisoryUuid(event.target.value); changed(); }}>
             <option value="">Select a validated advisory</option>
             {validated.map((item) => <option key={item.uuid} value={item.uuid}>{item.code} - {item.title}</option>)}
@@ -380,8 +381,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         <TextArea label={action === "support" && support === "technical" ? "Technical Assistance details / Review notes" : "Review notes"}
           hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable."
           placeholder="Describe the intervention or other action used, if applicable..."
-          value={notes} rows={4} maxLength={1000} aria-invalid={validating && !!errors.notes}
-          aria-describedby={validating && errors.notes ? "review-error-notes" : undefined}
+          value={notes} rows={4} maxLength={1000} aria-invalid={showsError("notes")}
+          aria-describedby={showsError("notes") ? "review-error-notes" : undefined}
           onChange={(event) => { setNotes(event.target.value); changed(); }} />{error("notes")}
         <p className="review-note-count">{notes.length}/1,000</p>
       </fieldset>
@@ -390,13 +391,13 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       <legend>Record Finding</legend>
       <div className="review-finding__fields">
         <div><SelectFilter label="Staff-Classified Condition" value={classification ?? ""}
-          aria-invalid={validating && !!errors.classification} aria-describedby={validating && errors.classification ? "review-error-classification" : undefined}
+          aria-invalid={showsError("classification")} aria-describedby={showsError("classification") ? "review-error-classification" : undefined}
           onChange={(event) => { setClassification((event.target.value || null) as AuthorityClassifiedCondition | null); changed(); }}>
           <option value="">Not classified</option>
           {activeAuthorityClassifiedConditions.map((value) => <option key={value} value={value}>{authorityClassifiedConditionLabels[value]}</option>)}
           {isLegacyAuthorityClassifiedCondition(report.authorityClassifiedCondition) ? <option value={report.authorityClassifiedCondition!}>{authorityClassifiedConditionLabels[report.authorityClassifiedCondition!]} (legacy record; not offered for new review)</option> : null}
         </SelectFilter>{error("classification")}</div>
-        <SelectFilter label="Verification Outcome" value={verification} onChange={(event) => { setVerification(event.target.value as VerificationOutcome); changed(); }}>
+        <SelectFilter label="Verification Outcome" value={effectiveVerification} onChange={(event) => { setVerification(event.target.value as VerificationOutcome); changed(); }}>
           <option value="not_determined">Not Determined</option>
           <option value="verified" disabled={fieldSelected || activeValidation}>Verified</option>
           <option value="unable_to_verify" disabled={fieldSelected}>Unable to Verify</option>
@@ -413,7 +414,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     {step === "review" ? (
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
       <h2 id="review-summary-heading" ref={headingRef} tabIndex={-1}>Review Summary</h2>
-      <p className="review-consequence">{[consequence ?? "No action chosen yet.", `Staff finding: ${classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, ${verificationOutcomeLabels[verification].toLowerCase()}.`, report.predictedDisease ? `The AI Possible Condition was ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}.` : "There is no AI scan for this case.", notes.trim() ? `Review notes: ${notes.trim()}` : "There are no review notes."].join(" ")}</p>
+      <p className="review-consequence">{[consequence ?? "No action chosen yet.", `Staff finding: ${classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, ${verificationOutcomeLabels[effectiveVerification].toLowerCase()}.`, report.predictedDisease ? `The AI Possible Condition was ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}.` : "There is no AI scan for this case.", notes.trim() ? `Review notes: ${notes.trim()}` : "There are no review notes."].join(" ")}</p>
       {!online ? (
         <div className="review-offline" role="alert">
           <p>Not saved. CaneGuard is offline, so this review cannot be confirmed. Your draft stays in this tab and is not queued to send later.</p>

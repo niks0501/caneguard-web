@@ -303,11 +303,27 @@ describe("Progressive review resilience", () => {
     expect(save).not.toHaveBeenCalled();
     expect(screen.getByText("Meaningful Technical Assistance details are required.")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Verification Outcome"), "unable_to_verify");
+    expect(screen.getByText(/Add a note explaining why/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review decision" }));
-    expect(screen.queryByText(/Add a note explaining why/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save).not.toHaveBeenCalled();
-    expect(screen.getByText(/Add a note explaining why/)).toBeInTheDocument();
+  });
+
+  // Every error from the failed save stays visible on its step until that error itself is resolved.
+  it("keeps each failed-save error until the error itself is resolved", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Verification Outcome"), "verified");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(screen.getByText("Select a validated advisory for Advisory Guidance.")).toBeInTheDocument();
+    expect(screen.getByText("Staff-Classified Condition is required for Verified.")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    expect(screen.queryByText("Select a validated advisory for Advisory Guidance.")).not.toBeInTheDocument();
+    expect(screen.getByText("Staff-Classified Condition is required for Verified.")).toBeInTheDocument();
   });
 
   // A failed save flags only the step it failed on; advancing must not reveal new errors.
@@ -323,6 +339,43 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Next step" }));
     expect(screen.queryByText("Choose what should happen next.")).not.toBeInTheDocument();
     expect(screen.queryByText("Select a validated advisory for Advisory Guidance.")).not.toBeInTheDocument();
+  });
+
+  // A field-validation action always saves Not Determined, so the summary must say so too.
+  it("states the verification outcome that confirmation will send", async () => {
+    const user = userEvent.setup();
+    const latest = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 5,
+      actionTaken: "referred_for_expert_validation" as const,
+      lifecycle: { ...base.lifecycle!, verificationOutcome: "verified" as const },
+    };
+    const onRefresh = vi.fn().mockResolvedValue({ data: latest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(await screen.findByRole("button", { name: "Reload and discard my changes" }));
+
+    const summary = screen.getByRole("region", { name: "Review Summary" });
+    expect(summary).toHaveTextContent(/not determined/i);
+    expect(summary).not.toHaveTextContent(/verified/i);
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByLabelText("Verification Outcome")).toHaveValue("not_determined");
+    await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[1][0]).toMatchObject({
+      expectedVersion: latest.reviewVersion,
+      verificationOutcome: "not_determined",
+      caseState: "open",
+      fieldValidationState: "assigned",
+      fieldValidationAssigneeUuid: "inspector-1",
+    });
   });
 
   // Conflict resolution can land the saved closure choice on the review screen with
