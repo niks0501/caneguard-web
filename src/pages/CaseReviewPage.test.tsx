@@ -1421,10 +1421,10 @@ describe("CaseReviewPage", () => {
     );
     const pendingModal = screen.getByRole("form", { name: "Report Evidence Review" });
     expect(within(pendingModal).getByRole("button", { name: "Confirming review..." })).toBeDisabled();
+    // The reviewer stays on the confirmation step so its outcome cannot be hidden.
     await user.click(within(pendingModal).getByRole("button", { name: "Back" }));
-    expect(within(pendingModal).getByLabelText("Staff-Classified Condition")).toBeDisabled();
-    expect(within(pendingModal).getByLabelText("Validated advisory")).toBeDisabled();
-    await user.click(within(pendingModal).getByRole("button", { name: "Review decision" }));
+    expect(within(pendingModal).getByRole("heading", { name: "Review Summary" })).toBeInTheDocument();
+    expect(within(pendingModal).queryByLabelText("Staff-Classified Condition")).not.toBeInTheDocument();
 
     // A second click on the locked submit sends nothing more.
     await user.click(within(pendingModal).getByRole("button", { name: "Confirming review..." }));

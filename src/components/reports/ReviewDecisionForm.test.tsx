@@ -20,8 +20,8 @@ const base = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDeta
 const advisory = { uuid: "advisory-1", code: "ADV-1", title: "Validated guidance", content: "Guidance", status: "validated" as const };
 const save = vi.fn();
 const reset = vi.fn();
-function mutation(error: ApiError | null = null) {
-  return { mutateAsync: save, reset, error, isError: !!error, isPending: false } as unknown as ReturnType<typeof useUpdateReportReview>;
+function mutation(error: ApiError | null = null, isPending = false) {
+  return { mutateAsync: save, reset, error, isError: !!error, isPending } as unknown as ReturnType<typeof useUpdateReportReview>;
 }
 function renderForm(report = base, onRefresh = vi.fn()) {
   return render(<MemoryRouter><ReviewDecisionForm report={report} onRefresh={onRefresh} /></MemoryRouter>);
@@ -324,6 +324,39 @@ describe("Progressive review resilience", () => {
     await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
     expect(screen.queryByText("Select a validated advisory for Advisory Guidance.")).not.toBeInTheDocument();
     expect(screen.getByText("Staff-Classified Condition is required for Verified.")).toBeInTheDocument();
+  });
+
+  // A resolved failed-save error must not come back until the draft is saved again.
+  it("does not re-show a resolved failed-save error before the next save", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Verification Outcome"), "verified");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(screen.getByText("Staff-Classified Condition is required for Verified.")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "smut");
+    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "");
+    expect(screen.queryByText("Staff-Classified Condition is required for Verified.")).not.toBeInTheDocument();
+    expect(screen.getByText("Select a validated advisory for Advisory Guidance.")).toBeInTheDocument();
+  });
+
+  // The success and server-error outcomes live on the confirmation step, so pending keeps it.
+  it("keeps the confirmation step and its outcome visible while the save is in flight", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderForm();
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutation(null, true));
+    rerender(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: "Confirming review..." })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("region", { name: "Review Summary" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirming review..." })).toBeInTheDocument();
   });
 
   // A failed save flags only the step it failed on; advancing must not reveal new errors.

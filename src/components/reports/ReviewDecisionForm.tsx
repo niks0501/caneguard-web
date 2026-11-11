@@ -123,6 +123,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       : action === "support" && support === "technical" && !notes.trim() ? "Meaningful Technical Assistance details are required." : null,
   };
   const invalid = Object.values(errors).some(Boolean);
+  const unresolvedErrors = failedErrors.filter((key) => !!errors[key]);
+  if (unresolvedErrors.length !== failedErrors.length) setFailedErrors(unresolvedErrors);
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
   const conflict = stale || apiError?.status === 409;
   const formState = saved
@@ -442,7 +444,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
       <div className="review-step-actions">
-      <Button type="button" variant="secondary" onClick={() => setStep("details")}>Back</Button>
+      <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => setStep("details")}>Back</Button>
       <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined}>{mutation.isPending ? "Confirming review..." : "Confirm Review"}</Button>
       </div>
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
