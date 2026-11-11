@@ -310,6 +310,21 @@ describe("Progressive review resilience", () => {
     expect(screen.getByText(/Add a note explaining why/)).toBeInTheDocument();
   });
 
+  // A failed save flags only the step it failed on; advancing must not reveal new errors.
+  it("holds validation feedback to the step and draft that failed to save", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.queryByText("Choose what should happen next.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Select a validated advisory for Advisory Guidance.")).not.toBeInTheDocument();
+  });
+
   // Conflict resolution can land the saved closure choice on the review screen with
   // its confirmation unticked; a failed confirmation must expose that field.
   it("routes a failed confirmation back to the step that holds the invalid choice", async () => {
