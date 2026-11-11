@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api/ApiError";
@@ -46,6 +46,13 @@ const report = (aerialAnalyses: AerialAnalysis[], extra: Partial<DiseaseReport> 
 
 type Settle = { onSuccess?: () => void };
 const succeeds = () => vi.fn((_uuid: string, callbacks?: Settle) => callbacks?.onSuccess?.());
+const pending = () => {
+  const callbacks: Settle[] = [];
+  const mutate = vi.fn((_arg: unknown, options?: Settle) => {
+    if (options) callbacks.push(options);
+  });
+  return { mutate, callbacks };
+};
 
 function setup(
   options: {
@@ -278,6 +285,48 @@ describe("AerialCheckCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
 
     expect(restoreMutate).toHaveBeenCalledWith("a1", expect.any(Object));
+  });
+
+  // Intent: an undo that finishes late must not clear the newer removal's Undo.
+  it("keeps the newer undo target when an earlier undo finishes late", async () => {
+    const restore = pending();
+    const { remove } = setup({ restoreMutate: restore.mutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    const removals = pending();
+    remove.mutate = removals.mutate;
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    act(() => removals.callbacks[0]?.onSuccess?.());
+    act(() => restore.callbacks[0]?.onSuccess?.());
+
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(restore.mutate).toHaveBeenLastCalledWith("a0", expect.any(Object));
+  });
+
+  // Intent: a photo that finishes uploading late must not clear a removal made meanwhile.
+  it("keeps the undo target for a check removed while an upload is pending", async () => {
+    const uploads = pending();
+    const { remove, restore } = setup({ mutate: uploads.mutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+
+    await userEvent.upload(
+      screen.getByLabelText(/another aerial photo/i),
+      new File(["x"], "field.jpg", { type: "image/jpeg" }),
+    );
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    act(() => uploads.callbacks[0]?.onSuccess?.());
+
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(restore.mutate).toHaveBeenLastCalledWith("a0", expect.any(Object));
   });
 
   // Intent: a failed undo says so and keeps Undo available to try again.

@@ -237,10 +237,11 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       return;
     }
     setProblem(null);
+    const undoBeforeUpload = removed?.uuid ?? null;
     add.mutate(file, {
       onSuccess: () => {
         setLastFile(null);
-        setRemoved(null);
+        setRemoved((current) => (current?.uuid === undoBeforeUpload ? null : current));
       },
       onError: (error) => {
         if (!(error instanceof ApiError && error.status === 429)) setLastFile(null);
@@ -252,12 +253,12 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
   const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
   const closeRemoval = () => setPendingRemoval(null);
-  const removeConfirmed = (analysis: AerialAnalysis) => {
-    restore.reset();
+  const removeConfirmed = (analysis: AerialAnalysis) =>
     remove.mutate(analysis.uuid, { onSuccess: () => setRemoved(analysis) });
-  };
   const undoRemoval = (analysis: AerialAnalysis) =>
-    restore.mutate(analysis.uuid, { onSuccess: () => setRemoved(null) });
+    restore.mutate(analysis.uuid, {
+      onSuccess: () => setRemoved((current) => (current?.uuid === analysis.uuid ? null : current)),
+    });
 
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
