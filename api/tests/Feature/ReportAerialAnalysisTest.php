@@ -256,6 +256,25 @@ class ReportAerialAnalysisTest extends TestCase
         $this->assertSame($reviewer->id, $row->fresh()->removed_by);
     }
 
+    public function test_a_second_removal_keeps_the_existing_removal_identity(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+        $uuid = $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->json('data.uuid');
+        $delete = "/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}";
+        $firstRemoval = $this->deleteJson($delete)->json('data.removal_id');
+
+        $this->deleteJson($delete)->assertNotFound();
+
+        $row = ReportAerialAnalysis::query()->where('uuid', $uuid)->firstOrFail();
+        $this->assertSame($firstRemoval, $row->removal_id);
+        $this->assertNotNull($row->removed_at);
+    }
+
     public function test_restore_undoes_a_removal_and_is_idempotent(): void
     {
         $this->enable();

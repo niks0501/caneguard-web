@@ -61,11 +61,16 @@ class ReportAerialAnalysisController extends Controller
         $this->gate($report, $analysis);
 
         $removalId = (string) Str::uuid();
-        $analysis->forceFill([
-            'removed_at' => now(),
-            'removed_by' => $request->user()->getKey(),
-            'removal_id' => $removalId,
-        ])->save();
+        $removed = ReportAerialAnalysis::query()
+            ->whereKey($analysis->getKey())
+            ->whereNull('removed_at')
+            ->update([
+                'removed_at' => now(),
+                'removed_by' => $request->user()->getKey(),
+                'removal_id' => $removalId,
+            ]);
+
+        abort_if($removed === 0, 404);
 
         return response()->json(['data' => ['removal_id' => $removalId]]);
     }
@@ -76,17 +81,27 @@ class ReportAerialAnalysisController extends Controller
         $this->gate($report, $analysis, allowRemoved: true);
 
         $removalId = $request->input('removal_id');
-        abort_if(
-            ! is_string($removalId)
-                || $analysis->removal_id === null
-                || ! hash_equals($analysis->removal_id, $removalId),
-            409,
-            'The check was changed by someone else.',
-        );
+        $restored = is_string($removalId)
+            ? ReportAerialAnalysis::query()
+                ->whereKey($analysis->getKey())
+                ->where('removal_id', $removalId)
+                ->whereNotNull('removed_at')
+                ->update(['removed_at' => null, 'removed_by' => null])
+            : 0;
 
-        if ($analysis->removed_at !== null) {
-            $analysis->forceFill(['removed_at' => null, 'removed_by' => null])->save();
+        if ($restored === 0) {
+            $current = $analysis->fresh();
+            abort_if(
+                $current === null
+                    || ! is_string($removalId)
+                    || $current->removal_id !== $removalId
+                    || $current->removed_at !== null,
+                409,
+                'The check was changed by someone else.',
+            );
         }
+
+        $analysis->refresh();
 
         return (new ReportAerialAnalysisResource($analysis->load(['report', 'uploader'])))->response();
     }

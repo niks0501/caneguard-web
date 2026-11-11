@@ -19,6 +19,7 @@ const fileHint = "Use a JPG, PNG or WebP under 20 MB.";
 type Highlights = "off" | "abnormal" | "both";
 
 type UndoTarget = { analysis: AerialAnalysis; removalId: string };
+type UndoState = { target: UndoTarget; notice: "failed" | "stale" | null };
 
 function errorMessage(error: unknown): string {
   const status = error instanceof ApiError ? error.status : undefined;
@@ -226,9 +227,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const add = useAddAerialAnalysis(report.uuid);
   const remove = useRemoveAerialAnalysis(report.uuid);
   const restore = useRestoreAerialAnalysis(report.uuid);
-  const [removed, setRemoved] = useState<UndoTarget | null>(null);
-  const [restoreFailed, setRestoreFailed] = useState<UndoTarget | null>(null);
-  const [staleUndo, setStaleUndo] = useState(false);
+  const [undo, setUndo] = useState<UndoState | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
   const analyses = report.aerialAnalyses ?? [];
@@ -241,11 +240,11 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       return;
     }
     setProblem(null);
-    const undoBeforeUpload = removed;
+    const undoBeforeUpload = undo;
     add.mutate(file, {
       onSuccess: () => {
         setLastFile(null);
-        setRemoved((current) => (current === undoBeforeUpload ? null : current));
+        setUndo((current) => (current === undoBeforeUpload ? null : current));
       },
       onError: (error) => {
         if (!(error instanceof ApiError && error.status === 429)) setLastFile(null);
@@ -257,29 +256,22 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
   const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
   const closeRemoval = () => setPendingRemoval(null);
-  const removeConfirmed = (analysis: AerialAnalysis) => {
-    setStaleUndo(false);
+  const removeConfirmed = (analysis: AerialAnalysis) =>
     remove.mutate(analysis.uuid, {
-      onSuccess: (removal) => setRemoved({ analysis, removalId: removal.removalId }),
+      onSuccess: (removal) =>
+        setUndo({ target: { analysis, removalId: removal.removalId }, notice: null }),
     });
-  };
-  const undoRemoval = (target: UndoTarget) => {
-    setStaleUndo(false);
+  const undoRemoval = (state: UndoState) =>
     restore.mutate(
-      { analysisUuid: target.analysis.uuid, removalId: target.removalId },
+      { analysisUuid: state.target.analysis.uuid, removalId: state.target.removalId },
       {
-        onSuccess: () => setRemoved((current) => (current === target ? null : current)),
+        onSuccess: () => setUndo((current) => (current === state ? null : current)),
         onError: (error) => {
-          if (error instanceof ApiError && error.status === 409) {
-            setRemoved((current) => (current === target ? null : current));
-            setStaleUndo(true);
-            return;
-          }
-          setRestoreFailed(target);
+          const notice = error instanceof ApiError && error.status === 409 ? "stale" : "failed";
+          setUndo((current) => (current === state ? { target: state.target, notice } : current));
         },
       },
     );
-  };
 
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
@@ -329,16 +321,16 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         />
       ) : null}
       {remove.isError ? <p className="form-error" role="alert">Could not remove the check. Try again.</p> : null}
-      {removed ? (
+      {undo && undo.notice !== "stale" ? (
         <p className="aerial-check__undo" role="status">
           Check removed.{" "}
-          <Button type="button" variant="secondary" onClick={() => undoRemoval(removed)} disabled={restore.isPending}>
+          <Button type="button" variant="secondary" onClick={() => undoRemoval(undo)} disabled={restore.isPending}>
             Undo
           </Button>
         </p>
       ) : null}
-      {restoreFailed && restoreFailed === removed ? <p className="form-error" role="alert">Could not undo. Try again.</p> : null}
-      {staleUndo ? (
+      {undo?.notice === "failed" ? <p className="form-error" role="alert">Could not undo. Try again.</p> : null}
+      {undo?.notice === "stale" ? (
         <p className="form-error" role="alert">
           This check was changed by someone else. Refresh the case before undoing.
         </p>

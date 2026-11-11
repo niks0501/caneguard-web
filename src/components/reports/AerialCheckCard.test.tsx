@@ -415,6 +415,30 @@ describe("AerialCheckCard", () => {
     );
   });
 
+  // Intent: a late stale response must not attach its message to a newer removal.
+  it("keeps the newer removal's Undo and message when an older undo reports stale", async () => {
+    const restore = pending();
+    const { remove } = setup({ restoreMutate: restore.mutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    act(() =>
+      restore.callbacks[0]?.onError?.(new ApiError("The check was changed by someone else.", { status: 409 })),
+    );
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(restore.mutate).toHaveBeenLastCalledWith(
+      { analysisUuid: "a0", removalId: "rm-1" },
+      expect.any(Object),
+    );
+  });
+
   // Intent: a failed undo says so and keeps Undo available to try again.
   it("keeps Undo available when restoring fails", async () => {
     const restoreMutate = fails();
