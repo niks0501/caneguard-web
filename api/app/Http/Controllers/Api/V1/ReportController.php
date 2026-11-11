@@ -54,6 +54,11 @@ class ReportController extends Controller
             ...$caseHistory->relations(),
         ];
 
+        if (config('caneguard.aerial.enabled') === true) {
+            $relations[] = 'aerialAnalyses.uploader';
+            $relations[] = 'aerialAnalyses.report';
+        }
+
         return new ReportResource($report->load(array_values(array_unique($relations))));
     }
 }

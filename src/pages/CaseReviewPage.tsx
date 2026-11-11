@@ -14,6 +14,7 @@ import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
+import { AerialCheckCard } from "../components/reports/AerialCheckCard";
 import { AffectedFieldLinkage } from "../components/reports/AffectedFieldLinkage";
 import { ReviewDecisionForm } from "../components/reports/ReviewDecisionForm";
 import { reviewQueueContext } from "../components/reports/reviewQueueContext";
@@ -857,6 +858,7 @@ function CaseReviewContent() {
         </section>
 
         <AffectedFieldLinkage key={report.uuid} report={report} onRefresh={() => reportQuery.refetch()} />
+        {report.aerialAnalyses !== undefined ? <AerialCheckCard key={report.uuid} report={report} /> : null}
 
                 {report.fieldValidationAssignment?.completion ? (
                   <section

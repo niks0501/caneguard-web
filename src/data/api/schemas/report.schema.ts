@@ -85,6 +85,23 @@ export const reportAffectedFieldSchema = z.object({
   inspector: userSchema.pick({ uuid: true, name: true }),
   loss_rate_percent: z.number().min(0).max(100),
 });
+export const aerialAnalysisSchema = z.object({
+  uuid: z.string().min(1),
+  image_url: z.string().min(1),
+  mask_url: z.string().min(1),
+  image_width: z.number().int().positive(),
+  image_height: z.number().int().positive(),
+  mask_width: z.number().int().positive(),
+  mask_height: z.number().int().positive(),
+  enough_canopy: z.boolean(),
+  normal_canopy_percent: z.number().min(0).max(100).nullable(),
+  abnormal_canopy_percent: z.number().min(0).max(100).nullable(),
+  canopy_coverage_percent: z.number().min(0).max(100),
+  model_version: z.string().min(1),
+  uploaded_by: userSchema.pick({ uuid: true, name: true }),
+  created_at: z.iso.datetime({ offset: true }),
+});
+export const aerialAnalysisResponseSchema = z.object({ data: aerialAnalysisSchema });
 export const inspectorAttachmentSchema = z.object({
   client_uuid: z.string().min(1),
   arrived: z.boolean(),
@@ -491,6 +508,7 @@ export const reportDetailSchema = z.object({
   }),
   duplicate_linkage: duplicateLinkageSchema.optional(),
   affected_fields: z.array(reportAffectedFieldSchema).optional(),
+  aerial_analyses: z.array(aerialAnalysisSchema).optional(),
   inspector_attachment: inspectorAttachmentSchema.nullable(),
   audit: z.object({
     metadata_corrections: z.array(

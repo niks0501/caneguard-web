@@ -3,6 +3,7 @@ import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
 import type {
+  AerialAnalysis,
   Advisory,
   DiseaseReport,
   PaginatedReports,
@@ -422,6 +423,18 @@ export class MockReportsRepository implements ReportsRepository {
     };
     this.reports[duplicateIndex] = updated;
     return cloneMockReport(updated);
+  }
+
+  async addAerialAnalysis(): Promise<AerialAnalysis> {
+    throw new Error("The aerial check is not available in demo mode.");
+  }
+
+  async removeAerialAnalysis(): Promise<void> {
+    throw new Error("The aerial check is not available in demo mode.");
+  }
+
+  async getAerialMask(): Promise<Blob> {
+    throw new Error("The aerial check is not available in demo mode.");
   }
 
   async updateAffectedFields(

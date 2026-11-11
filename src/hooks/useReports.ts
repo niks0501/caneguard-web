@@ -90,7 +90,15 @@ function useReportMutation<TInput>(
   return useMutation({
     mutationFn,
     onSuccess: (report) => {
-      queryClient.setQueryData(reportKeys.detail(reportId), report);
+      // Review-style responses never carry the aerial checks; keep what the
+      // case page already loaded so the card does not vanish after a save.
+      queryClient.setQueryData<DiseaseReport | null>(
+        reportKeys.detail(reportId),
+        (current) =>
+          report.aerialAnalyses === undefined && current?.aerialAnalyses !== undefined
+            ? { ...report, aerialAnalyses: current.aerialAnalyses }
+            : report,
+      );
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });
@@ -146,5 +154,34 @@ export function useUpdateReportAffectedFields(reportId: string) {
       );
       await invalidateReportDependentQueries(queryClient, { reportId });
     },
+  });
+}
+
+/** Experimental aerial check: one upload, answered after the server ran the model. */
+export function useAddAerialAnalysis(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (image: File) => reportsRepository.addAerialAnalysis(reportId, image),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) }),
+  });
+}
+
+export function useRemoveAerialAnalysis(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (analysisUuid: string) =>
+      reportsRepository.removeAerialAnalysis(reportId, analysisUuid),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) }),
+  });
+}
+
+export function useAerialMask(maskUrl: string) {
+  return useQuery({
+    queryKey: ["aerial-mask", maskUrl],
+    queryFn: () => reportsRepository.getAerialMask(maskUrl),
+    staleTime: Infinity,
+    retry: false,
   });
 }

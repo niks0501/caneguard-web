@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\V1\MonthlyReportSummaryController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OpenReportController;
 use App\Http\Controllers\Api\V1\ReferralSummaryController;
+use App\Http\Controllers\Api\V1\ReportAerialAnalysisController;
 use App\Http\Controllers\Api\V1\ReportAnalyticsController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportDocumentController;
@@ -164,6 +165,15 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::get('/reports/{report}/possible-matches', ReportPossibleMatchesController::class)
             ->name('api.v1.reports.possible-matches');
         Route::get('/reports/{report}', [ReportController::class, 'show']);
+        Route::post('/reports/{report}/aerial-analyses', [ReportAerialAnalysisController::class, 'store'])
+            ->middleware('throttle:6,1')
+            ->name('api.v1.reports.aerial-analyses.store');
+        Route::get('/reports/{report}/aerial-analyses/{analysis}/image', [ReportAerialAnalysisController::class, 'image'])
+            ->name('api.v1.reports.aerial-analyses.image');
+        Route::get('/reports/{report}/aerial-analyses/{analysis}/mask', [ReportAerialAnalysisController::class, 'mask'])
+            ->name('api.v1.reports.aerial-analyses.mask');
+        Route::delete('/reports/{report}/aerial-analyses/{analysis}', [ReportAerialAnalysisController::class, 'destroy'])
+            ->name('api.v1.reports.aerial-analyses.destroy');
         Route::put('/reports/{report}/affected-fields', UpdateReportAffectedFieldsController::class)
             ->name('api.v1.reports.affected-fields.update');
         Route::patch('/reports/{report}/review', ReviewReportController::class);

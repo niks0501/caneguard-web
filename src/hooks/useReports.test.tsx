@@ -82,4 +82,28 @@ describe("report mutations", () => {
       queryKey: fieldValidationKeys.all,
     });
   });
+
+  // Intent: a review save never drops the already-loaded aerial checks from the case.
+  it("keeps cached aerial analyses when a review response omits them", async () => {
+    const queryClient = createQueryClient();
+    const report = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
+    const aerial = [{ uuid: "a1" }] as never;
+    queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: aerial });
+    vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: undefined });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        status: "verified_by_staff",
+        notes: "Reviewed.",
+        authorityClassifiedCondition: null,
+        expectedVersion: report.reviewVersion!,
+      });
+    });
+
+    expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(aerial);
+  });
 });

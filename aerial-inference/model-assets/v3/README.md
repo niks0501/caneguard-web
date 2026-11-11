@@ -22,8 +22,14 @@ Expected SHA-256 for `model.safetensors`:
 Original archived checkpoint:
 https://drive.google.com/file/d/1T2JxKAyw2WGdzqQAywKghGv4_5RQU8ho/view
 
+## Run and stage
+
+`../../segment.py` is the one-shot inference script the Laravel API runs. It needs `../../requirements.txt` only (onnxruntime, numpy, Pillow). On a dev machine with torch and transformers, `python ../../export_onnx.py --out model.onnx` converts this checkpoint, asserts parity with PyTorch and writes `../../model.onnx.sha256`. The `.onnx` file is not committed: stage it on the server, point `CANEGUARD_AERIAL_MODEL_PATH` at it and keep `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` until the operator has enabled it. This directory is `export-ignore`d, so release archives do not carry the weights.
+
+Inference resizes each whole photo to 512x512 as `preprocessor_config.json` says; it does not tile. Flight altitude, ground sampling distance and the definition of "visibly abnormal" used in training are not recorded here.
+
 ## Integration scope
 
-These files are model assets, **not a working inference service**. The Laravel API, React panel, queue worker, protected storage and optional Python service still require implementation. Keep the aerial feature disabled by default and independent of mobile sync, report review and monitoring.
+These files are model assets, **not a working inference service**. The Laravel API action, React card and private storage are implemented behind a default-off flag; production staging remains operator-side. Keep the aerial feature disabled by default and independent of mobile sync, report review and monitoring.
 
 The model outputs `background`, `normal_looking_canopy`, and `visibly_abnormal_canopy` labels. Visible abnormal-canopy percentage is experimental and must not be treated as surveyed ground-area percentage, confirmed disease severity, affected hectares, yield loss, or economic loss.
