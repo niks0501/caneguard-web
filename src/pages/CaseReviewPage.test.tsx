@@ -1487,24 +1487,30 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
+    // Next step refuses to move on until an action is chosen.
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
+
+    await chooseAdvisory(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     const summary = screen.getByRole("region", { name: "Review Summary" });
     const echo = summary.querySelector(".decision-summary__grid") as HTMLElement;
-    expect(within(echo).getByText("Pending decision")).toBeInTheDocument();
     expect(within(echo).getByText("Not classified")).toBeInTheDocument();
     expect(within(echo).getByText("Not determined")).toBeInTheDocument();
     expect(within(echo).getByText("Open")).toBeInTheDocument();
-
-    await chooseAdvisory(user);
     expect(within(echo).getByText("Provide Advisory or Assistance")).toBeInTheDocument();
 
     // The summary tracks each pending choice before confirmation.
+    await user.click(screen.getByRole("button", { name: "Back" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
     await user.selectOptions(within(modal).getByLabelText("Verification Outcome"), "verified");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
 
     // The read-only summary reflects the current inline draft.
-    expect(within(echo).getByText("Sugarcane Smut")).toBeInTheDocument();
-    expect(within(echo).getByText("Verified")).toBeInTheDocument();
+    const updated = screen.getByRole("region", { name: "Review Summary" }).querySelector(".decision-summary__grid") as HTMLElement;
+    expect(within(updated).getByText("Sugarcane Smut")).toBeInTheDocument();
+    expect(within(updated).getByText("Verified")).toBeInTheDocument();
   });
 
   it("distinguishes missing, forbidden, and rate-limited reports", () => {
@@ -1836,7 +1842,8 @@ describe("CaseReviewPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("shows existing work status without automatically selecting a new decision", () => {
+  it("shows existing work status without automatically selecting a new decision", async () => {
+    const user = userEvent.setup();
     const fieldValidationReport = mapReportDetail(
       reportDetailResponseSchema.parse({
         data: {
@@ -1854,11 +1861,13 @@ describe("CaseReviewPage", () => {
 
     expect(screen.getByText("Field visit assigned")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
-    expect(screen.getByText("Pending decision")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
 
   });
 
-  it("shows a closed case without automatically selecting a new closure decision", () => {
+  it("shows a closed case without automatically selecting a new closure decision", async () => {
+    const user = userEvent.setup();
     const closedReport = {
       ...report,
       reviewStatus: "verified_by_staff" as const,
@@ -1873,7 +1882,8 @@ describe("CaseReviewPage", () => {
 
     expect(screen.getByText("Resolved", { selector: ".status-badge__label" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "No Further Action" })).not.toBeChecked();
-    expect(screen.getByText("Pending decision")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
 
   });
 
