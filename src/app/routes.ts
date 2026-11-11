@@ -12,6 +12,7 @@ export const routes = {
   needsAssessment: "/needs-assessment",
   fieldOperations: "/monitoring?view=field-operations",
   fieldOperationsForReport: (reportId: string) => `/monitoring?view=field-operations&report=${encodeURIComponent(reportId)}`,
+  reportDecision: (reportId: string) => `/reports/${reportId}#review-decision`,
   map: "/map",
   reportQueue: (queue: OperationalQueue) => `/reports?queue=${queue}`,
   fieldValidationQueue: (queue: FieldValidationQueue) => `/map?queue=${queue}`,

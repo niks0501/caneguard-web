@@ -38,7 +38,7 @@ function countValue(read: QueueRead, value: number): number | string {
   return "—";
 }
 
-function AssessmentRow({ report, queueContext }: { report: DiseaseReport; queueContext: ReviewQueueContext }) {
+function AssessmentRow({ report, queueContext, unreviewed }: { report: DiseaseReport; queueContext: ReviewQueueContext; unreviewed: boolean }) {
   const outcome = report.latestValidation?.followUpOutcome;
   const visited = Boolean(report.latestValidation) || report.lifecycle?.fieldValidationState === "completed";
   return (
@@ -60,7 +60,10 @@ function AssessmentRow({ report, queueContext }: { report: DiseaseReport; queueC
       <div className="needs-assessment-row__actions">
         <Link className="button button--secondary button--small" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>Review evidence</Link>
         {report.lifecycle?.fieldValidationState !== "completed" ? (
-          <Link className="button button--primary button--small" to={routes.fieldOperationsForReport(report.uuid)}>Assign visit</Link>
+          unreviewed
+            // A visit is created only by the case decision; the Assignments queue never holds an unreviewed case.
+            ? <Link className="button button--primary button--small" to={routes.reportDecision(report.uuid)} state={{ reviewQueue: queueContext, preselectAction: "field" }}>Send someone</Link>
+            : <Link className="button button--primary button--small" to={routes.fieldOperationsForReport(report.uuid)}>Assign visit</Link>
         ) : null}
       </div>
     </article>
@@ -108,6 +111,7 @@ function AssessmentGroup({ group }: { group: NeedsGroup }) {
           <AssessmentRow
             key={report.uuid}
             report={report}
+            unreviewed={group.key === "observations"}
             queueContext={{
               returnTo: `${location.pathname}${location.search}`, filters: {},
               remainingIds: group.reports.slice(group.reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),

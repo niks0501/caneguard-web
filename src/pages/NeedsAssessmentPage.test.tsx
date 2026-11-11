@@ -106,6 +106,10 @@ describe("NeedsAssessmentPage", () => {
     expect(within(awaiting).queryByText("CG-fresh")).not.toBeInTheDocument();
     expect(within(awaiting).queryByText("Not visited")).not.toBeInTheDocument();
 
+    // Proposal (UX-02): an unreviewed case opens its decision with Send-someone preselected, not the Assignments dead end.
+    expect(within(newObservations).getByRole("link", { name: "Send someone" })).toHaveAttribute("href", "/reports/fresh#review-decision");
+    expect(within(newObservations).queryByRole("link", { name: "Assign visit" })).not.toBeInTheDocument();
+
     const unassigned = screen.getByRole("region", { name: "Unassigned visits" });
     expect(within(unassigned).getByRole("link", { name: "Assign visit" })).toHaveAttribute(
       "href",
