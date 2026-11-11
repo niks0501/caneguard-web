@@ -4,7 +4,6 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../../api/ApiError";
 import { routes } from "../../app/routes";
-import { DetailField } from "../layout/Page";
 import { Button } from "../ui/Button";
 import { SelectFilter, TextArea } from "../ui/FormControls";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
@@ -64,7 +63,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [reopenConfirmed, setReopenConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [step, setStep] = useState<DecisionStep>("action");
-  const [actionAttempted, setActionAttempted] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [stale, setStale] = useState(false);
@@ -168,7 +166,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   useEffect(() => {
     document.title = `${submitted && invalid ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
   }, [submitted, invalid, report.referenceCode]);
-  const error = (key: keyof typeof errors) => (key === "action" ? actionAttempted : submitted) && errors[key]
+  const error = (key: keyof typeof errors) => submitted && errors[key]
     ? <p id={`review-error-${key}`} className="form-error" role="alert">{errors[key]}</p> : null;
 
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -177,24 +175,18 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     if (firstStepRender.current) { firstStepRender.current = false; return; }
     headingRef.current?.focus?.();
   }, [step]);
-  const consequence = !action ? null
-    : action === "field" ? "You are sending an inspector to check the field. The case stays open."
-    : action === "close" ? "You are closing this case. No further action is needed."
-    : support === "technical" ? `You are giving hands-on help. The case stays ${caseStateLabels[lifecycle.caseState].toLowerCase()}.`
-    : `You are sending advice to the reporter. The case stays ${caseStateLabels[lifecycle.caseState].toLowerCase()}.`;
-  const goToDetails = () => {
-    if (errors.action) { setActionAttempted(true); return; }
-    setStep("details");
-  };
-  const goToReview = () => {
-    if (Object.entries(errors).some(([key, value]) => key !== "action" && value)) { setSubmitted(true); return; }
-    setSubmitted(false);
-    setStep("review");
-  };
+  const caseStateOutcome = caseStateLabels[resultingState].toLowerCase();
+  const chosenAction = actions.find((item) => item.value === action);
+  const consequence = !chosenAction ? null
+    : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${selectedInspector?.name ?? "a field inspector"} checks the field${targetDate ? ` on ${targetDate}` : ""}. The case stays open.`
+    : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed.`
+    : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}.`
+    : `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}. The case stays ${caseStateOutcome}.`;
 
   const confirm = async () => {
     setSubmitted(true);
-    if (!online || invalid || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
+    if (!online || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
+    if (invalid) { setStep(errors.action ? "action" : "details"); return; }
     const input: ReportReviewInput = {
       authorityClassifiedCondition: classification,
       verificationOutcome: fieldSelected ? "not_determined" : verification,
@@ -319,7 +311,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     finally { setNextPending(false); }
   };
 
-  return <form ref={formRef} id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
+  return <form ref={formRef} id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); if (step === "review") void confirm(); }}>
     {step === "action" ? <>
     <section className="review-card" aria-labelledby="choose-action-heading">
       <p className="review-step-indicator">Step 1 of 2</p>
@@ -335,7 +327,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         </label>)}</div>
       </fieldset>{error("action")}
       {consequence ? <p className="review-consequence" role="status">{consequence}</p> : null}
-      <div className="review-step-actions"><Button type="button" onClick={goToDetails}>Next step</Button></div>
+      <div className="review-step-actions"><Button type="button" onClick={() => setStep("details")}>Next step</Button></div>
     </section>
     </> : null}
     {step === "details" ? <>
@@ -410,24 +402,15 @@ export function ReviewDecisionForm({ report, onRefresh }: {
 
     <div className="review-step-actions">
       <Button type="button" variant="secondary" onClick={() => setStep("action")}>Back</Button>
-      <Button type="button" onClick={goToReview}>Review decision</Button>
+      <Button type="button" onClick={() => setStep("review")}>Review decision</Button>
     </div>
     </> : null}
     {step === "review" ? (
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
       <h2 id="review-summary-heading" ref={headingRef} tabIndex={-1}>Review Summary</h2>
-      {consequence ? <p className="review-consequence">{consequence}</p> : null}
-      <dl className="decision-summary__grid">
-        <DetailField label="Possible Condition">{predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}</DetailField>
-        <DetailField label="What you found">{classification ? authorityClassifiedConditionLabels[classification] : "Not classified"}</DetailField>
-        <DetailField label="Verification">{verificationOutcomeLabels[verification]}</DetailField>
-        <DetailField label="Next Action">{actions.find((item) => item.value === action)?.label ?? "Pending decision"}</DetailField>
-        {action === "support" ? <DetailField label="Support type">{support === "advisory" ? "Advisory Guidance" : "Technical Assistance"}</DetailField> : null}
-        {action === "support" && support === "advisory" ? <DetailField label="Selected advisory">{selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "Not selected"}</DetailField> : null}
-        {fieldSelected ? <DetailField label="Field Inspector">{selectedInspector?.name ?? "Not selected"}{targetDate ? ` · Visit by ${formatCalendarDate(targetDate)}` : ""}</DetailField> : null}
-        <DetailField label="Resulting case state">{caseStateLabels[resultingState]}</DetailField>
-        <DetailField label="Notes">{notes.trim() ? "Included" : "None"}</DetailField>
-      </dl>
+      <p className="review-summary-sentence">
+        {consequence ?? "No action chosen yet."} Staff finding: {classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, {verificationOutcomeLabels[verification].toLowerCase()}; {report.predictedDisease ? `the AI Possible Condition was ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}` : "there is no AI scan for this case"}; {notes.trim() ? "review notes are included" : "there are no review notes"}.
+      </p>
       {!online ? (
         <div className="review-offline" role="alert">
           <p>Not saved. CaneGuard is offline, so this review cannot be confirmed. Your draft stays in this tab and is not queued to send later.</p>

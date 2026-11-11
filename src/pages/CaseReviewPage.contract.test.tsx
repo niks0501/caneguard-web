@@ -225,6 +225,8 @@ describe("Report Evidence Review protected contract", () => {
     await user.click(screen.getByRole("button", { name: "Next step" }));
     await user.selectOptions(screen.getByLabelText(/Verification Outcome/i), "verified");
     await user.click(screen.getByRole("button", { name: "Review decision" }));
+    expect(screen.queryByText(/Staff-Classified Condition.*required/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 
     expect(await screen.findByText(/What you found.*required/i)).toBeInTheDocument();
     expect(reviewPayloads).toHaveLength(0);
@@ -269,7 +271,9 @@ describe("Report Evidence Review protected contract", () => {
     expect(screen.queryByRole("option", { name: /ADV-RETIRED-001/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(reviewPayloads).toHaveLength(0);
+    expect(screen.getByText(/Select a validated advisory for Advisory Guidance/i)).toBeInTheDocument();
 
     const option = screen.getByRole("option", { name: /ADV-VALID-001/i });
     const select = option.parentElement;
@@ -295,7 +299,9 @@ describe("Report Evidence Review protected contract", () => {
     await user.click(screen.getByRole("button", { name: "Next step" }));
     await clickChoice(user, "Technical Assistance");
     await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(reviewPayloads).toHaveLength(0);
+    expect(screen.getByText(/Meaningful Technical Assistance details are required/i)).toBeInTheDocument();
 
     const details = screen.getByRole("textbox", {
       name: /Technical Assistance|Assistance details/i,
@@ -343,11 +349,13 @@ describe("Report Evidence Review protected contract", () => {
     await user.click(screen.getByRole("button", { name: "Next step" }));
     expect(screen.queryByRole("dialog", { name: /Assign visit/i })).not.toBeInTheDocument();
 
-    const assignee = screen.getByLabelText(/Field Inspector/i);
+    expect(screen.getByLabelText(/Field Inspector/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(reviewPayloads).toHaveLength(0);
+    expect(screen.getByText(/Select a Field Inspector before saving/i)).toBeInTheDocument();
 
-    await user.selectOptions(assignee, reportDetailDto.reporter.uuid);
+    await user.selectOptions(screen.getByLabelText(/Field Inspector/i), reportDetailDto.reporter.uuid);
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 

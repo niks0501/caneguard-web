@@ -276,7 +276,7 @@ describe("Progressive review resilience", () => {
     await technical(user);
     expect(screen.queryByRole("checkbox", { name: "Reopen this case" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review decision" }));
-    expect(within(screen.getByRole("region", { name: "Review Summary" })).getByText("Closed")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Review Summary" })).getByText(/the case stays closed/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[0][0]).not.toHaveProperty("caseState");
     unmount();
@@ -298,12 +298,49 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("radio", { name: "Technical Assistance" }));
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "   \n\t" } });
     await user.click(screen.getByRole("button", { name: "Review decision" }));
+    expect(screen.queryByText("Meaningful Technical Assistance details are required.")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save).not.toHaveBeenCalled();
     expect(screen.getByText("Meaningful Technical Assistance details are required.")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Verification Outcome"), "unable_to_verify");
     await user.click(screen.getByRole("button", { name: "Review decision" }));
+    expect(screen.queryByText(/Add a note explaining why/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save).not.toHaveBeenCalled();
     expect(screen.getByText(/Add a note explaining why/)).toBeInTheDocument();
+  });
+
+  // Conflict resolution can land the saved closure choice on the review screen with
+  // its confirmation unticked; a failed confirmation must expose that field.
+  it("routes a failed confirmation back to the step that holds the invalid choice", async () => {
+    const user = userEvent.setup();
+    const latest = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 4,
+      actionTaken: "no_further_action_required" as const,
+    };
+    const onRefresh = vi.fn().mockResolvedValue({ data: latest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(await screen.findByRole("button", { name: "Reload and discard my changes" }));
+
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save).toHaveBeenCalledTimes(1);
+    const closeConfirmation = screen.getByRole("checkbox", { name: "Close this case" });
+    expect(closeConfirmation).not.toBeChecked();
+    expect(screen.getByText("Confirm that you want to close this case.")).toBeInTheDocument();
+
+    await user.click(closeConfirmation);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[1][0]).toMatchObject({
+      expectedVersion: latest.reviewVersion,
+      actionTaken: "no_further_action_required",
+      caseState: "closed",
+    });
   });
 
   it("takes the next case in the original filtered/sorted queue snapshot and returns to the exact URL", async () => {

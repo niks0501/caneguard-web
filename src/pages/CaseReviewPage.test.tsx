@@ -1127,6 +1127,7 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Next step" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.click(within(modal).getByRole("button", { name: "Review decision" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
 
     expect(screen.getAllByText(/Select a Field Inspector before saving/i).length).toBeGreaterThan(0);
     expect(mutateAsync).not.toHaveBeenCalled();
@@ -1178,6 +1179,7 @@ describe("CaseReviewPage", () => {
       "unable_to_verify",
     );
     await user.click(within(modal).getByRole("button", { name: "Review decision" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
 
     expect(
       screen.getAllByText(/Add a note explaining why/i).length,
@@ -1200,6 +1202,7 @@ describe("CaseReviewPage", () => {
       "unable_to_verify",
     );
     await user.click(within(modal).getByRole("button", { name: "Review decision" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
 
     // The draft remains inline with its validation message; nothing is sent.
     expect(
@@ -1326,6 +1329,7 @@ describe("CaseReviewPage", () => {
       target: { value: "x".repeat(1001) },
     });
     await user.click(within(modal).getByRole("button", { name: "Review decision" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
 
     // The draft remains inline with its note-length error.
     expect(
@@ -1483,34 +1487,36 @@ describe("CaseReviewPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("exposes the decision summary with next action, classification, verification, and the resulting state", async () => {
+  it("states the pending decision as plain sentences", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    // Next step refuses to move on until an action is chosen.
+    // Moving to the action's fields never shows validation messages; they wait for Save.
     await user.click(screen.getByRole("button", { name: "Next step" }));
-    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Action details" })).toBeInTheDocument();
+    expect(screen.queryByText("Choose what should happen next.")).not.toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: "Back" }));
     await chooseAdvisory(user);
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     const summary = screen.getByRole("region", { name: "Review Summary" });
-    const echo = summary.querySelector(".decision-summary__grid") as HTMLElement;
-    expect(within(echo).getByText("Not classified")).toBeInTheDocument();
-    expect(within(echo).getByText("Not determined")).toBeInTheDocument();
-    expect(within(echo).getByText("Open")).toBeInTheDocument();
-    expect(within(echo).getByText("Provide Advisory or Assistance")).toBeInTheDocument();
+    expect(within(summary).getByText(/Provide Advisory or Assistance/)).toBeInTheDocument();
+    expect(within(summary).getByText(/the case stays open/i)).toBeInTheDocument();
+    expect(within(summary).getByText("Staff finding: not classified, not determined.")).toBeInTheDocument();
+    expect(within(summary).getByText(/There are no review notes/)).toBeInTheDocument();
 
     // The summary tracks each pending choice before confirmation.
     await user.click(screen.getByRole("button", { name: "Back" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
     await user.selectOptions(within(modal).getByLabelText("Verification Outcome"), "verified");
+    await user.type(within(modal).getByLabelText(/^Review notes/), "Leaf samples collected.");
     await user.click(screen.getByRole("button", { name: "Review decision" }));
 
     // The read-only summary reflects the current inline draft.
-    const updated = screen.getByRole("region", { name: "Review Summary" }).querySelector(".decision-summary__grid") as HTMLElement;
-    expect(within(updated).getByText("Sugarcane Smut")).toBeInTheDocument();
-    expect(within(updated).getByText("Verified")).toBeInTheDocument();
+    const updated = screen.getByRole("region", { name: "Review Summary" });
+    expect(within(updated).getByText("Staff finding: Sugarcane Smut, verified.")).toBeInTheDocument();
+    expect(within(updated).getByText(/Review notes are included/)).toBeInTheDocument();
   });
 
   it("distinguishes missing, forbidden, and rate-limited reports", () => {
@@ -1619,11 +1625,14 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "Next step" }));
     // The explicit closure confirmation is inline with the action.
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    const closeConfirmation = within(modal).getByRole("checkbox", { name: /Close this case/ });
-    expect(closeConfirmation).not.toBeChecked();
+    expect(within(modal).getByRole("checkbox", { name: /Close this case/ })).not.toBeChecked();
     await user.click(within(modal).getByRole("button", { name: "Review decision" }));
     expect(mutateAsync).not.toHaveBeenCalled();
+    // Confirming without the closure tick returns to the choice that blocks it.
+    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    expect(mutateAsync).not.toHaveBeenCalled();
     expect(within(modal).getByText("Confirm that you want to close this case.")).toBeInTheDocument();
+    const closeConfirmation = within(modal).getByRole("checkbox", { name: /Close this case/ });
     await user.click(closeConfirmation);
     expect(closeConfirmation).toBeChecked();
     expect(mutateAsync).not.toHaveBeenCalled();
@@ -1842,8 +1851,7 @@ describe("CaseReviewPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("shows existing work status without automatically selecting a new decision", async () => {
-    const user = userEvent.setup();
+  it("shows existing work status without automatically selecting a new decision", () => {
     const fieldValidationReport = mapReportDetail(
       reportDetailResponseSchema.parse({
         data: {
@@ -1861,13 +1869,10 @@ describe("CaseReviewPage", () => {
 
     expect(screen.getByText("Field visit assigned")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Next step" }));
-    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
 
   });
 
-  it("shows a closed case without automatically selecting a new closure decision", async () => {
-    const user = userEvent.setup();
+  it("shows a closed case without automatically selecting a new closure decision", () => {
     const closedReport = {
       ...report,
       reviewStatus: "verified_by_staff" as const,
@@ -1882,8 +1887,6 @@ describe("CaseReviewPage", () => {
 
     expect(screen.getByText("Resolved", { selector: ".status-badge__label" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "No Further Action" })).not.toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Next step" }));
-    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
 
   });
 
@@ -1916,6 +1919,7 @@ describe("CaseReviewPage", () => {
 
     // A closed case must be reopened by the same save that assigns the visit.
     await user.click(within(modal).getByRole("button", { name: "Review decision" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
     expect(
       within(modal).getByText(/Reopen the case before assigning/i),
     ).toBeInTheDocument();

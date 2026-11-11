@@ -32,8 +32,8 @@
 .review-support-types { display: flex; flex-wrap: wrap; gap: var(--space-4); border: 0; margin: 0; padding: 0; }
 .review-support-types legend { margin-bottom: var(--space-2); font-weight: 600; }
 .review-support-types label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
-.review-decision-flow .decision-summary__grid { margin-bottom: var(--space-4); }
-.review-decision-flow .detail-field { overflow-wrap: anywhere; }
+.review-decision-flow .review-summary-sentences { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
+.review-decision-flow .review-summary-sentences p { margin: 0; overflow-wrap: anywhere; }
 .review-save-success { margin-top: var(--space-4); display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); }
 .review-save-success p { flex-basis: 100%; margin: 0; font-weight: 600; }
 @media (max-width: 760px) {
