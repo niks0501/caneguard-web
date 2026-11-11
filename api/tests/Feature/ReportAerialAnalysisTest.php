@@ -9,9 +9,11 @@ use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Process\PendingProcess;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -241,14 +243,127 @@ class ReportAerialAnalysisTest extends TestCase
             ->json('data.uuid');
         $row = ReportAerialAnalysis::query()->where('uuid', $uuid)->firstOrFail();
 
-        $this->deleteJson("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}")->assertNoContent();
+        $removal = $this->deleteJson("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}")
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['removal_id']])
+            ->json('data.removal_id');
 
         $this->getJson("/api/v1/reports/{$report->uuid}")->assertJsonCount(0, 'data.aerial_analyses');
         $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")->assertNotFound();
         Storage::disk('local')->assertExists($row->image_path);
         Storage::disk('local')->assertExists($row->mask_path);
+        $this->assertSame($removal, ReportAerialAnalysis::query()->where('uuid', $uuid)->value('removal_id'));
         $this->assertNotNull($row->fresh()->removed_at);
         $this->assertSame($reviewer->id, $row->fresh()->removed_by);
+    }
+
+    public function test_a_second_removal_keeps_the_existing_removal_identity(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+        $uuid = $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->json('data.uuid');
+        $delete = "/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}";
+        $firstRemoval = $this->deleteJson($delete)->json('data.removal_id');
+
+        $this->deleteJson($delete)->assertNotFound();
+
+        $row = ReportAerialAnalysis::query()->where('uuid', $uuid)->firstOrFail();
+        $this->assertSame($firstRemoval, $row->removal_id);
+        $this->assertNotNull($row->removed_at);
+    }
+
+    public function test_restore_undoes_a_removal_and_is_idempotent(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+        $uuid = $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->json('data.uuid');
+        $removalId = $this->deleteJson("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}")
+            ->json('data.removal_id');
+        $restore = "/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/restore";
+
+        $this->postJson($restore, ['removal_id' => $removalId])->assertOk()->assertJsonPath('data.uuid', $uuid);
+        $this->postJson($restore, ['removal_id' => $removalId])->assertOk()->assertJsonPath('data.uuid', $uuid);
+
+        $row = ReportAerialAnalysis::query()->where('uuid', $uuid)->firstOrFail();
+        $this->assertNull($row->removed_at);
+        $this->assertNull($row->removed_by);
+        $this->assertSame($removalId, $row->removal_id);
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertJsonCount(1, 'data.aerial_analyses')
+            ->assertJsonPath('data.aerial_analyses.0.uuid', $uuid);
+        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")->assertOk();
+    }
+
+    public function test_restore_refuses_a_stale_or_missing_removal_identity(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+        $uuid = $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->json('data.uuid');
+        $delete = "/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}";
+        $restore = "{$delete}/restore";
+        $firstRemoval = $this->deleteJson($delete)->json('data.removal_id');
+        $staleRemoval = (string) Str::uuid();
+
+        $this->postJson($restore)->assertStatus(422);
+        $this->postJson($restore, ['removal_id' => 'not-a-uuid'])->assertStatus(422);
+        $this->postJson($restore, ['removal_id' => $staleRemoval])->assertStatus(409);
+        $this->assertNotNull(ReportAerialAnalysis::query()->where('uuid', $uuid)->value('removed_at'));
+
+        $this->postJson($restore, ['removal_id' => $firstRemoval])->assertOk();
+        $secondRemoval = $this->deleteJson($delete)->json('data.removal_id');
+        $this->assertNotSame($firstRemoval, $secondRemoval);
+
+        $this->postJson($restore, ['removal_id' => $firstRemoval])->assertStatus(409);
+
+        $row = ReportAerialAnalysis::query()->where('uuid', $uuid)->firstOrFail();
+        $this->assertNotNull($row->removed_at);
+        $this->assertSame($secondRemoval, $row->removal_id);
+    }
+
+    public function test_restore_is_refused_across_reports_roles_and_flag_off(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        [$one, $two] = [Report::factory()->create(), Report::factory()->create()];
+        $this->actingAs($reviewer, 'web');
+        $uuid = $this->postJson("/api/v1/reports/{$one->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->json('data.uuid');
+        $removalId = $this->deleteJson("/api/v1/reports/{$one->uuid}/aerial-analyses/{$uuid}")
+            ->json('data.removal_id');
+        $restore = "/api/v1/reports/{$one->uuid}/aerial-analyses/{$uuid}/restore";
+
+        $this->postJson("/api/v1/reports/{$two->uuid}/aerial-analyses/{$uuid}/restore", ['removal_id' => $removalId])
+            ->assertNotFound();
+        $this->postJson("/api/v1/reports/{$one->uuid}/aerial-analyses/unknown/restore", ['removal_id' => $removalId])
+            ->assertNotFound();
+
+        config(['caneguard.aerial.enabled' => false]);
+        $this->postJson($restore, ['removal_id' => $removalId])->assertNotFound();
+        $this->enable();
+
+        Auth::forgetGuards();
+        $this->flushSession();
+        $this->actingAs(User::factory()->fieldReporter()->create(), 'web')
+            ->postJson($restore, ['removal_id' => $removalId])->assertForbidden();
+        Auth::forgetGuards();
+        $this->flushSession();
+        Sanctum::actingAs(User::factory()->fieldReporter()->create(), ['*']);
+        $this->postJson($restore, ['removal_id' => $removalId])->assertForbidden();
+
+        $this->assertNotNull(ReportAerialAnalysis::query()->where('uuid', $uuid)->value('removed_at'));
     }
 
     public function test_an_analysis_cannot_be_read_through_another_report(): void

@@ -177,6 +177,16 @@ export function useRemoveAerialAnalysis(reportId: string) {
   });
 }
 
+export function useRestoreAerialAnalysis(reportId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { analysisUuid: string; removalId: string }) =>
+      reportsRepository.restoreAerialAnalysis(reportId, input.analysisUuid, input.removalId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) }),
+  });
+}
+
 export function useAerialMask(maskUrl: string) {
   return useQuery({
     queryKey: ["aerial-mask", maskUrl],

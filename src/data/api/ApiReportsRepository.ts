@@ -31,6 +31,7 @@ import { mapMonthlyReportSummary } from "./mappers/reporting.mapper";
 import {
   advisoriesResponseSchema,
   aerialAnalysisResponseSchema,
+  aerialRemovalResponseSchema,
   possibleRecentMatchesResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
@@ -325,10 +326,25 @@ export class ApiReportsRepository implements ReportsRepository {
     return mapAerialAnalysis(aerialAnalysisResponseSchema.parse(response.data).data);
   }
 
-  async removeAerialAnalysis(reportId: string, analysisUuid: string): Promise<void> {
-    await this.client.delete(
+  async removeAerialAnalysis(reportId: string, analysisUuid: string): Promise<{ removalId: string }> {
+    const response = await this.client.delete(
       `/api/v1/reports/${encodeURIComponent(reportId)}/aerial-analyses/${encodeURIComponent(analysisUuid)}`,
     );
+
+    return { removalId: aerialRemovalResponseSchema.parse(response.data).data.removal_id };
+  }
+
+  async restoreAerialAnalysis(
+    reportId: string,
+    analysisUuid: string,
+    removalId: string,
+  ): Promise<AerialAnalysis> {
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/aerial-analyses/${encodeURIComponent(analysisUuid)}/restore`,
+      { removal_id: removalId },
+    );
+
+    return mapAerialAnalysis(aerialAnalysisResponseSchema.parse(response.data).data);
   }
 
   async getAerialMask(maskUrl: string): Promise<Blob> {

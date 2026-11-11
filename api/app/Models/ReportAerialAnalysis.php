@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'inference_ms',
     'removed_at',
     'removed_by',
+    'removal_id',
 ])]
 class ReportAerialAnalysis extends Model
 {

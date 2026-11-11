@@ -43,7 +43,9 @@ export interface ReportsRepository {
   ): Promise<UpdateAffectedFieldsResult>;
   /** Experimental aerial canopy check; supporting evidence only. */
   addAerialAnalysis(reportId: string, image: File): Promise<AerialAnalysis>;
-  removeAerialAnalysis(reportId: string, analysisUuid: string): Promise<void>;
+  removeAerialAnalysis(reportId: string, analysisUuid: string): Promise<{ removalId: string }>;
+  /** Undoes the named removal; the check returns to the case. */
+  restoreAerialAnalysis(reportId: string, analysisUuid: string, removalId: string): Promise<AerialAnalysis>;
   getAerialMask(maskUrl: string): Promise<Blob>;
 }
 

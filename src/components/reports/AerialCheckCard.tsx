@@ -5,6 +5,7 @@ import {
   useAddAerialAnalysis,
   useAerialMask,
   useRemoveAerialAnalysis,
+  useRestoreAerialAnalysis,
 } from "../../hooks/useReports";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { formatDateTime } from "../../lib/formatters";
@@ -16,6 +17,9 @@ const MAX_BYTES = 20 * 1024 * 1024;
 const fileHint = "Use a JPG, PNG or WebP under 20 MB.";
 
 type Highlights = "off" | "abnormal" | "both";
+
+type UndoTarget = { analysis: AerialAnalysis; removalId: string; removalSeq: number };
+type UndoState = { target: UndoTarget; notice: "failed" | "stale" | null };
 
 function errorMessage(error: unknown): string {
   const status = error instanceof ApiError ? error.status : undefined;
@@ -222,6 +226,10 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const online = useOnlineStatus();
   const add = useAddAerialAnalysis(report.uuid);
   const remove = useRemoveAerialAnalysis(report.uuid);
+  const restore = useRestoreAerialAnalysis(report.uuid);
+  const [undo, setUndo] = useState<UndoState | null>(null);
+  const nextOperation = useRef(0);
+  const lastUploadSeq = useRef(0);
   const [problem, setProblem] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
   const analyses = report.aerialAnalyses ?? [];
@@ -234,8 +242,13 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       return;
     }
     setProblem(null);
+    const uploadSeq = ++nextOperation.current;
     add.mutate(file, {
-      onSuccess: () => setLastFile(null),
+      onSuccess: () => {
+        setLastFile(null);
+        lastUploadSeq.current = Math.max(lastUploadSeq.current, uploadSeq);
+        setUndo((current) => (current && current.target.removalSeq < uploadSeq ? null : current));
+      },
       onError: (error) => {
         if (!(error instanceof ApiError && error.status === 429)) setLastFile(null);
         setProblem(errorMessage(error));
@@ -246,6 +259,26 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
   const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
   const closeRemoval = () => setPendingRemoval(null);
+  const removeConfirmed = (analysis: AerialAnalysis) => {
+    const removalSeq = ++nextOperation.current;
+    remove.mutate(analysis.uuid, {
+      onSuccess: (removal) => {
+        if (removalSeq < lastUploadSeq.current) return;
+        setUndo({ target: { analysis, removalId: removal.removalId, removalSeq }, notice: null });
+      },
+    });
+  };
+  const undoRemoval = (target: UndoTarget) =>
+    restore.mutate(
+      { analysisUuid: target.analysis.uuid, removalId: target.removalId },
+      {
+        onSuccess: () => setUndo((current) => (current?.target === target ? null : current)),
+        onError: (error) => {
+          const notice = error instanceof ApiError && error.status === 409 ? "stale" : "failed";
+          setUndo((current) => (current?.target === target ? { target, notice } : current));
+        },
+      },
+    );
 
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
@@ -295,11 +328,25 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         />
       ) : null}
       {remove.isError ? <p className="form-error" role="alert">Could not remove the check. Try again.</p> : null}
+      {undo && undo.notice !== "stale" ? (
+        <p className="aerial-check__undo" role="status">
+          Check removed.{" "}
+          <Button type="button" variant="secondary" onClick={() => undoRemoval(undo.target)} disabled={restore.isPending}>
+            Undo
+          </Button>
+        </p>
+      ) : null}
+      {undo?.notice === "failed" ? <p className="form-error" role="alert">Could not undo. Try again.</p> : null}
+      {undo?.notice === "stale" ? (
+        <p className="form-error" role="alert">
+          This check was changed by someone else. Refresh the case before undoing.
+        </p>
+      ) : null}
 
       <Modal
         id="aerial-remove"
         title="Remove this aerial check?"
-        description="The photo and its result are removed from the case. You can add the photo again later."
+        description="The photo and its result are removed from the case. You can undo the removal right after."
         open={pendingRemoval !== null}
         onClose={closeRemoval}
         footer={
@@ -310,7 +357,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
             <Button
               type="button"
               onClick={() => {
-                if (pendingRemoval) remove.mutate(pendingRemoval.uuid);
+                if (pendingRemoval) removeConfirmed(pendingRemoval);
                 closeRemoval();
               }}
             >
