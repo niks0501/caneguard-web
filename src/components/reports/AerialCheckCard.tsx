@@ -147,7 +147,7 @@ function AerialResult({
             max={100}
             value={reveal}
             onChange={(event) => setReveal(Number(event.currentTarget.value))}
-            aria-label={`Problem-area highlights on ${reveal}% of the photo`}
+            aria-label="Highlight reveal"
           />
           <span>Problem areas</span>
         </label>

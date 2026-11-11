@@ -178,14 +178,16 @@ describe("AerialCheckCard", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  // Intent: the aerial check opens on problem areas only, and the compare slider names the highlighted amount.
-  it("defaults to problem areas and names the compare amount as it is dragged", () => {
+  // Intent: the aerial check opens on problem areas only, and the compare slider keeps one accurate name in every mode.
+  it("defaults to problem areas and keeps the compare slider name mode-neutral", async () => {
     setup();
     render(<AerialCheckCard report={report([analysis()])} />);
     expect(screen.getByRole("radio", { name: "Problem areas" })).toBeChecked();
 
-    const slider = screen.getByRole("slider", { name: "Problem-area highlights on 100% of the photo" });
-    fireEvent.change(slider, { target: { value: "40" } });
-    expect(slider).toHaveAccessibleName("Problem-area highlights on 40% of the photo");
+    for (const mode of ["Photo only", "Problem and healthy", "Problem areas"]) {
+      await userEvent.click(screen.getByRole("radio", { name: mode }));
+      expect(screen.getByRole("radio", { name: mode })).toBeChecked();
+      expect(screen.getByRole("slider", { name: "Highlight reveal" })).toBeInTheDocument();
+    }
   });
 });
