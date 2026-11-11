@@ -21,8 +21,20 @@ function formatNotificationTime(timestamp: string | null) {
   }).format(date);
 }
 
+const visitDateEventTypes = [
+  "field_validation_assigned",
+  "field_validation_assignment_changed",
+  "follow_up_due",
+];
+
+function presentNotificationMessage(notification: AppNotification) {
+  return visitDateEventTypes.includes(notification.eventType)
+    ? formatCalendarDaysInText(notification.message)
+    : notification.message;
+}
+
 function notificationLabel(notification: AppNotification) {
-  return `${notification.title}: ${formatCalendarDaysInText(notification.message)}`;
+  return `${notification.title}: ${presentNotificationMessage(notification)}`;
 }
 
 export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
@@ -188,7 +200,7 @@ export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
                     <span className="notification-item__marker" aria-hidden="true" />
                     <span className="notification-item__content">
                       <strong>{notification.title}</strong>
-                      <span>{formatCalendarDaysInText(notification.message)}</span>
+                      <span>{presentNotificationMessage(notification)}</span>
                       <small>
                         {notification.referenceCode ?? "Case activity"} · {formatNotificationTime(notification.createdAt)}
                       </small>

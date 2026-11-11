@@ -61,7 +61,7 @@ import {
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
-import { formatCalendarDaysInText, formatDate, formatDateTime } from "../lib/formatters";
+import { formatCalendarDate, formatDate, formatDateTime } from "../lib/formatters";
 
 type MetadataDraft = {
   barangay: string;
@@ -86,23 +86,46 @@ export interface CaseHistoryEntry {
   notes?: string | null;
 }
 
-const visitDateLabels = ["Target visit", "Visit by", "Correction"];
+const calendarDayPattern = /^\d{4}-\d{2}-\d{2}$/;
 
-function presentHistoryField(
-  field: CaseHistoryEntry["fields"][number],
-): CaseHistoryEntry["fields"][number] {
-  if (!visitDateLabels.includes(field.label)) return field;
+function presentCalendarDay(value: string): string {
+  return calendarDayPattern.test(value) ? formatCalendarDate(value) : value;
+}
+
+function presentCalendarDayRange(value: string): string {
+  return value.split(" to ").map(presentCalendarDay).join(" to ");
+}
+
+function isVisitDateCorrection(entry: CaseHistoryEntry): boolean {
+  const auditedField = entry.fields.find((field) => field.label === "Field");
+  return typeof auditedField?.value === "string"
+    && auditedField.value.toLowerCase().includes("target date");
+}
+
+function presentHistoryEntry(entry: CaseHistoryEntry): CaseHistoryEntry {
+  const visitDateCorrection = isVisitDateCorrection(entry);
   return {
-    label: field.label === "Target visit" ? "Visit by" : field.label,
-    value: typeof field.value === "string" ? formatCalendarDaysInText(field.value) : field.value,
+    ...entry,
+    fields: entry.fields.map((field) => {
+      if (field.label === "Target visit" || field.label === "Visit by") {
+        return {
+          label: field.label === "Target visit" ? "Visit by" : field.label,
+          value: typeof field.value === "string" ? presentCalendarDay(field.value) : field.value,
+        };
+      }
+      if (visitDateCorrection && field.label === "Correction") {
+        return {
+          ...field,
+          value: typeof field.value === "string" ? presentCalendarDayRange(field.value) : field.value,
+        };
+      }
+      return field;
+    }),
   };
 }
 
 function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
-  return rawCaseHistory(report).map((entry) => ({
-    ...entry,
-    fields: entry.fields.map(presentHistoryField),
-  }));
+  return rawCaseHistory(report).map(presentHistoryEntry);
 }
 
 function rawCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {

@@ -1691,6 +1691,19 @@ describe("CaseReviewPage", () => {
             fields: [{ label: "Tracking code", value: "2026-07-22" }],
             notes: null,
           },
+          {
+            id: "correction-10",
+            type: "correction" as const,
+            typeLabel: "Correction",
+            timestamp: "2026-07-16T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [
+              { label: "Field", value: "farmer or farm owner name" },
+              { label: "Correction", value: "Owner 2026-07-22 to Owner Reyes" },
+              { label: "Reason", value: "Name corrected from the field note." },
+            ],
+            notes: null,
+          },
         ],
       },
     };
@@ -1700,6 +1713,7 @@ describe("CaseReviewPage", () => {
     const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Jul 22, 2026 to Jul 23, 2026")).toBeInTheDocument();
     expect(within(timeline).getByText("2026-07-22")).toBeInTheDocument();
+    expect(within(timeline).getByText("Owner 2026-07-22 to Owner Reyes")).toBeInTheDocument();
   });
 
   it("renders review events in the timeline when present", () => {
