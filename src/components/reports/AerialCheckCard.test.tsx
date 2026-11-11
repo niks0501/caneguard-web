@@ -53,6 +53,7 @@ const pending = () => {
   });
   return { mutate, callbacks };
 };
+const fails = () => vi.fn((_arg: unknown, options?: { onError?: () => void }) => options?.onError?.());
 
 function setup(
   options: {
@@ -329,9 +330,51 @@ describe("AerialCheckCard", () => {
     expect(restore.mutate).toHaveBeenLastCalledWith("a0", expect.any(Object));
   });
 
+  // Intent: a re-removed check is a new removal, so an older upload must not clear its Undo.
+  it("keeps the newer undo target when an upload finishes after the check is removed again", async () => {
+    const uploads = pending();
+    const restore = pending();
+    const { remove } = setup({ mutate: uploads.mutate, restoreMutate: restore.mutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+
+    await userEvent.upload(
+      screen.getByLabelText(/another aerial photo/i),
+      new File(["x"], "field.jpg", { type: "image/jpeg" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    act(() => uploads.callbacks[0]?.onSuccess?.());
+
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(restore.mutate).toHaveBeenLastCalledWith("a1", expect.any(Object));
+  });
+
+  // Intent: a failed undo reports only against the removal it belongs to.
+  it("shows the undo error only for the target that failed", async () => {
+    const { remove, restore } = setup({ restoreMutate: fails(), restoreError: true });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not undo. Try again.");
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(restore.mutate).toHaveBeenLastCalledWith("a0", expect.any(Object));
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not undo. Try again.");
+  });
+
   // Intent: a failed undo says so and keeps Undo available to try again.
   it("keeps Undo available when restoring fails", async () => {
-    const restoreMutate = vi.fn();
+    const restoreMutate = fails();
     const { remove } = setup({ restoreMutate, restoreError: true });
     remove.mutate = succeeds();
     render(<AerialCheckCard report={report([analysis()])} />);
