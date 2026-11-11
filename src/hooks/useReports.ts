@@ -181,8 +181,8 @@ export function useRestoreAerialAnalysis(reportId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (analysisUuid: string) =>
-      reportsRepository.restoreAerialAnalysis(reportId, analysisUuid),
+    mutationFn: (input: { analysisUuid: string; removalId: string }) =>
+      reportsRepository.restoreAerialAnalysis(reportId, input.analysisUuid, input.removalId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reportKeys.detail(reportId) }),
   });
 }

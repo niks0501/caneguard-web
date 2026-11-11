@@ -429,7 +429,7 @@ export class MockReportsRepository implements ReportsRepository {
     throw new Error("The aerial check is not available in demo mode.");
   }
 
-  async removeAerialAnalysis(): Promise<void> {
+  async removeAerialAnalysis(): Promise<{ removalId: string }> {
     throw new Error("The aerial check is not available in demo mode.");
   }
 

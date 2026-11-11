@@ -9,8 +9,8 @@ use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -56,22 +56,33 @@ class ReportAerialAnalysisController extends Controller
         return $this->stream($analysis->mask_path, 'image/png');
     }
 
-    public function destroy(Request $request, Report $report, ReportAerialAnalysis $analysis): Response
+    public function destroy(Request $request, Report $report, ReportAerialAnalysis $analysis): JsonResponse
     {
         $this->gate($report, $analysis);
 
+        $removalId = (string) Str::uuid();
         $analysis->forceFill([
             'removed_at' => now(),
             'removed_by' => $request->user()->getKey(),
+            'removal_id' => $removalId,
         ])->save();
 
-        return response()->noContent();
+        return response()->json(['data' => ['removal_id' => $removalId]]);
     }
 
-    /** Undoes a removal; restoring an active check is a no-op. */
-    public function restore(Report $report, ReportAerialAnalysis $analysis): JsonResponse
+    /** Undoes the named removal; restoring an active check is a no-op. */
+    public function restore(Request $request, Report $report, ReportAerialAnalysis $analysis): JsonResponse
     {
         $this->gate($report, $analysis, allowRemoved: true);
+
+        $removalId = $request->input('removal_id');
+        abort_if(
+            ! is_string($removalId)
+                || $analysis->removal_id === null
+                || ! hash_equals($analysis->removal_id, $removalId),
+            409,
+            'The check was changed by someone else.',
+        );
 
         if ($analysis->removed_at !== null) {
             $analysis->forceFill(['removed_at' => null, 'removed_by' => null])->save();

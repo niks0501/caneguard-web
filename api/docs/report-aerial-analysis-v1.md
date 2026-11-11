@@ -20,7 +20,9 @@ Choose a photo while online; the latest result shows canopy shares and photo
 highlights, opening on Problem areas. Use Highlights and the Photo / Problem
 areas compare slider to inspect the overlay, or expand Earlier aerial checks
 to see previous uploads. Remove hides a check from the case but retains its
-files; Undo, shown after a removal, puts the check back. If an upload's outcome
+files and answers with the removal identity; Undo, shown after a removal, puts
+the check back with that identity. If someone else changed the check in the
+meantime, Undo is refused and the case must be refreshed. If an upload's outcome
 is unknown, refresh the case before trying again to avoid a duplicate.
 
 ## Authorization
@@ -35,11 +37,12 @@ Field reporters and mobile tokens get `403`.
 | `POST /api/v1/reports/{report}/aerial-analyses` | `201` with the analysis. Multipart field `image`: jpg, jpeg, png or webp, at most 20 MiB and 10,000 px per side. Throttled to 6 per minute. |
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/image` | The stored photo, private cache, `nosniff`. |
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/mask` | 8-bit PNG class mask, same orientation as the displayed photo. |
-| `DELETE /api/v1/reports/{report}/aerial-analyses/{analysis}` | `204`. Soft removal: the row is hidden and the files are kept. |
-| `POST /api/v1/reports/{report}/aerial-analyses/{analysis}/restore` | `200` with the analysis. Undoes a removal; an active analysis is returned unchanged. |
+| `DELETE /api/v1/reports/{report}/aerial-analyses/{analysis}` | `200` with `{"data":{"removal_id":"…"}}`. Soft removal: the row is hidden, the files are kept and a new removal identity is minted. |
+| `POST /api/v1/reports/{report}/aerial-analyses/{analysis}/restore` | `200` with the analysis. Body `{"removal_id":"…"}` must name the current removal; undoing an already undone removal is returned unchanged. |
 
 Errors: `404` flag off, unknown analysis, or a removed analysis on any route but
-restore; `422` bad file; `429`
+restore; `409` the restore body does not name the analysis's current removal
+(stale or missing identity); `422` bad file; `429`
 another check is running (single-run lock) or the upload rate limit was reached;
 `503` the check could not run. On failure the server attempts to delete the
 image and mask; cleanup failures are logged and can leave orphaned files.

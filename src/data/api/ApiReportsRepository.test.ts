@@ -555,10 +555,11 @@ describe("ApiReportsRepository", () => {
     expect(summary).not.toHaveProperty("expertVerification");
   });
 
-  // Intent: the aerial photo goes up as multipart `image`, removal is a plain DELETE and undo POSTs restore.
+  // Intent: the aerial photo goes up as multipart `image`, removal answers the removal identity and undo names it.
   it("uploads an aerial photo, removes a check and restores it", async () => {
     const id = reportDetailDto.identity.uuid;
     let received = "";
+    let restoreBody: unknown = null;
     const dto = {
       uuid: "a1",
       image_url: `/api/v1/reports/${id}/aerial-analyses/a1/image`,
@@ -581,8 +582,14 @@ describe("ApiReportsRepository", () => {
         received = await request.text();
         return HttpResponse.json({ data: dto }, { status: 201 });
       }),
-      http.delete(`${baseUrl}/api/v1/reports/${id}/aerial-analyses/a1`, () => new HttpResponse(null, { status: 204 })),
-      http.post(`${baseUrl}/api/v1/reports/${id}/aerial-analyses/a1/restore`, () => HttpResponse.json({ data: dto })),
+      http.delete(
+        `${baseUrl}/api/v1/reports/${id}/aerial-analyses/a1`,
+        () => HttpResponse.json({ data: { removal_id: "rm-1" } }),
+      ),
+      http.post(`${baseUrl}/api/v1/reports/${id}/aerial-analyses/a1/restore`, async ({ request }) => {
+        restoreBody = await request.json();
+        return HttpResponse.json({ data: dto });
+      }),
     );
     const repository = new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
 
@@ -590,7 +597,11 @@ describe("ApiReportsRepository", () => {
 
     expect(received).toContain('name="image"');
     expect(analysis).toMatchObject({ uuid: "a1", abnormalCanopyPercent: 18 });
-    await expect(repository.removeAerialAnalysis(id, "a1")).resolves.toBeUndefined();
-    await expect(repository.restoreAerialAnalysis(id, "a1")).resolves.toMatchObject({ uuid: "a1", abnormalCanopyPercent: 18 });
+    await expect(repository.removeAerialAnalysis(id, "a1")).resolves.toEqual({ removalId: "rm-1" });
+    await expect(repository.restoreAerialAnalysis(id, "a1", "rm-1")).resolves.toMatchObject({
+      uuid: "a1",
+      abnormalCanopyPercent: 18,
+    });
+    expect(restoreBody).toEqual({ removal_id: "rm-1" });
   });
 });

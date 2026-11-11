@@ -44,8 +44,11 @@ const report = (aerialAnalyses: AerialAnalysis[], extra: Partial<DiseaseReport> 
     ...extra,
   }) as unknown as DiseaseReport;
 
-type Settle = { onSuccess?: () => void };
-const succeeds = () => vi.fn((_uuid: string, callbacks?: Settle) => callbacks?.onSuccess?.());
+type Settle = {
+  onSuccess?: (result?: { removalId: string }) => void;
+  onError?: (error: unknown) => void;
+};
+const succeeds = () => vi.fn((_arg: unknown, callbacks?: Settle) => callbacks?.onSuccess?.({ removalId: "rm-1" }));
 const pending = () => {
   const callbacks: Settle[] = [];
   const mutate = vi.fn((_arg: unknown, options?: Settle) => {
@@ -53,7 +56,8 @@ const pending = () => {
   });
   return { mutate, callbacks };
 };
-const fails = () => vi.fn((_arg: unknown, options?: { onError?: () => void }) => options?.onError?.());
+const fails = (error: unknown = new Error("nope")) =>
+  vi.fn((_arg: unknown, options?: Settle) => options?.onError?.(error));
 
 function setup(
   options: {
@@ -225,7 +229,10 @@ describe("AerialCheckCard", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Check removed.");
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(restoreMutate).toHaveBeenCalledWith("a1", expect.any(Object));
+    expect(restoreMutate).toHaveBeenCalledWith(
+      { analysisUuid: "a1", removalId: "rm-1" },
+      expect.any(Object),
+    );
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 
@@ -240,7 +247,10 @@ describe("AerialCheckCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
     expect(remove.mutate).toHaveBeenCalledWith("a0", expect.any(Object));
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(restoreMutate).toHaveBeenCalledWith("a0", expect.any(Object));
+    expect(restoreMutate).toHaveBeenCalledWith(
+      { analysisUuid: "a0", removalId: "rm-1" },
+      expect.any(Object),
+    );
   });
 
   // Intent: Undo only appears once the removal succeeded on the server.
@@ -285,7 +295,10 @@ describe("AerialCheckCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
 
-    expect(restoreMutate).toHaveBeenCalledWith("a1", expect.any(Object));
+    expect(restoreMutate).toHaveBeenCalledWith(
+      { analysisUuid: "a1", removalId: "rm-1" },
+      expect.any(Object),
+    );
   });
 
   // Intent: an undo that finishes late must not clear the newer removal's Undo.
@@ -302,11 +315,14 @@ describe("AerialCheckCard", () => {
     remove.mutate = removals.mutate;
     await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
     await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
-    act(() => removals.callbacks[0]?.onSuccess?.());
+    act(() => removals.callbacks[0]?.onSuccess?.({ removalId: "rm-b" }));
     act(() => restore.callbacks[0]?.onSuccess?.());
 
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(restore.mutate).toHaveBeenLastCalledWith("a0", expect.any(Object));
+    expect(restore.mutate).toHaveBeenLastCalledWith(
+      { analysisUuid: "a0", removalId: "rm-b" },
+      expect.any(Object),
+    );
   });
 
   // Intent: a photo that finishes uploading late must not clear a removal made meanwhile.
@@ -327,7 +343,10 @@ describe("AerialCheckCard", () => {
     act(() => uploads.callbacks[0]?.onSuccess?.());
 
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(restore.mutate).toHaveBeenLastCalledWith("a0", expect.any(Object));
+    expect(restore.mutate).toHaveBeenLastCalledWith(
+      { analysisUuid: "a0", removalId: "rm-1" },
+      expect.any(Object),
+    );
   });
 
   // Intent: a re-removed check is a new removal, so an older upload must not clear its Undo.
@@ -350,7 +369,10 @@ describe("AerialCheckCard", () => {
     act(() => uploads.callbacks[0]?.onSuccess?.());
 
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(restore.mutate).toHaveBeenLastCalledWith("a1", expect.any(Object));
+    expect(restore.mutate).toHaveBeenLastCalledWith(
+      { analysisUuid: "a1", removalId: "rm-1" },
+      expect.any(Object),
+    );
   });
 
   // Intent: a failed undo reports only against the removal it belongs to.
@@ -368,8 +390,29 @@ describe("AerialCheckCard", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(restore.mutate).toHaveBeenLastCalledWith("a0", expect.any(Object));
+    expect(restore.mutate).toHaveBeenLastCalledWith(
+      { analysisUuid: "a0", removalId: "rm-1" },
+      expect.any(Object),
+    );
     expect(screen.getByRole("alert")).toHaveTextContent("Could not undo. Try again.");
+  });
+
+  // Intent: a stale Undo is dropped and the reviewer is told the check changed.
+  it("drops Undo and says the check changed when the server rejects a stale undo", async () => {
+    const restoreMutate = fails(new ApiError("The check was changed by someone else.", { status: 409 }));
+    const { remove, restore } = setup({ restoreMutate, restoreError: true });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/changed by someone else/i);
+    expect(restore.mutate).toHaveBeenCalledWith(
+      { analysisUuid: "a1", removalId: "rm-1" },
+      expect.any(Object),
+    );
   });
 
   // Intent: a failed undo says so and keeps Undo available to try again.

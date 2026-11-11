@@ -18,7 +18,7 @@ const fileHint = "Use a JPG, PNG or WebP under 20 MB.";
 
 type Highlights = "off" | "abnormal" | "both";
 
-type UndoTarget = { analysis: AerialAnalysis };
+type UndoTarget = { analysis: AerialAnalysis; removalId: string };
 
 function errorMessage(error: unknown): string {
   const status = error instanceof ApiError ? error.status : undefined;
@@ -228,6 +228,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const restore = useRestoreAerialAnalysis(report.uuid);
   const [removed, setRemoved] = useState<UndoTarget | null>(null);
   const [restoreFailed, setRestoreFailed] = useState<UndoTarget | null>(null);
+  const [staleUndo, setStaleUndo] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
   const analyses = report.aerialAnalyses ?? [];
@@ -256,13 +257,29 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
   const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
   const closeRemoval = () => setPendingRemoval(null);
-  const removeConfirmed = (analysis: AerialAnalysis) =>
-    remove.mutate(analysis.uuid, { onSuccess: () => setRemoved({ analysis }) });
-  const undoRemoval = (target: UndoTarget) =>
-    restore.mutate(target.analysis.uuid, {
-      onSuccess: () => setRemoved((current) => (current === target ? null : current)),
-      onError: () => setRestoreFailed(target),
+  const removeConfirmed = (analysis: AerialAnalysis) => {
+    setStaleUndo(false);
+    remove.mutate(analysis.uuid, {
+      onSuccess: (removal) => setRemoved({ analysis, removalId: removal.removalId }),
     });
+  };
+  const undoRemoval = (target: UndoTarget) => {
+    setStaleUndo(false);
+    restore.mutate(
+      { analysisUuid: target.analysis.uuid, removalId: target.removalId },
+      {
+        onSuccess: () => setRemoved((current) => (current === target ? null : current)),
+        onError: (error) => {
+          if (error instanceof ApiError && error.status === 409) {
+            setRemoved((current) => (current === target ? null : current));
+            setStaleUndo(true);
+            return;
+          }
+          setRestoreFailed(target);
+        },
+      },
+    );
+  };
 
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
@@ -321,6 +338,11 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         </p>
       ) : null}
       {restoreFailed && restoreFailed === removed ? <p className="form-error" role="alert">Could not undo. Try again.</p> : null}
+      {staleUndo ? (
+        <p className="form-error" role="alert">
+          This check was changed by someone else. Refresh the case before undoing.
+        </p>
+      ) : null}
 
       <Modal
         id="aerial-remove"

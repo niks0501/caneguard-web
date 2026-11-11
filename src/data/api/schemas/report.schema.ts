@@ -102,6 +102,7 @@ export const aerialAnalysisSchema = z.object({
   created_at: z.iso.datetime({ offset: true }),
 });
 export const aerialAnalysisResponseSchema = z.object({ data: aerialAnalysisSchema });
+export const aerialRemovalResponseSchema = z.object({ data: z.object({ removal_id: z.string().min(1) }) });
 export const inspectorAttachmentSchema = z.object({
   client_uuid: z.string().min(1),
   arrived: z.boolean(),
