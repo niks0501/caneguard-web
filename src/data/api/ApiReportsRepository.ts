@@ -331,6 +331,14 @@ export class ApiReportsRepository implements ReportsRepository {
     );
   }
 
+  async restoreAerialAnalysis(reportId: string, analysisUuid: string): Promise<AerialAnalysis> {
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/aerial-analyses/${encodeURIComponent(analysisUuid)}/restore`,
+    );
+
+    return mapAerialAnalysis(aerialAnalysisResponseSchema.parse(response.data).data);
+  }
+
   async getAerialMask(maskUrl: string): Promise<Blob> {
     const response = await this.client.get<Blob>(maskUrl, { responseType: "blob" });
 

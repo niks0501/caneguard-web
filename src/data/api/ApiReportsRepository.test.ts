@@ -555,34 +555,34 @@ describe("ApiReportsRepository", () => {
     expect(summary).not.toHaveProperty("expertVerification");
   });
 
-  // Intent: the aerial photo goes up as multipart `image` and removal is a plain DELETE.
-  it("uploads an aerial photo and removes a check", async () => {
+  // Intent: the aerial photo goes up as multipart `image`, removal is a plain DELETE and undo POSTs restore.
+  it("uploads an aerial photo, removes a check and restores it", async () => {
     const id = reportDetailDto.identity.uuid;
     let received = "";
+    const dto = {
+      uuid: "a1",
+      image_url: `/api/v1/reports/${id}/aerial-analyses/a1/image`,
+      mask_url: `/api/v1/reports/${id}/aerial-analyses/a1/mask`,
+      image_width: 400,
+      image_height: 300,
+      mask_width: 400,
+      mask_height: 300,
+      enough_canopy: true,
+      normal_canopy_percent: 82,
+      abnormal_canopy_percent: 18,
+      canopy_coverage_percent: 71,
+      model_version: "aerial-v3",
+      uploaded_by: { uuid: "u1", name: "Rey" },
+      created_at: "2026-11-11T04:11:03.000000Z",
+    };
     server.use(
       http.post(`${baseUrl}/api/v1/reports/${id}/aerial-analyses`, async ({ request }) => {
         expect(request.headers.get("content-type")).toMatch(/^multipart\/form-data; boundary=/);
         received = await request.text();
-        return HttpResponse.json({
-          data: {
-            uuid: "a1",
-            image_url: `/api/v1/reports/${id}/aerial-analyses/a1/image`,
-            mask_url: `/api/v1/reports/${id}/aerial-analyses/a1/mask`,
-            image_width: 400,
-            image_height: 300,
-            mask_width: 400,
-            mask_height: 300,
-            enough_canopy: true,
-            normal_canopy_percent: 82,
-            abnormal_canopy_percent: 18,
-            canopy_coverage_percent: 71,
-            model_version: "aerial-v3",
-            uploaded_by: { uuid: "u1", name: "Rey" },
-            created_at: "2026-11-11T04:11:03.000000Z",
-          },
-        }, { status: 201 });
+        return HttpResponse.json({ data: dto }, { status: 201 });
       }),
       http.delete(`${baseUrl}/api/v1/reports/${id}/aerial-analyses/a1`, () => new HttpResponse(null, { status: 204 })),
+      http.post(`${baseUrl}/api/v1/reports/${id}/aerial-analyses/a1/restore`, () => HttpResponse.json({ data: dto })),
     );
     const repository = new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
 
@@ -591,5 +591,6 @@ describe("ApiReportsRepository", () => {
     expect(received).toContain('name="image"');
     expect(analysis).toMatchObject({ uuid: "a1", abnormalCanopyPercent: 18 });
     await expect(repository.removeAerialAnalysis(id, "a1")).resolves.toBeUndefined();
+    await expect(repository.restoreAerialAnalysis(id, "a1")).resolves.toMatchObject({ uuid: "a1", abnormalCanopyPercent: 18 });
   });
 });

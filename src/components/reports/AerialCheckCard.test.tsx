@@ -4,13 +4,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api/ApiError";
 import type { AerialAnalysis, DiseaseReport } from "../../domain/report.types";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
-import { useAddAerialAnalysis, useAerialMask, useRemoveAerialAnalysis } from "../../hooks/useReports";
+import {
+  useAddAerialAnalysis,
+  useAerialMask,
+  useRemoveAerialAnalysis,
+  useRestoreAerialAnalysis,
+} from "../../hooks/useReports";
 import { AerialCheckCard } from "./AerialCheckCard";
 
 vi.mock("../../hooks/useOnlineStatus", () => ({ useOnlineStatus: vi.fn() }));
 vi.mock("../../hooks/useReports", () => ({
   useAddAerialAnalysis: vi.fn(),
   useRemoveAerialAnalysis: vi.fn(),
+  useRestoreAerialAnalysis: vi.fn(),
   useAerialMask: vi.fn(),
 }));
 
@@ -38,14 +44,32 @@ const report = (aerialAnalyses: AerialAnalysis[], extra: Partial<DiseaseReport> 
     ...extra,
   }) as unknown as DiseaseReport;
 
-function setup(options: { online?: boolean; mutate?: ReturnType<typeof vi.fn>; pending?: boolean } = {}) {
+type Settle = { onSuccess?: () => void };
+const succeeds = () => vi.fn((_uuid: string, callbacks?: Settle) => callbacks?.onSuccess?.());
+
+function setup(
+  options: {
+    online?: boolean;
+    mutate?: ReturnType<typeof vi.fn>;
+    pending?: boolean;
+    restoreMutate?: ReturnType<typeof vi.fn>;
+    restoreError?: boolean;
+  } = {},
+) {
   const add = { mutate: options.mutate ?? vi.fn(), isPending: options.pending ?? false };
   const remove = { mutate: vi.fn(), isPending: false, isError: false };
+  const restore = {
+    mutate: options.restoreMutate ?? vi.fn(),
+    reset: vi.fn(),
+    isPending: false,
+    isError: options.restoreError ?? false,
+  };
   vi.mocked(useOnlineStatus).mockReturnValue(options.online ?? true);
   vi.mocked(useAddAerialAnalysis).mockReturnValue(add as never);
   vi.mocked(useRemoveAerialAnalysis).mockReturnValue(remove as never);
+  vi.mocked(useRestoreAerialAnalysis).mockReturnValue(restore as never);
   vi.mocked(useAerialMask).mockReturnValue({ data: undefined, isError: false } as never);
-  return { add, remove };
+  return { add, remove, restore };
 }
 
 describe("AerialCheckCard", () => {
@@ -164,7 +188,7 @@ describe("AerialCheckCard", () => {
     await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
     expect(remove.mutate).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
-    expect(remove.mutate).toHaveBeenCalledWith("a1");
+    expect(remove.mutate).toHaveBeenCalledWith("a1", expect.any(Object));
     expect(nativeConfirm).not.toHaveBeenCalled();
   });
 
@@ -176,6 +200,62 @@ describe("AerialCheckCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Keep it" }));
     expect(remove.mutate).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  // Intent: removing the latest check offers an in-app Undo that restores it on the server.
+  it("offers Undo after the latest check is removed and restores it", async () => {
+    const restoreMutate = succeeds();
+    const { remove } = setup({ restoreMutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    expect(screen.getByRole("dialog")).toHaveTextContent("You can undo the removal right after.");
+    expect(screen.getByRole("dialog")).not.toHaveTextContent(/add the photo again/i);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Check removed.");
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(restoreMutate).toHaveBeenCalledWith("a1", expect.any(Object));
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
+  // Intent: removing an earlier check through the same confirmation offers Undo for that check.
+  it("offers Undo for an earlier check and restores that check", async () => {
+    const restoreMutate = succeeds();
+    const { remove } = setup({ restoreMutate });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    expect(remove.mutate).toHaveBeenCalledWith("a0", expect.any(Object));
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(restoreMutate).toHaveBeenCalledWith("a0", expect.any(Object));
+  });
+
+  // Intent: Undo only appears once the removal succeeded on the server.
+  it("does not offer Undo when the removal has not succeeded", async () => {
+    setup();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
+  // Intent: a failed undo says so and keeps Undo available to try again.
+  it("keeps Undo available when restoring fails", async () => {
+    const restoreMutate = vi.fn();
+    const { remove } = setup({ restoreMutate, restoreError: true });
+    remove.mutate = succeeds();
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not undo. Try again.");
+    expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
   });
 
   // Intent: the aerial check opens on problem areas only, and the compare slider keeps one accurate name in every mode.

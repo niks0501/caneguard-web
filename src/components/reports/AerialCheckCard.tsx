@@ -5,6 +5,7 @@ import {
   useAddAerialAnalysis,
   useAerialMask,
   useRemoveAerialAnalysis,
+  useRestoreAerialAnalysis,
 } from "../../hooks/useReports";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { formatDateTime } from "../../lib/formatters";
@@ -222,6 +223,8 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const online = useOnlineStatus();
   const add = useAddAerialAnalysis(report.uuid);
   const remove = useRemoveAerialAnalysis(report.uuid);
+  const restore = useRestoreAerialAnalysis(report.uuid);
+  const [removed, setRemoved] = useState<AerialAnalysis | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
   const analyses = report.aerialAnalyses ?? [];
@@ -229,6 +232,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
 
   const submit = (file: File) => {
     setLastFile(file);
+    setRemoved(null);
     if (!ACCEPTED_TYPES.includes(file.type) || file.size > MAX_BYTES) {
       setProblem(fileHint);
       return;
@@ -246,6 +250,13 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
   const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
   const closeRemoval = () => setPendingRemoval(null);
+  const removeConfirmed = (analysis: AerialAnalysis) => {
+    setRemoved(null);
+    restore.reset();
+    remove.mutate(analysis.uuid, { onSuccess: () => setRemoved(analysis) });
+  };
+  const undoRemoval = (analysis: AerialAnalysis) =>
+    restore.mutate(analysis.uuid, { onSuccess: () => setRemoved(null) });
 
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
@@ -295,11 +306,20 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         />
       ) : null}
       {remove.isError ? <p className="form-error" role="alert">Could not remove the check. Try again.</p> : null}
+      {removed ? (
+        <p className="aerial-check__undo" role="status">
+          Check removed.{" "}
+          <Button type="button" variant="secondary" onClick={() => undoRemoval(removed)} disabled={restore.isPending}>
+            Undo
+          </Button>
+        </p>
+      ) : null}
+      {restore.isError ? <p className="form-error" role="alert">Could not undo. Try again.</p> : null}
 
       <Modal
         id="aerial-remove"
         title="Remove this aerial check?"
-        description="The photo and its result are removed from the case. You can add the photo again later."
+        description="The photo and its result are removed from the case. You can undo the removal right after."
         open={pendingRemoval !== null}
         onClose={closeRemoval}
         footer={
@@ -310,7 +330,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
             <Button
               type="button"
               onClick={() => {
-                if (pendingRemoval) remove.mutate(pendingRemoval.uuid);
+                if (pendingRemoval) removeConfirmed(pendingRemoval);
                 closeRemoval();
               }}
             >

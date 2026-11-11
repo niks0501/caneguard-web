@@ -20,8 +20,8 @@ Choose a photo while online; the latest result shows canopy shares and photo
 highlights, opening on Problem areas. Use Highlights and the Photo / Problem
 areas compare slider to inspect the overlay, or expand Earlier aerial checks
 to see previous uploads. Remove hides a check from the case but retains its
-files. If an upload's outcome is unknown, refresh the case before trying again
-to avoid a duplicate.
+files; Undo, shown after a removal, puts the check back. If an upload's outcome
+is unknown, refresh the case before trying again to avoid a duplicate.
 
 ## Authorization
 
@@ -36,8 +36,10 @@ Field reporters and mobile tokens get `403`.
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/image` | The stored photo, private cache, `nosniff`. |
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/mask` | 8-bit PNG class mask, same orientation as the displayed photo. |
 | `DELETE /api/v1/reports/{report}/aerial-analyses/{analysis}` | `204`. Soft removal: the row is hidden and the files are kept. |
+| `POST /api/v1/reports/{report}/aerial-analyses/{analysis}/restore` | `200` with the analysis. Undoes a removal; an active analysis is returned unchanged. |
 
-Errors: `404` flag off, unknown or removed analysis; `422` bad file; `429`
+Errors: `404` flag off, unknown analysis, or a removed analysis on any route but
+restore; `422` bad file; `429`
 another check is running (single-run lock) or the upload rate limit was reached;
 `503` the check could not run. On failure the server attempts to delete the
 image and mask; cleanup failures are logged and can leave orphaned files.

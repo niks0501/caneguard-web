@@ -174,6 +174,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
             ->name('api.v1.reports.aerial-analyses.mask');
         Route::delete('/reports/{report}/aerial-analyses/{analysis}', [ReportAerialAnalysisController::class, 'destroy'])
             ->name('api.v1.reports.aerial-analyses.destroy');
+        Route::post('/reports/{report}/aerial-analyses/{analysis}/restore', [ReportAerialAnalysisController::class, 'restore'])
+            ->name('api.v1.reports.aerial-analyses.restore');
         Route::put('/reports/{report}/affected-fields', UpdateReportAffectedFieldsController::class)
             ->name('api.v1.reports.affected-fields.update');
         Route::patch('/reports/{report}/review', ReviewReportController::class);

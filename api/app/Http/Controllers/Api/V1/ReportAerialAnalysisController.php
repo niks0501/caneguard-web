@@ -68,13 +68,25 @@ class ReportAerialAnalysisController extends Controller
         return response()->noContent();
     }
 
-    private function gate(Report $report, ?ReportAerialAnalysis $analysis = null): void
+    /** Undoes a removal; restoring an active check is a no-op. */
+    public function restore(Report $report, ReportAerialAnalysis $analysis): JsonResponse
+    {
+        $this->gate($report, $analysis, allowRemoved: true);
+
+        if ($analysis->removed_at !== null) {
+            $analysis->forceFill(['removed_at' => null, 'removed_by' => null])->save();
+        }
+
+        return (new ReportAerialAnalysisResource($analysis->load(['report', 'uploader'])))->response();
+    }
+
+    private function gate(Report $report, ?ReportAerialAnalysis $analysis = null, bool $allowRemoved = false): void
     {
         abort_unless(config('caneguard.aerial.enabled') === true, 404);
         $this->authorize('review', $report);
         abort_if(
             $analysis !== null
-                && ($analysis->report_id !== $report->getKey() || $analysis->removed_at !== null),
+                && ($analysis->report_id !== $report->getKey() || (! $allowRemoved && $analysis->removed_at !== null)),
             404,
         );
     }
