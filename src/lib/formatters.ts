@@ -14,6 +14,11 @@ export const formatCalendarDate = (value: string) =>
     timeZone: "UTC",
   }).format(new Date(value));
 
+/** Server prose keeps its values; each calendar-day token in it is shown as "Jul 22, 2026". */
+export const formatCalendarDaysInText = (text: string) =>
+  text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, (token) =>
+    Number.isNaN(new Date(token).getTime()) ? token : formatCalendarDate(token));
+
 /**
  * Operational times are Asia/Manila wall time (UTC+8, no DST) shown in
  * 12-hour form with an explicit meridiem marker. Never 24-hour: a bare

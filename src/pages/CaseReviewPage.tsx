@@ -61,7 +61,7 @@ import {
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
-import { formatCalendarDate, formatDate, formatDateTime } from "../lib/formatters";
+import { formatCalendarDaysInText, formatDate, formatDateTime } from "../lib/formatters";
 
 type MetadataDraft = {
   barangay: string;
@@ -86,20 +86,22 @@ export interface CaseHistoryEntry {
   notes?: string | null;
 }
 
-const calendarDayPattern = /^\d{4}-\d{2}-\d{2}$/;
+const visitDateLabels = ["Target visit", "Visit by", "Correction"];
 
-function presentHistoryValue(value: React.ReactNode): React.ReactNode {
-  if (typeof value !== "string" || !calendarDayPattern.test(value)) return value;
-  return Number.isNaN(new Date(value).getTime()) ? value : formatCalendarDate(value);
+function presentHistoryField(
+  field: CaseHistoryEntry["fields"][number],
+): CaseHistoryEntry["fields"][number] {
+  if (!visitDateLabels.includes(field.label)) return field;
+  return {
+    label: field.label === "Target visit" ? "Visit by" : field.label,
+    value: typeof field.value === "string" ? formatCalendarDaysInText(field.value) : field.value,
+  };
 }
 
 function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
   return rawCaseHistory(report).map((entry) => ({
     ...entry,
-    fields: entry.fields.map((field) => ({
-      label: field.label === "Target visit" ? "Visit by" : field.label,
-      value: presentHistoryValue(field.value),
-    })),
+    fields: entry.fields.map(presentHistoryField),
   }));
 }
 

@@ -1662,6 +1662,46 @@ describe("CaseReviewPage", () => {
     expect(within(timeline).queryByText("2026-07-22")).not.toBeInTheDocument();
   });
 
+  it("formats visit-date correction ranges without rewriting other case-history values", () => {
+    const reportWithServerHistory = {
+      ...report,
+      caseHistory: {
+        available: true,
+        sources: { reviewEvents: true, corrections: true, assignments: true, consults: true },
+        entries: [
+          {
+            id: "correction-9",
+            type: "correction" as const,
+            typeLabel: "Correction",
+            timestamp: "2026-07-18T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [
+              { label: "Field", value: "Field validation target date" },
+              { label: "Correction", value: "2026-07-22 to 2026-07-23" },
+              { label: "Reason", value: "Visit moved to the next day." },
+            ],
+            notes: null,
+          },
+          {
+            id: "consult-9",
+            type: "referral" as const,
+            typeLabel: "Referral",
+            timestamp: "2026-07-17T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [{ label: "Tracking code", value: "2026-07-22" }],
+            notes: null,
+          },
+        ],
+      },
+    };
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithServerHistory }));
+    renderPage();
+
+    const timeline = screen.getByRole("region", { name: "Case history" });
+    expect(within(timeline).getByText("Jul 22, 2026 to Jul 23, 2026")).toBeInTheDocument();
+    expect(within(timeline).getByText("2026-07-22")).toBeInTheDocument();
+  });
+
   it("renders review events in the timeline when present", () => {
     const reportWithEvents = {
       ...report,

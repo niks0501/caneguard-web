@@ -2,6 +2,7 @@ import { Bell, Check, LoaderCircle, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import type { AppNotification } from "../../domain/notification.types";
+import { formatCalendarDaysInText } from "../../lib/formatters";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -21,7 +22,7 @@ function formatNotificationTime(timestamp: string | null) {
 }
 
 function notificationLabel(notification: AppNotification) {
-  return `${notification.title}: ${notification.message}`;
+  return `${notification.title}: ${formatCalendarDaysInText(notification.message)}`;
 }
 
 export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
@@ -187,7 +188,7 @@ export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
                     <span className="notification-item__marker" aria-hidden="true" />
                     <span className="notification-item__content">
                       <strong>{notification.title}</strong>
-                      <span>{notification.message}</span>
+                      <span>{formatCalendarDaysInText(notification.message)}</span>
                       <small>
                         {notification.referenceCode ?? "Case activity"} · {formatNotificationTime(notification.createdAt)}
                       </small>

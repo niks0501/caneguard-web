@@ -74,7 +74,7 @@ export function ServerStatus({
     serverUnavailable
       ? "Unavailable"
       : serverDegraded
-        ? "Updates may be late"
+        ? "Some updates may be late"
         : apiReachability === "reachable"
           ? "Connected"
           : apiReachability === "checking"
