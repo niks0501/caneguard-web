@@ -1,6 +1,7 @@
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
 import type {
+  AerialAnalysis,
   Advisory,
   DiseaseReport,
   PaginatedReports,
@@ -40,5 +41,9 @@ export interface ReportsRepository {
     reportId: string,
     input: UpdateAffectedFieldsInput,
   ): Promise<UpdateAffectedFieldsResult>;
+  /** Experimental aerial canopy check; supporting evidence only. */
+  addAerialAnalysis(reportId: string, image: File): Promise<AerialAnalysis>;
+  removeAerialAnalysis(reportId: string, analysisUuid: string): Promise<void>;
+  getAerialMask(maskUrl: string): Promise<Blob>;
 }
 

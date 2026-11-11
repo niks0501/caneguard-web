@@ -143,6 +143,11 @@ class ReportResource extends JsonResource
                 fn () => ReportAffectedFieldResource::collection($this->affectedFieldSurveys)
                     ->resolve($request),
             ),
+            // Absent unless the server flag is on and the detail endpoint loaded it.
+            'aerial_analyses' => $this->when(
+                config('caneguard.aerial.enabled') === true && $this->relationLoaded('aerialAnalyses'),
+                fn () => ReportAerialAnalysisResource::collection($this->aerialAnalyses)->resolve($request),
+            ),
             'inspector_attachment' => $this->when(
                 $this->relationLoaded('attachedFieldSurvey') && $this->relationLoaded('affectedFieldSurveys'),
                 fn () => $this->inspectorAttachment($request),

@@ -10,16 +10,34 @@ import { reportDetailDto } from "../test/fixtures";
 import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
 import { reportKeys } from "./reportQueries";
-import { useRecordHandoffNote, useUpdateReportReview } from "./useReports";
+import { useAddAerialAnalysis, useRecordHandoffNote, useUpdateReportReview } from "./useReports";
 
 vi.mock("../services/reports.service", () => ({
   reportsRepository: {
     updateReview: vi.fn(),
     recordHandoffNote: vi.fn(),
+    addAerialAnalysis: vi.fn(),
   },
 }));
 
 describe("report mutations", () => {
+  it.each(["success", "failure"])("invalidates the case after an aerial upload %s", async (outcome) => {
+    const queryClient = createQueryClient();
+    const key = reportKeys.detail("r1");
+    queryClient.setQueryData(key, { aerialAnalyses: [] });
+    const upload = vi.mocked(reportsRepository.addAerialAnalysis);
+    if (outcome === "success") upload.mockResolvedValueOnce({} as never);
+    else upload.mockRejectedValueOnce(new Error("response lost"));
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useAddAerialAnalysis("r1"), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(new File(["x"], "field.jpg", { type: "image/jpeg" })).catch(() => undefined);
+    });
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+  });
   it("caches the version returned by a plain handoff save", async () => {
     const queryClient = createQueryClient();
     const report = mapReportDetail(reportDetailResponseSchema.parse({
@@ -81,5 +99,29 @@ describe("report mutations", () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: fieldValidationKeys.all,
     });
+  });
+
+  // Intent: a review save never drops the already-loaded aerial checks from the case.
+  it("keeps cached aerial analyses when a review response omits them", async () => {
+    const queryClient = createQueryClient();
+    const report = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
+    const aerial = [{ uuid: "a1" }] as never;
+    queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: aerial });
+    vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: undefined });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        status: "verified_by_staff",
+        notes: "Reviewed.",
+        authorityClassifiedCondition: null,
+        expectedVersion: report.reviewVersion!,
+      });
+    });
+
+    expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(aerial);
   });
 });

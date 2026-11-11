@@ -6,6 +6,7 @@ import type { ReportsRepository } from "../contracts/ReportsRepository";
 import type { MonthlyReportSummary } from "../../domain/dashboard.types";
 import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../../domain/fieldSurvey.types";
 import type {
+  AerialAnalysis,
   Advisory,
   DiseaseReport,
   PaginatedReports,
@@ -20,6 +21,7 @@ import type {
 } from "../../domain/review.types";
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
 import {
+  mapAerialAnalysis,
   mapPaginationMeta,
   mapReportAffectedField,
   mapReportDetail,
@@ -28,6 +30,7 @@ import {
 import { mapMonthlyReportSummary } from "./mappers/reporting.mapper";
 import {
   advisoriesResponseSchema,
+  aerialAnalysisResponseSchema,
   possibleRecentMatchesResponseSchema,
   reportDetailResponseSchema,
   reportListResponseSchema,
@@ -307,6 +310,31 @@ export class ApiReportsRepository implements ReportsRepository {
       version: data.version,
       updatedAt: data.updated_at,
     };
+  }
+
+  async addAerialAnalysis(reportId: string, image: File): Promise<AerialAnalysis> {
+    const body = new FormData();
+    body.append("image", image);
+    const response = await this.client.post(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/aerial-analyses`,
+      body,
+      // The server runs the model before it answers.
+      { timeout: 90_000 },
+    );
+
+    return mapAerialAnalysis(aerialAnalysisResponseSchema.parse(response.data).data);
+  }
+
+  async removeAerialAnalysis(reportId: string, analysisUuid: string): Promise<void> {
+    await this.client.delete(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/aerial-analyses/${encodeURIComponent(analysisUuid)}`,
+    );
+  }
+
+  async getAerialMask(maskUrl: string): Promise<Blob> {
+    const response = await this.client.get<Blob>(maskUrl, { responseType: "blob" });
+
+    return response.data;
   }
 
   async unlinkDuplicate(

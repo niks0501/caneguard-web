@@ -403,6 +403,8 @@ export interface DiseaseReport {
   metadataCorrectionAudits?: ReportAudit[];
   canonicalLinkage?: CanonicalCaseLink;
   affectedFields?: ReportAffectedField[];
+  /** Experimental aerial checks. `undefined` means the server feature is off. */
+  aerialAnalyses?: AerialAnalysis[];
   inspectorAttachment?: InspectorBoundaryAttachment | null;
   advisory?: (Advisory & {
     selectedAt?: string | null;
@@ -479,4 +481,24 @@ export interface PaginationMeta {
 export interface PaginatedReports {
   reports: DiseaseReport[];
   meta: PaginationMeta;
+}
+
+/**
+ * Supporting aerial evidence. Shares are percent of visible canopy in the photo,
+ * never ground area, and are never combined with GPS or polygon measurements.
+ */
+export interface AerialAnalysis {
+  uuid: string;
+  imageUrl: string;
+  maskUrl: string;
+  imageWidth: number;
+  imageHeight: number;
+  /** False when too little canopy is visible; the shares are then null. */
+  enoughCanopy: boolean;
+  normalCanopyPercent: number | null;
+  abnormalCanopyPercent: number | null;
+  canopyCoveragePercent: number;
+  modelVersion: string;
+  uploadedBy: { uuid: string; name: string };
+  createdAt: string;
 }

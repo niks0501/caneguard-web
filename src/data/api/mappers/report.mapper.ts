@@ -1,4 +1,5 @@
 import type {
+  AerialAnalysis,
   DiseaseReport,
   IdentificationGap,
   PaginationMeta,
@@ -196,6 +197,25 @@ export function mapReportAffectedField(
     areaSource: dto.area_source,
     inspector: dto.inspector,
     lossRatePercent: dto.loss_rate_percent,
+  };
+}
+
+export function mapAerialAnalysis(
+  dto: NonNullable<ReportDetailDto["aerial_analyses"]>[number],
+): AerialAnalysis {
+  return {
+    uuid: dto.uuid,
+    imageUrl: resolveApiUrl(dto.image_url, env.apiBaseUrl) ?? dto.image_url,
+    maskUrl: resolveApiUrl(dto.mask_url, env.apiBaseUrl) ?? dto.mask_url,
+    imageWidth: dto.image_width,
+    imageHeight: dto.image_height,
+    enoughCanopy: dto.enough_canopy,
+    normalCanopyPercent: dto.normal_canopy_percent,
+    abnormalCanopyPercent: dto.abnormal_canopy_percent,
+    canopyCoveragePercent: dto.canopy_coverage_percent,
+    modelVersion: dto.model_version,
+    uploadedBy: dto.uploaded_by,
+    createdAt: dto.created_at,
   };
 }
 
@@ -421,6 +441,7 @@ export function mapReportDetail(
       reason: audit.reason,
     })),
     affectedFields: dto.affected_fields?.map(mapReportAffectedField) ?? [],
+    aerialAnalyses: dto.aerial_analyses?.map(mapAerialAnalysis),
     inspectorAttachment: dto.inspector_attachment ? mapInspectorAttachment(dto.inspector_attachment) : null,
     canonicalLinkage: dto.duplicate_linkage
       ? {

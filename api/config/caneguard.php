@@ -69,6 +69,21 @@ return [
     ))),
     'weekly_send_enabled' => env('CANEGUARD_WEEKLY_SEND_ENABLED', false),
     'weekly_appendix_enabled' => env('CANEGUARD_WEEKLY_APPENDIX_ENABLED', false),
+    // Experimental aerial canopy check on the case page. Off by default; the
+    // routes 404 and the case response carries no aerial field while off.
+    'aerial' => [
+        'enabled' => env('CANEGUARD_AERIAL_ANALYSIS_ENABLED', false),
+        'python' => env('CANEGUARD_AERIAL_PYTHON', 'python3'),
+        'model_path' => env('CANEGUARD_AERIAL_MODEL_PATH'),
+        'model_version' => 'aerial-v3',
+        // SHA-256 of the staged model.onnx. Blank reads the committed
+        // aerial-inference/model.onnx.sha256 written by export_onnx.py.
+        'weights_sha256' => env('CANEGUARD_AERIAL_WEIGHTS_SHA256'),
+        'timeout_seconds' => 60,
+        'max_upload_kib' => 20480,
+        'max_side_px' => 10000,
+        'min_canopy_coverage_percent' => 10,
+    ],
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',

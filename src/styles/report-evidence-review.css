@@ -76,3 +76,36 @@
   .affected-field-linkage__heading { align-items: flex-start; flex-direction: column; }
   .affected-field-linkage__actions .button { width: 100%; }
 }
+
+/* Aerial check: supporting evidence only; flat band solids, no patterns. */
+.aerial-check { display: grid; gap: var(--space-4); min-width: 0; }
+.aerial-check h3 { margin: 0 0 var(--space-2); font-size: var(--text-body); }
+.aerial-check__provenance,
+.aerial-check__coverage,
+.aerial-check__offline { margin: 0; color: var(--color-muted); }
+.aerial-check__drop { display: grid; gap: var(--space-1); justify-items: start; padding: var(--space-4); border: 2px dashed var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-weight: 600; }
+.aerial-check__drop small { font-weight: 400; color: var(--color-muted); }
+.aerial-check__drop:has(input:focus-visible) { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.aerial-check__result { display: grid; gap: var(--space-3); min-width: 0; }
+.aerial-check__stage { position: relative; width: 100%; max-height: 28rem; overflow: hidden; border-radius: var(--radius-md); background: var(--color-surface); }
+.aerial-check__photo,
+.aerial-check__overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.aerial-check__reveal { position: absolute; inset: 0; }
+.aerial-check__controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+.aerial-check__switch { display: flex; gap: var(--space-3); border: 0; margin: 0; padding: 0; }
+.aerial-check__switch legend { float: left; margin-right: var(--space-3); font-weight: 600; }
+.aerial-check__switch label { display: inline-flex; gap: var(--space-1); align-items: center; }
+.aerial-check__compare { display: inline-flex; gap: var(--space-2); align-items: center; }
+.aerial-check__headline { margin: 0; font-size: var(--text-section-title); }
+.aerial-check__bar { display: flex; width: 100%; min-height: 1.75rem; gap: var(--kpi-band-gap); }
+.aerial-check__bar > span { box-sizing: border-box; min-width: 4px; }
+.aerial-check__legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin: 0; }
+.aerial-check__legend span { display: inline-flex; gap: var(--space-2); align-items: center; }
+.aerial-check__legend i { display: inline-block; width: 0.9rem; height: 0.9rem; }
+.aerial-check__meta { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin: 0; color: var(--color-muted); }
+.aerial-check__strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); padding-top: var(--space-4); border-block-start: 1px solid var(--color-border); }
+.aerial-check__strip ul { margin: 0; padding-left: var(--space-4); }
+.aerial-check__badge { display: inline-block; margin: 0 0 var(--space-2); padding: 2px var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--text-caption, 0.8rem); }
+.aerial-check__earlier summary { cursor: pointer; font-weight: 600; }
+.aerial-check__earlier li { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+@media (max-width: 40rem) { .aerial-check__strip { grid-template-columns: 1fr; } }

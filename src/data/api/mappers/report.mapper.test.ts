@@ -193,6 +193,45 @@ describe("report mappers", () => {
     }]);
   });
 
+  // Intent: aerial_analyses stays absent (feature off) unless the server sends it.
+  it("maps aerial analyses only when the server sends them", () => {
+    const off = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
+    expect(off.aerialAnalyses).toBeUndefined();
+
+    const on = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          aerial_analyses: [{
+            uuid: "a1",
+            image_url: "/api/v1/reports/r/aerial-analyses/a1/image",
+            mask_url: "/api/v1/reports/r/aerial-analyses/a1/mask",
+            image_width: 400,
+            image_height: 300,
+            mask_width: 400,
+            mask_height: 300,
+            enough_canopy: true,
+            normal_canopy_percent: 82,
+            abnormal_canopy_percent: 18,
+            canopy_coverage_percent: 71,
+            model_version: "aerial-v3",
+            uploaded_by: { uuid: "u1", name: "Rey" },
+            created_at: "2026-11-11T04:11:03.000000Z",
+          }],
+        },
+      }).data,
+    );
+    expect(on.aerialAnalyses).toHaveLength(1);
+    expect(on.aerialAnalyses?.[0]).toMatchObject({
+      uuid: "a1",
+      enoughCanopy: true,
+      abnormalCanopyPercent: 18,
+      canopyCoveragePercent: 71,
+    });
+    expect(on.aerialAnalyses?.[0].imageUrl).toMatch(/^https?:\/\/.+\/aerial-analyses\/a1\/image$/);
+    expect(on.affectedFields).toEqual([]);
+  });
+
   it("maps the boundary the inspector attached, arrived or not", () => {
     const attached = mapReportDetail(
       reportDetailResponseSchema.parse({
