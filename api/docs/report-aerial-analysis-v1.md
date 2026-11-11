@@ -13,6 +13,15 @@ never on list, map, mobile, export or PDF payloads. Enabling it is an operator
 step: stage `model.onnx`, create the Python environment and set
 `CANEGUARD_AERIAL_PYTHON` and `CANEGUARD_AERIAL_MODEL_PATH`.
 
+## Case-page use
+
+When enabled, the Aerial check card appears after Affected field boundaries.
+Choose a photo while online; the latest result shows canopy shares and photo
+highlights. Use Highlights and Compare to inspect the overlay, or expand Earlier
+aerial checks to see previous uploads. Remove hides a check from the case but
+retains its files. If an upload's outcome is unknown, refresh the case before
+trying again to avoid a duplicate.
+
 ## Authorization
 
 All routes sit in the `office.access` group and run `review` on the report.
@@ -28,8 +37,9 @@ Field reporters and mobile tokens get `403`.
 | `DELETE /api/v1/reports/{report}/aerial-analyses/{analysis}` | `204`. Soft removal: the row is hidden and the files are kept. |
 
 Errors: `404` flag off, unknown or removed analysis; `422` bad file; `429`
-another check is running (single-run lock); `503` the check could not run. A
-`503` stores nothing and deletes both files.
+another check is running (single-run lock) or the upload rate limit was reached;
+`503` the check could not run. On failure the server attempts to delete the
+image and mask; cleanup failures are logged and can leave orphaned files.
 
 ## Analysis object
 
@@ -59,8 +69,9 @@ segmentation, so the mask aligns with how browsers display the photo.
 share of the photo that is canopy. When coverage is below
 `caneguard.aerial.min_canopy_coverage_percent` (10) the two shares are `null`
 and `enough_canopy` is `false`. The stored row also keeps the model version and
-the SHA-256 of the staged `model.onnx`; the process fails unless it matches the
-pinned value in `aerial-inference/model.onnx.sha256`.
+the SHA-256 of the staged `model.onnx`; the process fails unless it matches
+`CANEGUARD_AERIAL_WEIGHTS_SHA256`, or the value in
+`aerial-inference/model.onnx.sha256` when that setting is blank.
 
 ## Never combined
 
@@ -73,8 +84,7 @@ stored or returned.
 
 ## Accuracy
 
-Validation IoU of the trained checkpoint: normal canopy 0.918, visibly abnormal
-canopy 0.499. The abnormal region is a coarse indicator. The model uses argmax
-over its three trained classes with no calibrated threshold. Whole photos are
-resized to 512x512; there is no tiling. See
-`aerial-inference/model-assets/v3/README.md`.
+The abnormal region is a coarse indicator. Validation IoU values are recorded in
+`aerial-inference/model-assets/v3/caneguard_v3_metadata.json`. The model uses
+argmax over its three trained classes with no calibrated threshold. For image
+preprocessing and model limitations, see `aerial-inference/model-assets/v3/README.md`.
