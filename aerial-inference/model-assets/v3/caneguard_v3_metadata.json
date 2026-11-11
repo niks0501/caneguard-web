@@ -1,0 +1,30 @@
+{
+  "experiment": "CaneGuard Aerial V3 SegFormer-B1",
+  "base_model": "nvidia/segformer-b1-finetuned-ade-512-512",
+  "epoch": 23,
+  "image_size": 512,
+  "classes": [
+    "background",
+    "normal_looking_canopy",
+    "visibly_abnormal_canopy"
+  ],
+  "validation_normal_IoU": 0.9179492953693055,
+  "validation_abnormal_IoU": 0.4986847997775396,
+  "validation_foreground_mean_IoU": 0.7083170475734225,
+  "validation_selection_score": 0.6663905980142459,
+  "loss": {
+    "cross_entropy_weight": 0.7,
+    "dice_weight": 0.3,
+    "class_weights": [
+      1.0,
+      1.0,
+      1.5
+    ]
+  },
+  "optimizer": {
+    "name": "AdamW",
+    "initial_learning_rate": 6e-05,
+    "weight_decay": 0.0001
+  },
+  "seed": 42
+}

@@ -659,6 +659,18 @@ class Report extends Model
     }
 
     /**
+     * Supporting aerial canopy checks. Removed rows stay stored but are hidden.
+     *
+     * @return HasMany<ReportAerialAnalysis, $this>
+     */
+    public function aerialAnalyses(): HasMany
+    {
+        return $this->hasMany(ReportAerialAnalysis::class)
+            ->whereNull('removed_at')
+            ->latest('id');
+    }
+
+    /**
      * The boundary the inspector attached on the phone, matched by the client
      * identity the report carries. Null until that boundary has been uploaded.
      *

@@ -1,0 +1,167 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../api/ApiError";
+import type { AerialAnalysis, DiseaseReport } from "../../domain/report.types";
+import { useOnlineStatus } from "../../hooks/useOnlineStatus";
+import { useAddAerialAnalysis, useAerialMask, useRemoveAerialAnalysis } from "../../hooks/useReports";
+import { AerialCheckCard } from "./AerialCheckCard";
+
+vi.mock("../../hooks/useOnlineStatus", () => ({ useOnlineStatus: vi.fn() }));
+vi.mock("../../hooks/useReports", () => ({
+  useAddAerialAnalysis: vi.fn(),
+  useRemoveAerialAnalysis: vi.fn(),
+  useAerialMask: vi.fn(),
+}));
+
+const analysis = (overrides: Partial<AerialAnalysis> = {}): AerialAnalysis => ({
+  uuid: "a1",
+  imageUrl: "http://api.test/image",
+  maskUrl: "http://api.test/mask",
+  imageWidth: 400,
+  imageHeight: 300,
+  enoughCanopy: true,
+  normalCanopyPercent: 82,
+  abnormalCanopyPercent: 18,
+  canopyCoveragePercent: 71,
+  modelVersion: "aerial-v3",
+  uploadedBy: { uuid: "u1", name: "Rey Reviewer" },
+  createdAt: "2026-11-11T04:11:03.000Z",
+  ...overrides,
+});
+
+const report = (aerialAnalyses: AerialAnalysis[], extra: Partial<DiseaseReport> = {}) =>
+  ({
+    uuid: "r1",
+    affectedFields: [{ fieldSurveyId: 7, areaSqm: 6075, lossRatePercent: 18.5 }],
+    aerialAnalyses,
+    ...extra,
+  }) as unknown as DiseaseReport;
+
+function setup(options: { online?: boolean; mutate?: ReturnType<typeof vi.fn>; pending?: boolean } = {}) {
+  const add = { mutate: options.mutate ?? vi.fn(), isPending: options.pending ?? false };
+  const remove = { mutate: vi.fn(), isPending: false, isError: false };
+  vi.mocked(useOnlineStatus).mockReturnValue(options.online ?? true);
+  vi.mocked(useAddAerialAnalysis).mockReturnValue(add as never);
+  vi.mocked(useRemoveAerialAnalysis).mockReturnValue(remove as never);
+  vi.mocked(useAerialMask).mockReturnValue({ data: undefined, isError: false } as never);
+  return { add, remove };
+}
+
+describe("AerialCheckCard", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // Intent: an office user can start a check from the case page with one file choice.
+  it("uploads a chosen photo and shows the checking state", async () => {
+    const mutate = vi.fn();
+    setup({ mutate });
+    const { rerender } = render(<AerialCheckCard report={report([])} />);
+    const file = new File(["x"], "field.jpg", { type: "image/jpeg" });
+
+    await userEvent.upload(screen.getByLabelText(/add aerial photo/i), file);
+    expect(mutate).toHaveBeenCalledWith(file, expect.any(Object));
+
+    setup({ pending: true });
+    rerender(<AerialCheckCard report={report([])} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Checking the photo…");
+  });
+
+  // Intent: a wrong type or oversize file is refused before any upload.
+  it("rejects unsupported files without calling the server", () => {
+    const mutate = vi.fn();
+    setup({ mutate });
+    render(<AerialCheckCard report={report([])} />);
+
+    fireEvent.change(screen.getByLabelText(/add aerial photo/i), {
+      target: { files: [new File(["x"], "notes.pdf", { type: "application/pdf" })] },
+    });
+
+    expect(mutate).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Use a JPG, PNG or WebP under 20 MB.");
+  });
+
+  it.each([new Error("network lost"), new Error("invalid response"), new ApiError("down", { status: 503 })])(
+    "reports an unknown outcome without offering an immediate retry",
+    async (error) => {
+      const mutate = vi.fn((_file: File, callbacks: { onError: (e: unknown) => void }) => callbacks.onError(error));
+      setup({ mutate });
+      render(<AerialCheckCard report={report([])} />);
+
+      await userEvent.upload(screen.getByLabelText(/add aerial photo/i), new File(["x"], "field.png", { type: "image/png" }));
+      expect(screen.getByRole("alert")).toHaveTextContent("The upload outcome is unknown. Refresh the case and check for the photo before adding it again.");
+      expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    },
+  );
+
+  it("offers a retry when the server rejects a concurrent check", async () => {
+    const mutate = vi.fn((_file: File, callbacks: { onError: (e: unknown) => void }) =>
+      callbacks.onError(new ApiError("busy", { status: 429 })),
+    );
+    setup({ mutate });
+    render(<AerialCheckCard report={report([])} />);
+    await userEvent.upload(screen.getByLabelText(/add aerial photo/i), new File(["x"], "field.png", { type: "image/png" }));
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mutate).toHaveBeenCalledTimes(2);
+  });
+
+  // Intent: no upload is possible while offline.
+  it("disables the file input offline", () => {
+    setup({ online: false });
+    render(<AerialCheckCard report={report([])} />);
+
+    expect(screen.getByLabelText(/add aerial photo/i)).toBeDisabled();
+    expect(screen.getByText(/offline/i)).toBeInTheDocument();
+  });
+
+  // Intent: shares read as percent of visible cane and never as area or loss.
+  it("shows the result sentence, share legend and coverage", () => {
+    setup();
+    render(<AerialCheckCard report={report([analysis()])} />);
+
+    expect(screen.getByText("18%")).toBeInTheDocument();
+    expect(screen.getByText(/of the visible cane looks abnormal/)).toBeInTheDocument();
+    expect(screen.getByText("Normal 82%")).toBeInTheDocument();
+    expect(screen.getByText("Abnormal 18%")).toBeInTheDocument();
+    expect(screen.getByText("Cane visible in photo: 71%")).toBeInTheDocument();
+    expect(screen.getByText("aerial-v3")).toBeInTheDocument();
+  });
+
+  // Intent: below the coverage floor no share is shown.
+  it("hides the shares when too little cane is visible", () => {
+    setup();
+    render(
+      <AerialCheckCard
+        report={report([analysis({ enoughCanopy: false, normalCanopyPercent: null, abnormalCanopyPercent: null, canopyCoveragePercent: 4 })])}
+      />,
+    );
+
+    expect(screen.getByText("Not enough cane visible to estimate")).toBeInTheDocument();
+    expect(screen.queryByText(/of the visible cane looks abnormal/)).not.toBeInTheDocument();
+  });
+
+  // Intent: ground GPS figures and photo shares sit in separate, labelled columns, never merged.
+  it("keeps ground and photo figures apart", () => {
+    setup();
+    render(<AerialCheckCard report={report([analysis()])} />);
+
+    expect(screen.getByRole("heading", { name: "Measured on the ground" }).parentElement).toHaveTextContent(
+      "Boundary 7: 0.61 ha · loss 18.5%",
+    );
+    expect(screen.getByRole("heading", { name: "Seen in this photo" }).parentElement).toHaveTextContent(
+      "18% of visible cane",
+    );
+    expect(screen.getByText("Phone GPS · office")).toBeInTheDocument();
+    expect(screen.getByText("Aerial image estimate · experimental")).toBeInTheDocument();
+  });
+
+  // Intent: removal is confirmed first; earlier checks collapse under one summary.
+  it("confirms removal and collapses earlier checks", async () => {
+    const { remove } = setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} />);
+
+    expect(screen.getByText("Earlier aerial checks (1)")).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    expect(remove.mutate).toHaveBeenCalledWith("a1");
+  });
+});
