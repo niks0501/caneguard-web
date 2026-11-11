@@ -23,11 +23,10 @@
 .review-finding__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
 .review-decision-flow .review-actions { margin: 0; }
 .review-decision-flow .review-actions__pills { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
-.review-decision-flow .review-action-pill { align-items: flex-start; }
+.review-decision-flow .review-action-pill { align-items: flex-start; min-width: 0; margin: 0; }
 .review-decision-flow .review-action-pill__text { display: grid; gap: 2px; min-width: 0; }
 .review-decision-flow .review-action-pill strong { white-space: normal; overflow-wrap: anywhere; }
 .review-decision-flow .review-action-pill small { color: var(--color-muted); font-size: var(--text-body-sm); }
-.review-decision-flow .review-action-pill { min-width: 0; margin: 0; }
 .review-decision-flow .review-action-pill:has(input:focus-visible) { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .review-conditional-fields { border: 0; padding: 0; margin: var(--space-4) 0 0; min-width: 0; display: grid; gap: var(--space-3); }
 .review-support-types { display: flex; flex-wrap: wrap; gap: var(--space-4); border: 0; margin: 0; padding: 0; }
