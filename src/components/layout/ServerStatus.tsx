@@ -74,7 +74,7 @@ export function ServerStatus({
     serverUnavailable
       ? "Unavailable"
       : serverDegraded
-        ? "Degraded"
+        ? "Some updates may be late"
         : apiReachability === "reachable"
           ? "Connected"
           : apiReachability === "checking"
@@ -85,7 +85,7 @@ export function ServerStatus({
   const statusLabel = {
     connected: "Connected",
     refreshing: "Checking",
-    degraded: "Server degraded",
+    degraded: "Some updates may be late",
     unavailable: "Server unavailable",
     offline: "Offline",
   }[status];

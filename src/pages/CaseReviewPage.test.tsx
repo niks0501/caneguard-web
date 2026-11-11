@@ -503,7 +503,7 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
     await chooseAdvisory(user);
     expect(screen.getByText(/Human finding; independent of the AI Possible Condition/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("");
+    expect(screen.getByLabelText("What you found")).toHaveValue("");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText("Observed at")).toBeInTheDocument();
     expect(screen.getByText("Submitted at")).toBeInTheDocument();
@@ -776,7 +776,7 @@ describe("CaseReviewPage", () => {
     expect(within(screen.getByRole("region", { name: "Possible Condition" })).getByText("Smut")).toBeVisible();
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
     await user.type(within(modal).getByLabelText(/^Review notes/), "Authority confirmed Smut.");
     await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
 
@@ -786,12 +786,12 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("offers every active Staff-Classified Condition but not legacy Downy mildew", async () => {
+  it("offers every active condition but not legacy Downy mildew", async () => {
     const user = userEvent.setup();
     renderPage();
 
     await chooseAdvisory(user);
-    const select = screen.getByLabelText("Staff-Classified Condition");
+    const select = screen.getByLabelText("What you found");
     expect(within(select).getAllByRole("option").map((option) => option.getAttribute("value"))).toEqual([
       "",
       "healthy",
@@ -828,7 +828,7 @@ describe("CaseReviewPage", () => {
 
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    const select = within(modal).getByLabelText("Staff-Classified Condition");
+    const select = within(modal).getByLabelText("What you found");
     expect(select).toHaveValue("downy_mildew");
     expect(
       within(select).getByRole("option", {
@@ -1221,7 +1221,7 @@ describe("CaseReviewPage", () => {
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(
-      within(modal).getByLabelText("Staff-Classified Condition"),
+      within(modal).getByLabelText("What you found"),
       "smut",
     );
     await user.type(
@@ -1403,7 +1403,7 @@ describe("CaseReviewPage", () => {
     );
     const pendingModal = screen.getByRole("form", { name: "Report Evidence Review" });
     expect(within(pendingModal).getByRole("button", { name: "Confirming review..." })).toBeDisabled();
-    expect(within(pendingModal).getByLabelText("Staff-Classified Condition")).toBeDisabled();
+    expect(within(pendingModal).getByLabelText("What you found")).toBeDisabled();
     expect(within(pendingModal).getByLabelText("Validated advisory")).toBeDisabled();
 
     // A second click on the locked submit sends nothing more.
@@ -1482,7 +1482,7 @@ describe("CaseReviewPage", () => {
 
     // The summary tracks each pending choice before confirmation.
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
     await user.selectOptions(within(modal).getByLabelText("Verification Outcome"), "verified");
 
     // The read-only summary reflects the current inline draft.
@@ -1631,6 +1631,89 @@ describe("CaseReviewPage", () => {
   it("renders empty timeline message when there are no prior review events", () => {
     renderPage();
     expect(screen.getByText("No prior review events recorded.")).toBeInTheDocument();
+  });
+
+  it("shows server case-history visit dates as a labelled calendar day", () => {
+    const reportWithServerHistory = {
+      ...report,
+      caseHistory: {
+        available: true,
+        sources: { reviewEvents: true, corrections: true, assignments: true, consults: true },
+        entries: [
+          {
+            id: "field-validation-assign-1",
+            type: "field_validation" as const,
+            typeLabel: "Field validation",
+            timestamp: "2026-07-18T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [{ label: "Target visit", value: "2026-07-22" }],
+            notes: null,
+          },
+        ],
+      },
+    };
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithServerHistory }));
+    renderPage();
+
+    const timeline = screen.getByRole("region", { name: "Case history" });
+    expect(within(timeline).getByText("Visit by")).toBeInTheDocument();
+    expect(within(timeline).getByText("Jul 22, 2026")).toBeInTheDocument();
+    expect(within(timeline).queryByText("Target visit")).not.toBeInTheDocument();
+    expect(within(timeline).queryByText("2026-07-22")).not.toBeInTheDocument();
+  });
+
+  it("formats visit-date correction ranges without rewriting other case-history values", () => {
+    const reportWithServerHistory = {
+      ...report,
+      caseHistory: {
+        available: true,
+        sources: { reviewEvents: true, corrections: true, assignments: true, consults: true },
+        entries: [
+          {
+            id: "correction-9",
+            type: "correction" as const,
+            typeLabel: "Correction",
+            timestamp: "2026-07-18T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [
+              { label: "Field", value: "Field validation target date" },
+              { label: "Correction", value: "2026-07-22 to 2026-07-23" },
+              { label: "Reason", value: "Visit moved to the next day." },
+            ],
+            notes: null,
+          },
+          {
+            id: "consult-9",
+            type: "referral" as const,
+            typeLabel: "Referral",
+            timestamp: "2026-07-17T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [{ label: "Tracking code", value: "2026-07-22" }],
+            notes: null,
+          },
+          {
+            id: "correction-10",
+            type: "correction" as const,
+            typeLabel: "Correction",
+            timestamp: "2026-07-16T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [
+              { label: "Field", value: "farmer or farm owner name" },
+              { label: "Correction", value: "Owner 2026-07-22 to Owner Reyes" },
+              { label: "Reason", value: "Name corrected from the field note." },
+            ],
+            notes: null,
+          },
+        ],
+      },
+    };
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithServerHistory }));
+    renderPage();
+
+    const timeline = screen.getByRole("region", { name: "Case history" });
+    expect(within(timeline).getByText("Jul 22, 2026 to Jul 23, 2026")).toBeInTheDocument();
+    expect(within(timeline).getByText("2026-07-22")).toBeInTheDocument();
+    expect(within(timeline).getByText("Owner 2026-07-22 to Owner Reyes")).toBeInTheDocument();
   });
 
   it("renders review events in the timeline when present", () => {

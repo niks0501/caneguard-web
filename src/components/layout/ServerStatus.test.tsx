@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../../api/ApiError";
 import {
@@ -88,15 +88,13 @@ describe("ServerStatus", () => {
       Promise.reject(new ApiError("Unavailable", { status: 503 })),
     );
 
+    const degraded = await screen.findByRole("status", {
+      name: "Connectivity: Network Available; CaneGuard server Some updates may be late",
+    });
+    await waitFor(() => expect(degraded).toHaveAttribute("data-state", "degraded"));
     expect(
-      await screen.findByRole("status", {
-        name: "Connectivity: Network Available; CaneGuard server Degraded",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText("Server degraded", { exact: true }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Degraded", { exact: true })).toBeInTheDocument();
+      screen.getAllByText("Some updates may be late", { exact: true }),
+    ).toHaveLength(2);
   });
 
   it("shows degraded when the health check says the API is degraded", async () => {
@@ -106,15 +104,13 @@ describe("ServerStatus", () => {
       { ...connected, apiReachability: "degraded", isDegraded: true },
     );
 
+    const degraded = await screen.findByRole("status", {
+      name: "Connectivity: Network Available; CaneGuard server Some updates may be late",
+    });
+    await waitFor(() => expect(degraded).toHaveAttribute("data-state", "degraded"));
     expect(
-      await screen.findByRole("status", {
-        name: "Connectivity: Network Available; CaneGuard server Degraded",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText("Server degraded", { exact: true }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Degraded", { exact: true })).toBeInTheDocument();
+      screen.getAllByText("Some updates may be late", { exact: true }),
+    ).toHaveLength(2);
   });
 
   it("keeps a reachable server connected for intentional 403 responses", async () => {
@@ -167,6 +163,6 @@ describe("ServerStatus", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Degraded")).toBeInTheDocument();
+    expect(screen.getAllByText("Some updates may be late", { exact: true })).toHaveLength(2);
   });
 });

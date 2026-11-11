@@ -2,6 +2,7 @@ import { Bell, Check, LoaderCircle, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import type { AppNotification } from "../../domain/notification.types";
+import { formatCalendarDaysInText } from "../../lib/formatters";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -20,8 +21,25 @@ function formatNotificationTime(timestamp: string | null) {
   }).format(date);
 }
 
+/**
+ * Only these event types carry a raw target visit date. Every other message is
+ * shown verbatim because some embed user-supplied text (for example an advisory
+ * title) that must not be reinterpreted as a date.
+ */
+const visitDateEventTypes = [
+  "field_validation_assigned",
+  "field_validation_assignment_changed",
+  "follow_up_due",
+];
+
+function presentNotificationMessage(notification: AppNotification) {
+  return visitDateEventTypes.includes(notification.eventType)
+    ? formatCalendarDaysInText(notification.message)
+    : notification.message;
+}
+
 function notificationLabel(notification: AppNotification) {
-  return `${notification.title}: ${notification.message}`;
+  return `${notification.title}: ${presentNotificationMessage(notification)}`;
 }
 
 export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
@@ -187,7 +205,7 @@ export function NotificationBell({ enabled = true }: { enabled?: boolean }) {
                     <span className="notification-item__marker" aria-hidden="true" />
                     <span className="notification-item__content">
                       <strong>{notification.title}</strong>
-                      <span>{notification.message}</span>
+                      <span>{presentNotificationMessage(notification)}</span>
                       <small>
                         {notification.referenceCode ?? "Case activity"} · {formatNotificationTime(notification.createdAt)}
                       </small>

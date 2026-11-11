@@ -61,7 +61,7 @@ import {
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
-import { formatDate, formatDateTime } from "../lib/formatters";
+import { formatCalendarDate, formatDate, formatDateTime } from "../lib/formatters";
 
 type MetadataDraft = {
   barangay: string;
@@ -86,7 +86,56 @@ export interface CaseHistoryEntry {
   notes?: string | null;
 }
 
+const calendarDayPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function presentCalendarDay(value: string): string {
+  return calendarDayPattern.test(value) ? formatCalendarDate(value) : value;
+}
+
+function presentCalendarDayRange(value: string): string {
+  return value.split(" to ").map(presentCalendarDay).join(" to ");
+}
+
+function isVisitDateCorrection(entry: CaseHistoryEntry): boolean {
+  const auditedField = entry.fields.find((field) => field.label === "Field");
+  return typeof auditedField?.value === "string"
+    && auditedField.value.toLowerCase().includes("target date");
+}
+
+/**
+ * Visit dates are the only case-history values shown as a calendar day. Raw
+ * values stay verbatim everywhere else: staff copy tracking codes and free text
+ * exactly as recorded, and only the audited "Field" label identifies a
+ * visit-date correction (the server sends `field_validation_target_date` as
+ * "Field validation target date"). Server values are never rewritten.
+ */
+function presentHistoryEntry(entry: CaseHistoryEntry): CaseHistoryEntry {
+  const visitDateCorrection = isVisitDateCorrection(entry);
+  return {
+    ...entry,
+    fields: entry.fields.map((field) => {
+      if (field.label === "Target visit" || field.label === "Visit by") {
+        return {
+          label: field.label === "Target visit" ? "Visit by" : field.label,
+          value: typeof field.value === "string" ? presentCalendarDay(field.value) : field.value,
+        };
+      }
+      if (visitDateCorrection && field.label === "Correction") {
+        return {
+          ...field,
+          value: typeof field.value === "string" ? presentCalendarDayRange(field.value) : field.value,
+        };
+      }
+      return field;
+    }),
+  };
+}
+
 function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
+  return rawCaseHistory(report).map(presentHistoryEntry);
+}
+
+function rawCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
   if (report.caseHistory) {
     return report.caseHistory.entries.map((entry) => ({
       id: entry.id,
@@ -156,7 +205,7 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
       actor: assignment.assignedBy?.name ?? "Office reviewer",
       fields: [
         { label: "Assignment", value: `Assigned to ${assignment.assignee.name}` },
-        ...(assignment.targetVisitDate ? [{ label: "Target visit", value: assignment.targetVisitDate }] : []),
+        ...(assignment.targetVisitDate ? [{ label: "Visit by", value: assignment.targetVisitDate }] : []),
       ],
       notes: null,
     });

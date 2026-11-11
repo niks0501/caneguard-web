@@ -1,3 +1,4 @@
+import { formatCalendarDate } from "../../lib/formatters";
 import { Link } from "react-router";
 import { MapPin } from "lucide-react";
 import { routes } from "../../app/routes";
@@ -50,7 +51,7 @@ export function FieldOperationsRow({
         <div><dt>Possible Condition</dt><dd>{predictedDiseaseLabel(item.predictedDisease)}</dd></div>
         {reason ? <div><dt>Reason for Visit</dt><dd>{reason}</dd></div> : null}
         <div><dt>Assigned Inspector</dt><dd>{item.assignee?.name ?? "Unassigned"}</dd></div>
-        <div><dt>Target visit</dt><dd>{item.targetVisitDate ?? "Not scheduled"}</dd></div>
+        <div><dt>Visit by</dt><dd>{item.targetVisitDate ? formatCalendarDate(item.targetVisitDate) : "Not scheduled"}</dd></div>
         {timing ? <div><dt>Visit timing</dt><dd>{timing}</dd></div> : null}
       </dl>
       <div className="field-operations-row__actions">

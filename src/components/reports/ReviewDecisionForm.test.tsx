@@ -105,11 +105,11 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new Error("Service unavailable"));
     renderForm();
     await technical(user);
-    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "rust");
+    await user.selectOptions(screen.getByLabelText("What you found"), "rust");
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
     expect(screen.getByRole("textbox")).toHaveValue("Delivered practical field assistance.");
-    expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("rust");
+    expect(screen.getByLabelText("What you found")).toHaveValue("rust");
     expect(screen.getByRole("radio", { name: "Technical Assistance" })).toBeChecked();
     expect(screen.queryByText(/Review confirmed/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));

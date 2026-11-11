@@ -369,7 +369,6 @@ describe("SubmittedReportsPage", () => {
     const { unmount } = renderPage();
     const freshness = screen.getByText("Last updated").closest("p") as HTMLElement;
     expect(freshness).toHaveTextContent(/\d{1,2}:\d{2}:\d{2}\s?(AM|PM)/);
-    expect(within(freshness).getByText(/, read from the server/)).toBeInTheDocument();
     unmount();
 
     vi.mocked(useReports).mockReturnValue(

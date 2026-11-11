@@ -170,7 +170,7 @@ describe("Report Evidence Review protected contract", () => {
     await loadCase();
 
     const evidence = screen.getByRole("heading", { name: "Evidence Summary" });
-    const staffFinding = screen.getByLabelText(/Staff-Classified Condition/i);
+    const staffFinding = screen.getByLabelText(/What you found/i);
     const verification = screen.getByLabelText(/Verification Outcome/i);
     const actions = screen.getByRole("group", { name: /What should happen next/i });
     const summary = screen.getByRole("heading", { name: /Review Summary|Decision Summary/i });
@@ -203,14 +203,14 @@ describe("Report Evidence Review protected contract", () => {
     expect(screen.getByRole("button", { name: "Confirm Review" })).toBeInTheDocument();
   });
 
-  it("CT-03 blocks Verified when Staff-Classified Condition is empty", async () => {
+  it("CT-03 blocks Verified when the condition is empty", async () => {
     const user = userEvent.setup();
     await loadCase();
 
     await user.selectOptions(screen.getByLabelText(/Verification Outcome/i), "verified");
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 
-    expect(await screen.findByText(/Staff-Classified Condition.*required/i)).toBeInTheDocument();
+    expect(await screen.findByText(/What you found.*required/i)).toBeInTheDocument();
     expect(reviewPayloads).toHaveLength(0);
   });
 
@@ -221,7 +221,7 @@ describe("Report Evidence Review protected contract", () => {
     await user.selectOptions(screen.getByLabelText(/Verification Outcome/i), "verified");
     await clickChoice(user, /Needs Field Validation/i);
 
-    expect(await screen.findByText(/Field Validation.*Not Determined|Not Determined.*Field Validation/i)).toBeInTheDocument();
+    expect(await screen.findByText(/The case stays open until the visit is done/i)).toBeInTheDocument();
     expect(reviewPayloads).toHaveLength(0);
   });
 

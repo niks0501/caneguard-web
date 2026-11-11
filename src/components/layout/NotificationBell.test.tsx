@@ -39,6 +39,28 @@ const notifications: AppNotification[] = [
     readAt: "2026-08-17T09:00:00.000Z",
     createdAt: "2026-08-17T08:00:00.000Z",
   },
+  {
+    id: "notification-3",
+    eventType: "follow_up_due",
+    title: "Field visit overdue",
+    message: "The target visit date for CG-20260817-IJKL passed on 2026-07-22; field validation is still incomplete.",
+    caseUuid: "report-3",
+    referenceCode: "CG-20260817-IJKL",
+    isRead: true,
+    readAt: "2026-07-22T09:00:00.000Z",
+    createdAt: "2026-07-22T08:00:00.000Z",
+  },
+  {
+    id: "notification-4",
+    eventType: "advisory_available",
+    title: "New office advisory",
+    message: "Office guidance is available for CG-20260817-MNOP: Spray plan 2026-07-22.",
+    caseUuid: "report-4",
+    referenceCode: "CG-20260817-MNOP",
+    isRead: true,
+    readAt: "2026-07-25T09:00:00.000Z",
+    createdAt: "2026-07-25T08:00:00.000Z",
+  },
 ];
 
 function renderBell() {
@@ -98,6 +120,29 @@ describe("NotificationBell", () => {
     );
 
     expect(markRead).toHaveBeenCalledWith("notification-1");
+  });
+
+  it("shows a server visit date in a notification as a calendar day", async () => {
+    const user = userEvent.setup();
+    renderBell();
+    await user.click(screen.getByRole("button", { name: /Notifications/ }));
+
+    const item = screen.getByRole("button", {
+      name: /Field visit overdue: The target visit date for CG-20260817-IJKL passed on Jul 22, 2026/,
+    });
+    expect(item).toHaveTextContent("passed on Jul 22, 2026");
+    expect(item).not.toHaveTextContent("2026-07-22");
+  });
+
+  it("keeps a date inside an advisory title exactly as the server sent it", async () => {
+    const user = userEvent.setup();
+    renderBell();
+    await user.click(screen.getByRole("button", { name: /Notifications/ }));
+
+    const item = screen.getByRole("button", {
+      name: /New office advisory: Office guidance is available for CG-20260817-MNOP: Spray plan 2026-07-22/,
+    });
+    expect(item).toHaveTextContent("Spray plan 2026-07-22");
   });
 
   it("provides an explicit Mark all as read action", async () => {
