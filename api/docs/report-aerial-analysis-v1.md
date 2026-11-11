@@ -21,9 +21,10 @@ highlights, opening on Problem areas. Use Highlights and the Photo / Problem
 areas compare slider to inspect the overlay, or expand Earlier aerial checks
 to see previous uploads. Remove hides a check from the case but retains its
 files and answers with the removal identity; Undo, shown after a removal, puts
-the check back with that identity. If someone else changed the check in the
-meantime, Undo is refused and the case must be refreshed. If an upload's outcome
-is unknown, refresh the case before trying again to avoid a duplicate.
+the check back with that identity, and adding a photo ends that offer. If
+someone else changed the check in the meantime, Undo is refused and the case
+must be refreshed. If an upload's outcome is unknown, refresh the case before
+trying again to avoid a duplicate.
 
 ## Authorization
 
@@ -43,10 +44,10 @@ Field reporters and mobile tokens get `403`.
 Errors: `404` flag off, unknown analysis, or a removed analysis on any route but
 restore; `409` the well-formed restore identity no longer names the analysis's
 current removal; `422` a missing or malformed removal identity, or a bad file;
-`429`
-another check is running (single-run lock) or the upload rate limit was reached;
-`503` the check could not run. On failure the server attempts to delete the
-image and mask; cleanup failures are logged and can leave orphaned files.
+`429` another check is running (single-run lock) or the upload rate limit was
+reached; `503` the check could not run. On failure the server attempts to
+delete the image and mask; cleanup failures are logged and can leave orphaned
+files.
 
 ## Analysis object
 
