@@ -23,6 +23,15 @@ export type ConflictField = (typeof conflictFields)[number];
 export type ConflictSnapshot = Record<ConflictField, string>;
 export type ConflictChoices = Record<ConflictField, "latest" | "mine">;
 
+export const allConflictChoices: ConflictChoices = {
+  classification: "latest",
+  verification: "latest",
+  action: "latest",
+  notes: "latest",
+  inspector: "latest",
+  targetDate: "latest",
+};
+
 export interface ActionSelection {
   action: string;
   support: "advisory" | "technical";

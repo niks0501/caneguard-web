@@ -18,6 +18,7 @@ import { reportsRepository } from "../../services/reports.service";
 import { formatCalendarDate } from "../../lib/formatters";
 import { ReviewConflictPanel } from "./ReviewConflictPanel";
 import {
+  allConflictChoices,
   conflictFields,
   draftReviewSnapshot,
   parseActionToken,
@@ -69,6 +70,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [nextPending, setNextPending] = useState(false);
   const [nextMessage, setNextMessage] = useState("");
   const [conflictLatest, setConflictLatest] = useState<DiseaseReport | null>(null);
+  const [conflictChoices, setConflictChoices] = useState<ConflictChoices>(allConflictChoices);
   const [conflictLoading, setConflictLoading] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const online = useOnlineStatus();
@@ -113,19 +115,23 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     ?? report.fieldValidationAssignment?.assignee;
   const displayedInspector = activeValidation ? report.fieldValidationAssignment?.assignee.name : selectedInspector?.name;
   const displayedTargetDate = activeValidation ? report.fieldValidationAssignment?.targetVisitDate : targetDate;
-  const errors = {
-    classification: effectiveVerification === "verified" && !classification ? "Staff-Classified Condition is required for Verified." : null,
-    action: !action ? "Choose what should happen next." : null,
-    advisory: action === "support" && support === "advisory" && !selectedAdvisory ? "Select a validated advisory for Advisory Guidance." : null,
-    inspector: assignmentNeeded && !inspectorUuid ? "Select a Field Inspector before saving field validation." : null,
-    reopen: fieldSelected && currentClosed && !reopenConfirmed ? "Reopen the case before assigning a field validation visit." : null,
-    close: action === "close" && !closedConfirmed ? "Confirm that you want to close this case." : null,
-    notes: notes.length > 1000 ? "Review notes must be 1,000 characters or fewer."
-      : effectiveVerification === "unable_to_verify" && !notes.trim() ? "Add a note explaining why the evidence cannot be verified."
-      : action === "support" && support === "technical" && !notes.trim() ? "Meaningful Technical Assistance details are required." : null,
+  const notesErrors = [
+    notes.length > 1000 ? "Review notes must be 1,000 characters or fewer." : null,
+    effectiveVerification === "unable_to_verify" && !notes.trim() ? "Add a note explaining why the evidence cannot be verified." : null,
+    action === "support" && support === "technical" && !notes.trim() ? "Meaningful Technical Assistance details are required." : null,
+  ].filter((message): message is string => !!message);
+  const fieldErrors = {
+    classification: effectiveVerification === "verified" && !classification ? ["Staff-Classified Condition is required for Verified."] : [],
+    action: !action ? ["Choose what should happen next."] : [],
+    advisory: action === "support" && support === "advisory" && !selectedAdvisory ? ["Select a validated advisory for Advisory Guidance."] : [],
+    inspector: assignmentNeeded && !inspectorUuid ? ["Select a Field Inspector before saving field validation."] : [],
+    reopen: fieldSelected && currentClosed && !reopenConfirmed ? ["Reopen the case before assigning a field validation visit."] : [],
+    close: action === "close" && !closedConfirmed ? ["Confirm that you want to close this case."] : [],
+    notes: notesErrors,
   };
-  const invalid = Object.values(errors).some(Boolean);
-  const unresolvedMessages = failedMessages.filter((message) => Object.values(errors).includes(message));
+  const failingMessages = Object.values(fieldErrors).flat();
+  const invalid = failingMessages.length > 0;
+  const unresolvedMessages = failedMessages.filter((message) => failingMessages.includes(message));
   if (unresolvedMessages.length !== failedMessages.length) setFailedMessages(unresolvedMessages);
   const failed = unresolvedMessages.length > 0;
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
@@ -172,12 +178,12 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   useEffect(() => {
     document.title = `${failed ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
   }, [failed, report.referenceCode]);
-  const showsError = (key: keyof typeof errors) => {
-    const message = errors[key];
-    return !!message && failedMessages.includes(message);
+  const pendingMessage = (field: keyof typeof fieldErrors) => fieldErrors[field].find((message) => unresolvedMessages.includes(message));
+  const showsError = (field: keyof typeof fieldErrors) => !!pendingMessage(field);
+  const error = (field: keyof typeof fieldErrors) => {
+    const message = pendingMessage(field);
+    return message ? <p id={`review-error-${field}`} className="form-error" role="alert">{message}</p> : null;
   };
-  const error = (key: keyof typeof errors) => showsError(key)
-    ? <p id={`review-error-${key}`} className="form-error" role="alert">{errors[key]}</p> : null;
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstStepRender = useRef(true);
@@ -196,8 +202,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const confirm = async () => {
     if (!online || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
     if (invalid) {
-      setFailedMessages(Object.values(errors).filter((message): message is string => !!message));
-      setStep(errors.action ? "action" : "details");
+      setFailedMessages(failingMessages);
+      setStep(fieldErrors.action.length ? "action" : "details");
       return;
     }
     const input: ReportReviewInput = {
@@ -221,7 +227,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       const nextVersion = updated?.reviewVersion ?? expectedVersion + 1;
       lastSelfWriteVersion.current = nextVersion;
       setExpectedVersion(nextVersion);
-      setDirty(false); setSaved(true); setFailedMessages([]);
+      setDirty(false); setSaved(true); setFailedMessages([]); setConflictChoices(allConflictChoices);
       setConflictLatest(null); setConflictError(null);
       onRefresh();
     } catch (error) {
@@ -287,6 +293,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     lastSelfWriteVersion.current = undefined;
     setStale(false);
     setFailedMessages([]);
+    setConflictChoices(allConflictChoices);
     setConflictLatest(null);
     setConflictError(null);
     mutation.reset();
@@ -439,6 +446,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         advisoryNames={Object.fromEntries(validated.map((item) => [item.uuid, `${item.code} - ${item.title}`]))}
         loading={conflictLoading}
         error={conflictError}
+        choices={conflictChoices}
+        onChoicesChange={setConflictChoices}
         onLoadLatest={() => void loadLatestVersion()}
         onApply={applyConflictChoices}
         onReloadAll={() => applyConflictChoices({

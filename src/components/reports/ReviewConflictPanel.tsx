@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import type {
   AuthorityClassifiedCondition,
   DiseaseReport,
@@ -65,15 +65,6 @@ function displayValue(
   }
 }
 
-const allLatest: ConflictChoices = {
-  classification: "latest",
-  verification: "latest",
-  action: "latest",
-  notes: "latest",
-  inspector: "latest",
-  targetDate: "latest",
-};
-
 export function ReviewConflictPanel({
   latest,
   draft,
@@ -81,6 +72,8 @@ export function ReviewConflictPanel({
   advisoryNames,
   loading,
   error,
+  choices,
+  onChoicesChange,
   onLoadLatest,
   onApply,
   onReloadAll,
@@ -91,12 +84,13 @@ export function ReviewConflictPanel({
   advisoryNames: Record<string, string>;
   loading: boolean;
   error: string | null;
+  choices: ConflictChoices;
+  onChoicesChange: (choices: ConflictChoices) => void;
   onLoadLatest: () => void;
   onApply: (choices: ConflictChoices) => void;
   onReloadAll: () => void;
 }) {
   const idPrefix = useId();
-  const [choices, setChoices] = useState<ConflictChoices>(allLatest);
 
   if (!latest) {
     return (
@@ -150,7 +144,7 @@ export function ReviewConflictPanel({
                           type="radio"
                           name={`${idPrefix}-${field}`}
                           checked={choices[field] === "latest"}
-                          onChange={() => setChoices((current) => ({ ...current, [field]: "latest" }))}
+                          onChange={() => onChoicesChange({ ...choices, [field]: "latest" })}
                         />
                         <span>Latest</span>
                       </label>
@@ -159,7 +153,7 @@ export function ReviewConflictPanel({
                           type="radio"
                           name={`${idPrefix}-${field}`}
                           checked={choices[field] === "mine"}
-                          onChange={() => setChoices((current) => ({ ...current, [field]: "mine" }))}
+                          onChange={() => onChoicesChange({ ...choices, [field]: "mine" })}
                         />
                         <span>Mine</span>
                       </label>

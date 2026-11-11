@@ -235,6 +235,30 @@ describe("Progressive review resilience", () => {
     expect(save.mock.calls[1][0]).not.toHaveProperty("advisoryUuid");
   });
 
+  // Which side keeps each field must survive a trip back to the draft.
+  it("keeps the reconciliation choices across step navigation", async () => {
+    const user = userEvent.setup();
+    const latest = { ...base, reviewVersion: base.reviewVersion! + 2, reviewNotes: "Updated by the other reviewer." };
+    const onRefresh = vi.fn().mockResolvedValue({ data: latest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    const table = await screen.findByRole("table", { name: "Fields that changed on the server" });
+    const notesRow = within(table).getByRole("row", { name: /Review notes/i });
+    await user.click(within(notesRow).getByRole("radio", { name: "Mine" }));
+    expect(within(notesRow).getByRole("radio", { name: "Mine" })).toBeChecked();
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+
+    const restored = within(await screen.findByRole("table", { name: "Fields that changed on the server" }))
+      .getByRole("row", { name: /Review notes/i });
+    expect(within(restored).getByRole("radio", { name: "Mine" })).toBeChecked();
+  });
+
   it("treats a failed comparison read as a failed read, never as the latest saved record", async () => {
     const user = userEvent.setup();
     // TanStack refetch() resolves with the cached record when the read fails.
@@ -303,8 +327,8 @@ describe("Progressive review resilience", () => {
     expect(save).not.toHaveBeenCalled();
     expect(screen.getByText("Meaningful Technical Assistance details are required.")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Verification Outcome"), "unable_to_verify");
+    expect(screen.getByText("Meaningful Technical Assistance details are required.")).toBeInTheDocument();
     expect(screen.queryByText(/Add a note explaining why/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Meaningful Technical Assistance details are required.")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save).not.toHaveBeenCalled();
