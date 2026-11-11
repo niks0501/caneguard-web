@@ -18,7 +18,7 @@ const fileHint = "Use a JPG, PNG or WebP under 20 MB.";
 
 type Highlights = "off" | "abnormal" | "both";
 
-type UndoTarget = { analysis: AerialAnalysis; removalId: string };
+type UndoTarget = { analysis: AerialAnalysis; removalId: string; removalSeq: number };
 type UndoState = { target: UndoTarget; notice: "failed" | "stale" | null };
 
 function errorMessage(error: unknown): string {
@@ -228,6 +228,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const remove = useRemoveAerialAnalysis(report.uuid);
   const restore = useRestoreAerialAnalysis(report.uuid);
   const [undo, setUndo] = useState<UndoState | null>(null);
+  const nextOperation = useRef(0);
   const [problem, setProblem] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
   const analyses = report.aerialAnalyses ?? [];
@@ -240,11 +241,11 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       return;
     }
     setProblem(null);
-    const targetBeforeUpload = undo?.target ?? null;
+    const uploadSeq = ++nextOperation.current;
     add.mutate(file, {
       onSuccess: () => {
         setLastFile(null);
-        setUndo((current) => ((current?.target ?? null) === targetBeforeUpload ? null : current));
+        setUndo((current) => (current && current.target.removalSeq < uploadSeq ? null : current));
       },
       onError: (error) => {
         if (!(error instanceof ApiError && error.status === 429)) setLastFile(null);
@@ -256,11 +257,13 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
   const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
   const closeRemoval = () => setPendingRemoval(null);
-  const removeConfirmed = (analysis: AerialAnalysis) =>
+  const removeConfirmed = (analysis: AerialAnalysis) => {
+    const removalSeq = ++nextOperation.current;
     remove.mutate(analysis.uuid, {
       onSuccess: (removal) =>
-        setUndo({ target: { analysis, removalId: removal.removalId }, notice: null }),
+        setUndo({ target: { analysis, removalId: removal.removalId, removalSeq }, notice: null }),
     });
+  };
   const undoRemoval = (target: UndoTarget) =>
     restore.mutate(
       { analysisUuid: target.analysis.uuid, removalId: target.removalId },

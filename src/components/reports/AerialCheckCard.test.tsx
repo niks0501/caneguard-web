@@ -470,6 +470,28 @@ describe("AerialCheckCard", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  // Intent: a removal started before an upload is cleared when that photo is added, even if the removal finishes later.
+  it("clears Undo when a removal started before the upload finishes after it", async () => {
+    const removals = pending();
+    const uploads = pending();
+    const { remove } = setup({ mutate: uploads.mutate });
+    remove.mutate = removals.mutate;
+    render(<AerialCheckCard report={report([analysis()])} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove check" }));
+
+    await userEvent.upload(
+      screen.getByLabelText(/another aerial photo/i),
+      new File(["x"], "field.jpg", { type: "image/jpeg" }),
+    );
+    act(() => removals.callbacks[0]?.onSuccess?.({ removalId: "rm-1" }));
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+
+    act(() => uploads.callbacks[0]?.onSuccess?.());
+
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
   // Intent: a failed undo says so and keeps Undo available to try again.
   it("keeps Undo available when restoring fails", async () => {
     const restoreMutate = fails();
