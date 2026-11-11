@@ -27,10 +27,10 @@ import {
 import { reviewQueueContext } from "./reviewQueueContext";
 
 type NextAction = "field" | "support" | "close";
-const actions: { value: NextAction; label: string }[] = [
-  { value: "field", label: "Needs Field Validation" },
-  { value: "support", label: "Provide Advisory or Assistance" },
-  { value: "close", label: "No Further Action" },
+const actions: { value: NextAction; label: string; consequence: string }[] = [
+  { value: "field", label: "Needs Field Validation", consequence: "Case stays open until the visit is done." },
+  { value: "support", label: "Provide Advisory or Assistance", consequence: "The reporter receives the advice you choose." },
+  { value: "close", label: "No Further Action", consequence: "The case is closed." },
 ];
 
 export function ReviewDecisionForm({ report, onRefresh }: {
@@ -310,9 +310,10 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         <legend>What should happen next?</legend>
         <div className="review-actions__pills">{actions.map((item) => <label key={item.value} className={`review-action-pill ${action === item.value ? "is-selected" : ""}`}>
           <input type="radio" name="next-action" value={item.value} checked={action === item.value}
+            aria-labelledby={`next-action-${item.value}-label`} aria-describedby={`next-action-${item.value}-consequence`}
             disabled={item.value === "field" && completedValidation}
             onChange={() => { setAction(item.value); if (item.value === "field") setVerification("not_determined"); setClosedConfirmed(false); setReopenConfirmed(false); changed(); }} />
-          <span><strong>{item.label}</strong></span>
+          <span className="review-action-pill__text"><strong id={`next-action-${item.value}-label`}>{item.label}</strong><small id={`next-action-${item.value}-consequence`}>{item.consequence}</small></span>
         </label>)}</div>
       </fieldset>{error("action")}
       <fieldset className="review-conditional-fields" disabled={mutation.isPending}>
