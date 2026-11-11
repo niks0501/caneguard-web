@@ -15,6 +15,7 @@ import { useFieldReporters } from "../../hooks/useFieldReporters";
 import { useAdvisories, useUpdateReportReview } from "../../hooks/useReports";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { reportsRepository } from "../../services/reports.service";
+import { formatCalendarDate } from "../../lib/formatters";
 import { ReviewConflictPanel } from "./ReviewConflictPanel";
 import {
   conflictFields,
@@ -379,7 +380,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         <DetailField label="Next Action">{actions.find((item) => item.value === action)?.label ?? "Pending decision"}</DetailField>
         {action === "support" ? <DetailField label="Support type">{support === "advisory" ? "Advisory Guidance" : "Technical Assistance"}</DetailField> : null}
         {action === "support" && support === "advisory" ? <DetailField label="Selected advisory">{selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "Not selected"}</DetailField> : null}
-        {fieldSelected ? <DetailField label="Field Inspector">{selectedInspector?.name ?? "Not selected"}{targetDate ? ` · ${targetDate}` : ""}</DetailField> : null}
+        {fieldSelected ? <DetailField label="Field Inspector">{selectedInspector?.name ?? "Not selected"}{targetDate ? ` · Visit by ${formatCalendarDate(targetDate)}` : ""}</DetailField> : null}
         <DetailField label="Resulting case state">{caseStateLabels[resultingState]}</DetailField>
         <DetailField label="Notes">{notes.trim() ? "Included" : "None"}</DetailField>
       </dl>

@@ -8,6 +8,7 @@ import {
   authorityClassifiedConditionLabels,
   verificationOutcomeLabels,
 } from "../../domain/report.metadata";
+import { formatCalendarDate } from "../../lib/formatters";
 import { Button } from "../ui/Button";
 import {
   conflictFields,
@@ -24,7 +25,7 @@ const fieldLabels: Record<ConflictField, string> = {
   action: "Next action",
   notes: "Review notes",
   inspector: "Field Inspector",
-  targetDate: "Target visit date",
+  targetDate: "Visit by",
 };
 
 const actionLabels: Record<string, string> = {
@@ -60,7 +61,7 @@ function displayValue(
     case "inspector":
       return value ? inspectorNames[value] ?? "Selected Field Inspector" : "Not assigned";
     case "targetDate":
-      return value || "No target date";
+      return value ? formatCalendarDate(value) : "No target date";
   }
 }
 

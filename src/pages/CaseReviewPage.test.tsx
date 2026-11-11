@@ -1633,6 +1633,35 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText("No prior review events recorded.")).toBeInTheDocument();
   });
 
+  it("shows server case-history visit dates as a labelled calendar day", () => {
+    const reportWithServerHistory = {
+      ...report,
+      caseHistory: {
+        available: true,
+        sources: { reviewEvents: true, corrections: true, assignments: true, consults: true },
+        entries: [
+          {
+            id: "field-validation-assign-1",
+            type: "field_validation" as const,
+            typeLabel: "Field validation",
+            timestamp: "2026-07-18T02:00:00.000Z",
+            actor: "Office reviewer",
+            fields: [{ label: "Target visit", value: "2026-07-22" }],
+            notes: null,
+          },
+        ],
+      },
+    };
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithServerHistory }));
+    renderPage();
+
+    const timeline = screen.getByRole("region", { name: "Case history" });
+    expect(within(timeline).getByText("Visit by")).toBeInTheDocument();
+    expect(within(timeline).getByText("Jul 22, 2026")).toBeInTheDocument();
+    expect(within(timeline).queryByText("Target visit")).not.toBeInTheDocument();
+    expect(within(timeline).queryByText("2026-07-22")).not.toBeInTheDocument();
+  });
+
   it("renders review events in the timeline when present", () => {
     const reportWithEvents = {
       ...report,

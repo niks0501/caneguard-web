@@ -1,4 +1,3 @@
-import { formatCalendarDate } from "../lib/formatters";
 import { useEffect, useRef, useState } from "react";
 import "../styles/report-evidence-review.css";
 import {
@@ -62,7 +61,7 @@ import {
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
-import { formatDate, formatDateTime } from "../lib/formatters";
+import { formatCalendarDate, formatDate, formatDateTime } from "../lib/formatters";
 
 type MetadataDraft = {
   barangay: string;
@@ -87,7 +86,24 @@ export interface CaseHistoryEntry {
   notes?: string | null;
 }
 
+const calendarDayPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function presentHistoryValue(value: React.ReactNode): React.ReactNode {
+  if (typeof value !== "string" || !calendarDayPattern.test(value)) return value;
+  return Number.isNaN(new Date(value).getTime()) ? value : formatCalendarDate(value);
+}
+
 function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
+  return rawCaseHistory(report).map((entry) => ({
+    ...entry,
+    fields: entry.fields.map((field) => ({
+      label: field.label === "Target visit" ? "Visit by" : field.label,
+      value: presentHistoryValue(field.value),
+    })),
+  }));
+}
+
+function rawCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
   if (report.caseHistory) {
     return report.caseHistory.entries.map((entry) => ({
       id: entry.id,
@@ -157,7 +173,7 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
       actor: assignment.assignedBy?.name ?? "Office reviewer",
       fields: [
         { label: "Assignment", value: `Assigned to ${assignment.assignee.name}` },
-        ...(assignment.targetVisitDate ? [{ label: "Visit by", value: formatCalendarDate(assignment.targetVisitDate) }] : []),
+        ...(assignment.targetVisitDate ? [{ label: "Visit by", value: assignment.targetVisitDate }] : []),
       ],
       notes: null,
     });
