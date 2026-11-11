@@ -102,6 +102,13 @@ function isVisitDateCorrection(entry: CaseHistoryEntry): boolean {
     && auditedField.value.toLowerCase().includes("target date");
 }
 
+/**
+ * Visit dates are the only case-history values shown as a calendar day. Raw
+ * values stay verbatim everywhere else: staff copy tracking codes and free text
+ * exactly as recorded, and only the audited "Field" label identifies a
+ * visit-date correction (the server sends `field_validation_target_date` as
+ * "Field validation target date"). Server values are never rewritten.
+ */
 function presentHistoryEntry(entry: CaseHistoryEntry): CaseHistoryEntry {
   const visitDateCorrection = isVisitDateCorrection(entry);
   return {

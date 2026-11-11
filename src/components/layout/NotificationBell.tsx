@@ -21,6 +21,11 @@ function formatNotificationTime(timestamp: string | null) {
   }).format(date);
 }
 
+/**
+ * Only these event types carry a raw target visit date. Every other message is
+ * shown verbatim because some embed user-supplied text (for example an advisory
+ * title) that must not be reinterpreted as a date.
+ */
 const visitDateEventTypes = [
   "field_validation_assigned",
   "field_validation_assignment_changed",
