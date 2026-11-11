@@ -1,3 +1,4 @@
+import { formatCalendarDate } from "../../lib/formatters";
 import { useState } from "react";
 import { CalendarClock, Check, MapPin, X } from "lucide-react";
 import { Link } from "react-router";
@@ -97,7 +98,7 @@ export function FieldOperationsEditor({
         <div><dt>Possible Condition</dt><dd>{predictedDiseaseLabel(item.predictedDisease)}</dd></div>
         {reason ? <div><dt>Reason for Visit</dt><dd>{reason}</dd></div> : null}
         <div><dt>Observed</dt><dd>{formatValidationDate(item.observedAt)}</dd></div>
-        <div><dt>Target visit</dt><dd>{item.targetVisitDate ?? "Not scheduled"}</dd></div>
+        <div><dt>Visit by</dt><dd>{item.targetVisitDate ? formatCalendarDate(item.targetVisitDate) : "Not scheduled"}</dd></div>
         {timing ? <div><dt>Visit timing</dt><dd>{timing}</dd></div> : null}
       </dl>
 

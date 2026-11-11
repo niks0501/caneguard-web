@@ -153,7 +153,7 @@ export function OperationalSnapshot({
       </div>
       <div className="col-3">
         <KpiCard
-          label="Unverified reports, no active work"
+          label="Not checked, nobody assigned"
           value={String(summary.queues.unverified_no_active_work)}
           support={UNVERIFIED_SUPPORT_LINE}
           icon={<CircleHelp aria-hidden="true" strokeWidth={1.75} />}

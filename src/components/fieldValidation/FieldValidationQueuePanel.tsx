@@ -1,3 +1,4 @@
+import { formatCalendarDate } from "../../lib/formatters";
 import { useContext, useState } from "react";
 import { ClipboardCheck, MapPinOff } from "lucide-react";
 import { Link } from "react-router";
@@ -44,8 +45,8 @@ function queueItemMeta(item: FieldValidationQueueItem) {
     ? "Portion not provided"
     : `${item.affectedPortionPercent}% of portion`;
   const targetDate = item.targetVisitDate
-    ? `Target visit ${item.targetVisitDate}`
-    : "No target date";
+    ? `Visit by ${formatCalendarDate(item.targetVisitDate)}`
+    : "No visit date";
   return `${targetDate} · ${affectedArea} · ${affectedPortion}`;
 }
 

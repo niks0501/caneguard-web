@@ -90,13 +90,13 @@ describe("ServerStatus", () => {
 
     expect(
       await screen.findByRole("status", {
-        name: "Connectivity: Network Available; CaneGuard server Degraded",
+        name: "Connectivity: Network Available; CaneGuard server Updates may be late",
       }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Server degraded", { exact: true }),
+      await screen.findByText("Some updates may be late", { exact: true }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Degraded", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Updates may be late", { exact: true })).toBeInTheDocument();
   });
 
   it("shows degraded when the health check says the API is degraded", async () => {
@@ -108,13 +108,13 @@ describe("ServerStatus", () => {
 
     expect(
       await screen.findByRole("status", {
-        name: "Connectivity: Network Available; CaneGuard server Degraded",
+        name: "Connectivity: Network Available; CaneGuard server Updates may be late",
       }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Server degraded", { exact: true }),
+      await screen.findByText("Some updates may be late", { exact: true }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Degraded", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Updates may be late", { exact: true })).toBeInTheDocument();
   });
 
   it("keeps a reachable server connected for intentional 403 responses", async () => {
@@ -167,6 +167,6 @@ describe("ServerStatus", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Degraded")).toBeInTheDocument();
+    expect(screen.getByText("Updates may be late")).toBeInTheDocument();
   });
 });

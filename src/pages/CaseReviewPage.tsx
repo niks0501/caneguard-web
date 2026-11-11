@@ -1,3 +1,4 @@
+import { formatCalendarDate } from "../lib/formatters";
 import { useEffect, useRef, useState } from "react";
 import "../styles/report-evidence-review.css";
 import {
@@ -156,7 +157,7 @@ function deriveMergedCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
       actor: assignment.assignedBy?.name ?? "Office reviewer",
       fields: [
         { label: "Assignment", value: `Assigned to ${assignment.assignee.name}` },
-        ...(assignment.targetVisitDate ? [{ label: "Target visit", value: assignment.targetVisitDate }] : []),
+        ...(assignment.targetVisitDate ? [{ label: "Visit by", value: formatCalendarDate(assignment.targetVisitDate) }] : []),
       ],
       notes: null,
     });

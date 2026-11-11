@@ -5,6 +5,15 @@ export const formatDate = (value: string) =>
     year: "numeric",
   }).format(new Date(value));
 
+/** Calendar-day strings (YYYY-MM-DD) as "Jul 22, 2026"; no timezone shift. */
+export const formatCalendarDate = (value: string) =>
+  new Intl.DateTimeFormat("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+
 /**
  * Operational times are Asia/Manila wall time (UTC+8, no DST) shown in
  * 12-hour form with an explicit meridiem marker. Never 24-hour: a bare

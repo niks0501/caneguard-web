@@ -126,7 +126,6 @@ describe("FieldOperationsPage workload freshness", () => {
     const freshness = screen.getByText("Last updated").closest("p") as HTMLElement;
     // 13:14:03 UTC is 9:14:03 PM in Asia/Manila.
     expect(within(freshness).getByText("9:14:03 PM")).toBeInTheDocument();
-    expect(within(freshness).getByText(/, read from the server/)).toBeInTheDocument();
   });
 
   it("keeps the prior stamp and offers a workload retry when a refresh fails", async () => {

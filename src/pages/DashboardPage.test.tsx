@@ -492,7 +492,7 @@ describe("DashboardPage", () => {
     expect(snapshot.getByText("Submitted reports")).toBeInTheDocument();
     expect(snapshot.getByText("Reports awaiting review")).toBeInTheDocument();
     expect(snapshot.getByText("Reports needing field validation")).toBeInTheDocument();
-    expect(snapshot.getByText("Unverified reports, no active work")).toBeInTheDocument();
+    expect(snapshot.getByText("Not checked, nobody assigned")).toBeInTheDocument();
 
     // KPI 1: comparison and hint paragraphs are stripped.
     expect(snapshot.queryByText(/▲ Up from/)).not.toBeInTheDocument();
@@ -712,7 +712,7 @@ describe("DashboardPage", () => {
     // anywhere); this fixture proves the longest real labels still mount and
     // that the removed explanatory prose is gone rather than shortened.
     renderDashboard();
-    expect(screen.getByText("Unverified reports, no active work")).toBeInTheDocument();
+    expect(screen.getByText("Not checked, nobody assigned")).toBeInTheDocument();
     expect(
       screen.queryByText(/no referral in flight, no validation assignment/),
     ).not.toBeInTheDocument();
@@ -906,7 +906,7 @@ describe("DashboardPage", () => {
     ).not.toBeInTheDocument();
     expect(
       within(
-        card("Unverified reports, no active work"),
+        card("Not checked, nobody assigned"),
       ).queryByText(/^Period /),
     ).not.toBeInTheDocument();
 

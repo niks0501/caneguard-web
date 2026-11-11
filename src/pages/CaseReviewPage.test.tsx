@@ -503,7 +503,7 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
     await chooseAdvisory(user);
     expect(screen.getByText(/Human finding; independent of the AI Possible Condition/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("");
+    expect(screen.getByLabelText("What you found")).toHaveValue("");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText("Observed at")).toBeInTheDocument();
     expect(screen.getByText("Submitted at")).toBeInTheDocument();
@@ -776,7 +776,7 @@ describe("CaseReviewPage", () => {
     expect(within(screen.getByRole("region", { name: "Possible Condition" })).getByText("Smut")).toBeVisible();
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
     await user.type(within(modal).getByLabelText(/^Review notes/), "Authority confirmed Smut.");
     await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
 
@@ -786,12 +786,12 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("offers every active Staff-Classified Condition but not legacy Downy mildew", async () => {
+  it("offers every active condition but not legacy Downy mildew", async () => {
     const user = userEvent.setup();
     renderPage();
 
     await chooseAdvisory(user);
-    const select = screen.getByLabelText("Staff-Classified Condition");
+    const select = screen.getByLabelText("What you found");
     expect(within(select).getAllByRole("option").map((option) => option.getAttribute("value"))).toEqual([
       "",
       "healthy",
@@ -828,7 +828,7 @@ describe("CaseReviewPage", () => {
 
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    const select = within(modal).getByLabelText("Staff-Classified Condition");
+    const select = within(modal).getByLabelText("What you found");
     expect(select).toHaveValue("downy_mildew");
     expect(
       within(select).getByRole("option", {
@@ -1221,7 +1221,7 @@ describe("CaseReviewPage", () => {
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(
-      within(modal).getByLabelText("Staff-Classified Condition"),
+      within(modal).getByLabelText("What you found"),
       "smut",
     );
     await user.type(
@@ -1403,7 +1403,7 @@ describe("CaseReviewPage", () => {
     );
     const pendingModal = screen.getByRole("form", { name: "Report Evidence Review" });
     expect(within(pendingModal).getByRole("button", { name: "Confirming review..." })).toBeDisabled();
-    expect(within(pendingModal).getByLabelText("Staff-Classified Condition")).toBeDisabled();
+    expect(within(pendingModal).getByLabelText("What you found")).toBeDisabled();
     expect(within(pendingModal).getByLabelText("Validated advisory")).toBeDisabled();
 
     // A second click on the locked submit sends nothing more.
@@ -1482,7 +1482,7 @@ describe("CaseReviewPage", () => {
 
     // The summary tracks each pending choice before confirmation.
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
     await user.selectOptions(within(modal).getByLabelText("Verification Outcome"), "verified");
 
     // The read-only summary reflects the current inline draft.

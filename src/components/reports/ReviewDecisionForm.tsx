@@ -106,7 +106,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const selectedInspector = (inspectors.data ?? []).find((item) => item.uuid === inspectorUuid)
     ?? report.fieldValidationAssignment?.assignee;
   const errors = {
-    classification: verification === "verified" && !classification ? "Staff-Classified Condition is required for Verified." : null,
+    classification: verification === "verified" && !classification ? "What you found is required for Verified." : null,
     action: !action ? "Choose what should happen next." : null,
     advisory: action === "support" && support === "advisory" && !selectedAdvisory ? "Select a validated advisory for Advisory Guidance." : null,
     inspector: assignmentNeeded && !inspectorUuid ? "Select a Field Inspector before saving field validation." : null,
@@ -295,7 +295,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     <fieldset className="review-card review-finding" disabled={mutation.isPending}>
       <legend>Record Finding</legend>
       <div className="review-finding__fields">
-        <div><SelectFilter label="Staff-Classified Condition" value={classification ?? ""}
+        <div><SelectFilter label="What you found" value={classification ?? ""}
           aria-invalid={submitted && !!errors.classification} aria-describedby={submitted && errors.classification ? "review-error-classification" : undefined}
           onChange={(event) => { setClassification((event.target.value || null) as AuthorityClassifiedCondition | null); changed(); }}>
           <option value="">Not classified</option>
@@ -326,7 +326,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       <fieldset className="review-conditional-fields" disabled={mutation.isPending}>
         <legend className="sr-only">Action details and notes</legend>
         {fieldSelected ? <div className="review-subform">
-          <p role="status">Field Validation remains Not Determined; the case stays Open.</p>
+          <p role="status">The case stays open until the visit is done.</p>
           {activeValidation ? <p>Field validation active — assigned to {report.fieldValidationAssignment?.assignee.name}. Active assignments and submitted field-validation evidence are not reassigned here.</p> : <>
             <SelectFilter label="Field Inspector assignee" value={inspectorUuid} aria-invalid={submitted && !!errors.inspector}
               aria-describedby={submitted && errors.inspector ? "review-error-inspector" : undefined}
@@ -374,7 +374,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       <h2 id="review-summary-heading">Review Summary</h2>
       <dl className="decision-summary__grid">
         <DetailField label="Possible Condition">{predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}</DetailField>
-        <DetailField label="Staff-Classified Condition">{classification ? authorityClassifiedConditionLabels[classification] : "Not classified"}</DetailField>
+        <DetailField label="What you found">{classification ? authorityClassifiedConditionLabels[classification] : "Not classified"}</DetailField>
         <DetailField label="Verification">{verificationOutcomeLabels[verification]}</DetailField>
         <DetailField label="Next Action">{actions.find((item) => item.value === action)?.label ?? "Pending decision"}</DetailField>
         {action === "support" ? <DetailField label="Support type">{support === "advisory" ? "Advisory Guidance" : "Technical Assistance"}</DetailField> : null}

@@ -27,7 +27,6 @@ export function WorkspaceFreshness({
         {refreshFailed ? "Showing data from" : label}
       </span>
       <time dateTime={new Date(updatedAt).toISOString()}>{stamp}</time>
-      <span className="sr-only">, read from the server. Unsent field-device drafts are not included.</span>
       {fetching ? <span className="workspace-freshness__state">Updating…</span> : null}
       {refreshFailed && onRetry ? (
         <button type="button" className="table-action" onClick={onRetry}>Retry</button>

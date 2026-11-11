@@ -19,7 +19,7 @@ import {
 } from "./reviewConflict";
 
 const fieldLabels: Record<ConflictField, string> = {
-  classification: "Staff-Classified Condition",
+  classification: "What you found",
   verification: "Verification Outcome",
   action: "Next action",
   notes: "Review notes",
