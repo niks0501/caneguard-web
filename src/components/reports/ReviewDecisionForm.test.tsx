@@ -303,10 +303,12 @@ describe("Progressive review resilience", () => {
     expect(save).not.toHaveBeenCalled();
     expect(screen.getByText("Meaningful Technical Assistance details are required.")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Verification Outcome"), "unable_to_verify");
-    expect(screen.getByText(/Add a note explaining why/)).toBeInTheDocument();
+    expect(screen.queryByText(/Add a note explaining why/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Meaningful Technical Assistance details are required.")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save).not.toHaveBeenCalled();
+    expect(screen.getByText(/Add a note explaining why/)).toBeInTheDocument();
   });
 
   // Every error from the failed save stays visible on its step until that error itself is resolved.
@@ -357,6 +359,38 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("region", { name: "Review Summary" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirming review..." })).toBeInTheDocument();
+  });
+
+  // An active assignment survives confirmation, so the consequence must name it, not the draft.
+  it("names the assignment the confirmation preserves", async () => {
+    const user = userEvent.setup();
+    const assigned = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 6,
+      lifecycle: { ...base.lifecycle!, fieldValidationState: "assigned" as const },
+      fieldValidationAssignment: {
+        uuid: "assignment-1",
+        assignee: { uuid: "inspector-2", name: "Assigned Inspector" },
+        assignedBy: { uuid: "reviewer-1", name: "Reviewer" },
+        targetVisitDate: "2026-12-01",
+        activatedAt: "2026-11-01T00:00:00.000Z",
+        updatedAt: "2026-11-01T00:00:00.000Z",
+      },
+    };
+    const { rerender } = renderForm();
+    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
+    rerender(<MemoryRouter><ReviewDecisionForm report={assigned} onRefresh={vi.fn()} /></MemoryRouter>);
+
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    const summary = screen.getByRole("region", { name: "Review Summary" });
+    expect(summary).toHaveTextContent(/Assigned Inspector/);
+    expect(summary).toHaveTextContent(/on 2026-12-01/);
+
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[0][0]).toMatchObject({ caseState: "open" });
+    expect(save.mock.calls[0][0]).not.toHaveProperty("fieldValidationAssigneeUuid");
   });
 
   // A failed save flags only the step it failed on; advancing must not reveal new errors.

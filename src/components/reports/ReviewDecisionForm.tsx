@@ -61,7 +61,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [notes, setNotes] = useState(report.reviewNotes ?? "");
   const [closedConfirmed, setClosedConfirmed] = useState(false);
   const [reopenConfirmed, setReopenConfirmed] = useState(false);
-  const [failedErrors, setFailedErrors] = useState<(keyof typeof errors)[]>([]);
+  const [failedMessages, setFailedMessages] = useState<string[]>([]);
   const [step, setStep] = useState<DecisionStep>("action");
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -111,6 +111,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const selectedAdvisory = validated.find((item) => item.uuid === advisoryUuid);
   const selectedInspector = (inspectors.data ?? []).find((item) => item.uuid === inspectorUuid)
     ?? report.fieldValidationAssignment?.assignee;
+  const displayedInspector = activeValidation ? report.fieldValidationAssignment?.assignee.name : selectedInspector?.name;
+  const displayedTargetDate = activeValidation ? report.fieldValidationAssignment?.targetVisitDate : targetDate;
   const errors = {
     classification: effectiveVerification === "verified" && !classification ? "Staff-Classified Condition is required for Verified." : null,
     action: !action ? "Choose what should happen next." : null,
@@ -123,8 +125,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       : action === "support" && support === "technical" && !notes.trim() ? "Meaningful Technical Assistance details are required." : null,
   };
   const invalid = Object.values(errors).some(Boolean);
-  const unresolvedErrors = failedErrors.filter((key) => !!errors[key]);
-  if (unresolvedErrors.length !== failedErrors.length) setFailedErrors(unresolvedErrors);
+  const unresolvedMessages = failedMessages.filter((message) => Object.values(errors).includes(message));
+  if (unresolvedMessages.length !== failedMessages.length) setFailedMessages(unresolvedMessages);
+  const failed = unresolvedMessages.length > 0;
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;
   const conflict = stale || apiError?.status === 409;
   const formState = saved
@@ -166,11 +169,13 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   }, [dirty, report.reviewVersion]);
 
   useUnsavedWorkGuard(dirty);
-  const failed = failedErrors.some((key) => !!errors[key]);
   useEffect(() => {
     document.title = `${failed ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
   }, [failed, report.referenceCode]);
-  const showsError = (key: keyof typeof errors) => failedErrors.includes(key) && !!errors[key];
+  const showsError = (key: keyof typeof errors) => {
+    const message = errors[key];
+    return !!message && failedMessages.includes(message);
+  };
   const error = (key: keyof typeof errors) => showsError(key)
     ? <p id={`review-error-${key}`} className="form-error" role="alert">{errors[key]}</p> : null;
 
@@ -183,7 +188,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const caseStateOutcome = caseStateLabels[resultingState].toLowerCase();
   const chosenAction = actions.find((item) => item.value === action);
   const consequence = !chosenAction ? null
-    : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${selectedInspector?.name ?? "a field inspector"} checks the field${targetDate ? ` on ${targetDate}` : ""}. The case stays open.`
+    : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""}. The case stays open.`
     : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed.`
     : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}.`
     : `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}. The case stays ${caseStateOutcome}.`;
@@ -191,7 +196,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const confirm = async () => {
     if (!online || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
     if (invalid) {
-      setFailedErrors((Object.keys(errors) as (keyof typeof errors)[]).filter((key) => !!errors[key]));
+      setFailedMessages(Object.values(errors).filter((message): message is string => !!message));
       setStep(errors.action ? "action" : "details");
       return;
     }
@@ -216,7 +221,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       const nextVersion = updated?.reviewVersion ?? expectedVersion + 1;
       lastSelfWriteVersion.current = nextVersion;
       setExpectedVersion(nextVersion);
-      setDirty(false); setSaved(true); setFailedErrors([]);
+      setDirty(false); setSaved(true); setFailedMessages([]);
       setConflictLatest(null); setConflictError(null);
       onRefresh();
     } catch (error) {
@@ -281,7 +286,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     setExpectedVersion(conflictLatest.reviewVersion);
     lastSelfWriteVersion.current = undefined;
     setStale(false);
-    setFailedErrors([]);
+    setFailedMessages([]);
     setConflictLatest(null);
     setConflictError(null);
     mutation.reset();
