@@ -28,6 +28,7 @@ function renderForm(report = base, onRefresh = vi.fn()) {
 }
 async function technical(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+  await user.click(screen.getByRole("button", { name: "Next step" }));
   await user.click(screen.getByRole("radio", { name: "Technical Assistance" }));
   await user.clear(screen.getByRole("textbox"));
   await user.type(screen.getByRole("textbox"), "Delivered practical field assistance.");
@@ -73,6 +74,7 @@ describe("Progressive review resilience", () => {
     const { rerender } = renderForm();
     await technical(user);
     rerender(<MemoryRouter><ReviewDecisionForm report={{ ...base, reviewVersion: base.reviewVersion! + 7 }} onRefresh={vi.fn()} /></MemoryRouter>);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: base.reviewVersion }));
   });
@@ -82,6 +84,7 @@ describe("Progressive review resilience", () => {
     const { rerender } = renderForm();
     rerender(<MemoryRouter><ReviewDecisionForm report={{ ...base, reviewVersion: base.reviewVersion! + 1 }} onRefresh={vi.fn()} /></MemoryRouter>);
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: base.reviewVersion! + 1 }));
   });
@@ -92,6 +95,7 @@ describe("Progressive review resilience", () => {
     save.mockReturnValue(new Promise<DiseaseReport>((done) => { resolve = done; }));
     renderForm();
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     fireEvent.submit(screen.getByRole("form"));
     fireEvent.submit(screen.getByRole("form"));
     expect(save).toHaveBeenCalledTimes(1);
@@ -103,11 +107,14 @@ describe("Progressive review resilience", () => {
     const user = userEvent.setup();
     const { rerender } = renderForm();
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[0][0]).toMatchObject({ expectedVersion: base.reviewVersion });
 
     rerender(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
+    await user.click(screen.getByRole("button", { name: "Back" }));
     await user.type(screen.getByRole("textbox"), " Follow-up");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[1][0]).toMatchObject({ expectedVersion: base.reviewVersion! + 1 });
   });
@@ -117,13 +124,16 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new Error("Service unavailable"));
     renderForm();
     await technical(user);
-    await user.selectOptions(screen.getByLabelText("What you found"), "rust");
+    await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "rust");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("textbox")).toHaveValue("Delivered practical field assistance.");
     expect(screen.getByLabelText("What you found")).toHaveValue("rust");
     expect(screen.getByRole("radio", { name: "Technical Assistance" })).toBeChecked();
     expect(screen.queryByText(/Review confirmed/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
     expect(save.mock.calls[1][0]).toEqual(save.mock.calls[0][0]);
@@ -136,13 +146,16 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     renderForm(base, onRefresh);
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 
     // The second save is refused, and the draft itself is preserved.
     expect(await screen.findByText(/Another reviewer saved this report/)).toBeInTheDocument();
     expect(await screen.findByRole("table", { name: "Fields that changed on the server" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirm Review" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("textbox")).toHaveValue("Delivered practical field assistance.");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     expect(save).toHaveBeenCalledTimes(1);
 
     // Latest saved and local values are distinguishable before reconciliation.
@@ -172,9 +185,11 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     renderForm(base, onRefresh);
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 
     await user.click(await screen.findByRole("button", { name: "Reload and discard my changes" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
 
     expect(screen.getByRole("textbox")).toHaveValue("Updated by the other reviewer.");
     expect(screen.queryByRole("radio", { name: "Technical Assistance" })).not.toBeInTheDocument();
@@ -193,8 +208,10 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     renderForm(base, onRefresh);
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
     await user.type(screen.getByRole("textbox"), "Mine");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 
     // The support sub-type is part of the action, so it is a visible difference.
@@ -204,9 +221,11 @@ describe("Progressive review resilience", () => {
     expect(within(conflictTable).getAllByText(/Validated guidance/).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
 
     expect(screen.getByRole("radio", { name: "Technical Assistance" })).toBeChecked();
     expect(screen.queryByLabelText("Validated advisory")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[1][0]).toMatchObject({
       expectedVersion: latest.reviewVersion,
@@ -223,6 +242,7 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     renderForm(base, onRefresh);
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 
     expect(await screen.findByText(/The latest saved version could not be loaded/)).toBeInTheDocument();
@@ -239,9 +259,12 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     renderForm();
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(await screen.findByText(/Another reviewer saved this report/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Back" }));
     await user.type(screen.getByRole("textbox"), " More context.");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     expect(screen.getByRole("button", { name: "Confirm Review" })).toBeDisabled();
     expect(save).toHaveBeenCalledTimes(1);
   });
@@ -252,13 +275,16 @@ describe("Progressive review resilience", () => {
     const { unmount } = renderForm(closed);
     await technical(user);
     expect(screen.queryByRole("checkbox", { name: "Reopen this case" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     expect(within(screen.getByRole("region", { name: "Review Summary" })).getByText("Closed")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[0][0]).not.toHaveProperty("caseState");
     unmount();
     renderForm(closed);
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[1][0]).not.toHaveProperty("caseState");
     expect(save.mock.calls[1][0]).toMatchObject({ actionTaken: "advisory_provided", advisoryUuid: advisory.uuid });
@@ -268,13 +294,14 @@ describe("Progressive review resilience", () => {
     const user = userEvent.setup();
     renderForm();
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     await user.click(screen.getByRole("radio", { name: "Technical Assistance" }));
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "   \n\t" } });
-    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     expect(save).not.toHaveBeenCalled();
     expect(screen.getByText("Meaningful Technical Assistance details are required.")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Verification Outcome"), "unable_to_verify");
-    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     expect(save).not.toHaveBeenCalled();
     expect(screen.getByText(/Add a note explaining why/)).toBeInTheDocument();
   });
@@ -290,6 +317,7 @@ describe("Progressive review resilience", () => {
     </Routes></MemoryRouter>);
     await user.click(screen.getByRole("link", { name: `Open ${base.referenceCode}` }));
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(await screen.findByRole("link", { name: "Return to Queue" })).toHaveAttribute("href", queue);
     await user.click(screen.getByRole("button", { name: "Review Next Case" }));
@@ -305,6 +333,7 @@ describe("Progressive review resilience", () => {
       returnTo: "/todo", filters: {}, remainingIds: [], reviewedIds: [], snapshotOnly: true,
     } } }]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
     expect(await screen.findByText("No more cases in this queue.")).toBeInTheDocument();
@@ -323,10 +352,14 @@ describe("Progressive review resilience", () => {
       <Route path={`/reports/${next.uuid}`} element={<ReviewDecisionForm report={next} onRefresh={vi.fn()} />} />
     </Routes></MemoryRouter>);
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
 
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
     expect(await screen.findByText(/Review Next covers this section's loaded cases only/)).toBeInTheDocument();
@@ -343,6 +376,7 @@ describe("Progressive review resilience", () => {
       <Route path="/reports/next-case" element={<Destination />} />
     </Routes></MemoryRouter>);
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
     expect(reportsRepository.listReports).toHaveBeenCalledWith({ ...context.filters, page: 1 });
@@ -357,6 +391,7 @@ describe("online-only review writes", () => {
     renderForm();
 
     await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
 
     expect(screen.getByText(/CaneGuard is offline/)).toBeInTheDocument();
     expect(screen.getByText(/not queued to send later/)).toBeInTheDocument();
@@ -377,6 +412,7 @@ describe("online-only review writes", () => {
     act(() => { window.dispatchEvent(new Event("offline")); });
     online.mockReturnValue(true);
     act(() => { window.dispatchEvent(new Event("online")); });
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
 
     expect(screen.getByText(/You are back online/)).toBeInTheDocument();
     expect(screen.getByText(/nothing was sent while you were offline/)).toBeInTheDocument();

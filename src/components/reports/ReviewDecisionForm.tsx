@@ -29,6 +29,7 @@ import {
 import { reviewQueueContext } from "./reviewQueueContext";
 
 type NextAction = "field" | "support" | "close";
+type DecisionStep = "action" | "details" | "review";
 const actions: { value: NextAction; label: string; consequence: string; icon: LucideIcon }[] = [
   { value: "field", icon: MapPinned, label: "Needs Field Validation", consequence: "Case stays open until the visit is done." },
   { value: "support", icon: HandHelping, label: "Provide Advisory or Assistance", consequence: "The reporter receives the advice you choose." },
@@ -62,6 +63,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [closedConfirmed, setClosedConfirmed] = useState(false);
   const [reopenConfirmed, setReopenConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [step, setStep] = useState<DecisionStep>("action");
+  const [actionAttempted, setActionAttempted] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [stale, setStale] = useState(false);
@@ -165,8 +168,29 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   useEffect(() => {
     document.title = `${submitted && invalid ? "Error: " : ""}CaneGuard | Case Review ${report.referenceCode}`;
   }, [submitted, invalid, report.referenceCode]);
-  const error = (key: keyof typeof errors) => submitted && errors[key]
+  const error = (key: keyof typeof errors) => (key === "action" ? actionAttempted : submitted) && errors[key]
     ? <p id={`review-error-${key}`} className="form-error" role="alert">{errors[key]}</p> : null;
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstStepRender = useRef(true);
+  useEffect(() => {
+    if (firstStepRender.current) { firstStepRender.current = false; return; }
+    headingRef.current?.focus?.();
+  }, [step]);
+  const consequence = !action ? null
+    : action === "field" ? "You are sending an inspector to check the field. The case stays open."
+    : action === "close" ? "You are closing this case. No further action is needed."
+    : support === "technical" ? `You are giving hands-on help. The case stays ${caseStateLabels[lifecycle.caseState].toLowerCase()}.`
+    : `You are sending advice to the reporter. The case stays ${caseStateLabels[lifecycle.caseState].toLowerCase()}.`;
+  const goToDetails = () => {
+    if (errors.action) { setActionAttempted(true); return; }
+    setStep("details");
+  };
+  const goToReview = () => {
+    if (Object.entries(errors).some(([key, value]) => key !== "action" && value)) { setSubmitted(true); return; }
+    setSubmitted(false);
+    setStep("review");
+  };
 
   const confirm = async () => {
     setSubmitted(true);
@@ -296,27 +320,10 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   };
 
   return <form ref={formRef} id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
-    <fieldset className="review-card review-finding" disabled={mutation.isPending}>
-      <legend>Record Finding</legend>
-      <div className="review-finding__fields">
-        <div><SelectFilter label="What you found" value={classification ?? ""}
-          aria-invalid={submitted && !!errors.classification} aria-describedby={submitted && errors.classification ? "review-error-classification" : undefined}
-          onChange={(event) => { setClassification((event.target.value || null) as AuthorityClassifiedCondition | null); changed(); }}>
-          <option value="">Not classified</option>
-          {activeAuthorityClassifiedConditions.map((value) => <option key={value} value={value}>{authorityClassifiedConditionLabels[value]}</option>)}
-          {isLegacyAuthorityClassifiedCondition(report.authorityClassifiedCondition) ? <option value={report.authorityClassifiedCondition!}>{authorityClassifiedConditionLabels[report.authorityClassifiedCondition!]} (legacy record; not offered for new review)</option> : null}
-        </SelectFilter>{error("classification")}</div>
-        <SelectFilter label="Verification Outcome" value={verification} onChange={(event) => { setVerification(event.target.value as VerificationOutcome); changed(); }}>
-          <option value="not_determined">Not Determined</option>
-          <option value="verified" disabled={fieldSelected || activeValidation}>Verified</option>
-          <option value="unable_to_verify" disabled={fieldSelected}>Unable to Verify</option>
-        </SelectFilter>
-      </div>
-      <p className="authority-classification-help">Human finding; independent of the AI Possible Condition.</p>
-    </fieldset>
-
+    {step === "action" ? <>
     <section className="review-card" aria-labelledby="choose-action-heading">
-      <h2 id="choose-action-heading">Choose Action</h2>
+      <p className="review-step-indicator">Step 1 of 2</p>
+      <h2 id="choose-action-heading" ref={headingRef} tabIndex={-1}>Choose Action</h2>
       <fieldset className="review-actions" disabled={mutation.isPending}>
         <legend>What should happen next?</legend>
         <div className="review-actions__pills">{actions.map((item) => <label key={item.value} className={`review-action-pill ${action === item.value ? "is-selected" : ""}`}>
@@ -327,6 +334,15 @@ export function ReviewDecisionForm({ report, onRefresh }: {
           <span className="review-action-pill__text"><strong id={`next-action-${item.value}-label`}><item.icon aria-hidden="true" size={16} />{item.label}</strong><small id={`next-action-${item.value}-consequence`}>{item.consequence}</small></span>
         </label>)}</div>
       </fieldset>{error("action")}
+      {consequence ? <p className="review-consequence" role="status">{consequence}</p> : null}
+      <div className="review-step-actions"><Button type="button" onClick={goToDetails}>Next step</Button></div>
+    </section>
+    </> : null}
+    {step === "details" ? <>
+    <section className="review-card" aria-labelledby="action-details-heading">
+      <p className="review-step-indicator">Step 2 of 2</p>
+      <h2 id="action-details-heading" ref={headingRef} tabIndex={-1}>Action details</h2>
+      {consequence ? <p className="review-consequence">{consequence}</p> : null}
       <fieldset className="review-conditional-fields" disabled={mutation.isPending}>
         <legend className="sr-only">Action details and notes</legend>
         {fieldSelected ? <div className="review-subform">
@@ -373,9 +389,34 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         <p className="review-note-count">{notes.length}/1,000</p>
       </fieldset>
     </section>
+    <fieldset className="review-card review-finding" disabled={mutation.isPending}>
+      <legend>Record Finding</legend>
+      <div className="review-finding__fields">
+        <div><SelectFilter label="Staff-Classified Condition" value={classification ?? ""}
+          aria-invalid={submitted && !!errors.classification} aria-describedby={submitted && errors.classification ? "review-error-classification" : undefined}
+          onChange={(event) => { setClassification((event.target.value || null) as AuthorityClassifiedCondition | null); changed(); }}>
+          <option value="">Not classified</option>
+          {activeAuthorityClassifiedConditions.map((value) => <option key={value} value={value}>{authorityClassifiedConditionLabels[value]}</option>)}
+          {isLegacyAuthorityClassifiedCondition(report.authorityClassifiedCondition) ? <option value={report.authorityClassifiedCondition!}>{authorityClassifiedConditionLabels[report.authorityClassifiedCondition!]} (legacy record; not offered for new review)</option> : null}
+        </SelectFilter>{error("classification")}</div>
+        <SelectFilter label="Verification Outcome" value={verification} onChange={(event) => { setVerification(event.target.value as VerificationOutcome); changed(); }}>
+          <option value="not_determined">Not Determined</option>
+          <option value="verified" disabled={fieldSelected || activeValidation}>Verified</option>
+          <option value="unable_to_verify" disabled={fieldSelected}>Unable to Verify</option>
+        </SelectFilter>
+      </div>
+      <p className="authority-classification-help">Human finding; independent of the AI Possible Condition.</p>
+    </fieldset>
 
+    <div className="review-step-actions">
+      <Button type="button" variant="secondary" onClick={() => setStep("action")}>Back</Button>
+      <Button type="button" onClick={goToReview}>Review decision</Button>
+    </div>
+    </> : null}
+    {step === "review" ? (
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
-      <h2 id="review-summary-heading">Review Summary</h2>
+      <h2 id="review-summary-heading" ref={headingRef} tabIndex={-1}>Review Summary</h2>
+      {consequence ? <p className="review-consequence">{consequence}</p> : null}
       <dl className="decision-summary__grid">
         <DetailField label="Possible Condition">{predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}</DetailField>
         <DetailField label="What you found">{classification ? authorityClassifiedConditionLabels[classification] : "Not classified"}</DetailField>
@@ -413,12 +454,16 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       /> : null}
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
+      <div className="review-step-actions">
+      <Button type="button" variant="secondary" onClick={() => setStep("details")}>Back</Button>
       <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined}>{mutation.isPending ? "Confirming review..." : "Confirm Review"}</Button>
+      </div>
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
         <Button type="button" variant="secondary" disabled={nextPending} onClick={() => void reviewNext()}>Review Next Case</Button>
         <Link to={returnTo}>Return to Queue</Link>
       </div> : null}
       {nextMessage ? <p role="status">{nextMessage}</p> : null}
     </section>
+    ) : null}
   </form>;
 }
