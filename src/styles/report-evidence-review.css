@@ -109,4 +109,3 @@
 .aerial-check__earlier summary { cursor: pointer; font-weight: 600; }
 .aerial-check__earlier li { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 @media (max-width: 40rem) { .aerial-check__strip { grid-template-columns: 1fr; } }
-.aerial-check__details summary { cursor: pointer; }

@@ -123,7 +123,7 @@ describe("AerialCheckCard", () => {
     expect(screen.getByText("Normal 82%")).toBeInTheDocument();
     expect(screen.getByText("Abnormal 18%")).toBeInTheDocument();
     expect(screen.getByText("Cane visible in photo: 71%")).toBeInTheDocument();
-    expect(screen.getByText("Model aerial-v3").closest("details")).not.toBeNull();
+    expect(screen.getByText("aerial-v3")).toBeInTheDocument();
   });
 
   // Intent: below the coverage floor no share is shown.
@@ -178,11 +178,14 @@ describe("AerialCheckCard", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  // Intent: the aerial check opens on problem areas only, with a labelled photo/problem compare.
-  it("defaults to problem areas and labels the compare slider", () => {
+  // Intent: the aerial check opens on problem areas only, and the compare slider names the highlighted amount.
+  it("defaults to problem areas and names the compare amount as it is dragged", () => {
     setup();
     render(<AerialCheckCard report={report([analysis()])} />);
     expect(screen.getByRole("radio", { name: "Problem areas" })).toBeChecked();
-    expect(screen.getByRole("slider", { name: /photo on the left, problem areas on the right/i })).toBeInTheDocument();
+
+    const slider = screen.getByRole("slider", { name: "Problem-area highlights on 100% of the photo" });
+    fireEvent.change(slider, { target: { value: "40" } });
+    expect(slider).toHaveAccessibleName("Problem-area highlights on 40% of the photo");
   });
 });

@@ -147,7 +147,7 @@ function AerialResult({
             max={100}
             value={reveal}
             onChange={(event) => setReveal(Number(event.currentTarget.value))}
-            aria-label="Compare: photo on the left, problem areas on the right"
+            aria-label={`Problem-area highlights on ${reveal}% of the photo`}
           />
           <span>Problem areas</span>
         </label>
@@ -175,10 +175,7 @@ function AerialResult({
       <p className="aerial-check__meta">
         <span>{analysis.uploadedBy.name}</span>
         <time dateTime={analysis.createdAt}>{formatDateTime(analysis.createdAt)}</time>
-        <details className="aerial-check__details">
-          <summary>Details</summary>
-          <span>Model {analysis.modelVersion}</span>
-        </details>
+        <span>{analysis.modelVersion}</span>
         <Button type="button" variant="quiet" onClick={onRemove} disabled={removing}>
           Remove
         </Button>
@@ -259,17 +256,9 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         Supporting evidence from one aerial photo. Experimental; not a ground measurement.
       </p>
 
-      <label
-        className="aerial-check__drop"
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          const file = event.dataTransfer.files?.[0];
-          if (file && online && !add.isPending) submit(file);
-        }}
-      >
+      <label className="aerial-check__drop">
         <span>{latest ? "Add another aerial photo" : "Add aerial photo"}</span>
-        <small>Drop a photo here or choose one. JPG, PNG or WebP, up to 20 MB</small>
+        <small>JPG, PNG or WebP, up to 20 MB</small>
         <input
           type="file"
           accept={ACCEPTED_TYPES.join(",")}
