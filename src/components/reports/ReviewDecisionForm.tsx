@@ -49,7 +49,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [expectedVersion, setExpectedVersion] = useState(report.reviewVersion);
   const [classification, setClassification] = useState<AuthorityClassifiedCondition | null>(report.authorityClassifiedCondition ?? null);
   const [verification, setVerification] = useState<VerificationOutcome>(lifecycle.verificationOutcome);
-  const [action, setAction] = useState<NextAction | null>(null);
+  const [action, setAction] = useState<NextAction | null>(() => (
+    (location.state as { preselectAction?: unknown } | null)?.preselectAction === "field"
+      && lifecycle.fieldValidationState !== "completed" ? "field" : null));
   const [support, setSupport] = useState<"advisory" | "technical">("advisory");
   const [advisoryUuid, setAdvisoryUuid] = useState("");
   const [inspectorUuid, setInspectorUuid] = useState(report.fieldValidationAssignment?.assignee.uuid ?? "");
@@ -92,6 +94,11 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const activeValidation = lifecycle.fieldValidationState === "assigned" || lifecycle.fieldValidationState === "in_progress";
   const completedValidation = lifecycle.fieldValidationState === "completed";
   const assignmentNeeded = action === "field" && !activeValidation && !completedValidation;
+  const formRef = useRef<HTMLFormElement>(null);
+  const preselected = useRef(action === "field");
+  useEffect(() => {
+    if (preselected.current) formRef.current?.scrollIntoView?.({ block: "start" });
+  }, []);
   const fieldSelected = action === "field";
   const resultingState = fieldSelected ? "open" : action === "close" ? "closed" : lifecycle.caseState;
   const validated = (advisories.data ?? []).filter((item) => item.status === "validated");
@@ -284,7 +291,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     finally { setNextPending(false); }
   };
 
-  return <form id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
+  return <form ref={formRef} id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); void confirm(); }}>
     <fieldset className="review-card review-finding" disabled={mutation.isPending}>
       <legend>Record Finding</legend>
       <div className="review-finding__fields">

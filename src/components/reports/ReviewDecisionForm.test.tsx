@@ -47,6 +47,15 @@ beforeEach(() => {
 });
 
 describe("Progressive review resilience", () => {
+  // Proposal (UX-02): proves a "Send someone" entry opens the decision with Send-someone preselected, and a plain entry does not.
+  it("preselects Needs Field Validation only when the entry asks for it", () => {
+    const { unmount } = render(<MemoryRouter initialEntries={[{ pathname: "/reports/x", state: { preselectAction: "field" } }]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByRole("radio", { name: "Needs Field Validation" })).toBeChecked();
+    unmount();
+    renderForm();
+    expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
+  });
+
   it("holds the draft's expectedVersion across background refreshes", async () => {
     const user = userEvent.setup();
     const { rerender } = renderForm();
