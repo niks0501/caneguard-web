@@ -116,6 +116,15 @@ export function ReviewConflictPanel({
         Another reviewer saved this report after you opened it. Choose which
         value each field keeps before you confirm the review again.
       </p>
+      {loading ? <p>Loading the latest version...</p> : null}
+      {error ? (
+        <>
+          <p className="form-error">{error}</p>
+          <Button type="button" variant="secondary" onClick={onLoadLatest}>
+            Try loading the latest version again
+          </Button>
+        </>
+      ) : null}
       {differing.length === 0 ? (
         <p>Your draft already matches the latest saved values. Confirm the review again to save it against the latest version.</p>
       ) : (
@@ -166,10 +175,10 @@ export function ReviewConflictPanel({
         </div>
       )}
       <div className="review-conflict__actions">
-        <Button type="button" onClick={() => onApply(choices)}>
+        <Button type="button" disabled={loading || !!error} onClick={() => onApply(choices)}>
           {differing.length === 0 ? "Use the latest version" : "Apply these choices"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onReloadAll}>
+        <Button type="button" variant="secondary" disabled={loading || !!error} onClick={onReloadAll}>
           Reload and discard my changes
         </Button>
       </div>

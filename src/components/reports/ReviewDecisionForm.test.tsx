@@ -216,6 +216,40 @@ describe("Progressive review resilience", () => {
     });
   });
 
+  it("shows a failed comparison refresh and retries with an existing snapshot", async () => {
+    const user = userEvent.setup();
+    const versionTwo = { ...base, reviewVersion: base.reviewVersion! + 2, reviewNotes: "Version two notes." };
+    const versionThree = { ...base, reviewVersion: base.reviewVersion! + 3, reviewNotes: "Version three notes." };
+    let rejectRefresh!: (error: Error) => void;
+    const onRefresh = vi.fn()
+      .mockResolvedValueOnce({ data: versionTwo })
+      .mockReturnValueOnce(new Promise((_resolve, reject) => { rejectRefresh = reject; }))
+      .mockResolvedValueOnce({ data: versionThree });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    const { rerender } = renderForm(base, onRefresh);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await screen.findByText("Version two notes.");
+
+    rerender(<MemoryRouter><ReviewDecisionForm report={versionThree} onRefresh={onRefresh} /></MemoryRouter>);
+    expect(await screen.findByText("Loading the latest version...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Apply these choices" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reload and discard my changes" })).toBeDisabled();
+    await act(async () => rejectRefresh(new Error("Offline")));
+    expect(await screen.findByText(/The latest saved version could not be loaded/)).toBeInTheDocument();
+    expect(screen.getByText("Version two notes.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Apply these choices" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reload and discard my changes" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Try loading the latest version again" }));
+    expect(await screen.findByText("Version three notes.")).toBeInTheDocument();
+    expect(screen.queryByText(/The latest saved version could not be loaded/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("textbox")).toHaveValue("Version three notes.");
+  });
+
   it("reloads every field when the reviewer discards the draft after a conflict", async () => {
     const user = userEvent.setup();
     const latest = { ...base, reviewVersion: base.reviewVersion! + 3, reviewNotes: "Updated by the other reviewer." };
