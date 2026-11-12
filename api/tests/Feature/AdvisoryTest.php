@@ -418,6 +418,8 @@ class AdvisoryTest extends TestCase
         $report = Report::factory()->create(['reporter_id' => $reporter]);
         $a = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
         $b = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+        $this->withoutToken();
+        Auth::forgetGuards();
         Sanctum::actingAs($reviewer);
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'advisory_uuid' => $a->uuid,
@@ -498,6 +500,8 @@ class AdvisoryTest extends TestCase
         $report = Report::factory()->create(['reporter_id' => $reporter]);
         $advisory = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
         $replacement = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+        $this->withoutToken();
+        Auth::forgetGuards();
         Sanctum::actingAs($reviewer);
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
             'advisory_uuid' => $advisory->uuid,
