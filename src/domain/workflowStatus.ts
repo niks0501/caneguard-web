@@ -1,4 +1,4 @@
-import type { ReportLifecycle } from "./report.types";
+import type { LatestValidationSummary, ReportLifecycle } from "./report.types";
 
 /**
  * The one reviewer-facing workflow status. Every case surface renders exactly
@@ -59,6 +59,7 @@ export interface WorkflowStatusInput {
   lifecycle?: ReportLifecycle;
   firstReviewedAt?: string | null;
   scheduledRevisit?: boolean | null;
+  latestValidation?: LatestValidationSummary | null;
 }
 
 export function deriveWorkflowTrackReached(
@@ -67,7 +68,7 @@ export function deriveWorkflowTrackReached(
 ): number {
   const statusMilestone = workflowTrackReached[status];
 
-  return input.lifecycle?.fieldValidationState === "completed"
+  return input.lifecycle?.fieldValidationState === "completed" || input.latestValidation
     ? Math.max(statusMilestone, 2)
     : statusMilestone;
 }

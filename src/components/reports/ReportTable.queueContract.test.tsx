@@ -252,6 +252,21 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
     expect(within(rowFor("CG-2026-0001")).getByText("Waiting for your decision", { exact: true })).toBeInTheDocument();
   });
 
+  it("STATUS: legacy latest-validation evidence reaches Field check", () => {
+    renderTable([report({
+      lifecycle: undefined,
+      latestValidation: {
+        visitedAt: "2026-07-20T09:16:00+08:00",
+        fieldObservation: "Wilting leaves",
+        finding: "Needs follow-up",
+        actionTaken: "Recorded observations",
+      },
+    })]);
+
+    const track = within(rowFor("CG-2026-0001")).getByRole("list", { name: "Case progress" });
+    expect(within(track).getByRole("listitem", { name: "Field check current" })).toHaveAttribute("aria-current", "step");
+  });
+
   it("STATUS: a first-reviewed open case is Under Review", () => {
     renderTable([report({ firstReviewedAt: "2026-07-21T02:00:00.000Z" })]);
 

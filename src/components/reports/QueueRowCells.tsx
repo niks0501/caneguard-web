@@ -4,6 +4,7 @@ import { authorityClassifiedConditionLabels } from "../../domain/report.metadata
 import type {
   AuthorityClassifiedCondition,
   DiseaseKey,
+  LatestValidationSummary,
   MeasurementProvenance,
   ReportLifecycle,
   ReportMachineFacts,
@@ -41,6 +42,7 @@ export interface QueueRowView {
   lifecycle?: ReportLifecycle;
   firstReviewedAt?: string | null;
   scheduledRevisit?: boolean | null;
+  latestValidation?: LatestValidationSummary | null;
 }
 
 /**

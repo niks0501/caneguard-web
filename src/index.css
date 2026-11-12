@@ -9653,11 +9653,6 @@ button.monitoring-calendar__day-number:focus-visible {
   white-space: nowrap;
 }
 
-.review-caution-line a {
-  color: inherit;
-  text-decoration: underline;
-}
-
 .review-caution-guidance {
   margin-top: 4px;
   color: var(--color-muted);
@@ -9791,6 +9786,7 @@ button.monitoring-calendar__day-number:focus-visible {
 /* UX-04: one coloured status chip in plain words plus a four-step track. */
 .workflow-status {
   display: inline-flex;
+  max-width: 100%;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
@@ -9806,12 +9802,6 @@ button.monitoring-calendar__day-number:focus-visible {
   background: var(--color-warning-soft);
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-pill);
-}
-
-.workflow-status-badge > svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
 }
 
 .workflow-status-badge--field_validation,
@@ -9830,6 +9820,8 @@ button.monitoring-calendar__day-number:focus-visible {
 
 .workflow-track {
   display: inline-flex;
+  max-width: 100%;
+  flex-wrap: wrap;
   gap: 4px;
   margin: 0;
   padding: 0;

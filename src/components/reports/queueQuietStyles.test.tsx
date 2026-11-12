@@ -122,6 +122,10 @@ describe("silent queue stylesheet", () => {
     expect(style.color).toBe("var(--color-warning)");
     expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     expect(style.borderTopWidth).toBe("1px");
+
+    const track = screen.getByRole("table").querySelector(".workflow-track") as HTMLElement;
+    expect(getComputedStyle(track).flexWrap).toBe("wrap");
+    expect(getComputedStyle(track.parentElement as HTMLElement).maxWidth).toBe("100%");
   });
 
   it("keeps the caution summary to one ellipsized line", () => {

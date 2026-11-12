@@ -498,9 +498,7 @@ function CaseReviewContent() {
       : null,
   ].filter((caution): caution is { label: string; guidance: string } => caution !== null);
   const cautionLabels = cautions.map(({ label }) => label);
-  const cautionSummary = cautionLabels.length > 0
-    ? `${cautionLabels.length === 1 ? "Caution" : "Cautions"}: ${cautionLabels.join(" · ")}`
-    : null;
+  const cautionSummary = `${cautionLabels.length === 1 ? "Caution" : "Cautions"}: ${cautionLabels.join(" · ")}`;
   const caseHistorySummary = !caseHistoryAvailable
     ? "History unavailable for this older record"
     : mergedHistory.length === 0
@@ -781,9 +779,8 @@ function CaseReviewContent() {
       <section className="review-status-chips" aria-label="Case status">
         {cautions.length > 0 ? (
           <>
-            <p className="review-caution-line" title={cautionSummary ?? undefined}>
-              <span>{cautions.length === 1 ? "Caution:" : "Cautions:"}</span>{" "}
-              {cautionLabels.join(" · ")}
+            <p className="review-caution-line" title={cautionSummary}>
+              {cautionSummary}
             </p>
             <details className="review-caution-guidance">
               <summary>Review guidance</summary>

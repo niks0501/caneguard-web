@@ -28,6 +28,20 @@ describe("deriveWorkflowTrackReached", () => {
     expect(deriveWorkflowTrackReached(input, status)).toBe(2);
   });
 
+  it("preserves the field-check milestone from legacy latest-validation evidence", () => {
+    const legacyVisit: WorkflowStatusInput = {
+      latestValidation: {
+        visitedAt: "2026-11-11T00:00:00.000Z",
+        fieldObservation: "Wilting leaves",
+        finding: "Needs follow-up",
+        actionTaken: "Recorded observations",
+      },
+    };
+
+    expect(deriveWorkflowStatus(legacyVisit)).toBe("needs_review");
+    expect(deriveWorkflowTrackReached(legacyVisit)).toBe(2);
+  });
+
   it.each([
     [{}, 0],
     [{ firstReviewedAt: "2026-11-11" }, 1],
