@@ -121,6 +121,7 @@ class CompleteFieldValidationAssignment
 
                 $completion = $locked->completion()->create([
                     'uuid' => $completionUuid,
+                    'completed_by_id' => $user->getKey(),
                     'client_uuid' => $data['client_uuid'],
                     'field_observation' => $data['field_observation'],
                     'field_finding' => $data['field_finding'],

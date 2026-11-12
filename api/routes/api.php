@@ -203,15 +203,22 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         ->middleware('mobile.token');
 });
 
-Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access', 'access.identity'])->group(function () {
+// Intake routes look a resend up by client key before the access checks, so a
+// record the office already accepted is never refused after a lost reply.
+Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token'])->group(function () {
     Route::post('/mobile/field-surveys', MobileFieldSurveyController::class)
-        ->middleware(['abilities:report:submit', 'throttle:30,1'])
+        ->middleware(['throttle:30,1', 'intake.replay:survey', 'inspector.access', 'access.identity', 'abilities:report:submit'])
         ->name('api.v1.mobile.field-surveys.store');
+    Route::post('/mobile/reports', [MobileReportController::class, 'store'])
+        ->middleware(['throttle:30,1', 'intake.replay:report', 'inspector.access', 'access.identity', 'abilities:report:submit']);
+    Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
+        ->middleware(['throttle:30,1', 'intake.replay:completion', 'inspector.access', 'access.identity', 'abilities:assignment:complete']);
+});
+
+Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access', 'access.identity'])->group(function () {
     Route::get('/mobile/reports/possible-matches', MobilePossibleRecentMatchesController::class)
         ->middleware(['abilities:report:submit'])
         ->name('api.v1.mobile.reports.possible-matches');
-    Route::post('/mobile/reports', [MobileReportController::class, 'store'])
-        ->middleware(['abilities:report:submit', 'throttle:30,1']);
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware(['abilities:report:status']);
     Route::get('/mobile/map-tiles/{z}/{x}/{y}.png', MobileMapTileController::class)
@@ -234,23 +241,27 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'in
     Route::patch('/mobile/notifications/{notification}/read', [MobileNotificationController::class, 'markRead'])
         ->middleware(['abilities:notification:read'])
         ->name('api.v1.mobile.notifications.read');
-    Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
-        ->middleware(['abilities:assignment:complete', 'throttle:30,1']);
+});
+
+Route::prefix('v2')->middleware(['auth:sanctum', 'verified', 'mobile.token'])->group(function () {
+    Route::post('/mobile/reports', [MobileV2ReportController::class, 'store'])
+        ->middleware(['throttle:30,1', 'intake.replay:report', 'inspector.access', 'abilities:report:submit'])
+        ->name('api.v2.mobile.reports.store');
 });
 
 Route::prefix('v2')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access'])->group(function () {
-    Route::post('/mobile/reports', [MobileV2ReportController::class, 'store'])
-        ->middleware(['abilities:report:submit', 'throttle:30,1'])
-        ->name('api.v2.mobile.reports.store');
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware(['abilities:report:status'])
         ->name('api.v2.mobile.reports.statuses');
 });
 
-Route::prefix('v3')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access'])->group(function () {
+Route::prefix('v3')->middleware(['auth:sanctum', 'verified', 'mobile.token'])->group(function () {
     Route::post('/mobile/reports', [MobileV3ReportController::class, 'store'])
-        ->middleware(['abilities:report:submit', 'throttle:30,1'])
+        ->middleware(['throttle:30,1', 'intake.replay:report', 'inspector.access', 'abilities:report:submit'])
         ->name('api.v3.mobile.reports.store');
+});
+
+Route::prefix('v3')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access'])->group(function () {
     Route::get('/mobile/reports/statuses', MobileReportStatusController::class)
         ->middleware(['abilities:report:status'])
         ->name('api.v3.mobile.reports.statuses');

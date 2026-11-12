@@ -41,8 +41,8 @@ class MobileFieldSurveyMySqlTest extends TestCase
         $payload['area_sqm'] = 1;
         $payload['client_uuid'] = strtoupper($payload['client_uuid']);
         Auth::forgetGuards();
-        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertCreated()
-            ->assertExactJson(['id' => $id, 'status' => 'kept']);
+        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertOk()
+            ->assertJson(['id' => $id, 'status' => 'kept', 'replayed' => true]);
         $this->assertSame($before, $survey->fresh()->getRawOriginal());
         $this->assertSame(1, FieldSurvey::query()->where('client_uuid', $payload['client_uuid'])->count());
 
@@ -71,13 +71,17 @@ class MobileFieldSurveyMySqlTest extends TestCase
         $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertUnprocessable()
             ->assertJsonValidationErrors('client_uuid')->assertJsonMissingPath('id');
         $payload['district_code'] = 'foreign';
+        // The key lookup runs first, so a key someone else owns never reaches district validation.
         $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertUnprocessable()
-            ->assertJsonValidationErrors('district_code');
+            ->assertJsonValidationErrors('client_uuid')->assertJsonMissingPath('id');
         $foreign = District::query()->create(['code' => 'foreign', 'name' => 'Foreign']);
         $foreignInspector = User::factory()->inDistrict($foreign)->create();
         Auth::forgetGuards();
         $this->withToken($foreignInspector->createToken('foreign', ['*'])->plainTextToken);
-        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertForbidden();
+        // The key lookup precedes the access check: another district's inspector gets the same
+        // owner-bound refusal as anyone else, and no receipt.
+        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertUnprocessable()
+            ->assertJsonValidationErrors('client_uuid')->assertJsonMissingPath('id');
         $this->assertSame(1, FieldSurvey::query()->where('client_uuid', $payload['client_uuid'])->count());
     }
 
