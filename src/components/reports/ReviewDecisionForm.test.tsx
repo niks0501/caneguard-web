@@ -576,6 +576,8 @@ describe("Progressive review resilience", () => {
     const table = screen.getByRole("table", { name: "Fields that changed on the server" });
     expect(within(table).queryByRole("row", { name: /Field Inspector/i })).not.toBeInTheDocument();
     expect(within(table).queryByRole("row", { name: /Visit by/i })).not.toBeInTheDocument();
+    const actionRow = within(table).getByRole("row", { name: /Next action/i });
+    await user.click(within(actionRow).getByRole("radio", { name: "Mine" }));
     const notesRow = within(table).getByRole("row", { name: /Review notes/i });
     await user.click(within(notesRow).getByRole("radio", { name: "Mine" }));
     await user.click(screen.getByRole("button", { name: "Apply these choices" }));
@@ -691,6 +693,7 @@ describe("Progressive review resilience", () => {
     const firstTable = await screen.findByRole("table", { name: "Fields that changed on the server" });
     await user.click(within(within(firstTable).getByRole("row", { name: /Next action/i })).getByRole("radio", { name: "Mine" }));
     await user.click(within(within(firstTable).getByRole("row", { name: /Verification Outcome/i })).getByRole("radio", { name: "Latest" }));
+    await user.click(within(within(firstTable).getByRole("row", { name: /Field Inspector/i })).getByRole("radio", { name: "Mine" }));
     await user.click(screen.getByRole("button", { name: "Apply these choices" }));
     expect(screen.getByRole("region", { name: "Review Summary" })).toHaveTextContent(/not determined/i);
 
@@ -777,8 +780,8 @@ describe("Progressive review resilience", () => {
       returnTo: "/todo", filters: {}, remainingIds: [next.uuid], reviewedIds: [],
       snapshotOnly: true, snapshotTruncated: true,
     } } }]}><Routes>
-      <Route path={`/reports/${base.uuid}`} element={<ReviewDecisionForm report={base} onRefresh={vi.fn()} />} />
-      <Route path={`/reports/${next.uuid}`} element={<ReviewDecisionForm report={next} onRefresh={vi.fn()} />} />
+      <Route path={`/reports/${base.uuid}`} element={<ReviewDecisionForm key={base.uuid} report={base} onRefresh={vi.fn()} />} />
+      <Route path={`/reports/${next.uuid}`} element={<ReviewDecisionForm key={next.uuid} report={next} onRefresh={vi.fn()} />} />
     </Routes></MemoryRouter>);
     await technical(user);
     await user.click(screen.getByRole("button", { name: "Review decision" }));
