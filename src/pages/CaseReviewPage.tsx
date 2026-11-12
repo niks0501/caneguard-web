@@ -779,7 +779,7 @@ function CaseReviewContent() {
       <section className="review-status-chips" aria-label="Case cautions">
         {cautions.length > 0 ? (
           <>
-            <p className="review-caution-line" title={cautionSummary}>
+            <p className="review-caution-line" title={cautionSummary} role="status">
               {cautionSummary}
             </p>
             <details className="review-caution-guidance">

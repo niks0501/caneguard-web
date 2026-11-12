@@ -604,7 +604,9 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: everyCaution }));
     renderPage();
 
+    const caseCautions = screen.getByRole("region", { name: "Case cautions" });
     const line = screen.getByText("Cautions:").closest("p") as HTMLElement;
+    expect(within(caseCautions).getByRole("status")).toBe(line);
     expect(line).toHaveClass("review-caution-line");
     expect(line).toHaveTextContent(
       "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result",
