@@ -775,8 +775,8 @@ function CaseReviewContent() {
         </div>
       ) : null}
 
-      {/* 1. Case status with plain-language attention notices */}
-      <section className="review-status-chips" aria-label="Case status">
+      {/* 1. Case cautions */}
+      <section className="review-status-chips" aria-label="Case cautions">
         {cautions.length > 0 ? (
           <>
             <p className="review-caution-line" title={cautionSummary}>

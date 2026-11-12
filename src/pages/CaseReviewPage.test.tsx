@@ -487,12 +487,12 @@ describe("CaseReviewPage", () => {
     // Human-readable decision states replace the machine chips.
     expect(screen.getByText("Observations differ from result")).toBeInTheDocument();
     expect(screen.getByText("The reporter said the AI result does not match what they observed.")).toBeInTheDocument();
-    const caseStatus = screen.getByRole("region", {
-      name: "Case status",
+    const caseCautions = screen.getByRole("region", {
+      name: "Case cautions",
     });
     expect(screen.getByText("Waiting for your decision")).toBeInTheDocument();
     expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
-    expect(caseStatus).not.toHaveTextContent("Referral");
+    expect(caseCautions).not.toHaveTextContent("Referral");
     await user.click(screen.getByText("View Full Report Details"));
     const details = screen.getByText("View Full Report Details").closest("details")!;
     expect(details).toHaveTextContent("Field validation");
