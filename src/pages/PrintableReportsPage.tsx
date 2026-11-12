@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CalendarCheck, FileText, ListFilter } from "lucide-react";
+import { FileSpreadsheet, FileText, ListFilter } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { routes } from "../app/routes";
 import { PageContent, PageHeader } from "../components/layout/Page";
@@ -10,8 +10,8 @@ import {
 import { printableScopeFromSearch } from "../components/reports/reportBuilderScope";
 
 const entries: { mode: ReportDocumentMode; title: string; icon: typeof FileText }[] = [
-  { mode: "official", title: "This week's official report", icon: CalendarCheck },
-  { mode: "rssi", title: "RSSI weekly", icon: FileText },
+  { mode: "official", title: "This week's official report", icon: FileText },
+  { mode: "rssi", title: "RSSI weekly", icon: FileSpreadsheet },
   { mode: "custom", title: "Custom list", icon: ListFilter },
 ];
 

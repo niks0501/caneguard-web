@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CircleCheckBig, HandHelping, MapPinned, type LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../../api/ApiError";
@@ -28,10 +29,10 @@ import {
 import { reviewQueueContext } from "./reviewQueueContext";
 
 type NextAction = "field" | "support" | "close";
-const actions: { value: NextAction; label: string; consequence: string }[] = [
-  { value: "field", label: "Needs Field Validation", consequence: "Case stays open until the visit is done." },
-  { value: "support", label: "Provide Advisory or Assistance", consequence: "The reporter receives the advice you choose." },
-  { value: "close", label: "No Further Action", consequence: "The case is closed." },
+const actions: { value: NextAction; label: string; consequence: string; icon: LucideIcon }[] = [
+  { value: "field", icon: MapPinned, label: "Needs Field Validation", consequence: "Case stays open until the visit is done." },
+  { value: "support", icon: HandHelping, label: "Provide Advisory or Assistance", consequence: "The reporter receives the advice you choose." },
+  { value: "close", icon: CircleCheckBig, label: "No Further Action", consequence: "The case is closed." },
 ];
 
 export function ReviewDecisionForm({ report, onRefresh }: {
@@ -323,7 +324,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
             aria-labelledby={`next-action-${item.value}-label`} aria-describedby={`next-action-${item.value}-consequence`}
             disabled={item.value === "field" && completedValidation}
             onChange={() => { setAction(item.value); if (item.value === "field") setVerification("not_determined"); setClosedConfirmed(false); setReopenConfirmed(false); changed(); }} />
-          <span className="review-action-pill__text"><strong id={`next-action-${item.value}-label`}>{item.label}</strong><small id={`next-action-${item.value}-consequence`}>{item.consequence}</small></span>
+          <span className="review-action-pill__text"><strong id={`next-action-${item.value}-label`}><item.icon aria-hidden="true" size={16} />{item.label}</strong><small id={`next-action-${item.value}-consequence`}>{item.consequence}</small></span>
         </label>)}</div>
       </fieldset>{error("action")}
       <fieldset className="review-conditional-fields" disabled={mutation.isPending}>
