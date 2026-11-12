@@ -190,9 +190,7 @@ describe("Progressive review resilience", () => {
       reviewVersion: base.reviewVersion! + 3,
       reviewNotes: "Version three notes.",
     };
-    const onRefresh = vi.fn()
-      .mockResolvedValueOnce({ data: versionTwo })
-      .mockResolvedValueOnce({ data: versionThree });
+    const onRefresh = vi.fn().mockResolvedValue({ data: versionTwo });
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     const { rerender } = renderForm(base, onRefresh);
     await technical(user);
@@ -200,9 +198,9 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await screen.findByText("Version two notes.");
 
+    await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
     rerender(<MemoryRouter><ReviewDecisionForm report={versionThree} onRefresh={onRefresh} /></MemoryRouter>);
     await screen.findByText("Version three notes.");
-    await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("textbox")).toHaveValue("Version three notes.");
 

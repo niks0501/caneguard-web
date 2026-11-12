@@ -178,8 +178,24 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     if (selfWriteVersion !== undefined && incomingVersion >= selfWriteVersion) {
       lastSelfWriteVersion.current = undefined;
     }
-    setExpectedVersion((current) => current === undefined || incomingVersion > current ? incomingVersion : current);
-  }, [dirty, report.reviewVersion]);
+    if (expectedVersion !== undefined && incomingVersion <= expectedVersion) return;
+
+    const saved = savedReviewSnapshot(report);
+    const selection = parseActionToken(saved.action);
+    setReconciledReport(report);
+    setClassification((saved.classification || null) as AuthorityClassifiedCondition | null);
+    setVerification(saved.verification as VerificationOutcome);
+    setAction(selection.action ? selection.action as NextAction : null);
+    setSupport(selection.support);
+    setAdvisoryUuid(selection.advisoryUuid);
+    setNotes(saved.notes);
+    setInspectorUuid(saved.inspector);
+    setTargetDate(saved.targetDate);
+    setClosedConfirmed(false);
+    setReopenConfirmed(false);
+    setFailedMessages([]);
+    setExpectedVersion(incomingVersion);
+  }, [dirty, expectedVersion, report]);
 
   useUnsavedWorkGuard(dirty);
   useEffect(() => {
