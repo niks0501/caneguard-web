@@ -250,7 +250,7 @@ class AdvisoryTest extends TestCase
         $this->withToken($token)
             ->postJson('/api/v1/mobile/notifications/read-all')
             ->assertOk()
-            ->assertJsonPath('meta.advice_seen_count', 1);
+            ->assertExactJson(['data' => [], 'meta' => ['marked_count' => 1, 'unread_count' => 0]]);
 
         $fresh = $report->fresh();
         $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $fresh->advisory_delivery_state);
@@ -261,7 +261,7 @@ class AdvisoryTest extends TestCase
         $this->withToken($token)
             ->postJson('/api/v1/mobile/notifications/read-all')
             ->assertOk()
-            ->assertJsonPath('meta.advice_seen_count', 0);
+            ->assertExactJson(['data' => [], 'meta' => ['marked_count' => 0, 'unread_count' => 0]]);
         $this->assertTrue($seenAt->equalTo($report->fresh()->advisory_acknowledged_at));
     }
 

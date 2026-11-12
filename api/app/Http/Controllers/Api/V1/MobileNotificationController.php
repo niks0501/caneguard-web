@@ -151,11 +151,10 @@ class MobileNotificationController extends Controller
         $user = $request->user();
         $unread = app(ScopeNotifications::class)->handle($user->unreadNotifications(), $user)->get();
         $markedCount = 0;
-        $adviceSeenCount = 0;
 
         foreach ($unread as $notification) {
             $notification->markAsRead();
-            $adviceSeenCount += $this->acknowledgeAdvice($notification, $user);
+            $this->acknowledgeAdvice($notification, $user);
             $markedCount++;
         }
 
@@ -163,7 +162,6 @@ class MobileNotificationController extends Controller
             'data' => [],
             'meta' => [
                 'marked_count' => $markedCount,
-                'advice_seen_count' => $adviceSeenCount,
                 'unread_count' => 0,
             ],
         ]);
@@ -174,17 +172,17 @@ class MobileNotificationController extends Controller
      * that case's still-delivered advice to acknowledged and stamps when. A
      * stale notification for a replaced advisory matches nothing.
      */
-    private function acknowledgeAdvice(DatabaseNotification $notification, User $user): int
+    private function acknowledgeAdvice(DatabaseNotification $notification, User $user): void
     {
         $data = is_array($notification->data) ? $notification->data : [];
         if (($data['event_type'] ?? null) !== 'advisory_available'
             || blank($data['report_uuid'] ?? null)
             || blank($data['advisory_uuid'] ?? null)
         ) {
-            return 0;
+            return;
         }
 
-        return Report::query()->visibleTo($user)
+        Report::query()->visibleTo($user)
             ->where('uuid', $data['report_uuid'])
             ->whereBelongsTo($user, 'reporter')
             ->whereHas('advisory', fn ($query) => $query->where('uuid', $data['advisory_uuid']))

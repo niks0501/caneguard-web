@@ -74,7 +74,6 @@
       "changing owner-scope or read-state semantics",
       "changing pagination checkpoint semantics"
     ],
-    "seen_event": "read-all adds the optional meta.advice_seen_count and acknowledges delivered advice exactly as the single read already did: an optional response field, no change to existing fields, owner scope, read-state meaning or checkpoint, so it stays within v1.",
     "selection_bound": "The envelope.selection window bounds served read history only: every unread row is still served, and no field, type, nullability, owner scope, read-state meaning or checkpoint meaning changes, so it stays within v1."
   }
 }
