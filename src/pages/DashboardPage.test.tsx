@@ -871,10 +871,10 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
     // Scope and Generate report belong to Trends, not Today.
     expect(screen.queryByRole("group", { name: "Report scope" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Generate report" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Printable reports" })).not.toBeInTheDocument();
     openTab("Trends");
     expect(screen.getByRole("group", { name: "Report scope" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Generate report" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Printable reports" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Trends" })).toHaveAttribute("aria-selected", "true");
   });
 
@@ -988,28 +988,20 @@ describe("DashboardPage", () => {
     ).toHaveAttribute("aria-controls", "dashboard-panel-today");
   });
 
-  it("opens the printable report on the dashboard's own window with its scope summary and Reset", () => {
+  it("hands the dashboard's scope to the Printable reports page", () => {
     vi.useRealTimers();
     renderTrends();
 
     fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
     fireEvent.change(screen.getByLabelText("Scope start date"), { target: { value: "2026-08-01" } });
     fireEvent.change(screen.getByLabelText("Scope end date"), { target: { value: "2026-08-31" } });
-    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Generate report" });
-    expect(within(dialog).getByLabelText("Period")).toHaveValue("custom");
-    expect(within(dialog).getByLabelText("From")).toHaveValue("2026-08-01");
-    expect(within(dialog).getByLabelText("To")).toHaveValue("2026-08-31");
-    const scopeLine = within(dialog).getByLabelText("Printable report scope");
-    expect(scopeLine).toHaveTextContent("2026-08-01 to 2026-08-31");
-    expect(scopeLine).toHaveTextContent("All work queues");
-
-    fireEvent.change(within(dialog).getByLabelText("Barangay"), { target: { value: "Bacoor" } });
-    expect(scopeLine).toHaveTextContent("Barangay: Bacoor");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Reset to the current work scope" }));
-    expect(within(dialog).getByLabelText("Barangay")).toHaveValue("");
-    expect(within(dialog).getByLabelText("From")).toHaveValue("2026-08-01");
+    const href = screen.getByRole("link", { name: "Printable reports" }).getAttribute("href") ?? "";
+    expect(href.startsWith("/reports/print?")).toBe(true);
+    const params = new URLSearchParams(href.split("?")[1]);
+    expect(params.get("type")).toBe("custom");
+    expect(params.get("from")).toBe("2026-08-01");
+    expect(params.get("to")).toBe("2026-08-31");
   });
 
   it("keeps dashboard copy within the forbidden-word contract", () => {

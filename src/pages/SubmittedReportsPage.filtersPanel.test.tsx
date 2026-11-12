@@ -260,7 +260,7 @@ describe("QF-6 reports filters", () => {
 
     const header = screen.getByRole("banner");
     const menu = within(header).getByText("Export").closest("details") as HTMLElement;
-    expect(within(menu).getByRole("button", { name: "Filtered printable report" })).toBeInTheDocument();
+    expect(within(menu).getByRole("button", { name: "Printable reports" })).toBeInTheDocument();
     expect(within(menu).getByRole("button", { name: "Case CSV" })).toBeInTheDocument();
 
     await user.click(within(menu).getByRole("button", { name: "Case CSV" }));

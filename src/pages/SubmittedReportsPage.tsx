@@ -25,8 +25,7 @@ import { MonitoringScheduleSummary } from "../components/reports/MonitoringSched
 import { QueueFiltersPanel } from "../components/reports/QueueFiltersPanel";
 import { QueueTabs, type QueueTabOption } from "../components/reports/QueueTabs";
 import { ReportTable } from "../components/reports/ReportTable";
-import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
-import { printableScopeFromReportFilters } from "../components/reports/reportBuilderScope";
+import { printableScopeFromReportFilters, printableScopeToSearch } from "../components/reports/reportBuilderScope";
 import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
 import { SearchInput, SelectFilter } from "../components/ui/FormControls";
@@ -208,7 +207,6 @@ export function SubmittedReportsPage({
   embedded?: boolean;
 }) {
   const isMonitoring = workspace === "monitoring";
-  const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
   const [csvConfirmOpen, setCsvConfirmOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -387,9 +385,9 @@ export function SubmittedReportsPage({
             actions={[
               {
                 key: "printable",
-                label: "Filtered printable report",
+                label: "Printable reports",
                 icon: <ClipboardCheck aria-hidden="true" size={18} />,
-                onSelect: () => setReportBuilderOpen(true),
+                onSelect: () => navigate({ pathname: routes.printableReports, search: printableScopeToSearch(printableScope) }),
               },
               {
                 key: "csv",
@@ -798,11 +796,6 @@ export function SubmittedReportsPage({
         <p>Every matching case is included, not just the visible page.</p>
         <p className="report-builder__warning" role="note">This export includes farmer and farm references.</p>
       </Modal>
-      <ReportDocumentBuilder
-        open={reportBuilderOpen}
-        onClose={() => setReportBuilderOpen(false)}
-        scope={printableScope}
-      />
     </PageContent>
   );
 }

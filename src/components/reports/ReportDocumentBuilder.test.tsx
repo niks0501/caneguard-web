@@ -7,9 +7,8 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { toApiError } from "../../api/ApiError";
 import { axiosClient } from "../../api/axiosClient";
 import { checkApiHealth } from "../../api/apiHealth";
-import { useState } from "react";
 import { env } from "../../config/env";
-import { ReportDocumentBuilder } from "./ReportDocumentBuilder";
+import { ReportDocumentBuilder, type ReportDocumentMode } from "./ReportDocumentBuilder";
 
 vi.mock("../../api/apiHealth", () => ({
   checkApiHealth: vi.fn(),
@@ -39,13 +38,12 @@ const noFilterScope = {
   removed: [],
 };
 
-function renderBuilder(onClose: () => void = vi.fn()) {
+function renderBuilder(onClose: () => void = vi.fn(), mode: ReportDocumentMode = "custom") {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
     <MemoryRouter initialEntries={["/reports"]}>
       <Routes>
-        <Route path="/reports" element={<ReportDocumentBuilder open onClose={onClose} scope={noFilterScope} />} />
-        <Route path="/dashboard" element={<p>Dashboard home</p>} />
+        <Route path="/reports" element={<ReportDocumentBuilder mode={mode} onClose={onClose} scope={noFilterScope} />} />
       </Routes>
     </MemoryRouter>
     </QueryClientProvider>,
@@ -116,23 +114,50 @@ describe("ReportDocumentBuilder", () => {
     );
   });
 
-  it("offers a return-to-home action that routes to the dashboard home", async () => {
+  it("offers Print and Download PDF for the custom list, with no Back to home", async () => {
     vi.mocked(checkApiHealth).mockResolvedValue({
       reachability: "reachable",
       checks: { database: "ready", storage: "ready" },
     });
-    const onClose = vi.fn();
-    const user = userEvent.setup();
-    renderBuilder(onClose);
+    renderBuilder();
 
-    const home = await screen.findByRole("button", { name: "Back to home" });
-    expect(screen.getByRole("button", { name: "Print" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Print" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download PDF" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Back to home" })).not.toBeInTheDocument();
+  });
 
-    await user.click(home);
+  it("shows three common filters up front and the rest under More", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
+    renderBuilder();
 
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText("Dashboard home")).toBeInTheDocument();
+    const more = screen.getByText("More").closest("details") as HTMLElement;
+    expect(more).not.toHaveAttribute("open");
+    for (const label of ["Barangay", "Possible Condition", "Case state"]) {
+      expect(within(more).queryByLabelText(label)).not.toBeInTheDocument();
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+    }
+    for (const label of ["Verification", "Field validation", "Staff condition", "Operational queue", "Include farmer/farm identifier appendix"]) {
+      expect(within(more).getByLabelText(label)).toBeInTheDocument();
+    }
+  });
+
+  it("no longer offers the legacy downy mildew staff condition", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
+    renderBuilder();
+
+    const staff = screen.getByLabelText("Staff condition");
+    expect(within(staff).queryByRole("option", { name: "Downy mildew" })).not.toBeInTheDocument();
+    expect(within(staff).getByRole("option", { name: "Sugarcane Smut" })).toBeInTheDocument();
+  });
+
+  it("warns before including the farmer identifier appendix", async () => {
+    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
+    const user = userEvent.setup();
+    renderBuilder();
+
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText("Include farmer/farm identifier appendix"));
+    expect(screen.getByRole("note")).toHaveTextContent(/Farmer and farm references are included/);
   });
 });
 
@@ -142,10 +167,7 @@ describe("ReportDocumentBuilder weekly RSSI export", () => {
       reachability: "reachable",
       checks: { database: "ready", storage: "ready" },
     });
-    const user = userEvent.setup();
-    renderBuilder();
-
-    await user.click(screen.getByRole("button", { name: "Weekly RSSI report" }));
+    renderBuilder(vi.fn(), "rssi");
 
     expect(screen.getByRole("region", { name: "Weekly RSSI export" })).toBeInTheDocument();
     expect(screen.getByText(/reviewed and validated RSSI cases/i)).toBeInTheDocument();
@@ -226,53 +248,6 @@ describe("ReportDocumentBuilder document scope", () => {
     expect(stored).not.toHaveProperty("appendix");
   });
 
-  it("starts from the work scope that is current when the builder opens", async () => {
-    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
-    const user = userEvent.setup();
-    const empty = {
-      filters: {
-        queue: "",
-        predicted_label: "",
-        barangay: "",
-        case_state: "",
-        verification_outcome: "",
-        field_validation_state: "",
-        authority_classified_condition: "",
-      },
-      removed: [],
-    };
-    function Harness() {
-      const [open, setOpen] = useState(false);
-      const [scope, setScope] = useState(empty);
-      return (
-        <>
-          <button type="button" onClick={() => setScope({ ...scope, filters: { ...scope.filters, queue: "needs_review", barangay: "Bacoor" } })}>Filter the queue</button>
-          <button type="button" onClick={() => setOpen(true)}>Generate report</button>
-          <ReportDocumentBuilder open={open} onClose={() => setOpen(false)} scope={scope} />
-        </>
-      );
-    }
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter initialEntries={["/reports"]}>
-          <Routes>
-            <Route path="/reports" element={<Harness />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-
-    await user.click(screen.getByRole("button", { name: "Filter the queue" }));
-    await user.click(screen.getByRole("button", { name: "Generate report" }));
-
-    expect(screen.getByLabelText("Operational queue")).toHaveValue("needs_review");
-    expect(screen.getByLabelText("Barangay")).toHaveValue("Bacoor");
-    expect(screen.getByLabelText("Printable report scope")).toHaveTextContent("Queue: Needs Review");
-    const iframe = await screen.findByTitle("Live report preview") as HTMLIFrameElement;
-    expect(iframe.getAttribute("src")).toContain("queue=needs_review");
-    expect(iframe.getAttribute("src")).toContain("barangay=Bacoor");
-  });
-
   it("restores the arriving scope instead of leaving an edited filter in place", async () => {
     vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
     const user = userEvent.setup();
@@ -289,17 +264,12 @@ describe("ReportDocumentBuilder document scope", () => {
     expect(queue).toHaveValue("needs_review");
   });
 
-  it("keeps the official weekly version on its own named path, never the filtered preview", async () => {
+  it("keeps the official weekly version on its own path, never the filtered preview", async () => {
     vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
-    const user = userEvent.setup();
-    renderBuilderWithScope(scope);
-
-    expect(await screen.findByRole("button", { name: "Filtered printable report" })).toHaveAttribute("aria-pressed", "true");
-
-    await user.click(screen.getByRole("button", { name: "Official weekly report" }));
+    renderBuilderWithScope(scope, "official");
 
     const official = screen.getByRole("region", { name: "Official weekly version" });
-    expect(within(official).getByText(/not filtered by the work queue/i)).toBeInTheDocument();
+    expect(within(official).getByRole("heading", { name: "This week's official report" })).toBeInTheDocument();
     expect(within(official).getByRole("button", { name: "Prepare district version" })).toBeInTheDocument();
     expect(screen.queryByTitle("Live report preview")).not.toBeInTheDocument();
   });
@@ -342,7 +312,7 @@ describe("ReportDocumentBuilder cross-origin document actions", () => {
     ));
   });
 
-  it("closes the dialog when the embedded document asks to, and only from its own frame at the API origin", async () => {
+  it("asks to close when the embedded document asks to, and only from its own frame at the API origin", async () => {
     vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
     const onClose = vi.fn();
     renderBuilder(onClose);
@@ -357,29 +327,6 @@ describe("ReportDocumentBuilder cross-origin document actions", () => {
 
     dispatchReportClose(apiOrigin, frameWindow);
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("ReportDocumentBuilder keyboard behaviour", () => {
-  it("moves focus into the builder and restores it to the launcher on Escape", async () => {
-    vi.mocked(checkApiHealth).mockResolvedValue({ reachability: "reachable", checks: { database: "ready", storage: "ready" } });
-    const user = userEvent.setup();
-    renderLauncher();
-
-    const launcher = screen.getByRole("button", { name: "Generate report" });
-    await user.click(launcher);
-
-    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
-    expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(screen.getByLabelText("Period")).toHaveFocus();
-    // The preview is out of the sequential tab order; Escape inside it is
-    // forwarded by the document itself as a close intent.
-    expect(await screen.findByTitle("Live report preview")).toHaveAttribute("tabindex", "-1");
-
-    await user.keyboard("{Escape}");
-
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(launcher).toHaveFocus();
   });
 });
 
@@ -401,36 +348,13 @@ function dispatchReportClose(origin: string, source: unknown) {
   window.dispatchEvent(event);
 }
 
-function renderBuilderWithScope(scope: Parameters<typeof ReportDocumentBuilder>[0]["scope"] = noFilterScope) {
+function renderBuilderWithScope(scope: Parameters<typeof ReportDocumentBuilder>[0]["scope"] = noFilterScope, mode: ReportDocumentMode = "custom") {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={["/reports"]}>
         <Routes>
-          <Route path="/reports" element={<ReportDocumentBuilder open onClose={vi.fn()} scope={scope} />} />
-          <Route path="/dashboard" element={<p>Dashboard home</p>} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
-
-function renderLauncher() {
-  function Harness() {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        <button type="button" onClick={() => setOpen(true)}>Generate report</button>
-        <ReportDocumentBuilder open={open} onClose={() => setOpen(false)} scope={noFilterScope} />
-      </>
-    );
-  }
-  render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter initialEntries={["/reports"]}>
-        <Routes>
-          <Route path="/reports" element={<Harness />} />
-          <Route path="/dashboard" element={<p>Dashboard home</p>} />
-        </Routes>
+          <Route path="/reports" element={<ReportDocumentBuilder mode={mode} onClose={vi.fn()} scope={scope} />} />
+          </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );

@@ -130,3 +130,30 @@ export function printableScopeSummary(
   if (filters.authority_classified_condition) parts.push(`Staff condition: ${named(authorityClassifiedConditionLabels, filters.authority_classified_condition)}`);
   return parts.join(" · ");
 }
+
+const scopeFilterKeys = Object.keys(emptyBuilderFilters) as (keyof BuilderFilters)[];
+
+/** Carries a work scope to the Printable reports page as plain URL parameters. */
+export function printableScopeToSearch(scope: PrintableBuilderScope): string {
+  const params = new URLSearchParams({ type: "custom" });
+  scopeFilterKeys.forEach((key) => {
+    if (scope.filters[key]) params.set(key, scope.filters[key]);
+  });
+  if (scope.customPeriod) {
+    params.set("from", scope.customPeriod.from);
+    params.set("to", scope.customPeriod.to);
+  }
+  scope.removed.forEach((item) => params.append("skipped", item));
+  return `?${params.toString()}`;
+}
+
+export function printableScopeFromSearch(params: URLSearchParams): PrintableBuilderScope {
+  const filters = { ...emptyBuilderFilters };
+  scopeFilterKeys.forEach((key) => {
+    filters[key] = params.get(key) ?? "";
+  });
+  const from = params.get("from");
+  const to = params.get("to");
+  const customPeriod = from && to && !customPeriodProblem(from, to) ? { from, to } : undefined;
+  return { filters, customPeriod, removed: params.getAll("skipped") };
+}

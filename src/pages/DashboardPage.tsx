@@ -21,8 +21,7 @@ import {
   resolveScope,
   type ScopeSelection,
 } from "../components/dashboard/dashboardScope";
-import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
-import { printableScopeFromReportFilters } from "../components/reports/reportBuilderScope";
+import { printableScopeFromReportFilters, printableScopeToSearch } from "../components/reports/reportBuilderScope";
 import { PageContent } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
@@ -75,7 +74,6 @@ export function DashboardPage() {
   const [selection, setSelection] = useState<ScopeSelection>(
     () => readDashboardPreferences().selection,
   );
-  const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>("today");
 
   useEffect(() => {
@@ -290,14 +288,13 @@ export function DashboardPage() {
         >
           <div className="dashboard-trends-controls">
             <ScopeRuler selection={selection} onChange={setSelection} />
-            <Button
-              type="button"
-              variant="secondary"
-              icon={<FileStack aria-hidden="true" />}
-              onClick={() => setReportBuilderOpen(true)}
+            <Link
+              className="button button--secondary"
+              to={{ pathname: routes.printableReports, search: printableScopeToSearch(printableScope) }}
             >
-              Generate report
-            </Button>
+              <FileStack aria-hidden="true" />
+              <span>Printable reports</span>
+            </Link>
             {rangeTooLong ? (
               <p className="dashboard-scope-note" role="alert">
                 Custom range cannot exceed 366 days. Shorten the range to load
@@ -409,11 +406,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      <ReportDocumentBuilder
-        open={reportBuilderOpen}
-        onClose={() => setReportBuilderOpen(false)}
-        scope={printableScope}
-      />
     </PageContent>
   );
 }

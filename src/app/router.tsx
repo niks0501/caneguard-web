@@ -9,6 +9,7 @@ import {
 import { RequireAuth } from "../auth/RequireAuth";
 import { RequireAdmin } from "../auth/RequireAdmin";
 import { RequireWebRole } from "../auth/RequireWebRole";
+import { PrintableReportsPage } from "../pages/PrintableReportsPage";
 import { ReportApprovalPage } from "../pages/ReportApprovalPage";
 import { AdminSettingsPage } from "../pages/AdminSettingsPage";
 import { AccountsPage } from "../pages/AccountsPage";
@@ -75,6 +76,7 @@ const appRoutes: RouteObject[] = [
                     ),
                   },
                   { path: "reports", element: <SubmittedReportsPage /> },
+                  { path: "reports/print", element: <PrintableReportsPage /> },
                   { path: "monitoring", element: <MonitoringWorkspacePage /> },
                   { path: "needs-assessment", element: <NeedsAssessmentPage /> },
                   { path: "reports/:reportId", element: <CaseReviewPage /> },
