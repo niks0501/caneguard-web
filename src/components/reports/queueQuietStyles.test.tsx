@@ -109,21 +109,17 @@ function renderDeviceTable() {
 }
 
 describe("silent queue stylesheet", () => {
-  it("draws the workflow status as plain ink instead of a hued pill", () => {
+  it("draws the workflow status as a coloured pill", () => {
     applySheet(STYLE_ID, indexCss);
     renderQueue([report()]);
 
     const status = screen
-      .getByRole("cell", { name: "Needs Review" })
+      .getByRole("cell", { name: "Waiting for your decision" })
       .querySelector(".workflow-status-badge") as HTMLElement;
     expect(status).not.toBeNull();
 
     const style = getComputedStyle(status);
-    expect(style.padding).toBe("0px");
-    expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    expect(style.borderTopWidth).toBe("0px");
-    expect(style.borderRadius).toBe("0px");
-    expect(style.color).toBe("var(--color-text)");
+    expect(style.color).toBe("var(--color-warning)");
   });
 
   it("flattens the condition badge and hides its coloured dot", () => {

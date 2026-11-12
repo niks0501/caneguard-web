@@ -100,7 +100,7 @@ describe("FieldValidationTable", () => {
     renderTable();
 
     const row = screen.getByRole("row", { name: /CG-2026-0718/i });
-    expect(within(row).getByText("Field Validation")).toBeInTheDocument();
+    expect(within(row).getByText("Field check under way")).toBeInTheDocument();
     expect(within(row).queryByText("Needs field validation")).not.toBeInTheDocument();
   });
 

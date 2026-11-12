@@ -1,3 +1,12 @@
+import {
+  CalendarClock,
+  CircleCheckBig,
+  Eye,
+  Footprints,
+  Inbox,
+  Share2,
+  type LucideIcon,
+} from "lucide-react";
 import { Link } from "react-router";
 import { routes } from "../../app/routes";
 import { authorityClassifiedConditionLabels } from "../../domain/report.metadata";
@@ -10,7 +19,10 @@ import type {
 } from "../../domain/report.types";
 import {
   deriveWorkflowStatus,
-  workflowStatusLabels,
+  workflowStatusChipLabels,
+  workflowTrackReached,
+  workflowTrackSteps,
+  type WorkflowStatus,
 } from "../../domain/workflowStatus";
 import { formatAffectedArea } from "../../lib/formatters";
 import { DiseaseBadge } from "./ReportBadges";
@@ -125,14 +137,38 @@ export function QueueAffectedAreaCell({ row }: { row: QueueRowView }) {
   );
 }
 
+const workflowStatusIcons: Record<WorkflowStatus, LucideIcon> = {
+  needs_review: Inbox,
+  under_review: Eye,
+  field_validation: Footprints,
+  referred: Share2,
+  follow_up: CalendarClock,
+  resolved: CircleCheckBig,
+};
+
+/** One coloured chip in plain words plus the four-step track, shown once. */
 export function QueueStatusCell({ row }: { row: QueueRowView }) {
   const status = deriveWorkflowStatus(row);
+  const Icon = workflowStatusIcons[status];
+  const reached = workflowTrackReached[status];
 
   return (
-    <span
-      className={`badge status-badge workflow-status-badge workflow-status-badge--${status}`}
-    >
-      <span className="status-badge__label">{workflowStatusLabels[status]}</span>
+    <span className="workflow-status">
+      <span
+        className={`badge status-badge workflow-status-badge workflow-status-badge--${status}`}
+      >
+        <Icon aria-hidden="true" />
+        <span className="status-badge__label">{workflowStatusChipLabels[status]}</span>
+      </span>
+      <span className="workflow-track" aria-hidden="true">
+        {workflowTrackSteps.map((step, index) => (
+          <span
+            key={step}
+            data-step={step}
+            className={`workflow-track__step${index <= reached ? " is-reached" : ""}${index === reached ? " is-current" : ""}`}
+          />
+        ))}
+      </span>
     </span>
   );
 }

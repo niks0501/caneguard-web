@@ -9655,10 +9655,6 @@ button.monitoring-calendar__day-number:focus-visible {
   text-decoration: underline;
 }
 
-.review-status-chips > .review-state-summary {
-  scroll-margin-top: calc(72px + var(--space-4));
-}
-
 @media (min-width: 1100px) {
   .review-single-column {
     display: grid;
@@ -9765,13 +9761,76 @@ button.monitoring-calendar__day-number:focus-visible {
   background: var(--color-surface-muted);
 }
 
-.workflow-status-badge,
 .report-table .disease-badge {
   padding: 0;
   color: var(--color-text);
   background: none;
   border: 0;
   border-radius: 0;
+}
+
+/* UX-04: one coloured status chip in plain words plus a four-step track. */
+.workflow-status {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.workflow-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-weight: 700;
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-pill);
+}
+
+.workflow-status-badge > svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.workflow-status-badge--field_validation,
+.workflow-status-badge--referred,
+.workflow-status-badge--follow_up {
+  color: var(--color-primary-text);
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.workflow-status-badge--resolved {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  border-color: var(--color-success);
+}
+
+.workflow-track {
+  display: inline-flex;
+  gap: 4px;
+  font-size: var(--text-body-sm);
+  color: var(--color-muted);
+}
+
+.workflow-track__step::after {
+  content: attr(data-step);
+}
+
+.workflow-track__step + .workflow-track__step::before {
+  content: "\2192";
+  margin-right: 4px;
+}
+
+.workflow-track__step.is-reached {
+  color: var(--color-text);
+}
+
+.workflow-track__step.is-current {
+  font-weight: 700;
 }
 
 .report-table .disease-badge > span {
