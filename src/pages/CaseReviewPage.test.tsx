@@ -1502,7 +1502,7 @@ describe("CaseReviewPage", () => {
     const summary = screen.getByRole("region", { name: "Review Summary" });
     expect(within(summary).getByText(/Provide Advisory or Assistance/)).toBeInTheDocument();
     expect(within(summary).getByText(/the case stays open/i)).toBeInTheDocument();
-    expect(within(summary).getByText(/Staff finding: not classified, not determined\./)).toBeInTheDocument();
+    expect(within(summary).getByText(/Staff finding: not classified, not determined;/)).toBeInTheDocument();
     expect(within(summary).getByText(/There are no review notes\./)).toBeInTheDocument();
 
     // The summary tracks each pending choice before confirmation.
@@ -1515,8 +1515,9 @@ describe("CaseReviewPage", () => {
 
     // The read-only summary reflects the current inline draft, note text included.
     const updated = screen.getByRole("region", { name: "Review Summary" });
-    expect(within(updated).getByText(/Staff finding: Sugarcane Smut, verified\./)).toBeInTheDocument();
-    expect(within(updated).getByText(/Review notes: Leaf samples collected\./)).toBeInTheDocument();
+    expect(within(updated).getByText(/Staff finding: Sugarcane Smut, verified;/)).toBeInTheDocument();
+    expect(within(updated).getByText("Review notes")).toBeInTheDocument();
+    expect(within(updated).getByRole("blockquote")).toHaveTextContent("Leaf samples collected.");
   });
 
   it("distinguishes missing, forbidden, and rate-limited reports", () => {

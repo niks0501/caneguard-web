@@ -417,7 +417,7 @@ describe("Progressive review resilience", () => {
     expect(save.mock.calls[0][0]).not.toHaveProperty("fieldValidationAssigneeUuid");
   });
 
-  it("shows the review note text verbatim in the summary", async () => {
+  it("shows one decision sentence and keeps review notes verbatim in a separate quote", async () => {
     const user = userEvent.setup();
     renderForm();
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
@@ -429,7 +429,11 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Review decision" }));
 
     const summary = screen.getByRole("region", { name: "Review Summary" });
-    expect(summary.textContent).toContain("Review notes: First line.\n  Indented second line.");
+    const sentence = summary.querySelector("p.review-consequence");
+    expect(sentence).toHaveTextContent(/Provide Advisory or Assistance.*Validated guidance.*Staff finding:.*AI Possible Condition/);
+    expect(sentence?.textContent?.match(/[.!?]/g)).toEqual(["."]);
+    expect(within(summary).getByText("Review notes")).toBeInTheDocument();
+    expect(within(summary).getByRole("blockquote").textContent).toBe("First line.\n  Indented second line.");
   });
 
   // A failed save flags only the step it failed on; advancing must not reveal new errors.
@@ -482,6 +486,45 @@ describe("Progressive review resilience", () => {
       fieldValidationState: "assigned",
       fieldValidationAssigneeUuid: "inspector-1",
     });
+  });
+
+  it("keeps conflict verification aligned with the effective field-validation outcome", async () => {
+    const user = userEvent.setup();
+    const firstLatest = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 5,
+      actionTaken: "advisory_provided" as const,
+      lifecycle: { ...base.lifecycle!, verificationOutcome: "verified" as const },
+    };
+    const secondLatest = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 6,
+      actionTaken: "referred_for_expert_validation" as const,
+      reviewNotes: "Updated again by another reviewer.",
+      lifecycle: { ...base.lifecycle!, verificationOutcome: "not_determined" as const },
+    };
+    const onRefresh = vi.fn()
+      .mockResolvedValueOnce({ data: firstLatest })
+      .mockResolvedValueOnce({ data: secondLatest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }))
+      .mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    const firstTable = await screen.findByRole("table", { name: "Fields that changed on the server" });
+    await user.click(within(within(firstTable).getByRole("row", { name: /Next action/i })).getByRole("radio", { name: "Mine" }));
+    await user.click(within(within(firstTable).getByRole("row", { name: /Verification Outcome/i })).getByRole("radio", { name: "Latest" }));
+    await user.click(screen.getByRole("button", { name: "Apply these choices" }));
+    expect(screen.getByRole("region", { name: "Review Summary" })).toHaveTextContent(/not determined/i);
+
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    const secondTable = await screen.findByRole("table", { name: "Fields that changed on the server" });
+    expect(within(secondTable).queryByRole("row", { name: /Verification Outcome/i })).not.toBeInTheDocument();
+    expect(within(secondTable).getByRole("row", { name: /Review notes/i })).toBeInTheDocument();
   });
 
   // Conflict resolution can land the saved closure choice on the review screen with

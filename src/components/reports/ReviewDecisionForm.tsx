@@ -198,6 +198,15 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed.`
     : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}.`
     : `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}. The case stays ${caseStateOutcome}.`;
+  const summaryAction = !chosenAction ? "No action has been chosen"
+    : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""} and the case stays open`
+    : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed`
+    : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}`
+    : `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}, and the case stays ${caseStateOutcome}`;
+  const aiConditionSummary = report.predictedDisease
+    ? `the AI Possible Condition is ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}`
+    : "there is no AI scan for this case";
+  const summarySentence = `${summaryAction}; Staff finding: ${classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, ${verificationOutcomeLabels[effectiveVerification].toLowerCase()}; ${aiConditionSummary}.`;
 
   const confirm = async () => {
     if (!online || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
@@ -276,7 +285,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const applyConflictChoices = (choices: ConflictChoices) => {
     if (!conflictLatest) return;
     const saved = savedReviewSnapshot(conflictLatest);
-    const mine = draftReviewSnapshot({ classification, verification, action, support, advisoryUuid, notes, inspectorUuid, targetDate });
+    const mine = draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid, targetDate });
     const resolved = Object.fromEntries(
       conflictFields.map((field) => [field, choices[field] === "latest" ? saved[field] : mine[field]]),
     ) as ConflictSnapshot;
@@ -428,7 +437,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     {step === "review" ? (
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
       <h2 id="review-summary-heading" ref={headingRef} tabIndex={-1}>Review Summary</h2>
-      <p className="review-consequence">{[consequence ?? "No action chosen yet.", `Staff finding: ${classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, ${verificationOutcomeLabels[effectiveVerification].toLowerCase()}.`, report.predictedDisease ? `The AI Possible Condition was ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}.` : "There is no AI scan for this case.", notes.trim() ? `Review notes: ${notes}` : "There are no review notes."].join(" ")}</p>
+      <p className="review-consequence">{summarySentence}</p>
+      {notes.length ? <><p className="review-notes-label">Review notes</p><blockquote className="review-consequence review-note-quote">{notes}</blockquote></> : <p className="review-notes-empty">There are no review notes.</p>}
       {!online ? (
         <div className="review-offline" role="alert">
           <p>Not saved. CaneGuard is offline, so this review cannot be confirmed. Your draft stays in this tab and is not queued to send later.</p>
@@ -441,7 +451,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       ) : null}
       {conflict ? <ReviewConflictPanel
         latest={conflictLatest}
-        draft={draftReviewSnapshot({ classification, verification, action, support, advisoryUuid, notes, inspectorUuid, targetDate })}
+        draft={draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid, targetDate })}
         inspectorNames={Object.fromEntries((inspectors.data ?? []).map((item) => [item.uuid, item.name]))}
         advisoryNames={Object.fromEntries(validated.map((item) => [item.uuid, `${item.code} - ${item.title}`]))}
         loading={conflictLoading}
