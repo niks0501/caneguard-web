@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../../api/ApiError";
@@ -118,12 +118,9 @@ function errorMessage(error: unknown): string {
 export function AffectedFieldLinkage({
   report,
   onRefresh,
-  onLinkedCountChange,
 }: {
   report: DiseaseReport;
   onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }>;
-  /** Lets the case page keep its Boundary tab badge current after a save. */
-  onLinkedCountChange?: (count: number) => void;
 }) {
   const idPrefix = useId();
   const [lookupDraft, setLookupDraft] = useState("");
@@ -145,8 +142,6 @@ export function AffectedFieldLinkage({
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const online = useOnlineStatus();
   const linkedFields = savedFields?.report === report ? savedFields.fields : report.affectedFields ?? [];
-  const linkedCount = linkedFields.length;
-  useEffect(() => { onLinkedCountChange?.(linkedCount); }, [linkedCount, onLinkedCountChange]);
   const attachment = report.inspectorAttachment ?? null;
   const choices = boundaryChoices(
     surveysQuery.data?.features ?? [],

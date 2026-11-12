@@ -435,7 +435,6 @@ function CaseReviewContent() {
   const queueContext = reviewQueueContext(location.state);
   // Sparse: only the fields this reviewer edited, so a newer value saved by
   // someone else is never sent back as if it were this reviewer's correction.
-  const [boundaryLinkedCount, setBoundaryLinkedCount] = useState<number | null>(null);
   const [boundaryOpen, setBoundaryOpen] = useState(false);
   const [aerialOpen, setAerialOpen] = useState(false);
   const [metadataEdits, setMetadataEdits] = useState<Partial<MetadataDraft>>({});
@@ -512,10 +511,11 @@ function CaseReviewContent() {
       ? "No prior entries"
       : `${mergedHistory.length} ${mergedHistory.length === 1 ? "entry" : "entries"}${latestHistoryDate ? ` · last ${formatShortDate(latestHistoryDate)}` : ""}`;
   const aerialCount = report?.aerialAnalyses?.length ?? 0;
-  const boundaryCount = boundaryLinkedCount ?? report?.affectedFields?.length ?? 0;
+  const boundaryCount = report?.affectedFields?.length ?? 0;
+  const hasBoundaryEvidence = boundaryCount > 0 || report?.inspectorAttachment != null;
   // Once a tool has content it stays open, so removing its last item keeps its undo and form in place.
   if (aerialCount > 0 && !aerialOpen) setAerialOpen(true);
-  if (boundaryCount > 0 && !boundaryOpen) setBoundaryOpen(true);
+  if (hasBoundaryEvidence && !boundaryOpen) setBoundaryOpen(true);
   const metadataDraft = report
     ? { ...metadataDraftFor(report), ...metadataEdits }
     : undefined;
@@ -857,12 +857,11 @@ function CaseReviewContent() {
           </details>
         </section>
   );
-  const boundaryPanel = boundaryOpen ? (
+  const boundaryPanel = boundaryOpen || hasBoundaryEvidence ? (
     <AffectedFieldLinkage
       key={report.uuid}
       report={report}
       onRefresh={() => reportQuery.refetch()}
-      onLinkedCountChange={setBoundaryLinkedCount}
     />
   ) : (
     <CollapsedTool summary="No boundary yet" action="Link one" onOpen={() => setBoundaryOpen(true)} />
@@ -957,7 +956,7 @@ function CaseReviewContent() {
                 </section>
   );
   const evidenceTabs: EvidenceTab[] = [
-    { id: "photo", label: "Photo", icon: <ImageIcon aria-hidden="true" />, panel: photoPanel },
+    { id: "photo", label: "Photo", icon: <ImageIcon aria-hidden="true" />, count: report.imageStatus === "available" ? 1 : 0, panel: photoPanel },
     ...(report.aerialAnalyses !== undefined
       ? [{
           id: "aerial",
