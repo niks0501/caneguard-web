@@ -120,6 +120,22 @@ describe("silent queue stylesheet", () => {
 
     const style = getComputedStyle(status);
     expect(style.color).toBe("var(--color-warning)");
+    expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(style.borderTopWidth).toBe("1px");
+  });
+
+  it("keeps the caution summary to one ellipsized line", () => {
+    applySheet(STYLE_ID, indexCss);
+    const line = document.createElement("p");
+    line.className = "review-caution-line";
+    line.textContent = "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result";
+    document.body.appendChild(line);
+
+    const style = getComputedStyle(line);
+    expect(style.whiteSpace).toBe("nowrap");
+    expect(style.overflow).toBe("hidden");
+    expect(style.textOverflow).toBe("ellipsis");
+    line.remove();
   });
 
   it("flattens the condition badge and hides its coloured dot", () => {

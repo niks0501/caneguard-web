@@ -92,8 +92,8 @@ function renderTable(reports: DiseaseReport[]) {
 const SIX_LABELS = [
   "Waiting for your decision",
   "Being reviewed",
-  "Field check under way",
-  "With an expert",
+  "Field visit pending",
+  "Expert referral",
   "Follow-up planned",
   "Resolved",
 ] as const;
@@ -227,10 +227,10 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
   it.each([
     ["closed + verified", { caseState: "closed", verificationOutcome: "verified" }, "Resolved"],
     ["closed + undetermined", { caseState: "closed" }, "Resolved"],
-    ["validation assigned", { fieldValidationState: "assigned" }, "Field check under way"],
-    ["validation in progress", { fieldValidationState: "in_progress" }, "Field check under way"],
-    ["referred", { referralState: "referred" }, "With an expert"],
-    ["expert response received", { referralState: "expert_response_received" }, "With an expert"],
+    ["validation assigned", { fieldValidationState: "assigned" }, "Field visit pending"],
+    ["validation in progress", { fieldValidationState: "in_progress" }, "Field visit pending"],
+    ["referred", { referralState: "referred" }, "Expert referral"],
+    ["expert response received", { referralState: "expert_response_received" }, "Expert referral"],
   ] as const)(
     "STATUS: %s maps to %s",
     (_name, lifecycleOverride, expectedLabel) => {
@@ -320,7 +320,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Field check under way", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Field visit pending", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: Referred outranks Follow-Up", () => {
@@ -336,7 +336,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("With an expert", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Expert referral", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: Follow-Up outranks Under Review", () => {

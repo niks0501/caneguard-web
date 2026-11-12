@@ -32,8 +32,8 @@ export const workflowStatusLabels: Record<WorkflowStatus, string> = {
 export const workflowStatusChipLabels: Record<WorkflowStatus, string> = {
   needs_review: "Waiting for your decision",
   under_review: "Being reviewed",
-  field_validation: "Field check under way",
-  referred: "With an expert",
+  field_validation: "Field visit pending",
+  referred: "Expert referral",
   follow_up: "Follow-up planned",
   resolved: "Resolved",
 };

@@ -613,6 +613,10 @@ describe("CaseReviewPage", () => {
       "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result",
     );
     expect(document.querySelectorAll(".review-state-summary")).toHaveLength(0);
+    fireEvent.click(screen.getByText("Review guidance"));
+    expect(screen.getByText("Confirm the location with the field contact before relying on it.")).toBeInTheDocument();
+    expect(screen.getByText("Weigh the written observations more heavily.")).toBeInTheDocument();
+    expect(screen.getByText("Compare the photo and field observations carefully before deciding.")).toBeInTheDocument();
   });
 
   it("shows no caution line when the case carries no cautions", () => {
@@ -1807,7 +1811,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: fieldValidationReport }));
     renderPage();
 
-    expect(screen.getByText("Field check under way")).toBeInTheDocument();
+    expect(screen.getByText("Field visit pending")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
     expect(screen.getByText("Pending decision")).toBeInTheDocument();
 

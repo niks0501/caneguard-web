@@ -486,13 +486,20 @@ function CaseReviewContent() {
 
   const latestHistoryDate = mergedHistory[0]?.timestamp;
   const caseHistoryAvailable = report?.caseHistory?.available ?? true;
-  const cautionLinks = [
-    report && locationNeedsConfirmationFor(report) ? "Location unconfirmed" : null,
-    report && photoDifficultFor(report) ? "Photo hard to review" : null,
-    report && observationsMismatchFor(report) ? "Observations differ from result" : null,
-  ].filter((label): label is string => label !== null);
-  const cautionSummary = cautionLinks.length > 0
-    ? `${cautionLinks.length === 1 ? "Caution" : "Cautions"}: ${cautionLinks.join(" · ")}`
+  const cautions = [
+    report && locationNeedsConfirmationFor(report)
+      ? { label: "Location unconfirmed", guidance: "Confirm the location with the field contact before relying on it." }
+      : null,
+    report && photoDifficultFor(report)
+      ? { label: "Photo hard to review", guidance: "Weigh the written observations more heavily." }
+      : null,
+    report && observationsMismatchFor(report)
+      ? { label: "Observations differ from result", guidance: "Compare the photo and field observations carefully before deciding." }
+      : null,
+  ].filter((caution): caution is { label: string; guidance: string } => caution !== null);
+  const cautionLabels = cautions.map(({ label }) => label);
+  const cautionSummary = cautionLabels.length > 0
+    ? `${cautionLabels.length === 1 ? "Caution" : "Cautions"}: ${cautionLabels.join(" · ")}`
     : null;
   const caseHistorySummary = !caseHistoryAvailable
     ? "History unavailable for this older record"
@@ -772,11 +779,21 @@ function CaseReviewContent() {
 
       {/* 1. Case status with plain-language attention notices */}
       <section className="review-status-chips" aria-label="Case status">
-        {cautionLinks.length > 0 ? (
-          <p className="review-caution-line" title={cautionSummary ?? undefined}>
-            <span>{cautionLinks.length === 1 ? "Caution:" : "Cautions:"}</span>{" "}
-            {cautionLinks.join(" · ")}
-          </p>
+        {cautions.length > 0 ? (
+          <>
+            <p className="review-caution-line" title={cautionSummary ?? undefined}>
+              <span>{cautions.length === 1 ? "Caution:" : "Cautions:"}</span>{" "}
+              {cautionLabels.join(" · ")}
+            </p>
+            <details className="review-caution-guidance">
+              <summary>Review guidance</summary>
+              <ul>
+                {cautions.map(({ label, guidance }) => (
+                  <li key={label}>{guidance}</li>
+                ))}
+              </ul>
+            </details>
+          </>
         ) : null}
       </section>
 

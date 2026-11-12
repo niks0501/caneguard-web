@@ -236,7 +236,7 @@ describe("ReportTable - one workflow status", () => {
       report({ lifecycle: { ...openUntouched, fieldValidationState: "assigned" } }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Field check under way")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Field visit pending")).toBeInTheDocument();
   });
 
   it("shows Resolved for a closed case", () => {
