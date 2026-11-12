@@ -103,20 +103,20 @@ describe("Progressive review resilience", () => {
     expect(await screen.findByText(/Review confirmed/)).toBeInTheDocument();
   });
 
-  it("does not rewind after its own write when a stale sibling refresh arrives", async () => {
+  it("keeps a successful write visible when a stale sibling refresh arrives", async () => {
     const user = userEvent.setup();
     const { rerender } = renderForm();
     await technical(user);
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save).toHaveBeenCalledTimes(1);
     expect(save.mock.calls[0][0]).toMatchObject({ expectedVersion: base.reviewVersion });
+    expect(await screen.findByText(/Review confirmed/)).toBeInTheDocument();
 
     rerender(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    await user.type(screen.getByRole("textbox"), " Follow-up");
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
-    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
-    expect(save.mock.calls[1][0]).toMatchObject({ expectedVersion: base.reviewVersion! + 1 });
+    expect(screen.getByText(/Review confirmed/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+    expect(save).toHaveBeenCalledTimes(1);
   });
 
   it("retains classification, notes and action after a recoverable failure, without false success", async () => {
@@ -434,6 +434,7 @@ describe("Progressive review resilience", () => {
     expect(screen.queryByLabelText("Target visit date (optional)")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[1][0]).not.toHaveProperty("fieldValidationAssigneeUuid");

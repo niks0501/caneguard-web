@@ -41,7 +41,10 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }> | void;
 }) {
   const [reconciledReport, setReconciledReport] = useState<DiseaseReport | null>(null);
-  const effectiveReport = reconciledReport ?? report;
+  const [conflictLatest, setConflictLatest] = useState<DiseaseReport | null>(null);
+  const effectiveReport = [report, reconciledReport, conflictLatest].reduce((newest, candidate) => (
+    candidate && (candidate.reviewVersion ?? -1) > (newest.reviewVersion ?? -1) ? candidate : newest
+  ), report);
   const lifecycle = effectiveReport.lifecycle ?? legacyLifecycleForReviewStatus(effectiveReport.reviewStatus);
   const mutation = useUpdateReportReview(report.uuid);
   const advisories = useAdvisories();
@@ -71,7 +74,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [stale, setStale] = useState(false);
   const [nextPending, setNextPending] = useState(false);
   const [nextMessage, setNextMessage] = useState("");
-  const [conflictLatest, setConflictLatest] = useState<DiseaseReport | null>(null);
   const [conflictChoices, setConflictChoices] = useState<ConflictChoices>(allConflictChoices);
   const [conflictLoading, setConflictLoading] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
