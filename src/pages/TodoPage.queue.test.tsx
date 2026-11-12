@@ -7,13 +7,13 @@ import { createQueryClient } from "../app/queryClient";
 import { env } from "../config/env";
 import { reportListItemDto } from "../test/fixtures";
 import { server } from "../test/server";
-import { NeedsAssessmentPage } from "./NeedsAssessmentPage";
+import { TodoPage } from "./TodoPage";
 
 /**
- * QF-8: Needs assessment is one list whose empty groups fold into a single
+ * QF-8: To do is four lanes whose empty lanes fold into a single
  * line. These tests drive the real reports repository, zod schema, mapper and
  * query hooks through MSW against the `/api/v1/reports` queue responses the
- * running portal receives, so the grouping under proof is never mocked.
+ * running portal receives, so the lane split under proof is never mocked.
  */
 const apiBase = env.apiBaseUrl;
 
@@ -76,17 +76,17 @@ function installApi(replies: Record<string, QueueReply>) {
   );
 }
 
-function renderNeedsAssessment() {
+function renderTodo() {
   return render(
     <QueryClientProvider client={createQueryClient()}>
-      <MemoryRouter initialEntries={["/needs-assessment"]}>
-        <NeedsAssessmentPage />
+      <MemoryRouter initialEntries={["/todo"]}>
+        <TodoPage />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe("NeedsAssessmentPage queue reads", () => {
+describe("TodoPage queue reads", () => {
   it("keeps a headed, counted group for every queue result that has rows and folds only the empty one into the same list", async () => {
     installApi({
       needs_review: {
@@ -101,37 +101,28 @@ describe("NeedsAssessmentPage queue reads", () => {
       follow_up_due: { items: [] },
     });
 
-    renderNeedsAssessment();
+    renderTodo();
 
-    const awaiting = await screen.findByRole("region", { name: "Visits awaiting a decision" });
-    expect(within(awaiting).getByText("3")).toBeInTheDocument();
-    expect(within(awaiting).getByText("CG-worsened")).toBeInTheDocument();
-    expect(within(awaiting).getByText("CG-improved")).toBeInTheDocument();
-    expect(within(awaiting).queryByText("CG-fresh")).not.toBeInTheDocument();
-    expect(within(awaiting).queryByText("CG-unassigned")).not.toBeInTheDocument();
+    const decide = await screen.findByRole("region", { name: "Decide after visit" });
+    expect(within(decide).getByText("3")).toBeInTheDocument();
+    expect(within(decide).getByText("CG-worsened")).toBeInTheDocument();
+    expect(within(decide).getByText("CG-improved")).toBeInTheDocument();
+    expect(within(decide).queryByText("CG-fresh")).not.toBeInTheDocument();
+    expect(within(decide).queryByText("CG-unassigned")).not.toBeInTheDocument();
 
-    // The attention group stays reachable with its own count and rows.
-    const attention = screen.getByRole("region", { name: "Needs attention" });
-    expect(within(attention).getByText("2")).toBeInTheDocument();
-    expect(within(attention).getByText("CG-worsened")).toBeInTheDocument();
-    expect(within(attention).getByText("CG-unable")).toBeInTheDocument();
-    expect(within(attention).queryByText("CG-improved")).not.toBeInTheDocument();
+    const review = screen.getByRole("region", { name: "Review new reports" });
+    expect(within(review).getByText("1")).toBeInTheDocument();
+    expect(within(review).getByText("CG-fresh")).toBeInTheDocument();
+    expect(within(review).getByText("Not visited")).toBeInTheDocument();
+    expect(within(review).queryByText("CG-worsened")).not.toBeInTheDocument();
 
-    const observations = screen.getByRole("region", { name: "New observations" });
-    expect(within(observations).getByText("1")).toBeInTheDocument();
-    expect(within(observations).getByText("CG-fresh")).toBeInTheDocument();
-    expect(within(observations).getByText("Not visited")).toBeInTheDocument();
-    expect(within(observations).queryByText("CG-worsened")).not.toBeInTheDocument();
+    const send = screen.getByRole("region", { name: "Send someone" });
+    expect(within(send).getByText("CG-unassigned")).toBeInTheDocument();
 
-    const unassigned = screen.getByRole("region", { name: "Unassigned visits" });
-    expect(within(unassigned).getByText("CG-unassigned")).toBeInTheDocument();
-
-    // The empty group takes one line in the same list, not a heading of its own.
-    expect(screen.queryByRole("heading", { name: "Overdue visits" })).not.toBeInTheDocument();
-    const folded = screen.getByText("No open visits are overdue.");
-    expect(screen.getAllByText("No open visits are overdue.")).toHaveLength(1);
-    expect(folded.closest("section")).toBeNull();
-    expect(folded.parentElement).toBe(screen.getByRole("heading", { name: "Needs attention" }).closest("section")?.parentElement);
+    // The empty lane keeps its place in work order and folds into one line.
+    const overdue = screen.getByRole("region", { name: "Visit overdue" });
+    expect(within(overdue).getByText("0")).toBeInTheDocument();
+    expect(within(overdue).getByText("No open visits are overdue.")).toBeInTheDocument();
   });
 
   it("states a truncated queue read once above the list it actually rendered", async () => {
@@ -149,13 +140,13 @@ describe("NeedsAssessmentPage queue reads", () => {
       follow_up_due: { items: [] },
     });
 
-    renderNeedsAssessment();
+    renderTodo();
 
-    const awaiting = await screen.findByRole("region", { name: "Visits awaiting a decision" });
-    expect(within(awaiting).getByText("2")).toBeInTheDocument();
-    // A group count is never paired with a denominator it does not match.
-    expect(within(awaiting).queryByText(/of 137/)).not.toBeInTheDocument();
-    expect(screen.getAllByText(/The Visits awaiting a decision queue loaded the first 4 of 137 matching cases/)).toHaveLength(1);
+    const decide = await screen.findByRole("region", { name: "Decide after visit" });
+    expect(within(decide).getByText("2")).toBeInTheDocument();
+    // A lane count is never paired with a denominator it does not match.
+    expect(within(decide).queryByText(/of 137/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/The Review new reports and Decide after visit queue loaded the first 4 of 137 matching cases/)).toHaveLength(1);
   });
 
   it("shows the load error alone when one queue fails first, never a boundary notice about a list it did not render", async () => {
@@ -171,10 +162,10 @@ describe("NeedsAssessmentPage queue reads", () => {
       follow_up_due: { items: [unvisitedObservation(5, "CG-overdue")] },
     });
 
-    renderNeedsAssessment();
+    renderTodo();
 
     expect(await screen.findByText("This list could not be loaded. Please try again.", {}, { timeout: 5_000 })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText(/queue loaded the first/)).not.toBeInTheDocument());
-    expect(screen.queryByRole("heading", { name: "Visits awaiting a decision" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Decide after visit" })).not.toBeInTheDocument();
   });
 });

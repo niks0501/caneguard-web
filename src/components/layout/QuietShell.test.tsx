@@ -20,7 +20,7 @@ describe("quiet shell sidebar", () => {
     const links = within(nav).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")]);
     expect(links).toEqual([
       ["Home", "/dashboard"],
-      ["Needs assessment", "/needs-assessment"],
+      ["To do", "/todo"],
       ["Reports", "/reports"],
       ["Visits", "/monitoring"],
       ["Settings", "/settings"],

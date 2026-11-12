@@ -1,4 +1,5 @@
 import { CalendarDays, ClipboardList, LandPlot, MapPinned, Table2 } from "lucide-react";
+import { routes } from "../app/routes";
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
@@ -59,7 +60,7 @@ export function MonitoringWorkspacePage() {
             </Link>
           );
         })}
-        <Link className="monitoring-workspace-tabs__saved" to="/needs-assessment">Needs assessment</Link>
+        <Link className="monitoring-workspace-tabs__saved" to={routes.todo}>To do</Link>
       </nav>
       {scopeNotice ? <p className="queue-refresh-warning" role="status">{scopeNotice}</p> : null}
       {view === "register" ? <SubmittedReportsPage workspace="monitoring" embedded /> : null}

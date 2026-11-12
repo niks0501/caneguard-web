@@ -290,13 +290,13 @@ describe("Progressive review resilience", () => {
   it("does not escape a calendar or assessment snapshot into an unrelated report queue", async () => {
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={[{ pathname: `/reports/${base.uuid}`, state: { reviewQueue: {
-      returnTo: "/needs-assessment", filters: {}, remainingIds: [], reviewedIds: [], snapshotOnly: true,
+      returnTo: "/todo", filters: {}, remainingIds: [], reviewedIds: [], snapshotOnly: true,
     } } }]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
     await technical(user);
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
     expect(await screen.findByText("No more cases in this queue.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to Queue" })).toHaveAttribute("href", "/needs-assessment");
+    expect(screen.getByRole("link", { name: "Return to Queue" })).toHaveAttribute("href", "/todo");
     expect(reportsRepository.listReports).not.toHaveBeenCalled();
   });
 
@@ -304,7 +304,7 @@ describe("Progressive review resilience", () => {
     const user = userEvent.setup();
     const next = { ...base, uuid: "next-case", referenceCode: "CG-NEXT" };
     render(<MemoryRouter initialEntries={[{ pathname: `/reports/${base.uuid}`, state: { reviewQueue: {
-      returnTo: "/needs-assessment", filters: {}, remainingIds: [next.uuid], reviewedIds: [],
+      returnTo: "/todo", filters: {}, remainingIds: [next.uuid], reviewedIds: [],
       snapshotOnly: true, snapshotTruncated: true,
     } } }]}><Routes>
       <Route path={`/reports/${base.uuid}`} element={<ReviewDecisionForm report={base} onRefresh={vi.fn()} />} />

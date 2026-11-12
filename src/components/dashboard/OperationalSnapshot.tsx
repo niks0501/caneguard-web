@@ -125,8 +125,8 @@ export function OperationalSnapshot({
           unavailable={!analytics}
           support={waitingAgeSupportLine(analytics?.reviewBacklog)}
           icon={<ShieldCheck aria-hidden="true" strokeWidth={1.75} />}
-          href={routes.reportQueue("needs_review")}
-          linkLabel="Open the Awaiting review queue"
+          href={routes.todoLane("review")}
+          linkLabel="Open Review new reports on the To do page"
         >
           {waitingAge ? (
             <RadialMeter label="Waiting age" segments={waitingAge} />
@@ -142,8 +142,8 @@ export function OperationalSnapshot({
           value={String(summary.queues.needs_visit)}
           support={pastTargetDateSupportLine(summary.queues.follow_up_due)}
           icon={<ClipboardCheck aria-hidden="true" strokeWidth={1.75} />}
-          href={routes.fieldValidationQueue("needs_visit")}
-          linkLabel="Open the Needing field validation queue"
+          href={routes.todoLane("send")}
+          linkLabel="Open Send someone on the To do page"
         >
           <SegmentedBar
             label="Field-validation schedule"
@@ -157,8 +157,8 @@ export function OperationalSnapshot({
           value={String(summary.queues.unverified_no_active_work)}
           support={UNVERIFIED_SUPPORT_LINE}
           icon={<CircleHelp aria-hidden="true" strokeWidth={1.75} />}
-          href={routes.reportQueue("unverified_no_active_work")}
-          linkLabel="Open the Unverified, no active work queue"
+          href={routes.todoLane("send")}
+          linkLabel="Open Send someone for reports nobody is assigned to"
         >
           <StatusIndicator
             icon={<CircleSlash aria-hidden="true" strokeWidth={1.75} />}

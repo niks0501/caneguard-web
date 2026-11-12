@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router";
 import { routes } from "../../app/routes";
 
 const sectionLabels: Record<string, string> = {
-  "needs-assessment": "Needs assessment",
+  todo: "To do",
   reports: "Reports",
   monitoring: "Visits",
   map: "Visits",

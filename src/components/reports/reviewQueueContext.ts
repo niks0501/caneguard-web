@@ -15,7 +15,7 @@ export interface ReviewQueueContext {
 export function reviewQueueContext(value: unknown): ReviewQueueContext | null {
   if (!value || typeof value !== "object") return null;
   const context = (value as { reviewQueue?: ReviewQueueContext }).reviewQueue;
-  if (!context || !/^\/(reports|monitoring|needs-assessment)(\?|$)/.test(context.returnTo)
+  if (!context || !/^\/(reports|monitoring|todo)(\?|$)/.test(context.returnTo)
     || !Array.isArray(context.remainingIds) || !Array.isArray(context.reviewedIds)
     || !context.filters || typeof context.filters !== "object") return null;
   return context;

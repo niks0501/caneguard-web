@@ -1,4 +1,5 @@
-import { ClipboardCheck, RefreshCw } from "lucide-react";
+import { AlarmClock, ClipboardCheck, ClipboardList, RefreshCw, UserPlus, type LucideIcon } from "lucide-react";
+import { useEffect } from "react";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { Link, useLocation } from "react-router";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
@@ -10,12 +11,10 @@ import { ErrorState, LoadingState } from "../components/ui/States";
 import { followUpOutcomeLabels } from "../domain/report.metadata";
 import type { DiseaseReport, FollowUpOutcome } from "../domain/report.types";
 import { useReportsQueue } from "../hooks/useReports";
-import { routes } from "../app/routes";
+import { routes, type TodoLane } from "../app/routes";
 import { formatDateTime } from "../lib/formatters";
 import { env } from "../config/env";
 import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
-
-const attentionOutcomes: FollowUpOutcome[] = ["worsened", "unable_to_determine"];
 
 function outcomeLabel(outcome: FollowUpOutcome | null | undefined) {
   return outcome ? followUpOutcomeLabels[outcome] : "Outcome not recorded";
@@ -38,7 +37,9 @@ function countValue(read: QueueRead, value: number): number | string {
   return "—";
 }
 
-function AssessmentRow({ report, queueContext, unreviewed }: { report: DiseaseReport; queueContext: ReviewQueueContext; unreviewed: boolean }) {
+interface TodoAction { label: string; to: string; state?: Record<string, unknown> }
+
+function TodoCard({ report, queueContext, action }: { report: DiseaseReport; queueContext: ReviewQueueContext; action: TodoAction }) {
   const outcome = report.latestValidation?.followUpOutcome;
   const visited = Boolean(report.latestValidation) || report.lifecycle?.fieldValidationState === "completed";
   return (
@@ -58,26 +59,22 @@ function AssessmentRow({ report, queueContext, unreviewed }: { report: DiseaseRe
         ? "Field evidence is ready for office assessment."
         : "No field visit has been recorded for this observation yet.")}</p>
       <div className="needs-assessment-row__actions">
-        <Link className="button button--secondary button--small" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>Review evidence</Link>
-        {report.lifecycle?.fieldValidationState !== "completed" ? (
-          unreviewed
-            // A visit is created only by the case decision; the Assignments queue never holds an unreviewed case.
-            ? <Link className="button button--primary button--small" to={routes.reportDecision(report.uuid)} state={{ reviewQueue: queueContext, preselectAction: "field" }}>Send someone</Link>
-            : <Link className="button button--primary button--small" to={routes.fieldOperationsForReport(report.uuid)}>Assign visit</Link>
-        ) : null}
+        <Link className="button button--primary button--small" to={action.to} state={{ reviewQueue: queueContext, ...action.state }}>{action.label}</Link>
       </div>
     </article>
   );
 }
 
-interface NeedsGroup {
-  key: string;
+interface TodoLaneData {
+  key: TodoLane;
   title: string;
+  icon: LucideIcon;
   reports: DiseaseReport[];
-  /** The one line a group with no rows folds into. */
+  /** The one line a lane with no cards folds into. */
   empty: string;
-  /** The bounded queue read behind this group stopped at its boundary. */
+  /** The bounded queue read behind this lane stopped at its boundary. */
   truncated?: boolean;
+  action: (report: DiseaseReport) => TodoAction;
 }
 
 /** One line stating where a bounded queue read stopped. */
@@ -89,43 +86,38 @@ function QueueBoundary({ title, loaded, total }: { title: string; loaded: number
   );
 }
 
-/**
- * QF-8: every case sits in one ruled list. A group with rows keeps a heading
- * and a count; a group with none folds into a single line instead of taking a
- * heading, a description and an empty panel of its own.
- */
-function AssessmentGroup({ group }: { group: NeedsGroup }) {
+function TodoLaneSection({ lane }: { lane: TodoLaneData }) {
   const location = useLocation();
-  if (group.reports.length === 0) {
-    return <p className="needs-assessment-folded">{group.empty}</p>;
-  }
-  const headingId = `needs-assessment-${group.key}-heading`;
+  const Icon = lane.icon;
+  const headingId = `todo-${lane.key}-heading`;
   return (
-    <section className="needs-assessment-group" aria-labelledby={headingId}>
+    <section id={`lane-${lane.key}`} className="needs-assessment-group" aria-labelledby={headingId}>
       <div className="needs-assessment-group__heading">
-        <h2 id={headingId}>{group.title}</h2>
-        <strong className="needs-assessment-count">{group.reports.length}</strong>
+        <h2 id={headingId}><Icon aria-hidden="true" /> {lane.title}</h2>
+        <strong className="needs-assessment-count">{lane.reports.length}</strong>
       </div>
-      <div className="needs-assessment-list">
-        {group.reports.map((report) => (
-          <AssessmentRow
-            key={report.uuid}
-            report={report}
-            unreviewed={group.key === "observations"}
-            queueContext={{
-              returnTo: `${location.pathname}${location.search}`, filters: {},
-              remainingIds: group.reports.slice(group.reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
-              reviewedIds: [], snapshotOnly: true,
-              ...(group.truncated ? { snapshotTruncated: true } : {}),
-            }}
-          />
-        ))}
-      </div>
+      {lane.reports.length === 0 ? <p className="needs-assessment-folded">{lane.empty}</p> : (
+        <div className="needs-assessment-list">
+          {lane.reports.map((report) => (
+            <TodoCard
+              key={report.uuid}
+              report={report}
+              action={lane.action(report)}
+              queueContext={{
+                returnTo: `${location.pathname}${location.search}`, filters: {},
+                remainingIds: lane.reports.slice(lane.reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
+                reviewedIds: [], snapshotOnly: true,
+                ...(lane.truncated ? { snapshotTruncated: true } : {}),
+              }}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
-export function NeedsAssessmentPage() {
+export function TodoPage() {
   // Complete bounded reads: a queue is never described by its first page alone.
   const awaitingQuery = useReportsQueue({ queue: "needs_review", sort: "oldest" });
   const visitQuery = useReportsQueue({ queue: "needs_visit", sort: "oldest" });
@@ -136,8 +128,7 @@ export function NeedsAssessmentPage() {
   const needsReview = awaitingQuery.data?.reports ?? [];
   const completedVisits = needsReview.filter((report) => fieldValidationStateOf(report) === "completed");
   const newObservations = needsReview.filter((report) => fieldValidationStateOf(report) !== "completed");
-  const attention = completedVisits.filter((report) => attentionOutcomes.includes(report.latestValidation?.followUpOutcome ?? "improved"));
-  const unassignedVisits = (visitQuery.data?.reports ?? []).filter(
+    const unassignedVisits = (visitQuery.data?.reports ?? []).filter(
     (report) => fieldValidationStateOf(report) === "unassigned",
   );
   const overdue = overdueQuery.data?.reports ?? [];
@@ -154,28 +145,33 @@ export function NeedsAssessmentPage() {
     ? { loaded: overdue.length, total: overdueQuery.data.total }
     : undefined;
 
-  const groups: NeedsGroup[] = [
+  const lanes: TodoLaneData[] = [
     {
-      key: "awaiting", title: "Visits awaiting a decision", reports: completedVisits,
-      empty: "No completed field visits are waiting for a decision.", truncated: Boolean(awaitingTruncation),
+      key: "review", title: "Review new reports", icon: ClipboardCheck, reports: newObservations,
+      empty: "No new reports are waiting for review.", truncated: Boolean(awaitingTruncation),
+      action: (report) => ({ label: "Review report", to: routes.reportDetail(report.uuid) }),
     },
     {
-      key: "attention", title: "Needs attention", reports: attention,
-      empty: "No completed visit recorded Worsened or Unable to determine.", truncated: Boolean(awaitingTruncation),
+      key: "send", title: "Send someone", icon: UserPlus, reports: unassignedVisits,
+      empty: "No reports are waiting for someone to be sent.", truncated: Boolean(visitTruncation),
+      action: (report) => ({ label: "Send someone", to: routes.fieldOperationsForReport(report.uuid) }),
     },
     {
-      key: "observations", title: "New observations", reports: newObservations,
-      empty: "No unvisited observations are waiting.", truncated: Boolean(awaitingTruncation),
-    },
-    {
-      key: "unassigned", title: "Unassigned visits", reports: unassignedVisits,
-      empty: "No unassigned visit requests are waiting.", truncated: Boolean(visitTruncation),
-    },
-    {
-      key: "overdue", title: "Overdue visits", reports: overdue,
+      key: "overdue", title: "Visit overdue", icon: AlarmClock, reports: overdue,
       empty: "No open visits are overdue.", truncated: Boolean(overdueTruncation),
+      action: (report) => ({ label: "Open visit", to: routes.fieldOperationsForReport(report.uuid) }),
+    },
+    {
+      key: "decide", title: "Decide after visit", icon: ClipboardList, reports: completedVisits,
+      empty: "No completed visits are waiting for a decision.", truncated: Boolean(awaitingTruncation),
+      action: (report) => ({ label: "Record decision", to: routes.reportDecision(report.uuid) }),
     },
   ];
+  const ready = !awaitingQuery.isPending && !visitQuery.isPending && !overdueQuery.isPending;
+  useEffect(() => {
+    if (!ready || !window.location.hash.startsWith("#lane-")) return;
+    document.getElementById(window.location.hash.slice(1))?.scrollIntoView?.();
+  }, [ready]);
 
   const isLoading = awaitingQuery.isPending || visitQuery.isPending || overdueQuery.isPending;
   const hasInitialError = (awaitingQuery.isError && !awaitingQuery.data)
@@ -199,7 +195,7 @@ export function NeedsAssessmentPage() {
   return (
     <PageContent>
       <PageHeader
-        title="Needs assessment"
+        title="To do"
         actions={(
           <Button
             variant="secondary"
@@ -211,11 +207,16 @@ export function NeedsAssessmentPage() {
           </Button>
         )}
       />
-      <div className="needs-assessment-summary" aria-label="Needs assessment summary">
-        <div><ClipboardCheck aria-hidden="true" /><strong>{countValue(awaitingQuery, completedVisits.length)}</strong><span>Visits awaiting a decision</span></div>
-        <div><ClipboardCheck aria-hidden="true" /><strong>{countValue(awaitingQuery, newObservations.length)}</strong><span>New observations</span></div>
-        <div><ClipboardCheck aria-hidden="true" /><strong>{countValue(visitQuery, unassignedVisits.length)}</strong><span>Unassigned visits</span></div>
-        <div className="needs-assessment-summary__overdue"><RefreshCw aria-hidden="true" /><strong>{countValue(overdueQuery, overdue.length)}</strong><span>Overdue visits</span></div>
+      <div className="needs-assessment-summary" aria-label="To do summary">
+        {lanes.map((lane) => {
+          const Icon = lane.icon;
+          const read = lane.key === "send" ? visitQuery : lane.key === "overdue" ? overdueQuery : awaitingQuery;
+          return (
+            <a key={lane.key} href={`#lane-${lane.key}`} className={lane.key === "overdue" ? "needs-assessment-summary__overdue" : undefined}>
+              <Icon aria-hidden="true" /><strong>{countValue(read, lane.reports.length)}</strong><span>{lane.title}</span>
+            </a>
+          );
+        })}
       </div>
       <WorkspaceFreshness
         updatedAt={oldestServerReadAt([awaitingQuery, visitQuery, overdueQuery])}
@@ -234,7 +235,7 @@ export function NeedsAssessmentPage() {
             {refetchConnectionError
               ? serviceUnreachableWhileShowingData
               : refetchRateLimitedError
-                ? "The Needs assessment refresh was rate limited. Wait a moment before trying again; the previous queues remain visible."
+                ? "The To do refresh was rate limited. Wait a moment before trying again; the previous queues remain visible."
                 : "New updates could not load. Showing the list from before."}
           </p>
         )
@@ -245,7 +246,7 @@ export function NeedsAssessmentPage() {
           message={initialConnectionError
             ? serviceUnreachableMessage
             : initialRateLimitedError
-              ? "Needs assessment is receiving too many requests. Wait a moment, then try again."
+              ? "To do is receiving too many requests. Wait a moment, then try again."
               : "This list could not be loaded. Please try again."}
           detail={initialConnectionError ? apiEndpointDetail(env.apiBaseUrl) : undefined}
           onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
@@ -253,16 +254,13 @@ export function NeedsAssessmentPage() {
       ) : null}
       {!hasInitialError && awaitingQuery.data && visitQuery.data ? (
         <>
-          {awaitingTruncation ? <QueueBoundary title="Visits awaiting a decision" {...awaitingTruncation} /> : null}
-          {visitTruncation ? <QueueBoundary title="Unassigned visits" {...visitTruncation} /> : null}
-          {overdueTruncation ? <QueueBoundary title="Overdue visits" {...overdueTruncation} /> : null}
+          {awaitingTruncation ? <QueueBoundary title="Review new reports and Decide after visit" {...awaitingTruncation} /> : null}
+          {visitTruncation ? <QueueBoundary title="Send someone" {...visitTruncation} /> : null}
+          {overdueTruncation ? <QueueBoundary title="Visit overdue" {...overdueTruncation} /> : null}
           <div className="needs-assessment-queue">
-            {groups.map((group) => <AssessmentGroup key={group.key} group={group} />)}
+            {lanes.map((lane) => <TodoLaneSection key={lane.key} lane={lane} />)}
           </div>
         </>
-      ) : null}
-      {completedVisits.some((report) => report.latestValidation?.followUpOutcome === "unchanged") ? (
-        <p className="needs-assessment-note" role="note">Unchanged outcomes remain in Needs assessment until an office reviewer records the next action.</p>
       ) : null}
     </PageContent>
   );
