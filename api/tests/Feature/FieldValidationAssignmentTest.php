@@ -13,6 +13,7 @@ use App\Notifications\FieldValidationAssignedNotification;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -595,7 +596,7 @@ class FieldValidationAssignmentTest extends TestCase
             'assignee_id' => $assignee->getKey(),
             'assigned_by_id' => $reviewer->getKey(),
         ]);
-        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-12T10:30:00Z'));
+        $this->travelTo(Carbon::parse('2026-11-12T10:30:00Z'));
         $conflictingClientUuid = fake()->uuid();
         $submittedClientUuid = fake()->uuid();
         $payload = [
