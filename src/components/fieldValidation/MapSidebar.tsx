@@ -66,7 +66,7 @@ export function CaseDetailsPanel({
         </div>
         <div><dt>Possible Condition</dt><dd>{conditionLabel(feature)}</dd></div>
         <div><dt>Date Observed</dt><dd>{formatValidationDate(properties.observedAt)}</dd></div>
-        <div><dt>Case Status</dt><dd><QueueStatusCell row={properties} /></dd></div>
+        <div><dt>Case Status</dt><dd><QueueStatusCell row={properties} showIcon /></dd></div>
       </dl>
       <p className="map-sidebar__note">
         Possible Condition is decision support, not a confirmed diagnosis.
@@ -113,7 +113,7 @@ export function ClusterQueuePanel({
                 <span>{conditionLabel(feature)}</span>
                 <time>{formatValidationDate(feature.properties.observedAt)}</time>
               </button>
-              <QueueStatusCell row={feature.properties} />
+              <QueueStatusCell row={feature.properties} showIcon />
             </div>
           </li>
         ))}

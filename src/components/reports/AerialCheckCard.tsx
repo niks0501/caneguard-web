@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Undo2, Upload } from "lucide-react";
+import { Drone, Undo2 } from "lucide-react";
 import { ApiError } from "../../api/ApiError";
 import type { AerialAnalysis, DiseaseReport } from "../../domain/report.types";
 import {
@@ -284,14 +284,14 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
       <div className="section-heading">
-        <h2 id="aerial-check-heading">Aerial check</h2>
+        <h2 id="aerial-check-heading" className="aerial-check__heading"><Drone aria-hidden="true" size={18} />Aerial check</h2>
       </div>
       <p className="aerial-check__provenance">
         Supporting evidence from one aerial photo. Experimental; not a ground measurement.
       </p>
 
       <label className="aerial-check__drop">
-        <span className="aerial-check__drop-label"><Upload aria-hidden="true" size={16} />{latest ? "Add another aerial photo" : "Add aerial photo"}</span>
+        <span>{latest ? "Add another aerial photo" : "Add aerial photo"}</span>
         <small>JPG, PNG or WebP, up to 20 MB</small>
         <input
           type="file"

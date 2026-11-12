@@ -143,7 +143,7 @@ const workflowStatusIcons: Record<WorkflowStatus, LucideIcon> = {
 };
 
 /** One coloured chip in plain words plus the four-step track, shown once. */
-export function QueueStatusCell({ row }: { row: WorkflowStatusInput }) {
+export function QueueStatusCell({ row, showIcon = false }: { row: WorkflowStatusInput; showIcon?: boolean }) {
   const status = deriveWorkflowStatus(row);
   const chipLabel = deriveWorkflowStatusChipLabel(row, status);
   const reached = deriveWorkflowTrackReached(row, status);
@@ -154,7 +154,7 @@ export function QueueStatusCell({ row }: { row: WorkflowStatusInput }) {
       <span
         className={`badge status-badge workflow-status-badge workflow-status-badge--${status}`}
       >
-        <StatusIcon aria-hidden="true" size={14} className="workflow-status-badge__icon" />
+        {showIcon ? <StatusIcon aria-hidden="true" size={14} className="workflow-status-badge__icon" /> : null}
         <span className="status-badge__label">{chipLabel}</span>
       </span>
       <ol className="workflow-track" aria-label="Case progress">

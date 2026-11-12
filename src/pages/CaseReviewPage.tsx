@@ -980,7 +980,7 @@ function CaseReviewContent() {
       <PageHeader
         title={report.referenceCode}
         description={humanLocationFor(report)}
-        actions={<QueueStatusCell row={report} />}
+        actions={<QueueStatusCell row={report} showIcon />}
       />
       {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
       {reportQuery.isRefetchError ? (

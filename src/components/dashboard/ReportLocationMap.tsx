@@ -409,7 +409,7 @@ export function ReportLocationMap({
                           {selectedReports.map(({ properties }) => (
                             <li key={properties.uuid}>
                               <Link className="decision-map__popup-link" to={routes.reportDetail(properties.uuid)} aria-label={`Open ${properties.referenceCode}`}>{properties.referenceCode}</Link>
-                              <QueueStatusCell row={properties} />
+                              <QueueStatusCell row={properties} showIcon />
                               <time>{formatValidationDate(properties.observedAt)}</time>
                             </li>
                           ))}
@@ -445,7 +445,7 @@ export function ReportLocationMap({
               {gps.data.features.map(({ properties }) => (
                 <li key={properties.uuid}>
                   <Link to={routes.reportDetail(properties.uuid)}>{properties.referenceCode}</Link>
-                  <QueueStatusCell row={properties} />
+                  <QueueStatusCell row={properties} showIcon />
                   <time>{formatValidationDate(properties.observedAt)}</time>
                 </li>
               ))}
