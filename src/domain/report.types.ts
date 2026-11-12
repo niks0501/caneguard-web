@@ -392,6 +392,7 @@ export interface DiseaseReport {
   actionTaken?: ActionTaken | null;
   fieldValidationAssignment?: FieldValidationAssignment | null;
   latestValidation?: LatestValidationSummary | null;
+  fieldValidationCompleted?: boolean;
   referral?: ReportReferral | null;
   consults?: ReportConsult[];
   lifecycle?: ReportLifecycle;

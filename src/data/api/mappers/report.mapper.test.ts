@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { deriveWorkflowTrackReached } from "../../../domain/workflowStatus";
 import {
   completedFieldValidationAssignmentDto,
   paginatedReportsDto,
@@ -70,6 +71,24 @@ describe("report mappers", () => {
       mismatchReported: true,
     });
     expect(report.confidence).toBeUndefined();
+  });
+
+  it("normalizes legacy list completion evidence for the workflow track", () => {
+    const report = mapReportListItem({
+      ...paginatedReportsDto.data[0],
+      lifecycle: undefined,
+      latest_validation: {
+        visited_at: "2026-08-14T09:30:00.000Z",
+        field_observation: "Field evidence recorded.",
+        finding: "Requires office review.",
+        action_taken: "Guidance provided.",
+        assignee: null,
+        fresh_photo: { available: false, url: null },
+      },
+    });
+
+    expect(report.fieldValidationCompleted).toBe(true);
+    expect(deriveWorkflowTrackReached(report)).toBe(2);
   });
 
   it("resolves relative detail image URLs against the configured API base", () => {
@@ -310,15 +329,14 @@ describe("report mappers", () => {
       reportDetailResponseSchema.parse({
         data: {
           ...reportDetailDto,
-          lifecycle: {
-            ...reportDetailDto.lifecycle,
-            field_validation_state: "completed",
-          },
+          lifecycle: undefined,
           field_validation_assignment: completedFieldValidationAssignmentDto,
         },
       }).data,
     );
 
+    expect(report.fieldValidationCompleted).toBe(true);
+    expect(deriveWorkflowTrackReached(report)).toBe(2);
     expect(report.fieldValidationAssignment?.completion).toEqual({
       fieldObservation:
         "Fresh observation from the assigned validation visit.",

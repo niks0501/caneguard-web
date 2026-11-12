@@ -81,6 +81,10 @@ class QueryMapReports
                 'field_validation_state',
                 'referral_state',
             ])
+            ->withExists([
+                'fieldValidationAssignment as field_validation_completed' => fn ($assignment) => $assignment
+                    ->whereHas('completion'),
+            ])
             ->orderBy('id')
             ->limit($limit + 1)
             ->get();

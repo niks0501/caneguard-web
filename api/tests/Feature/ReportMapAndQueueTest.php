@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\District;
+use App\Models\FieldValidationAssignment;
+use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -239,6 +241,21 @@ class ReportMapAndQueueTest extends TestCase
             ->assertJsonPath('data.count', 1)
             ->assertJsonPath('data.items.0.uuid', $report->uuid)
             ->assertJsonPath('data.items.0.predicted_label', Report::LABEL_SMUT);
+    }
+
+    public function test_map_exposes_completion_evidence_for_legacy_workflow_tracks(): void
+    {
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'final_latitude' => 14.1,
+            'final_longitude' => 120.6,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create(['report_id' => $report->id]);
+        FieldValidationCompletion::factory()->create(['assignment_id' => $assignment->id]);
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+
+        $this->getJson('/api/v1/reports/map')
+            ->assertOk()
+            ->assertJsonPath('features.0.properties.field_validation_completed', true);
     }
 
     public function test_map_limits_results_and_reports_the_truncation_contract(): void

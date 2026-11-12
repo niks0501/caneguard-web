@@ -36,6 +36,7 @@ class MapReportResource extends JsonResource
                 'confidence' => $this->confidence === null ? null : (float) $this->confidence,
                 'review_status' => $this->review_status,
                 'lifecycle' => $this->resource->lifecycleSnapshot(),
+                'field_validation_completed' => (bool) $this->resource->field_validation_completed,
                 'authority_classified_condition' => $this->authority_classified_condition,
                 'action_taken' => $this->action_taken,
                 'mismatch_reported' => $this->mismatch_reported,
