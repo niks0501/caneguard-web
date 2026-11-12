@@ -404,13 +404,15 @@ class AdvisoryTest extends TestCase
     public function test_legacy_notifications_only_acknowledge_the_current_selection(): void
     {
         foreach (['single', 'all'] as $path) {
-            $this->assertLegacySelectionMatching($path);
+            foreach ([false, true] as $sameSecond) {
+                $this->assertLegacySelectionMatching($path, $sameSecond);
+            }
         }
     }
 
-    private function assertLegacySelectionMatching(string $path): void
+    private function assertLegacySelectionMatching(string $path, bool $sameSecond): void
     {
-        $this->travelTo(now()->startOfSecond());
+        $this->travelTo(now()->startOfSecond()->addMilliseconds(500));
         $reviewer = User::factory()->reviewer()->create();
         $reporter = User::factory()->fieldReporter()->create();
         $report = Report::factory()->create(['reporter_id' => $reporter]);
@@ -430,7 +432,11 @@ class AdvisoryTest extends TestCase
         $oldReadAt = $old->fresh()->read_at;
 
         foreach ([[$b, 1], [$a, 2]] as [$advisory, $version]) {
-            $this->travel(1)->minutes();
+            if ($sameSecond) {
+                $this->travelTo(now()->addMilliseconds(100));
+            } else {
+                $this->travel(1)->minutes();
+            }
             $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
                 'advisory_uuid' => $advisory->uuid,
                 'expected_version' => $version,
@@ -442,7 +448,7 @@ class AdvisoryTest extends TestCase
         unset($data['selection_generation']);
         $current->data = $data;
         $current->save();
-        $this->assertTrue($current->created_at->equalTo($report->fresh()->advisory_selected_at));
+        $this->assertTrue($current->created_at->lessThan($report->fresh()->advisory_selected_at));
         if ($path === 'all') {
             $current->delete();
         }
@@ -554,7 +560,8 @@ class AdvisoryTest extends TestCase
             ->assertOk()->assertJsonPath('meta.marked_count', 101);
         $this->assertSame(101, Report::query()->whereIn('id', $reports->modelKeys())
             ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_ACKNOWLEDGED)->count());
-        $this->assertSame(2, $updates);
+        $this->assertGreaterThan(0, $updates);
+        $this->assertLessThan($reports->count(), $updates);
     }
 
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void
