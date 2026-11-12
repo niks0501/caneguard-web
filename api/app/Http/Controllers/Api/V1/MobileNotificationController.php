@@ -182,7 +182,7 @@ class MobileNotificationController extends Controller
     /**
      * Seen event: opening or bulk-reading an owned advisory notification moves
      * that case's still-delivered advice to acknowledged and stamps when. A
-     * stale notification for a replaced advisory matches nothing.
+     * notification for a different advisory UUID matches nothing.
      */
     private function acknowledgeAdvice(DatabaseNotification $notification, User $user): void
     {

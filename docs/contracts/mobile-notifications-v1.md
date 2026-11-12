@@ -31,8 +31,8 @@ The feed is retrieval-oriented, so Mobile acknowledges items through two owner-s
 Both require the field-reporter role, the `mobile.token` middleware, and the `notification:read` ability.
 Each item is loaded through the authenticated user's notifications relation, so another account's notification can never be read or acknowledged, and a cross-owner identifier answers `404`.
 Marking an already-read item is idempotent and preserves the first `read_at` timestamp.
-Acknowledging a notification never blocks opening its destination on Mobile: a failed mutation leaves the item unread and surfaces a recoverable message. Reading an `advisory_available` item advances that case's advisory delivery state to `acknowledged` when the notification is owned by the reporter.
+Acknowledging a notification never blocks opening its destination on Mobile: a failed mutation leaves the item unread and surfaces a recoverable message.
 
 ### Seen event
 
-Opening an advisory item (`PATCH .../read`) or reading everything (`POST .../read-all`) is the Seen event: each owned `advisory_available` item whose case advice is still `delivered` moves to `acknowledged` and stamps `advisory.acknowledged_at` on the case, which the office reads as Seen at that time. Read-all also acknowledges matching previously read items, using the original notification read time as Seen. A stale item for a replaced advisory acknowledges nothing, and repeating the call never moves the first Seen time.
+Opening an advisory item (`PATCH .../read`) or reading everything (`POST .../read-all`) is the Seen event: an owned `advisory_available` item matching the case's current advisory UUID moves still-`delivered` advice to `acknowledged` and stamps `advisory.acknowledged_at`, which the office shows as Seen at that time. Both actions can acknowledge a previously read item using its original read time; read-all uses the earliest read time among matching items. An item with a different advisory UUID acknowledges nothing, and repeating the call does not change an already acknowledged time. Matching does not distinguish separate selections of the same advisory UUID.
