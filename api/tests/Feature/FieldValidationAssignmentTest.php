@@ -9,6 +9,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\FieldValidationAssignedNotification;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Tests\TestCase;
 
 class FieldValidationAssignmentTest extends TestCase
@@ -500,6 +503,8 @@ class FieldValidationAssignmentTest extends TestCase
     }
 
     // Proves: a removed visit answers 404 with VISIT_REMOVED instead of a bare 404.
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_completion_on_a_removed_visit_reports_visit_removed(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
@@ -532,11 +537,15 @@ class FieldValidationAssignmentTest extends TestCase
         $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
             'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
         ]);
-        FieldValidationAssignment::factory()->create([
+        $assignment = FieldValidationAssignment::factory()->create([
             'report_id' => $report->getKey(),
             'assignee_id' => $previous->getKey(),
             'assigned_by_id' => $reviewer->getKey(),
         ]);
+        $previous->notify(new FieldValidationAssignedNotification(
+            $previous->uuid, $report->uuid, $report->reference_code, $assignment->uuid, null,
+        ));
+        $oldNotice = $previous->notifications()->sole();
 
         Sanctum::actingAs($reviewer);
         $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
@@ -545,14 +554,33 @@ class FieldValidationAssignmentTest extends TestCase
             'expected_version' => 0,
         ])->assertOk();
 
-        $this->assertSame(
-            ['field_validation_assignment_reassigned'],
-            $previous->notifications()->get()->pluck('data.event_type')->all(),
-        );
+        $notice = $previous->notifications()->where('id', '!=', $oldNotice->id)->sole();
+        $this->assertSame('field_validation_assignment_reassigned', $notice->data['event_type']);
         $this->assertContains(
             'field_validation_assignment_changed',
             $next->notifications()->get()->pluck('data.event_type')->all(),
         );
+        $foreignNotice = $next->notifications()->sole();
+
+        Sanctum::actingAs($previous, ['notification:read', 'assignment:read']);
+        $this->getJson('/api/v1/mobile/notifications')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $notice->id);
+        $this->getJson('/api/v1/mobile/assignments')->assertOk()->assertJsonCount(0, 'data');
+        $this->patchJson("/api/v1/mobile/notifications/{$oldNotice->id}/read")->assertNotFound();
+        $this->patchJson("/api/v1/mobile/notifications/{$foreignNotice->id}/read")->assertNotFound();
+        $this->patchJson("/api/v1/mobile/notifications/{$notice->id}/read")
+            ->assertOk()
+            ->assertJsonPath('data.is_read', true)
+            ->assertJsonPath('meta.unread_count', 0);
+        $notice->update(['read_at' => null]);
+        $this->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertJsonPath('meta.marked_count', 1);
+        $this->assertNotNull($notice->fresh()->read_at);
+        $this->assertNull($oldNotice->fresh()->read_at);
+        $this->assertNull($foreignNotice->fresh()->read_at);
     }
 
     public function test_completion_conflict_echoes_the_submitted_client_uuid(): void
