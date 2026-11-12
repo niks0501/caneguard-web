@@ -1496,6 +1496,10 @@ describe("CaseReviewPage", () => {
     expect(screen.getByRole("heading", { name: "Action details" })).toBeInTheDocument();
     expect(screen.queryByText("Choose what should happen next.")).not.toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     await chooseAdvisory(user);
     await user.click(screen.getByRole("button", { name: "Review decision" }));
