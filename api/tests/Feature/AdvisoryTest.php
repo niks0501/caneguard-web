@@ -7,8 +7,10 @@ use App\Models\Report;
 use App\Models\User;
 use App\Notifications\AdvisoryAvailableNotification;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -228,6 +230,342 @@ class AdvisoryTest extends TestCase
             Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
             $report->fresh()->advisory_delivery_state,
         );
+    }
+
+    public function test_mobile_read_all_acknowledges_delivered_advice_and_stamps_seen_time(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+
+        $token = $reporter->createToken('advisory-read-all', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertExactJson(['data' => [], 'meta' => ['marked_count' => 1, 'unread_count' => 0]]);
+
+        $fresh = $report->fresh();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $fresh->advisory_delivery_state);
+        $seenAt = $fresh->advisory_acknowledged_at;
+        $this->assertNotNull($seenAt);
+
+        $this->travel(5)->minutes();
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertExactJson(['data' => [], 'meta' => ['marked_count' => 0, 'unread_count' => 0]]);
+        $this->assertTrue($seenAt->equalTo($report->fresh()->advisory_acknowledged_at));
+    }
+
+    public function test_mobile_read_all_acknowledges_previously_read_advice_without_touching_other_reporters(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $otherReporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $otherReport = Report::factory()->create(['reporter_id' => $otherReporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        foreach ([$report, $otherReport] as $case) {
+            $this->patchJson("/api/v1/reports/{$case->uuid}/review", [
+                'advisory_uuid' => $advisory->uuid,
+                'expected_version' => 0,
+            ])->assertOk();
+        }
+
+        $notification = $reporter->notifications()->sole();
+        $notification->markAsRead();
+        $originalReadAt = $notification->fresh()->read_at;
+        $this->travel(5)->minutes();
+        $token = $reporter->createToken('advisory-legacy-read', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertExactJson(['data' => [], 'meta' => ['marked_count' => 0, 'unread_count' => 0]]);
+        $this->assertTrue($originalReadAt->equalTo($notification->fresh()->read_at));
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $report->fresh()->advisory_delivery_state);
+        $seenAt = $report->fresh()->advisory_acknowledged_at;
+        $this->assertNotNull($seenAt);
+        $this->assertTrue($originalReadAt->equalTo($seenAt));
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $otherReport->fresh()->advisory_delivery_state);
+
+        $this->travel(5)->minutes();
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        $this->assertTrue($seenAt->equalTo($report->fresh()->advisory_acknowledged_at));
+    }
+
+    public function test_single_read_recovers_advice_at_the_original_read_time(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $notification = $reporter->notifications()->sole();
+        $notification->markAsRead();
+        $readAt = $notification->fresh()->read_at;
+        $this->travel(5)->minutes();
+        $token = $reporter->createToken('advisory-legacy-single', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")->assertOk();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $report->fresh()->advisory_delivery_state);
+        $this->assertTrue($readAt->equalTo($report->fresh()->advisory_acknowledged_at));
+    }
+
+    public function test_read_all_does_not_acknowledge_a_notification_arriving_after_the_read_update(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $notification = $reporter->notifications()->sole();
+        $notification->delete();
+        $token = $reporter->createToken('advisory-late-arrival', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $inserted = false;
+        DB::listen(function (QueryExecuted $query) use (&$inserted, $notification): void {
+            if ($inserted || ! str_starts_with(strtolower(ltrim($query->sql)), 'update ')
+                || ! str_contains($query->sql, 'notifications')) {
+                return;
+            }
+            $inserted = true;
+            $notification->save();
+        });
+
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        $this->assertTrue($inserted);
+        $this->assertNull($notification->fresh()->read_at);
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+    }
+
+    public function test_reselecting_the_same_advisory_starts_a_new_seen_event(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $a = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
+        $b = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+
+        Sanctum::actingAs($reviewer);
+        foreach ([[$a, 0], [$b, 1], [$a, 2]] as [$advisory, $version]) {
+            $this->travel(1)->minutes();
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'advisory_uuid' => $advisory->uuid,
+                'expected_version' => $version,
+            ])->assertOk();
+        }
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $firstA = $reporter->notifications()->where('data->advisory_uuid', $a->uuid)->reorder('created_at')->firstOrFail();
+        $reselected = $reporter->notifications()->where('data->advisory_uuid', $a->uuid)->reorder('created_at', 'desc')->firstOrFail();
+        $this->assertNotSame($firstA->id, $reselected->id);
+
+        $token = $reporter->createToken('advisory-reselect', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+        $this->travel(1)->minutes();
+
+        $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$firstA->id}/read")->assertOk();
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+
+        $this->travel(2)->minutes();
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        $fresh = $report->fresh();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $fresh->advisory_delivery_state);
+        $this->assertTrue($fresh->advisory_acknowledged_at->equalTo($reselected->fresh()->read_at));
+        $this->assertTrue($fresh->advisory_acknowledged_at->greaterThan($firstA->fresh()->read_at));
+    }
+
+    public function test_legacy_notifications_only_acknowledge_the_current_selection(): void
+    {
+        foreach (['single', 'all'] as $path) {
+            foreach ([false, true] as $sameSecond) {
+                $this->assertLegacySelectionMatching($path, $sameSecond);
+            }
+        }
+    }
+
+    private function assertLegacySelectionMatching(string $path, bool $sameSecond): void
+    {
+        $this->travelTo(now()->startOfSecond()->addMilliseconds(500));
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $a = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
+        $b = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+        $this->withoutToken();
+        Auth::forgetGuards();
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $a->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $old = $reporter->notifications()->sole();
+        $data = $old->data;
+        unset($data['selection_generation']);
+        $old->data = $data;
+        $old->save();
+        $old->markAsRead();
+        $oldReadAt = $old->fresh()->read_at;
+
+        foreach ([[$b, 1], [$a, 2]] as [$advisory, $version]) {
+            if ($sameSecond) {
+                $this->travelTo(now()->addMilliseconds(100));
+            } else {
+                $this->travel(1)->minutes();
+            }
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'advisory_uuid' => $advisory->uuid,
+                'expected_version' => $version,
+            ])->assertOk();
+        }
+        $current = $reporter->notifications()->where('data->advisory_uuid', $a->uuid)
+            ->where('id', '!=', $old->id)->sole();
+        $data = $current->data;
+        unset($data['selection_generation']);
+        $current->data = $data;
+        $current->save();
+        $this->assertTrue($current->created_at->lessThan($report->fresh()->advisory_selected_at));
+        if ($path === 'all') {
+            $current->delete();
+        }
+        $token = $reporter->createToken('legacy-selection', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        if ($path === 'single') {
+            $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$old->id}/read")->assertOk();
+        } else {
+            $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        }
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+
+        if ($path === 'all') {
+            $current->exists = false;
+            $current->save();
+        }
+        $this->travel(1)->minutes();
+        $current->markAsRead();
+        $currentReadAt = $current->fresh()->read_at;
+        $this->travel(1)->minutes();
+        if ($path === 'single') {
+            $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$current->id}/read")->assertOk();
+        } else {
+            $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        }
+        $fresh = $report->fresh();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $fresh->advisory_delivery_state);
+        $this->assertTrue($currentReadAt->equalTo($fresh->advisory_acknowledged_at));
+        $this->assertTrue($fresh->advisory_acknowledged_at->greaterThan($oldReadAt));
+    }
+
+    public function test_read_paths_do_not_acknowledge_a_selection_replaced_during_matching(): void
+    {
+        foreach (['single', 'all'] as $path) {
+            foreach (['replacement', 'reselection'] as $change) {
+                $this->assertSelectionChangeIsNotAcknowledged($path, $change);
+            }
+        }
+    }
+
+    private function assertSelectionChangeIsNotAcknowledged(string $path, string $change): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
+        $replacement = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+        $this->withoutToken();
+        Auth::forgetGuards();
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $notification = $reporter->notifications()->sole();
+        $token = $reporter->createToken('selection-race', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $changed = false;
+        DB::listen(function (QueryExecuted $query) use (&$changed, $report, $advisory, $replacement, $change): void {
+            if ($changed || ! str_starts_with(strtolower(ltrim($query->sql)), 'select ')
+                || ! str_contains($query->sql, 'advisories')) {
+                return;
+            }
+            $changed = true;
+            DB::table('reports')->where('id', $report->getKey())->update([
+                'advisory_id' => $change === 'replacement' ? $replacement->getKey() : $advisory->getKey(),
+                'advisory_selected_at' => now()->addMinute()->format('Y-m-d H:i:s.v'),
+            ]);
+        });
+
+        if ($path === 'single') {
+            $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")->assertOk();
+        } else {
+            $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        }
+        $this->assertTrue($changed);
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+    }
+
+    public function test_read_all_acknowledges_backlogs_in_batches(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $advisory = Advisory::factory()->validated($reviewer, 'Guide.')->create();
+        $reports = Report::factory()->count(101)->create([
+            'reporter_id' => $reporter,
+            'advisory_id' => $advisory->getKey(),
+            'advisory_selected_at' => now(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+        ]);
+        foreach ($reports as $report) {
+            $reporter->notify(new AdvisoryAvailableNotification(
+                $reporter->uuid, $report->uuid, $report->reference_code, $advisory, '1',
+                Report::selectionGeneration($report->advisory_selected_at),
+            ));
+        }
+        $token = $reporter->createToken('batch-read', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+        $updates = 0;
+        DB::listen(function (QueryExecuted $query) use (&$updates): void {
+            if (str_starts_with(strtolower(ltrim($query->sql)), 'update reports set advisory_delivery_state')) {
+                $updates++;
+            }
+        });
+
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()->assertJsonPath('meta.marked_count', 101);
+        $this->assertSame(101, Report::query()->whereIn('id', $reports->modelKeys())
+            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_ACKNOWLEDGED)->count());
+        $this->assertGreaterThan(0, $updates);
+        $this->assertLessThan($reports->count(), $updates);
     }
 
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void

@@ -246,6 +246,24 @@ describe("CaseReviewPage", () => {
     discard.mockRestore();
   });
 
+  it("shows when delivered advice was seen, in 12-hour Manila time", async () => {
+    const user = userEvent.setup();
+    const advised = (deliveryState: "delivered" | "acknowledged", acknowledgedAt: string | null) => ({
+      ...report,
+      advisory: { ...officeAdvisory, deliveryState, deliveredAt: "2026-09-20T01:00:00Z", acknowledgedAt },
+    });
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: advised("acknowledged", "2026-09-20T06:30:00Z") }));
+    const seen = renderPage();
+    await user.click(screen.getByText("View Full Report Details"));
+    expect(screen.getByText("Advice seen").parentElement).toHaveTextContent("2:30 PM");
+    seen.unmount();
+
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: advised("delivered", null) }));
+    renderPage();
+    await user.click(screen.getByText("View Full Report Details"));
+    expect(screen.getByText("Advice seen").parentElement).toHaveTextContent("Not seen yet");
+  });
+
   it("blocks in-app navigation while the correction modal holds a dirty draft", async () => {
     const user = userEvent.setup();
     const router = createMemoryRouter([{
