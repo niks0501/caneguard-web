@@ -201,9 +201,10 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     const user = userEvent.setup();
     renderPage();
 
-    expect(screen.queryByRole("tablist")).toBeNull();
-    expect(screen.queryByRole("tab")).toBeNull();
+    await user.click(screen.getByRole("tab", { name: /History/ }));
+    expect(screen.getAllByRole("tablist")).toHaveLength(1);
     const group = screen.getByRole("group", { name: "Filter case history" });
+    expect(within(group).queryByRole("tab")).toBeNull();
     const all = within(group).getByRole("button", { name: /^All \(/ });
     const review = within(group).getByRole("button", { name: /^Review \(/ });
     expect(all).toHaveAttribute("aria-pressed", "true");
@@ -246,6 +247,7 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     };
     renderPage(report);
 
+    await user.click(screen.getByRole("tab", { name: /History/ }));
     const group = screen.getByRole("group", { name: "Filter case history" });
     expect(screen.getByText("Reviewer Alvarez")).toBeInTheDocument();
     expect(screen.getByText("Clerk Bautista")).toBeInTheDocument();
@@ -276,7 +278,7 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     const condition = screen.getByRole("heading", { name: "Possible Condition" });
     const fieldReport = screen.getByRole("heading", { name: "Observed symptoms" });
     const decision = screen.getByRole("heading", { name: "Choose Action" });
-    const history = screen.getByRole("heading", { name: "Case history" });
+    const historyTab = screen.getByRole("tab", { name: /History/ });
 
     for (const heading of [photo, condition, fieldReport, decision]) {
       expect(flow!.contains(heading)).toBe(true);
@@ -287,7 +289,129 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(photo.compareDocumentPosition(condition) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(condition.compareDocumentPosition(fieldReport) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(fieldReport.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(decision.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // History is now an evidence tab beside the photo, ahead of the decision column.
+    expect(historyTab.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("lays evidence out as Photo, Aerial, Boundary and History tabs with count badges", async () => {
+    const user = userEvent.setup();
+    renderPage({ ...baseReport, aerialAnalyses: [] });
+
+    const tabs = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(tabs.slice(0, 3)).toEqual(["Photo1", "Aerial0", "Boundary0"]);
+    expect(tabs[3]).toMatch(/^History\d+$/);
+    expect(screen.getByRole("tab", { name: /Photo/ })).toHaveAttribute("aria-selected", "true");
+    // The photo and its AI disclaimer share the default tab.
+    const photoPanel = screen.getByRole("tabpanel", { name: /^Photo/ });
+    expect(within(photoPanel).getByRole("heading", { name: "Submitted photo" })).toBeInTheDocument();
+    expect(within(photoPanel).getByText(/Decision support, not a diagnosis/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Boundary/ }));
+    expect(screen.getByRole("tabpanel", { name: /Boundary/ })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Submitted photo" })).toBeNull();
+  });
+
+  it("shows zero history counts when the history source is unavailable", async () => {
+    const user = userEvent.setup();
+    const report = {
+      ...baseReport,
+      caseHistory: {
+        available: false,
+        sources: { reviewEvents: true, corrections: false, assignments: false, consults: false },
+        entries: [
+          {
+            id: "review-hidden",
+            type: "review" as const,
+            typeLabel: "Review",
+            timestamp: "2026-09-03T02:00:00Z",
+            actor: "Reviewer Hidden",
+            fields: [],
+            notes: null,
+          },
+        ],
+      },
+    };
+    renderPage(report);
+
+    expect(screen.getByRole("tab", { name: /History/ })).toHaveTextContent("History0");
+    await user.click(screen.getByRole("tab", { name: /History/ }));
+    expect(screen.getByRole("button", { name: "All (0)" })).toBeInTheDocument();
+    expect(screen.queryByText("Reviewer Hidden")).toBeNull();
+    expect(screen.getByText("Case history is not available for this older record.")).toBeVisible();
+  });
+
+  it("keeps Aerial in the evidence tabs when the server feature is unavailable", async () => {
+    const user = userEvent.setup();
+    renderPage({ ...baseReport, aerialAnalyses: undefined });
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Photo1", "Aerial0", "Boundary0", expect.stringMatching(/^History\d+$/)]);
+    const aerialTab = screen.getByRole("tab", { name: /Aerial/ });
+    expect(aerialTab).toBeDisabled();
+    expect(aerialTab).toHaveAttribute("aria-selected", "false");
+
+    await user.click(screen.getByRole("tab", { name: /Photo/ }));
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: /Boundary/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("moves selection to an enabled tab when a refresh disables Aerial", async () => {
+    const user = userEvent.setup();
+    const reportWithAerial = { ...baseReport, aerialAnalyses: [] };
+    const view = renderPage(reportWithAerial);
+
+    await user.click(screen.getByRole("tab", { name: /Aerial/ }));
+    expect(screen.getByRole("tab", { name: /Aerial/ })).toHaveAttribute("aria-selected", "true");
+
+    const refreshedReport = { ...baseReport, aerialAnalyses: undefined };
+    vi.mocked(useReport).mockReturnValue(queryResult(refreshedReport));
+    view.rerender(
+      <MemoryRouter initialEntries={[`/reports/${refreshedReport.uuid}`]}>
+        <Routes>
+          <Route path="/reports/:reportId" element={<CaseReviewPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const photoTab = screen.getByRole("tab", { name: /Photo/ });
+    const aerialTab = screen.getByRole("tab", { name: /Aerial/ });
+    expect(aerialTab).toBeDisabled();
+    expect(photoTab).toHaveAttribute("aria-selected", "true");
+    expect(photoTab).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("tabpanel", { name: /^Photo/ })).toBeVisible();
+
+    await user.click(photoTab);
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: /Boundary/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("shows pending inspector attachments in the Boundary tab", async () => {
+    const user = userEvent.setup();
+    renderPage({
+      ...baseReport,
+      affectedFields: [],
+      inspectorAttachment: { clientUuid: "mobile-client", arrived: false, confirmed: false, boundary: null },
+    });
+
+    await user.click(screen.getByRole("tab", { name: /Boundary/ }));
+    expect(screen.getByRole("heading", { name: "Affected field boundaries" })).toBeVisible();
+    expect(screen.getByText("This boundary has not reached the office yet.")).toBeVisible();
+    expect(screen.queryByText("No boundary yet")).toBeNull();
+  });
+
+  it("collapses empty boundary and aerial tools to one line until asked for", async () => {
+    const user = userEvent.setup();
+    renderPage({ ...baseReport, affectedFields: [], aerialAnalyses: [] });
+
+    await user.click(screen.getByRole("tab", { name: /Boundary/ }));
+    expect(screen.getByText("No boundary yet")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Affected field boundaries" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Link one" }));
+    expect(screen.getByRole("heading", { name: "Affected field boundaries" })).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: /Aerial/ }));
+    expect(screen.getByText("No aerial photo yet")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Aerial check" })).toBeNull();
   });
 
 });

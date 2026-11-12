@@ -3,9 +3,12 @@ import "../styles/report-evidence-review.css";
 import {
   ArrowLeft,
   ClipboardList,
+  Drone,
   GitBranch,
   History,
+  Image as ImageIcon,
   Link2,
+  Map as MapIcon,
   MoreHorizontal,
 } from "lucide-react";
 import { Link, useLocation, useParams } from "react-router";
@@ -16,6 +19,7 @@ import { DetailField, PageContent, PageHeader } from "../components/layout/Page"
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
 import { AerialCheckCard } from "../components/reports/AerialCheckCard";
 import { AffectedFieldLinkage } from "../components/reports/AffectedFieldLinkage";
+import { CollapsedTool, EvidenceTabs, type EvidenceTab } from "../components/reports/EvidenceTabs";
 import { ReviewDecisionForm } from "../components/reports/ReviewDecisionForm";
 import { reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
@@ -431,6 +435,8 @@ function CaseReviewContent() {
   const queueContext = reviewQueueContext(location.state);
   // Sparse: only the fields this reviewer edited, so a newer value saved by
   // someone else is never sent back as if it were this reviewer's correction.
+  const [boundaryOpen, setBoundaryOpen] = useState(false);
+  const [aerialOpen, setAerialOpen] = useState(false);
   const [metadataEdits, setMetadataEdits] = useState<Partial<MetadataDraft>>({});
   // Review version the correction pop-up was opened against.
   const [metadataBaseVersion, setMetadataBaseVersion] = useState<number | undefined>();
@@ -461,16 +467,18 @@ function CaseReviewContent() {
   const workflowStatus = report ? deriveWorkflowStatus(report) : undefined;
   const awaitingDecision = workflowStatus === "needs_review" || workflowStatus === "under_review";
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
+  const caseHistoryAvailable = report?.caseHistory?.available ?? true;
+  const visibleHistoryEntries = caseHistoryAvailable ? mergedHistory : [];
   const visibleHistory = historyFilter === "all"
-    ? mergedHistory
-    : mergedHistory.filter((entry) => entry.type === historyFilter);
+    ? visibleHistoryEntries
+    : visibleHistoryEntries.filter((entry) => entry.type === historyFilter);
 
   const historyCounts = {
-    all: mergedHistory.length,
-    review: mergedHistory.filter((e) => e.type === "review").length,
-    field_validation: mergedHistory.filter((e) => e.type === "field_validation").length,
-    referral: mergedHistory.filter((e) => e.type === "referral").length,
-    correction: mergedHistory.filter((e) => e.type === "correction").length,
+    all: visibleHistoryEntries.length,
+    review: visibleHistoryEntries.filter((e) => e.type === "review").length,
+    field_validation: visibleHistoryEntries.filter((e) => e.type === "field_validation").length,
+    referral: visibleHistoryEntries.filter((e) => e.type === "referral").length,
+    correction: visibleHistoryEntries.filter((e) => e.type === "correction").length,
   };
 
   const mapUrl = report ? mapUrlFor(report) : null;
@@ -484,8 +492,7 @@ function CaseReviewContent() {
     openCase();
   }, [report, openCase]);
 
-  const latestHistoryDate = mergedHistory[0]?.timestamp;
-  const caseHistoryAvailable = report?.caseHistory?.available ?? true;
+  const latestHistoryDate = visibleHistoryEntries[0]?.timestamp;
   const cautions = [
     report && locationNeedsConfirmationFor(report)
       ? { label: "Location unconfirmed", guidance: "Confirm the location with the field contact before relying on it." }
@@ -504,6 +511,12 @@ function CaseReviewContent() {
     : mergedHistory.length === 0
       ? "No prior entries"
       : `${mergedHistory.length} ${mergedHistory.length === 1 ? "entry" : "entries"}${latestHistoryDate ? ` · last ${formatShortDate(latestHistoryDate)}` : ""}`;
+  const aerialCount = report?.aerialAnalyses?.length ?? 0;
+  const boundaryCount = report?.affectedFields?.length ?? 0;
+  const hasBoundaryEvidence = boundaryCount > 0 || report?.inspectorAttachment != null;
+  // Once a tool has content it stays open, so removing its last item keeps its undo and form in place.
+  if (aerialCount > 0 && !aerialOpen) setAerialOpen(true);
+  if (hasBoundaryEvidence && !boundaryOpen) setBoundaryOpen(true);
   const metadataDraft = report
     ? { ...metadataDraftFor(report), ...metadataEdits }
     : undefined;
@@ -738,64 +751,7 @@ function CaseReviewContent() {
     </>
   );
 
-  return (
-    <PageContent>
-      <Link className="back-link" to={queueContext?.returnTo ?? routes.reports}><ArrowLeft aria-hidden="true" />Back to submitted reports</Link>
-      <PageHeader
-        title={report.referenceCode}
-        description={humanLocationFor(report)}
-        actions={<QueueStatusCell row={report} />}
-      />
-      {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
-      {reportQuery.isRefetchError ? (
-        <div className="detail-refresh-warning" role="alert">
-          <span>{detailRefreshMessage}</span>
-          <Button type="button" variant="secondary" onClick={() => reportQuery.refetch()}>
-            Retry report refresh
-          </Button>
-        </div>
-      ) : null}
-      {openCaseMutation.isError ? (
-        <div className="detail-refresh-warning" role="alert">
-          <span>
-            This case is open, but its first-review status was not recorded. Evidence stays readable.
-          </span>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={openCaseMutation.isPending}
-            onClick={() => {
-              // The stamp is idempotent server-side; retrying never duplicates it.
-              openCaseMutation.reset();
-              openCase();
-            }}
-          >
-            Retry status update
-          </Button>
-        </div>
-      ) : null}
-
-      {/* 1. Case cautions */}
-      <section className="review-status-chips" aria-label="Case cautions">
-        {cautions.length > 0 ? (
-          <>
-            <p className="review-caution-line" title={cautionSummary} role="status">
-              {cautionSummary}
-            </p>
-            <details className="review-caution-guidance">
-              <summary>Review guidance</summary>
-              <ul>
-                {cautions.map(({ label, guidance }) => (
-                  <li key={label}>{guidance}</li>
-                ))}
-              </ul>
-            </details>
-          </>
-        ) : null}
-      </section>
-
-      {/* 4. Reading order: photo, Possible Condition, field report, office decision, history */}
-      <div className="review-single-column">
+  const photoPanel = (
         <section className="review-card review-evidence" aria-labelledby="evidence-summary-heading">
           <h2 id="evidence-summary-heading">Evidence Summary</h2>
           <div className="review-evidence__grid">
@@ -901,81 +857,23 @@ function CaseReviewContent() {
             </section>
           </details>
         </section>
-
-        <AffectedFieldLinkage key={report.uuid} report={report} onRefresh={() => reportQuery.refetch()} />
-        {report.aerialAnalyses !== undefined ? <AerialCheckCard key={report.uuid} report={report} /> : null}
-
-                {report.fieldValidationAssignment?.completion ? (
-                  <section
-                    className="review-card field-validation-evidence-card"
-                    aria-labelledby="field-validation-evidence-heading"
-                  >
-                    <div className="section-heading">
-                      <div>
-                        <span className="summary-tag">Field validation</span>
-                        <h2 id="field-validation-evidence-heading">Completed field validation</h2>
-                      </div>
-                      <ClipboardList aria-hidden="true" />
-                    </div>
-                    <p className="authority-classification-help">
-                      This submitted field evidence is read-only here and does not verify or close the case.
-                    </p>
-                    <div className="field-validation-action-evidence" aria-label="Action Taken evidence">
-                      <p className="field-validation-action-evidence__title">Action Taken evidence</p>
-                      <DetailField label="Action taken">
-                        {report.fieldValidationAssignment.completion.actionTaken}
-                      </DetailField>
-                    </div>
-                    <dl className="detail-list reporter-observation-details">
-                      <DetailField label="Observation">
-                        <ClampedText text={report.fieldValidationAssignment.completion.fieldObservation} />
-                      </DetailField>
-                      <DetailField label="Finding">
-                        <ClampedText text={report.fieldValidationAssignment.completion.fieldFinding} />
-                      </DetailField>
-                      <DetailField label="Follow-up outcome">
-                        {report.fieldValidationAssignment.completion.followUpOutcome
-                          ? followUpOutcomeLabels[report.fieldValidationAssignment.completion.followUpOutcome]
-                          : "Not provided"}
-                      </DetailField>
-                      <DetailField label="Fresh validation photo">
-                        {report.fieldValidationAssignment.completion.freshPhoto?.available
-                        && report.fieldValidationAssignment.completion.freshPhoto.url ? (
-                          <a
-                            className="table-action"
-                            href={report.fieldValidationAssignment.completion.freshPhoto.url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open authorized photo
-                          </a>
-                        ) : "Not provided"}
-                      </DetailField>
-                    </dl>
-                  </section>
-                ) : null}
-
-        <ReviewDecisionForm key={report.uuid} report={report} onRefresh={() => reportQuery.refetch()} />
-
-        <HistoricalReferralPanel report={report} />
-        <OfflineHandoffNotes report={report} />
-
-            {/* Case history (secondary, collapsed) */}
-            <details className="review-card case-history-disclosure">
-              <summary>
-                <div className="disclosure-left">
-                  <strong>Case history</strong>
-                  <span className="disclosure-metric">{caseHistorySummary}</span>
-                </div>
-                <History aria-hidden="true" />
-              </summary>
-              <div className="disclosure-content">
+  );
+  const boundaryPanel = boundaryOpen || hasBoundaryEvidence ? (
+    <AffectedFieldLinkage
+      key={report.uuid}
+      report={report}
+      onRefresh={() => reportQuery.refetch()}
+    />
+  ) : (
+    <CollapsedTool summary="No boundary yet" action="Link one" onOpen={() => setBoundaryOpen(true)} />
+  );
+  const historyPanel = (
                 <section className="review-card case-timeline" aria-labelledby="timeline-heading">
                   <div className="section-heading">
                     <div>
                       <h2 id="timeline-heading">Case history</h2>
+                      <p className="disclosure-metric">{caseHistorySummary}</p>
                     </div>
-                    <History aria-hidden="true" />
                   </div>
 
                   <div className="history-filter-row" role="group" aria-label="Filter case history">
@@ -1057,8 +955,139 @@ function CaseReviewContent() {
                     </p>
                   )}
                 </section>
-              </div>
+  );
+  const evidenceTabs: EvidenceTab[] = [
+    { id: "photo", label: "Photo", icon: <ImageIcon aria-hidden="true" />, count: report.imageStatus === "available" ? 1 : 0, panel: photoPanel },
+    {
+      id: "aerial",
+      label: "Aerial",
+      icon: <Drone aria-hidden="true" />,
+      count: aerialCount,
+      disabled: report.aerialAnalyses === undefined,
+      panel: report.aerialAnalyses === undefined ? null : aerialOpen ? (
+        <AerialCheckCard key={report.uuid} report={report} />
+      ) : (
+        <CollapsedTool summary="No aerial photo yet" action="Add one" onOpen={() => setAerialOpen(true)} />
+      ),
+    },
+    { id: "boundary", label: "Boundary", icon: <MapIcon aria-hidden="true" />, count: boundaryCount, panel: boundaryPanel },
+    { id: "history", label: "History", icon: <History aria-hidden="true" />, count: visibleHistoryEntries.length, panel: historyPanel },
+  ];
+
+  return (
+    <PageContent>
+      <Link className="back-link" to={queueContext?.returnTo ?? routes.reports}><ArrowLeft aria-hidden="true" />Back to submitted reports</Link>
+      <PageHeader
+        title={report.referenceCode}
+        description={humanLocationFor(report)}
+        actions={<QueueStatusCell row={report} />}
+      />
+      {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
+      {reportQuery.isRefetchError ? (
+        <div className="detail-refresh-warning" role="alert">
+          <span>{detailRefreshMessage}</span>
+          <Button type="button" variant="secondary" onClick={() => reportQuery.refetch()}>
+            Retry report refresh
+          </Button>
+        </div>
+      ) : null}
+      {openCaseMutation.isError ? (
+        <div className="detail-refresh-warning" role="alert">
+          <span>
+            This case is open, but its first-review status was not recorded. Evidence stays readable.
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={openCaseMutation.isPending}
+            onClick={() => {
+              // The stamp is idempotent server-side; retrying never duplicates it.
+              openCaseMutation.reset();
+              openCase();
+            }}
+          >
+            Retry status update
+          </Button>
+        </div>
+      ) : null}
+
+      {/* 1. Case cautions */}
+      <section className="review-status-chips" aria-label="Case cautions">
+        {cautions.length > 0 ? (
+          <>
+            <p className="review-caution-line" title={cautionSummary} role="status">
+              {cautionSummary}
+            </p>
+            <details className="review-caution-guidance">
+              <summary>Review guidance</summary>
+              <ul>
+                {cautions.map(({ label, guidance }) => (
+                  <li key={label}>{guidance}</li>
+                ))}
+              </ul>
             </details>
+          </>
+        ) : null}
+      </section>
+
+      {/* 4. Reading order: photo, Possible Condition, field report, office decision, history */}
+      <div className="review-single-column">
+        <EvidenceTabs label="Case evidence" tabs={evidenceTabs} />
+
+                {report.fieldValidationAssignment?.completion ? (
+                  <section
+                    className="review-card field-validation-evidence-card"
+                    aria-labelledby="field-validation-evidence-heading"
+                  >
+                    <div className="section-heading">
+                      <div>
+                        <span className="summary-tag">Field validation</span>
+                        <h2 id="field-validation-evidence-heading">Completed field validation</h2>
+                      </div>
+                      <ClipboardList aria-hidden="true" />
+                    </div>
+                    <p className="authority-classification-help">
+                      This submitted field evidence is read-only here and does not verify or close the case.
+                    </p>
+                    <div className="field-validation-action-evidence" aria-label="Action Taken evidence">
+                      <p className="field-validation-action-evidence__title">Action Taken evidence</p>
+                      <DetailField label="Action taken">
+                        {report.fieldValidationAssignment.completion.actionTaken}
+                      </DetailField>
+                    </div>
+                    <dl className="detail-list reporter-observation-details">
+                      <DetailField label="Observation">
+                        <ClampedText text={report.fieldValidationAssignment.completion.fieldObservation} />
+                      </DetailField>
+                      <DetailField label="Finding">
+                        <ClampedText text={report.fieldValidationAssignment.completion.fieldFinding} />
+                      </DetailField>
+                      <DetailField label="Follow-up outcome">
+                        {report.fieldValidationAssignment.completion.followUpOutcome
+                          ? followUpOutcomeLabels[report.fieldValidationAssignment.completion.followUpOutcome]
+                          : "Not provided"}
+                      </DetailField>
+                      <DetailField label="Fresh validation photo">
+                        {report.fieldValidationAssignment.completion.freshPhoto?.available
+                        && report.fieldValidationAssignment.completion.freshPhoto.url ? (
+                          <a
+                            className="table-action"
+                            href={report.fieldValidationAssignment.completion.freshPhoto.url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open authorized photo
+                          </a>
+                        ) : "Not provided"}
+                      </DetailField>
+                    </dl>
+                  </section>
+                ) : null}
+
+        <ReviewDecisionForm key={report.uuid} report={report} onRefresh={() => reportQuery.refetch()} />
+
+        <HistoricalReferralPanel report={report} />
+        <OfflineHandoffNotes report={report} />
 
         {/* Q3 = A: the remaining case actions live under one disclosure */}
         <details className="review-card case-history-disclosure">
