@@ -29,7 +29,7 @@ export function AppShell() {
     } else if (path.startsWith("/monitoring")) {
       document.title = "CaneGuard | Field visits";
     } else if (path.startsWith("/dashboard")) {
-      document.title = "CaneGuard | Dashboard";
+      document.title = "CaneGuard | Home";
     } else {
       document.title = "CaneGuard | Municipal Workspace";
     }

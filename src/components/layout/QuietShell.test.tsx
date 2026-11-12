@@ -30,6 +30,14 @@ describe("quiet shell sidebar", () => {
     expect(screen.queryByRole("link", { name: /Monitoring/ })).not.toBeInTheDocument();
   });
 
+  it("marks only Reports current on the printable reports route", () => {
+    auth.role = "reviewer";
+    render(<MemoryRouter initialEntries={["/reports/print"]}><AppSidebar /></MemoryRouter>);
+    const nav = screen.getByRole("navigation", { name: "Workspace" });
+    expect(within(nav).getByRole("link", { name: "Cases" })).toHaveAttribute("aria-current", "false");
+    expect(within(nav).getByRole("link", { name: "Reports" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("keeps administration links for admins only", () => {
     auth.role = "admin";
     render(<MemoryRouter><AppSidebar /></MemoryRouter>);

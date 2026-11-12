@@ -38,7 +38,7 @@ function SidebarLink({
   return (
     <NavLink
       className={({ isActive }) => `sidebar-link${(active ?? isActive) ? " is-active" : ""}`}
-      aria-current={active === undefined ? undefined : active ? "page" : undefined}
+      aria-current={active === undefined ? undefined : active ? "page" : "false"}
       to={to}
       onClick={onNavigate}
     >
