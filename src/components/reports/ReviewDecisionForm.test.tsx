@@ -433,6 +433,7 @@ describe("Progressive review resilience", () => {
     expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Target visit date (optional)")).not.toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(save.mock.calls[1][0]).not.toHaveProperty("fieldValidationAssigneeUuid");
@@ -505,6 +506,8 @@ describe("Progressive review resilience", () => {
     const notesRow = within(table).getByRole("row", { name: /Review notes/i });
     await user.click(within(notesRow).getByRole("radio", { name: "Mine" }));
     await user.click(screen.getByRole("button", { name: "Apply these choices" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     expect(screen.getByRole("region", { name: "Review Summary" })).toHaveTextContent(/Assigned Inspector/);
     expect(screen.getByRole("region", { name: "Review Summary" })).toHaveTextContent(/2026-12-01/);
 
@@ -618,6 +621,8 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Apply these choices" }));
     expect(screen.getByRole("region", { name: "Review Summary" })).toHaveTextContent(/not determined/i);
 
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     const secondTable = await screen.findByRole("table", { name: "Fields that changed on the server" });
     expect(within(secondTable).queryByRole("row", { name: /Verification Outcome/i })).not.toBeInTheDocument();
@@ -707,8 +712,6 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
 
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    await user.click(screen.getByRole("button", { name: "Back" }));
     await technical(user);
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));

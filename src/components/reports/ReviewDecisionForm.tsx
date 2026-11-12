@@ -40,7 +40,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   report: DiseaseReport;
   onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }> | void;
 }) {
-  const lifecycle = report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus);
+  const [reconciledReport, setReconciledReport] = useState<DiseaseReport | null>(null);
+  const effectiveReport = reconciledReport ?? report;
+  const lifecycle = effectiveReport.lifecycle ?? legacyLifecycleForReviewStatus(effectiveReport.reviewStatus);
   const mutation = useUpdateReportReview(report.uuid);
   const advisories = useAdvisories();
   const inspectors = useFieldReporters();
@@ -112,11 +114,11 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const validated = (advisories.data ?? []).filter((item) => item.status === "validated");
   const selectedAdvisory = validated.find((item) => item.uuid === advisoryUuid);
   const selectedInspector = (inspectors.data ?? []).find((item) => item.uuid === inspectorUuid)
-    ?? report.fieldValidationAssignment?.assignee;
+    ?? effectiveReport.fieldValidationAssignment?.assignee;
   const assignmentReadOnly = activeValidation || completedValidation;
-  const effectiveInspectorUuid = assignmentReadOnly ? report.fieldValidationAssignment?.assignee.uuid ?? "" : inspectorUuid;
-  const effectiveTargetDate = assignmentReadOnly ? report.fieldValidationAssignment?.targetVisitDate ?? "" : targetDate;
-  const displayedInspector = activeValidation ? report.fieldValidationAssignment?.assignee.name : selectedInspector?.name;
+  const effectiveInspectorUuid = assignmentReadOnly ? effectiveReport.fieldValidationAssignment?.assignee.uuid ?? "" : inspectorUuid;
+  const effectiveTargetDate = assignmentReadOnly ? effectiveReport.fieldValidationAssignment?.targetVisitDate ?? "" : targetDate;
+  const displayedInspector = activeValidation ? effectiveReport.fieldValidationAssignment?.assignee.name : selectedInspector?.name;
   const displayedTargetDate = effectiveTargetDate;
   const notesErrors = [
     notes.length > 1000 ? "Review notes must be 1,000 characters or fewer." : null,
@@ -301,6 +303,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const applyConflictChoices = (choices: ConflictChoices) => {
     if (!conflictLatest) return;
     const saved = savedReviewSnapshot(conflictLatest);
+    setReconciledReport(conflictLatest);
     const mine = draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid: effectiveInspectorUuid, targetDate: effectiveTargetDate });
     const resolved = Object.fromEntries(
       conflictFields.map((field) => [field, choices[field] === "latest" ? saved[field] : mine[field]]),
@@ -384,7 +387,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         <legend className="sr-only">Action details and notes</legend>
         {fieldSelected ? <div className="review-subform">
           {completedValidation ? <p role="status">Field validation is already complete; no new visit will be assigned.</p> : <p role="status">The case stays open until the visit is done.</p>}
-          {activeValidation ? <p>Field validation active — assigned to {report.fieldValidationAssignment?.assignee.name}. Active assignments and submitted field-validation evidence are not reassigned here.</p> : completedValidation ? null : <>
+          {activeValidation ? <p>Field validation active — assigned to {effectiveReport.fieldValidationAssignment?.assignee.name}. Active assignments and submitted field-validation evidence are not reassigned here.</p> : completedValidation ? null : <>
             <SelectFilter label="Field Inspector assignee" value={inspectorUuid} aria-invalid={showsError("inspector")}
               aria-describedby={showsError("inspector") ? "review-error-inspector" : undefined}
               onChange={(event) => { setInspectorUuid(event.target.value); changed(); }}>
