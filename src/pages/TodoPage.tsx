@@ -28,7 +28,7 @@ function isRateLimitedError(error: unknown) {
   return error instanceof ApiError && error.status === 429;
 }
 
-type QueueRead = ReturnType<typeof useReportsQueue>;
+type QueueRead = Pick<ReturnType<typeof useReportsQueue>, "data" | "isError">;
 
 /** Loading, unavailable and a genuine zero are three different answers. */
 function countValue(read: QueueRead, value: number): number | string {
