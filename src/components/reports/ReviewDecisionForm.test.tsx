@@ -130,7 +130,7 @@ describe("Progressive review resilience", () => {
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("textbox")).toHaveValue("Delivered practical field assistance.");
-    expect(screen.getByLabelText("What you found")).toHaveValue("rust");
+    expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("rust");
     expect(screen.getByRole("radio", { name: "Technical Assistance" })).toBeChecked();
     expect(screen.queryByText(/Review confirmed/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review decision" }));

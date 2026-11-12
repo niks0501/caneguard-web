@@ -228,7 +228,7 @@ describe("Report Evidence Review protected contract", () => {
     expect(screen.queryByText(/Staff-Classified Condition.*required/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
 
-    expect(await screen.findByText(/What you found.*required/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Staff-Classified Condition.*required/i)).toBeInTheDocument();
     expect(reviewPayloads).toHaveLength(0);
   });
 

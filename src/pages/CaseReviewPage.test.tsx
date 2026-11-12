@@ -505,7 +505,7 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText(/Dark whip-like growths/)).toBeInTheDocument();
     await chooseAdvisory(user);
     expect(screen.getByText(/Human finding; independent of the AI Possible Condition/)).toBeInTheDocument();
-    expect(screen.getByLabelText("What you found")).toHaveValue("");
+    expect(screen.getByLabelText("Staff-Classified Condition")).toHaveValue("");
     expect(screen.getByText("Sugarcane Smut")).toBeInTheDocument();
     expect(screen.getByText("Observed at")).toBeInTheDocument();
     expect(screen.getByText("Submitted at")).toBeInTheDocument();
@@ -773,7 +773,7 @@ describe("CaseReviewPage", () => {
     expect(within(screen.getByRole("region", { name: "Possible Condition" })).getByText("Smut")).toBeVisible();
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
     await user.type(within(modal).getByLabelText(/^Review notes/), "Authority confirmed Smut.");
     await user.click(within(modal).getByRole("button", { name: "Review decision" }));
     await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
@@ -789,7 +789,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await chooseAdvisory(user);
-    const select = screen.getByLabelText("What you found");
+    const select = screen.getByLabelText("Staff-Classified Condition");
     expect(within(select).getAllByRole("option").map((option) => option.getAttribute("value"))).toEqual([
       "",
       "healthy",
@@ -826,7 +826,7 @@ describe("CaseReviewPage", () => {
 
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    const select = within(modal).getByLabelText("What you found");
+    const select = within(modal).getByLabelText("Staff-Classified Condition");
     expect(select).toHaveValue("downy_mildew");
     expect(
       within(select).getByRole("option", {
@@ -1224,7 +1224,7 @@ describe("CaseReviewPage", () => {
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(
-      within(modal).getByLabelText("What you found"),
+      within(modal).getByLabelText("Staff-Classified Condition"),
       "smut",
     );
     await user.type(
@@ -1508,7 +1508,7 @@ describe("CaseReviewPage", () => {
     // The summary tracks each pending choice before confirmation.
     await user.click(screen.getByRole("button", { name: "Back" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.selectOptions(within(modal).getByLabelText("What you found"), "smut");
+    await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
     await user.selectOptions(within(modal).getByLabelText("Verification Outcome"), "verified");
     await user.type(within(modal).getByLabelText(/^Review notes/), "Leaf samples collected.");
     await user.click(screen.getByRole("button", { name: "Review decision" }));
