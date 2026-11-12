@@ -107,7 +107,7 @@ describe("map surface contract (SURFACE)", () => {
     );
 
     const row = screen.getByRole("row", { name: /CG-2026-0718/i });
-    expect(within(row).getByText("Field Validation", { exact: true })).toBeInTheDocument();
+    expect(within(row).getByText("Field visit assigned", { exact: true })).toBeInTheDocument();
     expect(within(row).queryByText("Needs field validation", { exact: true })).not.toBeInTheDocument();
   });
 

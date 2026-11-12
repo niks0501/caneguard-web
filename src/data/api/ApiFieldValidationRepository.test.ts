@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { createAxiosClient } from "../../api/axiosClient";
 import { server } from "../../test/server";
+import { deriveWorkflowTrackReached } from "../../domain/workflowStatus";
 import { ApiFieldValidationRepository } from "./ApiFieldValidationRepository";
 
 const baseUrl = "https://api.caneguard.test";
@@ -22,7 +23,8 @@ const mapDto = {
         submitted_at: "2026-08-13T11:00:00.000Z",
         predicted_label: "rust",
         confidence: 0.84,
-        review_status: "for_field_validation",
+        review_status: "submitted_unverified",
+        field_validation_completed: true,
         location_source: "gps",
         gps_accuracy: 8.5,
         affected_area_hectares: 2.5,
@@ -97,6 +99,7 @@ describe("ApiFieldValidationRepository", () => {
       14.126,
     ]);
     expect(result.features[0].properties.predictedDisease).toBe("rust");
+    expect(deriveWorkflowTrackReached(result.features[0].properties)).toBe(2);
     expect(result.metadata.unlocatedCount).toBe(1);
   });
 

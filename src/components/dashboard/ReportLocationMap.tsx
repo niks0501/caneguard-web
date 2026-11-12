@@ -11,7 +11,7 @@ import type { MapLayerMouseEvent } from "react-map-gl/maplibre";
 import { routes } from "../../app/routes";
 import { locationGroupKey, locationGroupMembers } from "../fieldValidation/locationGroups";
 import { formatValidationDate } from "../fieldValidation/fieldValidation.format";
-import { reviewStatusLabels } from "../../domain/report.metadata";
+import { QueueStatusCell } from "../reports/QueueRowCells";
 import { env } from "../../config/env";
 import type { BarangayValidationRow } from "../../domain/dashboard.types";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
@@ -409,7 +409,7 @@ export function ReportLocationMap({
                           {selectedReports.map(({ properties }) => (
                             <li key={properties.uuid}>
                               <Link className="decision-map__popup-link" to={routes.reportDetail(properties.uuid)} aria-label={`Open ${properties.referenceCode}`}>{properties.referenceCode}</Link>
-                              <span>{reviewStatusLabels[properties.reviewStatus]}</span>
+                              <QueueStatusCell row={properties} />
                               <time>{formatValidationDate(properties.observedAt)}</time>
                             </li>
                           ))}
@@ -445,7 +445,7 @@ export function ReportLocationMap({
               {gps.data.features.map(({ properties }) => (
                 <li key={properties.uuid}>
                   <Link to={routes.reportDetail(properties.uuid)}>{properties.referenceCode}</Link>
-                  <span>{reviewStatusLabels[properties.reviewStatus]}</span>
+                  <QueueStatusCell row={properties} />
                   <time>{formatValidationDate(properties.observedAt)}</time>
                 </li>
               ))}

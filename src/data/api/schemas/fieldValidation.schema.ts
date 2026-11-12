@@ -68,6 +68,7 @@ export const mapFeaturePropertiesSchema = z.object({
   confidence: z.number().min(0).max(1).nullable(),
   review_status: reviewStatusSchema,
   lifecycle: reportLifecycleSchema.optional(),
+  field_validation_completed: z.boolean().optional(),
   authority_classified_condition: authorityClassifiedConditionSchema.nullable().optional(),
   action_taken: actionTakenSchema.nullable().optional(),
   mismatch_reported: z.boolean().nullable().optional(),

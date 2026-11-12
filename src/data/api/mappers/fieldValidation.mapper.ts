@@ -66,6 +66,7 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
         feature.properties.lifecycle,
         feature.properties.review_status,
       ),
+      fieldValidationCompleted: feature.properties.field_validation_completed ?? false,
       authorityClassifiedCondition:
         feature.properties.authority_classified_condition ?? null,
       actionTaken: feature.properties.action_taken ?? null,

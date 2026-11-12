@@ -86,6 +86,6 @@ describe("needs decision banner", () => {
     Element.prototype.scrollIntoView = vi.fn();
     await userEvent.click(screen.getByRole("button", { name: "Go to decision" }));
     expect(document.getElementById("decision")).toHaveFocus();
-    expect(screen.getByText("Needs decision")).toBeInTheDocument();
+    expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
   });
 });

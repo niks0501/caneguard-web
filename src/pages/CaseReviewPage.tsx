@@ -486,11 +486,19 @@ function CaseReviewContent() {
 
   const latestHistoryDate = mergedHistory[0]?.timestamp;
   const caseHistoryAvailable = report?.caseHistory?.available ?? true;
-  const cautionLinks = [
-    report && locationNeedsConfirmationFor(report) ? { id: "caution-location", label: "Location unconfirmed" } : null,
-    report && photoDifficultFor(report) ? { id: "caution-photo", label: "Photo hard to review" } : null,
-    report && observationsMismatchFor(report) ? { id: "caution-mismatch", label: "Observations differ from result" } : null,
-  ].filter((entry): entry is { id: string; label: string } => entry !== null);
+  const cautions = [
+    report && locationNeedsConfirmationFor(report)
+      ? { label: "Location unconfirmed", guidance: "Confirm the location with the field contact before relying on it." }
+      : null,
+    report && photoDifficultFor(report)
+      ? { label: "Photo hard to review", guidance: "Weigh the written observations more heavily." }
+      : null,
+    report && observationsMismatchFor(report)
+      ? { label: "Observations differ from result", guidance: "Compare the photo and field observations carefully before deciding." }
+      : null,
+  ].filter((caution): caution is { label: string; guidance: string } => caution !== null);
+  const cautionLabels = cautions.map(({ label }) => label);
+  const cautionSummary = `${cautionLabels.length === 1 ? "Caution" : "Cautions"}: ${cautionLabels.join(" · ")}`;
   const caseHistorySummary = !caseHistoryAvailable
     ? "History unavailable for this older record"
     : mergedHistory.length === 0
@@ -767,34 +775,22 @@ function CaseReviewContent() {
         </div>
       ) : null}
 
-      {/* 1. Case status with plain-language attention notices */}
-      <section className="review-status-chips" aria-label="Case status">
-        <div className="status-chip-row"><strong>{lifecycle?.caseState === "closed" ? "Closed" : "Open"}</strong></div>
-        {cautionLinks.length > 0 ? (
-          <p className="review-caution-line">
-            <span>{cautionLinks.length === 1 ? "Caution:" : "Cautions:"}</span>{" "}
-            {cautionLinks.map(({ id, label }, index) => (
-              <span key={id}>{index > 0 ? " · " : null}<a href={`#${id}`}>{label}</a></span>
-            ))}
-          </p>
-        ) : null}
-        {locationNeedsConfirmationFor(report) ? (
-          <p id="caution-location" className="review-state-summary" role="status">
-            <strong>Location needs confirmation</strong>
-            <span>The submitted location could not be confirmed. Confirm it with the field contact before relying on it.</span>
-          </p>
-        ) : null}
-        {photoDifficultFor(report) ? (
-          <p id="caution-photo" className="review-state-summary" role="status">
-            <strong>Photo may be difficult to review</strong>
-            <span>The submitted photo has quality concerns. Weigh the written observations more heavily.</span>
-          </p>
-        ) : null}
-        {observationsMismatchFor(report) ? (
-          <p id="caution-mismatch" className="review-state-summary" role="status">
-            <strong>The submitted observations do not fully match the Possible Condition</strong>
-            <span>Compare the photo and field observations carefully before deciding.</span>
-          </p>
+      {/* 1. Case cautions */}
+      <section className="review-status-chips" aria-label="Case cautions">
+        {cautions.length > 0 ? (
+          <>
+            <p className="review-caution-line" title={cautionSummary} role="status">
+              {cautionSummary}
+            </p>
+            <details className="review-caution-guidance">
+              <summary>Review guidance</summary>
+              <ul>
+                {cautions.map(({ label, guidance }) => (
+                  <li key={label}>{guidance}</li>
+                ))}
+              </ul>
+            </details>
+          </>
         ) : null}
       </section>
 

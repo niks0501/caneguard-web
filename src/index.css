@@ -8982,24 +8982,34 @@ button.monitoring-calendar__day-number:focus-visible {
 
 .map-sidebar__queue-entry {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-3);
-  text-align: left;
   color: var(--color-text);
   background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.map-sidebar__queue-entry-select {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
   cursor: pointer;
 }
 
 .map-sidebar__queue-entry:hover,
-.map-sidebar__queue-entry:focus-visible {
+.map-sidebar__queue-entry:focus-within {
   border-color: var(--color-primary-fill);
 }
 
-.map-sidebar__queue-entry span,
-.map-sidebar__queue-entry time {
+.map-sidebar__queue-entry-select span,
+.map-sidebar__queue-entry-select time {
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
 }
@@ -9611,10 +9621,6 @@ button.monitoring-calendar__day-number:focus-visible {
   border-bottom: 1px solid var(--color-border);
 }
 
-.needs-decision-banner strong {
-  color: var(--color-warning);
-}
-
 .back-to-top {
   position: fixed;
   right: 20px;
@@ -9647,16 +9653,26 @@ button.monitoring-calendar__day-number:focus-visible {
 /* QF-7 case review: evidence left, decision pinned right from 1,100px. */
 .review-caution-line {
   margin: 8px 0 0;
+  overflow: hidden;
   color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.review-caution-line a {
-  color: inherit;
-  text-decoration: underline;
+.review-caution-guidance {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: var(--text-body-sm);
 }
 
-.review-status-chips > .review-state-summary {
-  scroll-margin-top: calc(72px + var(--space-4));
+.review-caution-guidance summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.review-caution-guidance ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
 }
 
 @media (min-width: 1100px) {
@@ -9765,13 +9781,73 @@ button.monitoring-calendar__day-number:focus-visible {
   background: var(--color-surface-muted);
 }
 
-.workflow-status-badge,
 .report-table .disease-badge {
   padding: 0;
   color: var(--color-text);
   background: none;
   border: 0;
   border-radius: 0;
+}
+
+/* UX-04: one coloured status chip in plain words plus a four-step track. */
+.workflow-status {
+  display: inline-flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.workflow-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-weight: 700;
+  color: var(--color-warning);
+  background-color: var(--color-warning-soft);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--color-warning);
+  border-radius: var(--radius-pill);
+}
+
+.workflow-status-badge--field_validation,
+.workflow-status-badge--referred,
+.workflow-status-badge--follow_up {
+  color: var(--color-primary-text);
+  background-color: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.workflow-status-badge--resolved {
+  color: var(--color-success);
+  background-color: var(--color-success-soft);
+  border-color: var(--color-success);
+}
+
+.workflow-track {
+  display: inline-flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-muted);
+  list-style: none;
+}
+
+.workflow-track__separator {
+  margin-right: 4px;
+}
+
+.workflow-track__step.is-reached {
+  color: var(--color-text);
+}
+
+.workflow-track__step.is-current {
+  font-weight: 700;
 }
 
 .report-table .disease-badge > span {

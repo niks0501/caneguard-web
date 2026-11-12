@@ -4,13 +4,17 @@ import { authorityClassifiedConditionLabels } from "../../domain/report.metadata
 import type {
   AuthorityClassifiedCondition,
   DiseaseKey,
+  LatestValidationSummary,
   MeasurementProvenance,
   ReportLifecycle,
   ReportMachineFacts,
 } from "../../domain/report.types";
 import {
   deriveWorkflowStatus,
-  workflowStatusLabels,
+  deriveWorkflowStatusChipLabel,
+  deriveWorkflowTrackReached,
+  workflowTrackSteps,
+  type WorkflowStatusInput,
 } from "../../domain/workflowStatus";
 import { formatAffectedArea } from "../../lib/formatters";
 import { DiseaseBadge } from "./ReportBadges";
@@ -37,8 +41,10 @@ export interface QueueRowView {
   affectedAreaHectares?: number | null;
   affectedAreaMeasurement?: MeasurementProvenance | null;
   lifecycle?: ReportLifecycle;
+  fieldValidationCompleted?: boolean;
   firstReviewedAt?: string | null;
   scheduledRevisit?: boolean | null;
+  latestValidation?: LatestValidationSummary | null;
 }
 
 /**
@@ -125,14 +131,34 @@ export function QueueAffectedAreaCell({ row }: { row: QueueRowView }) {
   );
 }
 
-export function QueueStatusCell({ row }: { row: QueueRowView }) {
+/** One coloured chip in plain words plus the four-step track, shown once. */
+export function QueueStatusCell({ row }: { row: WorkflowStatusInput }) {
   const status = deriveWorkflowStatus(row);
+  const chipLabel = deriveWorkflowStatusChipLabel(row, status);
+  const reached = deriveWorkflowTrackReached(row, status);
 
   return (
-    <span
-      className={`badge status-badge workflow-status-badge workflow-status-badge--${status}`}
-    >
-      <span className="status-badge__label">{workflowStatusLabels[status]}</span>
+    <span className="workflow-status">
+      <span
+        className={`badge status-badge workflow-status-badge workflow-status-badge--${status}`}
+      >
+        <span className="status-badge__label">{chipLabel}</span>
+      </span>
+      <ol className="workflow-track" aria-label="Case progress">
+        {workflowTrackSteps.map((step, index) => (
+          <li
+            key={step}
+            aria-current={index === reached ? "step" : undefined}
+            className={`workflow-track__step${index <= reached ? " is-reached" : ""}${index === reached ? " is-current" : ""}`}
+          >
+            {index > 0 ? <span className="workflow-track__separator" aria-hidden="true">→</span> : null}
+            {step}
+            <span className="sr-only">
+              {index < reached ? " completed" : index === reached ? " current" : " not reached"}
+            </span>
+          </li>
+        ))}
+      </ol>
     </span>
   );
 }

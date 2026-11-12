@@ -89,15 +89,6 @@ function renderTable(reports: DiseaseReport[]) {
   );
 }
 
-const SIX_LABELS = [
-  "Needs Review",
-  "Under Review",
-  "Field Validation",
-  "Referred",
-  "Follow-Up",
-  "Resolved",
-] as const;
-
 function queueHeaderLabels() {
   return screen
     .getAllByRole("columnheader")
@@ -218,19 +209,18 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
     // (the workflow state) must be present.
     expect(within(row).queryByText("Needs review", { exact: true })).not.toBeInTheDocument();
 
-    const rendered = SIX_LABELS.filter((label) =>
-      within(row).queryByText(label, { exact: true }) !== null,
-    );
-    expect(rendered).toEqual(["Needs Review"]);
+    const statusChip = row.querySelector(".workflow-status-badge");
+    expect(statusChip?.textContent).toBe("Waiting for your decision");
+    expect(row.querySelectorAll(".workflow-status-badge")).toHaveLength(1);
   });
 
   it.each([
     ["closed + verified", { caseState: "closed", verificationOutcome: "verified" }, "Resolved"],
     ["closed + undetermined", { caseState: "closed" }, "Resolved"],
-    ["validation assigned", { fieldValidationState: "assigned" }, "Field Validation"],
-    ["validation in progress", { fieldValidationState: "in_progress" }, "Field Validation"],
-    ["referred", { referralState: "referred" }, "Referred"],
-    ["expert response received", { referralState: "expert_response_received" }, "Referred"],
+    ["validation assigned", { fieldValidationState: "assigned" }, "Field visit assigned"],
+    ["validation in progress", { fieldValidationState: "in_progress" }, "Field visit under way"],
+    ["referred", { referralState: "referred" }, "Referred to expert"],
+    ["expert response received", { referralState: "expert_response_received" }, "Referred to expert"],
   ] as const)(
     "STATUS: %s maps to %s",
     (_name, lifecycleOverride, expectedLabel) => {
@@ -241,21 +231,37 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       ]);
 
       expect(
-        within(rowFor("CG-2026-0001")).getByText(expectedLabel, { exact: true }),
-      ).toBeInTheDocument();
+        rowFor("CG-2026-0001").querySelector(".workflow-status-badge")?.textContent,
+      ).toBe(expectedLabel);
     },
   );
 
   it("STATUS: an untouched open case is Needs Review", () => {
     renderTable([report()]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Needs Review", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Waiting for your decision", { exact: true })).toBeInTheDocument();
+  });
+
+  it("STATUS: legacy latest-validation evidence reaches Field check", () => {
+    renderTable([report({
+      lifecycle: undefined,
+      latestValidation: {
+        visitedAt: "2026-07-20T09:16:00+08:00",
+        fieldObservation: "Wilting leaves",
+        finding: "Needs follow-up",
+        actionTaken: "Recorded observations",
+      },
+    })]);
+
+    const track = within(rowFor("CG-2026-0001")).getByRole("list", { name: "Case progress" });
+    const currentStep = track.querySelector('[aria-current="step"]');
+    expect(currentStep?.textContent).toContain("Field check");
   });
 
   it("STATUS: a first-reviewed open case is Under Review", () => {
     renderTable([report({ firstReviewedAt: "2026-07-21T02:00:00.000Z" })]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Under Review", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Being reviewed", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: the scheduled-revisit flag makes a completed validation Follow-Up", () => {
@@ -266,7 +272,16 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Follow-Up", { exact: true })).toBeInTheDocument();
+    const row = rowFor("CG-2026-0001");
+    expect(within(row).getByText("Follow-up planned", { exact: true })).toBeInTheDocument();
+    const track = within(row).getByRole("list", { name: "Case progress" });
+    const steps = [...track.querySelectorAll("li")];
+    expect(steps).toHaveLength(4);
+    expect(steps[0].textContent).toContain("Reported");
+    expect(steps[1].textContent).toContain("Reviewed");
+    expect(steps[2].textContent).toContain("Field check");
+    expect(steps[2]).toHaveAttribute("aria-current", "step");
+    expect(steps[3].textContent).toContain("Resolved");
   });
 
   it("STATUS: a due date without the flag is not Follow-Up (flag-driven ruling)", () => {
@@ -278,8 +293,8 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).queryByText("Follow-Up", { exact: true })).not.toBeInTheDocument();
-    expect(within(rowFor("CG-2026-0001")).getByText("Needs Review", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).queryByText("Follow-up planned", { exact: true })).not.toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Waiting for your decision", { exact: true })).toBeInTheDocument();
   });
 
   // Q7 precedence: Resolved > Field Validation > Referred > Follow-Up >
@@ -298,7 +313,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Resolved", { exact: true })).toBeInTheDocument();
+    expect(rowFor("CG-2026-0001").querySelector(".workflow-status-badge")?.textContent).toBe("Resolved");
   });
 
   it("STATUS: Field Validation outranks Referred", () => {
@@ -314,7 +329,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Field Validation", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Field visit assigned", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: Referred outranks Follow-Up", () => {
@@ -330,7 +345,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Referred", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Referred to expert", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: Follow-Up outranks Under Review", () => {
@@ -342,13 +357,13 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Follow-Up", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Follow-up planned", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: Under Review outranks Needs Review", () => {
     renderTable([report({ firstReviewedAt: "2026-07-21T02:00:00.000Z" })]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Under Review", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Being reviewed", { exact: true })).toBeInTheDocument();
   });
 });
 

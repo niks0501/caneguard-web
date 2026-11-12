@@ -109,21 +109,37 @@ function renderDeviceTable() {
 }
 
 describe("silent queue stylesheet", () => {
-  it("draws the workflow status as plain ink instead of a hued pill", () => {
+  it("draws the workflow status as a coloured pill", () => {
     applySheet(STYLE_ID, indexCss);
     renderQueue([report()]);
 
     const status = screen
-      .getByRole("cell", { name: "Needs Review" })
+      .getByRole("table")
       .querySelector(".workflow-status-badge") as HTMLElement;
     expect(status).not.toBeNull();
 
     const style = getComputedStyle(status);
-    expect(style.padding).toBe("0px");
-    expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    expect(style.borderTopWidth).toBe("0px");
-    expect(style.borderRadius).toBe("0px");
-    expect(style.color).toBe("var(--color-text)");
+    expect(style.color).toBe("var(--color-warning)");
+    expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(style.borderTopWidth).toBe("1px");
+
+    const track = screen.getByRole("table").querySelector(".workflow-track") as HTMLElement;
+    expect(getComputedStyle(track).flexWrap).toBe("wrap");
+    expect(getComputedStyle(track.parentElement as HTMLElement).maxWidth).toBe("100%");
+  });
+
+  it("keeps the caution summary to one ellipsized line", () => {
+    applySheet(STYLE_ID, indexCss);
+    const line = document.createElement("p");
+    line.className = "review-caution-line";
+    line.textContent = "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result";
+    document.body.appendChild(line);
+
+    const style = getComputedStyle(line);
+    expect(style.whiteSpace).toBe("nowrap");
+    expect(style.overflow).toBe("hidden");
+    expect(style.textOverflow).toBe("ellipsis");
+    line.remove();
   });
 
   it("flattens the condition badge and hides its coloured dot", () => {

@@ -2,17 +2,12 @@ import { Link } from "react-router";
 import { ArrowLeft, X } from "lucide-react";
 import { routes } from "../../app/routes";
 import type { FieldValidationMapFeature } from "../../domain/fieldValidation.types";
-import { fieldValidationStateLabels, predictedDiseaseLabel, reviewStatusLabels } from "../../domain/report.metadata";
+import { predictedDiseaseLabel } from "../../domain/report.metadata";
+import { QueueStatusCell } from "../reports/QueueRowCells";
 import { formatValidationDate } from "./fieldValidation.format";
 
 function conditionLabel(feature: FieldValidationMapFeature) {
   return predictedDiseaseLabel(feature.properties.predictedDisease).replace(/^Possible Condition: /, "");
-}
-
-function statusLabel(feature: FieldValidationMapFeature) {
-  const state = feature.properties.lifecycle?.fieldValidationState;
-  if (state && state !== "unassigned") return fieldValidationStateLabels[state];
-  return reviewStatusLabels[feature.properties.reviewStatus];
 }
 
 function SidebarFrame({
@@ -71,7 +66,7 @@ export function CaseDetailsPanel({
         </div>
         <div><dt>Possible Condition</dt><dd>{conditionLabel(feature)}</dd></div>
         <div><dt>Date Observed</dt><dd>{formatValidationDate(properties.observedAt)}</dd></div>
-        <div><dt>Case Status</dt><dd>{statusLabel(feature)}</dd></div>
+        <div><dt>Case Status</dt><dd><QueueStatusCell row={properties} /></dd></div>
       </dl>
       <p className="map-sidebar__note">
         Possible Condition is decision support, not a confirmed diagnosis.
@@ -111,13 +106,15 @@ export function ClusterQueuePanel({
       <ul className="map-sidebar__queue">
         {members.map((feature) => (
           <li key={feature.properties.uuid}>
-            <button type="button" className="map-sidebar__queue-entry" onClick={() => onSelectCase(feature)}>
-              <strong>{feature.properties.referenceCode}</strong>
-              <span>{feature.properties.barangay}</span>
-              <span>{conditionLabel(feature)}</span>
-              <span>{statusLabel(feature)}</span>
-              <time>{formatValidationDate(feature.properties.observedAt)}</time>
-            </button>
+            <div className="map-sidebar__queue-entry">
+              <button type="button" className="map-sidebar__queue-entry-select" onClick={() => onSelectCase(feature)}>
+                <strong>{feature.properties.referenceCode}</strong>
+                <span>{feature.properties.barangay}</span>
+                <span>{conditionLabel(feature)}</span>
+                <time>{formatValidationDate(feature.properties.observedAt)}</time>
+              </button>
+              <QueueStatusCell row={feature.properties} />
+            </div>
           </li>
         ))}
       </ul>

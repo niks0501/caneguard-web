@@ -1,4 +1,4 @@
-import type { ReportLifecycle } from "./report.types";
+import type { LatestValidationSummary, ReportLifecycle } from "./report.types";
 
 /**
  * The one reviewer-facing workflow status. Every case surface renders exactly
@@ -28,10 +28,65 @@ export const workflowStatusLabels: Record<WorkflowStatus, string> = {
   resolved: "Resolved",
 };
 
+/** Plain-words chip text for the same six values; filters keep the labels above. */
+export const workflowStatusChipLabels: Record<WorkflowStatus, string> = {
+  needs_review: "Waiting for your decision",
+  under_review: "Being reviewed",
+  field_validation: "Field visit assigned",
+  referred: "Referred to expert",
+  follow_up: "Follow-up planned",
+  resolved: "Resolved",
+};
+
+export const workflowTrackSteps = [
+  "Reported",
+  "Reviewed",
+  "Field check",
+  "Resolved",
+] as const;
+
+/** Index of the furthest track step each status has reached. */
+export const workflowTrackReached: Record<WorkflowStatus, number> = {
+  needs_review: 0,
+  under_review: 1,
+  referred: 1,
+  follow_up: 1,
+  field_validation: 2,
+  resolved: 3,
+};
+
 export interface WorkflowStatusInput {
   lifecycle?: ReportLifecycle;
   firstReviewedAt?: string | null;
   scheduledRevisit?: boolean | null;
+  latestValidation?: LatestValidationSummary | null;
+  fieldValidationCompleted?: boolean;
+}
+
+export function deriveWorkflowTrackReached(
+  input: WorkflowStatusInput,
+  status: WorkflowStatus = deriveWorkflowStatus(input),
+): number {
+  const statusMilestone = workflowTrackReached[status];
+
+  return (
+    input.fieldValidationCompleted ||
+    input.lifecycle?.fieldValidationState === "completed" ||
+    input.latestValidation
+  )
+    ? Math.max(statusMilestone, 2)
+    : statusMilestone;
+}
+
+export function deriveWorkflowStatusChipLabel(
+  input: WorkflowStatusInput,
+  status: WorkflowStatus = deriveWorkflowStatus(input),
+): string {
+  if (status === "field_validation" && input.lifecycle?.fieldValidationState === "in_progress") {
+    return "Field visit under way";
+  }
+
+  return workflowStatusChipLabels[status];
 }
 
 export function deriveWorkflowStatus(input: WorkflowStatusInput): WorkflowStatus {

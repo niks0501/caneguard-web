@@ -834,7 +834,7 @@ describe("DashboardPage", () => {
     const conditionPill = within(table).getByText(
       "No supported disease detected",
     );
-    const statusPill = within(table).getByText("Field Validation");
+    const statusPill = within(table).getByText("Field visit assigned");
     expect(conditionPill.closest("td")).toHaveClass(
       "dashboard-report-table__cell-condition",
     );

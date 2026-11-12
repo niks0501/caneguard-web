@@ -227,7 +227,7 @@ describe("ReportTable - one workflow status", () => {
   it("shows Needs Review for an untouched open case", () => {
     renderTable([report()]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Needs Review")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Waiting for your decision")).toBeInTheDocument();
     expect(within(rowFor("CG-2026-0001")).queryByText("Needs review")).not.toBeInTheDocument();
   });
 
@@ -236,7 +236,7 @@ describe("ReportTable - one workflow status", () => {
       report({ lifecycle: { ...openUntouched, fieldValidationState: "assigned" } }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Field Validation")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Field visit assigned")).toBeInTheDocument();
   });
 
   it("shows Resolved for a closed case", () => {
@@ -244,7 +244,9 @@ describe("ReportTable - one workflow status", () => {
       report({ lifecycle: { ...openUntouched, caseState: "closed" } }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Resolved")).toBeInTheDocument();
+    expect(
+      rowFor("CG-2026-0001").querySelector(".workflow-status-badge .status-badge__label")?.textContent,
+    ).toBe("Resolved");
   });
 
   it("shows Follow-Up only when the scheduled-revisit flag is set", () => {
@@ -255,7 +257,7 @@ describe("ReportTable - one workflow status", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Follow-Up")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Follow-up planned")).toBeInTheDocument();
     unmount();
 
     renderTable([
@@ -265,13 +267,13 @@ describe("ReportTable - one workflow status", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).queryByText("Follow-Up")).not.toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).queryByText("Follow-up planned")).not.toBeInTheDocument();
   });
 
   it("shows Under Review once a case has been opened", () => {
     renderTable([report({ firstReviewedAt: "2026-07-21T02:00:00.000Z" })]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Under Review")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Being reviewed")).toBeInTheDocument();
   });
 });
 

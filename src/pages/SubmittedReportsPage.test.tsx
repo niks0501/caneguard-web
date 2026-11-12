@@ -149,7 +149,7 @@ describe("SubmittedReportsPage", () => {
     expect(screen.getByText("Reporter concern needs review")).toBeInTheDocument();
     expect(screen.queryByText(/Machine facts|GPS ±|Image quality:|Signature:|Attention band/i)).not.toBeInTheDocument();
     expect(screen.getAllByText("Smut").length).toBeGreaterThanOrEqual(1);
-    const statusCell = screen.getByRole("cell", { name: "Field Validation" });
+    const statusCell = screen.getByRole("cell", { name: /Field visit assigned/ });
     const longStatusLabel = statusCell.querySelector(".status-badge__label");
     expect(longStatusLabel).toHaveClass("status-badge__label");
     expect(longStatusLabel?.parentElement).toHaveClass("status-badge");

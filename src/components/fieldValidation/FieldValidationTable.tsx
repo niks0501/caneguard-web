@@ -43,6 +43,7 @@ function toQueueRow(feature: FieldValidationMapFeature): QueueRowView {
     affectedAreaHectares: properties.affectedAreaHectares,
     affectedAreaMeasurement: properties.affectedAreaMeasurement,
     lifecycle: properties.lifecycle,
+    fieldValidationCompleted: properties.fieldValidationCompleted,
     firstReviewedAt: properties.firstReviewedAt,
     scheduledRevisit: properties.scheduledRevisit,
   };

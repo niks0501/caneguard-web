@@ -47,6 +47,7 @@ export interface FieldValidationMapProperties {
   confidence: number | null;
   reviewStatus: ReviewStatus;
   lifecycle?: ReportLifecycle;
+  fieldValidationCompleted?: boolean;
   authorityClassifiedCondition?: AuthorityClassifiedCondition | null;
   actionTaken?: ActionTaken | null;
   mismatchReported?: boolean | null;

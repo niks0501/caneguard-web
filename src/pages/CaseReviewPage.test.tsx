@@ -269,7 +269,7 @@ describe("CaseReviewPage", () => {
       data: { ...report, firstReviewedAt: "2026-08-13T02:00:00.000Z", scheduledRevisit: true },
     }));
     renderPage();
-    expect(screen.getByText("Follow-Up")).toBeInTheDocument();
+    expect(screen.getByText("Follow-up planned")).toBeInTheDocument();
     expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Go to decision" })).not.toBeInTheDocument();
   });
@@ -279,8 +279,8 @@ describe("CaseReviewPage", () => {
       data: { ...report, firstReviewedAt: "2026-08-13T02:00:00.000Z" },
     }));
     renderPage();
-    expect(screen.getByText("Under Review")).toBeInTheDocument();
-    expect(screen.getByText("Needs decision")).toBeInTheDocument();
+    expect(screen.getByText("Being reviewed")).toBeInTheDocument();
+    expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Go to decision" })).toBeInTheDocument();
   });
 
@@ -484,15 +484,15 @@ describe("CaseReviewPage", () => {
       screen.queryByText("Reporter observation: Possible Condition reported as not matching"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Reporter flagged AI mismatch")).not.toBeInTheDocument();
-    // Human-readable decision states replace the machine chips.
-    expect(screen.getByText("The submitted observations do not fully match the Possible Condition")).toBeInTheDocument();
+    // The concise summary is the live caution status; details remain in guidance.
+    expect(screen.getByRole("status", { name: "Caution: Observations differ from result" })).toBeInTheDocument();
     expect(screen.getByText("The reporter said the AI result does not match what they observed.")).toBeInTheDocument();
-    const caseStatus = screen.getByRole("region", {
-      name: "Case status",
+    const caseCautions = screen.getByRole("region", {
+      name: "Case cautions",
     });
-    expect(screen.getByText("Needs Review")).toBeInTheDocument();
-    expect(caseStatus).toHaveTextContent("Open");
-    expect(caseStatus).not.toHaveTextContent("Referral");
+    expect(screen.getByText("Waiting for your decision")).toBeInTheDocument();
+    expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
+    expect(caseCautions).not.toHaveTextContent("Referral");
     await user.click(screen.getByText("View Full Report Details"));
     const details = screen.getByText("View Full Report Details").closest("details")!;
     expect(details).toHaveTextContent("Field validation");
@@ -569,28 +569,23 @@ describe("CaseReviewPage", () => {
 
     renderPage();
 
-    expect(screen.getByText("Location needs confirmation")).toBeInTheDocument();
+    expect(screen.getByText(/Location unconfirmed/)).toBeInTheDocument();
     expect(screen.getByText(/Location not available — offline no map/)).toBeInTheDocument();
     expect(screen.queryByText("GPS")).not.toBeInTheDocument();
     expect(screen.getAllByText("Not measured")).toHaveLength(2);
   });
 
-  it("summarises a single caution on one quiet line that links to its notice", () => {
+  it("summarises a single caution on one quiet line", () => {
     // Base review data already reports an observation mismatch, so one caution is active.
     renderPage();
 
-    const line = screen.getByText("Caution:").closest("p");
-    expect(line).not.toBeNull();
-    expect(line).toHaveClass("review-caution-line");
-    const links = within(line as HTMLElement).getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual(["Observations differ from result"]);
-    expect(links[0]).toHaveAttribute("href", "#caution-mismatch");
-    expect(document.getElementById("caution-mismatch")).toHaveTextContent(
-      "The submitted observations do not fully match the Possible Condition",
-    );
+    const caseCautions = screen.getByRole("region", { name: "Case cautions" });
+    const line = within(caseCautions).getByRole("status");
+    expect(line).toHaveTextContent("Caution: Observations differ from result");
+    expect(within(line).queryByRole("link")).toBeNull();
   });
 
-  it("names every active caution once on one line and links each to its notice", () => {
+  it("names every active caution once on one line", () => {
     const everyCaution = mapReportDetail(
       reportDetailResponseSchema.parse({
         data: {
@@ -608,21 +603,21 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: everyCaution }));
     renderPage();
 
-    const line = screen.getByText("Cautions:").closest("p") as HTMLElement;
+    const caseCautions = screen.getByRole("region", { name: "Case cautions" });
+    const line = within(caseCautions).getByRole("status");
     expect(line).toHaveClass("review-caution-line");
-    const links = within(line).getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual([
-      "Location unconfirmed",
-      "Photo hard to review",
-      "Observations differ from result",
-    ]);
-
-    for (const link of links) {
-      const id = link.getAttribute("href")!.slice(1);
-      const targets = document.querySelectorAll(`#${id}`);
-      expect(targets).toHaveLength(1);
-      expect(targets[0]).toHaveClass("review-state-summary");
-    }
+    expect(line).toHaveTextContent(
+      "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result",
+    );
+    expect(line).toHaveAttribute(
+      "title",
+      "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result",
+    );
+    expect(document.querySelectorAll(".review-state-summary")).toHaveLength(0);
+    fireEvent.click(screen.getByText("Review guidance"));
+    expect(screen.getByText("Confirm the location with the field contact before relying on it.")).toBeInTheDocument();
+    expect(screen.getByText("Weigh the written observations more heavily.")).toBeInTheDocument();
+    expect(screen.getByText("Compare the photo and field observations carefully before deciding.")).toBeInTheDocument();
   });
 
   it("shows no caution line when the case carries no cautions", () => {
@@ -640,9 +635,8 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: cleanCase }));
     renderPage();
 
-    expect(screen.queryByText("Caution:")).not.toBeInTheDocument();
-    expect(screen.queryByText("Cautions:")).not.toBeInTheDocument();
-    expect(document.querySelector(".review-caution-line")).toBeNull();
+    const caseCautions = screen.getByRole("region", { name: "Case cautions" });
+    expect(within(caseCautions).queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Observations differ from result" })).not.toBeInTheDocument();
   });
 
@@ -1817,7 +1811,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: fieldValidationReport }));
     renderPage();
 
-    expect(screen.getByText("Field Validation")).toBeInTheDocument();
+    expect(screen.getByText("Field visit assigned")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
     expect(screen.getByText("Pending decision")).toBeInTheDocument();
 
@@ -1836,7 +1830,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: closedReport }));
     renderPage();
 
-    expect(screen.getByRole("region", { name: "Case status" })).toHaveTextContent("Closed");
+    expect(screen.getByText("Resolved", { selector: ".status-badge__label" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "No Further Action" })).not.toBeChecked();
     expect(screen.getByText("Pending decision")).toBeInTheDocument();
 

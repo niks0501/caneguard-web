@@ -164,6 +164,7 @@ function gpsData(): FieldValidationMapData {
           predictedDisease: "rust",
           confidence: 0.8,
           reviewStatus: "submitted_unverified",
+          lifecycle: { caseState: "open", verificationOutcome: "not_determined", fieldValidationState: "unassigned", referralState: "not_referred" },
           locationSource: "gps",
           gpsAccuracy: 6,
           affectedAreaHectares: 1.5,
@@ -185,6 +186,7 @@ function gpsData(): FieldValidationMapData {
           predictedDisease: "mosaic",
           confidence: 0.7,
           reviewStatus: "for_field_validation",
+          lifecycle: { caseState: "open", verificationOutcome: "not_determined", fieldValidationState: "assigned", referralState: "not_referred" },
           locationSource: "gps",
           gpsAccuracy: 8,
           affectedAreaHectares: 2,
@@ -240,8 +242,15 @@ describe("ReportLocationMap layer toggle", () => {
     renderMap();
     await user.click(screen.getByRole("button", { name: "GPS points" }));
     await user.click(screen.getByText("Reports shown on the GPS map"));
+    const list = screen.getByText("Reports shown on the GPS map").closest("details") as HTMLElement;
+    const awaitingRow = screen.getByRole("link", { name: "CG-2026-0718" }).closest("li") as HTMLElement;
+    const assignedRow = screen.getByRole("link", { name: "CG-2026-0719" }).closest("li") as HTMLElement;
+    expect(within(awaitingRow).getByText("Waiting for your decision", { exact: true })).toBeInTheDocument();
+    expect(within(assignedRow).getByText("Field visit assigned", { exact: true })).toBeInTheDocument();
+    expect(within(awaitingRow).getByRole("list", { name: "Case progress" })).toBeInTheDocument();
+    expect(within(assignedRow).getByRole("list", { name: "Case progress" })).toBeInTheDocument();
     for (const feature of data.features) {
-      expect(screen.getByRole("link", { name: feature.properties.referenceCode })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
+      expect(within(list).getByRole("link", { name: feature.properties.referenceCode })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
     }
   });
 
@@ -263,6 +272,10 @@ describe("ReportLocationMap layer toggle", () => {
     await user.click(screen.getByTestId("map-click"));
     expect(screen.getByText("2 reports at this point")).toBeInTheDocument();
     expect(screen.getByText("Within the returned map slice.")).toBeInTheDocument();
+    const popup = screen.getByRole("group", { name: "Reports at this location" });
+    expect(within(popup).getByText("Waiting for your decision", { exact: true })).toBeInTheDocument();
+    expect(within(popup).getByText("Field visit assigned", { exact: true })).toBeInTheDocument();
+    expect(within(popup).getAllByRole("list", { name: "Case progress" })).toHaveLength(2);
     for (const feature of data.features) expect(screen.getByRole("link", { name: `Open ${feature.properties.referenceCode}` })).toHaveAttribute("href", `/reports/${feature.properties.uuid}`);
   });
 
