@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, useLocation } from "react-router";
 import { checkApiHealth } from "../api/apiHealth";
+import { printableScopeFromReportFilters, printableScopeToSearch } from "../components/reports/reportBuilderScope";
 import { PrintableReportsPage } from "./PrintableReportsPage";
 
 vi.mock("../api/apiHealth", () => ({ checkApiHealth: vi.fn() }));
@@ -69,6 +70,13 @@ describe("PrintableReportsPage", () => {
     expect(screen.getByLabelText("Current URL")).toHaveTextContent("to=2026-08-31");
     expect(screen.getByLabelText("Barangay")).toHaveValue("Bacoor");
     expect(screen.getByLabelText("Operational queue")).toHaveValue("needs_review");
+  });
+
+  it("shows skipped work-scope items from the generated report URL", () => {
+    const scope = printableScopeFromReportFilters({ workflowStatus: "field_validation" });
+    renderPage(`/reports/print${printableScopeToSearch(scope)}`);
+
+    expect(screen.getByLabelText("Printable report scope")).toHaveTextContent("Not carried into this document: Status.");
   });
 
   it("drops and names a retired staff condition arriving in the URL", () => {
