@@ -1503,7 +1503,7 @@ describe("CaseReviewPage", () => {
     expect(within(summary).getByText(/Provide Advisory or Assistance/)).toBeInTheDocument();
     expect(within(summary).getByText(/the case stays open/i)).toBeInTheDocument();
     expect(within(summary).getByText(/Staff finding: not classified, not determined;/)).toBeInTheDocument();
-    expect(within(summary).getByText(/There are no review notes\./)).toBeInTheDocument();
+    expect(within(summary).getByText("Review notes: none")).toBeInTheDocument();
 
     // The summary tracks each pending choice before confirmation.
     await user.click(screen.getByRole("button", { name: "Back" }));

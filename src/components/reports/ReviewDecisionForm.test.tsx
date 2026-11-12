@@ -385,6 +385,60 @@ describe("Progressive review resilience", () => {
     expect(screen.getByRole("button", { name: "Confirming review..." })).toBeInTheDocument();
   });
 
+  it("keeps successful confirmation visible instead of navigating back to the draft", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    const success = await screen.findByText(`${base.referenceCode} — Review confirmed.`);
+    const back = screen.getByRole("button", { name: "Back" });
+    expect(back).toBeDisabled();
+    await user.click(back);
+    expect(screen.getByRole("heading", { name: "Review Summary" })).toBeInTheDocument();
+    expect(success).toBeInTheDocument();
+  });
+
+  it("does not present completed field validation as a future visit after conflict resolution", async () => {
+    const user = userEvent.setup();
+    const latest = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 7,
+      actionTaken: "referred_for_expert_validation" as const,
+      lifecycle: { ...base.lifecycle!, fieldValidationState: "completed" as const },
+      fieldValidationAssignment: {
+        uuid: "assignment-1",
+        assignee: { uuid: "inspector-2", name: "Past Inspector" },
+        assignedBy: { uuid: "reviewer-1", name: "Reviewer" },
+        targetVisitDate: "2026-10-01",
+        activatedAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-10-02T00:00:00.000Z",
+      },
+    };
+    const onRefresh = vi.fn().mockResolvedValue({ data: latest });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    renderForm(base, onRefresh);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(await screen.findByRole("button", { name: "Reload and discard my changes" }));
+
+    const summary = screen.getByRole("region", { name: "Review Summary" });
+    expect(summary).toHaveTextContent(/field validation is already complete, so no new visit will be assigned/i);
+    expect(summary).not.toHaveTextContent("Past Inspector");
+    expect(summary).not.toHaveTextContent("2026-10-01");
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Field validation is already complete; no new visit will be assigned.");
+    expect(screen.queryByLabelText("Field Inspector assignee")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Target visit date (optional)")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[1][0]).not.toHaveProperty("fieldValidationAssigneeUuid");
+    expect(save.mock.calls[1][0]).not.toHaveProperty("fieldValidationTargetDate");
+  });
+
   // An active assignment survives confirmation, so the consequence must name it, not the draft.
   it("names the assignment the confirmation preserves", async () => {
     const user = userEvent.setup();

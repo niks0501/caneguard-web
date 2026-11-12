@@ -113,8 +113,9 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const selectedAdvisory = validated.find((item) => item.uuid === advisoryUuid);
   const selectedInspector = (inspectors.data ?? []).find((item) => item.uuid === inspectorUuid)
     ?? report.fieldValidationAssignment?.assignee;
-  const effectiveInspectorUuid = activeValidation ? report.fieldValidationAssignment?.assignee.uuid ?? "" : inspectorUuid;
-  const effectiveTargetDate = activeValidation ? report.fieldValidationAssignment?.targetVisitDate ?? "" : targetDate;
+  const assignmentReadOnly = activeValidation || completedValidation;
+  const effectiveInspectorUuid = assignmentReadOnly ? report.fieldValidationAssignment?.assignee.uuid ?? "" : inspectorUuid;
+  const effectiveTargetDate = assignmentReadOnly ? report.fieldValidationAssignment?.targetVisitDate ?? "" : targetDate;
   const displayedInspector = activeValidation ? report.fieldValidationAssignment?.assignee.name : selectedInspector?.name;
   const displayedTargetDate = effectiveTargetDate;
   const notesErrors = [
@@ -196,11 +197,13 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const caseStateOutcome = caseStateLabels[resultingState].toLowerCase();
   const chosenAction = actions.find((item) => item.value === action);
   const consequence = !chosenAction ? null
+    : chosenAction.value === "field" && completedValidation ? `You chose ${chosenAction.label}; field validation is already complete, so no new visit will be assigned and the case stays open.`
     : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""}. The case stays open.`
     : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed.`
     : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}.`
     : `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}. The case stays ${caseStateOutcome}.`;
   const summaryAction = !chosenAction ? "No action has been chosen"
+    : chosenAction.value === "field" && completedValidation ? `You chose ${chosenAction.label}; field validation is already complete, so no new visit will be assigned and the case stays open`
     : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""} and the case stays open`
     : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed`
     : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}`
@@ -369,8 +372,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       <fieldset className="review-conditional-fields" disabled={mutation.isPending}>
         <legend className="sr-only">Action details and notes</legend>
         {fieldSelected ? <div className="review-subform">
-          <p role="status">The case stays open until the visit is done.</p>
-          {activeValidation ? <p>Field validation active — assigned to {report.fieldValidationAssignment?.assignee.name}. Active assignments and submitted field-validation evidence are not reassigned here.</p> : <>
+          {completedValidation ? <p role="status">Field validation is already complete; no new visit will be assigned.</p> : <p role="status">The case stays open until the visit is done.</p>}
+          {activeValidation ? <p>Field validation active — assigned to {report.fieldValidationAssignment?.assignee.name}. Active assignments and submitted field-validation evidence are not reassigned here.</p> : completedValidation ? null : <>
             <SelectFilter label="Field Inspector assignee" value={inspectorUuid} aria-invalid={showsError("inspector")}
               aria-describedby={showsError("inspector") ? "review-error-inspector" : undefined}
               onChange={(event) => { setInspectorUuid(event.target.value); changed(); }}>
@@ -440,7 +443,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
       <h2 id="review-summary-heading" ref={headingRef} tabIndex={-1}>Review Summary</h2>
       <p className="review-consequence">{summarySentence}</p>
-      {notes.length ? <><p className="review-notes-label">Review notes</p><blockquote className="review-consequence review-note-quote">{notes}</blockquote></> : <p className="review-notes-empty">There are no review notes.</p>}
+      {notes.length ? <><p className="review-notes-label">Review notes</p><blockquote className="review-consequence review-note-quote">{notes}</blockquote></> : <p className="review-notes-empty">Review notes: none</p>}
       {!online ? (
         <div className="review-offline" role="alert">
           <p>Not saved. CaneGuard is offline, so this review cannot be confirmed. Your draft stays in this tab and is not queued to send later.</p>
@@ -470,7 +473,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
       <div className="review-step-actions">
-      <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => setStep("details")}>Back</Button>
+      <Button type="button" variant="secondary" disabled={mutation.isPending || saved} onClick={() => setStep("details")}>Back</Button>
       <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined}>{mutation.isPending ? "Confirming review..." : "Confirm Review"}</Button>
       </div>
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
