@@ -56,6 +56,18 @@ describe("Progressive review resilience", () => {
     expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
   });
 
+  it("scrolls to the decision form for its fragment without preselecting an action", () => {
+    const scrollIntoView = vi.fn();
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
+    const view = render(<MemoryRouter initialEntries={[`/reports/${base.uuid}#review-decision`]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
+    view.unmount();
+    if (original) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", original);
+    else delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+  });
+
   it("holds the draft's expectedVersion across background refreshes", async () => {
     const user = userEvent.setup();
     const { rerender } = renderForm();

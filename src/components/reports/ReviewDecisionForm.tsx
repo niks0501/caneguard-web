@@ -98,8 +98,10 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const formRef = useRef<HTMLFormElement>(null);
   const preselected = useRef(action === "field");
   useEffect(() => {
-    if (preselected.current) formRef.current?.scrollIntoView?.({ block: "start" });
-  }, []);
+    if (preselected.current || location.hash === "#review-decision") {
+      formRef.current?.scrollIntoView?.({ block: "start" });
+    }
+  }, [location.hash]);
   const fieldSelected = action === "field";
   const resultingState = fieldSelected ? "open" : action === "close" ? "closed" : lifecycle.caseState;
   const validated = (advisories.data ?? []).filter((item) => item.status === "validated");

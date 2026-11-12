@@ -8,6 +8,7 @@ import { RequireAuth } from "../auth/RequireAuth";
 import { RequireAdmin } from "../auth/RequireAdmin";
 import { RequireWebRole } from "../auth/RequireWebRole";
 import { PrintableReportsPage } from "../pages/PrintableReportsPage";
+import { SubmittedReportsPage } from "../pages/SubmittedReportsPage";
 import { ReportApprovalPage } from "../pages/ReportApprovalPage";
 import { AdminSettingsPage } from "../pages/AdminSettingsPage";
 import { AccountsPage } from "../pages/AccountsPage";
@@ -25,7 +26,7 @@ import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 import { SettingsPage } from "../pages/SettingsPage";
-import { FieldValidationMapPage, ReportsRoute } from "./routeElements";
+import { FieldValidationMapPage } from "./routeElements";
 import { AppErrorFallback } from "./AppErrorBoundary";
 import { routes } from "./routes";
 
@@ -67,7 +68,7 @@ export const appRoutes: RouteObject[] = [
                       </Suspense>
                     ),
                   },
-                  { path: "reports", element: <ReportsRoute /> },
+                  { path: "reports", element: <SubmittedReportsPage /> },
                   { path: "reports/print", element: <PrintableReportsPage /> },
                   { path: "monitoring", element: <MonitoringWorkspacePage /> },
                   { path: "todo", element: <TodoPage /> },

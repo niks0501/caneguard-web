@@ -125,6 +125,34 @@ describe("TodoPage queue reads", () => {
     expect(within(overdue).getByText("No open visits are overdue.")).toBeInTheDocument();
   });
 
+  it("includes assigned validation and decided-but-unverified work in Send someone without repeating overdue work", async () => {
+    const overdue = queueItem(6, "CG-overdue", { field_validation_state: "assigned" }, {
+      visited_at: null,
+      field_observation: null,
+      finding: null,
+      action_taken: null,
+      follow_up_outcome: null,
+      assignee: { uuid: "inspector-1", name: "Field Inspector" },
+      fresh_photo: null,
+    });
+    const assigned = queueItem(7, "CG-assigned", { field_validation_state: "in_progress" }, null);
+    const advised = { ...queueItem(8, "CG-advised", { field_validation_state: "unassigned" }, null), action_taken: "advisory_provided" };
+    installApi({
+      needs_review: { items: [] },
+      needs_visit: { items: [assigned, overdue] },
+      follow_up_due: { items: [overdue] },
+      unverified_no_active_work: { items: [advised] },
+    });
+
+    renderTodo();
+
+    const send = await screen.findByRole("region", { name: "Send someone" });
+    expect(within(send).getByText("CG-assigned")).toBeInTheDocument();
+    expect(within(send).getByText("CG-advised")).toBeInTheDocument();
+    expect(within(send).queryByText("CG-overdue")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Visit overdue" })).getByText("CG-overdue")).toBeInTheDocument();
+  });
+
   it("states a truncated queue read once above the list it actually rendered", async () => {
     installApi({
       needs_review: {

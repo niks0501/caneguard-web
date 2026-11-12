@@ -122,16 +122,19 @@ export function TodoPage() {
   const awaitingQuery = useReportsQueue({ queue: "needs_review", sort: "oldest" });
   const visitQuery = useReportsQueue({ queue: "needs_visit", sort: "oldest" });
   const overdueQuery = useReportsQueue({ queue: "follow_up_due", sort: "due_soonest" });
+  const noActiveWorkQuery = useReportsQueue({ queue: "unverified_no_active_work", sort: "oldest" });
 
   // Canonical lifecycle predicates, never a new status: needs_review holds both
   // completed visits awaiting a decision and untouched unassigned observations.
   const needsReview = awaitingQuery.data?.reports ?? [];
   const completedVisits = needsReview.filter((report) => fieldValidationStateOf(report) === "completed");
   const newObservations = needsReview.filter((report) => fieldValidationStateOf(report) !== "completed");
-    const unassignedVisits = (visitQuery.data?.reports ?? []).filter(
-    (report) => fieldValidationStateOf(report) === "unassigned",
-  );
   const overdue = overdueQuery.data?.reports ?? [];
+  const overdueIds = new Set(overdue.map((report) => report.uuid));
+  const visitsNeedingWork = (visitQuery.data?.reports ?? []).filter((report) => !overdueIds.has(report.uuid));
+  const sendReports = [...new Map(
+    [...visitsNeedingWork, ...(noActiveWorkQuery.data?.reports ?? [])].map((report) => [report.uuid, report] as const),
+  ).values()];
 
   // A truncated read is reported once per queue, attributed to that queue: a
   // group's row count is never paired with a denominator it does not match.
@@ -152,8 +155,8 @@ export function TodoPage() {
       action: (report) => ({ label: "Review report", to: routes.reportDetail(report.uuid) }),
     },
     {
-      key: "send", title: "Send someone", icon: UserPlus, reports: unassignedVisits,
-      empty: "No reports are waiting for someone to be sent.", truncated: Boolean(visitTruncation),
+      key: "send", title: "Send someone", icon: UserPlus, reports: sendReports,
+      empty: "No reports are waiting for someone to be sent.", truncated: Boolean(visitTruncation || noActiveWorkQuery.data?.truncated),
       action: (report) => ({ label: "Send someone", to: routes.fieldOperationsForReport(report.uuid) }),
     },
     {
@@ -167,30 +170,35 @@ export function TodoPage() {
       action: (report) => ({ label: "Record decision", to: routes.reportDecision(report.uuid) }),
     },
   ];
-  const ready = !awaitingQuery.isPending && !visitQuery.isPending && !overdueQuery.isPending;
+  const ready = !awaitingQuery.isPending && !visitQuery.isPending && !overdueQuery.isPending && !noActiveWorkQuery.isPending;
   useEffect(() => {
     if (!ready || !window.location.hash.startsWith("#lane-")) return;
     document.getElementById(window.location.hash.slice(1))?.scrollIntoView?.();
   }, [ready]);
 
-  const isLoading = awaitingQuery.isPending || visitQuery.isPending || overdueQuery.isPending;
+  const isLoading = awaitingQuery.isPending || visitQuery.isPending || overdueQuery.isPending || noActiveWorkQuery.isPending;
   const hasInitialError = (awaitingQuery.isError && !awaitingQuery.data)
     || (visitQuery.isError && !visitQuery.data)
-    || (overdueQuery.isError && !overdueQuery.data);
-  const isRefreshing = awaitingQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching;
-  const unavailable = awaitingQuery.isError || visitQuery.isError || overdueQuery.isError;
+    || (overdueQuery.isError && !overdueQuery.data)
+    || (noActiveWorkQuery.isError && !noActiveWorkQuery.data);
+  const isRefreshing = awaitingQuery.isFetching || visitQuery.isFetching || overdueQuery.isFetching || noActiveWorkQuery.isFetching;
+  const unavailable = awaitingQuery.isError || visitQuery.isError || overdueQuery.isError || noActiveWorkQuery.isError;
   const initialConnectionError = (awaitingQuery.isError && !awaitingQuery.data && isApiConnectionError(awaitingQuery.error))
     || (visitQuery.isError && !visitQuery.data && isApiConnectionError(visitQuery.error))
-    || (overdueQuery.isError && !overdueQuery.data && isApiConnectionError(overdueQuery.error));
+    || (overdueQuery.isError && !overdueQuery.data && isApiConnectionError(overdueQuery.error))
+    || (noActiveWorkQuery.isError && !noActiveWorkQuery.data && isApiConnectionError(noActiveWorkQuery.error));
   const initialRateLimitedError = (awaitingQuery.isError && !awaitingQuery.data && isRateLimitedError(awaitingQuery.error))
     || (visitQuery.isError && !visitQuery.data && isRateLimitedError(visitQuery.error))
-    || (overdueQuery.isError && !overdueQuery.data && isRateLimitedError(overdueQuery.error));
+    || (overdueQuery.isError && !overdueQuery.data && isRateLimitedError(overdueQuery.error))
+    || (noActiveWorkQuery.isError && !noActiveWorkQuery.data && isRateLimitedError(noActiveWorkQuery.error));
   const refetchConnectionError = (awaitingQuery.isRefetchError && isApiConnectionError(awaitingQuery.error))
     || (visitQuery.isRefetchError && isApiConnectionError(visitQuery.error))
-    || (overdueQuery.isRefetchError && isApiConnectionError(overdueQuery.error));
+    || (overdueQuery.isRefetchError && isApiConnectionError(overdueQuery.error))
+    || (noActiveWorkQuery.isRefetchError && isApiConnectionError(noActiveWorkQuery.error));
   const refetchRateLimitedError = (awaitingQuery.isRefetchError && isRateLimitedError(awaitingQuery.error))
     || (visitQuery.isRefetchError && isRateLimitedError(visitQuery.error))
-    || (overdueQuery.isRefetchError && isRateLimitedError(overdueQuery.error));
+    || (overdueQuery.isRefetchError && isRateLimitedError(overdueQuery.error))
+    || (noActiveWorkQuery.isRefetchError && isRateLimitedError(noActiveWorkQuery.error));
 
   return (
     <PageContent>
@@ -201,7 +209,7 @@ export function TodoPage() {
             variant="secondary"
             icon={<RefreshCw aria-hidden="true" className={isRefreshing ? "spin" : undefined} />}
             disabled={isRefreshing}
-            onClick={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
+            onClick={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch(), noActiveWorkQuery.refetch()])}
           >
             {isRefreshing ? "Refreshing" : "Refresh"}
           </Button>
@@ -210,7 +218,9 @@ export function TodoPage() {
       <div className="needs-assessment-summary" aria-label="To do summary">
         {lanes.map((lane) => {
           const Icon = lane.icon;
-          const read = lane.key === "send" ? visitQuery : lane.key === "overdue" ? overdueQuery : awaitingQuery;
+          const read = lane.key === "send"
+            ? { ...visitQuery, data: visitQuery.data && noActiveWorkQuery.data ? visitQuery.data : undefined, isError: visitQuery.isError || noActiveWorkQuery.isError }
+            : lane.key === "overdue" ? overdueQuery : awaitingQuery;
           return (
             <a key={lane.key} href={`#lane-${lane.key}`} className={lane.key === "overdue" ? "needs-assessment-summary__overdue" : undefined}>
               <Icon aria-hidden="true" /><strong>{countValue(read, lane.reports.length)}</strong><span>{lane.title}</span>
@@ -219,17 +229,17 @@ export function TodoPage() {
         })}
       </div>
       <WorkspaceFreshness
-        updatedAt={oldestServerReadAt([awaitingQuery, visitQuery, overdueQuery])}
+        updatedAt={oldestServerReadAt([awaitingQuery, visitQuery, overdueQuery, noActiveWorkQuery])}
         fetching={isRefreshing && Boolean(awaitingQuery.data)}
-        refreshFailed={awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError}
-        onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
+        refreshFailed={awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError || noActiveWorkQuery.isRefetchError}
+        onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch(), noActiveWorkQuery.refetch()])}
       />
       {unavailable && !hasInitialError && !refetchConnectionError && !refetchRateLimitedError ? (
         <p className="queue-refresh-warning" role="alert">
           Some counts could not be loaded. Values marked Unavailable are not zero.
         </p>
       ) : null}
-      {awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError
+      {awaitingQuery.isRefetchError || visitQuery.isRefetchError || overdueQuery.isRefetchError || noActiveWorkQuery.isRefetchError
         ? (
           <p className="queue-refresh-warning" role="alert">
             {refetchConnectionError
@@ -249,13 +259,14 @@ export function TodoPage() {
               ? "To do is receiving too many requests. Wait a moment, then try again."
               : "This list could not be loaded. Please try again."}
           detail={initialConnectionError ? apiEndpointDetail(env.apiBaseUrl) : undefined}
-          onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch()])}
+          onRetry={() => void Promise.all([awaitingQuery.refetch(), visitQuery.refetch(), overdueQuery.refetch(), noActiveWorkQuery.refetch()])}
         />
       ) : null}
-      {!hasInitialError && awaitingQuery.data && visitQuery.data ? (
+      {!hasInitialError && awaitingQuery.data && visitQuery.data && noActiveWorkQuery.data ? (
         <>
           {awaitingTruncation ? <QueueBoundary title="Review new reports and Decide after visit" {...awaitingTruncation} /> : null}
           {visitTruncation ? <QueueBoundary title="Send someone" {...visitTruncation} /> : null}
+          {noActiveWorkQuery.data.truncated ? <QueueBoundary title="Send someone" loaded={noActiveWorkQuery.data.reports.length} total={noActiveWorkQuery.data.total} /> : null}
           {overdueTruncation ? <QueueBoundary title="Visit overdue" {...overdueTruncation} /> : null}
           <div className="needs-assessment-queue">
             {lanes.map((lane) => <TodoLaneSection key={lane.key} lane={lane} />)}
