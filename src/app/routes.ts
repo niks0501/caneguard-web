@@ -8,6 +8,7 @@ export const routes = {
   resetPassword: "/reset-password",
   dashboard: "/dashboard",
   reports: "/reports",
+  printableReports: "/reports/print",
   monitoring: "/monitoring",
   needsAssessment: "/needs-assessment",
   fieldOperations: "/monitoring?view=field-operations",

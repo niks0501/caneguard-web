@@ -10157,3 +10157,46 @@ button.monitoring-calendar__day-number:focus-visible {
   padding: var(--space-2) var(--space-3);
   border-left: 3px solid var(--color-border);
 }
+
+.report-entries {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.report-entries__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 64px;
+  padding: var(--space-4);
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.report-entries__item[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.report-builder__page-section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.report-builder__more > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .report-entries {
+    grid-template-columns: 1fr;
+  }
+}

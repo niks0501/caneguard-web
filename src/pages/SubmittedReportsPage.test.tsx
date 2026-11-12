@@ -304,10 +304,12 @@ describe("SubmittedReportsPage", () => {
     const user = userEvent.setup();
     renderPage("/reports?status=submitted_unverified&workflow_status=field_validation");
 
-    await user.click(screen.getByRole("button", { name: "Filtered printable report" }));
+    await user.click(screen.getByText("Export"));
+    await user.click(screen.getByRole("button", { name: "Printable reports" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
-    expect(within(dialog).getByText("Not carried into this document: Status.")).toBeInTheDocument();
+    const location = screen.getByTestId("location");
+    expect(location).toHaveTextContent("type=custom");
+    expect(location.textContent?.match(/skipped=Status/g)).toHaveLength(1);
   });
 
   it("names every supported filter it sends to the server", async () => {
