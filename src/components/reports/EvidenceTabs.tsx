@@ -16,9 +16,13 @@ export interface EvidenceTab {
 export function EvidenceTabs({ tabs, label }: { tabs: readonly EvidenceTab[]; label: string }) {
   const idPrefix = useId();
   const listRef = useRef<HTMLDivElement | null>(null);
-  const [selectedId, setSelectedId] = useState(tabs[0]?.id);
+  const [selectedId, setSelectedId] = useState(tabs.find((tab) => !tab.disabled)?.id);
   const foundIndex = tabs.findIndex((tab) => tab.id === selectedId);
-  const selectedIndex = foundIndex === -1 ? 0 : foundIndex;
+  const selectedIndex = foundIndex === -1 || tabs[foundIndex].disabled
+    ? tabs.findIndex((tab) => !tab.disabled)
+    : foundIndex;
+  const nextSelectedId = tabs[selectedIndex]?.id;
+  if (selectedId !== nextSelectedId) setSelectedId(nextSelectedId);
 
   const select = (index: number, focus = false, direction = 1) => {
     let next = (index + tabs.length) % tabs.length;

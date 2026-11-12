@@ -355,6 +355,36 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(screen.getByRole("tab", { name: /Boundary/ })).toHaveAttribute("aria-selected", "true");
   });
 
+  it("moves selection to an enabled tab when a refresh disables Aerial", async () => {
+    const user = userEvent.setup();
+    const reportWithAerial = { ...baseReport, aerialAnalyses: [] };
+    const view = renderPage(reportWithAerial);
+
+    await user.click(screen.getByRole("tab", { name: /Aerial/ }));
+    expect(screen.getByRole("tab", { name: /Aerial/ })).toHaveAttribute("aria-selected", "true");
+
+    const refreshedReport = { ...baseReport, aerialAnalyses: undefined };
+    vi.mocked(useReport).mockReturnValue(queryResult(refreshedReport));
+    view.rerender(
+      <MemoryRouter initialEntries={[`/reports/${refreshedReport.uuid}`]}>
+        <Routes>
+          <Route path="/reports/:reportId" element={<CaseReviewPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const photoTab = screen.getByRole("tab", { name: /Photo/ });
+    const aerialTab = screen.getByRole("tab", { name: /Aerial/ });
+    expect(aerialTab).toBeDisabled();
+    expect(photoTab).toHaveAttribute("aria-selected", "true");
+    expect(photoTab).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("tabpanel", { name: /^Photo/ })).toBeVisible();
+
+    await user.click(photoTab);
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: /Boundary/ })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("shows pending inspector attachments in the Boundary tab", async () => {
     const user = userEvent.setup();
     renderPage({
