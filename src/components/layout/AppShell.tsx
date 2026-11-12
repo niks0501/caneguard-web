@@ -18,16 +18,16 @@ export function AppShell() {
 
   useEffect(() => {
     const path = location.pathname;
-    if (path.startsWith("/reports/")) {
+    if (path === "/reports/print") {
+      document.title = "CaneGuard | Reports";
+    } else if (path.startsWith("/reports/")) {
       document.title = "CaneGuard | Case Review";
     } else if (path.startsWith("/reports")) {
-      document.title = "CaneGuard | Submitted Reports";
+      document.title = "CaneGuard | Cases";
     } else if (path.startsWith("/todo")) {
       document.title = "CaneGuard | To do";
     } else if (path.startsWith("/monitoring")) {
-      document.title = "CaneGuard | Monitoring workspace";
-    } else if (path.startsWith("/map")) {
-      document.title = "CaneGuard | Field-Validation Map";
+      document.title = "CaneGuard | Field visits";
     } else if (path.startsWith("/dashboard")) {
       document.title = "CaneGuard | Dashboard";
     } else {

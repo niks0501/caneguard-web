@@ -28,7 +28,7 @@ export function PrintableReportsPage() {
 
   return (
     <PageContent>
-      <PageHeader title="Printable reports" />
+      <PageHeader title="Reports" />
       <div className="report-entries" role="group" aria-label="Report type">
         {entries.map(({ mode: entryMode, title, icon: Icon }) => (
           <button

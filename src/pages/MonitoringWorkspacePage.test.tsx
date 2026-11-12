@@ -27,7 +27,7 @@ describe("MonitoringWorkspacePage", () => {
     vi.mocked(useFieldValidationQueue).mockReturnValue(result({ queue: "needs_visit", count: 0, total: 0, items: [], oldest: null }));
   });
 
-  it("exposes the five workspace views and opens the map on the bare workspace route", async () => {
+  it("exposes the four field-visit views and opens the map on the bare workspace route", async () => {
     render(
       <QueryClientProvider client={createQueryClient()}>
         <MemoryRouter initialEntries={["/monitoring"]}><MonitoringWorkspacePage /></MemoryRouter>
@@ -39,8 +39,10 @@ describe("MonitoringWorkspacePage", () => {
     expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("href", "/monitoring?view=register");
     expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/monitoring?view=calendar");
-    expect(screen.getByRole("link", { name: "Assignments" })).toHaveAttribute("href", "/monitoring?view=field-operations");
-    expect(screen.getByRole("link", { name: "Field boundaries" })).toHaveAttribute("href", "/monitoring?view=boundaries");
+    expect(screen.getByRole("heading", { name: "Field visits" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Assignments" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "To do" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Boundaries" })).toHaveAttribute("href", "/monitoring?view=boundaries");
   });
 });
 

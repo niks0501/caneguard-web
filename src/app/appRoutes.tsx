@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import {
   Navigate,
   Outlet,
@@ -16,7 +15,6 @@ import { AccountDetailPage } from "../pages/AccountDetailPage";
 import { AppShell } from "../components/layout/AppShell";
 import { CaseReviewPage } from "../pages/CaseReviewPage";
 import { DashboardPage } from "../pages/DashboardPage";
-import { LoadingState } from "../components/ui/States";
 import { UnsavedWorkProvider } from "../components/ui/UnsavedWorkGuard";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { MonitoringWorkspacePage } from "../pages/MonitoringWorkspacePage";
@@ -26,8 +24,8 @@ import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 import { SettingsPage } from "../pages/SettingsPage";
-import { FieldValidationMapPage } from "./routeElements";
 import { AppErrorFallback } from "./AppErrorBoundary";
+import { LegacyMapRedirect } from "./LegacyMapRedirect";
 import { routes } from "./routes";
 
 /**
@@ -60,14 +58,7 @@ export const appRoutes: RouteObject[] = [
                 element: <AppShell />,
                 children: [
                   { path: "dashboard", element: <DashboardPage /> },
-                  {
-                    path: "map",
-                    element: (
-                      <Suspense fallback={<LoadingState message="Loading the field-validation workspace..." />}>
-                        <FieldValidationMapPage />
-                      </Suspense>
-                    ),
-                  },
+                  { path: "map", element: <LegacyMapRedirect /> },
                   { path: "reports", element: <SubmittedReportsPage /> },
                   { path: "reports/print", element: <PrintableReportsPage /> },
                   { path: "monitoring", element: <MonitoringWorkspacePage /> },
