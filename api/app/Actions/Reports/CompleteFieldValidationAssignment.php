@@ -87,6 +87,8 @@ class CompleteFieldValidationAssignment
 
                     throw new FieldValidationCompletionConflict(
                         'This assignment already has a different completed validation.',
+                        FieldValidationCompletionConflict::COMPLETED_ELSEWHERE,
+                        $existing->created_at->utc()->toISOString(),
                     );
                 }
 

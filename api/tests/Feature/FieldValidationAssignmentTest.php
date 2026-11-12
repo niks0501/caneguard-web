@@ -595,11 +595,8 @@ class FieldValidationAssignmentTest extends TestCase
             'assignee_id' => $assignee->getKey(),
             'assigned_by_id' => $reviewer->getKey(),
         ]);
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-12T10:30:00Z'));
         $conflictingClientUuid = fake()->uuid();
-        FieldValidationCompletion::factory()->create([
-            'assignment_id' => $assignment->getKey(),
-            'client_uuid' => $conflictingClientUuid,
-        ]);
         $submittedClientUuid = fake()->uuid();
         $payload = [
             'client_uuid' => $submittedClientUuid,
@@ -612,9 +609,13 @@ class FieldValidationAssignmentTest extends TestCase
         ];
 
         Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", [
+            ...$payload, 'client_uuid' => $conflictingClientUuid,
+        ])->assertCreated();
         $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $payload)
             ->assertConflict()
-            ->assertJsonPath('code', 'CONFLICT')
+            ->assertJsonPath('code', 'COMPLETED_ELSEWHERE')
+            ->assertJsonPath('completed_at', '2026-11-12T10:30:00.000000Z')
             ->assertJsonPath('client_uuid', $submittedClientUuid);
 
         $this->assertDatabaseHas('field_validation_completions', [

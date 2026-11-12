@@ -81,9 +81,9 @@
     "codes": {
       "ASSIGNMENT_REASSIGNED": { "http_status": [403, 409], "meaning": "The visit now belongs to another inspector." },
       "CASE_CLOSED": { "http_status": [409], "meaning": "The case is no longer open, so it cannot receive field-validation evidence." },
-      "COMPLETED_ELSEWHERE": { "http_status": [409], "meaning": "The case is already marked field-validation completed." },
+      "COMPLETED_ELSEWHERE": { "http_status": [409], "meaning": "The case is already marked field-validation completed or the assignment has a completion with a different client_uuid. When a completion record exists, completed_at contains its creation time in ISO 8601 UTC." },
       "VISIT_REMOVED": { "http_status": [404], "meaning": "The office removed the visit; the assignment no longer exists." },
-      "CONFLICT": { "http_status": [409], "meaning": "The assignment already holds a completion with a different client_uuid." }
+      "CONFLICT": { "http_status": [409], "meaning": "A different completion action conflicts with the current state." }
     }
   },
   "assignment_transitions": {

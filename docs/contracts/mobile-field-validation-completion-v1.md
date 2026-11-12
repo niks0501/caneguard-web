@@ -8,7 +8,7 @@ The endpoint requires an authenticated `field_reporter` bearer token with the `a
 
 The authenticated reporter must own the assignment. If the visit was reassigned, the old assignee receives HTTP 403 with `ASSIGNMENT_REASSIGNED`; a reassignment race under the write lock returns HTTP 409 with the same code.
 
-Other refusals carry their own `code`: `CASE_CLOSED` (409, case no longer open), `COMPLETED_ELSEWHERE` (409, the case is already marked completed), with `CONFLICT` kept for a different completion on the same assignment and `VISIT_REMOVED` (404, the office removed the visit). See `report-lifecycle-v1`.
+Other refusals carry their own `code`: `CASE_CLOSED` (409, case no longer open), `COMPLETED_ELSEWHERE` (409, the case is marked completed or the assignment already has a completion with a different client UUID), and `VISIT_REMOVED` (404, the office removed the visit). When a completion record exists, `COMPLETED_ELSEWHERE` includes `completed_at`, its creation time in ISO 8601 UTC; otherwise that field is absent. Retrying the same client UUID remains idempotent. `CONFLICT` is reserved for other conflicting completion actions. See `report-lifecycle-v1`.
 
 The request requires fresh field observation, field finding evidence, action taken, visit time, and a recorded GPS attempt. Newer Mobile builds may also send the optional `follow_up_outcome` value: `improved`, `unchanged`, `worsened`, or `unable_to_determine`.
 

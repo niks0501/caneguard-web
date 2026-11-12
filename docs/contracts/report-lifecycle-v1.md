@@ -34,7 +34,7 @@ Completed validation evidence cannot be reassigned or removed.
 
 ## Completion refusals and reassignment
 
-An upload refused by the office carries one distinct reason code: `ASSIGNMENT_REASSIGNED` (403 or 409), `CASE_CLOSED` (409), `COMPLETED_ELSEWHERE` (409) or `VISIT_REMOVED` (404). `CONFLICT` remains the code when the assignment already holds a completion with a different client UUID.
+An upload refused by the office carries one distinct reason code: `ASSIGNMENT_REASSIGNED` (403 or 409), `CASE_CLOSED` (409), `COMPLETED_ELSEWHERE` (409) or `VISIT_REMOVED` (404). A different client UUID after a persisted completion receives `COMPLETED_ELSEWHERE` with `completed_at` set to the completion's creation time in ISO 8601 UTC. An identical client UUID remains an idempotent retry. When the case is marked completed without a completion record, `completed_at` is absent. `CONFLICT` is reserved for other conflicting completion actions.
 
 When a visit moves to another inspector, the previous inspector receives a `field_validation_assignment_reassigned` notification in addition to the new assignee's existing notification.
 

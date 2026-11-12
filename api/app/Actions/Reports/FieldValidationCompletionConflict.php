@@ -16,8 +16,11 @@ class FieldValidationCompletionConflict extends RuntimeException
 
     public const VISIT_REMOVED = 'VISIT_REMOVED';
 
-    public function __construct(string $message, public readonly string $reasonCode = self::CONFLICT)
-    {
+    public function __construct(
+        string $message,
+        public readonly string $reasonCode = self::CONFLICT,
+        public readonly ?string $completedAt = null,
+    ) {
         parent::__construct($message);
     }
 
