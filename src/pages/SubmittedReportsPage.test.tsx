@@ -161,7 +161,7 @@ describe("SubmittedReportsPage", () => {
   it("renders the monitoring workspace with shared Quick views and register columns", () => {
     renderPage("/monitoring?concern=rssi", "monitoring");
 
-    expect(screen.getByRole("heading", { name: "Monitoring workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field visits" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "RSSI" })).toHaveAttribute(
       "href",
       "/monitoring?concern=rssi&view=register",

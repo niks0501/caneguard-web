@@ -378,7 +378,7 @@ export function SubmittedReportsPage({
   return (
     <PageContent className={embedded ? "page-content--embedded" : undefined}>
       {!embedded ? <PageHeader
-        title={isMonitoring ? "Monitoring workspace" : "Submitted reports"}
+        title={isMonitoring ? "Field visits" : "Cases"}
         actions={(
           <>
           <ExportMenu

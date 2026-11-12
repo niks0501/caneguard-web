@@ -13,7 +13,7 @@ vi.mock("../../auth/useAuth", () => ({
 }));
 
 describe("quiet shell sidebar", () => {
-  it("names the four settled links and keeps their routes", () => {
+  it("names the settled links and keeps their routes", () => {
     auth.role = "reviewer";
     render(<MemoryRouter><AppSidebar /></MemoryRouter>);
     const nav = screen.getByRole("navigation", { name: "Workspace" });
@@ -21,12 +21,27 @@ describe("quiet shell sidebar", () => {
     expect(links).toEqual([
       ["Home", "/dashboard"],
       ["To do", "/todo"],
-      ["Reports", "/reports"],
-      ["Visits", "/monitoring"],
+      ["Cases", "/reports"],
+      ["Field visits", "/monitoring"],
+      ["Reports", "/reports/print"],
       ["Settings", "/settings"],
     ]);
     expect(screen.queryByRole("link", { name: "Dashboard" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Monitoring/ })).not.toBeInTheDocument();
+  });
+
+  it("marks only Reports current on the printable reports route", () => {
+    auth.role = "reviewer";
+    render(
+      <MemoryRouter initialEntries={["/reports/print/"]}>
+        <AppSidebar />
+        <Breadcrumbs />
+      </MemoryRouter>,
+    );
+    const nav = screen.getByRole("navigation", { name: "Workspace" });
+    expect(within(nav).getByRole("link", { name: "Cases" })).toHaveAttribute("aria-current", "false");
+    expect(within(nav).getByRole("link", { name: "Reports" })).toHaveAttribute("aria-current", "page");
+    expect(within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByText("Reports")).toHaveAttribute("aria-current", "page");
   });
 
   it("keeps administration links for admins only", () => {
@@ -49,13 +64,13 @@ describe("breadcrumbs", () => {
   it("marks the current page on a section", () => {
     const nav = trail("/monitoring");
     expect(within(nav!).getByRole("link", { name: "Home" })).toHaveAttribute("href", "/dashboard");
-    expect(within(nav!).getByText("Visits")).toHaveAttribute("aria-current", "page");
+    expect(within(nav!).getByText("Field visits")).toHaveAttribute("aria-current", "page");
   });
 
   it("stops at the section on a case route", () => {
     const nav = trail("/reports/6f1c9c7e-8f2a-4c1b-9f6d-1a2b3c4d5e6f");
-    expect(within(nav!).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Home", "Reports"]);
-    expect(within(nav!).getByText("Reports")).toHaveAttribute("aria-current", "page");
+    expect(within(nav!).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Home", "Cases"]);
+    expect(within(nav!).getByText("Cases")).toHaveAttribute("aria-current", "page");
     expect(within(nav!).getByRole("link", { name: "Home" })).toHaveAttribute("href", "/dashboard");
   });
 });

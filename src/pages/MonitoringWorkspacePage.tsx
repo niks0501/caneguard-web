@@ -1,5 +1,4 @@
-import { CalendarDays, ClipboardList, LandPlot, MapPinned, Table2 } from "lucide-react";
-import { routes } from "../app/routes";
+import { CalendarDays, LandPlot, MapPinned, Table2 } from "lucide-react";
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
@@ -26,8 +25,7 @@ const views: Array<{ key: WorkspaceView; label: string; icon: ReactNode }> = [
   { key: "register", label: "List", icon: <Table2 aria-hidden="true" /> },
   { key: "calendar", label: "Calendar", icon: <CalendarDays aria-hidden="true" /> },
   { key: "map", label: "Map", icon: <MapPinned aria-hidden="true" /> },
-  { key: "field-operations", label: "Assignments", icon: <ClipboardList aria-hidden="true" /> },
-  { key: "boundaries", label: "Field boundaries", icon: <LandPlot aria-hidden="true" /> },
+  { key: "boundaries", label: "Boundaries", icon: <LandPlot aria-hidden="true" /> },
 ];
 
 /** The Monitoring workspace opens on the map unless the URL carries state only the List can honor. */
@@ -43,8 +41,8 @@ export function MonitoringWorkspacePage() {
 
   return (
     <PageContent>
-      <PageHeader title="Monitoring workspace" />
-      <nav className="monitoring-workspace-tabs" aria-label="Monitoring workspace views">
+      <PageHeader title="Field visits" />
+      <nav className="monitoring-workspace-tabs" aria-label="Field visit views">
         <span className="monitoring-workspace-tabs__label">Workspace views</span>
         {views.map(({ key, label, icon }) => {
           const link = monitoringViewLink(key, searchParams);
@@ -60,7 +58,6 @@ export function MonitoringWorkspacePage() {
             </Link>
           );
         })}
-        <Link className="monitoring-workspace-tabs__saved" to={routes.todo}>To do</Link>
       </nav>
       {scopeNotice ? <p className="queue-refresh-warning" role="status">{scopeNotice}</p> : null}
       {view === "register" ? <SubmittedReportsPage workspace="monitoring" embedded /> : null}

@@ -13,17 +13,17 @@ vi.mock("../../auth/useAuth", () => ({
   }),
 }));
 
-function renderShell() {
+function renderShell(path = "/") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/"]}>
+      <MemoryRouter initialEntries={[path]}>
         <ApiConnectivityProvider>
           <Routes>
-            <Route element={<AppShell />} path="/">
+            <Route element={<AppShell />} path="*">
               <Route element={<div>Workspace content</div>} index />
             </Route>
           </Routes>
@@ -36,6 +36,11 @@ function renderShell() {
 describe("AppShell navigation drawer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("uses the Reports title for a trailing-slash printable route", () => {
+    renderShell("/reports/print/");
+    expect(document.title).toBe("CaneGuard | Reports");
   });
 
   it("moves focus into the drawer, traps Escape, and restores the trigger focus", async () => {

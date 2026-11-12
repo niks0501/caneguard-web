@@ -1,15 +1,18 @@
 import {
-  CalendarDays,
+  FileText,
+  FolderOpen,
   ListTodo,
   LayoutDashboard,
   LogOut,
+  MapPinned,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   Users,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { routes } from "../../app/routes";
 import { useAuth } from "../../auth/useAuth";
 import caneGuardLogo from "../../assets/brand/cane_guard_logo.png";
@@ -22,16 +25,20 @@ function SidebarLink({
   to,
   icon,
   onNavigate,
+  active,
   children,
 }: {
   to: string;
   icon: ReactNode;
   onNavigate?: () => void;
+  /** Overrides the default path-prefix match when two entries share a prefix. */
+  active?: boolean;
   children: ReactNode;
 }) {
   return (
     <NavLink
-      className={({ isActive }) => `sidebar-link${isActive ? " is-active" : ""}`}
+      className={({ isActive }) => `sidebar-link${(active ?? isActive) ? " is-active" : ""}`}
+      aria-current={active === undefined ? undefined : active ? "page" : "false"}
       to={to}
       onClick={onNavigate}
     >
@@ -43,6 +50,8 @@ function SidebarLink({
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const auth = useAuth();
+  const { pathname } = useLocation();
+  const onReportsPage = pathname.replace(/\/+$/, "") === routes.printableReports;
   const theme = useTheme();
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const logout = () => {
@@ -72,14 +81,27 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <SidebarLink to={routes.todo} icon={<ListTodo aria-hidden="true" />} onNavigate={onNavigate}>
             To do
           </SidebarLink>
-          <SidebarLink to={routes.reports} icon={<ShieldCheck aria-hidden="true" />} onNavigate={onNavigate}>
-            Reports
+          <SidebarLink
+            to={routes.reports}
+            icon={<FolderOpen aria-hidden="true" />}
+            active={pathname.startsWith(routes.reports) && !onReportsPage}
+            onNavigate={onNavigate}
+          >
+            Cases
           </SidebarLink>
           {auth.user?.role === "reviewer" || auth.user?.role === "admin" ? (
-            <SidebarLink to={routes.monitoring} icon={<CalendarDays aria-hidden="true" />} onNavigate={onNavigate}>
-              Visits
+            <SidebarLink to={routes.monitoring} icon={<MapPinned aria-hidden="true" />} onNavigate={onNavigate}>
+              Field visits
             </SidebarLink>
           ) : null}
+          <SidebarLink
+            to={routes.printableReports}
+            icon={<FileText aria-hidden="true" />}
+            active={onReportsPage}
+            onNavigate={onNavigate}
+          >
+            Reports
+          </SidebarLink>
         </div>
         {auth.user?.role === "admin" ? (
           <div className="sidebar__group" role="group" aria-label="Administration">
@@ -90,7 +112,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             <SidebarLink to={routes.accounts} icon={<Users aria-hidden="true" />} onNavigate={onNavigate}>
               User Management
             </SidebarLink>
-            <SidebarLink to={routes.adminSettings} icon={<Settings aria-hidden="true" />} onNavigate={onNavigate}>
+            <SidebarLink to={routes.adminSettings} icon={<SlidersHorizontal aria-hidden="true" />} onNavigate={onNavigate}>
               Admin Settings
             </SidebarLink>
           </div>

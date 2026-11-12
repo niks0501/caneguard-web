@@ -3,9 +3,8 @@ import { routes } from "../../app/routes";
 
 const sectionLabels: Record<string, string> = {
   todo: "To do",
-  reports: "Reports",
-  monitoring: "Visits",
-  map: "Visits",
+  reports: "Cases",
+  monitoring: "Field visits",
   settings: "Settings",
   accounts: "User Management",
   "report-approval": "Report Approval",
@@ -14,7 +13,9 @@ const sectionLabels: Record<string, string> = {
 
 /** Stops at the section name: Home has no trail and detail pages add no crumb. */
 function sectionLabelFor(pathname: string): string | null {
-  const [section] = pathname.split("/").filter(Boolean);
+  const normalizedPath = pathname.replace(/\/+$/, "");
+  if (normalizedPath === routes.printableReports) return "Reports";
+  const [section] = normalizedPath.split("/").filter(Boolean);
   return (section ? sectionLabels[section] : undefined) ?? null;
 }
 
