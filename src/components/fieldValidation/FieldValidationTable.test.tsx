@@ -104,6 +104,23 @@ describe("FieldValidationTable", () => {
     expect(within(row).queryByText("Needs field validation")).not.toBeInTheDocument();
   });
 
+  it("reaches Field check for legacy completion evidence in located rows", () => {
+    const legacyFeature: FieldValidationMapFeature = {
+      ...mockFeature,
+      properties: {
+        ...mockFeature.properties,
+        reviewStatus: "submitted_unverified",
+        lifecycle: undefined,
+        fieldValidationCompleted: true,
+      },
+    };
+    renderTable([legacyFeature]);
+
+    const row = screen.getByRole("row", { name: /CG-2026-0718/i });
+    const track = within(row).getByRole("list", { name: "Case progress" });
+    expect(within(track).getAllByRole("listitem")[2]).toHaveAttribute("aria-current", "step");
+  });
+
   it("keeps the decision-support line under the located observations", () => {
     renderTable();
 

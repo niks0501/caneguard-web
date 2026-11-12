@@ -579,11 +579,10 @@ describe("CaseReviewPage", () => {
     // Base review data already reports an observation mismatch, so one caution is active.
     renderPage();
 
-    const line = screen.getByText("Caution:").closest("p");
-    expect(line).not.toBeNull();
-    expect(line).toHaveClass("review-caution-line");
+    const caseCautions = screen.getByRole("region", { name: "Case cautions" });
+    const line = within(caseCautions).getByRole("status");
     expect(line).toHaveTextContent("Caution: Observations differ from result");
-    expect(within(line as HTMLElement).queryByRole("link")).toBeNull();
+    expect(within(line).queryByRole("link")).toBeNull();
   });
 
   it("names every active caution once on one line", () => {
@@ -605,8 +604,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     const caseCautions = screen.getByRole("region", { name: "Case cautions" });
-    const line = screen.getByText("Cautions:").closest("p") as HTMLElement;
-    expect(within(caseCautions).getByRole("status")).toBe(line);
+    const line = within(caseCautions).getByRole("status");
     expect(line).toHaveClass("review-caution-line");
     expect(line).toHaveTextContent(
       "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result",
@@ -637,9 +635,8 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: cleanCase }));
     renderPage();
 
-    expect(screen.queryByText("Caution:")).not.toBeInTheDocument();
-    expect(screen.queryByText("Cautions:")).not.toBeInTheDocument();
-    expect(document.querySelector(".review-caution-line")).toBeNull();
+    const caseCautions = screen.getByRole("region", { name: "Case cautions" });
+    expect(within(caseCautions).queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Observations differ from result" })).not.toBeInTheDocument();
   });
 

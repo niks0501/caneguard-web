@@ -41,6 +41,7 @@ export interface QueueRowView {
   affectedAreaHectares?: number | null;
   affectedAreaMeasurement?: MeasurementProvenance | null;
   lifecycle?: ReportLifecycle;
+  fieldValidationCompleted?: boolean;
   firstReviewedAt?: string | null;
   scheduledRevisit?: boolean | null;
   latestValidation?: LatestValidationSummary | null;
