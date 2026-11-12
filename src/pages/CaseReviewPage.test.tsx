@@ -701,7 +701,7 @@ describe("CaseReviewPage", () => {
       within(evidence).getByText(/read-only here and does not verify or close the case/i),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByText("Case history")[0]);
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Follow-up outcome")).toBeInTheDocument();
     expect(within(timeline).getByText("Improved")).toBeInTheDocument();
@@ -1649,6 +1649,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithServerHistory }));
     renderPage();
 
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Visit by")).toBeInTheDocument();
     expect(within(timeline).getByText("Jul 22, 2026")).toBeInTheDocument();
@@ -1704,6 +1705,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithServerHistory }));
     renderPage();
 
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Jul 22, 2026 to Jul 23, 2026")).toBeInTheDocument();
     expect(within(timeline).getByText("2026-07-22")).toBeInTheDocument();
@@ -1732,6 +1734,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: reportWithEvents }));
     renderPage();
 
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Maria Santos")).toBeInTheDocument();
     expect(within(timeline).getByText("Advisory provided")).toBeInTheDocument();
@@ -1770,6 +1773,7 @@ describe("CaseReviewPage", () => {
       within(nextActionGroup).queryByRole("radio", { name: /Provide technical assistance/ }),
     ).not.toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     const timeline = screen.getByRole("region", { name: "Case history" });
     expect(within(timeline).getByText("Technical assistance provided")).toBeInTheDocument();
     expect(within(timeline).getByText("Provided technical assistance to the field contact.")).toBeInTheDocument();
