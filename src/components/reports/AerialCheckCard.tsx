@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Drone, Undo2 } from "lucide-react";
+import { Undo2 } from "lucide-react";
 import { ApiError } from "../../api/ApiError";
 import type { AerialAnalysis, DiseaseReport } from "../../domain/report.types";
 import {
@@ -284,7 +284,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   return (
     <section className="review-card aerial-check" aria-labelledby="aerial-check-heading">
       <div className="section-heading">
-        <h2 id="aerial-check-heading" className="aerial-check__heading"><Drone aria-hidden="true" size={18} />Aerial check</h2>
+        <h2 id="aerial-check-heading">Aerial check</h2>
       </div>
       <p className="aerial-check__provenance">
         Supporting evidence from one aerial photo. Experimental; not a ground measurement.
