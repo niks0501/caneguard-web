@@ -113,8 +113,10 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const selectedAdvisory = validated.find((item) => item.uuid === advisoryUuid);
   const selectedInspector = (inspectors.data ?? []).find((item) => item.uuid === inspectorUuid)
     ?? report.fieldValidationAssignment?.assignee;
+  const effectiveInspectorUuid = activeValidation ? report.fieldValidationAssignment?.assignee.uuid ?? "" : inspectorUuid;
+  const effectiveTargetDate = activeValidation ? report.fieldValidationAssignment?.targetVisitDate ?? "" : targetDate;
   const displayedInspector = activeValidation ? report.fieldValidationAssignment?.assignee.name : selectedInspector?.name;
-  const displayedTargetDate = activeValidation ? report.fieldValidationAssignment?.targetVisitDate : targetDate;
+  const displayedTargetDate = effectiveTargetDate;
   const notesErrors = [
     notes.length > 1000 ? "Review notes must be 1,000 characters or fewer." : null,
     effectiveVerification === "unable_to_verify" && !notes.trim() ? "Add a note explaining why the evidence cannot be verified." : null,
@@ -285,7 +287,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const applyConflictChoices = (choices: ConflictChoices) => {
     if (!conflictLatest) return;
     const saved = savedReviewSnapshot(conflictLatest);
-    const mine = draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid, targetDate });
+    const mine = draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid: effectiveInspectorUuid, targetDate: effectiveTargetDate });
     const resolved = Object.fromEntries(
       conflictFields.map((field) => [field, choices[field] === "latest" ? saved[field] : mine[field]]),
     ) as ConflictSnapshot;
@@ -451,7 +453,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       ) : null}
       {conflict ? <ReviewConflictPanel
         latest={conflictLatest}
-        draft={draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid, targetDate })}
+        draft={draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid: effectiveInspectorUuid, targetDate: effectiveTargetDate })}
         inspectorNames={Object.fromEntries((inspectors.data ?? []).map((item) => [item.uuid, item.name]))}
         advisoryNames={Object.fromEntries(validated.map((item) => [item.uuid, `${item.code} - ${item.title}`]))}
         loading={conflictLoading}

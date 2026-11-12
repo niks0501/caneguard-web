@@ -417,6 +417,48 @@ describe("Progressive review resilience", () => {
     expect(save.mock.calls[0][0]).not.toHaveProperty("fieldValidationAssigneeUuid");
   });
 
+  it("does not offer conflicting draft assignment values over an active assignment", async () => {
+    const user = userEvent.setup();
+    const assigned = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 4,
+      reviewNotes: "Updated by the other reviewer.",
+      lifecycle: { ...base.lifecycle!, fieldValidationState: "assigned" as const },
+      fieldValidationAssignment: {
+        uuid: "assignment-1",
+        assignee: { uuid: "inspector-2", name: "Assigned Inspector" },
+        assignedBy: { uuid: "reviewer-1", name: "Reviewer" },
+        targetVisitDate: "2026-12-01",
+        activatedAt: "2026-11-01T00:00:00.000Z",
+        updatedAt: "2026-11-01T00:00:00.000Z",
+      },
+    };
+    const onRefresh = vi.fn().mockResolvedValue({ data: assigned });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    const { rerender } = renderForm(base, onRefresh);
+    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
+    fireEvent.change(screen.getByLabelText("Target visit date (optional)"), { target: { value: "2026-11-20" } });
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+
+    await screen.findByRole("table", { name: "Fields that changed on the server" });
+    rerender(<MemoryRouter><ReviewDecisionForm report={assigned} onRefresh={onRefresh} /></MemoryRouter>);
+    const table = screen.getByRole("table", { name: "Fields that changed on the server" });
+    expect(within(table).queryByRole("row", { name: /Field Inspector/i })).not.toBeInTheDocument();
+    expect(within(table).queryByRole("row", { name: /Visit by/i })).not.toBeInTheDocument();
+    const notesRow = within(table).getByRole("row", { name: /Review notes/i });
+    await user.click(within(notesRow).getByRole("radio", { name: "Mine" }));
+    await user.click(screen.getByRole("button", { name: "Apply these choices" }));
+    expect(screen.getByRole("region", { name: "Review Summary" })).toHaveTextContent(/Assigned Inspector/);
+    expect(screen.getByRole("region", { name: "Review Summary" })).toHaveTextContent(/2026-12-01/);
+
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[1][0]).not.toHaveProperty("fieldValidationAssigneeUuid");
+    expect(save.mock.calls[1][0]).not.toHaveProperty("fieldValidationTargetDate");
+  });
+
   it("shows one decision sentence and keeps review notes verbatim in a separate quote", async () => {
     const user = userEvent.setup();
     renderForm();
