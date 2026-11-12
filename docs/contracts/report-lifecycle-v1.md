@@ -32,6 +32,10 @@ The field reporter may complete assigned work but may not close a case.
 
 Completed validation evidence cannot be reassigned or removed.
 
+## Completion refusals and reassignment
+
+See the [machine-readable lifecycle contract](./report-lifecycle-v1.json) for refusal codes and assignment transitions, and the [completion endpoint contract](./mobile-field-validation-completion-v1.md) for retry and response details.
+
 ## Compatibility
 
 Existing payload contracts remain linked in the JSON artifact.

@@ -55,7 +55,13 @@ class CompleteFieldValidationAssignment
                     ->findOrFail($assignment->report_id);
                 $locked = FieldValidationAssignment::query()
                     ->lockForUpdate()
-                    ->findOrFail($assignment->getKey());
+                    ->find($assignment->getKey());
+                if (! $locked) {
+                    throw new FieldValidationCompletionConflict(
+                        'This visit was removed by the office.',
+                        FieldValidationCompletionConflict::VISIT_REMOVED,
+                    );
+                }
                 $access = app(DistrictAccess::class);
                 $access->requireMobileCapability($user, 'assignment:complete');
                 if (! $access->allows($user->fresh(), $report->district_id)) {
@@ -81,6 +87,8 @@ class CompleteFieldValidationAssignment
 
                     throw new FieldValidationCompletionConflict(
                         'This assignment already has a different completed validation.',
+                        FieldValidationCompletionConflict::COMPLETED_ELSEWHERE,
+                        $existing->created_at->utc()->toISOString(),
                     );
                 }
 
@@ -89,11 +97,13 @@ class CompleteFieldValidationAssignment
                 if ($lifecycle['case_state'] !== Report::CASE_STATE_OPEN) {
                     throw new FieldValidationCompletionConflict(
                         'Only open cases can receive field validation evidence.',
+                        FieldValidationCompletionConflict::CASE_CLOSED,
                     );
                 }
                 if ($lifecycle['field_validation_state'] === Report::FIELD_VALIDATION_STATE_COMPLETED) {
                     throw new FieldValidationCompletionConflict(
                         'This assignment is already marked completed.',
+                        FieldValidationCompletionConflict::COMPLETED_ELSEWHERE,
                     );
                 }
 
@@ -194,17 +204,5 @@ class CompleteFieldValidationAssignment
         } catch (Throwable) {
             // The original completion failure remains the actionable error.
         }
-    }
-}
-
-class FieldValidationCompletionConflict extends RuntimeException
-{
-    public const CONFLICT = 'CONFLICT';
-
-    public const ASSIGNMENT_REASSIGNED = 'ASSIGNMENT_REASSIGNED';
-
-    public function __construct(string $message, public readonly string $reasonCode = self::CONFLICT)
-    {
-        parent::__construct($message);
     }
 }

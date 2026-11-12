@@ -5,4 +5,4 @@
 - Never auto-confirm: Confirm Review when it closes a case, weekly Approve and Send, duplicate link, metadata correction. The confirm modal is the human gate.
 - Safe retries only: idempotent reads, `POST /reports/{id}/open`, mobile upload replays with the same `client_uuid`, weekly send with the same idempotency key. On any other 409, re-read the version and stop for a human.
 - Optimistic writes send `lock_version`; every sibling case writer bumps it, so a writer must take its version from the live record or pin it deliberately, never from a stale snapshot.
-- Error handling keys on `ApiError.code` and `status`, never on `message`. The server sends one `CONFLICT` code for every 409 cause, so do not infer the cause from it.
+- Error handling keys on `ApiError.code` and `status`, never on `message`. For mobile completion refusals, see [`report-lifecycle-v1`](../../contracts/report-lifecycle-v1.json).

@@ -56,7 +56,7 @@ Envelope `{message, code, errors?}`. Branch on `code`/`status`, never `message`.
 |---|---|
 | 401 | `UNAUTHENTICATED` (`ACCOUNT_DISABLED` from `EnsureActiveIdentity`) |
 | 403 / 404 / 419 | `FORBIDDEN` / `NOT_FOUND` / `CSRF_TOKEN_MISMATCH` |
-| 409 | `CONFLICT`, whatever the cause: stale `lock_version`, already linked, weekly not-approved / idempotency mismatch / send pending / no recipients / stale, renderer drift |
+| 409 | Web conflicts include `CONFLICT` for stale `lock_version`, already linked, weekly not-approved / idempotency mismatch / send pending / no recipients / stale, and renderer drift. Mobile completion refusals have distinct codes; see [`report-lifecycle-v1`](../../contracts/report-lifecycle-v1.json). |
 | 422 | `VALIDATION_ERROR` + `errors` |
 | 429 / 503 / 5xx | `RATE_LIMITED` / `SERVICE_UNAVAILABLE` / `SERVER_ERROR` |
 
