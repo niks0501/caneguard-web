@@ -467,16 +467,18 @@ function CaseReviewContent() {
   const workflowStatus = report ? deriveWorkflowStatus(report) : undefined;
   const awaitingDecision = workflowStatus === "needs_review" || workflowStatus === "under_review";
   const mergedHistory = report ? deriveMergedCaseHistory(report) : [];
+  const caseHistoryAvailable = report?.caseHistory?.available ?? true;
+  const visibleHistoryEntries = caseHistoryAvailable ? mergedHistory : [];
   const visibleHistory = historyFilter === "all"
-    ? mergedHistory
-    : mergedHistory.filter((entry) => entry.type === historyFilter);
+    ? visibleHistoryEntries
+    : visibleHistoryEntries.filter((entry) => entry.type === historyFilter);
 
   const historyCounts = {
-    all: mergedHistory.length,
-    review: mergedHistory.filter((e) => e.type === "review").length,
-    field_validation: mergedHistory.filter((e) => e.type === "field_validation").length,
-    referral: mergedHistory.filter((e) => e.type === "referral").length,
-    correction: mergedHistory.filter((e) => e.type === "correction").length,
+    all: visibleHistoryEntries.length,
+    review: visibleHistoryEntries.filter((e) => e.type === "review").length,
+    field_validation: visibleHistoryEntries.filter((e) => e.type === "field_validation").length,
+    referral: visibleHistoryEntries.filter((e) => e.type === "referral").length,
+    correction: visibleHistoryEntries.filter((e) => e.type === "correction").length,
   };
 
   const mapUrl = report ? mapUrlFor(report) : null;
@@ -490,8 +492,7 @@ function CaseReviewContent() {
     openCase();
   }, [report, openCase]);
 
-  const latestHistoryDate = mergedHistory[0]?.timestamp;
-  const caseHistoryAvailable = report?.caseHistory?.available ?? true;
+  const latestHistoryDate = visibleHistoryEntries[0]?.timestamp;
   const cautions = [
     report && locationNeedsConfirmationFor(report)
       ? { label: "Location unconfirmed", guidance: "Confirm the location with the field contact before relying on it." }
@@ -970,7 +971,7 @@ function CaseReviewContent() {
       ),
     },
     { id: "boundary", label: "Boundary", icon: <MapIcon aria-hidden="true" />, count: boundaryCount, panel: boundaryPanel },
-    { id: "history", label: "History", icon: <History aria-hidden="true" />, count: mergedHistory.length, panel: historyPanel },
+    { id: "history", label: "History", icon: <History aria-hidden="true" />, count: visibleHistoryEntries.length, panel: historyPanel },
   ];
 
   return (

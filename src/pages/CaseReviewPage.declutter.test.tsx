@@ -302,13 +302,42 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(tabs[3]).toMatch(/^History\d+$/);
     expect(screen.getByRole("tab", { name: /Photo/ })).toHaveAttribute("aria-selected", "true");
     // The photo and its AI disclaimer share the default tab.
-    const photoPanel = screen.getByRole("tabpanel", { name: "Photo" });
+    const photoPanel = screen.getByRole("tabpanel", { name: /^Photo/ });
     expect(within(photoPanel).getByRole("heading", { name: "Submitted photo" })).toBeInTheDocument();
     expect(within(photoPanel).getByText(/Decision support, not a diagnosis/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Boundary/ }));
     expect(screen.getByRole("tabpanel", { name: /Boundary/ })).toBeVisible();
     expect(screen.queryByRole("heading", { name: "Submitted photo" })).toBeNull();
+  });
+
+  it("shows zero history counts when the history source is unavailable", async () => {
+    const user = userEvent.setup();
+    const report = {
+      ...baseReport,
+      caseHistory: {
+        available: false,
+        sources: { reviewEvents: true, corrections: false, assignments: false, consults: false },
+        entries: [
+          {
+            id: "review-hidden",
+            type: "review" as const,
+            typeLabel: "Review",
+            timestamp: "2026-09-03T02:00:00Z",
+            actor: "Reviewer Hidden",
+            fields: [],
+            notes: null,
+          },
+        ],
+      },
+    };
+    renderPage(report);
+
+    expect(screen.getByRole("tab", { name: /History/ })).toHaveTextContent("History0");
+    await user.click(screen.getByRole("tab", { name: /History/ }));
+    expect(screen.getByRole("button", { name: "All (0)" })).toBeInTheDocument();
+    expect(screen.queryByText("Reviewer Hidden")).toBeNull();
+    expect(screen.getByText("Case history is not available for this older record.")).toBeVisible();
   });
 
   it("keeps Aerial in the evidence tabs when the server feature is unavailable", async () => {
