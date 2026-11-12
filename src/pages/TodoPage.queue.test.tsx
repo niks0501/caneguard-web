@@ -132,13 +132,13 @@ describe("TodoPage queue reads", () => {
 
   it("includes all validation work in Send someone while retaining the overdue lane", async () => {
     const overdue = queueItem(6, "CG-overdue", { field_validation_state: "assigned" }, {
-      visited_at: null,
-      field_observation: null,
-      finding: null,
-      action_taken: null,
+      visited_at: "2026-09-02T08:00:00.000Z",
+      field_observation: "No symptoms were observed during the visit.",
+      finding: "No disease findings recorded.",
+      action_taken: "Follow-up is required.",
       follow_up_outcome: null,
       assignee: { uuid: "inspector-1", name: "Field Inspector" },
-      fresh_photo: null,
+      fresh_photo: { available: false },
     });
     const assigned = queueItem(7, "CG-assigned", { field_validation_state: "in_progress" }, null);
     const advised = { ...queueItem(8, "CG-advised", { field_validation_state: "unassigned" }, null), action_taken: "advisory_provided" };
