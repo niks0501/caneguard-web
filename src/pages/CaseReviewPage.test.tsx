@@ -280,7 +280,7 @@ describe("CaseReviewPage", () => {
     }));
     renderPage();
     expect(screen.getByText("Being reviewed")).toBeInTheDocument();
-    expect(screen.getByText("Needs decision")).toBeInTheDocument();
+    expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Go to decision" })).toBeInTheDocument();
   });
 
@@ -491,6 +491,7 @@ describe("CaseReviewPage", () => {
       name: "Case status",
     });
     expect(screen.getByText("Waiting for your decision")).toBeInTheDocument();
+    expect(screen.queryByText("Needs decision")).not.toBeInTheDocument();
     expect(caseStatus).not.toHaveTextContent("Referral");
     await user.click(screen.getByText("View Full Report Details"));
     const details = screen.getByText("View Full Report Details").closest("details")!;

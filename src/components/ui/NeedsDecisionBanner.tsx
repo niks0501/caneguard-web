@@ -1,10 +1,8 @@
 import { Button } from "./Button";
 
-/** One quiet line that names the pending decision and moves to it. */
 export function NeedsDecisionBanner({ targetId }: { targetId: string }) {
   return (
-    <div className="needs-decision-banner" role="status">
-      <strong>Needs decision</strong>
+    <div className="needs-decision-banner">
       <Button
         type="button"
         variant="secondary"

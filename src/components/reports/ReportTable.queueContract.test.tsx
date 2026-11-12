@@ -93,7 +93,7 @@ const SIX_LABELS = [
   "Waiting for your decision",
   "Being reviewed",
   "Field visit pending",
-  "Expert referral",
+  "Referred to expert",
   "Follow-up planned",
   "Resolved",
 ] as const;
@@ -229,8 +229,8 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
     ["closed + undetermined", { caseState: "closed" }, "Resolved"],
     ["validation assigned", { fieldValidationState: "assigned" }, "Field visit pending"],
     ["validation in progress", { fieldValidationState: "in_progress" }, "Field visit pending"],
-    ["referred", { referralState: "referred" }, "Expert referral"],
-    ["expert response received", { referralState: "expert_response_received" }, "Expert referral"],
+    ["referred", { referralState: "referred" }, "Referred to expert"],
+    ["expert response received", { referralState: "expert_response_received" }, "Referred to expert"],
   ] as const)(
     "STATUS: %s maps to %s",
     (_name, lifecycleOverride, expectedLabel) => {
@@ -351,7 +351,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Expert referral", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Referred to expert", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: Follow-Up outranks Under Review", () => {

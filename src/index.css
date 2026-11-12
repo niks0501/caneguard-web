@@ -9611,10 +9611,6 @@ button.monitoring-calendar__day-number:focus-visible {
   border-bottom: 1px solid var(--color-border);
 }
 
-.needs-decision-banner strong {
-  color: var(--color-warning);
-}
-
 .back-to-top {
   position: fixed;
   right: 20px;
