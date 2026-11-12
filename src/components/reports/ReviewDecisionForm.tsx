@@ -15,7 +15,6 @@ import { useFieldReporters } from "../../hooks/useFieldReporters";
 import { useAdvisories, useUpdateReportReview } from "../../hooks/useReports";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { reportsRepository } from "../../services/reports.service";
-import { formatCalendarDate } from "../../lib/formatters";
 import { ReviewConflictPanel } from "./ReviewConflictPanel";
 import {
   allConflictChoices,
@@ -42,7 +41,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
 }) {
   const [reconciledReport, setReconciledReport] = useState<DiseaseReport | null>(null);
   const [conflictLatest, setConflictLatest] = useState<DiseaseReport | null>(null);
-  const effectiveReport = [report, reconciledReport, conflictLatest].reduce((newest, candidate) => (
+  const effectiveReport = [report, reconciledReport, conflictLatest].reduce<DiseaseReport>((newest, candidate) => (
     candidate && (candidate.reviewVersion ?? -1) > (newest.reviewVersion ?? -1) ? candidate : newest
   ), report);
   const lifecycle = effectiveReport.lifecycle ?? legacyLifecycleForReviewStatus(effectiveReport.reviewStatus);
@@ -182,6 +181,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
 
     const saved = savedReviewSnapshot(report);
     const selection = parseActionToken(saved.action);
+    // Deliberate resync: a clean draft adopts the newer server version in one pass.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setReconciledReport(report);
     setClassification((saved.classification || null) as AuthorityClassifiedCondition | null);
     setVerification(saved.verification as VerificationOutcome);
