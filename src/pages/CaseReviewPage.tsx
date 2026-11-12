@@ -850,6 +850,9 @@ function CaseReviewContent() {
                 <DetailField label="First reviewed">{report.firstReviewedAt ? formatDateTime(report.firstReviewedAt) : "Not reviewed"}</DetailField>
                 <DetailField label="Last reviewed by">{report.reviewedBy ?? "Not reviewed"}</DetailField>
                 <DetailField label="Reviewed at">{report.reviewedAt ? formatDateTime(report.reviewedAt) : "Not reviewed"}</DetailField>
+                {report.advisory?.deliveryState === "delivered" || report.advisory?.deliveryState === "acknowledged" ? (
+                  <DetailField label="Advice seen">{report.advisory.acknowledgedAt ? formatDateTime(report.advisory.acknowledgedAt) : "Not seen yet"}</DetailField>
+                ) : null}
                 <DetailField label="Field validation">{fieldValidationStateLabels[lifecycle?.fieldValidationState ?? "unassigned"]}</DetailField>
                 <DetailField label="Verification">{verificationOutcomeLabels[lifecycle?.verificationOutcome ?? "not_determined"]}</DetailField>
                 <DetailField label="Current review note"><ClampedText text={report.reviewNotes ?? "Not provided"} /></DetailField>

@@ -230,6 +230,41 @@ class AdvisoryTest extends TestCase
         );
     }
 
+    public function test_mobile_read_all_acknowledges_delivered_advice_and_stamps_seen_time(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+
+        $token = $reporter->createToken('advisory-read-all', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertJsonPath('meta.advice_seen_count', 1);
+
+        $fresh = $report->fresh();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $fresh->advisory_delivery_state);
+        $seenAt = $fresh->advisory_acknowledged_at;
+        $this->assertNotNull($seenAt);
+
+        $this->travel(5)->minutes();
+        $this->withToken($token)
+            ->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertJsonPath('meta.advice_seen_count', 0);
+        $this->assertTrue($seenAt->equalTo($report->fresh()->advisory_acknowledged_at));
+    }
+
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void
     {
         $reviewer = User::factory()->reviewer()->create(['name' => 'Office Reviewer']);

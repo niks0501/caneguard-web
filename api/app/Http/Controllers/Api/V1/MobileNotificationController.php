@@ -8,6 +8,7 @@ use App\Http\Requests\MobileNotificationMutationRequest;
 use App\Http\Requests\MobileNotificationRequest;
 use App\Http\Resources\MobileNotificationResource;
 use App\Models\Report;
+use App\Models\User;
 use App\Support\MobileFeedVersion;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -134,21 +135,7 @@ class MobileNotificationController extends Controller
             $owned->markAsRead();
         }
 
-        $data = is_array($owned->data) ? $owned->data : [];
-        if (($data['event_type'] ?? null) === 'advisory_available'
-            && filled($data['report_uuid'] ?? null)
-            && filled($data['advisory_uuid'] ?? null)
-        ) {
-            Report::query()->visibleTo(request()->user())
-                ->where('uuid', $data['report_uuid'])
-                ->whereBelongsTo($user, 'reporter')
-                ->whereHas('advisory', fn ($query) => $query->where('uuid', $data['advisory_uuid']))
-                ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
-                ->update([
-                    'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
-                    'advisory_acknowledged_at' => now()->utc(),
-                ]);
-        }
+        $this->acknowledgeAdvice($owned, $user);
 
         return (new MobileNotificationResource($owned->refresh()))->additional([
             'meta' => [
@@ -162,14 +149,49 @@ class MobileNotificationController extends Controller
         MobileNotificationMutationRequest $request,
     ): JsonResponse {
         $user = $request->user();
-        $markedCount = app(ScopeNotifications::class)->handle($user->unreadNotifications(), $user)->update(['read_at' => now()]);
+        $unread = app(ScopeNotifications::class)->handle($user->unreadNotifications(), $user)->get();
+        $markedCount = 0;
+        $adviceSeenCount = 0;
+
+        foreach ($unread as $notification) {
+            $notification->markAsRead();
+            $adviceSeenCount += $this->acknowledgeAdvice($notification, $user);
+            $markedCount++;
+        }
 
         return response()->json([
             'data' => [],
             'meta' => [
                 'marked_count' => $markedCount,
+                'advice_seen_count' => $adviceSeenCount,
                 'unread_count' => 0,
             ],
         ]);
+    }
+
+    /**
+     * Seen event: opening or bulk-reading an owned advisory notification moves
+     * that case's still-delivered advice to acknowledged and stamps when. A
+     * stale notification for a replaced advisory matches nothing.
+     */
+    private function acknowledgeAdvice(DatabaseNotification $notification, User $user): int
+    {
+        $data = is_array($notification->data) ? $notification->data : [];
+        if (($data['event_type'] ?? null) !== 'advisory_available'
+            || blank($data['report_uuid'] ?? null)
+            || blank($data['advisory_uuid'] ?? null)
+        ) {
+            return 0;
+        }
+
+        return Report::query()->visibleTo($user)
+            ->where('uuid', $data['report_uuid'])
+            ->whereBelongsTo($user, 'reporter')
+            ->whereHas('advisory', fn ($query) => $query->where('uuid', $data['advisory_uuid']))
+            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
+            ->update([
+                'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
+                'advisory_acknowledged_at' => now()->utc(),
+            ]);
     }
 }

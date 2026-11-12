@@ -26,9 +26,14 @@ The feed is retrieval-oriented, so Mobile acknowledges items through two owner-s
 | Method | Path | Result |
 |---|---|---|
 | `PATCH` | `/api/v1/mobile/notifications/{notification}/read` | `{ data: <notification>, meta: { unread_count } }` |
-| `POST` | `/api/v1/mobile/notifications/read-all` | `{ data: [], meta: { marked_count, unread_count } }` |
+| `POST` | `/api/v1/mobile/notifications/read-all` | `{ data: [], meta: { marked_count, advice_seen_count, unread_count } }` |
 
 Both require the field-reporter role, the `mobile.token` middleware, and the `notification:read` ability.
 Each item is loaded through the authenticated user's notifications relation, so another account's notification can never be read or acknowledged, and a cross-owner identifier answers `404`.
 Marking an already-read item is idempotent and preserves the first `read_at` timestamp.
 Acknowledging a notification never blocks opening its destination on Mobile: a failed mutation leaves the item unread and surfaces a recoverable message. Reading an `advisory_available` item advances that case's advisory delivery state to `acknowledged` when the notification is owned by the reporter.
+
+### Seen event
+
+Opening an advisory item (`PATCH .../read`) or reading everything (`POST .../read-all`) is the Seen event: each owned `advisory_available` item whose case advice is still `delivered` moves to `acknowledged` and stamps `advisory.acknowledged_at` on the case, which the office reads as Seen at that time. A stale item for a replaced advisory acknowledges nothing, and repeating the call never moves the first Seen time.
+`read-all` reports how many advice acknowledgements it recorded as the optional `meta.advice_seen_count`. Adding that optional response field is a same-major widening under the artifact's `versioning` rules; no existing field, read-state meaning or checkpoint changes, so the contract stays v1.
