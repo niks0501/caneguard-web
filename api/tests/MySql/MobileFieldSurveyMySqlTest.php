@@ -78,7 +78,10 @@ class MobileFieldSurveyMySqlTest extends TestCase
         $foreignInspector = User::factory()->inDistrict($foreign)->create();
         Auth::forgetGuards();
         $this->withToken($foreignInspector->createToken('foreign', ['*'])->plainTextToken);
-        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertForbidden();
+        // The key lookup precedes the access check: another district's inspector gets the same
+        // owner-bound refusal as anyone else, and no receipt.
+        $this->postJson('/api/v1/mobile/field-surveys', $payload)->assertUnprocessable()
+            ->assertJsonValidationErrors('client_uuid')->assertJsonMissingPath('id');
         $this->assertSame(1, FieldSurvey::query()->where('client_uuid', $payload['client_uuid'])->count());
     }
 
