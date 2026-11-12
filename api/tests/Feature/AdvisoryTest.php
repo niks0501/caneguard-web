@@ -265,6 +265,44 @@ class AdvisoryTest extends TestCase
         $this->assertTrue($seenAt->equalTo($report->fresh()->advisory_acknowledged_at));
     }
 
+    public function test_mobile_read_all_acknowledges_previously_read_advice_without_touching_other_reporters(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $otherReporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $otherReport = Report::factory()->create(['reporter_id' => $otherReporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        foreach ([$report, $otherReport] as $case) {
+            $this->patchJson("/api/v1/reports/{$case->uuid}/review", [
+                'advisory_uuid' => $advisory->uuid,
+                'expected_version' => 0,
+            ])->assertOk();
+        }
+
+        $notification = $reporter->notifications()->sole();
+        $notification->markAsRead();
+        $originalReadAt = $notification->fresh()->read_at;
+        $this->travel(5)->minutes();
+        $token = $reporter->createToken('advisory-legacy-read', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()
+            ->assertExactJson(['data' => [], 'meta' => ['marked_count' => 0, 'unread_count' => 0]]);
+        $this->assertTrue($originalReadAt->equalTo($notification->fresh()->read_at));
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $report->fresh()->advisory_delivery_state);
+        $seenAt = $report->fresh()->advisory_acknowledged_at;
+        $this->assertNotNull($seenAt);
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $otherReport->fresh()->advisory_delivery_state);
+
+        $this->travel(5)->minutes();
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        $this->assertTrue($seenAt->equalTo($report->fresh()->advisory_acknowledged_at));
+    }
+
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void
     {
         $reviewer = User::factory()->reviewer()->create(['name' => 'Office Reviewer']);

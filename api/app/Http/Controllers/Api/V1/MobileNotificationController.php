@@ -131,9 +131,7 @@ class MobileNotificationController extends Controller
             ->whereKey($notification->getKey())
             ->firstOrFail();
 
-        if ($owned->read_at === null) {
-            $owned->markAsRead();
-        }
+        $owned->newQuery()->whereKey($owned->getKey())->whereNull('read_at')->update(['read_at' => now()]);
 
         $this->acknowledgeAdvice($owned, $user);
 
@@ -149,14 +147,24 @@ class MobileNotificationController extends Controller
         MobileNotificationMutationRequest $request,
     ): JsonResponse {
         $user = $request->user();
-        $unread = app(ScopeNotifications::class)->handle($user->unreadNotifications(), $user)->get();
-        $markedCount = 0;
+        $markedCount = app(ScopeNotifications::class)->handle($user->unreadNotifications(), $user)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
-        foreach ($unread as $notification) {
-            $notification->markAsRead();
-            $this->acknowledgeAdvice($notification, $user);
-            $markedCount++;
-        }
+        $notifications = $user->notifications()
+            ->where('data->event_type', 'advisory_available')
+            ->whereColumn('data->report_uuid', 'reports.uuid')
+            ->whereColumn('data->advisory_uuid', 'advisories.uuid')
+            ->selectRaw('1');
+
+        Report::query()->visibleTo($user)
+            ->whereBelongsTo($user, 'reporter')
+            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
+            ->whereHas('advisory', fn ($query) => $query->whereExists($notifications->toBase()))
+            ->update([
+                'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
+                'advisory_acknowledged_at' => now()->utc(),
+            ]);
 
         return response()->json([
             'data' => [],
