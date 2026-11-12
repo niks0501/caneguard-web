@@ -277,15 +277,24 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     setConflictError(null);
     try {
       const refreshed = await onRefresh();
-      if (refreshed?.data && !refreshed.isError) setConflictLatest(refreshed.data);
-      else setConflictError("The latest saved version could not be loaded. Check the connection and try again.");
+      if (refreshed?.data && !refreshed.isError
+        && (refreshed.data.reviewVersion ?? -1) >= (effectiveReport.reviewVersion ?? -1)) {
+        setConflictLatest(refreshed.data);
+      } else setConflictError("The latest saved version could not be loaded. Check the connection and try again.");
     } catch {
       setConflictError("The latest saved version could not be loaded. Check the connection and try again.");
     } finally {
       latestReadInFlight.current = false;
       setConflictLoading(false);
     }
-  }, [onRefresh]);
+  }, [effectiveReport.reviewVersion, onRefresh]);
+
+  useEffect(() => {
+    if (!conflict || !conflictLatest || conflictLoading || conflictError) return;
+    if ((effectiveReport.reviewVersion ?? -1) > (conflictLatest.reviewVersion ?? -1)) {
+      void loadLatestVersion();
+    }
+  }, [conflict, conflictLatest, conflictError, conflictLoading, effectiveReport.reviewVersion, loadLatestVersion]);
 
   // A 409 starts one automatic read of the latest saved record; a failure stays
   // visible with an explicit retry instead of retrying in a loop.
@@ -304,6 +313,11 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   // takes the latest saved value or keeps the reviewer's own draft value.
   const applyConflictChoices = (choices: ConflictChoices) => {
     if (!conflictLatest) return;
+    if ((effectiveReport.reviewVersion ?? -1) > (conflictLatest.reviewVersion ?? -1)) {
+      setConflictChoices(choices);
+      void loadLatestVersion();
+      return;
+    }
     const saved = savedReviewSnapshot(conflictLatest);
     setReconciledReport(conflictLatest);
     const mine = draftReviewSnapshot({ classification, verification: effectiveVerification, action, support, advisoryUuid, notes, inspectorUuid: effectiveInspectorUuid, targetDate: effectiveTargetDate });

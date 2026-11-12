@@ -178,6 +178,46 @@ describe("Progressive review resilience", () => {
     });
   });
 
+  it("refreshes a conflict comparison when the parent report advances", async () => {
+    const user = userEvent.setup();
+    const versionTwo = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 2,
+      reviewNotes: "Version two notes.",
+    };
+    const versionThree = {
+      ...base,
+      reviewVersion: base.reviewVersion! + 3,
+      reviewNotes: "Version three notes.",
+    };
+    const onRefresh = vi.fn()
+      .mockResolvedValueOnce({ data: versionTwo })
+      .mockResolvedValueOnce({ data: versionThree });
+    save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
+    const { rerender } = renderForm(base, onRefresh);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await screen.findByText("Version two notes.");
+
+    rerender(<MemoryRouter><ReviewDecisionForm report={versionThree} onRefresh={onRefresh} /></MemoryRouter>);
+    await screen.findByText("Version three notes.");
+    await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("textbox")).toHaveValue("Version three notes.");
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    expect(save.mock.calls[1][0]).toMatchObject({
+      expectedVersion: versionThree.reviewVersion,
+      notes: "Version three notes.",
+    });
+  });
+
   it("reloads every field when the reviewer discards the draft after a conflict", async () => {
     const user = userEvent.setup();
     const latest = { ...base, reviewVersion: base.reviewVersion! + 3, reviewNotes: "Updated by the other reviewer." };
