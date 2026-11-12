@@ -8334,8 +8334,8 @@ button.monitoring-calendar__day-number:focus-visible {
   color: var(--color-danger);
 }
 
-/* QF-8 needs assessment: one ruled list. A group with rows keeps a heading and
-   a count; an empty group folds into a single line of the same list. */
+/* To do lanes share one ruled list. A lane with rows keeps a heading and a
+   count; an empty lane folds into a single line of the same list. */
 .needs-assessment-queue {
   margin-top: var(--space-5);
   border-top: 1px solid var(--color-border);

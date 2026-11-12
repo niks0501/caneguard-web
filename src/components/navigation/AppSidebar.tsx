@@ -1,6 +1,6 @@
 import {
   CalendarDays,
-  SquareCheck,
+  ListTodo,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -69,8 +69,8 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           Home
         </SidebarLink>
         <div className="sidebar__group" role="group" aria-label="Work">
-          <SidebarLink to={routes.needsAssessment} icon={<SquareCheck aria-hidden="true" />} onNavigate={onNavigate}>
-            Needs assessment
+          <SidebarLink to={routes.todo} icon={<ListTodo aria-hidden="true" />} onNavigate={onNavigate}>
+            To do
           </SidebarLink>
           <SidebarLink to={routes.reports} icon={<ShieldCheck aria-hidden="true" />} onNavigate={onNavigate}>
             Reports

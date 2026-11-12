@@ -564,21 +564,21 @@ describe("DashboardPage", () => {
     // action, so every per-card target survives without an Open row.
     expect(snapshot.getAllByRole("link")).toHaveLength(4);
     expect(
-      snapshot.getByRole("link", { name: "Open the submitted reports register" }),
-    ).toHaveAttribute("href", "/reports");
+      snapshot.getByRole("link", { name: "Open submitted reports on the To do page" }),
+    ).toHaveAttribute("href", "/todo#lane-review");
     expect(
-      snapshot.getByRole("link", { name: "Open the Awaiting review queue" }),
-    ).toHaveAttribute("href", "/reports?queue=needs_review");
-    expect(
-      snapshot.getByRole("link", {
-        name: "Open the Needing field validation queue",
-      }),
-    ).toHaveAttribute("href", "/map?queue=needs_visit");
+      snapshot.getByRole("link", { name: "Open Review new reports on the To do page" }),
+    ).toHaveAttribute("href", "/todo#lane-review");
     expect(
       snapshot.getByRole("link", {
-        name: "Open the Unverified, no active work queue",
+        name: "Open Send someone on the To do page",
       }),
-    ).toHaveAttribute("href", "/reports?queue=unverified_no_active_work");
+    ).toHaveAttribute("href", "/todo#lane-send");
+    expect(
+      snapshot.getByRole("link", {
+        name: "Open Send someone for reports nobody is assigned to",
+      }),
+    ).toHaveAttribute("href", "/todo#lane-send");
   });
 
   it("prints the signed delta from the same comparison window on KPI 1", () => {
