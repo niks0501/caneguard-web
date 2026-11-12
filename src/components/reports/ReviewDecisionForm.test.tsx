@@ -444,6 +444,7 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Review decision" }));
     await user.click(screen.getByRole("button", { name: "Confirm Review" }));
     expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
     await user.click(screen.getByRole("button", { name: "Next step" }));

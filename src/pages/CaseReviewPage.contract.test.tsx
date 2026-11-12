@@ -182,6 +182,7 @@ describe("Report Evidence Review protected contract", () => {
     const verification = screen.getByLabelText(/Verification Outcome/i);
     expect(evidence.compareDocumentPosition(staffFinding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(staffFinding.compareDocumentPosition(verification) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: /Close this case/i }).compareDocumentPosition(staffFinding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await user.click(screen.getByRole("checkbox", { name: /Close this case/i }));
     await user.click(screen.getByRole("button", { name: "Review decision" }));
 
