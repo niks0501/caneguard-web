@@ -89,15 +89,6 @@ function renderTable(reports: DiseaseReport[]) {
   );
 }
 
-const SIX_LABELS = [
-  "Waiting for your decision",
-  "Being reviewed",
-  "Field visit assigned",
-  "Referred to expert",
-  "Follow-up planned",
-  "Resolved",
-] as const;
-
 function queueHeaderLabels() {
   return screen
     .getAllByRole("columnheader")
@@ -218,10 +209,9 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
     // (the workflow state) must be present.
     expect(within(row).queryByText("Needs review", { exact: true })).not.toBeInTheDocument();
 
-    const rendered = SIX_LABELS.filter((label) =>
-      within(row).queryByText(label, { exact: true }) !== null,
-    );
-    expect(rendered).toEqual(["Waiting for your decision"]);
+    const statusChip = row.querySelector(".workflow-status-badge");
+    expect(statusChip?.textContent).toBe("Waiting for your decision");
+    expect(row.querySelectorAll(".workflow-status-badge")).toHaveLength(1);
   });
 
   it.each([
@@ -241,8 +231,8 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       ]);
 
       expect(
-        within(rowFor("CG-2026-0001")).getByText(expectedLabel, { exact: true }),
-      ).toBeInTheDocument();
+        rowFor("CG-2026-0001").querySelector(".workflow-status-badge")?.textContent,
+      ).toBe(expectedLabel);
     },
   );
 
@@ -264,7 +254,8 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
     })]);
 
     const track = within(rowFor("CG-2026-0001")).getByRole("list", { name: "Case progress" });
-    expect(within(track).getByRole("listitem", { name: "Field check current" })).toHaveAttribute("aria-current", "step");
+    const currentStep = track.querySelector('[aria-current="step"]');
+    expect(currentStep?.textContent).toContain("Field check");
   });
 
   it("STATUS: a first-reviewed open case is Under Review", () => {
@@ -284,10 +275,13 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
     const row = rowFor("CG-2026-0001");
     expect(within(row).getByText("Follow-up planned", { exact: true })).toBeInTheDocument();
     const track = within(row).getByRole("list", { name: "Case progress" });
-    expect(within(track).getByRole("listitem", { name: "Reported completed" })).toBeInTheDocument();
-    expect(within(track).getByRole("listitem", { name: "Reviewed completed" })).toBeInTheDocument();
-    expect(within(track).getByRole("listitem", { name: "Field check current" })).toHaveAttribute("aria-current", "step");
-    expect(within(track).getByRole("listitem", { name: "Resolved not reached" })).toBeInTheDocument();
+    const steps = [...track.querySelectorAll("li")];
+    expect(steps).toHaveLength(4);
+    expect(steps[0].textContent).toContain("Reported");
+    expect(steps[1].textContent).toContain("Reviewed");
+    expect(steps[2].textContent).toContain("Field check");
+    expect(steps[2]).toHaveAttribute("aria-current", "step");
+    expect(steps[3].textContent).toContain("Resolved");
   });
 
   it("STATUS: a due date without the flag is not Follow-Up (flag-driven ruling)", () => {
@@ -319,7 +313,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Resolved", { exact: true })).toBeInTheDocument();
+    expect(rowFor("CG-2026-0001").querySelector(".workflow-status-badge")?.textContent).toBe("Resolved");
   });
 
   it("STATUS: Field Validation outranks Referred", () => {

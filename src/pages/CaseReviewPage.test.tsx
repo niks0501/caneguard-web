@@ -484,8 +484,8 @@ describe("CaseReviewPage", () => {
       screen.queryByText("Reporter observation: Possible Condition reported as not matching"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Reporter flagged AI mismatch")).not.toBeInTheDocument();
-    // Human-readable decision states replace the machine chips.
-    expect(screen.getByText("Observations differ from result")).toBeInTheDocument();
+    // The concise summary is the live caution status; details remain in guidance.
+    expect(screen.getByRole("status", { name: "Caution: Observations differ from result" })).toBeInTheDocument();
     expect(screen.getByText("The reporter said the AI result does not match what they observed.")).toBeInTheDocument();
     const caseCautions = screen.getByRole("region", {
       name: "Case cautions",

@@ -271,7 +271,7 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     const flow = document.querySelector(".review-single-column");
     expect(flow).toBeInTheDocument();
 
-    const chips = screen.getByRole("region", { name: "Case status" });
+    const chips = screen.getByRole("region", { name: "Case cautions" });
     const photo = screen.getByRole("heading", { name: "Submitted photo" });
     const condition = screen.getByRole("heading", { name: "Possible Condition" });
     const fieldReport = screen.getByRole("heading", { name: "Observed symptoms" });
