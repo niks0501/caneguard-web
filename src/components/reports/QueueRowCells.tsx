@@ -1,3 +1,4 @@
+import { CalendarClock, CircleCheckBig, Eye, Footprints, Inbox, Share2, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 import { routes } from "../../app/routes";
 import { authorityClassifiedConditionLabels } from "../../domain/report.metadata";
@@ -14,6 +15,7 @@ import {
   deriveWorkflowStatusChipLabel,
   deriveWorkflowTrackReached,
   workflowTrackSteps,
+  type WorkflowStatus,
   type WorkflowStatusInput,
 } from "../../domain/workflowStatus";
 import { formatAffectedArea } from "../../lib/formatters";
@@ -131,17 +133,28 @@ export function QueueAffectedAreaCell({ row }: { row: QueueRowView }) {
   );
 }
 
+const workflowStatusIcons: Record<WorkflowStatus, LucideIcon> = {
+  needs_review: Inbox,
+  under_review: Eye,
+  field_validation: Footprints,
+  referred: Share2,
+  follow_up: CalendarClock,
+  resolved: CircleCheckBig,
+};
+
 /** One coloured chip in plain words plus the four-step track, shown once. */
 export function QueueStatusCell({ row }: { row: WorkflowStatusInput }) {
   const status = deriveWorkflowStatus(row);
   const chipLabel = deriveWorkflowStatusChipLabel(row, status);
   const reached = deriveWorkflowTrackReached(row, status);
+  const StatusIcon = workflowStatusIcons[status];
 
   return (
     <span className="workflow-status">
       <span
         className={`badge status-badge workflow-status-badge workflow-status-badge--${status}`}
       >
+        <StatusIcon aria-hidden="true" size={14} className="workflow-status-badge__icon" />
         <span className="status-badge__label">{chipLabel}</span>
       </span>
       <ol className="workflow-track" aria-label="Case progress">

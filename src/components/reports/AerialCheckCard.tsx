@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Undo2, Upload } from "lucide-react";
 import { ApiError } from "../../api/ApiError";
 import type { AerialAnalysis, DiseaseReport } from "../../domain/report.types";
 import {
@@ -290,7 +291,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       </p>
 
       <label className="aerial-check__drop">
-        <span>{latest ? "Add another aerial photo" : "Add aerial photo"}</span>
+        <span className="aerial-check__drop-label"><Upload aria-hidden="true" size={16} />{latest ? "Add another aerial photo" : "Add aerial photo"}</span>
         <small>JPG, PNG or WebP, up to 20 MB</small>
         <input
           type="file"
@@ -331,7 +332,7 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
       {undo && undo.notice !== "stale" ? (
         <p className="aerial-check__undo" role="status">
           Check removed.{" "}
-          <Button type="button" variant="secondary" onClick={() => undoRemoval(undo.target)} disabled={restore.isPending}>
+          <Button type="button" variant="secondary" icon={<Undo2 aria-hidden="true" size={16} />} onClick={() => undoRemoval(undo.target)} disabled={restore.isPending}>
             Undo
           </Button>
         </p>
