@@ -6,6 +6,7 @@ export interface EvidenceTab {
   icon: ReactNode;
   /** Shown as a badge; omit for a tab with nothing to count. */
   count?: number;
+  disabled?: boolean;
   panel: ReactNode;
 }
 
@@ -20,8 +21,9 @@ export function EvidenceTabs({ tabs, label }: { tabs: readonly EvidenceTab[]; la
   const foundIndex = tabs.findIndex((tab) => tab.id === selectedId);
   const selectedIndex = foundIndex === -1 ? 0 : foundIndex;
 
-  const select = (index: number, focus = false) => {
-    const next = (index + tabs.length) % tabs.length;
+  const select = (index: number, focus = false, direction = 1) => {
+    let next = (index + tabs.length) % tabs.length;
+    while (tabs[next].disabled) next = (next + direction + tabs.length) % tabs.length;
     setSelectedId(tabs[next].id);
     if (focus) listRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
   };
@@ -37,10 +39,12 @@ export function EvidenceTabs({ tabs, label }: { tabs: readonly EvidenceTab[]; la
             id={`${idPrefix}-tab-${tab.id}`}
             aria-selected={index === selectedIndex}
             aria-controls={`${idPrefix}-panel-${tab.id}`}
+            disabled={tab.disabled}
             tabIndex={index === selectedIndex ? 0 : -1}
             className="evidence-tabs__tab"
             onClick={() => select(index)}
             onKeyDown={(event) => {
+              const direction = event.key === "ArrowLeft" || event.key === "End" ? -1 : 1;
               const target =
                 event.key === "ArrowRight" ? index + 1
                 : event.key === "ArrowLeft" ? index - 1
@@ -49,7 +53,7 @@ export function EvidenceTabs({ tabs, label }: { tabs: readonly EvidenceTab[]; la
                 : null;
               if (target === null) return;
               event.preventDefault();
-              select(target, true);
+              select(target, true, direction);
             }}
           >
             {tab.icon}

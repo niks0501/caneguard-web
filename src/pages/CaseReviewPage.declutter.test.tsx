@@ -311,6 +311,21 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(screen.queryByRole("heading", { name: "Submitted photo" })).toBeNull();
   });
 
+  it("keeps Aerial in the evidence tabs when the server feature is unavailable", async () => {
+    const user = userEvent.setup();
+    renderPage({ ...baseReport, aerialAnalyses: undefined });
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Photo1", "Aerial0", "Boundary0", expect.stringMatching(/^History\d+$/)]);
+    const aerialTab = screen.getByRole("tab", { name: /Aerial/ });
+    expect(aerialTab).toBeDisabled();
+    expect(aerialTab).toHaveAttribute("aria-selected", "false");
+
+    await user.click(screen.getByRole("tab", { name: /Photo/ }));
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: /Boundary/ })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("shows pending inspector attachments in the Boundary tab", async () => {
     const user = userEvent.setup();
     renderPage({

@@ -957,19 +957,18 @@ function CaseReviewContent() {
   );
   const evidenceTabs: EvidenceTab[] = [
     { id: "photo", label: "Photo", icon: <ImageIcon aria-hidden="true" />, count: report.imageStatus === "available" ? 1 : 0, panel: photoPanel },
-    ...(report.aerialAnalyses !== undefined
-      ? [{
-          id: "aerial",
-          label: "Aerial",
-          icon: <Drone aria-hidden="true" />,
-          count: aerialCount,
-          panel: aerialOpen ? (
-            <AerialCheckCard key={report.uuid} report={report} />
-          ) : (
-            <CollapsedTool summary="No aerial photo yet" action="Add one" onOpen={() => setAerialOpen(true)} />
-          ),
-        }]
-      : []),
+    {
+      id: "aerial",
+      label: "Aerial",
+      icon: <Drone aria-hidden="true" />,
+      count: aerialCount,
+      disabled: report.aerialAnalyses === undefined,
+      panel: report.aerialAnalyses === undefined ? null : aerialOpen ? (
+        <AerialCheckCard key={report.uuid} report={report} />
+      ) : (
+        <CollapsedTool summary="No aerial photo yet" action="Add one" onOpen={() => setAerialOpen(true)} />
+      ),
+    },
     { id: "boundary", label: "Boundary", icon: <MapIcon aria-hidden="true" />, count: boundaryCount, panel: boundaryPanel },
     { id: "history", label: "History", icon: <History aria-hidden="true" />, count: mergedHistory.length, panel: historyPanel },
   ];
