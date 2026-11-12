@@ -1,6 +1,7 @@
 import type { ReportFilters } from "../../domain/report.types";
 import {
   authorityClassifiedConditionLabels,
+  legacyAuthorityClassifiedConditionLabels,
   caseStateLabels,
   diseaseLabels,
   fieldValidationStateLabels,
@@ -39,6 +40,14 @@ function customPeriodProblem(from: string, to: string): string | null {
   if (days < 1) return "Date range ending before it starts";
   if (days > printablePeriodMaxDays) return `Date range over ${printablePeriodMaxDays} days`;
   return null;
+}
+
+function removeRetiredStaffCondition(filters: BuilderFilters, removed: string[]) {
+  const value = filters.authority_classified_condition;
+  if (Object.hasOwn(legacyAuthorityClassifiedConditionLabels, value)) {
+    removed.push(`Staff condition: ${legacyAuthorityClassifiedConditionLabels[value as keyof typeof legacyAuthorityClassifiedConditionLabels]}`);
+    filters.authority_classified_condition = "";
+  }
 }
 
 const queueLabels: Record<string, string> = {
@@ -81,6 +90,7 @@ export function printableScopeFromReportFilters(filters: ReportFilters): Printab
   if (filters.status) removed.push("Status");
   if (filters.reviewer) removed.push("Field Inspector");
   if (filters.location) removed.push("Map location");
+  removeRetiredStaffCondition(next, removed);
 
   let customPeriod: { from: string; to: string } | undefined;
   if (filters.dateFrom && filters.dateTo) {
@@ -152,8 +162,10 @@ export function printableScopeFromSearch(params: URLSearchParams): PrintableBuil
   scopeFilterKeys.forEach((key) => {
     filters[key] = params.get(key) ?? "";
   });
+  const removed = params.getAll("skipped");
+  removeRetiredStaffCondition(filters, removed);
   const from = params.get("from");
   const to = params.get("to");
   const customPeriod = from && to && !customPeriodProblem(from, to) ? { from, to } : undefined;
-  return { filters, customPeriod, removed: params.getAll("skipped") };
+  return { filters, customPeriod, removed };
 }

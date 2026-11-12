@@ -11,7 +11,6 @@ import { WeeklyRssiExport } from "./WeeklyRssiExport";
 import { previousManilaIsoWeekAt } from "../../domain/reportingTime";
 import {
   activeAuthorityClassifiedConditionLabels,
-  authorityClassifiedConditionLabels,
   caseStateLabels,
   diseaseLabels,
   fieldValidationFilterOptions,
@@ -124,10 +123,6 @@ function periodLabel(state: BuilderState) {
   if (state.periodType === "monthly") return state.month || "No month selected";
   if (!state.from || !state.to) return "Incomplete date range";
   return `${state.from} to ${state.to}`;
-}
-
-function named(map: Partial<Record<string, string>>, value: string) {
-  return map[value] ?? value;
 }
 
 function moreHasValue(state: BuilderState) {
@@ -289,15 +284,6 @@ export function ReportDocumentBuilder({
       {state.periodType === "custom" ? <><label><span>From</span><input type="date" value={state.from} onChange={(event) => update("from", event.target.value)} /></label><label><span>To</span><input type="date" value={state.to} onChange={(event) => update("to", event.target.value)} /></label></> : null}
     </>
   );
-  const staffConditionOptions = {
-    ...activeAuthorityClassifiedConditionLabels,
-    // A legacy value stays selectable only while an arriving scope holds it.
-    ...(state.filters.authority_classified_condition in activeAuthorityClassifiedConditionLabels
-      || !state.filters.authority_classified_condition
-      ? {}
-      : { [state.filters.authority_classified_condition]: named(authorityClassifiedConditionLabels, state.filters.authority_classified_condition) }),
-  };
-
   if (mode === "official") {
     return (
       <section className="report-builder__official" aria-label="Official weekly version">
@@ -342,7 +328,7 @@ export function ReportDocumentBuilder({
         <div className="report-builder__controls">
           <label><span>Verification</span><select value={state.filters.verification_outcome} onChange={(event) => updateFilter("verification_outcome", event.target.value)}><option value="">All outcomes</option>{Object.entries(verificationOutcomeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label><span>Field validation</span><select value={state.filters.field_validation_state} onChange={(event) => updateFilter("field_validation_state", event.target.value)}><option value="">All states</option>{fieldValidationFilterOptions.map((value) => <option key={value} value={value}>{fieldValidationStateLabels[value]}</option>)}</select></label>
-          <label><span>Staff condition</span><select value={state.filters.authority_classified_condition} onChange={(event) => updateFilter("authority_classified_condition", event.target.value)}><option value="">All classifications</option>{Object.entries(staffConditionOptions).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label><span>Staff condition</span><select value={state.filters.authority_classified_condition} onChange={(event) => updateFilter("authority_classified_condition", event.target.value)}><option value="">All classifications</option>{Object.entries(activeAuthorityClassifiedConditionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label><span>Operational queue</span><select value={state.filters.queue} onChange={(event) => updateFilter("queue", event.target.value)}><option value="">All queues</option><option value="needs_review">Needs review</option><option value="needs_visit">Needs visit</option><option value="follow_up_due">Follow-up due</option><option value="upcoming">Upcoming visits</option><option value="unverified_no_active_work">Unverified, no active work</option></select></label>
           <label className="report-builder__check"><input type="checkbox" checked={state.appendix} onChange={(event) => update("appendix", event.target.checked)} /><span>Include farmer/farm identifier appendix</span></label>
         </div>

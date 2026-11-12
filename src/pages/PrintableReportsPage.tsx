@@ -36,7 +36,11 @@ export function PrintableReportsPage() {
             type="button"
             className="report-entries__item"
             aria-pressed={mode === entryMode}
-            onClick={() => setSearchParams({ type: entryMode }, { replace: true })}
+            onClick={() => setSearchParams((current) => {
+              const next = new URLSearchParams(current);
+              next.set("type", entryMode);
+              return next;
+            }, { replace: true })}
           >
             <Icon aria-hidden="true" size={20} />
             <span>{title}</span>

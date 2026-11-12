@@ -28,4 +28,11 @@ describe("printable report scope", () => {
     expect(printableScopeFromReportFilters({ dateFrom: "2026-01-01" }).removed).toContain("From date");
     expect(printableScopeFromReportFilters({ dateTo: "2026-01-01" }).removed).toContain("To date");
   });
+
+  it("does not carry a retired staff condition into the document scope", () => {
+    const scope = printableScopeFromReportFilters({ staffClassifiedCondition: "downy_mildew" });
+
+    expect(scope.filters.authority_classified_condition).toBe("");
+    expect(scope.removed).toContain("Staff condition: Downy mildew");
+  });
 });
