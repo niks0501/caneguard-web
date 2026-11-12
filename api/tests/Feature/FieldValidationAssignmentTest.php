@@ -574,7 +574,7 @@ class FieldValidationAssignmentTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.is_read', true)
             ->assertJsonPath('meta.unread_count', 0);
-        $notice->update(['read_at' => null]);
+        $notice->refresh()->update(['read_at' => null]);
         $this->postJson('/api/v1/mobile/notifications/read-all')
             ->assertOk()
             ->assertJsonPath('meta.marked_count', 1);
