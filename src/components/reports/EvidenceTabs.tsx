@@ -4,8 +4,7 @@ export interface EvidenceTab {
   id: string;
   label: string;
   icon: ReactNode;
-  /** Shown as a badge; omit for a tab with nothing to count. */
-  count?: number;
+  count: number;
   disabled?: boolean;
   panel: ReactNode;
 }
@@ -58,11 +57,9 @@ export function EvidenceTabs({ tabs, label }: { tabs: readonly EvidenceTab[]; la
           >
             {tab.icon}
             <span>{tab.label}</span>
-            {tab.count !== undefined ? (
-              <span className="evidence-tabs__count" aria-label={`${tab.count} ${tab.count === 1 ? "item" : "items"}`}>
-                {tab.count}
-              </span>
-            ) : null}
+            <span className="evidence-tabs__count" aria-label={`${tab.count} ${tab.count === 1 ? "item" : "items"}`}>
+              {tab.count}
+            </span>
           </button>
         ))}
       </div>
