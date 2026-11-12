@@ -61,6 +61,17 @@ export interface WorkflowStatusInput {
   scheduledRevisit?: boolean | null;
 }
 
+export function deriveWorkflowTrackReached(
+  input: WorkflowStatusInput,
+  status: WorkflowStatus = deriveWorkflowStatus(input),
+): number {
+  const statusMilestone = workflowTrackReached[status];
+
+  return input.lifecycle?.fieldValidationState === "completed"
+    ? Math.max(statusMilestone, 2)
+    : statusMilestone;
+}
+
 export function deriveWorkflowStatus(input: WorkflowStatusInput): WorkflowStatus {
   const lifecycle = input.lifecycle;
 

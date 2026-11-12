@@ -19,8 +19,8 @@ import type {
 } from "../../domain/report.types";
 import {
   deriveWorkflowStatus,
+  deriveWorkflowTrackReached,
   workflowStatusChipLabels,
-  workflowTrackReached,
   workflowTrackSteps,
   type WorkflowStatus,
 } from "../../domain/workflowStatus";
@@ -150,7 +150,7 @@ const workflowStatusIcons: Record<WorkflowStatus, LucideIcon> = {
 export function QueueStatusCell({ row }: { row: QueueRowView }) {
   const status = deriveWorkflowStatus(row);
   const Icon = workflowStatusIcons[status];
-  const reached = workflowTrackReached[status];
+  const reached = deriveWorkflowTrackReached(row, status);
 
   return (
     <span className="workflow-status">
