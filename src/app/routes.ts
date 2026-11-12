@@ -17,7 +17,6 @@ export const routes = {
   fieldOperations: "/monitoring?view=field-operations",
   fieldOperationsForReport: (reportId: string) => `/monitoring?view=field-operations&report=${encodeURIComponent(reportId)}`,
   reportDecision: (reportId: string) => `/reports/${reportId}#review-decision`,
-  legacyMap: "/map",
   fieldValidationQueue: (queue: FieldValidationQueue) => `/monitoring?view=map&queue=${queue}`,
   reportDetail: (reportId: string) => `/reports/${reportId}`,
   accounts: "/accounts",

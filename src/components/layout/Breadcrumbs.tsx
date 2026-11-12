@@ -13,8 +13,9 @@ const sectionLabels: Record<string, string> = {
 
 /** Stops at the section name: Home has no trail and detail pages add no crumb. */
 function sectionLabelFor(pathname: string): string | null {
-  if (pathname === routes.printableReports) return "Reports";
-  const [section] = pathname.split("/").filter(Boolean);
+  const normalizedPath = pathname.replace(/\/+$/, "");
+  if (normalizedPath === routes.printableReports) return "Reports";
+  const [section] = normalizedPath.split("/").filter(Boolean);
   return (section ? sectionLabels[section] : undefined) ?? null;
 }
 

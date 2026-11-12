@@ -17,7 +17,7 @@ export function AppShell() {
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const path = location.pathname;
+    const path = location.pathname.replace(/\/+$/, "");
     if (path === "/reports/print") {
       document.title = "CaneGuard | Reports";
     } else if (path.startsWith("/reports/")) {

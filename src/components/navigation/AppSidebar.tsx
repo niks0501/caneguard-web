@@ -51,7 +51,7 @@ function SidebarLink({
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const auth = useAuth();
   const { pathname } = useLocation();
-  const onReportsPage = pathname === routes.printableReports;
+  const onReportsPage = pathname.replace(/\/+$/, "") === routes.printableReports;
   const theme = useTheme();
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const logout = () => {
