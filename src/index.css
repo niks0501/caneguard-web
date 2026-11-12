@@ -8982,24 +8982,34 @@ button.monitoring-calendar__day-number:focus-visible {
 
 .map-sidebar__queue-entry {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-3);
-  text-align: left;
   color: var(--color-text);
   background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.map-sidebar__queue-entry-select {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
   cursor: pointer;
 }
 
 .map-sidebar__queue-entry:hover,
-.map-sidebar__queue-entry:focus-visible {
+.map-sidebar__queue-entry:focus-within {
   border-color: var(--color-primary-fill);
 }
 
-.map-sidebar__queue-entry span,
-.map-sidebar__queue-entry time {
+.map-sidebar__queue-entry-select span,
+.map-sidebar__queue-entry-select time {
   color: var(--color-secondary-text);
   font-size: var(--text-body-sm);
 }

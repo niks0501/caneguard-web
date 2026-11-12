@@ -11,9 +11,10 @@ import type {
 } from "../../domain/report.types";
 import {
   deriveWorkflowStatus,
+  deriveWorkflowStatusChipLabel,
   deriveWorkflowTrackReached,
-  workflowStatusChipLabels,
   workflowTrackSteps,
+  type WorkflowStatusInput,
 } from "../../domain/workflowStatus";
 import { formatAffectedArea } from "../../lib/formatters";
 import { DiseaseBadge } from "./ReportBadges";
@@ -130,8 +131,9 @@ export function QueueAffectedAreaCell({ row }: { row: QueueRowView }) {
 }
 
 /** One coloured chip in plain words plus the four-step track, shown once. */
-export function QueueStatusCell({ row }: { row: QueueRowView }) {
+export function QueueStatusCell({ row }: { row: WorkflowStatusInput }) {
   const status = deriveWorkflowStatus(row);
+  const chipLabel = deriveWorkflowStatusChipLabel(row, status);
   const reached = deriveWorkflowTrackReached(row, status);
 
   return (
@@ -139,7 +141,7 @@ export function QueueStatusCell({ row }: { row: QueueRowView }) {
       <span
         className={`badge status-badge workflow-status-badge workflow-status-badge--${status}`}
       >
-        <span className="status-badge__label">{workflowStatusChipLabels[status]}</span>
+        <span className="status-badge__label">{chipLabel}</span>
       </span>
       <ol className="workflow-track" aria-label="Case progress">
         {workflowTrackSteps.map((step, index) => (

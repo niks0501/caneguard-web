@@ -32,7 +32,7 @@ export const workflowStatusLabels: Record<WorkflowStatus, string> = {
 export const workflowStatusChipLabels: Record<WorkflowStatus, string> = {
   needs_review: "Waiting for your decision",
   under_review: "Being reviewed",
-  field_validation: "Field visit pending",
+  field_validation: "Field visit assigned",
   referred: "Referred to expert",
   follow_up: "Follow-up planned",
   resolved: "Resolved",
@@ -71,6 +71,17 @@ export function deriveWorkflowTrackReached(
   return input.lifecycle?.fieldValidationState === "completed" || input.latestValidation
     ? Math.max(statusMilestone, 2)
     : statusMilestone;
+}
+
+export function deriveWorkflowStatusChipLabel(
+  input: WorkflowStatusInput,
+  status: WorkflowStatus = deriveWorkflowStatus(input),
+): string {
+  if (status === "field_validation" && input.lifecycle?.fieldValidationState === "in_progress") {
+    return "Field visit under way";
+  }
+
+  return workflowStatusChipLabels[status];
 }
 
 export function deriveWorkflowStatus(input: WorkflowStatusInput): WorkflowStatus {

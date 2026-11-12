@@ -1812,7 +1812,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: fieldValidationReport }));
     renderPage();
 
-    expect(screen.getByText("Field visit pending")).toBeInTheDocument();
+    expect(screen.getByText("Field visit assigned")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
     expect(screen.getByText("Pending decision")).toBeInTheDocument();
 

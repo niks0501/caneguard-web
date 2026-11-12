@@ -92,7 +92,7 @@ function renderTable(reports: DiseaseReport[]) {
 const SIX_LABELS = [
   "Waiting for your decision",
   "Being reviewed",
-  "Field visit pending",
+  "Field visit assigned",
   "Referred to expert",
   "Follow-up planned",
   "Resolved",
@@ -227,8 +227,8 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
   it.each([
     ["closed + verified", { caseState: "closed", verificationOutcome: "verified" }, "Resolved"],
     ["closed + undetermined", { caseState: "closed" }, "Resolved"],
-    ["validation assigned", { fieldValidationState: "assigned" }, "Field visit pending"],
-    ["validation in progress", { fieldValidationState: "in_progress" }, "Field visit pending"],
+    ["validation assigned", { fieldValidationState: "assigned" }, "Field visit assigned"],
+    ["validation in progress", { fieldValidationState: "in_progress" }, "Field visit under way"],
     ["referred", { referralState: "referred" }, "Referred to expert"],
     ["expert response received", { referralState: "expert_response_received" }, "Referred to expert"],
   ] as const)(
@@ -335,7 +335,7 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Field visit pending", { exact: true })).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-0001")).getByText("Field visit assigned", { exact: true })).toBeInTheDocument();
   });
 
   it("STATUS: Referred outranks Follow-Up", () => {

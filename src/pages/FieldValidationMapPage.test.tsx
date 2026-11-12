@@ -285,7 +285,8 @@ describe("FieldValidationMapPage selection workflows", () => {
     expect(within(sidebar).getAllByText(/Balaytigui/).length).toBeGreaterThan(0);
     expect(within(sidebar).getByText("Rust")).toBeInTheDocument();
     expect(within(sidebar).getByText(/decision support, not a confirmed diagnosis/i)).toBeInTheDocument();
-    expect(within(sidebar).getByText("Assigned")).toBeInTheDocument();
+    expect(within(sidebar).getByText("Field visit assigned", { exact: true })).toBeInTheDocument();
+    expect(within(sidebar).getByRole("list", { name: "Case progress" })).toBeInTheDocument();
     expect(within(sidebar).getByRole("link", { name: "Open Case" })).toHaveAttribute("href", "/reports/report-1");
     expect(within(sidebar).getByRole("link", { name: "Plan Visit" })).toHaveAttribute(
       "href",
@@ -301,6 +302,8 @@ describe("FieldValidationMapPage selection workflows", () => {
     const sidebar = screen.getByRole("heading", { name: "Cases in this Area" }).closest("aside") as HTMLElement;
     expect(within(sidebar).getAllByText("CG-2026-0001").length).toBeGreaterThan(0);
     expect(within(sidebar).getAllByText("CG-2026-0002").length).toBeGreaterThan(0);
+    expect(within(sidebar).getAllByText("Field visit assigned", { exact: true })).toHaveLength(2);
+    expect(within(sidebar).getAllByRole("list", { name: "Case progress" })).toHaveLength(2);
     expect(within(sidebar).getByText(/not evidence of spread, severity, or a confirmed disease relationship/i)).toBeInTheDocument();
   });
 
