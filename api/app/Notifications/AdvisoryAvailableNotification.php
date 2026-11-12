@@ -14,6 +14,7 @@ class AdvisoryAvailableNotification extends CaseAttentionNotification
         string $referenceCode,
         Advisory $advisory,
         string $selectionVersion,
+        ?string $selectionGeneration = null,
     ) {
         parent::__construct(
             $recipientUuid,
@@ -32,6 +33,7 @@ class AdvisoryAvailableNotification extends CaseAttentionNotification
         $this->advisoryContent = (string) $advisory->content;
         $this->advisoryStatus = (string) $advisory->status;
         $this->selectedAt = now()->utc()->toISOString();
+        $this->selectionGeneration = $selectionGeneration;
     }
 
     public readonly string $advisoryUuid;
@@ -46,12 +48,16 @@ class AdvisoryAvailableNotification extends CaseAttentionNotification
 
     public readonly string $selectedAt;
 
+    /** Marks which selection of the advisory this notification announces. */
+    public readonly ?string $selectionGeneration;
+
     /** @return array<string, mixed> */
     protected function additionalData(): array
     {
         return [
             'content' => $this->advisoryContent,
             'advisory_uuid' => $this->advisoryUuid,
+            'selection_generation' => $this->selectionGeneration,
             'advisory' => [
                 'uuid' => $this->advisoryUuid,
                 'code' => $this->advisoryCode,

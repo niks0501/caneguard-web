@@ -14,7 +14,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Notifications\DatabaseNotification;
-use Illuminate\Support\Facades\DB;
 
 class MobileNotificationController extends Controller
 {
@@ -134,7 +133,7 @@ class MobileNotificationController extends Controller
 
         $owned->newQuery()->whereKey($owned->getKey())->whereNull('read_at')->update(['read_at' => now()]);
 
-        $this->acknowledgeAdvice($owned->refresh(), $user);
+        $this->acknowledgeAdvice($user, $owned->refresh());
 
         return (new MobileNotificationResource($owned->refresh()))->additional([
             'meta' => [
@@ -152,23 +151,7 @@ class MobileNotificationController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        $notifications = $user->notifications()
-            ->where('data->event_type', 'advisory_available')
-            ->whereNotNull('read_at')
-            ->whereColumn('data->report_uuid', 'reports.uuid')
-            ->whereExists(DB::table('advisories')
-                ->selectRaw('1')
-                ->whereColumn('advisories.id', 'reports.advisory_id')
-                ->whereColumn('advisories.uuid', 'notifications.data->advisory_uuid'));
-
-        Report::query()->visibleTo($user)
-            ->whereBelongsTo($user, 'reporter')
-            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
-            ->whereExists((clone $notifications)->selectRaw('1')->toBase())
-            ->update([
-                'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
-                'advisory_acknowledged_at' => (clone $notifications)->selectRaw('min(notifications.read_at)')->toBase(),
-            ]);
+        $this->acknowledgeAdvice($user);
 
         return response()->json([
             'data' => [],
@@ -180,29 +163,60 @@ class MobileNotificationController extends Controller
     }
 
     /**
-     * Seen event: opening or bulk-reading an owned advisory notification moves
-     * that case's still-delivered advice to acknowledged and stamps when. A
-     * notification for a different advisory UUID matches nothing.
+     * Seen event: reading an owned advisory notification moves that case's
+     * still-delivered advice to acknowledged and stamps the notification's read
+     * time. A notification only counts for the selection it announced: a
+     * different advisory UUID or an earlier selection generation (the same
+     * advisory selected again) acknowledges nothing. Notifications sent before
+     * the generation marker existed carry none and match by advisory UUID.
+     * Pass one notification to limit the check to it; otherwise every read
+     * advisory notification of the user is considered.
      */
-    private function acknowledgeAdvice(DatabaseNotification $notification, User $user): void
+    private function acknowledgeAdvice(User $user, ?DatabaseNotification $only = null): void
     {
-        $data = is_array($notification->data) ? $notification->data : [];
-        if ($notification->read_at === null
-            || ($data['event_type'] ?? null) !== 'advisory_available'
-            || blank($data['report_uuid'] ?? null)
-            || blank($data['advisory_uuid'] ?? null)
-        ) {
+        $reports = Report::query()->visibleTo($user)
+            ->whereBelongsTo($user, 'reporter')
+            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
+            ->with('advisory:id,uuid')
+            ->get()
+            ->keyBy('uuid');
+        if ($reports->isEmpty()) {
             return;
         }
 
-        Report::query()->visibleTo($user)
-            ->where('uuid', $data['report_uuid'])
-            ->whereBelongsTo($user, 'reporter')
-            ->whereHas('advisory', fn ($query) => $query->where('uuid', $data['advisory_uuid']))
-            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
-            ->update([
-                'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
-                'advisory_acknowledged_at' => $notification->read_at,
-            ]);
+        $candidates = $only !== null
+            ? collect([$only])
+            : $user->notifications()
+                ->where('data->event_type', 'advisory_available')
+                ->whereIn('data->report_uuid', $reports->keys()->all())
+                ->get();
+
+        $seenAt = [];
+        foreach ($candidates as $notification) {
+            $data = is_array($notification->data) ? $notification->data : [];
+            $report = $reports->get($data['report_uuid'] ?? null);
+            if ($report === null
+                || $notification->read_at === null
+                || ($data['event_type'] ?? null) !== 'advisory_available'
+                || ($data['advisory_uuid'] ?? null) !== $report->advisory?->uuid
+                || (($data['selection_generation'] ?? null) !== null
+                    && $data['selection_generation'] !== Report::selectionGeneration($report->advisory_selected_at))
+            ) {
+                continue;
+            }
+
+            $seenAt[$report->uuid] = isset($seenAt[$report->uuid])
+                ? min($seenAt[$report->uuid], $notification->read_at)
+                : $notification->read_at;
+        }
+
+        foreach ($seenAt as $reportUuid => $readAt) {
+            Report::query()->where('uuid', $reportUuid)
+                ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
+                ->update([
+                    'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
+                    'advisory_acknowledged_at' => $readAt,
+                ]);
+        }
     }
 }

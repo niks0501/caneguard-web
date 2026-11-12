@@ -127,6 +127,7 @@ class CreateLifecycleNotifications
             $report->reference_code,
             $advisory,
             (string) $report->lock_version,
+            Report::selectionGeneration($report->advisory_selected_at),
         );
         $this->send($recipient, $notification);
 

@@ -6,6 +6,7 @@ use App\Contracts\MobileReportUploadContract;
 use App\Contracts\MobileReportUploadV2Contract;
 use App\Contracts\ReportLifecycleContract;
 use App\Security\DistrictAccess;
+use Carbon\CarbonImmutable;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -224,6 +225,14 @@ class Report extends Model
     public const ADVISORY_DELIVERY_DELIVERED = 'delivered';
 
     public const ADVISORY_DELIVERY_ACKNOWLEDGED = 'acknowledged';
+
+    /** Stable marker for one advisory selection, stored in its notification. */
+    public static function selectionGeneration(?\DateTimeInterface $selectedAt): ?string
+    {
+        return $selectedAt === null
+            ? null
+            : CarbonImmutable::instance($selectedAt)->utc()->format('Y-m-d\TH:i:s.v\Z');
+    }
 
     public const AUDIT_FIELD_CANONICAL_REPORT = 'canonical_report_id';
 

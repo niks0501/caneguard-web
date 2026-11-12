@@ -364,6 +364,43 @@ class AdvisoryTest extends TestCase
         $this->assertNull($report->fresh()->advisory_acknowledged_at);
     }
 
+    public function test_reselecting_the_same_advisory_starts_a_new_seen_event(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $a = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
+        $b = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+
+        Sanctum::actingAs($reviewer);
+        foreach ([[$a, 0], [$b, 1], [$a, 2]] as [$advisory, $version]) {
+            $this->travel(1)->minutes();
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'advisory_uuid' => $advisory->uuid,
+                'expected_version' => $version,
+            ])->assertOk();
+        }
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $firstA = $reporter->notifications()->where('data->advisory_uuid', $a->uuid)->reorder('created_at')->firstOrFail();
+        $reselected = $reporter->notifications()->where('data->advisory_uuid', $a->uuid)->reorder('created_at', 'desc')->firstOrFail();
+        $this->assertNotSame($firstA->id, $reselected->id);
+
+        $token = $reporter->createToken('advisory-reselect', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+        $this->travel(1)->minutes();
+
+        $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$firstA->id}/read")->assertOk();
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+
+        $this->travel(2)->minutes();
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        $fresh = $report->fresh();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $fresh->advisory_delivery_state);
+        $this->assertTrue($fresh->advisory_acknowledged_at->equalTo($reselected->fresh()->read_at));
+        $this->assertTrue($fresh->advisory_acknowledged_at->greaterThan($firstA->fresh()->read_at));
+    }
+
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void
     {
         $reviewer = User::factory()->reviewer()->create(['name' => 'Office Reviewer']);
