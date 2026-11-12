@@ -107,7 +107,7 @@ function assertRoleMatrixDocumentsAuthority(docs) {
   const requiredRows = [
     ["Dashboard", "Yes", "Yes"],
     ["Reports / List and case review", "Yes", "Yes"],
-    ["Monitoring, Map and Assignments", "Yes", "Yes"],
+    ["Field visits (including Map and assignment workflows)", "Yes", "Yes"],
     ["Normal Settings (own account security)", "Yes", "Yes"],
     ["Prepare an official weekly version", "Yes", "Yes"],
     ["Approve or send an official weekly version", "No", "Yes"],
