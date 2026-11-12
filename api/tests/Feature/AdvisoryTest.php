@@ -401,6 +401,87 @@ class AdvisoryTest extends TestCase
         $this->assertTrue($fresh->advisory_acknowledged_at->greaterThan($firstA->fresh()->read_at));
     }
 
+    public function test_read_paths_do_not_acknowledge_a_selection_replaced_during_matching(): void
+    {
+        foreach (['single', 'all'] as $path) {
+            foreach (['replacement', 'reselection'] as $change) {
+                $this->assertSelectionChangeIsNotAcknowledged($path, $change);
+            }
+        }
+    }
+
+    private function assertSelectionChangeIsNotAcknowledged(string $path, string $change): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
+        $replacement = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $notification = $reporter->notifications()->sole();
+        $token = $reporter->createToken('selection-race', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $changed = false;
+        DB::listen(function (QueryExecuted $query) use (&$changed, $report, $advisory, $replacement, $change): void {
+            if ($changed || ! str_starts_with(strtolower(ltrim($query->sql)), 'select ')
+                || ! str_contains($query->sql, 'advisories')) {
+                return;
+            }
+            $changed = true;
+            DB::table('reports')->where('id', $report->getKey())->update([
+                'advisory_id' => $change === 'replacement' ? $replacement->getKey() : $advisory->getKey(),
+                'advisory_selected_at' => now()->addMinute()->format('Y-m-d H:i:s.v'),
+            ]);
+        });
+
+        if ($path === 'single') {
+            $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")->assertOk();
+        } else {
+            $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        }
+        $this->assertTrue($changed);
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+    }
+
+    public function test_read_all_acknowledges_backlogs_in_batches(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $advisory = Advisory::factory()->validated($reviewer, 'Guide.')->create();
+        $reports = Report::factory()->count(101)->create([
+            'reporter_id' => $reporter,
+            'advisory_id' => $advisory->getKey(),
+            'advisory_selected_at' => now(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+        ]);
+        foreach ($reports as $report) {
+            $reporter->notify(new AdvisoryAvailableNotification(
+                $reporter->uuid, $report->uuid, $report->reference_code, $advisory, '1',
+                Report::selectionGeneration($report->advisory_selected_at),
+            ));
+        }
+        $token = $reporter->createToken('batch-read', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+        $updates = 0;
+        DB::listen(function (QueryExecuted $query) use (&$updates): void {
+            if (str_starts_with(strtolower(ltrim($query->sql)), 'update reports set advisory_delivery_state')) {
+                $updates++;
+            }
+        });
+
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')
+            ->assertOk()->assertJsonPath('meta.marked_count', 101);
+        $this->assertSame(101, Report::query()->whereIn('id', $reports->modelKeys())
+            ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_ACKNOWLEDGED)->count());
+        $this->assertSame(2, $updates);
+    }
+
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void
     {
         $reviewer = User::factory()->reviewer()->create(['name' => 'Office Reviewer']);
