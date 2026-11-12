@@ -130,9 +130,7 @@ describe("TodoPage", () => {
   });
 
   it("keeps every lane and folds an empty one into one line", () => {
-    vi.mocked(useReportsQueue).mockImplementation((filters) => {
-      return result([]);
-    });
+    vi.mocked(useReportsQueue).mockImplementation(() => result([]));
 
     render(<MemoryRouter initialEntries={["/todo"]}><TodoPage /></MemoryRouter>);
 
