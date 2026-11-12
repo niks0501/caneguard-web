@@ -401,6 +401,81 @@ class AdvisoryTest extends TestCase
         $this->assertTrue($fresh->advisory_acknowledged_at->greaterThan($firstA->fresh()->read_at));
     }
 
+    public function test_legacy_notifications_only_acknowledge_the_current_selection(): void
+    {
+        foreach (['single', 'all'] as $path) {
+            $this->assertLegacySelectionMatching($path);
+        }
+    }
+
+    private function assertLegacySelectionMatching(string $path): void
+    {
+        $this->travelTo(now()->startOfSecond());
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $a = Advisory::factory()->validated($reviewer, 'Guide A.')->create();
+        $b = Advisory::factory()->validated($reviewer, 'Guide B.')->create();
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $a->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $old = $reporter->notifications()->sole();
+        $data = $old->data;
+        unset($data['selection_generation']);
+        $old->data = $data;
+        $old->save();
+        $old->markAsRead();
+        $oldReadAt = $old->fresh()->read_at;
+
+        foreach ([[$b, 1], [$a, 2]] as [$advisory, $version]) {
+            $this->travel(1)->minutes();
+            $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+                'advisory_uuid' => $advisory->uuid,
+                'expected_version' => $version,
+            ])->assertOk();
+        }
+        $current = $reporter->notifications()->where('data->advisory_uuid', $a->uuid)
+            ->where('id', '!=', $old->id)->sole();
+        $data = $current->data;
+        unset($data['selection_generation']);
+        $current->data = $data;
+        $current->save();
+        $this->assertTrue($current->created_at->equalTo($report->fresh()->advisory_selected_at));
+        if ($path === 'all') {
+            $current->delete();
+        }
+        $token = $reporter->createToken('legacy-selection', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        if ($path === 'single') {
+            $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$old->id}/read")->assertOk();
+        } else {
+            $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        }
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
+
+        if ($path === 'all') {
+            $current->exists = false;
+            $current->save();
+        }
+        $this->travel(1)->minutes();
+        $current->markAsRead();
+        $currentReadAt = $current->fresh()->read_at;
+        $this->travel(1)->minutes();
+        if ($path === 'single') {
+            $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$current->id}/read")->assertOk();
+        } else {
+            $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        }
+        $fresh = $report->fresh();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $fresh->advisory_delivery_state);
+        $this->assertTrue($currentReadAt->equalTo($fresh->advisory_acknowledged_at));
+        $this->assertTrue($fresh->advisory_acknowledged_at->greaterThan($oldReadAt));
+    }
+
     public function test_read_paths_do_not_acknowledge_a_selection_replaced_during_matching(): void
     {
         foreach (['single', 'all'] as $path) {

@@ -169,7 +169,8 @@ class MobileNotificationController extends Controller
      * time. A notification only counts for the selection it announced: a
      * different advisory UUID or an earlier selection generation (the same
      * advisory selected again) acknowledges nothing. Notifications sent before
-     * the generation marker existed carry none and match by advisory UUID.
+     * the generation marker existed carry none and must also be created at or
+     * after the current selection time.
      * Pass one notification to limit the check to it; otherwise every read
      * advisory notification of the user is considered.
      */
@@ -200,7 +201,10 @@ class MobileNotificationController extends Controller
                         || ($data['event_type'] ?? null) !== 'advisory_available'
                         || ($data['advisory_uuid'] ?? null) !== $report->advisory?->uuid
                         || (($data['selection_generation'] ?? null) !== null
-                            && $data['selection_generation'] !== Report::selectionGeneration($report->advisory_selected_at))
+                            ? $data['selection_generation'] !== Report::selectionGeneration($report->advisory_selected_at)
+                            : ($report->advisory_selected_at === null
+                                || $notification->created_at === null
+                                || $notification->created_at->lessThan($report->advisory_selected_at)))
                     ) {
                         continue;
                     }
