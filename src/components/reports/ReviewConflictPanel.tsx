@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import type {
   AuthorityClassifiedCondition,
   DiseaseReport,
@@ -65,15 +65,6 @@ function displayValue(
   }
 }
 
-const allLatest: ConflictChoices = {
-  classification: "latest",
-  verification: "latest",
-  action: "latest",
-  notes: "latest",
-  inspector: "latest",
-  targetDate: "latest",
-};
-
 export function ReviewConflictPanel({
   latest,
   draft,
@@ -81,6 +72,8 @@ export function ReviewConflictPanel({
   advisoryNames,
   loading,
   error,
+  choices,
+  onChoicesChange,
   onLoadLatest,
   onApply,
   onReloadAll,
@@ -91,12 +84,13 @@ export function ReviewConflictPanel({
   advisoryNames: Record<string, string>;
   loading: boolean;
   error: string | null;
+  choices: ConflictChoices;
+  onChoicesChange: (choices: ConflictChoices) => void;
   onLoadLatest: () => void;
   onApply: (choices: ConflictChoices) => void;
   onReloadAll: () => void;
 }) {
   const idPrefix = useId();
-  const [choices, setChoices] = useState<ConflictChoices>(allLatest);
 
   if (!latest) {
     return (
@@ -122,6 +116,15 @@ export function ReviewConflictPanel({
         Another reviewer saved this report after you opened it. Choose which
         value each field keeps before you confirm the review again.
       </p>
+      {loading ? <p>Loading the latest version...</p> : null}
+      {error ? (
+        <>
+          <p className="form-error">{error}</p>
+          <Button type="button" variant="secondary" onClick={onLoadLatest}>
+            Try loading the latest version again
+          </Button>
+        </>
+      ) : null}
       {differing.length === 0 ? (
         <p>Your draft already matches the latest saved values. Confirm the review again to save it against the latest version.</p>
       ) : (
@@ -150,7 +153,7 @@ export function ReviewConflictPanel({
                           type="radio"
                           name={`${idPrefix}-${field}`}
                           checked={choices[field] === "latest"}
-                          onChange={() => setChoices((current) => ({ ...current, [field]: "latest" }))}
+                          onChange={() => onChoicesChange({ ...choices, [field]: "latest" })}
                         />
                         <span>Latest</span>
                       </label>
@@ -159,7 +162,7 @@ export function ReviewConflictPanel({
                           type="radio"
                           name={`${idPrefix}-${field}`}
                           checked={choices[field] === "mine"}
-                          onChange={() => setChoices((current) => ({ ...current, [field]: "mine" }))}
+                          onChange={() => onChoicesChange({ ...choices, [field]: "mine" })}
                         />
                         <span>Mine</span>
                       </label>
@@ -172,10 +175,10 @@ export function ReviewConflictPanel({
         </div>
       )}
       <div className="review-conflict__actions">
-        <Button type="button" onClick={() => onApply(choices)}>
+        <Button type="button" disabled={loading || !!error} onClick={() => onApply(choices)}>
           {differing.length === 0 ? "Use the latest version" : "Apply these choices"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onReloadAll}>
+        <Button type="button" variant="secondary" disabled={loading || !!error} onClick={onReloadAll}>
           Reload and discard my changes
         </Button>
       </div>

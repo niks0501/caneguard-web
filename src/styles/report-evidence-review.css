@@ -32,8 +32,6 @@
 .review-support-types { display: flex; flex-wrap: wrap; gap: var(--space-4); border: 0; margin: 0; padding: 0; }
 .review-support-types legend { margin-bottom: var(--space-2); font-weight: 600; }
 .review-support-types label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
-.review-decision-flow .decision-summary__grid { margin-bottom: var(--space-4); }
-.review-decision-flow .detail-field { overflow-wrap: anywhere; }
 .review-save-success { margin-top: var(--space-4); display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); }
 .review-save-success p { flex-basis: 100%; margin: 0; font-weight: 600; }
 @media (max-width: 760px) {
@@ -128,3 +126,7 @@
 @media (max-width: 40rem) { .aerial-check__strip { grid-template-columns: 1fr; } }
 .review-decision-flow .review-action-pill strong { display: inline-flex; align-items: center; gap: var(--space-2); }
 .review-decision-flow .review-action-pill strong svg, .workflow-status-badge__icon { flex: none; }
+
+.review-decision-flow .review-step-indicator { margin: 0 0 var(--space-1); color: var(--color-muted); font-size: var(--text-body-sm); font-weight: 600; }
+.review-decision-flow .review-consequence { margin: var(--space-3) 0 0; font-weight: 500; overflow-wrap: anywhere; white-space: pre-wrap; }
+.review-decision-flow .review-step-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
