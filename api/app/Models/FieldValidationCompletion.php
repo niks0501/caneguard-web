@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'uuid',
     'assignment_id',
+    'completed_by_id',
     'client_uuid',
     'field_observation',
     'field_finding',

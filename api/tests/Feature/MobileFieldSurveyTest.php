@@ -73,7 +73,9 @@ class MobileFieldSurveyTest extends TestCase
         $payload['affected_area_polygons'] = [$this->affectedPolygon()];
         $payload['affected_area_sqm'] = 12.5;
         $payload['measurement_provenance'] = ['method' => 'replayed'];
-        $this->postJson(self::ENDPOINT, $payload)->assertCreated()->assertExactJson(['id' => $id, 'status' => 'kept']);
+        $this->postJson(self::ENDPOINT, $payload)->assertOk()
+            ->assertJson(['id' => $id, 'status' => 'kept', 'replayed' => true])
+            ->assertJsonMissingPath('polygon');
         $this->assertDatabaseCount('field_surveys', 1);
         $this->assertSame($before, FieldSurvey::findOrFail($id)->getRawOriginal());
     }
@@ -380,15 +382,20 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertDatabaseCount('field_surveys', 0);
     }
 
-    public function test_outside_district_has_a_displayable_field_error_even_on_replay(): void
+    public function test_outside_district_is_a_field_error_on_first_send_and_a_receipt_on_replay(): void
     {
         $this->loginInspector();
         $payload = $this->payload();
-        $this->postJson(self::ENDPOINT, $payload)->assertCreated();
         $payload['district_code'] = 'foreign';
         $this->postJson(self::ENDPOINT, $payload)->assertUnprocessable()
             ->assertJsonPath('code', 'VALIDATION_ERROR')
             ->assertJsonPath('errors.district_code.0', 'The district code must match the configured pilot district.');
+        $this->assertDatabaseCount('field_surveys', 0);
+
+        $payload['district_code'] = 'test-pilot';
+        $this->postJson(self::ENDPOINT, $payload)->assertCreated();
+        $payload['district_code'] = 'foreign';
+        $this->postJson(self::ENDPOINT, $payload)->assertOk()->assertJsonPath('replayed', true);
         $this->assertDatabaseCount('field_surveys', 1);
     }
 
