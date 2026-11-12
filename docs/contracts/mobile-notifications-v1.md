@@ -35,4 +35,4 @@ Acknowledging a notification never blocks opening its destination on Mobile: a f
 
 ### Seen event
 
-Opening an advisory item (`PATCH .../read`) or reading everything (`POST .../read-all`) is the Seen event: each owned `advisory_available` item whose case advice is still `delivered` moves to `acknowledged` and stamps `advisory.acknowledged_at` on the case, which the office reads as Seen at that time. Read-all also acknowledges matching previously read items, recording the recovery time as Seen. A stale item for a replaced advisory acknowledges nothing, and repeating the call never moves the first Seen time.
+Opening an advisory item (`PATCH .../read`) or reading everything (`POST .../read-all`) is the Seen event: each owned `advisory_available` item whose case advice is still `delivered` moves to `acknowledged` and stamps `advisory.acknowledged_at` on the case, which the office reads as Seen at that time. Read-all also acknowledges matching previously read items, using the original notification read time as Seen. A stale item for a replaced advisory acknowledges nothing, and repeating the call never moves the first Seen time.

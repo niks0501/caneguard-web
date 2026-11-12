@@ -7,8 +7,10 @@ use App\Models\Report;
 use App\Models\User;
 use App\Notifications\AdvisoryAvailableNotification;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -296,11 +298,70 @@ class AdvisoryTest extends TestCase
         $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $report->fresh()->advisory_delivery_state);
         $seenAt = $report->fresh()->advisory_acknowledged_at;
         $this->assertNotNull($seenAt);
+        $this->assertTrue($originalReadAt->equalTo($seenAt));
         $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $otherReport->fresh()->advisory_delivery_state);
 
         $this->travel(5)->minutes();
         $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
         $this->assertTrue($seenAt->equalTo($report->fresh()->advisory_acknowledged_at));
+    }
+
+    public function test_single_read_recovers_advice_at_the_original_read_time(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $notification = $reporter->notifications()->sole();
+        $notification->markAsRead();
+        $readAt = $notification->fresh()->read_at;
+        $this->travel(5)->minutes();
+        $token = $reporter->createToken('advisory-legacy-single', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $this->withToken($token)->patchJson("/api/v1/mobile/notifications/{$notification->id}/read")->assertOk();
+        $this->assertSame(Report::ADVISORY_DELIVERY_ACKNOWLEDGED, $report->fresh()->advisory_delivery_state);
+        $this->assertTrue($readAt->equalTo($report->fresh()->advisory_acknowledged_at));
+    }
+
+    public function test_read_all_does_not_acknowledge_a_notification_arriving_after_the_read_update(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer, 'Office field guide.')->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'advisory_uuid' => $advisory->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+        $notification = $reporter->notifications()->sole();
+        $notification->delete();
+        $token = $reporter->createToken('advisory-late-arrival', ['notification:read'])->plainTextToken;
+        Auth::forgetGuards();
+
+        $inserted = false;
+        DB::listen(function (QueryExecuted $query) use (&$inserted, $notification): void {
+            if ($inserted || ! str_starts_with(strtolower(ltrim($query->sql)), 'update ')
+                || ! str_contains($query->sql, 'notifications')) {
+                return;
+            }
+            $inserted = true;
+            $notification->save();
+        });
+
+        $this->withToken($token)->postJson('/api/v1/mobile/notifications/read-all')->assertOk();
+        $this->assertTrue($inserted);
+        $this->assertNull($notification->fresh()->read_at);
+        $this->assertSame(Report::ADVISORY_DELIVERY_DELIVERED, $report->fresh()->advisory_delivery_state);
+        $this->assertNull($report->fresh()->advisory_acknowledged_at);
     }
 
     public function test_printable_referral_summary_includes_selected_advisory_content_and_provenance(): void

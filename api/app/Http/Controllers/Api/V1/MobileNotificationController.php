@@ -14,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\DB;
 
 class MobileNotificationController extends Controller
 {
@@ -133,7 +134,7 @@ class MobileNotificationController extends Controller
 
         $owned->newQuery()->whereKey($owned->getKey())->whereNull('read_at')->update(['read_at' => now()]);
 
-        $this->acknowledgeAdvice($owned, $user);
+        $this->acknowledgeAdvice($owned->refresh(), $user);
 
         return (new MobileNotificationResource($owned->refresh()))->additional([
             'meta' => [
@@ -153,17 +154,20 @@ class MobileNotificationController extends Controller
 
         $notifications = $user->notifications()
             ->where('data->event_type', 'advisory_available')
+            ->whereNotNull('read_at')
             ->whereColumn('data->report_uuid', 'reports.uuid')
-            ->whereColumn('data->advisory_uuid', 'advisories.uuid')
-            ->selectRaw('1');
+            ->whereExists(DB::table('advisories')
+                ->selectRaw('1')
+                ->whereColumn('advisories.id', 'reports.advisory_id')
+                ->whereColumn('advisories.uuid', 'notifications.data->advisory_uuid'));
 
         Report::query()->visibleTo($user)
             ->whereBelongsTo($user, 'reporter')
             ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
-            ->whereHas('advisory', fn ($query) => $query->whereExists($notifications->toBase()))
+            ->whereExists((clone $notifications)->selectRaw('1')->toBase())
             ->update([
                 'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
-                'advisory_acknowledged_at' => now()->utc(),
+                'advisory_acknowledged_at' => (clone $notifications)->selectRaw('min(notifications.read_at)')->toBase(),
             ]);
 
         return response()->json([
@@ -183,7 +187,8 @@ class MobileNotificationController extends Controller
     private function acknowledgeAdvice(DatabaseNotification $notification, User $user): void
     {
         $data = is_array($notification->data) ? $notification->data : [];
-        if (($data['event_type'] ?? null) !== 'advisory_available'
+        if ($notification->read_at === null
+            || ($data['event_type'] ?? null) !== 'advisory_available'
             || blank($data['report_uuid'] ?? null)
             || blank($data['advisory_uuid'] ?? null)
         ) {
@@ -197,7 +202,7 @@ class MobileNotificationController extends Controller
             ->where('advisory_delivery_state', Report::ADVISORY_DELIVERY_DELIVERED)
             ->update([
                 'advisory_delivery_state' => Report::ADVISORY_DELIVERY_ACKNOWLEDGED,
-                'advisory_acknowledged_at' => now()->utc(),
+                'advisory_acknowledged_at' => $notification->read_at,
             ]);
     }
 }
