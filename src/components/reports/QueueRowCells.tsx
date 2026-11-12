@@ -160,15 +160,21 @@ export function QueueStatusCell({ row }: { row: QueueRowView }) {
         <Icon aria-hidden="true" />
         <span className="status-badge__label">{workflowStatusChipLabels[status]}</span>
       </span>
-      <span className="workflow-track" aria-hidden="true">
+      <ol className="workflow-track" aria-label="Case progress">
         {workflowTrackSteps.map((step, index) => (
-          <span
+          <li
             key={step}
-            data-step={step}
+            aria-current={index === reached ? "step" : undefined}
             className={`workflow-track__step${index <= reached ? " is-reached" : ""}${index === reached ? " is-current" : ""}`}
-          />
+          >
+            {index > 0 ? <span className="workflow-track__separator" aria-hidden="true">→</span> : null}
+            {step}
+            <span className="sr-only">
+              {index < reached ? " completed" : index === reached ? " current" : " not reached"}
+            </span>
+          </li>
         ))}
-      </span>
+      </ol>
     </span>
   );
 }

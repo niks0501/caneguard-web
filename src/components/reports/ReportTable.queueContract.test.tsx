@@ -266,7 +266,13 @@ describe("queue contract - one six-state Case Status (STATUS)", () => {
       }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Follow-up planned", { exact: true })).toBeInTheDocument();
+    const row = rowFor("CG-2026-0001");
+    expect(within(row).getByText("Follow-up planned", { exact: true })).toBeInTheDocument();
+    const track = within(row).getByRole("list", { name: "Case progress" });
+    expect(within(track).getByRole("listitem", { name: "Reported completed" })).toBeInTheDocument();
+    expect(within(track).getByRole("listitem", { name: "Reviewed completed" })).toBeInTheDocument();
+    expect(within(track).getByRole("listitem", { name: "Field check current" })).toHaveAttribute("aria-current", "step");
+    expect(within(track).getByRole("listitem", { name: "Resolved not reached" })).toBeInTheDocument();
   });
 
   it("STATUS: a due date without the flag is not Follow-Up (flag-driven ruling)", () => {

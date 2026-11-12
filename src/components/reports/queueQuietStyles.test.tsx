@@ -114,7 +114,7 @@ describe("silent queue stylesheet", () => {
     renderQueue([report()]);
 
     const status = screen
-      .getByRole("cell", { name: "Waiting for your decision" })
+      .getByRole("table")
       .querySelector(".workflow-status-badge") as HTMLElement;
     expect(status).not.toBeNull();
 

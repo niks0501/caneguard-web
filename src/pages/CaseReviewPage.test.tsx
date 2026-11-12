@@ -608,6 +608,10 @@ describe("CaseReviewPage", () => {
     expect(line).toHaveTextContent(
       "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result",
     );
+    expect(line).toHaveAttribute(
+      "title",
+      "Cautions: Location unconfirmed · Photo hard to review · Observations differ from result",
+    );
     expect(document.querySelectorAll(".review-state-summary")).toHaveLength(0);
   });
 

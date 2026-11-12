@@ -9647,7 +9647,10 @@ button.monitoring-calendar__day-number:focus-visible {
 /* QF-7 case review: evidence left, decision pinned right from 1,100px. */
 .review-caution-line {
   margin: 8px 0 0;
+  overflow: hidden;
   color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .review-caution-line a {
@@ -9812,16 +9815,14 @@ button.monitoring-calendar__day-number:focus-visible {
 .workflow-track {
   display: inline-flex;
   gap: 4px;
+  margin: 0;
+  padding: 0;
   font-size: var(--text-body-sm);
   color: var(--color-muted);
+  list-style: none;
 }
 
-.workflow-track__step::after {
-  content: attr(data-step);
-}
-
-.workflow-track__step + .workflow-track__step::before {
-  content: "\2192";
+.workflow-track__separator {
   margin-right: 4px;
 }
 

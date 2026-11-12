@@ -491,6 +491,9 @@ function CaseReviewContent() {
     report && photoDifficultFor(report) ? "Photo hard to review" : null,
     report && observationsMismatchFor(report) ? "Observations differ from result" : null,
   ].filter((label): label is string => label !== null);
+  const cautionSummary = cautionLinks.length > 0
+    ? `${cautionLinks.length === 1 ? "Caution" : "Cautions"}: ${cautionLinks.join(" · ")}`
+    : null;
   const caseHistorySummary = !caseHistoryAvailable
     ? "History unavailable for this older record"
     : mergedHistory.length === 0
@@ -770,7 +773,7 @@ function CaseReviewContent() {
       {/* 1. Case status with plain-language attention notices */}
       <section className="review-status-chips" aria-label="Case status">
         {cautionLinks.length > 0 ? (
-          <p className="review-caution-line">
+          <p className="review-caution-line" title={cautionSummary ?? undefined}>
             <span>{cautionLinks.length === 1 ? "Caution:" : "Cautions:"}</span>{" "}
             {cautionLinks.join(" · ")}
           </p>
