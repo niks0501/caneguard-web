@@ -23,7 +23,7 @@ describe("mock data mode", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Overview" }),
+      await screen.findByRole("heading", { name: "Home" }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/dashboard");
     expect(
