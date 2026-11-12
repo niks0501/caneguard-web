@@ -564,8 +564,8 @@ describe("DashboardPage", () => {
     // action, so every per-card target survives without an Open row.
     expect(snapshot.getAllByRole("link")).toHaveLength(4);
     expect(
-      snapshot.getByRole("link", { name: "Open the submitted reports register" }),
-    ).toHaveAttribute("href", "/reports");
+      snapshot.getByRole("link", { name: "Open submitted reports on the To do page" }),
+    ).toHaveAttribute("href", "/todo#lane-review");
     expect(
       snapshot.getByRole("link", { name: "Open Review new reports on the To do page" }),
     ).toHaveAttribute("href", "/todo#lane-review");

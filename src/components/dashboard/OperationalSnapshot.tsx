@@ -28,7 +28,7 @@ import type { MetricSegment } from "./metricSegments";
  * field-validation schedule bar and a status indicator. Only the
  * submissions card captions its period; KPI 2 reads the unscoped
  * needs-review queue like the other current-state queue cards, so it carries
- * no period and links to the queue unfiltered. The card itself links to its queue, so no separate action row
+ * no period and links to the corresponding To do lane. The card itself links to its destination, so no separate action row
  * sits on the card. Every supporting figure is
  * read from the population and window the card already shows (`kpiSupport`):
  * KPI 1's delta from the same analytics request, KPI 2's oldest wait from the
@@ -104,8 +104,8 @@ export function OperationalSnapshot({
               : undefined
           }
           icon={<Rows3 aria-hidden="true" strokeWidth={1.75} />}
-          href={routes.reports}
-          linkLabel="Open the submitted reports register"
+          href={routes.todoLane("review")}
+          linkLabel="Open submitted reports on the To do page"
         >
           {analytics ? (
             <>

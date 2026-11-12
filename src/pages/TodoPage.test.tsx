@@ -64,6 +64,7 @@ function result(
 describe("TodoPage", () => {
   beforeEach(() => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
       return result([
@@ -87,7 +88,8 @@ describe("TodoPage", () => {
     expect(within(review).getByText("CG-fresh")).toBeInTheDocument();
     expect(within(review).getByText("Not visited")).toBeInTheDocument();
     expect(within(review).getByText(/No field visit has been recorded/)).toBeInTheDocument();
-    expect(within(review).getByRole("link", { name: "Review report" })).toHaveAttribute("href", "/reports/fresh");
+    expect(within(review).getAllByRole("link", { name: "Review report" }).some((link) => link.getAttribute("href") === "/reports/fresh")).toBe(true);
+    expect(within(review).getByText("CG-worsened")).toBeInTheDocument();
 
     const send = screen.getByRole("region", { name: "Send someone" });
     expect(within(send).getByRole("link", { name: "Send someone" })).toHaveAttribute(
@@ -117,21 +119,19 @@ describe("TodoPage", () => {
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
   });
 
-  it("links each summary counter to its lane", () => {
+  it("keeps the To do summary values informational rather than extra navigation", () => {
     render(<MemoryRouter initialEntries={["/todo"]}><TodoPage /></MemoryRouter>);
 
     const summary = screen.getByLabelText("To do summary");
-    for (const [name, lane] of [["Review new reports", "review"], ["Send someone", "send"], ["Visit overdue", "overdue"], ["Decide after visit", "decide"]]) {
-      expect(within(summary).getByRole("link", { name: new RegExp(name) })).toHaveAttribute("href", `#lane-${lane}`);
-      expect(document.getElementById(`lane-${lane}`)).not.toBeNull();
+    expect(summary.querySelectorAll("a")).toHaveLength(0);
+    for (const name of ["Review new reports", "Send someone", "Visit overdue", "Decide after visit"]) {
+      expect(within(summary).getByText(name)).toBeInTheDocument();
     }
   });
 
   it("keeps every lane and folds an empty one into one line", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
-      if (filters?.queue === "follow_up_due") return result([]);
-      if (filters?.queue === "needs_visit") return result([]);
-      return result([report("improved", "improved", "completed")]);
+      return result([]);
     });
 
     render(<MemoryRouter initialEntries={["/todo"]}><TodoPage /></MemoryRouter>);
@@ -140,11 +140,12 @@ describe("TodoPage", () => {
     expect(screen.getByText("No new reports are waiting for review.")).toBeInTheDocument();
     expect(screen.getByText("No reports are waiting for someone to be sent.")).toBeInTheDocument();
     expect(screen.getByText("No open visits are overdue.")).toBeInTheDocument();
-    expect(screen.queryByText("No completed visits are waiting for a decision.")).not.toBeInTheDocument();
+    expect(screen.getByText("No completed visits are waiting for a decision.")).toBeInTheDocument();
   });
 
   it("attributes a truncated read to its queue instead of pairing a section count with the queue total", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
       return result(
@@ -162,12 +163,13 @@ describe("TodoPage", () => {
     // The boundary is stated once for the queue, not once per lane it feeds.
     expect(screen.getAllByText(/The Review new reports and Decide after visit queue loaded the first 2 of 137 matching cases/)).toHaveLength(1);
     const review = screen.getByRole("region", { name: "Review new reports" });
-    expect(within(review).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
-    expect(within(review).queryByText(/1 of 137/)).not.toBeInTheDocument();
+    expect(within(review).getByText("2", { selector: ".needs-assessment-count" })).toBeInTheDocument();
+    expect(within(review).queryByText(/2 of 137/)).not.toBeInTheDocument();
   });
 
   it("does not describe a bounded queue when the list could not be loaded", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       if (filters?.queue === "needs_visit") return result([], { isError: true, data: undefined });
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       return result([report("worsened", "worsened", "completed")], {}, { total: 137, truncated: true });
@@ -181,6 +183,7 @@ describe("TodoPage", () => {
 
   it("does not report an unavailable queue as zero work", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       if (filters?.queue === "needs_review") {
         return result([], { isError: true, data: undefined }, { total: 0 });
       }
@@ -197,6 +200,7 @@ describe("TodoPage", () => {
 
   it("shows the oldest queue read as the workspace freshness stamp", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")], { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 20, 0) });
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")], { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 18, 0) });
       return result([report("worsened", "worsened", "completed")], { dataUpdatedAt: Date.UTC(2026, 9, 23, 13, 14, 3) });
@@ -211,6 +215,7 @@ describe("TodoPage", () => {
 
   it("displays refreshing state on the action button when refetching", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
       return result([report("worsened", "worsened", "completed")], { isFetching: true });
@@ -224,6 +229,7 @@ describe("TodoPage", () => {
 
   it("displays refetch warning when refreshing fails", () => {
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       if (filters?.queue === "follow_up_due") return result([report("overdue", null, "unassigned")]);
       if (filters?.queue === "needs_visit") return result([report("unassigned", null, "unassigned")]);
       return result([report("worsened", "worsened", "completed")], { isRefetchError: true });
@@ -279,6 +285,7 @@ describe("TodoPage", () => {
   it("gives bounded retry guidance when a queue refresh is rate limited", () => {
     const error = new ApiError("Slow down", { status: 429 });
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       const data = filters?.queue === "follow_up_due"
         ? [report("overdue", null, "unassigned")]
         : filters?.queue === "needs_visit"
@@ -321,6 +328,7 @@ describe("TodoPage", () => {
   it("uses stale-data guidance when a queue refresh fails", () => {
     const error = new ApiError("Network Error", { cause: new AxiosError("Network Error") });
     vi.mocked(useReportsQueue).mockImplementation((filters) => {
+      if (filters?.queue === "unverified_no_active_work") return result([]);
       const data = filters?.queue === "follow_up_due"
         ? [report("overdue", null, "unassigned")]
         : filters?.queue === "needs_visit"

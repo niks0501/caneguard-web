@@ -128,12 +128,11 @@ export function TodoPage() {
   // completed visits awaiting a decision and untouched unassigned observations.
   const needsReview = awaitingQuery.data?.reports ?? [];
   const completedVisits = needsReview.filter((report) => fieldValidationStateOf(report) === "completed");
-  const newObservations = needsReview.filter((report) => fieldValidationStateOf(report) !== "completed");
   const overdue = overdueQuery.data?.reports ?? [];
-  const overdueIds = new Set(overdue.map((report) => report.uuid));
-  const visitsNeedingWork = (visitQuery.data?.reports ?? []).filter((report) => !overdueIds.has(report.uuid));
+  const noActiveWork = noActiveWorkQuery.data?.reports ?? [];
+  const noActiveWorkIds = new Set(noActiveWork.map((report) => report.uuid));
   const sendReports = [...new Map(
-    [...visitsNeedingWork, ...(noActiveWorkQuery.data?.reports ?? [])].map((report) => [report.uuid, report] as const),
+    [...(visitQuery.data?.reports ?? []), ...noActiveWork].map((report) => [report.uuid, report] as const),
   ).values()];
 
   // A truncated read is reported once per queue, attributed to that queue: a
@@ -150,14 +149,16 @@ export function TodoPage() {
 
   const lanes: TodoLaneData[] = [
     {
-      key: "review", title: "Review new reports", icon: ClipboardCheck, reports: newObservations,
+      key: "review", title: "Review new reports", icon: ClipboardCheck, reports: needsReview,
       empty: "No new reports are waiting for review.", truncated: Boolean(awaitingTruncation),
       action: (report) => ({ label: "Review report", to: routes.reportDetail(report.uuid) }),
     },
     {
       key: "send", title: "Send someone", icon: UserPlus, reports: sendReports,
       empty: "No reports are waiting for someone to be sent.", truncated: Boolean(visitTruncation || noActiveWorkQuery.data?.truncated),
-      action: (report) => ({ label: "Send someone", to: routes.fieldOperationsForReport(report.uuid) }),
+      action: (report) => noActiveWorkIds.has(report.uuid)
+        ? { label: "Assign field validation", to: routes.reportDecision(report.uuid), state: { preselectAction: "field" } }
+        : { label: "Send someone", to: routes.fieldOperationsForReport(report.uuid) },
     },
     {
       key: "overdue", title: "Visit overdue", icon: AlarmClock, reports: overdue,
@@ -222,9 +223,9 @@ export function TodoPage() {
             ? { ...visitQuery, data: visitQuery.data && noActiveWorkQuery.data ? visitQuery.data : undefined, isError: visitQuery.isError || noActiveWorkQuery.isError }
             : lane.key === "overdue" ? overdueQuery : awaitingQuery;
           return (
-            <a key={lane.key} href={`#lane-${lane.key}`} className={lane.key === "overdue" ? "needs-assessment-summary__overdue" : undefined}>
+            <div key={lane.key} className={lane.key === "overdue" ? "needs-assessment-summary__overdue" : undefined}>
               <Icon aria-hidden="true" /><strong>{countValue(read, lane.reports.length)}</strong><span>{lane.title}</span>
-            </a>
+            </div>
           );
         })}
       </div>

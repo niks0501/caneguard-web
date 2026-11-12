@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { describe, expect, it } from "vitest";
 import { createQueryClient } from "../app/queryClient";
 import { env } from "../config/env";
@@ -16,6 +16,11 @@ import { TodoPage } from "./TodoPage";
  * running portal receives, so the lane split under proof is never mocked.
  */
 const apiBase = env.apiBaseUrl;
+
+function DecisionArrival() {
+  const location = useLocation();
+  return <output data-testid="decision-state">{JSON.stringify(location.state)}</output>;
+}
 
 function queueItem(seed: number, referenceCode: string, lifecycle: Record<string, unknown>, latestValidation: Record<string, unknown> | null) {
   return {
@@ -111,10 +116,10 @@ describe("TodoPage queue reads", () => {
     expect(within(decide).queryByText("CG-unassigned")).not.toBeInTheDocument();
 
     const review = screen.getByRole("region", { name: "Review new reports" });
-    expect(within(review).getByText("1")).toBeInTheDocument();
+    expect(within(review).getByText("4")).toBeInTheDocument();
     expect(within(review).getByText("CG-fresh")).toBeInTheDocument();
+    expect(within(review).getByText("CG-worsened")).toBeInTheDocument();
     expect(within(review).getByText("Not visited")).toBeInTheDocument();
-    expect(within(review).queryByText("CG-worsened")).not.toBeInTheDocument();
 
     const send = screen.getByRole("region", { name: "Send someone" });
     expect(within(send).getByText("CG-unassigned")).toBeInTheDocument();
@@ -125,7 +130,7 @@ describe("TodoPage queue reads", () => {
     expect(within(overdue).getByText("No open visits are overdue.")).toBeInTheDocument();
   });
 
-  it("includes assigned validation and decided-but-unverified work in Send someone without repeating overdue work", async () => {
+  it("includes all validation work in Send someone while retaining the overdue lane", async () => {
     const overdue = queueItem(6, "CG-overdue", { field_validation_state: "assigned" }, {
       visited_at: null,
       field_observation: null,
@@ -149,8 +154,33 @@ describe("TodoPage queue reads", () => {
     const send = await screen.findByRole("region", { name: "Send someone" });
     expect(within(send).getByText("CG-assigned")).toBeInTheDocument();
     expect(within(send).getByText("CG-advised")).toBeInTheDocument();
-    expect(within(send).queryByText("CG-overdue")).not.toBeInTheDocument();
+    expect(within(send).getByText("CG-overdue")).toBeInTheDocument();
     expect(within(screen.getByRole("region", { name: "Visit overdue" })).getByText("CG-overdue")).toBeInTheDocument();
+  });
+
+  it("routes no-active-work cards to the field-validation decision action", async () => {
+    const advised = { ...queueItem(9, "CG-advised", { field_validation_state: "unassigned" }, null), action_taken: "advisory_provided" };
+    installApi({
+      needs_review: { items: [] },
+      needs_visit: { items: [] },
+      follow_up_due: { items: [] },
+      unverified_no_active_work: { items: [advised] },
+    });
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/todo"]}>
+          <Routes>
+            <Route path="/todo" element={<TodoPage />} />
+            <Route path="/reports/:reportId" element={<DecisionArrival />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const action = await screen.findByRole("link", { name: "Assign field validation" });
+    expect(action).toHaveAttribute("href", "/reports/00000000-0000-4000-8000-000000000009#review-decision");
+    fireEvent.click(action);
+    expect(await screen.findByTestId("decision-state")).toHaveTextContent('"preselectAction":"field"');
   });
 
   it("states a truncated queue read once above the list it actually rendered", async () => {
