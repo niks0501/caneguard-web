@@ -9805,8 +9805,10 @@ button.monitoring-calendar__day-number:focus-visible {
   padding: 3px 10px;
   font-weight: 700;
   color: var(--color-warning);
-  background: var(--color-warning-soft);
-  border: 1px solid var(--color-warning);
+  background-color: var(--color-warning-soft);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--color-warning);
   border-radius: var(--radius-pill);
 }
 
@@ -9814,13 +9816,13 @@ button.monitoring-calendar__day-number:focus-visible {
 .workflow-status-badge--referred,
 .workflow-status-badge--follow_up {
   color: var(--color-primary-text);
-  background: var(--color-primary-tint);
+  background-color: var(--color-primary-tint);
   border-color: var(--color-primary);
 }
 
 .workflow-status-badge--resolved {
   color: var(--color-success);
-  background: var(--color-success-soft);
+  background-color: var(--color-success-soft);
   border-color: var(--color-success);
 }
 

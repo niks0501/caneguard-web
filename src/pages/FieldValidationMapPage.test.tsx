@@ -34,7 +34,7 @@ vi.mock("../components/fieldValidation/ValidationMap", () => ({
         type="button"
         onClick={() => onSelect({
           kind: "cluster",
-          clusterKeys: data.features.map((feature) => feature.properties.locationGroupKey ?? feature.properties.uuid),
+          clusterKeys: [...new Set(data.features.map((feature) => feature.properties.locationGroupKey ?? feature.properties.uuid))],
           coordinates: [120.6, 14.1],
         })}
       >
@@ -302,7 +302,10 @@ describe("FieldValidationMapPage selection workflows", () => {
     const sidebar = screen.getByRole("heading", { name: "Cases in this Area" }).closest("aside") as HTMLElement;
     expect(within(sidebar).getAllByText("CG-2026-0001").length).toBeGreaterThan(0);
     expect(within(sidebar).getAllByText("CG-2026-0002").length).toBeGreaterThan(0);
-    expect(within(sidebar).getAllByText("Field visit assigned", { exact: true })).toHaveLength(2);
+    expect(sidebar.querySelectorAll(".workflow-status-badge .status-badge__label")).toHaveLength(2);
+    expect(
+      Array.from(sidebar.querySelectorAll(".workflow-status-badge .status-badge__label"), (label) => label.textContent),
+    ).toEqual(["Field visit assigned", "Field visit assigned"]);
     expect(within(sidebar).getAllByRole("list", { name: "Case progress" })).toHaveLength(2);
     expect(within(sidebar).getByText(/not evidence of spread, severity, or a confirmed disease relationship/i)).toBeInTheDocument();
   });

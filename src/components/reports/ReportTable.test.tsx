@@ -244,7 +244,9 @@ describe("ReportTable - one workflow status", () => {
       report({ lifecycle: { ...openUntouched, caseState: "closed" } }),
     ]);
 
-    expect(within(rowFor("CG-2026-0001")).getByText("Resolved")).toBeInTheDocument();
+    expect(
+      rowFor("CG-2026-0001").querySelector(".workflow-status-badge .status-badge__label")?.textContent,
+    ).toBe("Resolved");
   });
 
   it("shows Follow-Up only when the scheduled-revisit flag is set", () => {
