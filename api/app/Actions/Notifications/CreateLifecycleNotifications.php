@@ -11,6 +11,7 @@ use App\Notifications\AdvisoryAvailableNotification;
 use App\Notifications\CaseAttentionNotification;
 use App\Notifications\FieldValidationAssignedNotification;
 use App\Notifications\FieldValidationAssignmentChangedNotification;
+use App\Notifications\FieldValidationAssignmentReassignedNotification;
 use App\Notifications\FieldValidationCompletedNotification;
 use App\Notifications\FollowUpDueNotification;
 use App\Notifications\OfficeReviewCompletedNotification;
@@ -62,6 +63,29 @@ class CreateLifecycleNotifications
             ),
         );
         $this->broadcast->handleOfficeUsers(FieldValidationAssignmentChangedNotification::EVENT_TYPE);
+    }
+
+    public function assignmentReassignedAway(
+        FieldValidationAssignment $assignment,
+        User $previousAssignee,
+        string $changeKey,
+    ): void {
+        $assignment->loadMissing(['report']);
+        $report = $assignment->report;
+
+        $this->send(
+            $previousAssignee,
+            new FieldValidationAssignmentReassignedNotification(
+                $previousAssignee->uuid,
+                $report->uuid,
+                $report->reference_code,
+                $assignment->uuid,
+                $changeKey,
+            ),
+            // The previous inspector no longer has access to the case; the
+            // notice carries only the reference code they already held.
+            requireCaseAccess: false,
+        );
     }
 
     public function fieldValidationCompleted(
@@ -201,11 +225,17 @@ class CreateLifecycleNotifications
         return $created;
     }
 
-    private function send(User $recipient, CaseAttentionNotification $notification): void
-    {
+    private function send(
+        User $recipient,
+        CaseAttentionNotification $notification,
+        bool $requireCaseAccess = true,
+    ): void {
         $data = $notification->toDatabase($recipient);
         $report = Report::query()->where('uuid', $data['report_uuid'] ?? '')->first();
-        if ($report === null || ! app(DistrictAccess::class)->report($recipient, $report, true)) {
+        if ($report === null) {
+            return;
+        }
+        if ($requireCaseAccess && ! app(DistrictAccess::class)->report($recipient, $report, true)) {
             return;
         }
 

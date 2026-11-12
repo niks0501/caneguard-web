@@ -242,10 +242,18 @@ class ReviewReportController extends Controller
                 if ($existingAssignment === null) {
                     $notifications->assignmentCreated($assignmentForNotification);
                 } else {
-                    $notifications->assignmentChanged(
-                        $assignmentForNotification,
-                        $assignmentForNotification->updated_at?->utc()->toISOString() ?? (string) $locked->lock_version,
-                    );
+                    $changeKey = $assignmentForNotification->updated_at?->utc()->toISOString() ?? (string) $locked->lock_version;
+                    $notifications->assignmentChanged($assignmentForNotification, $changeKey);
+                    if ((string) $existingAssignment->assignee_id !== (string) $assignmentForNotification->assignee_id) {
+                        $previousAssignee = User::query()->find($existingAssignment->assignee_id);
+                        if ($previousAssignee !== null) {
+                            $notifications->assignmentReassignedAway(
+                                $assignmentForNotification,
+                                $previousAssignee,
+                                $changeKey,
+                            );
+                        }
+                    }
                 }
             }
 

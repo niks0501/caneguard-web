@@ -29,7 +29,7 @@ class MobileFieldValidationCompletionController extends Controller
                 'message' => $exception->getMessage(),
                 'code' => $exception->reasonCode,
                 'client_uuid' => $request->validated()['client_uuid'],
-            ], 409);
+            ], $exception->httpStatus());
         }
 
         $lifecycle = $result['report']->lifecycleSnapshot();

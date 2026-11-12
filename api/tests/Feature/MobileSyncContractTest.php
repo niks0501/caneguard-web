@@ -12,6 +12,7 @@ use App\Notifications\AdvisoryAvailableNotification;
 use App\Notifications\CaseAttentionNotification;
 use App\Notifications\FieldValidationAssignedNotification;
 use App\Notifications\FieldValidationAssignmentChangedNotification;
+use App\Notifications\FieldValidationAssignmentReassignedNotification;
 use App\Notifications\FieldValidationCompletedNotification;
 use App\Notifications\FollowUpDueNotification;
 use App\Notifications\NewCaseSubmittedNotification;
@@ -188,6 +189,7 @@ class MobileSyncContractTest extends TestCase
             AdvisoryAvailableNotification::class => new AdvisoryAvailableNotification($uuid, $uuid, 'BGO-20260916-0745', $advisory, '1'),
             FieldValidationAssignedNotification::class => new FieldValidationAssignedNotification($uuid, $uuid, 'BGO-20260916-0745', $uuid, '2026-11-12'),
             FieldValidationAssignmentChangedNotification::class => new FieldValidationAssignmentChangedNotification($uuid, $uuid, 'BGO-20260916-0745', $uuid, null, 'c1'),
+            FieldValidationAssignmentReassignedNotification::class => new FieldValidationAssignmentReassignedNotification($uuid, $uuid, 'BGO-20260916-0745', $uuid, 'c1'),
             FieldValidationCompletedNotification::class => new FieldValidationCompletedNotification($uuid, $uuid, 'BGO-20260916-0745', $uuid, $uuid),
             FollowUpDueNotification::class => new FollowUpDueNotification($uuid, $uuid, 'BGO-20260916-0745', $uuid, '2026-11-01'),
             NewCaseSubmittedNotification::class => new NewCaseSubmittedNotification($uuid, 'BGO-20260916-0745'),

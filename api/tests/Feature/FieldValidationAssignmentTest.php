@@ -444,6 +444,117 @@ class FieldValidationAssignmentTest extends TestCase
             ->assertJsonPath('data.lifecycle.verification_outcome', Report::VERIFICATION_OUTCOME_NOT_DETERMINED);
     }
 
+    /** @return array<string, string> */
+    private function refusalPayload(): array
+    {
+        return [
+            'client_uuid' => fake()->uuid(),
+            'field_observation' => 'Observation.',
+            'field_finding' => 'Finding.',
+            'action_taken' => 'Action.',
+            'visited_at' => '2026-09-02T04:05:06.123Z',
+            'gps_outcome' => 'unavailable',
+            'gps_attempted_at' => '2026-09-02T04:05:01.123Z',
+        ];
+    }
+
+    // Proves: a closed case is refused with its own CASE_CLOSED reason.
+    public function test_completion_on_a_closed_case_reports_case_closed(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'case_state' => Report::CASE_STATE_CLOSED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $this->refusalPayload())
+            ->assertConflict()
+            ->assertJsonPath('code', 'CASE_CLOSED');
+    }
+
+    // Proves: an already-completed visit is refused with COMPLETED_ELSEWHERE.
+    public function test_completion_on_an_already_completed_visit_reports_completed_elsewhere(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->post("/api/v1/mobile/assignments/{$assignment->uuid}/completion", $this->refusalPayload())
+            ->assertConflict()
+            ->assertJsonPath('code', 'COMPLETED_ELSEWHERE');
+    }
+
+    // Proves: a removed visit answers 404 with VISIT_REMOVED instead of a bare 404.
+    public function test_completion_on_a_removed_visit_reports_visit_removed(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $assignee = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        $assignment = FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $assignee->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+        $uuid = $assignment->uuid;
+        $assignment->delete();
+        $payload = $this->refusalPayload();
+
+        Sanctum::actingAs($assignee, ['assignment:complete']);
+        $this->post("/api/v1/mobile/assignments/{$uuid}/completion", $payload)
+            ->assertNotFound()
+            ->assertJsonPath('code', 'VISIT_REMOVED')
+            ->assertJsonPath('client_uuid', $payload['client_uuid']);
+    }
+
+    // Proves: moving a visit to someone else notifies the previous inspector.
+    public function test_reassigning_a_visit_notifies_the_previous_inspector(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $previous = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $next = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+        ]);
+        FieldValidationAssignment::factory()->create([
+            'report_id' => $report->getKey(),
+            'assignee_id' => $previous->getKey(),
+            'assigned_by_id' => $reviewer->getKey(),
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'field_validation_state' => Report::FIELD_VALIDATION_STATE_ASSIGNED,
+            'field_validation_assignee_uuid' => $next->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+
+        $this->assertSame(
+            ['field_validation_assignment_reassigned'],
+            $previous->notifications()->get()->pluck('data.event_type')->all(),
+        );
+        $this->assertContains(
+            'field_validation_assignment_changed',
+            $next->notifications()->get()->pluck('data.event_type')->all(),
+        );
+    }
+
     public function test_completion_conflict_echoes_the_submitted_client_uuid(): void
     {
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();

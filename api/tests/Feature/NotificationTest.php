@@ -203,7 +203,7 @@ class NotificationTest extends TestCase
         ])->assertOk();
 
         $this->assertCount(1, $otherAssignee->notifications()->get());
-        $this->assertCount(2, $assignee->notifications()->get());
+        $this->assertCount(3, $assignee->notifications()->get());
         Event::assertDispatchedTimes(CaseAttentionChanged::class, 3);
     }
 

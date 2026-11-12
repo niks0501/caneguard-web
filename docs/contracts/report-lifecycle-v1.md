@@ -32,6 +32,12 @@ The field reporter may complete assigned work but may not close a case.
 
 Completed validation evidence cannot be reassigned or removed.
 
+## Completion refusals and reassignment
+
+An upload refused by the office carries one distinct reason code: `ASSIGNMENT_REASSIGNED` (403 or 409), `CASE_CLOSED` (409), `COMPLETED_ELSEWHERE` (409) or `VISIT_REMOVED` (404). `CONFLICT` remains the code when the assignment already holds a completion with a different client UUID.
+
+When a visit moves to another inspector, the previous inspector receives a `field_validation_assignment_reassigned` notification in addition to the new assignee's existing notification.
+
 ## Compatibility
 
 Existing payload contracts remain linked in the JSON artifact.

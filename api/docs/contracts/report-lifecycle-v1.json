@@ -75,6 +75,28 @@
     "final_disposition_roles": ["reviewer", "admin"],
     "ai_evidence_role": "decision_support_only"
   },
+  "completion_refusals": {
+    "authority": "assignment_workflow",
+    "description": "Distinct reasons the office refuses a field-validation completion upload. Codes are stable; clients may branch on them.",
+    "codes": {
+      "ASSIGNMENT_REASSIGNED": { "http_status": [403, 409], "meaning": "The visit now belongs to another inspector." },
+      "CASE_CLOSED": { "http_status": [409], "meaning": "The case is no longer open, so it cannot receive field-validation evidence." },
+      "COMPLETED_ELSEWHERE": { "http_status": [409], "meaning": "The case is already marked field-validation completed." },
+      "VISIT_REMOVED": { "http_status": [404], "meaning": "The office removed the visit; the assignment no longer exists." },
+      "CONFLICT": { "http_status": [409], "meaning": "The assignment already holds a completion with a different client_uuid." }
+    }
+  },
+  "assignment_transitions": {
+    "assigned_to_other_inspector": {
+      "effect": "assignee changes on the same assignment",
+      "notifies": ["new_assignee", "previous_assignee"],
+      "previous_assignee_event_type": "field_validation_assignment_reassigned"
+    },
+    "removed_by_office": {
+      "effect": "assignment deleted while no completion exists",
+      "later_upload_refusal": "VISIT_REMOVED"
+    }
+  },
   "payload_contracts": [
     "mobile-report-upload-v2",
     "mobile-field-validation-assignment-v1",
@@ -84,7 +106,8 @@
   "versioning": {
     "same_major_compatible_widening": [
       "adding optional metadata without changing lifecycle meanings",
-      "adding enum values while preserving existing state meanings"
+      "adding enum values while preserving existing state meanings",
+      "adding completion refusal codes and assignment transitions without changing existing code meanings"
     ],
     "new_major_required": [
       "removing or renaming a dimension or state",

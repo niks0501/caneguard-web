@@ -1,10 +1,12 @@
 <?php
 
+use App\Actions\Reports\FieldValidationCompletionConflict;
 use App\Http\Middleware\EnsureActiveIdentity;
 use App\Http\Middleware\EnsureInspectorAccess;
 use App\Http\Middleware\EnsureMobileTokenFresh;
 use App\Http\Middleware\EnsureOfficeAccess;
 use App\Http\Middleware\SecurityHeaders;
+use App\Models\FieldValidationAssignment;
 use App\Security\MobileCapabilityRevoked;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -130,6 +132,17 @@ return Application::configure(basePath: dirname(__DIR__))
             NotFoundHttpException $exception,
             Request $request,
         ) use ($respond) {
+            $missing = $exception->getPrevious();
+            if ($missing instanceof ModelNotFoundException
+                && $missing->getModel() === FieldValidationAssignment::class
+                && $request->is('api/v1/mobile/assignments/*/completion')) {
+                return $respond($request, [
+                    'message' => 'This visit was removed by the office.',
+                    'code' => FieldValidationCompletionConflict::VISIT_REMOVED,
+                    'client_uuid' => is_string($request->input('client_uuid')) ? $request->input('client_uuid') : null,
+                ], 404);
+            }
+
             return $respond($request, [
                 'message' => 'The requested resource was not found.',
                 'code' => 'NOT_FOUND',
