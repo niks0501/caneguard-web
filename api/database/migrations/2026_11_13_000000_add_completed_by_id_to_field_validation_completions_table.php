@@ -18,8 +18,9 @@ return new class extends Migration
                 ->constrained('users')->nullOnDelete();
         });
 
-        // Best known completer for existing rows: the assignee of record.
-        DB::table('field_validation_completions')->update([
+        // Only unowned completions get the assignee of record; an owner already
+        // recorded is never rewritten.
+        DB::table('field_validation_completions')->whereNull('completed_by_id')->update([
             'completed_by_id' => DB::table('field_validation_assignments')
                 ->select('assignee_id')
                 ->whereColumn('field_validation_assignments.id', 'field_validation_completions.assignment_id'),
