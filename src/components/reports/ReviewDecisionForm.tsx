@@ -196,18 +196,29 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   }, [step]);
   const caseStateOutcome = caseStateLabels[resultingState].toLowerCase();
   const chosenAction = actions.find((item) => item.value === action);
-  const consequence = !chosenAction ? null
-    : chosenAction.value === "field" && completedValidation ? `You chose ${chosenAction.label}; field validation is already complete, so no new visit will be assigned and the case stays open.`
-    : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""}. The case stays open.`
-    : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed.`
-    : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}.`
-    : `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}. The case stays ${caseStateOutcome}.`;
-  const summaryAction = !chosenAction ? "No action has been chosen"
-    : chosenAction.value === "field" && completedValidation ? `You chose ${chosenAction.label}; field validation is already complete, so no new visit will be assigned and the case stays open`
-    : chosenAction.value === "field" ? `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""} and the case stays open`
-    : chosenAction.value === "close" ? `You chose ${chosenAction.label}, so the case is closed`
-    : support === "technical" ? `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}`
-    : `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}, and the case stays ${caseStateOutcome}`;
+  const actionCopy = !chosenAction ? { consequence: null, summary: "No action has been chosen" }
+    : chosenAction.value === "field" && completedValidation ? {
+      consequence: `You chose ${chosenAction.label}; field validation is already complete, so no new visit will be assigned and the case stays open.`,
+      summary: `You chose ${chosenAction.label}; field validation is already complete, so no new visit will be assigned and the case stays open`,
+    }
+    : chosenAction.value === "field" ? {
+      consequence: `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""}. The case stays open.`,
+      summary: `You chose ${chosenAction.label}, so ${displayedInspector ?? "a field inspector"} checks the field${displayedTargetDate ? ` on ${displayedTargetDate}` : ""} and the case stays open`,
+    }
+    : chosenAction.value === "close" ? {
+      consequence: `You chose ${chosenAction.label}, so the case is closed.`,
+      summary: `You chose ${chosenAction.label}, so the case is closed`,
+    }
+    : support === "technical" ? {
+      consequence: `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}.`,
+      summary: `You chose ${chosenAction.label} with Technical Assistance, so the case stays ${caseStateOutcome}`,
+    }
+    : {
+      consequence: `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}. The case stays ${caseStateOutcome}.`,
+      summary: `You chose ${chosenAction.label}, sending ${selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "advisory guidance"}, and the case stays ${caseStateOutcome}`,
+    };
+  const consequence = actionCopy.consequence;
+  const summaryAction = actionCopy.summary;
   const aiConditionSummary = report.predictedDisease
     ? `the AI Possible Condition is ${predictedDiseaseLabel(report.predictedDisease).replace(/^Possible Condition:\s*/, "")}`
     : "there is no AI scan for this case";
