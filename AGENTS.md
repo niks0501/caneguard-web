@@ -4,7 +4,7 @@
 - Before using an unfamiliar CLI subcommand or flag, check that CLI's help; do not assume compatibility with another tool's syntax.
 - Prefer the simplest complete solution and avoid unnecessary abstractions or dependencies.
 - Keep changes focused, readable, deterministic, and maintainable.
-- Before staging, inspect generated and tool-maintained artifact diffs; stage only explicit task-required files and review `git diff --cached` before committing. A `--stat` summary alone is not a staged-diff review. Keep generated Graphify output out of commits.
+- Before staging, inspect generated and tool-maintained artifact diffs; stage only explicit task-required files and review `git diff --cached` before committing. A `--stat` summary alone is not a staged-diff review. Read the complete staged diff, in pages if necessary; filtered or truncated excerpts do not count. Keep generated Graphify output out of commits.
 - Preserve unrelated user work and never overwrite, reset, stash, delete, or rewrite unrelated changes.
 - Treat secrets, credentials, tokens, environment values, production data, and personal data as sensitive.
 - Do not expose sensitive values in output, logs, commits, examples, or generated files.
@@ -50,7 +50,7 @@ When `graphify-out/graph.json` exists, use Graphify as the first source for unde
 
 ## Failure Handling
 
-- Read the actual error before attempting a fix.
+- Read the actual error before attempting a fix. Inspect every reported failure before authorizing fixes; a passing rerun alone does not establish flakiness.
 - Determine whether a failure comes from the change, environment, configuration, or existing repository state.
 - Make evidence-based corrective attempts rather than repeatedly rerunning the same failing command unchanged.
 - Report blockers clearly when further progress requires user action or an unsafe assumption.
@@ -62,6 +62,8 @@ During no-mistakes validation, run live verification alongside the fast automate
 Start with fast non-interactive automated checks, including targeted unit tests, integration tests, type checks, lint, and static validation, then run the live checks the change calls for.
 
 E2E validation belongs to both the implementation phase and no-mistakes validation.
+
+For web layout or interaction changes, check the affected rendered states and controls in a running browser after fast checks; report what was exercised or the concrete blocker, not automated results as live evidence.
 
 ## Completion
 
