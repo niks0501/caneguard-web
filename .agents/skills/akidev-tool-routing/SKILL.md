@@ -1,6 +1,6 @@
 ---
 name: akidev-tool-routing
-description: Route UI design, unfamiliar, cross-cutting, debugging, runtime, and verification work to the smallest selected AkiDev capability; use shared CLIs without installing workstation tools.
+description: Load before running project verification (tests, type checks, or lint), and for UI design, unfamiliar, cross-cutting, debugging, or runtime work; route to the smallest selected AkiDev capability using shared CLIs without installing workstation tools.
 ---
 
 <!-- Managed by AkiDev integration: akidev-tool-routing -->

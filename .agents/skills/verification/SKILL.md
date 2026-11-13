@@ -1,6 +1,6 @@
 ---
 name: verification
-description: Choose and execute evidence through the strict test ladder, including the E2E intent gate, without confusing unavailable checks with passes.
+description: Load this repository's .agents/skills/verification/SKILL.md from the project root before choosing or running checks, including fresh-copy dependency preflight; use the strict test ladder and E2E intent gate, and distinguish unavailable checks from passes.
 ---
 
 # Verification
