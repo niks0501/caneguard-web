@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 /** @deprecated Compatibility storage for console and legacy writers; grants no longer authorize Web. */
 final class ReconcileDistrictAccess
 {
-    public function handle(User $target, District $district, string $role, array $abilities, bool $revoke, string $officeReference, ?User $actor = null, string $action = 'replace', ?string $operationId = null): ?AccountAccessEvent
+    public function handle(User $target, District $district, string $role, array $abilities, bool $revoke, string $officeReference, ?User $actor = null, string $action = 'replace', ?string $operationId = null, bool $legacyWeb = false): ?AccountAccessEvent
     {
         if (! in_array($role, User::roles(), true) || ! in_array($target->role, User::roles(), true)
             || array_diff($abilities, DistrictGrant::ABILITIES) !== [] || count(array_unique($abilities)) !== count($abilities)
@@ -25,7 +25,7 @@ final class ReconcileDistrictAccess
             throw new \InvalidArgumentException('Unsupported, retired, unverified, or undocumented authority change.');
         }
 
-        return DB::transaction(function () use ($target, $district, $role, $abilities, $revoke, $officeReference, $actor, $action, $operationId): ?AccountAccessEvent {
+        return DB::transaction(function () use ($target, $district, $role, $abilities, $revoke, $officeReference, $actor, $action, $operationId, $legacyWeb): ?AccountAccessEvent {
             District::query()->whereKey($district->id)->lockForUpdate()->firstOrFail();
             $targetProof = $target;
             $users = User::query()->whereIn('id', array_filter([$actor?->id, $target->id]))->orderBy('id')->lockForUpdate()->get();
@@ -54,6 +54,17 @@ final class ReconcileDistrictAccess
             $revoke = $revoke || $role === User::ROLE_FARMER;
             $directory = app(AccountsDirectory::class);
             $before = $directory->snapshot($target, lock: true);
+            // Legacy v1 writers cannot admit or restore field authority; role changes of current members are unaffected.
+            if ($legacyWeb && $actor !== null && ! $revoke && $before['membership_state'] !== 'active'
+                && ($target->role === User::ROLE_FIELD_REPORTER || $role === User::ROLE_FIELD_REPORTER)) {
+                AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'Use the v2 access operation to admit or restore field authority.', 422);
+            }
+            if ($actor !== null && ! $revoke && $before['membership_state'] !== 'active'
+                && ($target->role === User::ROLE_FIELD_REPORTER || $role === User::ROLE_FIELD_REPORTER)
+                && (DistrictMembership::query()->where('user_id', $target->id)->where('district_id', '!=', $district->id)->exists()
+                    || DistrictGrant::query()->where('user_id', $target->id)->where('district_id', '!=', $district->id)->exists())) {
+                AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'Foreign associations require operator reconciliation.', 422);
+            }
             $beforeWeb = ['role' => $target->role, 'is_active' => $target->is_active];
             $beforeVersion = $target->access_version;
             if (array_diff(array_column($before['grants'], 'ability'), DistrictGrant::ABILITIES) !== []) {

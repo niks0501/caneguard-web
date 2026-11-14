@@ -39,14 +39,19 @@ final class AccountsDirectory
     public function detail(User $user, ?User $actor): array
     {
         $user->loadMissing(['districtMemberships', 'districtGrants', 'accountReview']);
-        $membership = $user->districtMemberships->firstWhere('district_id', $this->access->pilotId());
+        $pilotId = $this->access->pilotId();
+        $membership = $user->districtMemberships->firstWhere('district_id', $pilotId);
         $state = $membership === null ? 'not_issued' : ($membership->revoked_at === null ? 'active' : 'revoked');
-        $stored = $user->districtGrants->where('district_id', $this->access->pilotId())->whereNull('revoked_at')->pluck('ability')->sort()->values()->all();
+        $stored = $user->districtGrants->where('district_id', $pilotId)->whereNull('revoked_at')->pluck('ability')->sort()->values()->all();
         $effective = $state === 'active' && $user->hasVerifiedEmail() && $user->role === User::ROLE_ADMIN ? $stored : [];
         $supported = in_array($user->role, User::roles(), true)
             && in_array($user->registration_origin, ['unknown', 'public_signup', 'office_certified'], true)
             && $user->districtGrants->every(fn ($grant) => in_array($grant->ability, DistrictGrant::ABILITIES, true));
         $eligible = $supported && $user->role === User::ROLE_FARMER && in_array($user->registration_origin, ['public_signup', 'office_certified'], true);
+        // An active office-certified inspector can be admitted to the pilot district; historical origins stay with the operator.
+        $admittable = $pilotId !== null && $supported && $user->role === User::ROLE_FIELD_REPORTER && $user->registration_origin === 'office_certified' && $user->is_active
+            && $user->districtMemberships->every(fn ($membership) => (int) $membership->district_id === $pilotId)
+            && $user->districtGrants->every(fn ($grant) => (int) $grant->district_id === $pilotId);
         $actions = [];
         $reasons = [];
         if ($actor?->is($user)) {
@@ -56,7 +61,7 @@ final class AccountsDirectory
             if ($user->is_active && $user->role === User::ROLE_ADMIN) {
                 $actions[] = 'transfer';
             }
-        } elseif (! $supported || ($state === 'not_issued' && ! $eligible)) {
+        } elseif (! $supported || ($state === 'not_issued' && ! $eligible && ! $admittable)) {
             $reasons[] = 'Legacy or unsupported identity requires controlled operator reconciliation.';
         } else {
             if ($state === 'not_issued' && $eligible) {
@@ -64,6 +69,8 @@ final class AccountsDirectory
                 if ($user->hasVerifiedEmail()) {
                     $actions[] = 'admit';
                 }
+            } elseif ($state === 'not_issued' && $user->hasVerifiedEmail()) {
+                $actions = ['admit'];
             } elseif ($state === 'active') {
                 $actions = ['revoke'];
                 if ($user->hasVerifiedEmail()) {
@@ -88,7 +95,7 @@ final class AccountsDirectory
             'review_state' => $user->accountReview?->disposition ?? 'new',
             'web_access_allowed' => $state === 'active' && $user->hasVerifiedEmail() && $user->isOfficeUser(), 'access_version' => $user->access_version,
             'allowed_actions' => $actions, 'denial_reasons' => $reasons,
-            'grant_revisions' => $user->districtGrants->where('district_id', $this->access->pilotId())->map(fn ($g) => [
+            'grant_revisions' => $user->districtGrants->where('district_id', $pilotId)->map(fn ($g) => [
                 'id' => $g->id, 'ability' => $g->ability, 'revision' => $g->revision, 'revoked' => $g->revoked_at !== null,
             ])->values()->all(),
         ];

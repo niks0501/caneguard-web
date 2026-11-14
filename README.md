@@ -224,7 +224,7 @@ For just the three role accounts after `php api/artisan migrate:fresh` on a disp
 php api/artisan db:seed --class=AccountsSeeder
 ```
 
-`AccountsSeeder` creates or refreshes the canonical names, roles, verified email timestamps, and passwords for `field@caneguard.test` (Field Inspector / `field_reporter`), `mao@caneguard.test` (SRA Reviewer / `reviewer`), and `admin@caneguard.test` (`admin`). It reads the three `CANEGUARD_*_PASSWORD` values configured above and fails before writing any accounts if one is missing or empty. It refuses `APP_ENV=production`, including with `--force`. It creates no districts, memberships, grants, reports, advisories, or other demo data; district authority must be provisioned separately. Rerunning it refreshes the same accounts without duplicating them or deleting unrelated accounts.
+`AccountsSeeder` creates or refreshes the canonical names, roles, verified email timestamps, and passwords for `field@caneguard.test` (Field Inspector / `field_reporter`), `mao@caneguard.test` (SRA Reviewer / `reviewer`), and `admin@caneguard.test` (`admin`). It reads the three `CANEGUARD_*_PASSWORD` values configured above and fails before writing any accounts if one is missing or empty. It refuses `APP_ENV=production`, including with `--force`. It creates no districts, memberships, grants, reports, advisories, or other demo data; district authority must be provisioned separately. The field account is recorded as office-certified. Once the pilot district exists, an admin can admit a verified, active, office-certified, unassigned field account with no foreign district associations under **User Management → Field accounts → Admit**, using an office reference and their current password. Rerunning it refreshes the same accounts without duplicating them or deleting unrelated accounts.
 
 The seed creates the local accounts and synthetic field records in Nasugbu, Batangas. Rerunning a seeder updates its stable demo records in place; it does not duplicate them. Run the seeding commands below from `api/`.
 
@@ -251,7 +251,7 @@ The command stamps only NULL district values, preserves existing district stamps
 **DANGER: `php artisan migrate:fresh --seed` drops every table and deletes all data in the selected database before rebuilding and seeding it. Use it only for a disposable local development database—never production.**
 The accounts are `field@caneguard.test`, `mao@caneguard.test`, and `admin@caneguard.test`.
 Use the local passwords you set in `CANEGUARD_FIELD_PASSWORD`, `CANEGUARD_REVIEWER_PASSWORD`, and `CANEGUARD_ADMIN_PASSWORD`.
-The Web accepts reviewer and admin roles; Mobile synchronization requires the field-reporter role.
+The Web accepts reviewer and admin roles; Mobile synchronization requires the field-reporter role and pilot-district membership. The full seed assigns office staff to the pilot district; admit the field account as described above.
 See [expert workflow retirement](docs/expert-workflow-retirement.md) for historical referrals, offline handoff notes and migration safety.
 
 After any update that adds API migrations, rerun `php api/artisan migrate` before logging in.

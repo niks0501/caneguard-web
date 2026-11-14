@@ -1,6 +1,6 @@
 # Accounts and keys — accounts-access-v1
 
-> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface, not the supported Web flow.
+> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface except for field-account admission, which still uses the v2 access route.
 
 This office-only contract implements decisions D1–D6 from the approved accounts plan. It is not a registration approval gate. A verified farmer's existing Mobile security access remains independent of human triage.
 
@@ -52,7 +52,7 @@ Never put real passwords in fixtures, logs, PR descriptions or saved command sta
 
 Access additionally requires `expected_access_version`, `operation` and complete `desired: {role,grants}`:
 
-- **admit**: verified known public-signup/explicit office-certified unassigned farmer; concrete staff role, membership and explicitly selected keys in one atomic office decision. No foreign/historical association adoption.
+- **admit**: verified known public-signup/explicit office-certified unassigned farmer; concrete staff role, membership and explicitly selected keys in one atomic office decision; or a verified, active, office-certified unassigned field reporter, admitted as `field_reporter` with membership and no keys (no role change). No foreign/historical association adoption: unknown-origin field reporters stay with operator reconciliation.
 - **replace**: current pilot membership. Complete grant set removes only unselected keys. A role-only admin assignment issues none. Non-admin roles require no named keys.
 - **revoke**: active pilot membership, empty desired grants; retain current role or explicitly reviewed demotion to farmer. Identity, report attribution and access history remain. This is district authority withdrawal, not whole-account suspension/deletion. Demotion to farmer requires revoke.
 - **restore**: revoked pilot membership, verified supported identity, fresh concrete staff role and keys. Never reuse old credentials, approvals or grant revision validity.
@@ -96,7 +96,7 @@ D6 retention is the life of the identity and official-record history, until an o
 
 ## Operator and Mobile handoff
 
-Before any separately authorized rollout: preflight the pilot roster and singleton, provision an independent recovery manager through `caneguard:access`, resolve foreign/unsupported/unknown historical identities with named evidence (no blanket origin backfill), migrate, then enable the accounts gate. An explicit operator-certified legacy candidate may be marked office_certified only through approved evidence-backed reconciliation; this release adds no certification UI or automatic writer. Turning the accounts gate off stops discovery/issuance, not previously issued authority. Public registration is disabled unconditionally; this contract adds no sign-up path. Roster certification and the weekly-send gate remain untouched.
+Before any separately authorized rollout: preflight the pilot roster and singleton, provision an independent recovery manager through `caneguard:access`, resolve foreign/unsupported/unknown historical identities with named evidence (no blanket origin backfill), migrate, then enable the accounts gate. An explicit operator-certified legacy candidate may be marked office_certified only through approved evidence-backed reconciliation; there is no certification UI or automatic legacy-origin backfill. Turning the accounts gate off stops discovery/issuance, not previously issued authority. Public registration is disabled unconditionally; this contract adds no sign-up path. Roster certification and the weekly-send gate remain untouched.
 
 Mobile keeps a field reporter's session through membership and role changes: `CAPABILITY_REVOKED` is lost authority for one record, not a sign-out, while an actually revoked or expired token still requires re-authentication ([auth-v1](auth-v1.md)). Inspector membership revocation blocks official reports/assignments; farmer account-security access remains governed by verification/role, not triage. Historical report ownership and expert retirement are unchanged. Production deployment, data reconciliation and account disposition require separate authorization.
 

@@ -76,7 +76,7 @@ class AdminUserRoleController extends Controller
             app(ReconcileDistrictAccess::class)->handle(
                 $user, District::findOrFail(app(DistrictAccess::class)->pilotId()),
                 $newRole, [], $newRole === User::ROLE_FARMER,
-                $request->validated('office_reference') ?? 'Legacy v1 role change: reference not supplied', $actor,
+                $request->validated('office_reference') ?? 'Legacy v1 role change: reference not supplied', $actor, legacyWeb: true,
             );
             $audits->handle(
                 SecurityAudit::ACTION_ROLE_CHANGE,

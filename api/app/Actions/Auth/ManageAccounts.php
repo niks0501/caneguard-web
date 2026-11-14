@@ -137,6 +137,8 @@ final class ManageAccounts
                 }
                 if (! in_array($operation, $detail['allowed_actions'], true)
                     || ($operation !== 'revoke' && $desired['role'] === User::ROLE_FARMER)
+                    // Admitting an inspector issues district membership only, never a different role.
+                    || ($operation === 'admit' && $target->role === User::ROLE_FIELD_REPORTER && $desired['role'] !== User::ROLE_FIELD_REPORTER)
                     || ($operation === 'revoke' && ($desired['grants'] !== [] || ! in_array($desired['role'], [$target->role, User::ROLE_FARMER], true)))
                     || ($desired['grants'] !== [] && $desired['role'] !== User::ROLE_ADMIN)) {
                     AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'This authority transition is not allowed.', 422);
