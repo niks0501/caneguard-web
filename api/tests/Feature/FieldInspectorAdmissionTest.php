@@ -193,14 +193,11 @@ class FieldInspectorAdmissionTest extends TestCase
         $this->assertDatabaseMissing('district_memberships', ['user_id' => $unassigned->id, 'district_id' => $pilot->id]);
     }
 
-    public function test_legacy_writers_require_current_eligible_inspector_authority(): void
+    public function test_legacy_writers_cannot_admit_or_restore_inspectors_but_keep_member_role_changes(): void
     {
         $pilot = $this->pilotDistrict();
         $this->actingAs(User::factory()->admin()->create(), 'web');
         $cases = [
-            ['origin' => 'unknown', 'active' => true, 'verified' => true, 'membership' => 'active'],
-            ['origin' => 'office_certified', 'active' => false, 'verified' => true, 'membership' => 'active'],
-            ['origin' => 'office_certified', 'active' => true, 'verified' => false, 'membership' => 'active'],
             ['origin' => 'office_certified', 'active' => true, 'verified' => true, 'membership' => 'revoked'],
             ['origin' => 'office_certified', 'active' => true, 'verified' => true, 'membership' => 'missing'],
         ];
@@ -229,11 +226,15 @@ class FieldInspectorAdmissionTest extends TestCase
             }
         }
 
-        $eligible = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
-        DistrictMembership::create(['user_id' => $eligible->id, 'district_id' => $pilot->id]);
-        $this->patchJson('/api/v1/admin/users/'.$eligible->uuid.'/role', [
-            'current_password' => 'password', 'role' => User::ROLE_REVIEWER, 'office_reference' => 'synthetic',
-        ])->assertOk();
+        // Role changes of current members keep working on the legacy route, whatever their origin.
+        foreach (['office_certified', 'unknown'] as $origin) {
+            $member = User::factory()->fieldReporter()->create(['registration_origin' => $origin]);
+            DistrictMembership::create(['user_id' => $member->id, 'district_id' => $pilot->id]);
+            $this->patchJson('/api/v1/admin/users/'.$member->uuid.'/role', [
+                'current_password' => 'password', 'role' => User::ROLE_REVIEWER, 'office_reference' => 'synthetic',
+            ])->assertOk();
+            $this->assertSame(User::ROLE_REVIEWER, $member->fresh()->role, $origin);
+        }
     }
 
     public function test_legacy_grant_bearing_promotion_cannot_admit_or_restore_inspector(): void

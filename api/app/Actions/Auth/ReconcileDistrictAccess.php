@@ -54,11 +54,10 @@ final class ReconcileDistrictAccess
             $revoke = $revoke || $role === User::ROLE_FARMER;
             $directory = app(AccountsDirectory::class);
             $before = $directory->snapshot($target, lock: true);
-            if ($legacyWeb && $actor !== null && ! $revoke
-                && ($target->role === User::ROLE_FIELD_REPORTER || $role === User::ROLE_FIELD_REPORTER)
-                && ($before['membership_state'] !== 'active' || ! $target->is_active
-                    || ! $target->hasVerifiedEmail() || $target->registration_origin !== 'office_certified')) {
-                AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'Field authority requires validated account access.', 422);
+            // Legacy v1 writers cannot admit or restore field authority; role changes of current members are unaffected.
+            if ($legacyWeb && $actor !== null && ! $revoke && $before['membership_state'] !== 'active'
+                && ($target->role === User::ROLE_FIELD_REPORTER || $role === User::ROLE_FIELD_REPORTER)) {
+                AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'Use the v2 access operation to admit or restore field authority.', 422);
             }
             if ($actor !== null && ! $revoke && $before['membership_state'] !== 'active'
                 && ($target->role === User::ROLE_FIELD_REPORTER || $role === User::ROLE_FIELD_REPORTER)
