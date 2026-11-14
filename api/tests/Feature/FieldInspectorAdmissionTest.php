@@ -189,8 +189,77 @@ class FieldInspectorAdmissionTest extends TestCase
         $this->putJson('/api/v1/admin/users/'.$unassigned->uuid.'/access', [
             'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
             'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
+        ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+        $this->assertDatabaseMissing('district_memberships', ['user_id' => $unassigned->id, 'district_id' => $pilot->id]);
+    }
+
+    public function test_legacy_writers_require_current_eligible_inspector_authority(): void
+    {
+        $pilot = $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $cases = [
+            ['origin' => 'unknown', 'active' => true, 'verified' => true, 'membership' => 'active'],
+            ['origin' => 'office_certified', 'active' => false, 'verified' => true, 'membership' => 'active'],
+            ['origin' => 'office_certified', 'active' => true, 'verified' => false, 'membership' => 'active'],
+            ['origin' => 'office_certified', 'active' => true, 'verified' => true, 'membership' => 'revoked'],
+            ['origin' => 'office_certified', 'active' => true, 'verified' => true, 'membership' => 'missing'],
+        ];
+        foreach ($cases as $case) {
+            $field = User::factory()->fieldReporter()->create([
+                'registration_origin' => $case['origin'], 'is_active' => $case['active'],
+                'email_verified_at' => $case['verified'] ? now() : null,
+            ]);
+            if ($case['membership'] !== 'missing') {
+                DistrictMembership::create(['user_id' => $field->id, 'district_id' => $pilot->id,
+                    'revoked_at' => $case['membership'] === 'revoked' ? now() : null]);
+            }
+            $this->putJson('/api/v1/admin/users/'.$field->uuid.'/access', [
+                'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
+                'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
+            ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+            $this->patchJson('/api/v1/admin/users/'.$field->uuid.'/role', [
+                'current_password' => 'password', 'role' => User::ROLE_REVIEWER, 'office_reference' => 'synthetic',
+            ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+            $this->assertSame($case['active'], (bool) $field->fresh()->is_active);
+            $this->assertSame(User::ROLE_FIELD_REPORTER, $field->fresh()->role);
+            if ($case['membership'] === 'revoked') {
+                $this->assertNotNull($field->districtMemberships()->sole()->revoked_at);
+            } elseif ($case['membership'] === 'missing') {
+                $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id]);
+            }
+        }
+
+        $eligible = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+        DistrictMembership::create(['user_id' => $eligible->id, 'district_id' => $pilot->id]);
+        $this->putJson('/api/v1/admin/users/'.$eligible->uuid.'/access', [
+            'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
+            'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
         ])->assertOk();
-        $this->assertDatabaseHas('district_memberships', ['user_id' => $unassigned->id, 'district_id' => $pilot->id, 'revoked_at' => null]);
+    }
+
+    public function test_inspector_admission_hint_requires_a_pilot_district(): void
+    {
+        $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        foreach (['', 'missing-pilot'] as $code) {
+            config(['caneguard.pilot_district_code' => $code]);
+            $this->getJson('/api/v1/admin/accounts/field')->assertOk()
+                ->assertJsonPath('data.0.uuid', $field->uuid)->assertJsonPath('data.0.allowed_actions', [])
+                ->assertJsonPath('data.0.denial_reasons', [self::LEGACY]);
+        }
+        $this->pilotDistrict();
+        $this->getJson('/api/v1/admin/accounts/field')->assertOk()->assertJsonPath('data.0.allowed_actions', ['admit']);
+    }
+
+    public function test_validated_v2_can_restore_revoked_inspector(): void
+    {
+        $pilot = $this->pilotDistrict();
+        $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified', 'is_active' => false]);
+        DistrictMembership::create(['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => now()]);
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $this->access($field, 'restore', 'password')->assertOk();
+        $this->assertDatabaseHas('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => null]);
+        $this->assertTrue((bool) $field->fresh()->is_active);
     }
 
     public function test_controlled_console_can_reconcile_foreign_associated_inspector(): void

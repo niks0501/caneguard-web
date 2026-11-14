@@ -49,7 +49,7 @@ final class AccountsDirectory
             && $user->districtGrants->every(fn ($grant) => in_array($grant->ability, DistrictGrant::ABILITIES, true));
         $eligible = $supported && $user->role === User::ROLE_FARMER && in_array($user->registration_origin, ['public_signup', 'office_certified'], true);
         // An active office-certified inspector can be admitted to the pilot district; historical origins stay with the operator.
-        $admittable = $supported && $user->role === User::ROLE_FIELD_REPORTER && $user->registration_origin === 'office_certified' && $user->is_active
+        $admittable = $pilotId !== null && $supported && $user->role === User::ROLE_FIELD_REPORTER && $user->registration_origin === 'office_certified' && $user->is_active
             && $user->districtMemberships->every(fn ($membership) => (int) $membership->district_id === $pilotId)
             && $user->districtGrants->every(fn ($grant) => (int) $grant->district_id === $pilotId);
         $actions = [];
