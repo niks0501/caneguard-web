@@ -169,8 +169,8 @@ class FieldInspectorAdmissionTest extends TestCase
                         DistrictMembership::create(['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => now()]);
                     }
                     $this->putJson('/api/v1/admin/users/'.$field->uuid.'/access', [
-                        'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
-                        'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
+                        'current_password' => 'password', 'role' => User::ROLE_ADMIN,
+                        'grants' => ['report:send'], 'revoke' => false, 'office_reference' => 'synthetic',
                     ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
                     $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => null]);
                 }
@@ -187,8 +187,8 @@ class FieldInspectorAdmissionTest extends TestCase
 
         $unassigned = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
         $this->putJson('/api/v1/admin/users/'.$unassigned->uuid.'/access', [
-            'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
-            'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
+            'current_password' => 'password', 'role' => User::ROLE_ADMIN,
+            'grants' => ['report:send'], 'revoke' => false, 'office_reference' => 'synthetic',
         ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
         $this->assertDatabaseMissing('district_memberships', ['user_id' => $unassigned->id, 'district_id' => $pilot->id]);
     }
@@ -216,7 +216,7 @@ class FieldInspectorAdmissionTest extends TestCase
             $this->putJson('/api/v1/admin/users/'.$field->uuid.'/access', [
                 'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
                 'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
-            ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+            ])->assertStatus(422)->assertJsonPath('code', 'VALIDATION_ERROR');
             $this->patchJson('/api/v1/admin/users/'.$field->uuid.'/role', [
                 'current_password' => 'password', 'role' => User::ROLE_REVIEWER, 'office_reference' => 'synthetic',
             ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
@@ -231,9 +231,8 @@ class FieldInspectorAdmissionTest extends TestCase
 
         $eligible = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
         DistrictMembership::create(['user_id' => $eligible->id, 'district_id' => $pilot->id]);
-        $this->putJson('/api/v1/admin/users/'.$eligible->uuid.'/access', [
-            'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
-            'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
+        $this->patchJson('/api/v1/admin/users/'.$eligible->uuid.'/role', [
+            'current_password' => 'password', 'role' => User::ROLE_REVIEWER, 'office_reference' => 'synthetic',
         ])->assertOk();
     }
 

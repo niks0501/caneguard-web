@@ -1,6 +1,6 @@
 # Accounts and keys — accounts-access-v1
 
-> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface, not the supported Web flow.
+> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface except for field-account admission, which still uses the v2 access route.
 
 This office-only contract implements decisions D1–D6 from the approved accounts plan. It is not a registration approval gate. A verified farmer's existing Mobile security access remains independent of human triage.
 
@@ -96,7 +96,7 @@ D6 retention is the life of the identity and official-record history, until an o
 
 ## Operator and Mobile handoff
 
-Before any separately authorized rollout: preflight the pilot roster and singleton, provision an independent recovery manager through `caneguard:access`, resolve foreign/unsupported/unknown historical identities with named evidence (no blanket origin backfill), migrate, then enable the accounts gate. An explicit operator-certified legacy candidate may be marked office_certified only through approved evidence-backed reconciliation; this release adds no certification UI or automatic writer. Turning the accounts gate off stops discovery/issuance, not previously issued authority. Public registration is disabled unconditionally; this contract adds no sign-up path. Roster certification and the weekly-send gate remain untouched.
+Before any separately authorized rollout: preflight the pilot roster and singleton, provision an independent recovery manager through `caneguard:access`, resolve foreign/unsupported/unknown historical identities with named evidence (no blanket origin backfill), migrate, then enable the accounts gate. An explicit operator-certified legacy candidate may be marked office_certified only through approved evidence-backed reconciliation; there is no certification UI or automatic legacy-origin backfill. Turning the accounts gate off stops discovery/issuance, not previously issued authority. Public registration is disabled unconditionally; this contract adds no sign-up path. Roster certification and the weekly-send gate remain untouched.
 
 Mobile keeps a field reporter's session through membership and role changes: `CAPABILITY_REVOKED` is lost authority for one record, not a sign-out, while an actually revoked or expired token still requires re-authentication ([auth-v1](auth-v1.md)). Inspector membership revocation blocks official reports/assignments; farmer account-security access remains governed by verification/role, not triage. Historical report ownership and expert retirement are unchanged. Production deployment, data reconciliation and account disposition require separate authorization.
 
