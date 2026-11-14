@@ -60,11 +60,9 @@ final class DemoAccounts
                 ['email' => $user['email']],
                 $attributes,
             );
-            // Office-issued demo identities, so the office can admit the field
-            // account to the pilot district from Accounts.
             $seededUser->forceFill([
                 'email_verified_at' => $user['email_verified_at'],
-                'registration_origin' => 'office_certified',
+                ...($user['role'] === User::ROLE_FIELD_REPORTER ? ['registration_origin' => 'office_certified'] : []),
             ])->save();
 
             $seededUsers[] = $seededUser;

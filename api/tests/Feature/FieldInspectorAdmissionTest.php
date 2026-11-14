@@ -41,12 +41,28 @@ class FieldInspectorAdmissionTest extends TestCase
         $this->seed(AccountsSeeder::class);
         $field = User::query()->where('email', 'field@caneguard.test')->sole();
         $this->assertSame('office_certified', $field->registration_origin);
+        $this->assertSame('unknown', User::query()->where('email', 'mao@caneguard.test')->sole()->registration_origin);
+        $this->assertSame('unknown', User::query()->where('email', 'admin@caneguard.test')->sole()->registration_origin);
         $this->assertDatabaseCount('district_memberships', 0);
 
         $this->actingAs(User::query()->where('email', 'admin@caneguard.test')->sole(), 'web');
         $this->getJson('/api/v1/admin/accounts/field')->assertOk()->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.uuid', $field->uuid)->assertJsonPath('data.0.membership_state', 'not_issued')
             ->assertJsonPath('data.0.allowed_actions', ['admit'])->assertJsonPath('data.0.denial_reasons', []);
+    }
+
+    public function test_seeders_preserve_existing_office_account_origins(): void
+    {
+        $this->pilotDistrict();
+        User::factory()->reviewer()->create(['email' => 'mao@caneguard.test', 'registration_origin' => 'public_signup']);
+        User::factory()->admin()->create(['email' => 'admin@caneguard.test', 'registration_origin' => 'unknown']);
+
+        foreach ([AccountsSeeder::class, DatabaseSeeder::class] as $seeder) {
+            $this->seed($seeder);
+            $this->assertSame('office_certified', User::query()->where('email', 'field@caneguard.test')->sole()->registration_origin);
+            $this->assertSame('public_signup', User::query()->where('email', 'mao@caneguard.test')->sole()->registration_origin);
+            $this->assertSame('unknown', User::query()->where('email', 'admin@caneguard.test')->sole()->registration_origin);
+        }
     }
 
     /** Proves: after the full demo seed, the office admits the field inspector and the phone gains visit refresh. */
@@ -132,6 +148,61 @@ class FieldInspectorAdmissionTest extends TestCase
                 $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id]);
             }
         }
+    }
+
+    public function test_legacy_web_writers_cannot_adopt_foreign_associated_inspectors(): void
+    {
+        $pilot = $this->pilotDistrict();
+        $foreign = District::create(['code' => 'foreign', 'name' => 'Foreign']);
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        foreach ([DistrictMembership::class, DistrictGrant::class] as $model) {
+            foreach ([null, now()] as $revokedAt) {
+                foreach ([false, true] as $restore) {
+                    $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+                    $attributes = ['user_id' => $field->id, 'district_id' => $foreign->id, 'revoked_at' => $revokedAt];
+                    if ($model === DistrictGrant::class) {
+                        $attributes['ability'] = 'report:send';
+                    }
+                    $model::create($attributes);
+                    if ($restore) {
+                        DistrictMembership::create(['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => now()]);
+                    }
+                    $this->putJson('/api/v1/admin/users/'.$field->uuid.'/access', [
+                        'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
+                        'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
+                    ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+                    $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => null]);
+                }
+            }
+        }
+
+        $farmer = User::factory()->farmer()->create();
+        DistrictMembership::create(['user_id' => $farmer->id, 'district_id' => $foreign->id]);
+        $this->patchJson('/api/v1/admin/users/'.$farmer->uuid.'/role', [
+            'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER, 'office_reference' => 'synthetic',
+        ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+        $this->assertDatabaseMissing('district_memberships', ['user_id' => $farmer->id, 'district_id' => $pilot->id]);
+        $this->assertSame(User::ROLE_FARMER, $farmer->fresh()->role);
+
+        $unassigned = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+        $this->putJson('/api/v1/admin/users/'.$unassigned->uuid.'/access', [
+            'current_password' => 'password', 'role' => User::ROLE_FIELD_REPORTER,
+            'grants' => [], 'revoke' => false, 'office_reference' => 'synthetic',
+        ])->assertOk();
+        $this->assertDatabaseHas('district_memberships', ['user_id' => $unassigned->id, 'district_id' => $pilot->id, 'revoked_at' => null]);
+    }
+
+    public function test_controlled_console_can_reconcile_foreign_associated_inspector(): void
+    {
+        $pilot = $this->pilotDistrict();
+        $foreign = District::create(['code' => 'foreign', 'name' => 'Foreign']);
+        $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+        DistrictMembership::create(['user_id' => $field->id, 'district_id' => $foreign->id]);
+        DistrictGrant::create(['user_id' => $field->id, 'district_id' => $foreign->id, 'ability' => 'report:send']);
+
+        $this->artisan('caneguard:access', ['user' => $field->uuid, 'district' => $pilot->code, 'reference' => 'synthetic'])->assertExitCode(0);
+        $this->assertDatabaseHas('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => null]);
     }
 
     /** Proves keep-list: a disabled office-certified inspector without membership is not admittable. */
