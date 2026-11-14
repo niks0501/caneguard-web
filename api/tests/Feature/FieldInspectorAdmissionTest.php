@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\District;
+use App\Models\DistrictGrant;
 use App\Models\DistrictMembership;
 use App\Models\User;
 use App\Security\DistrictAccess;
@@ -105,6 +107,31 @@ class FieldInspectorAdmissionTest extends TestCase
             $this->access($field, 'admit', 'password')->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
         }
         $this->assertDatabaseCount('district_memberships', 0);
+    }
+
+    public function test_foreign_associations_prevent_inspector_admission(): void
+    {
+        $pilot = $this->pilotDistrict();
+        $foreign = District::create(['code' => 'foreign', 'name' => 'Foreign']);
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        foreach ([DistrictMembership::class, DistrictGrant::class] as $model) {
+            foreach ([null, now()] as $revokedAt) {
+                $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+                $attributes = ['user_id' => $field->id, 'district_id' => $foreign->id, 'revoked_at' => $revokedAt];
+                if ($model === DistrictGrant::class) {
+                    $attributes['ability'] = 'report:send';
+                }
+                $model::create($attributes);
+
+                $row = collect($this->getJson('/api/v1/admin/accounts/field')->assertOk()->json('data'))->firstWhere('uuid', $field->uuid);
+                $this->assertNotNull($row);
+                $this->assertSame([], $row['allowed_actions']);
+                $this->assertSame([self::LEGACY], $row['denial_reasons']);
+                $this->access($field, 'admit', 'password')->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+                $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id]);
+            }
+        }
     }
 
     /** Proves keep-list: a disabled office-certified inspector without membership is not admittable. */
