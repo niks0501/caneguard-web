@@ -84,6 +84,11 @@ jobs:
           test -s "$RUNNER_TEMP/caneguard-package/api/public/index.html"
           test -s "$RUNNER_TEMP/caneguard-package/api/public/index.php"
           test ! -e "$RUNNER_TEMP/caneguard-package/api/.env"
+          # The server runs these before activation when aerial analysis is on.
+          test -s "$RUNNER_TEMP/caneguard-package/scripts/preflight-aerial.php"
+          test -s "$RUNNER_TEMP/caneguard-package/aerial-inference/segment.py"
+          test -s "$RUNNER_TEMP/caneguard-package/aerial-inference/model.onnx.sha256"
+          test ! -e "$RUNNER_TEMP/caneguard-package/aerial-inference/model.onnx"
           tar -czf "$RUNNER_TEMP/caneguard-release.tar.gz" -C "$RUNNER_TEMP/caneguard-package" .
           echo "PACKAGE_SHA256=$(sha256sum "$RUNNER_TEMP/caneguard-release.tar.gz" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
 
