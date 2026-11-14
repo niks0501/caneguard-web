@@ -218,6 +218,14 @@ php api/artisan key:generate
 php api/artisan migrate
 ```
 
+For just the three role accounts after `php api/artisan migrate:fresh` on a disposable local database, run this single command from the repository root:
+
+```bash
+php api/artisan db:seed --class=AccountsSeeder
+```
+
+`AccountsSeeder` creates or refreshes the canonical names, roles, verified email timestamps, and passwords for `field@caneguard.test` (Field Inspector / `field_reporter`), `mao@caneguard.test` (SRA Reviewer / `reviewer`), and `admin@caneguard.test` (`admin`). It reads the three `CANEGUARD_*_PASSWORD` values configured above and fails before writing any accounts if one is missing or empty. It refuses `APP_ENV=production`, including with `--force`. It creates no districts, memberships, grants, reports, advisories, or other demo data; district authority must be provisioned separately. Rerunning it refreshes the same accounts without duplicating them or deleting unrelated accounts.
+
 The seed creates the local accounts and synthetic field records in Nasugbu, Batangas. Rerunning a seeder updates its stable demo records in place; it does not duplicate them. Run the seeding commands below from `api/`.
 
 Run all seeding commands from `api/`, and only against your local development database. Before running them, verify that the configured connection is local SQLite or local MySQL. **Never run these commands against production.**
