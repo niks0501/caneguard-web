@@ -54,7 +54,7 @@ final class ReconcileDistrictAccess
             $revoke = $revoke || $role === User::ROLE_FARMER;
             $directory = app(AccountsDirectory::class);
             $before = $directory->snapshot($target, lock: true);
-            if ($legacyWeb && $actor !== null && ! $revoke && $abilities === []
+            if ($legacyWeb && $actor !== null && ! $revoke
                 && ($target->role === User::ROLE_FIELD_REPORTER || $role === User::ROLE_FIELD_REPORTER)
                 && ($before['membership_state'] !== 'active' || ! $target->is_active
                     || ! $target->hasVerifiedEmail() || $target->registration_origin !== 'office_certified')) {

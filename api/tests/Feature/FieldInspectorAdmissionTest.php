@@ -237,6 +237,32 @@ class FieldInspectorAdmissionTest extends TestCase
         ])->assertOk();
     }
 
+    public function test_legacy_grant_bearing_promotion_cannot_admit_or_restore_inspector(): void
+    {
+        $pilot = $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        foreach ([false, true] as $revoked) {
+            foreach (DistrictGrant::ABILITIES as $ability) {
+                $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+                if ($revoked) {
+                    DistrictMembership::create(['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => now()]);
+                }
+                $this->putJson('/api/v1/admin/users/'.$field->uuid.'/access', [
+                    'current_password' => 'password', 'role' => User::ROLE_ADMIN,
+                    'grants' => [$ability], 'revoke' => false, 'office_reference' => 'synthetic',
+                ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+                $this->assertSame(User::ROLE_FIELD_REPORTER, $field->fresh()->role);
+                $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id, 'revoked_at' => null]);
+                $this->assertDatabaseMissing('district_grants', ['user_id' => $field->id, 'district_id' => $pilot->id]);
+                if ($revoked) {
+                    $this->assertNotNull($field->districtMemberships()->sole()->revoked_at);
+                } else {
+                    $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id, 'district_id' => $pilot->id]);
+                }
+            }
+        }
+    }
+
     public function test_inspector_admission_hint_requires_a_pilot_district(): void
     {
         $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
