@@ -9,9 +9,8 @@ aerial photo; the server segments it with the Aerial V3 SegFormer-B1 model
 `CANEGUARD_AERIAL_ANALYSIS_ENABLED` (`caneguard.aerial.enabled`) defaults to
 `false`. While it is off every route below returns `404` and
 `GET /api/v1/reports/{report}` carries no `aerial_analyses` key. The key is
-never on list, map, mobile, export or PDF payloads. Enabling it is an operator
-step: stage `model.onnx`, create the Python environment and set
-`CANEGUARD_AERIAL_PYTHON` and `CANEGUARD_AERIAL_MODEL_PATH`.
+never on list, map, mobile, export or PDF payloads. For production staging and
+enablement, follow the [aerial deployment runbook](../../docs/production-deployment.md#aerial-analysis-needs-python-and-the-model-staged-first).
 
 ## Case-page use
 
