@@ -61,6 +61,37 @@ Enabling the send flag requires a supervised `php artisan queue:work` and workin
 
 Local proof without real mail: `cd api && php artisan test --filter=WeeklyReportMailEndToEndTest` queues a report and delivers it through the real `weekly_smtp` transport (TLS verified) into `api/tests/Support/fake_smtp_mailbox.py`, a local mailbox that relays nothing. It needs `openssl` and `python3` on the machine and skips itself when either is missing. For production variable names and ordered steps, see the "Production checklist: enable weekly report email" GitHub issue.
 
+## Aerial analysis needs Python and the model staged first
+`CANEGUARD_AERIAL_ANALYSIS_ENABLED` defaults to `false` in code and `api/.env.example`; leave it `false` until the staging and identity checks below are complete. With it on and anything missing, uploads answer `503` ("The aerial check is unavailable right now"). Releases ship `aerial-inference/segment.py` and `model.onnx.sha256` but never `model.onnx` or weights (they are too large for git); the operator stages the model by hand. Torch is not installed on the server.
+
+Staging checklist (as `deploy`, outside the release directories, except for the administrator verification in step 6):
+1. Python >= 3.11: `python3 --version`. Install it first if older.
+2. Create a venv: `python3 -m venv /var/www/caneguard/shared/aerial-venv`.
+3. Install the pinned runtime packages (numpy, onnxruntime, Pillow) from `aerial-inference/requirements.txt` in the revision you are deploying. For example, if the active release has the same requirements: `/var/www/caneguard/shared/aerial-venv/bin/pip install -r /var/www/caneguard/current/aerial-inference/requirements.txt`.
+4. Copy `model.onnx` (exported by `aerial-inference/export_onnx.py` on a dev machine) to `/var/www/caneguard/shared/aerial/model.onnx`, then verify it: `sha256sum /var/www/caneguard/shared/aerial/model.onnx` must equal the hash in `aerial-inference/model.onnx.sha256` (or `CANEGUARD_AERIAL_WEIGHTS_SHA256` if set). The file must be readable by `deploy` and `www-data`.
+5. Ensure `/var/www/caneguard/shared/api/storage/app/private/aerial` exists and is writable by `www-data` (it holds uploaded photos and masks, and is covered by the existing storage permissions).
+6. Before enabling the flag, an administrator (`ubuntu`) must ensure `www-data` can traverse every ancestor of the venv, interpreter (including symlink targets), model and storage, execute the interpreter, read the venv's site-packages and model, and write/search the storage directory. For example, after reviewing existing ACLs and masks, grant read/traverse access to the staged trees with `setfacl -R -m u:www-data:rX /var/www/caneguard/shared/aerial-venv /var/www/caneguard/shared/aerial` (or equivalent); provision any missing ancestor or interpreter-target permissions separately. Then, as `ubuntu`, verify the actual FPM identity:
+   ```sh
+   sudo -u www-data /var/www/caneguard/shared/aerial-venv/bin/python -c 'import numpy, onnxruntime, PIL'
+   sudo -u www-data test -r /var/www/caneguard/shared/aerial/model.onnx
+   sudo -u www-data test -w /var/www/caneguard/shared/api/storage/app/private/aerial
+   sudo -u www-data test -x /var/www/caneguard/shared/api/storage/app/private/aerial
+   ```
+   Every command must succeed; use the actual configured paths if they differ. Repeat the permission provisioning and verification after replacing or modifying the venv, packages, model, or their paths.
+7. Only then set, in the shared `.env` (`shared/api/.env`), and no earlier:
+   ```
+   CANEGUARD_AERIAL_ANALYSIS_ENABLED=true
+   CANEGUARD_AERIAL_PYTHON=/var/www/caneguard/shared/aerial-venv/bin/python
+   CANEGUARD_AERIAL_MODEL_PATH=/var/www/caneguard/shared/aerial/model.onnx
+   ```
+   Use an absolute interpreter path: PHP-FPM does not inherit your shell's venv.
+8. Run a new deploy. `scripts/preflight-aerial.php` runs after `config:cache` and before migrations and activation. It prints `PASS ...` per check and `PASS aerial preflight`, or fails the deploy listing each missing piece (Python version, packages, model file or SHA-256, storage, smoke inference). With the flag `false` it prints one line and changes nothing.
+9. After activation, confirm in the office UI that an aerial photo uploads on a test case and shows canopy shares.
+
+Limits: the aerial preflight runs as `deploy`, not `www-data`, so its Python, package, model, storage and inference checks only prove deploy access. Step 6 verifies the FPM identity's staged dependencies and storage permissions; step 9 checks the live upload path. The model is not part of the release archive, so a deploy never replaces it; to change the model, stage the new file and its pinned SHA-256 together and redeploy.
+
+Rollback: set `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` in the shared `.env` and deploy again (or run `php artisan config:cache` in the active release). The routes then return `404` and cases carry no aerial field; stored photos and results are retained. The preflight runs as a no-op while the flag is off. Staging files can stay in place.
+
 ## Scheduler for reminders and follow-up due notifications
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. Add one cron entry for the application user, from the `api` directory of the active release:
 

@@ -82,6 +82,12 @@ setfacl -R -P -m u:www-data:rX "$new"
 # Any failure exits before migrations or activation; HTTP readiness stays below.
 php "$new/scripts/verify-release-access.php" "$new"
 
+# Flag-aware: a no-op unless the shared .env enables aerial analysis. When it
+# does, Python, packages, the pinned model, storage and one smoke inference
+# must pass here, before migrations and activation, or the deploy fails
+# instead of shipping uploads that answer 503.
+php "$new/scripts/preflight-aerial.php" "$new"
+
 # Only non-destructive, backward-compatible migrations may be released.
 # Take an out-of-band MySQL backup before deployments with schema changes.
 php artisan migrate --force --no-interaction
