@@ -115,12 +115,11 @@ if (! is_string($model) || $model === '') {
     }
 }
 
-// 4. Private aerial storage directory is writable (created if absent).
-$storage = null;
+// 4. Private aerial storage directory is writable.
 try {
     $storage = Storage::disk('local')->path('aerial');
-    if (! is_dir($storage) && ! @mkdir($storage, 0750, true) && ! is_dir($storage)) {
-        $fail("Aerial storage '{$storage}' does not exist and cannot be created.");
+    if (! is_dir($storage)) {
+        $fail("Aerial storage '{$storage}' does not exist; stage it before deploying.");
     } elseif (! is_writable($storage)) {
         $fail("Aerial storage '{$storage}' is not writable.");
     } else {
