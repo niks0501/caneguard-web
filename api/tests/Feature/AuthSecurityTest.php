@@ -489,6 +489,7 @@ class AuthSecurityTest extends TestCase
         ]);
         $target = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create([
             'password' => 'A reviewer passphrase',
+            'registration_origin' => 'office_certified',
         ]);
         DistrictGrant::query()->create([
             'user_id' => $admin->id,
