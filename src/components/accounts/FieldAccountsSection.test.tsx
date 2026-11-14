@@ -63,6 +63,17 @@ describe("Field accounts", () => {
     expect(await screen.findByText(/Reload the list/)).toBeInTheDocument();
     expect(api.listFieldAccounts).toHaveBeenCalledTimes(2);
   });
+  it("admits a not-yet-admitted field account to the area", async () => {
+    const admittable: api.FieldAccount = { ...notIssued, access_version: 2, allowed_actions: ["admit"], denial_reasons: [] };
+    vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [admittable], meta });
+    vi.mocked(api.changeFieldAccess).mockResolvedValue({ data: { ...admittable, access_version: 3 } });
+    renderSection();
+    expect(await screen.findByText("Not admitted")).toBeInTheDocument();
+    await confirm("Admit Unassigned Sample");
+    await waitFor(() => expect(api.changeFieldAccess).toHaveBeenCalledWith(admittable.uuid,
+      expect.objectContaining({ operation: "admit", role: "field_reporter", expected_access_version: 2 }), "synthetic-password"));
+    expect(await screen.findByText("Unassigned Sample admitted.")).toBeInTheDocument();
+  });
   it("shows the server's reason instead of an action the access operation rejects", async () => {
     vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [notIssued, unverified], meta: { ...meta, total: 2 } });
     renderSection();

@@ -31,9 +31,15 @@ export function FieldAccountsSection() {
   </section>;
 }
 
+const fieldActions = {
+  admit: { verb: "Admit", done: "admitted", effect: "This admits the account to the area. The person signs in again." },
+  revoke: { verb: "Disable", done: "disabled", effect: "This ends the account's area membership and signs the phone out." },
+  restore: { verb: "Re-enable", done: "re-enabled", effect: "This restores the account's area membership. The person signs in again." },
+} as const;
+
 function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNotice: (notice: string) => void; onSaved: () => Promise<void> }) {
-  const action = (["revoke", "restore"] as const).find(candidate => account.allowed_actions.includes(candidate));
-  const verb = action === "revoke" ? "Disable" : "Re-enable";
+  const action = (["admit", "revoke", "restore"] as const).find(candidate => account.allowed_actions.includes(candidate));
+  const { verb, done, effect } = fieldActions[action ?? "restore"];
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [reference, setReference] = useState("");
@@ -57,7 +63,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
     try {
       await changeFieldAccess(account.uuid, { operation: action, role: account.role, expected_access_version: account.access_version, office_reference: reference, idempotency_key: key.current }, password);
       setOpen(false);
-      onNotice(`${account.name} ${action === "revoke" ? "disabled" : "re-enabled"}.`);
+      onNotice(`${account.name} ${done}.`);
       await onSaved();
     } catch (failure) {
       if (failure instanceof ApiError && failure.status === 422) {
@@ -78,14 +84,14 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
   return <tr>
     <td data-label="Name">{account.name}</td>
     <td data-label="Email">{account.email}</td>
-    <td data-label="Status">{account.is_active ? "Active" : "Disabled"}</td>
+    <td data-label="Status">{!account.is_active ? "Disabled" : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
     <td data-label="Action">
       {action ? <>
         <Button disabled={pending} aria-label={`${verb} ${account.name}`} onClick={() => { onNotice(""); setError(""); setPassword(""); setOpen(true); }}>{verb}</Button>
         <Modal id={id} title={`${verb} field account`} open={open} onClose={close} disabled={pending}>
           <form className="settings-form" onSubmit={submit}>
             <p><strong>{account.name}</strong> · {account.email}</p>
-            <p>{action === "revoke" ? "This ends the account's area membership and signs the phone out." : "This restores the account's area membership. The person signs in again."}</p>
+            <p>{effect}</p>
             {error ? <p id={`${id}-error`} role="alert">{error}</p> : null}
             <label className="settings-field"><span>Office reference</span>
               <input type="text" value={reference} required maxLength={160} disabled={pending} onChange={event => setReference(event.target.value)} />

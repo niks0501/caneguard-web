@@ -47,6 +47,8 @@ final class AccountsDirectory
             && in_array($user->registration_origin, ['unknown', 'public_signup', 'office_certified'], true)
             && $user->districtGrants->every(fn ($grant) => in_array($grant->ability, DistrictGrant::ABILITIES, true));
         $eligible = $supported && $user->role === User::ROLE_FARMER && in_array($user->registration_origin, ['public_signup', 'office_certified'], true);
+        // An active office-certified inspector can be admitted to the pilot district; historical origins stay with the operator.
+        $admittable = $supported && $user->role === User::ROLE_FIELD_REPORTER && $user->registration_origin === 'office_certified' && $user->is_active;
         $actions = [];
         $reasons = [];
         if ($actor?->is($user)) {
@@ -56,7 +58,7 @@ final class AccountsDirectory
             if ($user->is_active && $user->role === User::ROLE_ADMIN) {
                 $actions[] = 'transfer';
             }
-        } elseif (! $supported || ($state === 'not_issued' && ! $eligible)) {
+        } elseif (! $supported || ($state === 'not_issued' && ! $eligible && ! $admittable)) {
             $reasons[] = 'Legacy or unsupported identity requires controlled operator reconciliation.';
         } else {
             if ($state === 'not_issued' && $eligible) {
@@ -64,6 +66,8 @@ final class AccountsDirectory
                 if ($user->hasVerifiedEmail()) {
                     $actions[] = 'admit';
                 }
+            } elseif ($state === 'not_issued' && $user->hasVerifiedEmail()) {
+                $actions = ['admit'];
             } elseif ($state === 'active') {
                 $actions = ['revoke'];
                 if ($user->hasVerifiedEmail()) {

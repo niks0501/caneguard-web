@@ -44,4 +44,11 @@ describe("field account transport", () => {
       current_password: "pw", office_reference: "REF", idempotency_key: "key", expected_access_version: 2,
     });
   });
+  it("accepts the base account the access operation returns after an admission", async () => {
+    const { changeFieldAccess } = await import("./accountsAdmin.api");
+    const saved = { ...webAccount, role: "field_reporter" as const, access_version: 3 };
+    vi.mocked(axiosClient.put).mockResolvedValue({ data: { contract_version: "accounts-access-v1", code: "ACCOUNT_ACCESS_UPDATED", data: saved, event_id: 1, operation_id: "op", access_version: 3, credentials_revoked: false } });
+    await expect(changeFieldAccess(saved.uuid, { operation: "admit", role: "field_reporter", expected_access_version: 2, office_reference: "REF", idempotency_key: "key" }, "pw")).resolves.toEqual({ data: saved });
+    expect(axiosClient.put).toHaveBeenCalledWith(`/api/v2/admin/accounts/${saved.uuid}/access`, expect.objectContaining({ operation: "admit", desired: { role: "field_reporter", grants: [] } }));
+  });
 });

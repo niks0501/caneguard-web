@@ -52,7 +52,7 @@ Never put real passwords in fixtures, logs, PR descriptions or saved command sta
 
 Access additionally requires `expected_access_version`, `operation` and complete `desired: {role,grants}`:
 
-- **admit**: verified known public-signup/explicit office-certified unassigned farmer; concrete staff role, membership and explicitly selected keys in one atomic office decision. No foreign/historical association adoption.
+- **admit**: verified known public-signup/explicit office-certified unassigned farmer; concrete staff role, membership and explicitly selected keys in one atomic office decision; or a verified, active, office-certified unassigned field reporter, admitted as `field_reporter` with membership and no keys (no role change). No foreign/historical association adoption: unknown-origin field reporters stay with operator reconciliation.
 - **replace**: current pilot membership. Complete grant set removes only unselected keys. A role-only admin assignment issues none. Non-admin roles require no named keys.
 - **revoke**: active pilot membership, empty desired grants; retain current role or explicitly reviewed demotion to farmer. Identity, report attribution and access history remain. This is district authority withdrawal, not whole-account suspension/deletion. Demotion to farmer requires revoke.
 - **restore**: revoked pilot membership, verified supported identity, fresh concrete staff role and keys. Never reuse old credentials, approvals or grant revision validity.
