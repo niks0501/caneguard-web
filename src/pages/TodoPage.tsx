@@ -134,6 +134,7 @@ function TodoLaneSection({ lane, lastLook, onAssign }: { lane: TodoLaneData; las
                 returnTo: `${location.pathname}${location.search}`, filters: {},
                 remainingIds: lane.reports.slice(lane.reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
                 reviewedIds: [], snapshotOnly: true,
+                loadedPosition: lane.reports.findIndex((entry) => entry.uuid === report.uuid) + 1,
                 ...(lane.truncated ? { snapshotTruncated: true } : {}),
               }}
             />

@@ -100,7 +100,7 @@ The URL is the only source of truth (`parseReportListUrl`); invalid values never
 |---|---|---|
 | `idle` | edit | `dirty` |
 | `dirty` | submit invalid | `dirty` + `review-error-*` ids, title `Error:` prefix |
-| `dirty` | submit valid, online, version known | `saving` |
+| `dirty` | confirm valid decision from Confirm step, online, version known (and evidence checked when closing) | `saving` |
 | `saving` | 200 | `saved` ("<ref> — Review confirmed.") |
 | `saving` | 409 | `conflict` -> one read of latest -> per-field latest/mine -> `dirty` on the new version |
 | `saving` | 422/403/429/Zod/network | `error`; no change confirmed |
@@ -159,6 +159,6 @@ Same pattern as SM-8: URL-validated filters, initial error vs refetch error with
 
 ## Human gates and safe retries
 
-Never auto-confirm: Confirm Review when it closes a case, weekly Approve and Send, duplicate link, metadata correction.
+Never auto-confirm: a review decision, weekly Approve and Send, duplicate link, or metadata correction.
 
 Safe retries: idempotent reads; `POST /reports/{id}/open`; mobile upload replays with the same `client_uuid`; weekly send with the same idempotency key. Everything else: re-read the version on a 409 and stop for a human.

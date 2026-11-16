@@ -62,14 +62,14 @@ describe("mock data mode", () => {
     await user.click(
       screen.getByRole("radio", { name: "Provide Advisory or Assistance" }),
     );
-    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     // Mock mode has no advisory library; record meaningful technical support.
     await user.click(screen.getByRole("radio", { name: "Technical Assistance" }));
     const review = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.type(within(review).getByRole("textbox", { name: /Technical Assistance details/ }), "Demonstrated field sanitation and monitoring steps.");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await user.click(within(review).getByRole("button", { name: "Review decision" }));
-    await user.click(within(review).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(review).getByRole("button", { name: "Next" }));
+    await user.click(within(review).getByRole("button", { name: "Confirm decision" }));
 
     expect(await screen.findByText("CG-2026-0718 — Review confirmed.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "CG-2026-0718" })).toBeInTheDocument();

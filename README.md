@@ -388,7 +388,7 @@ Do not use real farmer or production data.
 3. Confirm the Web dashboard loads seeded report data and the authenticated session survives a refresh.
 4. Open the Android development build and sign in as `field@caneguard.test` with the local field-reporter password.
 5. Create a valid field report, complete its required fields and location, finalize it locally, and trigger Mobile synchronization.
-6. Refresh the Web dashboard, open the synchronized report, and save a reviewer status and note.
+6. Refresh the Web dashboard and open the synchronized report. Choose an action, enter its details, check your answers, and select **Confirm decision** to save. Closing a case also requires the evidence-check checkbox.
 7. Return to Mobile, refresh or trigger its normal status synchronization, and confirm the report reflects the Web review.
 
 This path proves the local API, Web authentication, Mobile bearer authentication, report upload, Web review, and Mobile status synchronization are using the same API and database.

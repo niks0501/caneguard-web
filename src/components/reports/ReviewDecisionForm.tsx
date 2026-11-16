@@ -29,6 +29,23 @@ import { reviewQueueContext } from "./reviewQueueContext";
 
 type NextAction = "field" | "support" | "close";
 type DecisionStep = "action" | "details" | "review";
+const decisionSteps: { value: DecisionStep; label: string }[] = [
+  { value: "action", label: "Choose" },
+  { value: "details", label: "Details" },
+  { value: "review", label: "Confirm" },
+];
+
+function DecisionStepper({ step }: { step: DecisionStep }) {
+  const current = decisionSteps.findIndex((item) => item.value === step);
+  return <ol className="review-stepper" aria-label="Decision steps">
+    {decisionSteps.map((item, index) => <li key={item.value} aria-current={index === current ? "step" : undefined}
+      className={`review-stepper__step${index < current ? " is-done" : ""}${index === current ? " is-current" : ""}`}>
+      <span className="review-stepper__num" aria-hidden="true">{index + 1}</span>{item.label}
+      <span className="sr-only">{index < current ? " done" : index === current ? " current" : ""}</span>
+    </li>)}
+  </ol>;
+}
+
 const actions: { value: NextAction; label: string; consequence: string; icon: LucideIcon }[] = [
   { value: "field", icon: MapPinned, label: "Needs Field Validation", consequence: "Case stays open until the visit is done." },
   { value: "support", icon: HandHelping, label: "Provide Advisory or Assistance", consequence: "The reporter receives the advice you choose." },
@@ -70,6 +87,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const [step, setStep] = useState<DecisionStep>("action");
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [receipt, setReceipt] = useState("");
   const [stale, setStale] = useState(false);
   const [nextPending, setNextPending] = useState(false);
   const [nextMessage, setNextMessage] = useState("");
@@ -247,11 +265,29 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     : "there is no AI scan for this case";
   const summarySentence = `${summaryAction}; Staff finding: ${classification ? authorityClassifiedConditionLabels[classification] : "not classified"}, ${verificationOutcomeLabels[effectiveVerification].toLowerCase()}; ${aiConditionSummary}.`;
 
+  const checkRows: { label: string; value: string; step: DecisionStep }[] = [
+    { label: "Action", value: chosenAction?.label ?? "None chosen", step: "action" },
+    ...(fieldSelected && !completedValidation ? [{
+      label: "Inspector",
+      value: `${displayedInspector ?? "Not selected"}${displayedTargetDate ? ` · visit by ${displayedTargetDate}` : ""}`,
+      step: "details" as const,
+    }] : []),
+    ...(action === "support" ? [{
+      label: "Advice",
+      value: support === "technical" ? "Technical Assistance" : selectedAdvisory ? `${selectedAdvisory.code} - ${selectedAdvisory.title}` : "Not selected",
+      step: "details" as const,
+    }] : []),
+    { label: "Condition", value: classification ? authorityClassifiedConditionLabels[classification] : "Not classified", step: "details" },
+    { label: "Verification", value: verificationOutcomeLabels[effectiveVerification], step: "details" },
+  ];
+
   const confirm = async () => {
     if (!online || saving.current || mutation.isPending || conflict || saved || expectedVersion === undefined) return;
     if (invalid) {
       setFailedMessages(failingMessages);
-      setStep(fieldErrors.action.length ? "action" : "details");
+      const detailErrors = failingMessages.filter((message) => !fieldErrors.close.includes(message));
+      if (fieldErrors.action.length) setStep("action");
+      else if (detailErrors.length) setStep("details");
       return;
     }
     const input: ReportReviewInput = {
@@ -275,6 +311,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       const nextVersion = updated?.reviewVersion ?? expectedVersion + 1;
       lastSelfWriteVersion.current = nextVersion;
       setExpectedVersion(nextVersion);
+      const stillOpen = (context?.remainingIds ?? []).filter((id) => id !== report.uuid && !(context?.reviewedIds ?? []).includes(id)).length;
+      setReceipt(`Saved: ${chosenAction?.label ?? "Decision"}. The case is now ${caseStateOutcome}.${stillOpen ? ` ${stillOpen} more loaded.` : ""}`);
       setDirty(false); setSaved(true); setFailedMessages([]); setConflictChoices(allConflictChoices);
       setConflictLatest(null); setConflictError(null);
       onRefresh();
@@ -369,6 +407,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     setNextPending(true); setNextMessage("");
     const reviewedIds = [...(context?.reviewedIds ?? []), report.uuid];
     let remainingIds = (context?.remainingIds ?? []).filter((id) => !reviewedIds.includes(id));
+    const fromSnapshot = remainingIds.length > 0;
     try {
       // The original snapshot survives queue invalidation/removal after saving.
       // At its end, rescan the same filtered order to handle page shifts without skipping cases.
@@ -384,6 +423,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       const next = remainingIds[0];
       if (next) navigate(routes.reportDetail(next), { state: { reviewQueue: {
         returnTo, filters: context?.filters ?? {}, remainingIds: remainingIds.slice(1), reviewedIds,
+        ...(fromSnapshot && context && Number.isSafeInteger(context.loadedPosition) && context.loadedPosition! > 0
+          ? { loadedPosition: context.loadedPosition! + context.remainingIds.indexOf(next) + 1 } : {}),
         ...(context?.snapshotOnly ? { snapshotOnly: true } : {}),
         ...(context?.snapshotTruncated ? { snapshotTruncated: true } : {}),
       } } });
@@ -397,7 +438,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   return <form ref={formRef} id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); if (step === "review") void confirm(); }}>
     {step === "action" ? <>
     <section className="review-card" aria-labelledby="choose-action-heading">
-      <p className="review-step-indicator">Step 1 of 2</p>
       <h2 id="choose-action-heading" ref={headingRef} tabIndex={-1}>Choose Action</h2>
       <fieldset className="review-actions" disabled={mutation.isPending}>
         <legend>What should happen next?</legend>
@@ -410,12 +450,10 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         </label>)}</div>
       </fieldset>{error("action")}
       {consequence ? <p className="review-consequence" role="status">{consequence}</p> : null}
-      <div className="review-step-actions"><Button type="button" onClick={() => setStep("details")}>Next step</Button></div>
     </section>
     </> : null}
     {step === "details" ? <>
     <section className="review-card" aria-labelledby="action-details-heading">
-      <p className="review-step-indicator">Step 2 of 2</p>
       <h2 id="action-details-heading" ref={headingRef} tabIndex={-1}>Action details</h2>
       {consequence ? <p className="review-consequence">{consequence}</p> : null}
       <fieldset className="review-conditional-fields" disabled={mutation.isPending}>
@@ -453,7 +491,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         </div> : null}
         {action === "close" ? <div className="review-subform">
           <p>Confirming this review will close the case.</p>
-          <label className="case-confirmation"><input type="checkbox" checked={closedConfirmed} onChange={(event) => { setClosedConfirmed(event.target.checked); changed(); }} /><span>Close this case</span></label>{error("close")}
         </div> : null}
         <TextArea label={action === "support" && support === "technical" ? "Technical Assistance details / Review notes" : "Review notes"}
           hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable."
@@ -483,16 +520,30 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       <p className="authority-classification-help">Human finding; independent of the AI Possible Condition.</p>
     </fieldset>
 
-    <div className="review-step-actions">
-      <Button type="button" variant="secondary" onClick={() => setStep("action")}>Back</Button>
-      <Button type="button" onClick={() => setStep("review")}>Review decision</Button>
-    </div>
     </> : null}
     {step === "review" ? (
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
       <h2 id="review-summary-heading" ref={headingRef} tabIndex={-1}>Review Summary</h2>
       <p className="review-consequence">{summarySentence}</p>
-      {notes.length ? <><p className="review-notes-label">Review notes</p><blockquote className="review-consequence review-note-quote">{notes}</blockquote></> : <p className="review-notes-empty">Review notes: none</p>}
+      <ul className="review-check-list" aria-label="Check your answers">
+        {checkRows.map((row) => <li key={row.label} className="review-check-list__row">
+          <span className="review-check-list__body"><strong>{row.label}</strong> <span>{row.value}</span></span>
+          <button type="button" className="review-check-list__change" disabled={mutation.isPending || saved}
+            aria-label={`Change ${row.label.toLowerCase()}`} onClick={() => setStep(row.step)}>Change</button>
+        </li>)}
+        <li className="review-check-list__row">
+          <span className="review-check-list__body">
+            {notes.length ? <><p className="review-notes-label">Review notes</p><blockquote className="review-consequence review-note-quote">{notes}</blockquote></> : <p className="review-notes-empty">Review notes: none</p>}
+          </span>
+          <button type="button" className="review-check-list__change" disabled={mutation.isPending || saved}
+            aria-label="Change review notes" onClick={() => setStep("details")}>Change</button>
+        </li>
+      </ul>
+      {action === "close" ? <>
+        <label className="case-confirmation"><input type="checkbox" checked={closedConfirmed} disabled={mutation.isPending || saved}
+          aria-describedby={showsError("close") ? "review-error-close" : undefined}
+          onChange={(event) => { setClosedConfirmed(event.target.checked); changed(); }} /><span>I've checked the evidence. Close this case.</span></label>{error("close")}
+      </> : null}
       {!online ? (
         <div className="review-offline" role="alert">
           <p>Not saved. CaneGuard is offline, so this review cannot be confirmed. Your draft stays in this tab and is not queued to send later.</p>
@@ -521,16 +572,21 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       /> : null}
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
-      <div className="review-step-actions">
-      <Button type="button" variant="secondary" disabled={mutation.isPending || saved} onClick={() => setStep("details")}>Back</Button>
-      <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined}>{mutation.isPending ? "Confirming review..." : "Confirm Review"}</Button>
-      </div>
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
+        {receipt ? <p>{receipt}</p> : null}
         <Button type="button" variant="secondary" disabled={nextPending} onClick={() => void reviewNext()}>Review Next Case</Button>
         <Link to={returnTo}>Return to Queue</Link>
       </div> : null}
       {nextMessage ? <p role="status">{nextMessage}</p> : null}
     </section>
     ) : null}
+    <div className="review-decision-controls">
+      <DecisionStepper step={step} />
+      <div className="review-step-actions">
+        {step !== "action" ? <Button type="button" variant="secondary" disabled={mutation.isPending || saved} onClick={() => setStep(step === "details" ? "action" : "details")}>Back</Button> : null}
+        {step === "review" ? <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined || (action === "close" && !closedConfirmed)}>{mutation.isPending ? "Saving decision..." : "Confirm decision"}</Button>
+          : <Button type="button" onClick={() => setStep(step === "action" ? "details" : "review")}>Next</Button>}
+      </div>
+    </div>
   </form>;
 }

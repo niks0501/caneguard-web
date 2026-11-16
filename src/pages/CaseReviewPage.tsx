@@ -698,6 +698,21 @@ function CaseReviewContent() {
   if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report..." /></PageContent>;
   if (reportQuery.isSuccess && !report) return <PageContent><ErrorState kind="not-found" message="This report does not exist in the current submitted report queue." /></PageContent>;
   if ((reportQuery.isError && (!report || suppressCachedDetail)) || !report) return <PageContent><ErrorState message={detailErrorMessage} onRetry={suppressCachedDetail ? undefined : () => reportQuery.refetch()} /></PageContent>;
+  const contextFields: { label: string; short: string; value: string | null }[] = [
+    { label: "Affected area", short: "affected area", value: report.affectedAreaMeasurement === "not_measured" ? "Not measured" : report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : null },
+    { label: "Affected portion", short: "affected portion", value: report.affectedPortionMeasurement === "not_measured" ? "Not measured" : report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : null },
+    { label: "Crop age", short: "crop age", value: report.cropAge ?? null },
+    { label: "Sugarcane variety", short: "variety", value: report.sugarcaneVariety ?? null },
+    { label: "Cane class", short: "cane class", value: report.caneClass ?? null },
+  ];
+  const missingContextFields = contextFields.filter((field) => field.value === null).map((field) => field.short);
+  const queueLeft = queueContext ? queueContext.remainingIds.filter((id) => id !== report.uuid && !queueContext.reviewedIds.includes(id)) : [];
+  const nextCaseId = queueLeft[0];
+  const nextLine = workflowStatus === "resolved" ? "Nothing more to do. This case is resolved."
+    : awaitingDecision ? "Choose what happens next, check your answers, then confirm the decision."
+    : lifecycle?.fieldValidationState === "completed" ? "Read the visit evidence, then decide."
+    : lifecycle?.fieldValidationState === "assigned" || lifecycle?.fieldValidationState === "in_progress" ? "Wait for the field visit, then decide."
+    : "Review the case and decide what happens next.";
 
   // Every review-mutation failure is reported once, inside the pop-up that owns
   // the save, instead of on the page and in the pop-up at the same time.
@@ -813,12 +828,9 @@ function CaseReviewContent() {
           </div>
           <dl className="review-evidence__context">
             <DetailField label="Location"><span>{humanLocationFor(report)}{!hasUsableCoordinates(report) ? ` · Location not available${locationUnavailableReasonFor(report) ? ` — ${locationUnavailableReasonFor(report)}` : ""}` : null}{mapUrl ? <> · <a className="table-action" href={mapUrl} target="_blank" rel="noreferrer">View on map</a></> : null}</span></DetailField>
-            <DetailField label="Affected area">{report.affectedAreaMeasurement === "not_measured" ? "Not measured" : report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : "Not provided"}</DetailField>
-            <DetailField label="Affected portion">{report.affectedPortionMeasurement === "not_measured" ? "Not measured" : report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : "Not provided"}</DetailField>
-            <DetailField label="Crop age">{report.cropAge ?? "Not provided"}</DetailField>
-            <DetailField label="Sugarcane variety">{report.sugarcaneVariety ?? "Not provided"}</DetailField>
-            <DetailField label="Cane class">{report.caneClass ?? "Not provided"}</DetailField>
+            {contextFields.filter((field) => field.value !== null).map((field) => <DetailField key={field.label} label={field.label}>{field.value}</DetailField>)}
           </dl>
+          {missingContextFields.length ? <p className="review-evidence__missing">Not provided: {missingContextFields.join(", ")}</p> : null}
           <details className="review-full-details">
             <summary>View Full Report Details</summary>
             <section aria-labelledby="field-report-heading">
@@ -987,6 +999,22 @@ function CaseReviewContent() {
         description={humanLocationFor(report)}
         actions={<QueueStatusCell row={report} showIcon />}
       />
+      <div className="review-case-meta">
+        <p className="review-case-meta__queue">
+          {queueContext && Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
+            ? `Loaded position ${queueContext.loadedPosition} · ` : null}
+          {queueLeft.length} more loaded
+          {queueContext && nextCaseId ? <> · <Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
+            returnTo: queueContext.returnTo, filters: queueContext.filters, remainingIds: queueLeft.slice(1),
+            reviewedIds: queueContext.reviewedIds,
+            ...(Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
+              ? { loadedPosition: queueContext.loadedPosition! + queueContext.remainingIds.indexOf(nextCaseId) + 1 } : {}),
+            ...(queueContext.snapshotOnly ? { snapshotOnly: true } : {}),
+            ...(queueContext.snapshotTruncated ? { snapshotTruncated: true } : {}),
+          } }}>Next case</Link></> : null}
+        </p>
+        <p className="review-next-line"><strong>Next:</strong> {nextLine}</p>
+      </div>
       {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
       {workflowStatus === "resolved" ? (
         <ResolvedCaseSummary

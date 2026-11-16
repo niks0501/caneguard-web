@@ -405,6 +405,7 @@ describe("queue contract - decision rule (DECIDE, REG)", () => {
             }),
             remainingIds: [],
             reviewedIds: [],
+            loadedPosition: 1,
           },
         },
       },
