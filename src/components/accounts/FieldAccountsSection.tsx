@@ -94,8 +94,9 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
             <p>{effect}</p>
             {error ? <p id={`${id}-error`} role="alert">{error}</p> : null}
             <label className="settings-field"><span>Office reference</span>
-              <input type="text" value={reference} required maxLength={160} disabled={pending} onChange={event => setReference(event.target.value)} />
+              <input type="text" value={reference} required maxLength={160} disabled={pending} placeholder="e.g. SRA-2026-114" aria-describedby={`${id}-reference-hint`} onChange={event => setReference(event.target.value)} />
             </label>
+            <p className="settings-field-hint" id={`${id}-reference-hint`}>Memo or ticket number for the audit record.</p>
             <label className="settings-field"><span>Your current password</span>
               <input type="password" autoComplete="current-password" value={password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => setPassword(event.target.value)} />
             </label>

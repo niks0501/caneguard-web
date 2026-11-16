@@ -42,6 +42,8 @@ interface TodoAction { label: string; to: string; state?: Record<string, unknown
 function TodoCard({ report, queueContext, action }: { report: DiseaseReport; queueContext: ReviewQueueContext; action: TodoAction }) {
   const outcome = report.latestValidation?.followUpOutcome;
   const visited = Boolean(report.latestValidation) || report.lifecycle?.fieldValidationState === "completed";
+  // The chip already says "Not visited"; an unvisited row carries no second line.
+  const summary = report.latestValidation?.finding ?? (visited ? "Field evidence is ready for office assessment." : null);
   return (
     <article className="needs-assessment-row">
       <div className="needs-assessment-row__identity">
@@ -55,9 +57,7 @@ function TodoCard({ report, queueContext, action }: { report: DiseaseReport; que
         <span className={`outcome-pill outcome-pill--${outcome ?? "missing"}`}>{visited ? outcomeLabel(outcome) : "Not visited"}</span>
         {report.latestValidation?.visitedAt ? <span className="table-secondary">Visited {formatDateTime(report.latestValidation.visitedAt)}</span> : null}
       </div>
-      <p>{report.latestValidation?.finding ?? (visited
-        ? "Field evidence is ready for office assessment."
-        : "No field visit has been recorded for this observation yet.")}</p>
+      {summary ? <p>{summary}</p> : null}
       <div className="needs-assessment-row__actions">
         <Link className="button button--primary button--small" to={action.to} state={{ reviewQueue: queueContext, ...action.state }}>{action.label}</Link>
       </div>
@@ -172,10 +172,11 @@ export function TodoPage() {
     },
   ];
   const ready = !awaitingQuery.isPending && !visitQuery.isPending && !overdueQuery.isPending && !noActiveWorkQuery.isPending;
+  const { hash } = useLocation();
   useEffect(() => {
-    if (!ready || !window.location.hash.startsWith("#lane-")) return;
-    document.getElementById(window.location.hash.slice(1))?.scrollIntoView?.();
-  }, [ready]);
+    if (!ready || !hash.startsWith("#lane-")) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView?.();
+  }, [ready, hash]);
 
   const isLoading = awaitingQuery.isPending || visitQuery.isPending || overdueQuery.isPending || noActiveWorkQuery.isPending;
   const hasInitialError = (awaitingQuery.isError && !awaitingQuery.data)
@@ -223,9 +224,9 @@ export function TodoPage() {
             ? { ...visitQuery, data: visitQuery.data && noActiveWorkQuery.data ? visitQuery.data : undefined, isError: visitQuery.isError || noActiveWorkQuery.isError }
             : lane.key === "overdue" ? overdueQuery : awaitingQuery;
           return (
-            <div key={lane.key} className={lane.key === "overdue" ? "needs-assessment-summary__overdue" : undefined}>
+            <Link key={lane.key} to={routes.todoLane(lane.key)} className={lane.key === "overdue" ? "needs-assessment-summary__overdue" : undefined}>
               <Icon aria-hidden="true" /><strong>{countValue(read, lane.reports.length)}</strong><span>{lane.title}</span>
-            </div>
+            </Link>
           );
         })}
       </div>
