@@ -135,8 +135,8 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
     renderPage({
       ...baseReport,
       cropAge: "6 months",
-      sugarcaneVariety: null,
-      caneClass: null,
+      sugarcaneVariety: undefined,
+      caneClass: undefined,
       affectedAreaHectares: undefined,
       affectedAreaMeasurement: undefined,
       affectedPortionPercent: undefined,
@@ -146,7 +146,7 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
     expect(screen.getByText("Crop age")).toBeInTheDocument();
     expect(screen.queryByText("Cane class")).not.toBeInTheDocument();
     expect(screen.queryByText("Sugarcane variety")).not.toBeInTheDocument();
-    expect(screen.getByText("variety, cane class, affected area/portion")).toBeInTheDocument();
+    expect(screen.getByText(/^Not provided: .*variety, cane class/)).toBeInTheDocument();
   });
 
   it("shows the Possible Condition with a decision-support disclaimer and no prominent confidence", () => {
