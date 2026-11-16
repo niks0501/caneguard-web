@@ -64,6 +64,23 @@ class FieldAccountsDirectoryTest extends TestCase
         ])->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
     }
 
+    // Proposal; proves P10 search by name/email, and read-only detail/history for field inspectors without widening writes.
+    public function test_search_filters_field_accounts_and_inspector_detail_and_history_are_readable_but_not_writable(): void
+    {
+        $this->pilotDistrict();
+        $admin = User::factory()->admin()->create();
+        $ana = User::factory()->fieldReporter()->create(['name' => 'Ana Inspector', 'email' => 'ana@example.test']);
+        User::factory()->fieldReporter()->create(['name' => 'Ben Inspector', 'email' => 'ben@example.test']);
+        $this->actingAs($admin, 'web');
+
+        $this->getJson('/api/v1/admin/accounts/field?search=ana@')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.uuid', $ana->uuid);
+        $this->getJson('/api/v1/admin/accounts/field?search=Inspector')->assertOk()->assertJsonCount(2, 'data');
+        $this->getJson('/api/v1/admin/accounts/field?search=%25')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/v1/admin/accounts/'.$ana->uuid)->assertOk()->assertJsonPath('data.role', 'field_reporter');
+        $this->getJson('/api/v1/admin/accounts/'.$ana->uuid.'/events')->assertOk();
+        $this->patchJson('/api/v1/admin/accounts/'.$ana->uuid, ['role' => 'reviewer', 'is_active' => true, 'current_password' => 'password', 'expected_access_version' => $ana->access_version])->assertForbidden();
+    }
+
     public function test_directory_is_admin_only(): void
     {
         $this->pilotDistrict();

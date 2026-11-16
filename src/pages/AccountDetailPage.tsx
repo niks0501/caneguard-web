@@ -7,6 +7,7 @@ import { PageContent, PageHeader } from "../components/layout/Page";
 import { AccountAccessTable } from "../components/accounts/AccountAccessTable";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { formatDateTime } from "../lib/formatters";
+import type { Account } from "../services/accountsAdmin.api";
 import { getAccount, getAccountEvents, roleLabels } from "../services/accountsAdmin.api";
 
 export function AccountDetailPage() {
@@ -14,12 +15,17 @@ export function AccountDetailPage() {
   const { user } = useAuth();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["accounts", user?.uuid, uuid], queryFn: ({ signal }) => getAccount(uuid, signal), retry: false, gcTime: 0 });
+  const account = query.data?.data;
   useEffect(() => { document.title = "User access | CaneGuard"; }, []);
   return <PageContent className="accounts-page">
     <Link className="accounts-back" to={routes.accounts}>Back to User Management</Link>
-    {query.isPending ? <LoadingState message="Loading user…" /> : query.isError ? <ErrorState message="User details could not be loaded." onRetry={() => void query.refetch()} /> : query.data ? <>
-      <PageHeader title={query.data.data.name} />
-      <AccountAccessTable accounts={[query.data.data]} onSaved={async () => { await client.invalidateQueries({ queryKey: ["accounts"] }); }} />
+    {query.isPending ? <LoadingState message="Loading user…" /> : query.isError ? <ErrorState message="User details could not be loaded." onRetry={() => void query.refetch()} /> : account ? <>
+      <PageHeader title={account.name} />
+      {account.role === "field_reporter" ? <dl className="accounts-summary">
+        <dt>Email</dt><dd>{account.email}</dd>
+        <dt>Role</dt><dd>Field inspector</dd>
+        <dt>Account</dt><dd>{account.is_active ? "Enabled" : "Disabled"}</dd>
+      </dl> : <AccountAccessTable accounts={[{ ...account, role: account.role as Account["role"] }]} onSaved={async () => { await client.invalidateQueries({ queryKey: ["accounts"] }); }} />}
       <AccountHistory key={uuid} uuid={uuid} />
     </> : null}
   </PageContent>;
