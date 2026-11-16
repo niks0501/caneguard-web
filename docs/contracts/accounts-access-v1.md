@@ -1,6 +1,6 @@
 # Accounts and keys — accounts-access-v1
 
-> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface except for field-account admission, which now uses the supported `PUT /api/v1/admin/accounts/{uuid}/access` (same request, transaction and response as the v2 access route).
+> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface except for field-account admission, disable and re-enable, which use the supported `PUT /api/v1/admin/accounts/{uuid}/access`. This route accepts only field-reporter targets, `admit`, `revoke` or `restore`, `desired.role: field_reporter`, and an empty `desired.grants` array; other operations, roles and grants are rejected. It uses the same transaction and audit trail as v2, but returns the supported account representation in `data`.
 
 This office-only contract implements decisions D1–D6 from the approved accounts plan. It is not a registration approval gate. A verified farmer's existing Mobile security access remains independent of human triage.
 
@@ -27,7 +27,7 @@ URL `v2` preserves existing v1 admission prohibitions and response shape. Payloa
 | PUT | `/{uuid}/access` | Admit, replace, revoke or restore explicit authority |
 | POST | `/approval-transfer` | Atomically revoke the old approval key and issue a fresh key to another officer |
 
-The v2 access route reuses `DistrictAccessController` and the same `ReconcileDistrictAccess` action as v1 access, v1 role changes and `caneguard:access`. The Web uses this v2 contract, not an alternative role/grant writer.
+The v2 access route reuses `DistrictAccessController` and the same `ReconcileDistrictAccess` action as v1 access, v1 role changes and `caneguard:access`. The Web uses the narrowed v1 route for field-account decisions.
 
 List parameters: `view=new|staff|farmers|revoked|all` (default new), `search` (name/email, max 160), `role=all|farmer|field_reporter|reviewer|admin`, `verification=all|verified|unverified`, `membership=all|not_issued|active|revoked`, `sort=newest|oldest`, positive `page` (max 100000), `per_page=25|50` (default 25). Ordering is creation time then internal ID in the same direction. Counts honor search/role/verification/membership; each count applies its named view independently. `total` is the authorized scope total; `filtered_total` includes the selected view. Views overlap: a revoked farmer may occur in Farmers and Revoked. New is known eligible unassigned farmers whose review disposition is new, **not all farmers**.
 

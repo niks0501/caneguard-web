@@ -81,7 +81,7 @@ class WebAccountsController extends Controller
     /** Field Admit, Disable (revoke) and Re-enable (restore): office reference, own-password step-up, idempotency key and version check. */
     public function access(Request $request, string $uuid, ManageAccounts $accounts): JsonResponse
     {
-        $result = $accounts->handle($request, 'access', $uuid);
+        $result = $accounts->handle($request, 'access', $uuid, fieldOnly: true);
         $result['data'] = self::account(User::where('uuid', $uuid)->firstOrFail());
 
         return response()->json($result);

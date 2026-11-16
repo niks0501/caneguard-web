@@ -64,6 +64,34 @@ class FieldAccessV1Test extends TestCase
         $this->assertDatabaseMissing('district_memberships', ['user_id' => $field->id]);
     }
 
+    public function test_only_field_reporter_operations_and_authority_are_accepted(): void
+    {
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+        $this->pilotDistrict();
+        $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+        $farmer = User::factory()->create(['role' => User::ROLE_FARMER, 'registration_origin' => 'office_certified']);
+        $reviewer = User::factory()->reviewer()->create(['registration_origin' => 'office_certified']);
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        foreach (['admit', 'revoke', 'restore'] as $operation) {
+            foreach ([$farmer, $reviewer] as $target) {
+                $this->access($target, $operation)->assertStatus(422);
+            }
+            $this->access($field, $operation, 'password', ['desired' => ['role' => User::ROLE_ADMIN, 'grants' => []]])->assertStatus(422);
+            $this->access($field, $operation, 'password', ['desired' => ['role' => User::ROLE_FIELD_REPORTER, 'grants' => ['report:approve']]])->assertStatus(422);
+        }
+        $this->access($field, 'replace')->assertStatus(422);
+        $this->access($field, 'unknown')->assertStatus(422);
+
+        foreach ([$field, $farmer, $reviewer] as $target) {
+            $this->assertDatabaseMissing('district_memberships', ['user_id' => $target->id]);
+            $this->assertDatabaseMissing('account_access_events', ['target_id' => $target->id]);
+            $this->assertSame(0, DB::table('district_grants')->where('user_id', $target->id)->count());
+            $this->assertSame($target->access_version, $target->fresh()->access_version);
+        }
+        $this->assertSame(0, DB::table('account_access_receipts')->count());
+    }
+
     /** Proves: a repeated idempotency key replays the receipt instead of reconciling twice. */
     public function test_same_idempotency_key_replays_without_a_second_event(): void
     {
