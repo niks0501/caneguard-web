@@ -82,7 +82,7 @@ class WebAccountsController extends Controller
     public function access(Request $request, string $uuid, ManageAccounts $accounts): JsonResponse
     {
         $result = $accounts->handle($request, 'access', $uuid, fieldOnly: true);
-        $result['data'] = self::account(User::where('uuid', $uuid)->firstOrFail());
+        $result['data'] = array_intersect_key($result['data'], array_flip(['uuid', 'name', 'email', 'role', 'is_active', 'access_version']));
 
         return response()->json($result);
     }

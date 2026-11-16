@@ -70,9 +70,6 @@ final class ManageAccounts
             if (in_array($actorId, $ids, true)) {
                 AccountAccessFailure::reject('SELF_CHANGE_FORBIDDEN', 'You cannot change your own authority.', 422);
             }
-            if ($fieldOnly && $users->firstWhere('id', $ids[0])->role !== User::ROLE_FIELD_REPORTER) {
-                AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'This authority transition is not allowed.', 422);
-            }
             if (! Hash::check($input['current_password'], $actor->getAuthPassword())) {
                 AccountAccessFailure::reject('STEP_UP_REQUIRED', 'The current password is incorrect.', 422);
             }
@@ -85,6 +82,9 @@ final class ManageAccounts
                 }
 
                 return json_decode($receipt->response, true, flags: JSON_THROW_ON_ERROR);
+            }
+            if ($fieldOnly && $users->firstWhere('id', $ids[0])->role !== User::ROLE_FIELD_REPORTER) {
+                AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'This authority transition is not allowed.', 422);
             }
             $targets = collect($uuids)->map(fn ($id) => $users->firstWhere('uuid', $id));
             foreach ($targets as $index => $target) {
@@ -153,6 +153,9 @@ final class ManageAccounts
                 'event_id' => $event?->id, 'operation_id' => $operationId, 'access_version' => $target->fresh()->access_version,
                 'credentials_revoked' => $kind !== 'review' && $event !== null
                     && array_diff_assoc($this->authVersions($targets), $authVersions) !== []];
+            if ($kind === 'access') {
+                $response['data']['is_active'] = $target->fresh()->is_active;
+            }
             if ($kind === 'transfer') {
                 $response['affected'] = $targets->map(fn ($u) => $this->directory->detail($this->directory->target($u->uuid), $actor))->all();
             }

@@ -106,6 +106,53 @@ class FieldAccessV1Test extends TestCase
         $this->assertSame(1, DB::table('account_access_events')->where('target_id', $field->id)->count());
     }
 
+    public function test_receipt_replays_original_snapshot_after_legacy_role_change(): void
+    {
+        $this->pilotDistrict();
+        $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+        $actor = User::factory()->admin()->create();
+        $this->actingAs($actor, 'web');
+        $key = (string) Str::uuid();
+        $version = $field->access_version;
+        $override = ['idempotency_key' => $key, 'expected_access_version' => $version];
+
+        $first = $this->access($field, 'admit', 'password', $override)->assertOk()
+            ->assertJsonPath('data.role', 'field_reporter')->assertJsonPath('data.is_active', true)->json();
+
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $this->putJson('/api/v2/admin/accounts/'.$field->uuid.'/access', [
+            'contract_version' => 'accounts-access-v1', 'operation' => 'replace',
+            'desired' => ['role' => User::ROLE_ADMIN, 'grants' => []], 'current_password' => 'password',
+            'office_reference' => 'synthetic', 'idempotency_key' => (string) Str::uuid(),
+            'expected_access_version' => $field->fresh()->access_version,
+        ])->assertOk()->assertJsonPath('data.role', 'admin');
+
+        $this->actingAs($actor, 'web');
+        $replay = $this->access($field, 'admit', 'password', $override)->assertOk()->json();
+        $this->assertSame($first, $replay);
+        $this->access($field, 'admit', 'wrong-password', $override)->assertStatus(422)->assertJsonPath('code', 'STEP_UP_REQUIRED');
+        $this->access($field, 'admit')->assertStatus(422)->assertJsonPath('code', 'INVALID_ACCESS_TRANSITION');
+        $this->assertSame(2, DB::table('account_access_events')->where('target_id', $field->id)->count());
+    }
+
+    public function test_v1_can_replay_a_matching_legacy_access_receipt(): void
+    {
+        $this->pilotDistrict();
+        $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $key = (string) Str::uuid();
+        $version = $field->access_version;
+        $this->putJson('/api/v2/admin/accounts/'.$field->uuid.'/access', [
+            'contract_version' => 'accounts-access-v1', 'operation' => 'admit',
+            'desired' => ['role' => User::ROLE_FIELD_REPORTER, 'grants' => []], 'current_password' => 'password',
+            'office_reference' => 'synthetic', 'idempotency_key' => $key, 'expected_access_version' => $version,
+        ])->assertOk();
+
+        $this->access($field, 'admit', 'password', ['idempotency_key' => $key, 'expected_access_version' => $version])
+            ->assertOk()->assertJsonPath('data.role', 'field_reporter')->assertJsonPath('data.is_active', true);
+        $this->assertSame(1, DB::table('account_access_events')->where('target_id', $field->id)->count());
+    }
+
     private function access(User $target, string $operation, string $password = 'password', array $override = []): TestResponse
     {
         return $this->putJson('/api/v1/admin/accounts/'.$target->uuid.'/access', $override + [
