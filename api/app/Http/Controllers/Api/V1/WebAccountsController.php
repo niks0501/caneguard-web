@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Auth\CreateWebAccount;
+use App\Actions\Auth\ManageAccounts;
 use App\Actions\Auth\ResendWebAccountInvite;
 use App\Actions\Auth\UpdateWebAccount;
 use App\Http\Controllers\Controller;
@@ -51,7 +52,7 @@ class WebAccountsController extends Controller
         ]);
     }
 
-    /** Read-only directory of field accounts; changes go through the v2 access operation. */
+    /** Read-only directory of field accounts; admit, disable and re-enable go through access(). */
     public function fieldIndex(Request $request, AccountsDirectory $directory): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
@@ -75,6 +76,15 @@ class WebAccountsController extends Controller
             }),
             'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
         ]);
+    }
+
+    /** Field Admit, Disable (revoke) and Re-enable (restore): office reference, own-password step-up, idempotency key and version check. */
+    public function access(Request $request, string $uuid, ManageAccounts $accounts): JsonResponse
+    {
+        $result = $accounts->handle($request, 'access', $uuid);
+        $result['data'] = self::account(User::where('uuid', $uuid)->firstOrFail());
+
+        return response()->json($result);
     }
 
     public function show(Request $request, string $uuid): JsonResponse

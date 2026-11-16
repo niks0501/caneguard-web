@@ -1,6 +1,6 @@
 # Accounts and keys — accounts-access-v1
 
-> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface except for field-account admission, which still uses the v2 access route.
+> **Deprecated historical contract.** Issue #252 replaces the Web grant/membership/admission interface with [simplified Web RBAC](../security/simplified-web-rbac.md). Legacy writers remain available with deprecation telemetry for this release; read/mutation responses now omit district/grant machinery. The boundary and frontend guidance below describe the retired interface except for field-account admission, which now uses the supported `PUT /api/v1/admin/accounts/{uuid}/access` (same request, transaction and response as the v2 access route).
 
 This office-only contract implements decisions D1–D6 from the approved accounts plan. It is not a registration approval gate. A verified farmer's existing Mobile security access remains independent of human triage.
 

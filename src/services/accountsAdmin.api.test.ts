@@ -33,13 +33,13 @@ describe("simplified account transport", () => {
 
 describe("field account transport", () => {
   beforeEach(() => vi.clearAllMocks());
-  it("sends the v2 access operation with step-up, reference, key and version", async () => {
+  it("sends the v1 access operation with step-up, reference, key and version", async () => {
     const { changeFieldAccess } = await import("./accountsAdmin.api");
     const field: FieldAccount = { ...webAccount, role: "field_reporter", is_active: false, invite_pending: false, membership_state: "revoked", allowed_actions: ["restore"], denial_reasons: [] };
     vi.mocked(axiosClient.put).mockResolvedValue({ data: { data: field } });
     await changeFieldAccess(field.uuid, { operation: "revoke", role: "field_reporter", expected_access_version: 2, office_reference: " REF ", idempotency_key: "key" }, "pw");
     expect(initializeCsrf).toHaveBeenCalled();
-    expect(axiosClient.put).toHaveBeenCalledWith(`/api/v2/admin/accounts/${field.uuid}/access`, {
+    expect(axiosClient.put).toHaveBeenCalledWith(`/api/v1/admin/accounts/${field.uuid}/access`, {
       contract_version: "accounts-access-v1", operation: "revoke", desired: { role: "field_reporter", grants: [] },
       current_password: "pw", office_reference: "REF", idempotency_key: "key", expected_access_version: 2,
     });
@@ -49,6 +49,6 @@ describe("field account transport", () => {
     const saved = { ...webAccount, role: "field_reporter" as const, access_version: 3 };
     vi.mocked(axiosClient.put).mockResolvedValue({ data: { contract_version: "accounts-access-v1", code: "ACCOUNT_ACCESS_UPDATED", data: saved, event_id: 1, operation_id: "op", access_version: 3, credentials_revoked: false } });
     await expect(changeFieldAccess(saved.uuid, { operation: "admit", role: "field_reporter", expected_access_version: 2, office_reference: "REF", idempotency_key: "key" }, "pw")).resolves.toEqual({ data: saved });
-    expect(axiosClient.put).toHaveBeenCalledWith(`/api/v2/admin/accounts/${saved.uuid}/access`, expect.objectContaining({ operation: "admit", desired: { role: "field_reporter", grants: [] } }));
+    expect(axiosClient.put).toHaveBeenCalledWith(`/api/v1/admin/accounts/${saved.uuid}/access`, expect.objectContaining({ operation: "admit", desired: { role: "field_reporter", grants: [] } }));
   });
 });

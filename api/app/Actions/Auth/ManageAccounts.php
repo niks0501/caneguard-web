@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-/** @deprecated Compatibility action for the v2 account writers. */
+/** Access writer behind PUT /api/v1/admin/accounts/{uuid}/access; review and transfer remain deprecated v2 compatibility writers. */
 final class ManageAccounts
 {
     public function __construct(private DistrictAccess $access, private AccountsDirectory $directory, private ReconcileDistrictAccess $reconcile) {}

@@ -70,7 +70,7 @@ export async function listFieldAccounts(page: number, search = "", signal?: Abor
 export async function changeFieldAccess(uuid: string, command: FieldAccessCommand, password: string) {
   await initializeCsrf();
   // The access operation answers with the base account; the row's hints come from the refetched list.
-  return z.object({ data: accountSchema.extend({ role: fieldAccountSchema.shape.role }) }).parse((await axiosClient.put(`/api/v2/admin/accounts/${encodeURIComponent(uuid)}/access`, {
+  return z.object({ data: accountSchema.extend({ role: fieldAccountSchema.shape.role }) }).parse((await axiosClient.put(`/api/v1/admin/accounts/${encodeURIComponent(uuid)}/access`, {
     contract_version: "accounts-access-v1", operation: command.operation, desired: { role: command.role, grants: [] },
     current_password: password, office_reference: command.office_reference.trim(),
     idempotency_key: command.idempotency_key, expected_access_version: command.expected_access_version,

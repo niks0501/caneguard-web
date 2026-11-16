@@ -65,6 +65,7 @@ Route::prefix('v1/admin/accounts')->middleware([
     Route::get('/{uuid}/events', [WebAccountsController::class, 'events'])->whereUuid('uuid');
     Route::post('/{uuid}/invite', [WebAccountsController::class, 'resendInvite'])->whereUuid('uuid')->middleware('throttle:5,1');
     Route::patch('/{uuid}', [WebAccountsController::class, 'update'])->whereUuid('uuid')->middleware('throttle:10,1');
+    Route::put('/{uuid}/access', [WebAccountsController::class, 'access'])->whereUuid('uuid')->middleware('throttle:10,1');
 });
 
 // Compatibility writers remain functional for this release, with caller telemetry.
