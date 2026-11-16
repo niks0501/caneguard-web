@@ -9114,6 +9114,15 @@ button.monitoring-calendar__day-number:focus-visible {
   justify-content: flex-start;
 }
 
+.field-operations-editor__help {
+  margin: 0;
+  font-size: var(--text-body-sm);
+}
+
+.field-operations-editor__help a {
+  text-decoration: underline;
+}
+
 .field-operations-row__no-location,
 .field-operations-editor__no-location {
   color: var(--color-secondary-text);

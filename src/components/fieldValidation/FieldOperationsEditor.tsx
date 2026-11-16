@@ -1,9 +1,10 @@
 import { formatCalendarDate } from "../../lib/formatters";
-import { useState } from "react";
+import { use, useState } from "react";
 import { CalendarClock, Check, MapPin, X } from "lucide-react";
 import { Link } from "react-router";
 import { ApiError } from "../../api/ApiError";
 import { routes } from "../../app/routes";
+import { AuthContext } from "../../auth/auth.context";
 import {
   deriveReasonForVisit,
   hasUsableReportLocation,
@@ -38,12 +39,14 @@ function saveErrorMessage(error: unknown) {
 export function FieldOperationsEditor({
   item,
   reporters,
+  reportersLoaded = true,
   officeDate,
   onClose,
   onSaved,
 }: {
   item: FieldWorkloadItem;
   reporters: FieldWorkloadAssignee[];
+  reportersLoaded?: boolean;
   officeDate: string;
   onClose: () => void;
   onSaved: () => void;
@@ -53,6 +56,7 @@ export function FieldOperationsEditor({
   const [assigneeUuid, setAssigneeUuid] = useState(currentAssigneeUuid);
   const [targetDate, setTargetDate] = useState(currentTargetDate);
   const [saved, setSaved] = useState(false);
+  const isAdmin = use(AuthContext)?.user?.role === "admin";
   const mutation = useUpdateReportReview(item.uuid);
 
   const hasChanges = assigneeUuid !== currentAssigneeUuid || targetDate !== currentTargetDate;
@@ -113,6 +117,7 @@ export function FieldOperationsEditor({
           <span>Inspector</span>
           <select
             value={assigneeUuid}
+            aria-describedby="field-operations-inspector-help"
             onChange={(event) => { setAssigneeUuid(event.target.value); setSaved(false); }}
           >
             <option value="">Select an Inspector</option>
@@ -121,6 +126,11 @@ export function FieldOperationsEditor({
             ))}
           </select>
         </label>
+        <p id="field-operations-inspector-help" className="field-operations-editor__help">
+          {reportersLoaded && reporters.length === 0 ? <strong>No eligible inspectors yet. </strong> : null}
+          Only inspectors who have set their password and are admitted appear here.
+          {isAdmin ? <> <Link to={routes.accounts}>Manage field accounts</Link></> : null}
+        </p>
         <label className="select-filter">
           <span>Target visit date</span>
           <input

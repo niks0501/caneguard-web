@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AccountAccessEvent;
+use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -192,5 +193,50 @@ class AdminAccountCreationTest extends TestCase
         $this->postJson('/register', ['name' => 'X Y', 'email' => 'x@example.test', 'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])
             ->assertStatus(403)->assertJsonPath('code', 'REGISTRATION_DISABLED');
         $this->assertDatabaseMissing('users', ['email' => 'x@example.test']);
+    }
+
+    public function test_field_list_flags_pending_invite_and_admin_can_resend_the_link(): void
+    {
+        Notification::fake();
+        $this->pilotDistrict();
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin, 'web');
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'f@example.test', 'role' => 'field_reporter']))->assertCreated();
+        $field = User::query()->where('email', 'f@example.test')->firstOrFail();
+
+        $this->getJson('/api/v1/admin/accounts/field')->assertOk()->assertJsonPath('data.0.invite_pending', true);
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertStatus(429);
+        $this->travel(2)->minutes();
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', true);
+        Notification::assertSentToTimes($field, ResetPassword::class, 2);
+        // creation invite, the throttled attempt (failure), and the delivered resend
+        $this->assertSame(3, SecurityAudit::query()->where('target_user_id', $field->id)->where('action', 'account_invite_sent')->count());
+
+        $field->forceFill(['email_verified_at' => now()])->save();
+        $this->getJson('/api/v1/admin/accounts/field')->assertJsonPath('data.0.invite_pending', false);
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertStatus(409);
+    }
+
+    public function test_resend_invite_is_admin_only_and_field_inspector_only(): void
+    {
+        Notification::fake();
+        $this->pilotDistrict();
+        $field = User::factory()->fieldReporter()->create(['email_verified_at' => null]);
+
+        $this->actingAs(User::factory()->reviewer()->create(), 'web');
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertForbidden();
+        Notification::assertNothingSent();
+        $this->assertSame(0, SecurityAudit::query()->where('action', 'account_invite_sent')->count());
+    }
+
+    public function test_resend_invite_rejects_non_field_accounts(): void
+    {
+        Notification::fake();
+        $this->pilotDistrict();
+        $reviewer = User::factory()->reviewer()->create(['email_verified_at' => null]);
+
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $this->postJson('/api/v1/admin/accounts/'.$reviewer->uuid.'/invite')->assertNotFound();
+        Notification::assertNothingSent();
     }
 }
