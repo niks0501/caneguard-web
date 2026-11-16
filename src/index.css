@@ -9726,13 +9726,6 @@ button.monitoring-calendar__day-number:focus-visible {
   }
 }
 
-@media (max-width: 899px) {
-  .review-decision-flow > .review-card:last-of-type button[type="submit"] {
-    position: sticky;
-    bottom: var(--space-3, 12px);
-  }
-}
-
 /* Overview: Today / Trends tabs, morning note and the line under the table */
 .dashboard-tabs {
   display: flex;

@@ -270,7 +270,7 @@ describe("CaseReviewPage", () => {
         <Routes><Route path="/reports/:reportId" element={<CaseReviewPage />} /></Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByText(/2 left in Review/)).toBeInTheDocument();
+    expect(screen.getByText(/2 more loaded/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Next case" })).toHaveAttribute("href", "/reports/next-a");
     expect(screen.getByText(/^Next:/)).toBeInTheDocument();
     expect(screen.getByText("Not provided: crop age, variety, cane class")).toBeInTheDocument();

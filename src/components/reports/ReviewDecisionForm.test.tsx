@@ -879,11 +879,18 @@ describe("Confirmation before saving", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("Details");
     expect(screen.queryByRole("button", { name: "Confirm decision" })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.submit(form);
+    expect(save).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.submit(form);
     expect(save).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("Confirm");
     expect(save).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm decision" }));
+    expect(save).toHaveBeenCalledTimes(1);
   });
 
   // Proposal (CR3): proves a finalizing decision is never saved without the evidence tick, even by form submission.

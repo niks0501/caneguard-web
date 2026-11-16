@@ -433,7 +433,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   };
 
   return <form ref={formRef} id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); if (step === "review") void confirm(); }}>
-    <DecisionStepper step={step} />
     {step === "action" ? <>
     <section className="review-card" aria-labelledby="choose-action-heading">
       <h2 id="choose-action-heading" ref={headingRef} tabIndex={-1}>Choose Action</h2>
@@ -448,7 +447,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
         </label>)}</div>
       </fieldset>{error("action")}
       {consequence ? <p className="review-consequence" role="status">{consequence}</p> : null}
-      <div className="review-step-actions"><Button type="button" onClick={() => setStep("details")}>Next</Button></div>
     </section>
     </> : null}
     {step === "details" ? <>
@@ -519,10 +517,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       <p className="authority-classification-help">Human finding; independent of the AI Possible Condition.</p>
     </fieldset>
 
-    <div className="review-step-actions">
-      <Button type="button" variant="secondary" onClick={() => setStep("action")}>Back</Button>
-      <Button type="button" onClick={() => setStep("review")}>Next</Button>
-    </div>
     </> : null}
     {step === "review" ? (
     <section className="review-card decision-summary" aria-labelledby="review-summary-heading">
@@ -575,10 +569,6 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       /> : null}
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
-      <div className="review-step-actions">
-      <Button type="button" variant="secondary" disabled={mutation.isPending || saved} onClick={() => setStep("details")}>Back</Button>
-      <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined || (action === "close" && !closedConfirmed)}>{mutation.isPending ? "Saving decision..." : "Confirm decision"}</Button>
-      </div>
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
         {receipt ? <p>{receipt}</p> : null}
         <Button type="button" variant="secondary" disabled={nextPending} onClick={() => void reviewNext()}>Review Next Case</Button>
@@ -587,5 +577,13 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       {nextMessage ? <p role="status">{nextMessage}</p> : null}
     </section>
     ) : null}
+    <div className="review-decision-controls">
+      <DecisionStepper step={step} />
+      <div className="review-step-actions">
+        {step !== "action" ? <Button type="button" variant="secondary" disabled={mutation.isPending || saved} onClick={() => setStep(step === "details" ? "action" : "details")}>Back</Button> : null}
+        {step === "review" ? <Button type="submit" disabled={!online || mutation.isPending || conflict || saved || expectedVersion === undefined || (action === "close" && !closedConfirmed)}>{mutation.isPending ? "Saving decision..." : "Confirm decision"}</Button>
+          : <Button type="button" onClick={() => setStep(step === "action" ? "details" : "review")}>Next</Button>}
+      </div>
+    </div>
   </form>;
 }
