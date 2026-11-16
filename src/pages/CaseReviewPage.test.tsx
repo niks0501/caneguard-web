@@ -229,14 +229,16 @@ describe("CaseReviewPage", () => {
       return <output data-testid="next-queue">{JSON.stringify(location.state)}</output>;
     }
     render(<MemoryRouter initialEntries={[{ pathname: `/reports/${report.uuid}`, state: { reviewQueue: {
-      returnTo: "/reports", filters: {}, remainingIds: ["next-a"], reviewedIds: ["already-reviewed"],
+      returnTo: "/reports", filters: {}, remainingIds: ["next-a"], reviewedIds: ["already-reviewed"], loadedPosition: 3,
     } } }]}><Routes>
       <Route path={`/reports/${report.uuid}`} element={<CaseReviewPage />} />
       <Route path="/reports/next-a" element={<Destination />} />
     </Routes></MemoryRouter>);
-    expect(screen.getByText(/1 more loaded/)).toBeInTheDocument();
+    expect(screen.getByText(/Loaded position 3/)).toHaveTextContent("1 more loaded");
     await user.click(screen.getByRole("link", { name: "Next case" }));
-    expect(JSON.parse(screen.getByTestId("next-queue").textContent!).reviewQueue.reviewedIds).toEqual(["already-reviewed"]);
+    const nextQueue = JSON.parse(screen.getByTestId("next-queue").textContent!).reviewQueue;
+    expect(nextQueue.reviewedIds).toEqual(["already-reviewed"]);
+    expect(nextQueue.loadedPosition).toBe(4);
   });
 
   it.each([false, true])("does not claim an empty snapshot is an empty review queue (truncated: %s)", (snapshotTruncated) => {
@@ -265,7 +267,7 @@ describe("CaseReviewPage", () => {
       ...report, scheduledRevisit, lifecycle: { ...report.lifecycle!, fieldValidationState, referralState },
     } }));
     renderPage();
-    expect(screen.getByText(/^Next:/)).toHaveTextContent(guidance);
+    expect(screen.getByText(/^Next:/).closest("p")).toHaveTextContent(guidance);
   });
 
   it("shows the remaining loaded count, Next line, and missing fields", () => {

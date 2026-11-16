@@ -1000,10 +1000,14 @@ function CaseReviewContent() {
       />
       <div className="review-case-meta">
         <p className="review-case-meta__queue">
+          {queueContext && Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
+            ? `Loaded position ${queueContext.loadedPosition} · ` : null}
           {queueLeft.length} more loaded
           {queueContext && nextCaseId ? <> · <Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
             returnTo: queueContext.returnTo, filters: queueContext.filters, remainingIds: queueLeft.slice(1),
             reviewedIds: queueContext.reviewedIds,
+            ...(Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
+              ? { loadedPosition: queueContext.loadedPosition! + queueContext.remainingIds.indexOf(nextCaseId) + 1 } : {}),
             ...(queueContext.snapshotOnly ? { snapshotOnly: true } : {}),
             ...(queueContext.snapshotTruncated ? { snapshotTruncated: true } : {}),
           } }}>Next case</Link></> : null}

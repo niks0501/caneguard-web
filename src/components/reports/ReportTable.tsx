@@ -49,6 +49,7 @@ export function ReportTable({
         .slice(reports.findIndex((report) => report.uuid === uuid) + 1)
         .map((report) => report.uuid),
       reviewedIds: [],
+      loadedPosition: reports.findIndex((report) => report.uuid === uuid) + 1,
     },
   });
 

@@ -407,6 +407,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     setNextPending(true); setNextMessage("");
     const reviewedIds = [...(context?.reviewedIds ?? []), report.uuid];
     let remainingIds = (context?.remainingIds ?? []).filter((id) => !reviewedIds.includes(id));
+    const fromSnapshot = remainingIds.length > 0;
     try {
       // The original snapshot survives queue invalidation/removal after saving.
       // At its end, rescan the same filtered order to handle page shifts without skipping cases.
@@ -422,6 +423,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       const next = remainingIds[0];
       if (next) navigate(routes.reportDetail(next), { state: { reviewQueue: {
         returnTo, filters: context?.filters ?? {}, remainingIds: remainingIds.slice(1), reviewedIds,
+        ...(fromSnapshot && context && Number.isSafeInteger(context.loadedPosition) && context.loadedPosition! > 0
+          ? { loadedPosition: context.loadedPosition! + context.remainingIds.indexOf(next) + 1 } : {}),
         ...(context?.snapshotOnly ? { snapshotOnly: true } : {}),
         ...(context?.snapshotTruncated ? { snapshotTruncated: true } : {}),
       } } });

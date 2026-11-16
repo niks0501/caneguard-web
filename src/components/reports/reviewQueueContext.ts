@@ -6,6 +6,8 @@ export interface ReviewQueueContext {
   filters: ReportFilters;
   remainingIds: string[];
   reviewedIds: string[];
+  /** One-based position within the originally loaded list, when known. */
+  loadedPosition?: number;
   /** Non-report-list surfaces carry their exact displayed queue snapshot. */
   snapshotOnly?: boolean;
   /** The displayed snapshot stops before the server's authoritative total. */
