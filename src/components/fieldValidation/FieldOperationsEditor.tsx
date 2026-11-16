@@ -1,10 +1,8 @@
 import { formatCalendarDate } from "../../lib/formatters";
-import { use, useState } from "react";
+import { useState } from "react";
 import { CalendarClock, Check, MapPin, X } from "lucide-react";
 import { Link } from "react-router";
-import { ApiError } from "../../api/ApiError";
 import { routes } from "../../app/routes";
-import { AuthContext } from "../../auth/auth.context";
 import {
   deriveReasonForVisit,
   hasUsableReportLocation,
@@ -17,19 +15,8 @@ import { useUpdateReportReview } from "../../hooks/useReports";
 import { Button } from "../ui/Button";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { formatValidationDate } from "./fieldValidation.format";
-
-function saveErrorMessage(error: unknown) {
-  if (error instanceof ApiError && error.status === 403) {
-    return "Your account is not authorized to change this assignment. Nothing was saved.";
-  }
-  if (error instanceof ApiError && error.status === 409) {
-    return "This visit changed since it was loaded. Refresh to see the current assignment; your draft is preserved below.";
-  }
-  if (error instanceof ApiError && (error.status === 422 || error.status === 404)) {
-    return "The selected inspector or target date was rejected. Choose a valid inspector and try again; your draft is preserved.";
-  }
-  return "The visit could not be saved. Your draft is preserved so you can retry.";
-}
+import { InspectorEligibilityHelp } from "./InspectorEligibilityHelp";
+import { saveErrorMessage } from "./fieldOperationsSave";
 
 /**
  * Focused Assign / Edit Visit editor. Only the selected visit exposes mutation
@@ -56,7 +43,6 @@ export function FieldOperationsEditor({
   const [assigneeUuid, setAssigneeUuid] = useState(currentAssigneeUuid);
   const [targetDate, setTargetDate] = useState(currentTargetDate);
   const [saved, setSaved] = useState(false);
-  const isAdmin = use(AuthContext)?.user?.role === "admin";
   const mutation = useUpdateReportReview(item.uuid);
 
   const hasChanges = assigneeUuid !== currentAssigneeUuid || targetDate !== currentTargetDate;
@@ -126,11 +112,7 @@ export function FieldOperationsEditor({
             ))}
           </select>
         </label>
-        <p id="field-operations-inspector-help" className="field-operations-editor__help">
-          {reportersLoaded && reporters.length === 0 ? <strong>No eligible inspectors yet. </strong> : null}
-          Only inspectors who have set their password and are admitted appear here.
-          {isAdmin ? <> <Link to={routes.accounts}>Manage field accounts</Link></> : null}
-        </p>
+        <InspectorEligibilityHelp id="field-operations-inspector-help" loaded={reportersLoaded} empty={reporters.length === 0} />
         <label className="select-filter">
           <span>Target visit date</span>
           <input

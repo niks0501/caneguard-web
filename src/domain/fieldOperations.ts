@@ -219,6 +219,31 @@ export function groupFieldWorkloadBySection(
   return groups;
 }
 
+export interface InspectorVisitCounts {
+  open: number;
+  late: number;
+}
+
+/**
+ * Open and late visits per assigned inspector, from the same active workload
+ * the sections use. Late is the Overdue section; an inspector with no visits
+ * has no entry, so callers read a missing key as zero.
+ */
+export function countInspectorVisits(
+  items: readonly FieldWorkloadItem[],
+  officeDate: string,
+): Map<string, InspectorVisitCounts> {
+  const counts = new Map<string, InspectorVisitCounts>();
+  for (const item of items) {
+    if (!isActiveFieldWorkloadItem(item) || !item.assignee) continue;
+    const entry = counts.get(item.assignee.uuid) ?? { open: 0, late: 0 };
+    entry.open += 1;
+    if (fieldOperationSection(item, officeDate) === "overdue") entry.late += 1;
+    counts.set(item.assignee.uuid, entry);
+  }
+  return counts;
+}
+
 export function groupFieldWorkloadByBarangay(
   items: readonly FieldWorkloadItem[],
 ): Array<{ barangay: string; items: FieldWorkloadItem[] }> {
