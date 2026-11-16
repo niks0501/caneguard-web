@@ -200,7 +200,7 @@ const officeAdvisory = {
 
 async function chooseAdvisory(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
-  await user.click(screen.getByRole("button", { name: "Next step" }));
+  await user.click(screen.getByRole("button", { name: "Next" }));
   await user.selectOptions(screen.getByLabelText("Validated advisory"), officeAdvisory.uuid);
 }
 
@@ -222,6 +222,23 @@ beforeEach(() => {
 });
 
 describe("CaseReviewPage", () => {
+  // Proposal (L2): proves the header shows the queue position and a Next line, and folds empty fields into one line.
+  it("shows queue position, a Next line, and one line for fields that were not provided", () => {
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: { ...report, cropAge: undefined, sugarcaneVariety: undefined, caneClass: undefined } }));
+    render(
+      <MemoryRouter initialEntries={[{ pathname: `/reports/${report.uuid}`, state: { reviewQueue: {
+        returnTo: "/todo", filters: {}, remainingIds: [report.uuid, "next-a", "next-b"], reviewedIds: [],
+      } } }]}>
+        <Routes><Route path="/reports/:reportId" element={<CaseReviewPage />} /></Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/2 left in Review/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Next case" })).toHaveAttribute("href", "/reports/next-a");
+    expect(screen.getByText(/^Next:/)).toBeInTheDocument();
+    expect(screen.getByText("Not provided: crop age, variety, cane class")).toBeInTheDocument();
+    expect(screen.queryByText("Crop age")).not.toBeInTheDocument();
+  });
+
   it("does not carry image failures or administrative drafts into the next case", async () => {
     const user = userEvent.setup();
     const nextReport = { ...report, uuid: "next-case", referenceCode: "CG-NEXT", farmerOrFarmOwnerName: "Next farm owner" };
@@ -320,8 +337,8 @@ describe("CaseReviewPage", () => {
     await chooseAdvisory(user);
     const dialog = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.type(within(dialog).getByRole("textbox", { name: /Review notes/ }), "Office evidence review.");
-    await user.click(within(dialog).getByRole("button", { name: "Review decision" }));
-    await user.click(within(dialog).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(dialog).getByRole("button", { name: "Next" }));
+    await user.click(within(dialog).getByRole("button", { name: "Confirm decision" }));
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ notes: expect.stringContaining("Office evidence review.") }));
     expect(save.mock.calls[0][0].actionTaken).toBe("advisory_provided");
   });
@@ -544,7 +561,7 @@ describe("CaseReviewPage", () => {
     const photoHeading = screen.getByRole("heading", { name: "Submitted photo" });
     const conditionHeading = screen.getByRole("heading", { name: "Possible Condition" });
     const fieldReportHeading = screen.getByRole("heading", { name: "Field report" });
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const officeDecisionHeading = screen.getByRole("heading", { name: "Review Summary" });
     expect(photoHeading.compareDocumentPosition(conditionHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(conditionHeading.compareDocumentPosition(fieldReportHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -793,8 +810,8 @@ describe("CaseReviewPage", () => {
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
     await user.type(within(modal).getByLabelText(/^Review notes/), "Authority confirmed Smut.");
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       authorityClassifiedCondition: "smut",
@@ -851,8 +868,8 @@ describe("CaseReviewPage", () => {
         name: /Downy mildew \(legacy record; not offered for new review\)/,
       }),
     ).toBeInTheDocument();
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       authorityClassifiedCondition: "downy_mildew",
@@ -1142,10 +1159,10 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
-    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     expect(screen.getAllByText(/Select a Field Inspector before saving/i).length).toBeGreaterThan(0);
     expect(mutateAsync).not.toHaveBeenCalled();
@@ -1162,15 +1179,15 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
-    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(
       within(modal).getByLabelText("Field Inspector assignee"),
       report.submitterUuid!,
     );
     expect(within(modal).getByText(/original submitter is also the field validator/i)).toBeInTheDocument();
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       verificationOutcome: "not_determined",
@@ -1196,8 +1213,8 @@ describe("CaseReviewPage", () => {
       within(modal).getByLabelText("Verification Outcome"),
       "unable_to_verify",
     );
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     expect(
       screen.getAllByText(/Add a note explaining why/i).length,
@@ -1219,8 +1236,8 @@ describe("CaseReviewPage", () => {
       within(modal).getByLabelText("Verification Outcome"),
       "unable_to_verify",
     );
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     // The draft remains inline with its validation message; nothing is sent.
     expect(
@@ -1249,9 +1266,9 @@ describe("CaseReviewPage", () => {
       within(modal).getByLabelText(/^Review notes/),
       "Field evidence reviewed.",
     );
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
     await user.click(
-      within(modal).getByRole("button", { name: "Confirm Review" }),
+      within(modal).getByRole("button", { name: "Confirm decision" }),
     );
 
     expect(mutateAsync).toHaveBeenCalledWith({
@@ -1285,7 +1302,7 @@ describe("CaseReviewPage", () => {
     const { rerender } = renderPage();
     // The failure is reported beside the inline confirmation.
     await chooseAdvisory(user);
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     expect(within(modal).getByText("The notes field is required.")).toBeInTheDocument();
 
@@ -1313,7 +1330,7 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     const { rerender } = renderPage();
     await chooseAdvisory(user);
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     vi.mocked(useUpdateReportReview).mockReturnValue(
       mutationResult({ isPending: true }),
     );
@@ -1327,7 +1344,7 @@ describe("CaseReviewPage", () => {
 
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     expect(
-      within(modal).getByRole("button", { name: "Confirming review..." }),
+      within(modal).getByRole("button", { name: "Saving decision..." }),
     ).toBeDisabled();
   });
 
@@ -1346,8 +1363,8 @@ describe("CaseReviewPage", () => {
     fireEvent.change(within(modal).getByLabelText(/^Review notes/), {
       target: { value: "x".repeat(1001) },
     });
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     // The draft remains inline with its note-length error.
     expect(
@@ -1370,7 +1387,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await chooseAdvisory(user);
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
 
     expect(
@@ -1378,7 +1395,7 @@ describe("CaseReviewPage", () => {
     ).toBeInTheDocument();
     // The stale draft cannot be resubmitted against a merely refreshed token.
     expect(
-      within(modal).getByRole("button", { name: "Confirm Review" }),
+      within(modal).getByRole("button", { name: "Confirm decision" }),
     ).toBeDisabled();
     await user.click(
       await within(modal).findByRole("button", { name: "Try loading the latest version again" }),
@@ -1421,8 +1438,8 @@ describe("CaseReviewPage", () => {
 
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
     expect(mutateAsync).toHaveBeenCalledTimes(1);
 
     // While the save is in flight the decision controls lock.
@@ -1438,14 +1455,14 @@ describe("CaseReviewPage", () => {
       </MemoryRouter>,
     );
     const pendingModal = screen.getByRole("form", { name: "Report Evidence Review" });
-    expect(within(pendingModal).getByRole("button", { name: "Confirming review..." })).toBeDisabled();
+    expect(within(pendingModal).getByRole("button", { name: "Saving decision..." })).toBeDisabled();
     // The reviewer stays on the confirmation step so its outcome cannot be hidden.
     await user.click(within(pendingModal).getByRole("button", { name: "Back" }));
     expect(within(pendingModal).getByRole("heading", { name: "Review Summary" })).toBeInTheDocument();
     expect(within(pendingModal).queryByLabelText("Staff-Classified Condition")).not.toBeInTheDocument();
 
     // A second click on the locked submit sends nothing more.
-    await user.click(within(pendingModal).getByRole("button", { name: "Confirming review..." }));
+    await user.click(within(pendingModal).getByRole("button", { name: "Saving decision..." }));
     expect(mutateAsync).toHaveBeenCalledTimes(1);
   });
 
@@ -1483,7 +1500,7 @@ describe("CaseReviewPage", () => {
     );
     const { rerender } = renderPage();
     await chooseAdvisory(user);
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     expect(within(modal).getByText(/too many review attempts/i)).toBeInTheDocument();
 
@@ -1510,19 +1527,19 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     // Moving to the action's fields never shows validation messages; they wait for Save.
-    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByRole("heading", { name: "Action details" })).toBeInTheDocument();
     expect(screen.queryByText("Choose what should happen next.")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
-    await user.click(screen.getByRole("button", { name: "Confirm Review" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     expect(screen.getByText("Choose what should happen next.")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     await chooseAdvisory(user);
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const summary = screen.getByRole("region", { name: "Review Summary" });
-    expect(within(summary).getByText(/Provide Advisory or Assistance/)).toBeInTheDocument();
+    expect(within(summary).getAllByText(/Provide Advisory or Assistance/).length).toBeGreaterThan(0);
     expect(within(summary).getByText(/the case stays open/i)).toBeInTheDocument();
     expect(within(summary).getByText(/Staff finding: not classified, not determined;/)).toBeInTheDocument();
     expect(within(summary).getByText("Review notes: none")).toBeInTheDocument();
@@ -1533,7 +1550,7 @@ describe("CaseReviewPage", () => {
     await user.selectOptions(within(modal).getByLabelText("Staff-Classified Condition"), "smut");
     await user.selectOptions(within(modal).getByLabelText("Verification Outcome"), "verified");
     await user.type(within(modal).getByLabelText(/^Review notes/), "Leaf samples collected.");
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
 
     // The read-only summary reflects the current inline draft, note text included.
     const updated = screen.getByRole("region", { name: "Review Summary" });
@@ -1597,7 +1614,7 @@ describe("CaseReviewPage", () => {
     const user = userEvent.setup();
     renderPage();
     await chooseAdvisory(user);
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
 
     const moreActions = screen.getByRole("region", { name: "Other case actions" });
     expect(moreActions.closest("details")).toBeInTheDocument();
@@ -1645,22 +1662,21 @@ describe("CaseReviewPage", () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: "No Further Action" }));
-    await user.click(screen.getByRole("button", { name: "Next step" }));
-    // The explicit closure confirmation is inline with the action.
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    expect(within(modal).getByRole("checkbox", { name: /Close this case/ })).not.toBeChecked();
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
+    // The closure tick sits on the Confirm step; Confirm stays disabled until it is ticked.
+    expect(within(modal).queryByRole("checkbox", { name: /Close this case/ })).not.toBeInTheDocument();
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
     expect(mutateAsync).not.toHaveBeenCalled();
-    // Confirming without the closure tick returns to the choice that blocks it.
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
-    expect(mutateAsync).not.toHaveBeenCalled();
-    expect(within(modal).getByText("Confirm that you want to close this case.")).toBeInTheDocument();
     const closeConfirmation = within(modal).getByRole("checkbox", { name: /Close this case/ });
+    expect(closeConfirmation).not.toBeChecked();
+    expect(within(modal).getByRole("button", { name: "Confirm decision" })).toBeDisabled();
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
+    expect(mutateAsync).not.toHaveBeenCalled();
     await user.click(closeConfirmation);
     expect(closeConfirmation).toBeChecked();
     expect(mutateAsync).not.toHaveBeenCalled();
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       actionTaken: "no_further_action_required", caseState: "closed",
     }));
@@ -1674,12 +1690,12 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     await user.click(screen.getByRole("radio", { name: "No Further Action" }));
-    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
     await user.click(within(modal).getByRole("checkbox", { name: /Close this case/ }));
     expect(within(modal).getByRole("checkbox", { name: /Close this case/ })).toBeChecked();
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1855,22 +1871,22 @@ describe("CaseReviewPage", () => {
     expect(within(actions).getAllByRole("radio")).toHaveLength(3);
     expect(screen.getAllByRole("group", { name: "What should happen next?" })).toHaveLength(1);
     await chooseAdvisory(user);
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
-    expect(within(decision).getAllByRole("button", { name: "Confirm Review" })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(within(decision).getAllByRole("button", { name: "Confirm decision" })).toHaveLength(1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("radio", { name: "No Further Action" }));
-    await user.click(screen.getByRole("button", { name: "Next step" }));
-    await user.click(within(decision).getByRole("checkbox", { name: /Close this case/ }));
-    await user.click(screen.getByRole("button", { name: "Review decision" }));
-    expect(within(decision).getAllByRole("button", { name: "Confirm Review" })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(within(decision).getByRole("checkbox", { name: /Close this case/ })).toBeInTheDocument();
+    expect(within(decision).getAllByRole("button", { name: "Confirm decision" })).toHaveLength(1);
     expect(screen.queryByRole("radio", { name: /Refer to expert/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
-    await user.click(screen.getByRole("button", { name: "Next step" }));
-    expect(within(decision).getAllByRole("button", { name: "Review decision" })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(within(decision).getAllByRole("button", { name: "Next" })).toHaveLength(1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -1930,7 +1946,7 @@ describe("CaseReviewPage", () => {
 
     // No office-decision step stands between the choice and its save.
     await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
-    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
     expect(
       screen.queryByRole("dialog", { name: "Record office decision" }),
     ).not.toBeInTheDocument();
@@ -1941,16 +1957,16 @@ describe("CaseReviewPage", () => {
     );
 
     // A closed case must be reopened by the same save that assigns the visit.
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
     expect(
       within(modal).getByText(/Reopen the case before assigning/i),
     ).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
 
     await user.click(within(modal).getByRole("checkbox", { name: /Reopen this case/ }));
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     expect(mutateAsync).toHaveBeenCalledTimes(1);
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
@@ -1970,8 +1986,8 @@ describe("CaseReviewPage", () => {
 
     await chooseAdvisory(user);
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    await user.click(within(modal).getByRole("button", { name: "Review decision" }));
-    await user.click(within(modal).getByRole("button", { name: "Confirm Review" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Confirm decision" }));
 
     const message = `${report.referenceCode} — Review confirmed.`;
     const success = await screen.findByText(message);
