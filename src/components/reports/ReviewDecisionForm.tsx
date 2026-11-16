@@ -101,6 +101,8 @@ export function ReviewDecisionForm({ report, onRefresh }: {
   const currentClosed = lifecycle.caseState === "closed";
   const activeValidation = lifecycle.fieldValidationState === "assigned" || lifecycle.fieldValidationState === "in_progress";
   const completedValidation = lifecycle.fieldValidationState === "completed";
+  // After a completed visit, advice and close come first; another visit is no longer offered.
+  const orderedActions = completedValidation ? [...actions.filter((item) => item.value !== "field"), ...actions.filter((item) => item.value === "field")] : actions;
   const assignmentNeeded = action === "field" && !activeValidation && !completedValidation;
   const formRef = useRef<HTMLFormElement>(null);
   const preselected = useRef(action === "field");
@@ -399,7 +401,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       <h2 id="choose-action-heading" ref={headingRef} tabIndex={-1}>Choose Action</h2>
       <fieldset className="review-actions" disabled={mutation.isPending}>
         <legend>What should happen next?</legend>
-        <div className="review-actions__pills">{actions.map((item) => <label key={item.value} className={`review-action-pill ${action === item.value ? "is-selected" : ""}`}>
+        <div className="review-actions__pills">{orderedActions.map((item) => <label key={item.value} className={`review-action-pill ${action === item.value ? "is-selected" : ""}`}>
           <input type="radio" name="next-action" value={item.value} checked={action === item.value}
             aria-labelledby={`next-action-${item.value}-label`} aria-describedby={`next-action-${item.value}-consequence`}
             disabled={item.value === "field" && completedValidation}
