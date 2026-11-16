@@ -28,6 +28,7 @@ import { HistoricalReferralPanel } from "../components/reports/HistoricalReferra
 import { ReportPicker } from "../components/reports/ReportPicker";
 import { DiseaseBadge } from "../components/reports/ReportBadges";
 import { QueueStatusCell } from "../components/reports/QueueRowCells";
+import { ResolvedCaseSummary } from "../components/reports/ResolvedCaseSummary";
 import { SymptomResponseItem } from "../components/reports/SymptomResponseItem";
 import { Button } from "../components/ui/Button";
 import { TextArea } from "../components/ui/FormControls";
@@ -987,6 +988,16 @@ function CaseReviewContent() {
         actions={<QueueStatusCell row={report} showIcon />}
       />
       {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
+      {workflowStatus === "resolved" ? (
+        <ResolvedCaseSummary
+          report={report}
+          onReopen={() => {
+            const form = document.getElementById("review-decision");
+            form?.scrollIntoView?.({ block: "start" });
+            form?.focus();
+          }}
+        />
+      ) : null}
       {reportQuery.isRefetchError ? (
         <div className="detail-refresh-warning" role="alert">
           <span>{detailRefreshMessage}</span>

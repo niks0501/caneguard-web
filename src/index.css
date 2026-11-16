@@ -10448,3 +10448,50 @@ button.monitoring-calendar__day-number:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.resolved-summary {
+  display: grid;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.resolved-summary__banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.resolved-summary__banner h2,
+.resolved-summary__banner p {
+  margin: 0;
+}
+
+.resolved-summary__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.resolved-summary__timeline {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resolved-summary__timeline li {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+@media print {
+  .resolved-summary__actions {
+    display: none;
+  }
+}
