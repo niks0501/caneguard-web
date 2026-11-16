@@ -42,6 +42,16 @@ describe("Account role/status detail", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await waitFor(() => expect(api.getAccountEvents).toHaveBeenCalledTimes(2));
   });
+  // Proposal; proves P10 "AccountDetailPage schema must accept field_reporter" and shows history without web role controls.
+  it("shows a field inspector read-only with history", async () => {
+    const field = { ...webAccount, role: "field_reporter" as const, name: "Field Sample" };
+    vi.mocked(api.getAccount).mockResolvedValue({ data: field });
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Field Sample" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Role for Field Sample")).not.toBeInTheDocument();
+    expect(await screen.findByText("No recorded account changes.")).toBeInTheDocument();
+    expect(api.getAccountEvents).toHaveBeenCalledWith(field.uuid, expect.anything());
+  });
   it("clears password on cancel and restores focus to Save Changes", async () => {
     renderPage();
     const { user, modal } = await prepare();

@@ -1,6 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
+import { routes } from "../../app/routes";
 import { ApiError } from "../../api/ApiError";
 import { useAuth } from "../../auth/useAuth";
 import { changeFieldAccess, listFieldAccounts, resendFieldInvite } from "../../services/accountsAdmin.api";
@@ -15,13 +17,19 @@ export function FieldAccountsSection() {
   const client = useQueryClient();
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState("");
-  const query = useQuery({ queryKey: ["accounts", user?.uuid, "field", page], queryFn: ({ signal }) => listFieldAccounts(page, signal), retry: false, gcTime: 0 });
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => { const timer = window.setTimeout(() => setDebouncedSearch(search), 300); return () => window.clearTimeout(timer); }, [search]);
+  const query = useQuery({ queryKey: ["accounts", user?.uuid, "field", page, debouncedSearch], queryFn: ({ signal }) => listFieldAccounts(page, debouncedSearch, signal), retry: false, gcTime: 0 });
   const result = query.data;
   return <section className="accounts-field" aria-labelledby="accounts-field-heading">
     <h2 id="accounts-field-heading">Field accounts</h2>
     {notice ? <p role="status">{notice}</p> : null}
+    <div className="accounts-filters">
+      <label className="settings-field"><span>Search field accounts</span><input type="search" maxLength={160} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} /></label>
+    </div>
     {query.isPending ? <LoadingState message="Loading field accounts…" /> : query.isError ? <ErrorState message="Field accounts could not be loaded." onRetry={() => void query.refetch()} /> : result ? <>
-      {result.data.length === 0 ? <p role="status">No field accounts.</p> : <table className="report-table accounts-table">
+      {result.data.length === 0 ? <p role="status">{debouncedSearch.trim() ? "No matching field accounts." : "No field accounts."}</p> : <table className="report-table accounts-table">
         <caption className="sr-only">Field accounts</caption>
         <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
         <tbody>{result.data.map(account => <FieldRow key={`${account.uuid}:${account.access_version}`} account={account} onNotice={setNotice} onSaved={() => client.invalidateQueries({ queryKey: ["accounts"] })} />)}</tbody>
@@ -105,6 +113,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
     <td data-label="Email">{account.email}</td>
     <td data-label="Status">{!account.is_active ? "Disabled" : invitePending ? "Invite pending" : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
     <td data-label="Action">
+      <Link className="accounts-open" to={routes.accountDetail(account.uuid)} aria-label={`History for ${account.name}`}>History</Link>
       {invitePending ? <Button variant="secondary" disabled={resending} aria-label={`Resend set-password link to ${account.name}`} onClick={() => void resend()}>{resending ? "Sending…" : "Resend link"}</Button> : null}
       {action ? <>
         <Button disabled={pending} aria-label={`${verb} ${account.name}`} onClick={() => { onNotice(""); setError(""); setPassword(""); setOpen(true); }}>{verb}</Button>

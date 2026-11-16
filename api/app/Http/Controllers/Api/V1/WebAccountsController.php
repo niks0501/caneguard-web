@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -24,6 +25,16 @@ class WebAccountsController extends Controller
         return $user->only(['uuid', 'name', 'email', 'role', 'is_active', 'access_version']);
     }
 
+    private static function matching(Builder $query, ?string $search): Builder
+    {
+        if (trim((string) $search) === '') {
+            return $query;
+        }
+        $term = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($search)).'%';
+
+        return $query->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('email', 'like', $term));
+    }
+
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
@@ -31,11 +42,7 @@ class WebAccountsController extends Controller
             'search' => ['sometimes', 'nullable', 'string', 'max:160'],
             'page' => ['sometimes', 'integer', 'min:1', 'max:100000'],
         ]);
-        $query = User::query()->whereIn('role', User::webRoles());
-        if (trim($input['search'] ?? '') !== '') {
-            $term = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($input['search'])).'%';
-            $query->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('email', 'like', $term));
-        }
+        $query = self::matching(User::query()->whereIn('role', User::webRoles()), $input['search'] ?? '');
         $page = $query->orderBy('name')->orderBy('id')->paginate(25);
 
         return response()->json([
@@ -48,8 +55,11 @@ class WebAccountsController extends Controller
     public function fieldIndex(Request $request, AccountsDirectory $directory): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
-        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:100000']]);
-        $page = $directory->scope()->where('role', User::ROLE_FIELD_REPORTER)->orderBy('name')->orderBy('id')->paginate(25, page: $input['page'] ?? 1);
+        $input = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:160'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $page = self::matching($directory->scope()->where('role', User::ROLE_FIELD_REPORTER), $input['search'] ?? '')->orderBy('name')->orderBy('id')->paginate(25, page: $input['page'] ?? 1);
         $actor = $request->user();
 
         return response()->json([
@@ -70,7 +80,7 @@ class WebAccountsController extends Controller
     public function show(Request $request, string $uuid): JsonResponse
     {
         $user = User::query()->where('uuid', $uuid)->firstOrFail();
-        Gate::authorize('view', $user);
+        Gate::authorize('inspect', $user);
 
         return response()->json(['data' => self::account($user)]);
     }
@@ -131,7 +141,7 @@ class WebAccountsController extends Controller
     public function events(Request $request, string $uuid): JsonResponse
     {
         $user = User::query()->where('uuid', $uuid)->firstOrFail();
-        Gate::authorize('view', $user);
+        Gate::authorize('inspect', $user);
         $events = SecurityAudit::query()->with('actor')->where('target_user_id', $user->id)
             ->whereIn('action', ['role_change', 'account_status_change', 'web_account_changed', 'district_access_changed', 'account_created', 'account_invite_sent', 'account_review_changed', 'district_reporting_settings_changed', 'report_approved', 'report_send_requested'])
             ->orderByDesc('created_at')->orderByDesc('id')->limit(25)->get();

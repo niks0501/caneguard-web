@@ -14,6 +14,8 @@ export const listSchema = z.object({
   meta: z.object({ page: z.number().int(), per_page: z.number().int(), total: z.number().int() }),
 });
 const detailSchema = z.object({ data: accountSchema });
+// Read-only detail also covers field inspectors, whose access is managed from the field accounts list.
+const readSchema = z.object({ data: accountSchema.extend({ role: z.enum(["reviewer", "admin", "field_reporter"]) }) });
 const accessSnapshotSchema = z.object({ role: z.string(), is_active: z.boolean() });
 export const eventSchema = z.object({
   id: z.number().int(), action: z.string(), outcome: z.string(), actor_name: z.string(), created_at: z.string(),
@@ -27,7 +29,7 @@ export async function listAccounts(filters: AccountsFilters, signal?: AbortSigna
   return listSchema.parse((await axiosClient.get("/api/v1/admin/accounts", { params: filters, signal })).data);
 }
 export async function getAccount(uuid: string, signal?: AbortSignal) {
-  return detailSchema.parse((await axiosClient.get(`/api/v1/admin/accounts/${encodeURIComponent(uuid)}`, { signal })).data);
+  return readSchema.parse((await axiosClient.get(`/api/v1/admin/accounts/${encodeURIComponent(uuid)}`, { signal })).data);
 }
 export async function getAccountEvents(uuid: string, signal?: AbortSignal) {
   return eventsSchema.parse((await axiosClient.get(`/api/v1/admin/accounts/${encodeURIComponent(uuid)}/events`, { signal })).data);
@@ -62,8 +64,8 @@ export type FieldAccount = z.infer<typeof fieldAccountSchema>;
 const fieldListSchema = z.object({ data: z.array(fieldAccountSchema), meta: listSchema.shape.meta });
 export type FieldAccessCommand = { operation: "admit" | "revoke" | "restore"; role: FieldAccount["role"]; expected_access_version: number; office_reference: string; idempotency_key: string };
 
-export async function listFieldAccounts(page: number, signal?: AbortSignal) {
-  return fieldListSchema.parse((await axiosClient.get("/api/v1/admin/accounts/field", { params: { page }, signal })).data);
+export async function listFieldAccounts(page: number, search = "", signal?: AbortSignal) {
+  return fieldListSchema.parse((await axiosClient.get("/api/v1/admin/accounts/field", { params: { page, search }, signal })).data);
 }
 export async function changeFieldAccess(uuid: string, command: FieldAccessCommand, password: string) {
   await initializeCsrf();
