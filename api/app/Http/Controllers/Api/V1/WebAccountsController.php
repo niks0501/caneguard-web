@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Auth\CreateWebAccount;
+use App\Actions\Auth\ResendWebAccountInvite;
 use App\Actions\Auth\UpdateWebAccount;
 use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
@@ -11,6 +12,7 @@ use App\Security\AccountsDirectory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -55,6 +57,7 @@ class WebAccountsController extends Controller
                 $detail = $directory->detail($user, $actor);
 
                 return array_merge(self::account($user), [
+                    'invite_pending' => ! $user->hasVerifiedEmail(),
                     'membership_state' => $detail['membership_state'],
                     'allowed_actions' => $detail['allowed_actions'],
                     'denial_reasons' => $detail['denial_reasons'],
@@ -89,6 +92,19 @@ class WebAccountsController extends Controller
         $result = $create->handle($request->user(), $input);
 
         return response()->json(['data' => self::account($result['user']), 'invite_sent' => $result['invite_sent']], 201);
+    }
+
+    /** Re-sends the set-password link to a field inspector who has not completed it yet. */
+    public function resendInvite(Request $request, string $uuid, ResendWebAccountInvite $resend): JsonResponse
+    {
+        Gate::authorize('create', User::class);
+        $user = User::query()->where('uuid', $uuid)->where('role', User::ROLE_FIELD_REPORTER)->firstOrFail();
+        abort_if($user->hasVerifiedEmail() || ! $user->is_active, 409, 'This account has no pending invite.');
+
+        $status = $resend->handle($request->user(), $user);
+        abort_if($status === Password::RESET_THROTTLED, 429, 'A link was sent a moment ago. Wait a minute before sending another.');
+
+        return response()->json(['invite_sent' => $status === Password::RESET_LINK_SENT]);
     }
 
     public function update(Request $request, string $uuid, UpdateWebAccount $update): JsonResponse

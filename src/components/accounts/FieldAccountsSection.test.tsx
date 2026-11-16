@@ -9,11 +9,12 @@ import { adminAccount } from "../../test/accountFixtures";
 import { FieldAccountsSection } from "./FieldAccountsSection";
 
 vi.mock("../../auth/useAuth", () => ({ useAuth: vi.fn() }));
-vi.mock("../../services/accountsAdmin.api", async original => ({ ...await original<typeof api>(), listFieldAccounts: vi.fn(), changeFieldAccess: vi.fn() }));
-const active: api.FieldAccount = { uuid: "00000000-0000-4000-8000-000000000301", name: "Field Sample", email: "field@example.test", role: "field_reporter", is_active: true, access_version: 3, membership_state: "active", allowed_actions: ["revoke", "replace"], denial_reasons: [] };
+vi.mock("../../services/accountsAdmin.api", async original => ({ ...await original<typeof api>(), listFieldAccounts: vi.fn(), changeFieldAccess: vi.fn(), resendFieldInvite: vi.fn() }));
+const active: api.FieldAccount = { uuid: "00000000-0000-4000-8000-000000000301", name: "Field Sample", email: "field@example.test", role: "field_reporter", is_active: true, access_version: 3, invite_pending: false, membership_state: "active", allowed_actions: ["revoke", "replace"], denial_reasons: [] };
 const disabled: api.FieldAccount = { ...active, is_active: false, access_version: 4, membership_state: "revoked", allowed_actions: ["restore"] };
 const notIssued: api.FieldAccount = { ...active, uuid: "00000000-0000-4000-8000-000000000302", name: "Unassigned Sample", membership_state: "not_issued", allowed_actions: [], denial_reasons: ["Legacy or unsupported identity requires controlled operator reconciliation."] };
 const unverified: api.FieldAccount = { ...disabled, uuid: "00000000-0000-4000-8000-000000000303", name: "Unverified Sample", allowed_actions: [], denial_reasons: ["Email not verified. Staff issuance is unavailable."] };
+const pending: api.FieldAccount = { ...active, uuid: "00000000-0000-4000-8000-000000000304", name: "Pending Sample", invite_pending: true };
 const meta = { page: 1, per_page: 25, total: 1 };
 function renderSection() {
   return render(<QueryClientProvider client={new QueryClient()}><FieldAccountsSection /></QueryClientProvider>);
@@ -81,5 +82,23 @@ describe("Field accounts", () => {
     expect(screen.getByText("Email not verified. Staff issuance is unavailable.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Disable Unassigned Sample" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Re-enable Unverified Sample" })).not.toBeInTheDocument();
+  });
+  it("shows Invite pending instead of Active for an unverified inspector and resends the link", async () => {
+    vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [pending], meta });
+    vi.mocked(api.resendFieldInvite).mockResolvedValue({ invite_sent: true });
+    renderSection();
+    expect(await screen.findByText("Invite pending")).toBeInTheDocument();
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Resend set-password link to Pending Sample" }));
+    await waitFor(() => expect(api.resendFieldInvite).toHaveBeenCalledWith(pending.uuid));
+    expect(await screen.findByText("Set-password link sent to field@example.test.")).toBeInTheDocument();
+  });
+  it("explains a throttled resend and offers no resend for a verified inspector", async () => {
+    vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [pending, active], meta: { ...meta, total: 2 } });
+    vi.mocked(api.resendFieldInvite).mockRejectedValue(new ApiError("slow down", { status: 429 }));
+    renderSection();
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Resend set-password link to Pending Sample" }));
+    expect(await screen.findByText(/Wait a minute before sending another/)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Resend set-password link/ })).toHaveLength(1);
   });
 });

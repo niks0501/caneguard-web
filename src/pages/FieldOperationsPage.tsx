@@ -339,6 +339,7 @@ export function FieldOperationsPage({ embedded = false }: { embedded?: boolean }
                   key={selectedItem.uuid}
                   item={selectedItem}
                   reporters={reportersQuery.data ?? []}
+                  reportersLoaded={reportersQuery.isSuccess}
                   officeDate={officeDate}
                   onClose={closeEditor}
                   onSaved={refresh}

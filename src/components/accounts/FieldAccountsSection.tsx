@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../../api/ApiError";
 import { useAuth } from "../../auth/useAuth";
-import { changeFieldAccess, listFieldAccounts } from "../../services/accountsAdmin.api";
+import { changeFieldAccess, listFieldAccounts, resendFieldInvite } from "../../services/accountsAdmin.api";
 import type { FieldAccount } from "../../services/accountsAdmin.api";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
@@ -81,11 +81,31 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
       setPending(false);
     }
   }
+  const invitePending = account.invite_pending && account.is_active;
+  const [resending, setResending] = useState(false);
+  async function resend() {
+    if (resending) return;
+    setResending(true);
+    onNotice("");
+    try {
+      const { invite_sent } = await resendFieldInvite(account.uuid);
+      onNotice(invite_sent ? `Set-password link sent to ${account.email}.` : `The set-password email to ${account.email} could not be sent. Try again later.`);
+    } catch (failure) {
+      onNotice(failure instanceof ApiError && failure.status === 429
+        ? "A link was sent a moment ago. Wait a minute before sending another."
+        : failure instanceof ApiError && failure.status === 409
+          ? "This account has no pending invite. Reload the list."
+          : "The link was not confirmed sent. Check the account before trying again.");
+    } finally {
+      setResending(false);
+    }
+  }
   return <tr>
     <td data-label="Name">{account.name}</td>
     <td data-label="Email">{account.email}</td>
-    <td data-label="Status">{!account.is_active ? "Disabled" : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
+    <td data-label="Status">{!account.is_active ? "Disabled" : invitePending ? "Invite pending" : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
     <td data-label="Action">
+      {invitePending ? <Button variant="secondary" disabled={resending} aria-label={`Resend set-password link to ${account.name}`} onClick={() => void resend()}>{resending ? "Sending…" : "Resend link"}</Button> : null}
       {action ? <>
         <Button disabled={pending} aria-label={`${verb} ${account.name}`} onClick={() => { onNotice(""); setError(""); setPassword(""); setOpen(true); }}>{verb}</Button>
         <Modal id={id} title={`${verb} field account`} open={open} onClose={close} disabled={pending}>

@@ -53,6 +53,7 @@ export async function createAccount(command: NewAccountCommand, password: string
 
 export const fieldAccountSchema = accountSchema.extend({
   role: z.literal("field_reporter"),
+  invite_pending: z.boolean(),
   membership_state: z.enum(["not_issued", "active", "revoked"]),
   allowed_actions: z.array(z.enum(["admit", "replace", "revoke", "restore", "keep_farmer", "defer", "reopen", "transfer"])),
   denial_reasons: z.array(z.string()),
@@ -72,4 +73,8 @@ export async function changeFieldAccess(uuid: string, command: FieldAccessComman
     current_password: password, office_reference: command.office_reference.trim(),
     idempotency_key: command.idempotency_key, expected_access_version: command.expected_access_version,
   })).data);
+}
+export async function resendFieldInvite(uuid: string) {
+  await initializeCsrf();
+  return z.object({ invite_sent: z.boolean() }).parse((await axiosClient.post(`/api/v1/admin/accounts/${encodeURIComponent(uuid)}/invite`)).data);
 }

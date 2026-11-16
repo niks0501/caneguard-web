@@ -63,6 +63,7 @@ Route::prefix('v1/admin/accounts')->middleware([
     Route::get('/field', [WebAccountsController::class, 'fieldIndex']);
     Route::get('/{uuid}', [WebAccountsController::class, 'show'])->whereUuid('uuid');
     Route::get('/{uuid}/events', [WebAccountsController::class, 'events'])->whereUuid('uuid');
+    Route::post('/{uuid}/invite', [WebAccountsController::class, 'resendInvite'])->whereUuid('uuid')->middleware('throttle:5,1');
     Route::patch('/{uuid}', [WebAccountsController::class, 'update'])->whereUuid('uuid')->middleware('throttle:10,1');
 });
 

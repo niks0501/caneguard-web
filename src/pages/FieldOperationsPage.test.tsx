@@ -93,9 +93,9 @@ function sectionEntries(name: string) {
   return within(section).queryAllByRole("article").map((article) => article.textContent ?? "");
 }
 
-function renderPage(initialEntry = "/monitoring?view=field-operations") {
+function renderPage(initialEntry = "/monitoring?view=field-operations", role?: string) {
   return render(
-    <AuthContext.Provider value={{ user: { uuid: "inspector-1", name: "Inspector One" } } as never}>
+    <AuthContext.Provider value={{ user: { uuid: "inspector-1", name: "Inspector One", role } } as never}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <FieldOperationsPage />
       </MemoryRouter>
@@ -247,6 +247,26 @@ describe("FieldOperationsPage read-first rows and focused editor", () => {
       expectedVersion: 7,
     }));
     expect(screen.getByText("Assignment saved to the authoritative review record.")).toBeInTheDocument();
+  });
+
+  it("explains who appears in the Inspector select and links admins to User Management", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=field-operations", "admin");
+    const overdue = screen.getByRole("heading", { name: "Overdue" }).closest("section") as HTMLElement;
+    await user.click(within(overdue).getAllByRole("button", { name: "Assign / Edit visit" })[0]);
+    expect(screen.getByLabelText("Inspector")).toHaveAccessibleDescription(/Only inspectors who have set their password and are admitted appear here/);
+    expect(screen.getByRole("link", { name: "Manage field accounts" })).toHaveAttribute("href", "/accounts");
+    expect(screen.queryByText("No eligible inspectors yet.")).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state, and no admin link for reviewers, when no inspector is eligible", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useFieldReporters).mockReturnValue(result([]));
+    renderPage("/monitoring?view=field-operations", "reviewer");
+    const overdue = screen.getByRole("heading", { name: "Overdue" }).closest("section") as HTMLElement;
+    await user.click(within(overdue).getAllByRole("button", { name: "Assign / Edit visit" })[0]);
+    expect(screen.getByText(/No eligible inspectors yet\./)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Manage field accounts" })).not.toBeInTheDocument();
   });
 
   it("keeps the reviewer's draft and reports an understandable error when a save fails", async () => {

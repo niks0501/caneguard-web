@@ -9,7 +9,7 @@ import { Modal } from "../ui/Modal";
 const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "" };
 const nextSteps: Record<NewAccountRole, string> = {
   farmer: "Next step: Farmer mobile sign-in is currently limited, so hold this account and contact support instead of sending them to mobile sign-in.",
-  field_reporter: "Next step: Tell them to sign in through the mobile app.",
+  field_reporter: "Next steps: 1. They open the set-password email. 2. They sign in on the phone. They are added to the pilot district automatically.",
   reviewer: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
   admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
 };
