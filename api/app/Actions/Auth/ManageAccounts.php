@@ -17,12 +17,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-/** @deprecated Compatibility action for the v2 account writers. */
+/** Field access writer and deprecated v2 compatibility writers. */
 final class ManageAccounts
 {
     public function __construct(private DistrictAccess $access, private AccountsDirectory $directory, private ReconcileDistrictAccess $reconcile) {}
 
-    public function handle(Request $request, string $kind, ?string $uuid = null): array
+    public function handle(Request $request, string $kind, ?string $uuid = null, bool $fieldOnly = false): array
     {
         $rules = [
             'contract_version' => ['required', Rule::in(['accounts-access-v1'])],
@@ -36,9 +36,9 @@ final class ManageAccounts
         } else {
             $rules['expected_access_version'] = ['required', 'integer', 'min:1'];
             $rules += $kind === 'review' ? ['disposition' => ['required', Rule::in(['keep_farmer', 'defer', 'reopen'])]] : [
-                'operation' => ['required', Rule::in(['admit', 'replace', 'revoke', 'restore'])],
-                'desired' => ['required', 'array:role,grants'], 'desired.role' => ['required', Rule::in(User::roles())],
-                'desired.grants' => ['present', 'array', 'max:3'], 'desired.grants.*' => ['string', Rule::in(DistrictGrant::ABILITIES), 'distinct'],
+                'operation' => ['required', Rule::in($fieldOnly ? ['admit', 'revoke', 'restore'] : ['admit', 'replace', 'revoke', 'restore'])],
+                'desired' => ['required', 'array:role,grants'], 'desired.role' => ['required', Rule::in($fieldOnly ? [User::ROLE_FIELD_REPORTER] : User::roles())],
+                'desired.grants' => ['present', 'array', $fieldOnly ? 'max:0' : 'max:3'], 'desired.grants.*' => ['string', Rule::in(DistrictGrant::ABILITIES), 'distinct'],
             ];
         }
         // Do not accept district, verification, wildcard or any undocumented authority field.
@@ -59,7 +59,7 @@ final class ManageAccounts
 
         $districtId = $this->access->pilotId();
 
-        return DB::transaction(function () use ($input, $kind, $uuid, $actorId, $hash, $districtId): array {
+        return DB::transaction(function () use ($input, $kind, $uuid, $actorId, $hash, $districtId, $fieldOnly): array {
             $district = District::query()->lockForUpdate()->findOrFail($districtId);
             $uuids = $kind === 'transfer' ? [$input['from_uuid'], $input['to_uuid']] : [$uuid];
             $ids = $this->directory->scope()->whereIn('uuid', $uuids)->pluck('id')->all();
@@ -82,6 +82,9 @@ final class ManageAccounts
                 }
 
                 return json_decode($receipt->response, true, flags: JSON_THROW_ON_ERROR);
+            }
+            if ($fieldOnly && $users->firstWhere('id', $ids[0])->role !== User::ROLE_FIELD_REPORTER) {
+                AccountAccessFailure::reject('INVALID_ACCESS_TRANSITION', 'This authority transition is not allowed.', 422);
             }
             $targets = collect($uuids)->map(fn ($id) => $users->firstWhere('uuid', $id));
             foreach ($targets as $index => $target) {
@@ -150,6 +153,9 @@ final class ManageAccounts
                 'event_id' => $event?->id, 'operation_id' => $operationId, 'access_version' => $target->fresh()->access_version,
                 'credentials_revoked' => $kind !== 'review' && $event !== null
                     && array_diff_assoc($this->authVersions($targets), $authVersions) !== []];
+            if ($kind === 'access') {
+                $response['data']['is_active'] = $target->fresh()->is_active;
+            }
             if ($kind === 'transfer') {
                 $response['affected'] = $targets->map(fn ($u) => $this->directory->detail($this->directory->target($u->uuid), $actor))->all();
             }

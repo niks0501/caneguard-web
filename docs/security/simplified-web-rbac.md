@@ -35,11 +35,12 @@ All routes under `/api/v1/admin/accounts` require a Sanctum web session, an acti
 | GET | `/field` | Read-only field-reporter directory; optional bounded `page`; 25 per page |
 | GET | `/{uuid}` | One user's identity, role and status |
 | PATCH | `/{uuid}` | Password-confirmed role/status change |
+| PUT | `/{uuid}/access` | Field admission, disable or re-enable; see the [access contract](../contracts/accounts-access-v1.md#decision-requests) |
 | GET | `/{uuid}/events` | Latest 25 role/status/admin audit events, newest first |
 
-Account fields: `uuid`, `name`, `email`, `role`, `is_active`, `access_version`. Writes require `role=reviewer|admin`, boolean `is_active`, `current_password`, and `expected_access_version`. Undocumented authority fields are rejected. The version protects against stale edits; it is not an administrator control.
+Account fields: `uuid`, `name`, `email`, `role`, `is_active`, `access_version`. PATCH writes require `role=reviewer|admin`, boolean `is_active`, `current_password`, and `expected_access_version`. Undocumented authority fields are rejected. The version protects against stale edits; it is not an administrator control.
 
-Field rows add the same Sanctum/verified/Admin gate plus the read-only access hints the v2 access operation enforces: `membership_state` (`not_issued`, `active`, `revoked`), `allowed_actions`, and `denial_reasons`. A field row offers no action when `allowed_actions` omits it; the screen shows the denial reason instead. Field admission uses the [v2 access contract](../contracts/accounts-access-v1.md#decision-requests).
+Field rows add the same Sanctum/verified/Admin gate plus the read-only access hints the access operation enforces: `membership_state` (`not_issued`, `active`, `revoked`), `allowed_actions`, and `denial_reasons`. A field row offers no action when `allowed_actions` omits it; the screen shows the denial reason instead. Field admission, disable and re-enable use `PUT /api/v1/admin/accounts/{uuid}/access` with the [access decision request](../contracts/accounts-access-v1.md#decision-requests); the deprecated v2 route stays available for this release.
 
 Self role/status changes and failed password confirmation return 422; stale target versions return 409. Actor and target are rechecked under ordered user locks. Successful changed fields are audited with actor, target, before/after role/status and time; no-op writes do not revoke authentication or manufacture change events. Audit history uses the configured security-audit retention policy. Passwords, credentials and session contents are never audit metadata.
 
