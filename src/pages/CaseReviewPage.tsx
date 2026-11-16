@@ -710,7 +710,8 @@ function CaseReviewContent() {
   const nextLine = workflowStatus === "resolved" ? "Nothing more to do. This case is resolved."
     : awaitingDecision ? "Choose what happens next, check your answers, then confirm the decision."
     : lifecycle?.fieldValidationState === "completed" ? "Read the visit evidence, then decide."
-    : "Wait for the field visit, then decide.";
+    : lifecycle?.fieldValidationState === "assigned" || lifecycle?.fieldValidationState === "in_progress" ? "Wait for the field visit, then decide."
+    : "Review the case and decide what happens next.";
 
   // Every review-mutation failure is reported once, inside the pop-up that owns
   // the save, instead of on the page and in the pop-up at the same time.
@@ -998,14 +999,14 @@ function CaseReviewContent() {
         actions={<QueueStatusCell row={report} showIcon />}
       />
       <div className="review-case-meta">
-        {queueContext ? <p className="review-case-meta__queue">
-          {queueLeft.length} left in Review
-          {nextCaseId ? <> · <Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
+        {queueContext && nextCaseId ? <p className="review-case-meta__queue">
+          {queueLeft.length} more loaded
+          {" · "}<Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
             returnTo: queueContext.returnTo, filters: queueContext.filters, remainingIds: queueLeft.slice(1),
-            reviewedIds: [...queueContext.reviewedIds, report.uuid],
+            reviewedIds: queueContext.reviewedIds,
             ...(queueContext.snapshotOnly ? { snapshotOnly: true } : {}),
             ...(queueContext.snapshotTruncated ? { snapshotTruncated: true } : {}),
-          } }}>Next case</Link></> : null}
+          } }}>Next case</Link>
         </p> : null}
         <p className="review-next-line"><strong>Next:</strong> {nextLine}</p>
       </div>

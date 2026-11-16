@@ -48,6 +48,23 @@ beforeEach(() => {
 });
 
 describe("Progressive review resilience", () => {
+  it.each([
+    [[], false],
+    [["next-case"], true],
+  ])("describes only loaded cases in the saved receipt", async (remainingIds, hasLoadedCase) => {
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={[{ pathname: `/reports/${base.uuid}`, state: { reviewQueue: {
+      returnTo: "/reports", filters: {}, remainingIds, reviewedIds: [], snapshotTruncated: true,
+    } } }]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
+    await technical(user);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Confirm decision" }));
+    const receipt = await screen.findByText(/Saved:.*The case is now/);
+    expect(receipt).not.toHaveTextContent(/left in Review/);
+    if (hasLoadedCase) expect(receipt).toHaveTextContent("1 more loaded");
+    else expect(receipt).not.toHaveTextContent(/more loaded/);
+  });
+
   // Proposal (UX-02): proves a "Send someone" entry opens the decision with Send-someone preselected, and a plain entry does not.
   it("preselects Needs Field Validation only when the entry asks for it", () => {
     const { unmount } = render(<MemoryRouter initialEntries={[{ pathname: "/reports/x", state: { preselectAction: "field" } }]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);

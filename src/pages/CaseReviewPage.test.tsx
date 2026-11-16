@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createMemoryRouter, Link, MemoryRouter, Outlet, Route, RouterProvider, Routes } from "react-router";
+import { createMemoryRouter, Link, MemoryRouter, Outlet, Route, RouterProvider, Routes, useLocation } from "react-router";
 import { ZodError } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
@@ -222,6 +222,44 @@ beforeEach(() => {
 });
 
 describe("CaseReviewPage", () => {
+  it("preserves reviewed cases when navigating without confirming a decision", async () => {
+    const user = userEvent.setup();
+    function Destination() {
+      const location = useLocation();
+      return <output data-testid="next-queue">{JSON.stringify(location.state)}</output>;
+    }
+    render(<MemoryRouter initialEntries={[{ pathname: `/reports/${report.uuid}`, state: { reviewQueue: {
+      returnTo: "/reports", filters: {}, remainingIds: ["next-a"], reviewedIds: ["already-reviewed"],
+    } } }]}><Routes>
+      <Route path={`/reports/${report.uuid}`} element={<CaseReviewPage />} />
+      <Route path="/reports/next-a" element={<Destination />} />
+    </Routes></MemoryRouter>);
+    expect(screen.getByText(/1 more loaded/)).toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "Next case" }));
+    expect(JSON.parse(screen.getByTestId("next-queue").textContent!).reviewQueue.reviewedIds).toEqual(["already-reviewed"]);
+  });
+
+  it("does not claim an empty snapshot is an empty review queue", () => {
+    render(<MemoryRouter initialEntries={[{ pathname: `/reports/${report.uuid}`, state: { reviewQueue: {
+      returnTo: "/reports", filters: {}, remainingIds: [], reviewedIds: [],
+    } } }]}><Routes><Route path="/reports/:reportId" element={<CaseReviewPage />} /></Routes></MemoryRouter>);
+    expect(screen.queryByText(/left in Review|more loaded/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["unassigned", "referred", false, "Review the case and decide what happens next."],
+    ["unassigned", "not_referred", true, "Review the case and decide what happens next."],
+    ["assigned", "referred", false, "Wait for the field visit, then decide."],
+    ["in_progress", "not_referred", true, "Wait for the field visit, then decide."],
+    ["completed", "referred", false, "Read the visit evidence, then decide."],
+  ] as const)("gives guidance for %s validation and %s referral", (fieldValidationState, referralState, scheduledRevisit, guidance) => {
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: {
+      ...report, scheduledRevisit, lifecycle: { ...report.lifecycle!, fieldValidationState, referralState },
+    } }));
+    renderPage();
+    expect(screen.getByText(/^Next:/)).toHaveTextContent(guidance);
+  });
+
   // Proposal (L2): proves the header shows the queue position and a Next line, and folds empty fields into one line.
   it("shows queue position, a Next line, and one line for fields that were not provided", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: { ...report, cropAge: undefined, sugarcaneVariety: undefined, caneClass: undefined } }));

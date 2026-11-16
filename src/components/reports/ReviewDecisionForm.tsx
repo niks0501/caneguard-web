@@ -312,7 +312,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       lastSelfWriteVersion.current = nextVersion;
       setExpectedVersion(nextVersion);
       const stillOpen = (context?.remainingIds ?? []).filter((id) => id !== report.uuid && !(context?.reviewedIds ?? []).includes(id)).length;
-      setReceipt(`Saved: ${chosenAction?.label ?? "Decision"}. The case is now ${caseStateOutcome}.${context ? ` ${stillOpen} left in Review.` : ""}`);
+      setReceipt(`Saved: ${chosenAction?.label ?? "Decision"}. The case is now ${caseStateOutcome}.${stillOpen ? ` ${stillOpen} more loaded.` : ""}`);
       setDirty(false); setSaved(true); setFailedMessages([]); setConflictChoices(allConflictChoices);
       setConflictLatest(null); setConflictError(null);
       onRefresh();
