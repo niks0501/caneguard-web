@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\DistrictMembership;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -66,7 +67,7 @@ class FieldAccessV1Test extends TestCase
 
     public function test_only_field_reporter_operations_and_authority_are_accepted(): void
     {
-        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+        $this->withoutMiddleware(ThrottleRequests::class);
         $this->pilotDistrict();
         $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
         $farmer = User::factory()->create(['role' => User::ROLE_FARMER, 'registration_origin' => 'office_certified']);
