@@ -25,7 +25,7 @@ import {
   type ConflictChoices,
   type ConflictSnapshot,
 } from "./reviewConflict";
-import { reviewQueueContext } from "./reviewQueueContext";
+import { returnLinkLabel, reviewQueueContext } from "./reviewQueueContext";
 
 type NextAction = "field" | "support" | "close";
 type DecisionStep = "action" | "details" | "review";
@@ -47,7 +47,7 @@ function DecisionStepper({ step }: { step: DecisionStep }) {
 }
 
 const actions: { value: NextAction; label: string; consequence: string; icon: LucideIcon }[] = [
-  { value: "field", icon: MapPinned, label: "Needs Field Validation", consequence: "Case stays open until the visit is done." },
+  { value: "field", icon: MapPinned, label: "Send someone", consequence: "Case stays open until the visit is done." },
   { value: "support", icon: HandHelping, label: "Provide Advisory or Assistance", consequence: "The reporter receives the advice you choose." },
   { value: "close", icon: CircleCheckBig, label: "No Further Action", consequence: "The case is closed." },
 ];
@@ -575,7 +575,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
         {receipt ? <p>{receipt}</p> : null}
         <Button type="button" variant="secondary" disabled={nextPending} onClick={() => void reviewNext()}>Review Next Case</Button>
-        <Link to={returnTo}>Return to Queue</Link>
+        <Link to={returnTo}>{returnLinkLabel(returnTo)}</Link>
       </div> : null}
       {nextMessage ? <p role="status">{nextMessage}</p> : null}
     </section>

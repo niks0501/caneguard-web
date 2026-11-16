@@ -426,7 +426,7 @@ describe("DashboardPage", () => {
       ...analytics, reviewBacklog: { totalWaiting: 1, buckets: [{ label: "0–2 days waiting", count: 1 }], oldestWaitingDays: 2 },
     } }));
     renderDashboard();
-    const card = screen.getByText("Reports awaiting review").closest("article")!;
+    const card = screen.getByRole("article", { name: "Review" });
     expect(within(card).getByText("1")).toBeInTheDocument();
     expect(within(card).getByText("Oldest: 2 days")).toBeInTheDocument();
     expect(within(card).getByRole("img", { name: "Waiting age: 0–2 days waiting 1 report" })).toBeInTheDocument();
@@ -437,7 +437,7 @@ describe("DashboardPage", () => {
       data: { ...summary, queues: { ...summary.queues, follow_up_due: 0 } },
     }));
     renderDashboard();
-    const card = screen.getByText("Reports awaiting review").closest("article")!;
+    const card = screen.getByRole("article", { name: "Review" });
     expect(within(card).getByText("3")).toBeInTheDocument();
     expect(
       screen.getByText("3 reports are waiting for your review."),
@@ -455,7 +455,7 @@ describe("DashboardPage", () => {
     } }));
     const { rerender } = renderDashboard();
 
-    const card = screen.getByText("Reports awaiting review").closest("article")!;
+    const card = screen.getByRole("article", { name: "Review" });
     expect(within(card).getByText("0")).toBeInTheDocument();
     // Nothing waiting has no oldest age, and the empty split draws no slices.
     expect(within(card).getByText("No reports awaiting review")).toBeInTheDocument();
@@ -475,7 +475,7 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
     expect(
-      within(screen.getByText("Reports awaiting review").closest("article")!).getByText(
+      within(screen.getByRole("article", { name: "Review" })).getByText(
         "Oldest waiting age unavailable",
       ),
     ).toBeInTheDocument();
@@ -490,8 +490,8 @@ describe("DashboardPage", () => {
       screen.getByRole("region", { name: "Current operations" }),
     );
     expect(snapshot.getByText("Submitted reports")).toBeInTheDocument();
-    expect(snapshot.getByText("Reports awaiting review")).toBeInTheDocument();
-    expect(snapshot.getByText("Reports needing field validation")).toBeInTheDocument();
+    expect(snapshot.getByRole("article", { name: "Review" })).toBeInTheDocument();
+    expect(snapshot.getByRole("article", { name: "Send someone" })).toBeInTheDocument();
     expect(snapshot.getByText("Not checked, nobody assigned")).toBeInTheDocument();
 
     // KPI 1: comparison and hint paragraphs are stripped.
@@ -564,10 +564,10 @@ describe("DashboardPage", () => {
     // action, so every per-card target survives without an Open row.
     expect(snapshot.getAllByRole("link")).toHaveLength(4);
     expect(
-      snapshot.getByRole("link", { name: "Open submitted reports on the To do page" }),
+      snapshot.getByRole("link", { name: "Open submitted cases on the To do page" }),
     ).toHaveAttribute("href", "/todo#lane-review");
     expect(
-      snapshot.getByRole("link", { name: "Open Review new reports on the To do page" }),
+      snapshot.getByRole("link", { name: "Open Review on the To do page" }),
     ).toHaveAttribute("href", "/todo#lane-review");
     expect(
       snapshot.getByRole("link", {
@@ -640,7 +640,7 @@ describe("DashboardPage", () => {
       within(submitted).getByText("Previous period unavailable"),
     ).toBeInTheDocument();
 
-    const awaiting = screen.getByText("Reports awaiting review").closest("article")!;
+    const awaiting = screen.getByRole("article", { name: "Review" });
     expect(within(awaiting).getByText("—")).toBeInTheDocument();
     expect(
       within(awaiting).getByText("Waiting age unavailable"),
@@ -650,9 +650,7 @@ describe("DashboardPage", () => {
     expect(within(awaiting).queryByRole("img")).not.toBeInTheDocument();
 
     // The summary-backed cards still count: their population is current state.
-    const validation = screen
-      .getByText("Reports needing field validation")
-      .closest("article")!;
+    const validation = screen.getByRole("article", { name: "Send someone" });
     expect(within(validation).getByText("4")).toBeInTheDocument();
     expect(within(validation).getByText("1 report past target date")).toBeInTheDocument();
   });
@@ -890,7 +888,7 @@ describe("DashboardPage", () => {
 
   it("captions the window only on the submissions card", () => {
     const { rerender } = renderDashboard();
-    const card = (name: string) => screen.getByText(name).closest("article")!;
+    const card = (name: string) => screen.getByRole("article", { name });
 
     expect(
       within(card("Submitted reports")).getByText("Period 1–24 Sep 2026"),
@@ -899,10 +897,10 @@ describe("DashboardPage", () => {
     // The queue counts, awaiting review included, are current state rather
     // than windowed, so they carry no period caption.
     expect(
-      within(card("Reports awaiting review")).queryByText(/^Period /),
+      within(card("Review")).queryByText(/^Period /),
     ).not.toBeInTheDocument();
     expect(
-      within(card("Reports needing field validation")).queryByText(/^Period /),
+      within(card("Send someone")).queryByText(/^Period /),
     ).not.toBeInTheDocument();
     expect(
       within(

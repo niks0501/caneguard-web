@@ -93,18 +93,18 @@ function isMalformedDataError(error: unknown) {
 }
 
 const queueLabels = {
-  needs_review: "Needs Review",
-  needs_visit: "Needs Visit",
-  follow_up_due: "Follow-up Due",
+  needs_review: "Review",
+  needs_visit: "Send someone",
+  follow_up_due: "Visit overdue",
   upcoming: "Upcoming Visits",
   unverified_no_active_work: "Unverified, no active work",
 } as const;
 
 /** Tab labels stay short so every queue fits on the one control line. */
 const queueTabLabels: Record<keyof typeof queueLabels, string> = {
-  needs_review: "Needs review",
-  needs_visit: "Needs visit",
-  follow_up_due: "Follow-up due",
+  needs_review: "Review",
+  needs_visit: "Send someone",
+  follow_up_due: "Visit overdue",
   upcoming: "Upcoming",
   unverified_no_active_work: "Unverified",
 };
@@ -437,7 +437,7 @@ export function SubmittedReportsPage({
       ) : urlState.hasActiveFilters ? (
         <nav className="monitoring-saved-views" aria-label="Report saved views">
           <span className="monitoring-saved-views__label">Saved views</span>
-          <Link to={routes.reports}>All submitted reports</Link>
+          <Link to={routes.reports}>All cases</Link>
           <span className="monitoring-saved-views__active" aria-current="page">Filtered view</span>
         </nav>
       ) : null}
@@ -467,7 +467,7 @@ export function SubmittedReportsPage({
       >
         <div className="workspace-heading">
           <div>
-            <h2 id="report-table-heading">{activeQueueLabel ?? (isMonitoring ? "List" : "Recent submissions")}</h2>
+            <h2 id="report-table-heading">{activeQueueLabel ?? (isMonitoring ? "List" : "Recent cases")}</h2>
           </div>
           <span>
             {activeQueueLabel

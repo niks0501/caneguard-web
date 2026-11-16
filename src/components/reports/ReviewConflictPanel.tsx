@@ -29,7 +29,7 @@ const fieldLabels: Record<ConflictField, string> = {
 };
 
 const actionLabels: Record<string, string> = {
-  field: "Needs Field Validation",
+  field: "Send someone",
   support: "Provide Advisory or Assistance",
   close: "No Further Action",
 };

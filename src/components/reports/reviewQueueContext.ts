@@ -14,6 +14,11 @@ export interface ReviewQueueContext {
   snapshotTruncated?: boolean;
 }
 
+/** Names where the back link goes: To do when the review began there, otherwise the Cases list. */
+export function returnLinkLabel(returnTo: string): string {
+  return /^\/todo(\?|$)/.test(returnTo) ? "Back to To do" : "Back to Cases";
+}
+
 export function reviewQueueContext(value: unknown): ReviewQueueContext | null {
   if (!value || typeof value !== "object") return null;
   const context = (value as { reviewQueue?: ReviewQueueContext }).reviewQueue;

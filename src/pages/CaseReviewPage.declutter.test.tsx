@@ -130,6 +130,25 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
     expect(screen.queryByRole("button", { name: /Show full text/ })).not.toBeInTheDocument();
   });
 
+  // Proposal (P11): proves empty case metadata folds into one "Not provided" line while filled fields keep their own cell.
+  it("folds empty case metadata into one Not provided line", () => {
+    renderPage({
+      ...baseReport,
+      cropAge: "6 months",
+      sugarcaneVariety: null,
+      caneClass: null,
+      affectedAreaHectares: undefined,
+      affectedAreaMeasurement: undefined,
+      affectedPortionPercent: undefined,
+      affectedPortionMeasurement: undefined,
+    } as typeof baseReport);
+
+    expect(screen.getByText("Crop age")).toBeInTheDocument();
+    expect(screen.queryByText("Cane class")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sugarcane variety")).not.toBeInTheDocument();
+    expect(screen.getByText("variety, cane class, affected area/portion")).toBeInTheDocument();
+  });
+
   it("shows the Possible Condition with a decision-support disclaimer and no prominent confidence", () => {
     renderPage();
 

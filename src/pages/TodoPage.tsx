@@ -177,15 +177,15 @@ export function TodoPage() {
 
   const lanes: TodoLaneData[] = [
     {
-      key: "review", title: "Review new reports", icon: ClipboardCheck, reports: needsReview,
+      key: "review", title: "Review", icon: ClipboardCheck, reports: needsReview,
       empty: "No new reports are waiting for review.", truncated: Boolean(awaitingTruncation),
-      action: (report) => ({ label: "Review report", to: routes.reportDetail(report.uuid) }),
+      action: (report) => ({ label: "Review", to: routes.reportDetail(report.uuid) }),
     },
     {
       key: "send", title: "Send someone", icon: UserPlus, reports: sendReports,
       empty: "No reports are waiting for someone to be sent.", truncated: Boolean(visitTruncation || noActiveWorkQuery.data?.truncated),
       action: (report) => noActiveWorkIds.has(report.uuid)
-        ? { label: "Assign field validation", to: routes.reportDecision(report.uuid), state: { preselectAction: "field" } }
+        ? { label: "Send someone", to: routes.reportDecision(report.uuid), state: { preselectAction: "field" } }
         : { label: "Send someone", to: routes.fieldOperationsForReport(report.uuid), drawer: true },
     },
     {
@@ -194,9 +194,9 @@ export function TodoPage() {
       action: (report) => ({ label: "Open visit", to: routes.fieldOperationsForReport(report.uuid) }),
     },
     {
-      key: "decide", title: "Decide after visit", icon: ClipboardList, reports: completedVisits,
+      key: "decide", title: "Decide", icon: ClipboardList, reports: completedVisits,
       empty: "No completed visits are waiting for a decision.", truncated: Boolean(awaitingTruncation),
-      action: (report) => ({ label: "Record decision", to: routes.reportDecision(report.uuid) }),
+      action: (report) => ({ label: "Decide", to: routes.reportDecision(report.uuid) }),
     },
   ];
   const ready = !awaitingQuery.isPending && !visitQuery.isPending && !overdueQuery.isPending && !noActiveWorkQuery.isPending;
@@ -325,7 +325,7 @@ export function TodoPage() {
       ) : null}
       {!hasInitialError && awaitingQuery.data && visitQuery.data && noActiveWorkQuery.data ? (
         <>
-          {awaitingTruncation ? <QueueBoundary title="Review new reports and Decide after visit" {...awaitingTruncation} /> : null}
+          {awaitingTruncation ? <QueueBoundary title="Review and Decide" {...awaitingTruncation} /> : null}
           {visitTruncation ? <QueueBoundary title="Send someone" {...visitTruncation} /> : null}
           {noActiveWorkQuery.data.truncated ? <QueueBoundary title="Send someone" loaded={noActiveWorkQuery.data.reports.length} total={noActiveWorkQuery.data.total} /> : null}
           {overdueTruncation ? <QueueBoundary title="Visit overdue" {...overdueTruncation} /> : null}

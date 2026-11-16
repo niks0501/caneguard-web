@@ -108,14 +108,14 @@ describe("TodoPage queue reads", () => {
 
     renderTodo();
 
-    const decide = await screen.findByRole("region", { name: "Decide after visit" });
+    const decide = await screen.findByRole("region", { name: "Decide" });
     expect(within(decide).getByText("3")).toBeInTheDocument();
     expect(within(decide).getByText("CG-worsened")).toBeInTheDocument();
     expect(within(decide).getByText("CG-improved")).toBeInTheDocument();
     expect(within(decide).queryByText("CG-fresh")).not.toBeInTheDocument();
     expect(within(decide).queryByText("CG-unassigned")).not.toBeInTheDocument();
 
-    const review = screen.getByRole("region", { name: "Review new reports" });
+    const review = screen.getByRole("region", { name: "Review" });
     expect(within(review).getByText("4")).toBeInTheDocument();
     expect(within(review).getByText("CG-fresh")).toBeInTheDocument();
     expect(within(review).getByText("CG-worsened")).toBeInTheDocument();
@@ -177,7 +177,7 @@ describe("TodoPage queue reads", () => {
       </QueryClientProvider>,
     );
 
-    const action = await screen.findByRole("link", { name: "Assign field validation" });
+    const action = await screen.findByRole("link", { name: "Send someone" });
     expect(action).toHaveAttribute("href", "/reports/00000000-0000-4000-8000-000000000009#review-decision");
     fireEvent.click(action);
     expect(await screen.findByTestId("decision-state")).toHaveTextContent('"preselectAction":"field"');
@@ -200,11 +200,11 @@ describe("TodoPage queue reads", () => {
 
     renderTodo();
 
-    const decide = await screen.findByRole("region", { name: "Decide after visit" });
+    const decide = await screen.findByRole("region", { name: "Decide" });
     expect(within(decide).getByText("2")).toBeInTheDocument();
     // A lane count is never paired with a denominator it does not match.
     expect(within(decide).queryByText(/of 137/)).not.toBeInTheDocument();
-    expect(screen.getAllByText(/The Review new reports and Decide after visit queue loaded the first 4 of 137 matching cases/)).toHaveLength(1);
+    expect(screen.getAllByText(/The Review and Decide queue loaded the first 4 of 137 matching cases/)).toHaveLength(1);
   });
 
   it("shows the load error alone when one queue fails first, never a boundary notice about a list it did not render", async () => {
@@ -224,6 +224,6 @@ describe("TodoPage queue reads", () => {
 
     expect(await screen.findByText("This list could not be loaded. Please try again.", {}, { timeout: 5_000 })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText(/queue loaded the first/)).not.toBeInTheDocument());
-    expect(screen.queryByRole("heading", { name: "Decide after visit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Decide" })).not.toBeInTheDocument();
   });
 });

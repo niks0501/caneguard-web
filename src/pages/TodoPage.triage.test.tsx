@@ -52,7 +52,7 @@ describe("To do triage", () => {
   // Proves: rows show waiting time, one verb button per row, and Reassign only on overdue rows.
   it("shows waiting time on every row and Reassign only on overdue rows", () => {
     render(<MemoryRouter initialEntries={["/todo"]}><TodoPage /></MemoryRouter>);
-    const review = screen.getByRole("region", { name: "Review new reports" });
+    const review = screen.getByRole("region", { name: "Review" });
     expect(within(review).getByText("Waiting 15 days")).toBeInTheDocument();
     expect(within(review).queryByRole("link", { name: "Reassign" })).not.toBeInTheDocument();
     const overdue = screen.getByRole("region", { name: "Visit overdue" });

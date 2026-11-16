@@ -177,7 +177,7 @@ describe("SubmittedReportsPage", () => {
   it("opens an operational queue as a filtered report workspace", () => {
     renderPage("/reports?queue=needs_review");
 
-    expect(screen.getByRole("heading", { name: "Needs Review" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();
     expect(screen.getByText("Filtered operational workspace")).toBeInTheDocument();
   });
 
@@ -221,7 +221,7 @@ describe("SubmittedReportsPage", () => {
       "download",
       "caneguard-cases-mabini-2026-07-01_to_2026-07-27.csv",
     );
-    expect(screen.getByRole("heading", { name: "Recent submissions" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recent cases" })).toBeInTheDocument();
     createObjectUrl.mockRestore();
     revokeObjectUrl.mockRestore();
     clickLink.mockRestore();
@@ -291,7 +291,7 @@ describe("SubmittedReportsPage", () => {
     expect(within(primary).queryByLabelText("Field Inspector")).not.toBeInTheDocument();
 
     const chips = screen.getByRole("group", { name: /Applied:/ });
-    expect(within(chips).getByText("Queue: Needs Review")).toBeInTheDocument();
+    expect(within(chips).getByText("Queue: Review")).toBeInTheDocument();
     expect(within(chips).getByText("Barangay: Mabini")).toBeInTheDocument();
     expect(within(chips).getByText("Field Inspector: Field Officer")).toBeInTheDocument();
 
@@ -337,14 +337,14 @@ describe("SubmittedReportsPage", () => {
     expect(screen.getByTestId("location")).not.toHaveTextContent("status=");
   });
 
-  it("never presents a filtered view as All submitted reports", async () => {
+  it("never presents a filtered view as All cases", async () => {
     const { unmount } = renderPage("/reports");
     expect(screen.queryByRole("navigation", { name: "Report saved views" })).not.toBeInTheDocument();
     unmount();
 
     renderPage("/reports?queue=needs_review");
     const filtered = screen.getByRole("navigation", { name: "Report saved views" });
-    expect(within(filtered).getByRole("link", { name: "All submitted reports" })).not.toHaveAttribute("aria-current");
+    expect(within(filtered).getByRole("link", { name: "All cases" })).not.toHaveAttribute("aria-current");
     expect(within(filtered).getByText("Filtered view")).toHaveAttribute("aria-current", "page");
   });
 

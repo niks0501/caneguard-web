@@ -1205,7 +1205,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.click(within(modal).getByRole("button", { name: "Next" }));
@@ -1225,7 +1225,7 @@ describe("CaseReviewPage", () => {
     vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync }));
     renderPage();
 
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
     await user.selectOptions(
@@ -1931,7 +1931,7 @@ describe("CaseReviewPage", () => {
     expect(screen.queryByRole("radio", { name: /Refer to expert/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(within(decision).getAllByRole("button", { name: "Next" })).toHaveLength(1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -1954,7 +1954,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     expect(screen.getByText("Field visit assigned")).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Send someone" })).not.toBeChecked();
 
   });
 
@@ -1992,7 +1992,7 @@ describe("CaseReviewPage", () => {
     renderPage();
 
     // No office-decision step stands between the choice and its save.
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(
       screen.queryByRole("dialog", { name: "Record office decision" }),
@@ -2042,7 +2042,8 @@ describe("CaseReviewPage", () => {
     expect(screen.queryByText("Returned to report queue")).not.toBeInTheDocument();
     expect(refetch).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Review Next Case" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to Queue" })).toBeInTheDocument();
+    // The page back link and the save receipt both name where the reviewer came from.
+    expect(screen.getAllByRole("link", { name: "Back to Cases" })).toHaveLength(2);
 
   });
 });
