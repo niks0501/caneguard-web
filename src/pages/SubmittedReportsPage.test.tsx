@@ -339,8 +339,7 @@ describe("SubmittedReportsPage", () => {
 
   it("never presents a filtered view as All submitted reports", async () => {
     const { unmount } = renderPage("/reports");
-    const saved = screen.getByRole("navigation", { name: "Report saved views" });
-    expect(within(saved).getByRole("link", { name: "All submitted reports" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("navigation", { name: "Report saved views" })).not.toBeInTheDocument();
     unmount();
 
     renderPage("/reports?queue=needs_review");

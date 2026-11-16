@@ -434,21 +434,13 @@ export function SubmittedReportsPage({
             <span className="monitoring-saved-views__active" aria-current="page">Filtered view</span>
           ) : null}
         </nav>
-      ) : (
+      ) : urlState.hasActiveFilters ? (
         <nav className="monitoring-saved-views" aria-label="Report saved views">
           <span className="monitoring-saved-views__label">Saved views</span>
-          <Link
-            to={routes.reports}
-            className={urlState.hasActiveFilters ? undefined : "is-active"}
-            aria-current={urlState.hasActiveFilters ? undefined : "page"}
-          >
-            All submitted reports
-          </Link>
-          {urlState.hasActiveFilters ? (
-            <span className="monitoring-saved-views__active" aria-current="page">Filtered view</span>
-          ) : null}
+          <Link to={routes.reports}>All submitted reports</Link>
+          <span className="monitoring-saved-views__active" aria-current="page">Filtered view</span>
         </nav>
-      )}
+      ) : null}
 
       <WorkspaceFreshness
         updatedAt={reportsQuery.dataUpdatedAt}

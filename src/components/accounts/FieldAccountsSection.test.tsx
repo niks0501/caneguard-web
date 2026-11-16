@@ -32,6 +32,13 @@ describe("Field accounts", () => {
     vi.mocked(useAuth).mockReturnValue({ user: adminAccount, status: "authenticated", reason: null, restoreSession: vi.fn(), login: vi.fn(), logout: vi.fn() });
     vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [active], meta });
   });
+  it("gives the office reference a placeholder and hint", async () => {
+    renderSection();
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Disable Field Sample" }));
+    const field = within(await screen.findByRole("dialog")).getByLabelText("Office reference");
+    expect(field).toHaveAttribute("placeholder", "e.g. SRA-2026-114");
+    expect(field).toHaveAccessibleDescription(/Memo or ticket number/);
+  });
   it("disables an active field account with the loaded access version", async () => {
     vi.mocked(api.changeFieldAccess).mockResolvedValue({ data: disabled });
     renderSection();

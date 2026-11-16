@@ -87,7 +87,7 @@ describe("TodoPage", () => {
     const review = screen.getByRole("region", { name: "Review new reports" });
     expect(within(review).getByText("CG-fresh")).toBeInTheDocument();
     expect(within(review).getByText("Not visited")).toBeInTheDocument();
-    expect(within(review).getByText(/No field visit has been recorded/)).toBeInTheDocument();
+    expect(within(review).queryByText(/No field visit has been recorded/)).not.toBeInTheDocument();
     expect(within(review).getAllByRole("link", { name: "Review report" }).some((link) => link.getAttribute("href") === "/reports/fresh")).toBe(true);
     expect(within(review).getByText("CG-worsened")).toBeInTheDocument();
 
@@ -119,13 +119,13 @@ describe("TodoPage", () => {
     expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
   });
 
-  it("keeps the To do summary values informational rather than extra navigation", () => {
+  it("makes each To do summary tile jump to its lane", () => {
     render(<MemoryRouter initialEntries={["/todo"]}><TodoPage /></MemoryRouter>);
 
     const summary = screen.getByLabelText("To do summary");
-    expect(summary.querySelectorAll("a")).toHaveLength(0);
-    for (const name of ["Review new reports", "Send someone", "Visit overdue", "Decide after visit"]) {
-      expect(within(summary).getByText(name)).toBeInTheDocument();
+    const lanes = { "Review new reports": "review", "Send someone": "send", "Visit overdue": "overdue", "Decide after visit": "decide" };
+    for (const [name, lane] of Object.entries(lanes)) {
+      expect(within(summary).getByRole("link", { name: new RegExp(name) })).toHaveAttribute("href", `/todo#lane-${lane}`);
     }
   });
 
