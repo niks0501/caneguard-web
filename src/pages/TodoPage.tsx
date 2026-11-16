@@ -1,5 +1,7 @@
 import { AlarmClock, ClipboardCheck, ClipboardList, RefreshCw, UserPlus, type LucideIcon } from "lucide-react";
-import { useEffect } from "react";
+import { use, useEffect, useState } from "react";
+import { AuthContext } from "../auth/auth.context";
+import { isNewSinceLastLook, readTodoLastLook, saveTodoLastLook, waitingLabel } from "./todoLastLook";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { Link, useLocation } from "react-router";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
@@ -39,7 +41,10 @@ function countValue(read: QueueRead, value: number): number | string {
 
 interface TodoAction { label: string; to: string; state?: Record<string, unknown> }
 
-function TodoCard({ report, queueContext, action }: { report: DiseaseReport; queueContext: ReviewQueueContext; action: TodoAction }) {
+function TodoCard({ report, queueContext, action, isNew, reassignTo }: {
+  report: DiseaseReport; queueContext: ReviewQueueContext; action: TodoAction; isNew: boolean; reassignTo?: string;
+}) {
+  const waiting = waitingLabel(report.submittedAt);
   const outcome = report.latestValidation?.followUpOutcome;
   const visited = Boolean(report.latestValidation) || report.lifecycle?.fieldValidationState === "completed";
   // The chip already says "Not visited"; an unvisited row carries no second line.
@@ -49,6 +54,7 @@ function TodoCard({ report, queueContext, action }: { report: DiseaseReport; que
       <div className="needs-assessment-row__identity">
         <Link className="report-link" to={routes.reportDetail(report.uuid)} state={{ reviewQueue: queueContext }}>
           <strong>{report.referenceCode}</strong>
+          {isNew ? <span className="todo-new-dot" role="img" aria-label="New since your last visit" /> : null}
         </Link>
         <span>{report.farmReference ?? report.barangay}</span>
         <span className="table-secondary">{report.barangay}{report.municipality ? ` · ${report.municipality}` : ""}</span>
@@ -56,9 +62,11 @@ function TodoCard({ report, queueContext, action }: { report: DiseaseReport; que
       <div className="needs-assessment-row__outcome">
         <span className={`outcome-pill outcome-pill--${outcome ?? "missing"}`}>{visited ? outcomeLabel(outcome) : "Not visited"}</span>
         {report.latestValidation?.visitedAt ? <span className="table-secondary">Visited {formatDateTime(report.latestValidation.visitedAt)}</span> : null}
+        {waiting ? <span className="table-secondary todo-waiting">{waiting}</span> : null}
       </div>
       {summary ? <p>{summary}</p> : null}
       <div className="needs-assessment-row__actions">
+        {reassignTo ? <Link className="report-link" to={reassignTo} state={{ reviewQueue: queueContext }}>Reassign</Link> : null}
         <Link className="button button--primary button--small" to={action.to} state={{ reviewQueue: queueContext, ...action.state }}>{action.label}</Link>
       </div>
     </article>
@@ -86,7 +94,7 @@ function QueueBoundary({ title, loaded, total }: { title: string; loaded: number
   );
 }
 
-function TodoLaneSection({ lane }: { lane: TodoLaneData }) {
+function TodoLaneSection({ lane, lastLook }: { lane: TodoLaneData; lastLook: number | null }) {
   const location = useLocation();
   const Icon = lane.icon;
   const headingId = `todo-${lane.key}-heading`;
@@ -103,6 +111,8 @@ function TodoLaneSection({ lane }: { lane: TodoLaneData }) {
               key={report.uuid}
               report={report}
               action={lane.action(report)}
+              isNew={isNewSinceLastLook(report.submittedAt, lastLook)}
+              reassignTo={lane.key === "overdue" ? routes.fieldOperationsForReport(report.uuid) : undefined}
               queueContext={{
                 returnTo: `${location.pathname}${location.search}`, filters: {},
                 remainingIds: lane.reports.slice(lane.reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
@@ -172,6 +182,14 @@ export function TodoPage() {
     },
   ];
   const ready = !awaitingQuery.isPending && !visitQuery.isPending && !overdueQuery.isPending && !noActiveWorkQuery.isPending;
+  // The previous look is fixed for this visit, so dots stay put while the
+  // lists refresh; the new look is saved once the lists have been shown.
+  const viewerId = use(AuthContext)?.user?.uuid ?? "anonymous";
+  const [lastLook] = useState(() => readTodoLastLook(viewerId));
+  const shown = ready && Boolean(awaitingQuery.data && visitQuery.data && noActiveWorkQuery.data);
+  useEffect(() => {
+    if (shown) saveTodoLastLook(viewerId);
+  }, [shown, viewerId]);
   const { hash } = useLocation();
   useEffect(() => {
     if (!ready || !hash.startsWith("#lane-")) return;
@@ -271,7 +289,7 @@ export function TodoPage() {
           {noActiveWorkQuery.data.truncated ? <QueueBoundary title="Send someone" loaded={noActiveWorkQuery.data.reports.length} total={noActiveWorkQuery.data.total} /> : null}
           {overdueTruncation ? <QueueBoundary title="Visit overdue" {...overdueTruncation} /> : null}
           <div className="needs-assessment-queue">
-            {lanes.map((lane) => <TodoLaneSection key={lane.key} lane={lane} />)}
+            {lanes.map((lane) => <TodoLaneSection key={lane.key} lane={lane} lastLook={lastLook} />)}
           </div>
         </>
       ) : null}
