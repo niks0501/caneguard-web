@@ -140,17 +140,30 @@ class FieldAccessV1Test extends TestCase
         $this->pilotDistrict();
         $field = User::factory()->fieldReporter()->create(['registration_origin' => 'office_certified']);
         $this->actingAs(User::factory()->admin()->create(), 'web');
-        $key = (string) Str::uuid();
-        $version = $field->access_version;
-        $this->putJson('/api/v2/admin/accounts/'.$field->uuid.'/access', [
-            'contract_version' => 'accounts-access-v1', 'operation' => 'admit',
-            'desired' => ['role' => User::ROLE_FIELD_REPORTER, 'grants' => []], 'current_password' => 'password',
-            'office_reference' => 'synthetic', 'idempotency_key' => $key, 'expected_access_version' => $version,
-        ])->assertOk();
+        $receipts = [];
+        foreach (['admit' => true, 'revoke' => false, 'restore' => true] as $operation => $active) {
+            $key = (string) Str::uuid();
+            $version = $field->fresh()->access_version;
+            $response = $this->putJson('/api/v2/admin/accounts/'.$field->uuid.'/access', [
+                'contract_version' => 'accounts-access-v1', 'operation' => $operation,
+                'desired' => ['role' => User::ROLE_FIELD_REPORTER, 'grants' => []], 'current_password' => 'password',
+                'office_reference' => 'synthetic', 'idempotency_key' => $key, 'expected_access_version' => $version,
+            ])->assertOk()->assertJsonPath('data.is_active', $active)->json();
+            $stored = DB::table('account_access_receipts')->where('idempotency_key', $key)->value('response');
+            $legacy = json_decode($stored, true, flags: JSON_THROW_ON_ERROR);
+            unset($legacy['data']['is_active']);
+            DB::table('account_access_receipts')->where('idempotency_key', $key)
+                ->update(['response' => json_encode($legacy, JSON_THROW_ON_ERROR)]);
+            $receipts[] = [$operation, $key, $version, $active, $response['data']];
+        }
 
-        $this->access($field, 'admit', 'password', ['idempotency_key' => $key, 'expected_access_version' => $version])
-            ->assertOk()->assertJsonPath('data.role', 'field_reporter')->assertJsonPath('data.is_active', true);
-        $this->assertSame(1, DB::table('account_access_events')->where('target_id', $field->id)->count());
+        $field->fresh()->forceFill(['name' => 'Changed later', 'is_active' => false])->save();
+        foreach ($receipts as [$operation, $key, $version, $active, $account]) {
+            $replay = $this->access($field, $operation, 'password', ['idempotency_key' => $key, 'expected_access_version' => $version])
+                ->assertOk()->assertJsonPath('data.is_active', $active)->json();
+            $this->assertEquals($account, $replay['data']);
+        }
+        $this->assertSame(3, DB::table('account_access_events')->where('target_id', $field->id)->count());
     }
 
     private function access(User $target, string $operation, string $password = 'password', array $override = []): TestResponse
