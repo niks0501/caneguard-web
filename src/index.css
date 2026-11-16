@@ -8400,8 +8400,18 @@ button.monitoring-calendar__day-number:focus-visible {
 .needs-assessment-row__actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: end;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-3);
+}
+
+.todo-new-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-primary);
 }
 
 .outcome-pill {
