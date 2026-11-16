@@ -4,6 +4,10 @@ import { AuthContext } from "../auth/auth.context";
 import { isNewSinceLastLook, readTodoLastLook, saveTodoLastLook, waitingLabel } from "./todoLastLook";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { Link, useLocation } from "react-router";
+import type { MouseEvent } from "react";
+import { SendSomeoneDrawer } from "../components/fieldValidation/SendSomeoneDrawer";
+import { fieldWorkloadItemFromReport, mergeFieldWorkload } from "../domain/fieldOperations";
+import { manilaDateAt } from "../domain/reportingTime";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
@@ -39,11 +43,23 @@ function countValue(read: QueueRead, value: number): number | string {
   return "—";
 }
 
-interface TodoAction { label: string; to: string; state?: Record<string, unknown> }
+/** `drawer` rows open the assign drawer on a plain click; the link stays for new tabs. */
+interface TodoAction { label: string; to: string; state?: Record<string, unknown>; drawer?: boolean }
 
-function TodoCard({ report, queueContext, action, isNew, reassignTo }: {
+/** A plain left click opens the drawer; modified clicks keep the link's normal behaviour. */
+function openDrawerOnPlainClick(open: () => void) {
+  return (event: MouseEvent) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    open();
+  };
+}
+
+function TodoCard({ report, queueContext, action, isNew, reassignTo, onAssign }: {
   report: DiseaseReport; queueContext: ReviewQueueContext; action: TodoAction; isNew: boolean; reassignTo?: string;
+  onAssign: (report: DiseaseReport) => void;
 }) {
+  const openDrawer = openDrawerOnPlainClick(() => onAssign(report));
   const waiting = waitingLabel(report.submittedAt);
   const outcome = report.latestValidation?.followUpOutcome;
   const visited = Boolean(report.latestValidation) || report.lifecycle?.fieldValidationState === "completed";
@@ -66,8 +82,8 @@ function TodoCard({ report, queueContext, action, isNew, reassignTo }: {
       </div>
       {summary ? <p>{summary}</p> : null}
       <div className="needs-assessment-row__actions">
-        {reassignTo ? <Link className="report-link" to={reassignTo} state={{ reviewQueue: queueContext }}>Reassign</Link> : null}
-        <Link className="button button--primary button--small" to={action.to} state={{ reviewQueue: queueContext, ...action.state }}>{action.label}</Link>
+        {reassignTo ? <Link className="report-link" to={reassignTo} state={{ reviewQueue: queueContext }} onClick={openDrawer}>Reassign</Link> : null}
+        <Link className="button button--primary button--small" to={action.to} state={{ reviewQueue: queueContext, ...action.state }} onClick={action.drawer ? openDrawer : undefined}>{action.label}</Link>
       </div>
     </article>
   );
@@ -94,7 +110,7 @@ function QueueBoundary({ title, loaded, total }: { title: string; loaded: number
   );
 }
 
-function TodoLaneSection({ lane, lastLook }: { lane: TodoLaneData; lastLook: number | null }) {
+function TodoLaneSection({ lane, lastLook, onAssign }: { lane: TodoLaneData; lastLook: number | null; onAssign: (report: DiseaseReport) => void }) {
   const location = useLocation();
   const Icon = lane.icon;
   const headingId = `todo-${lane.key}-heading`;
@@ -113,6 +129,7 @@ function TodoLaneSection({ lane, lastLook }: { lane: TodoLaneData; lastLook: num
               action={lane.action(report)}
               isNew={isNewSinceLastLook(report.submittedAt, lastLook)}
               reassignTo={lane.key === "overdue" ? routes.fieldOperationsForReport(report.uuid) : undefined}
+              onAssign={onAssign}
               queueContext={{
                 returnTo: `${location.pathname}${location.search}`, filters: {},
                 remainingIds: lane.reports.slice(lane.reports.findIndex((entry) => entry.uuid === report.uuid) + 1).map((entry) => entry.uuid),
@@ -168,7 +185,7 @@ export function TodoPage() {
       empty: "No reports are waiting for someone to be sent.", truncated: Boolean(visitTruncation || noActiveWorkQuery.data?.truncated),
       action: (report) => noActiveWorkIds.has(report.uuid)
         ? { label: "Assign field validation", to: routes.reportDecision(report.uuid), state: { preselectAction: "field" } }
-        : { label: "Send someone", to: routes.fieldOperationsForReport(report.uuid) },
+        : { label: "Send someone", to: routes.fieldOperationsForReport(report.uuid), drawer: true },
     },
     {
       key: "overdue", title: "Visit overdue", icon: AlarmClock, reports: overdue,
@@ -190,6 +207,14 @@ export function TodoPage() {
   useEffect(() => {
     if (shown) saveTodoLastLook(viewerId);
   }, [shown, viewerId]);
+  // The drawer's counts reuse the visit and overdue reads already loaded here.
+  const [assigning, setAssigning] = useState<DiseaseReport | null>(null);
+  const [assignedNotice, setAssignedNotice] = useState<string | null>(null);
+  const officeDate = manilaDateAt();
+  const workload = mergeFieldWorkload(
+    (visitQuery.data?.reports ?? []).map(fieldWorkloadItemFromReport),
+    overdue.map(fieldWorkloadItemFromReport),
+  );
   const { hash } = useLocation();
   useEffect(() => {
     if (!ready || !hash.startsWith("#lane-")) return;
@@ -270,6 +295,21 @@ export function TodoPage() {
           </p>
         )
         : null}
+      {assignedNotice ? <p className="field-operations-editor__saved" role="status">{assignedNotice}</p> : null}
+      {assigning ? (
+        <SendSomeoneDrawer
+          key={assigning.uuid}
+          item={fieldWorkloadItemFromReport(assigning)}
+          workload={workload}
+          truncated={Boolean(visitTruncation || overdueTruncation)}
+          officeDate={officeDate}
+          onClose={() => setAssigning(null)}
+          onSaved={(name) => {
+            setAssignedNotice(`${assigning.referenceCode} is now with ${name}.`);
+            setAssigning(null);
+          }}
+        />
+      ) : null}
       {isLoading && !awaitingQuery.data ? <LoadingState message="Loading..." /> : null}
       {hasInitialError ? (
         <ErrorState
@@ -289,7 +329,7 @@ export function TodoPage() {
           {noActiveWorkQuery.data.truncated ? <QueueBoundary title="Send someone" loaded={noActiveWorkQuery.data.reports.length} total={noActiveWorkQuery.data.total} /> : null}
           {overdueTruncation ? <QueueBoundary title="Visit overdue" {...overdueTruncation} /> : null}
           <div className="needs-assessment-queue">
-            {lanes.map((lane) => <TodoLaneSection key={lane.key} lane={lane} lastLook={lastLook} />)}
+            {lanes.map((lane) => <TodoLaneSection key={lane.key} lane={lane} lastLook={lastLook} onAssign={(report) => { setAssignedNotice(null); setAssigning(report); }} />)}
           </div>
         </>
       ) : null}
