@@ -16,6 +16,7 @@ import { ZodError } from "zod";
 import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
+import { BeforeAfterPanels } from "../components/reports/BeforeAfterPanels";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
 import { AerialCheckCard } from "../components/reports/AerialCheckCard";
 import { AffectedFieldLinkage } from "../components/reports/AffectedFieldLinkage";
@@ -1058,32 +1059,7 @@ function CaseReviewContent() {
                         {report.fieldValidationAssignment.completion.actionTaken}
                       </DetailField>
                     </div>
-                    <dl className="detail-list reporter-observation-details">
-                      <DetailField label="Observation">
-                        <ClampedText text={report.fieldValidationAssignment.completion.fieldObservation} />
-                      </DetailField>
-                      <DetailField label="Finding">
-                        <ClampedText text={report.fieldValidationAssignment.completion.fieldFinding} />
-                      </DetailField>
-                      <DetailField label="Follow-up outcome">
-                        {report.fieldValidationAssignment.completion.followUpOutcome
-                          ? followUpOutcomeLabels[report.fieldValidationAssignment.completion.followUpOutcome]
-                          : "Not provided"}
-                      </DetailField>
-                      <DetailField label="Fresh validation photo">
-                        {report.fieldValidationAssignment.completion.freshPhoto?.available
-                        && report.fieldValidationAssignment.completion.freshPhoto.url ? (
-                          <a
-                            className="table-action"
-                            href={report.fieldValidationAssignment.completion.freshPhoto.url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open authorized photo
-                          </a>
-                        ) : "Not provided"}
-                      </DetailField>
-                    </dl>
+                    <BeforeAfterPanels report={report} completion={report.fieldValidationAssignment.completion} />
                   </section>
                 ) : null}
 
