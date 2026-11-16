@@ -939,6 +939,6 @@ describe("Confirmation before saving", () => {
     const receipt = await screen.findByText(`${base.referenceCode} — Review confirmed.`);
     expect(receipt.parentElement).toHaveTextContent(/Saved: Provide Advisory or Assistance\. The case is now/);
     expect(screen.getByRole("button", { name: "Review Next Case" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to Queue" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Cases" })).toBeInTheDocument();
   });
 });
