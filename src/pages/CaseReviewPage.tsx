@@ -999,15 +999,15 @@ function CaseReviewContent() {
         actions={<QueueStatusCell row={report} showIcon />}
       />
       <div className="review-case-meta">
-        {queueContext && nextCaseId ? <p className="review-case-meta__queue">
+        <p className="review-case-meta__queue">
           {queueLeft.length} more loaded
-          {" · "}<Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
+          {queueContext && nextCaseId ? <> · <Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
             returnTo: queueContext.returnTo, filters: queueContext.filters, remainingIds: queueLeft.slice(1),
             reviewedIds: queueContext.reviewedIds,
             ...(queueContext.snapshotOnly ? { snapshotOnly: true } : {}),
             ...(queueContext.snapshotTruncated ? { snapshotTruncated: true } : {}),
-          } }}>Next case</Link>
-        </p> : null}
+          } }}>Next case</Link></> : null}
+        </p>
         <p className="review-next-line"><strong>Next:</strong> {nextLine}</p>
       </div>
       {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}

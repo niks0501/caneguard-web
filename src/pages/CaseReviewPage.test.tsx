@@ -239,11 +239,19 @@ describe("CaseReviewPage", () => {
     expect(JSON.parse(screen.getByTestId("next-queue").textContent!).reviewQueue.reviewedIds).toEqual(["already-reviewed"]);
   });
 
-  it("does not claim an empty snapshot is an empty review queue", () => {
+  it.each([false, true])("does not claim an empty snapshot is an empty review queue (truncated: %s)", (snapshotTruncated) => {
     render(<MemoryRouter initialEntries={[{ pathname: `/reports/${report.uuid}`, state: { reviewQueue: {
-      returnTo: "/reports", filters: {}, remainingIds: [], reviewedIds: [],
+      returnTo: "/reports", filters: {}, remainingIds: [], reviewedIds: [], snapshotTruncated,
     } } }]}><Routes><Route path="/reports/:reportId" element={<CaseReviewPage />} /></Routes></MemoryRouter>);
-    expect(screen.queryByText(/left in Review|more loaded/)).not.toBeInTheDocument();
+    expect(screen.getByText("0 more loaded")).toBeInTheDocument();
+    expect(screen.queryByText(/left in Review/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Next case" })).not.toBeInTheDocument();
+  });
+
+  it("shows zero loaded cases without queue context", () => {
+    renderPage();
+    expect(screen.getByText("0 more loaded")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Next case" })).not.toBeInTheDocument();
   });
 
   it.each([
@@ -260,8 +268,7 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText(/^Next:/)).toHaveTextContent(guidance);
   });
 
-  // Proposal (L2): proves the header shows the queue position and a Next line, and folds empty fields into one line.
-  it("shows queue position, a Next line, and one line for fields that were not provided", () => {
+  it("shows the remaining loaded count, Next line, and missing fields", () => {
     vi.mocked(useReport).mockReturnValue(queryResult({ data: { ...report, cropAge: undefined, sugarcaneVariety: undefined, caneClass: undefined } }));
     render(
       <MemoryRouter initialEntries={[{ pathname: `/reports/${report.uuid}`, state: { reviewQueue: {
