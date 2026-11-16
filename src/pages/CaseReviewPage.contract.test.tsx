@@ -240,7 +240,7 @@ describe("Report Evidence Review protected contract", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.selectOptions(screen.getByLabelText(/Verification Outcome/i), "verified");
     await user.click(screen.getByRole("button", { name: "Back" }));
-    await clickChoice(user, /Needs Field Validation/i);
+    await clickChoice(user, /Send someone/i);
     await user.click(screen.getByRole("button", { name: "Next" }));
 
     expect(await screen.findByText(/The case stays open until the visit is done/i)).toBeInTheDocument();
@@ -251,7 +251,7 @@ describe("Report Evidence Review protected contract", () => {
     await loadCase();
 
     const actions = screen.getByRole("group", { name: /What should happen next/i });
-    expect(within(actions).getByText("Needs Field Validation")).toBeInTheDocument();
+    expect(within(actions).getByText("Send someone")).toBeInTheDocument();
     expect(within(actions).getByText("Provide Advisory or Assistance")).toBeInTheDocument();
     expect(within(actions).getByText("No Further Action")).toBeInTheDocument();
     expect(within(actions).queryByText(/Refer to Expert/i)).not.toBeInTheDocument();
@@ -346,7 +346,7 @@ describe("Report Evidence Review protected contract", () => {
     const user = userEvent.setup();
     await loadCase();
 
-    await clickChoice(user, "Needs Field Validation");
+    await clickChoice(user, "Send someone");
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.queryByRole("dialog", { name: /Assign visit/i })).not.toBeInTheDocument();
 
@@ -396,6 +396,7 @@ describe("Report Evidence Review protected contract", () => {
       name: reportDetailDto.identity.reference_code,
     })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Review Next Case" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to Queue" })).toBeInTheDocument();
+    // The page back link and the save receipt both name where the reviewer came from.
+    expect(screen.getAllByRole("link", { name: "Back to Cases" })).toHaveLength(2);
   });
 });

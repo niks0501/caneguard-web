@@ -81,14 +81,14 @@ describe("TodoPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "To do" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent?.trim())).toEqual([
-      "Review new reports", "Send someone", "Visit overdue", "Decide after visit",
+      "Review", "Send someone", "Visit overdue", "Decide",
     ]);
 
-    const review = screen.getByRole("region", { name: "Review new reports" });
+    const review = screen.getByRole("region", { name: "Review" });
     expect(within(review).getByText("CG-fresh")).toBeInTheDocument();
     expect(within(review).getByText("Not visited")).toBeInTheDocument();
     expect(within(review).queryByText(/No field visit has been recorded/)).not.toBeInTheDocument();
-    expect(within(review).getAllByRole("link", { name: "Review report" }).some((link) => link.getAttribute("href") === "/reports/fresh")).toBe(true);
+    expect(within(review).getAllByRole("link", { name: "Review" }).some((link) => link.getAttribute("href") === "/reports/fresh")).toBe(true);
     expect(within(review).getByText("CG-worsened")).toBeInTheDocument();
 
     const send = screen.getByRole("region", { name: "Send someone" });
@@ -103,11 +103,11 @@ describe("TodoPage", () => {
       "/monitoring?view=field-operations&report=overdue",
     );
 
-    const decide = screen.getByRole("region", { name: "Decide after visit" });
+    const decide = screen.getByRole("region", { name: "Decide" });
     expect(within(decide).getByText("CG-worsened")).toBeInTheDocument();
     expect(within(decide).getByText("CG-unable")).toBeInTheDocument();
     expect(within(decide).queryByText("CG-fresh")).not.toBeInTheDocument();
-    expect(within(decide).getAllByRole("link", { name: "Record decision" })[0]).toHaveAttribute("href", "/reports/worsened#review-decision");
+    expect(within(decide).getAllByRole("link", { name: "Decide" })[0]).toHaveAttribute("href", "/reports/worsened#review-decision");
     expect(screen.getAllByText("Worsened").length).toBeGreaterThan(0);
 
     for (const lane of [review, send, overdue, decide]) {
@@ -123,7 +123,7 @@ describe("TodoPage", () => {
     render(<MemoryRouter initialEntries={["/todo"]}><TodoPage /></MemoryRouter>);
 
     const summary = screen.getByLabelText("To do summary");
-    const lanes = { "Review new reports": "review", "Send someone": "send", "Visit overdue": "overdue", "Decide after visit": "decide" };
+    const lanes = { "Review": "review", "Send someone": "send", "Visit overdue": "overdue", "Decide": "decide" };
     for (const [name, lane] of Object.entries(lanes)) {
       expect(within(summary).getByRole("link", { name: new RegExp(name) })).toHaveAttribute("href", `/todo#lane-${lane}`);
     }
@@ -155,12 +155,12 @@ describe("TodoPage", () => {
 
     render(<MemoryRouter initialEntries={["/todo"]}><TodoPage /></MemoryRouter>);
 
-    const decide = screen.getByRole("region", { name: "Decide after visit" });
+    const decide = screen.getByRole("region", { name: "Decide" });
     expect(within(decide).getByText("1", { selector: ".needs-assessment-count" })).toBeInTheDocument();
     expect(within(decide).queryByText(/1 of 137/)).not.toBeInTheDocument();
     // The boundary is stated once for the queue, not once per lane it feeds.
-    expect(screen.getAllByText(/The Review new reports and Decide after visit queue loaded the first 2 of 137 matching cases/)).toHaveLength(1);
-    const review = screen.getByRole("region", { name: "Review new reports" });
+    expect(screen.getAllByText(/The Review and Decide queue loaded the first 2 of 137 matching cases/)).toHaveLength(1);
+    const review = screen.getByRole("region", { name: "Review" });
     expect(within(review).getByText("2", { selector: ".needs-assessment-count" })).toBeInTheDocument();
     expect(within(review).queryByText(/2 of 137/)).not.toBeInTheDocument();
   });

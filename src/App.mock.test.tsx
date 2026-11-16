@@ -47,7 +47,7 @@ describe("mock data mode", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Recent submissions" }),
+      await screen.findByRole("heading", { name: "Recent cases" }),
     ).toBeInTheDocument();
     await user.click(
       await screen.findByRole("link", { name: "Open CG-2026-0718" }),
@@ -74,6 +74,7 @@ describe("mock data mode", () => {
     expect(await screen.findByText("CG-2026-0718 — Review confirmed.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "CG-2026-0718" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review Next Case" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to Queue" })).toBeInTheDocument();
+    // The page back link and the save receipt both name where the reviewer came from.
+    expect(screen.getAllByRole("link", { name: "Back to Cases" })).toHaveLength(2);
   });
 });

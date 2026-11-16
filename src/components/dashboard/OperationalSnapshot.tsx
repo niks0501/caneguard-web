@@ -105,7 +105,7 @@ export function OperationalSnapshot({
           }
           icon={<Rows3 aria-hidden="true" strokeWidth={1.75} />}
           href={routes.todoLane("review")}
-          linkLabel="Open submitted reports on the To do page"
+          linkLabel="Open submitted cases on the To do page"
         >
           {analytics ? (
             <>
@@ -120,13 +120,13 @@ export function OperationalSnapshot({
       </div>
       <div className="col-3">
         <KpiCard
-          label="Reports awaiting review"
+          label="Review"
           value={analytics ? String(analytics.reviewBacklog.totalWaiting) : "—"}
           unavailable={!analytics}
           support={waitingAgeSupportLine(analytics?.reviewBacklog)}
           icon={<ShieldCheck aria-hidden="true" strokeWidth={1.75} />}
           href={routes.todoLane("review")}
-          linkLabel="Open Review new reports on the To do page"
+          linkLabel="Open Review on the To do page"
         >
           {waitingAge ? (
             <RadialMeter label="Waiting age" segments={waitingAge} />
@@ -138,7 +138,7 @@ export function OperationalSnapshot({
       </div>
       <div className="col-3">
         <KpiCard
-          label="Reports needing field validation"
+          label="Send someone"
           value={String(summary.queues.needs_visit)}
           support={pastTargetDateSupportLine(summary.queues.follow_up_due)}
           icon={<ClipboardCheck aria-hidden="true" strokeWidth={1.75} />}

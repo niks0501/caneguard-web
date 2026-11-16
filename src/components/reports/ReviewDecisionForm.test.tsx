@@ -66,12 +66,12 @@ describe("Progressive review resilience", () => {
   });
 
   // Proposal (UX-02): proves a "Send someone" entry opens the decision with Send-someone preselected, and a plain entry does not.
-  it("preselects Needs Field Validation only when the entry asks for it", () => {
+  it("preselects Send someone only when the entry asks for it", () => {
     const { unmount } = render(<MemoryRouter initialEntries={[{ pathname: "/reports/x", state: { preselectAction: "field" } }]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
-    expect(screen.getByRole("radio", { name: "Needs Field Validation" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Send someone" })).toBeChecked();
     unmount();
     renderForm();
-    expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Send someone" })).not.toBeChecked();
   });
 
   it("scrolls to the decision form for its fragment without preselecting an action", () => {
@@ -80,7 +80,7 @@ describe("Progressive review resilience", () => {
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
     const view = render(<MemoryRouter initialEntries={[`/reports/${base.uuid}#review-decision`]}><ReviewDecisionForm report={base} onRefresh={vi.fn()} /></MemoryRouter>);
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
-    expect(screen.getByRole("radio", { name: "Needs Field Validation" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Send someone" })).not.toBeChecked();
     view.unmount();
     if (original) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", original);
     else delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
@@ -547,7 +547,7 @@ describe("Progressive review resilience", () => {
       },
     };
     const { rerender } = renderForm();
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
     rerender(<MemoryRouter><ReviewDecisionForm report={assigned} onRefresh={vi.fn()} /></MemoryRouter>);
@@ -581,7 +581,7 @@ describe("Progressive review resilience", () => {
     const onRefresh = vi.fn().mockResolvedValue({ data: assigned });
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     const { rerender } = renderForm(base, onRefresh);
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
     fireEvent.change(screen.getByLabelText("Target visit date (optional)"), { target: { value: "2026-11-20" } });
@@ -655,7 +655,7 @@ describe("Progressive review resilience", () => {
     const onRefresh = vi.fn().mockResolvedValue({ data: latest });
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     renderForm(base, onRefresh);
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
     await user.click(screen.getByRole("button", { name: "Next" }));
@@ -701,7 +701,7 @@ describe("Progressive review resilience", () => {
     save.mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }))
       .mockRejectedValueOnce(new ApiError("Conflict", { status: 409 }));
     renderForm(base, onRefresh);
-    await user.click(screen.getByRole("radio", { name: "Needs Field Validation" }));
+    await user.click(screen.getByRole("radio", { name: "Send someone" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.selectOptions(screen.getByLabelText("Field Inspector assignee"), "inspector-1");
     await user.click(screen.getByRole("button", { name: "Next" }));
@@ -766,7 +766,7 @@ describe("Progressive review resilience", () => {
     await technical(user);
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
-    expect(await screen.findByRole("link", { name: "Return to Queue" })).toHaveAttribute("href", queue);
+    expect(await screen.findByRole("link", { name: "Back to Cases" })).toHaveAttribute("href", queue);
     await user.click(screen.getByRole("button", { name: "Review Next Case" }));
     expect(await screen.findByText("Next case")).toBeInTheDocument();
     expect(screen.getByTestId("queue-context")).toHaveTextContent('"queue":"needs_review"');
@@ -784,7 +784,7 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     await user.click(await screen.findByRole("button", { name: "Review Next Case" }));
     expect(await screen.findByText("No more cases in this queue.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to Queue" })).toHaveAttribute("href", "/todo");
+    expect(screen.getByRole("link", { name: "Back to To do" })).toHaveAttribute("href", "/todo");
     expect(reportsRepository.listReports).not.toHaveBeenCalled();
   });
 
@@ -939,6 +939,6 @@ describe("Confirmation before saving", () => {
     const receipt = await screen.findByText(`${base.referenceCode} — Review confirmed.`);
     expect(receipt.parentElement).toHaveTextContent(/Saved: Provide Advisory or Assistance\. The case is now/);
     expect(screen.getByRole("button", { name: "Review Next Case" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to Queue" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Cases" })).toBeInTheDocument();
   });
 });

@@ -131,7 +131,7 @@ describe("authenticated routing", () => {
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Recent submissions" }),
+      await screen.findByRole("heading", { name: "Recent cases" }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/reports");
     expect(window.location.search).toBe("?status=submitted_unverified");

@@ -122,9 +122,9 @@ describe("QF-6 reports filters", () => {
       within(tabs).getAllByRole("tab").map((tab) => tab.textContent),
     ).toEqual([
       "All",
-      "Needs review",
-      "Needs visit",
-      "Follow-up due",
+      "Review",
+      "Send someone",
+      "Visit overdue",
       "Upcoming",
       "Unverified",
     ]);
@@ -143,7 +143,7 @@ describe("QF-6 reports filters", () => {
     const user = userEvent.setup();
     renderPage("/reports?queue=needs_review");
 
-    expect(screen.getByRole("tab", { name: "Needs review" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: "Review" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -152,7 +152,7 @@ describe("QF-6 reports filters", () => {
       "false",
     );
 
-    await user.click(screen.getByRole("tab", { name: "Needs visit" }));
+    await user.click(screen.getByRole("tab", { name: "Send someone" }));
     expect(screen.getByTestId("location")).toHaveTextContent("queue=needs_visit");
 
     await user.click(screen.getByRole("tab", { name: "All" }));
@@ -166,7 +166,7 @@ describe("QF-6 reports filters", () => {
     const all = screen.getByRole("tab", { name: "All" });
     all.focus();
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: "Needs review" })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: "Review" })).toHaveFocus();
     expect(screen.getByTestId("location")).toHaveTextContent(
       "queue=needs_review",
     );

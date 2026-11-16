@@ -22,7 +22,7 @@ import { AerialCheckCard } from "../components/reports/AerialCheckCard";
 import { AffectedFieldLinkage } from "../components/reports/AffectedFieldLinkage";
 import { CollapsedTool, EvidenceTabs, type EvidenceTab } from "../components/reports/EvidenceTabs";
 import { ReviewDecisionForm } from "../components/reports/ReviewDecisionForm";
-import { reviewQueueContext } from "../components/reports/reviewQueueContext";
+import { returnLinkLabel, reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
 import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
 import { ReportPicker } from "../components/reports/ReportPicker";
@@ -993,7 +993,7 @@ function CaseReviewContent() {
 
   return (
     <PageContent>
-      <Link className="back-link" to={queueContext?.returnTo ?? routes.reports}><ArrowLeft aria-hidden="true" />Back to submitted reports</Link>
+      <Link className="back-link" to={queueContext?.returnTo ?? routes.reports}><ArrowLeft aria-hidden="true" />{returnLinkLabel(queueContext?.returnTo ?? routes.reports)}</Link>
       <PageHeader
         title={report.referenceCode}
         description={humanLocationFor(report)}
