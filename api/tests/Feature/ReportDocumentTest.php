@@ -217,14 +217,46 @@ class ReportDocumentTest extends TestCase
         $this->assertStringStartsWith('%PDF-', $formatResponse->getContent());
     }
 
+    public function test_pdf_text_decoding_keeps_a_compressed_stream_ending_in_a_carriage_return_byte(): void
+    {
+        $text = 'OPERATIONAL SUMMARY';
+        $payload = null;
+        for ($padding = 0; $padding < 4096 && $payload === null; $padding++) {
+            $candidate = gzcompress($text.str_repeat('x', $padding));
+            if (str_ends_with($candidate, "\r")) {
+                $payload = ['plain' => $text.str_repeat('x', $padding), 'compressed' => $candidate];
+            }
+        }
+        $this->assertNotNull($payload, 'No compressed fixture ended in a carriage return byte.');
+
+        $pdf = "%PDF-1.7\n1 0 obj\n<< /Length ".strlen($payload['compressed'])." >>\nstream\n"
+            .$payload['compressed']."\nendstream\nendobj\n";
+
+        $this->assertSame($payload['plain'], $this->decodePdfTextStreams($pdf));
+    }
+
     private function decodePdfTextStreams(string $pdf): string
     {
         preg_match_all('/stream\\r?\\n(.*?)\\r?\\nendstream/s', $pdf, $matches);
 
         return implode("\n", array_map(
-            static fn (string $stream): string => @gzuncompress($stream) ?: $stream,
+            [$this, 'decompressPdfStream'],
             $matches[1],
         ));
+    }
+
+    /**
+     * The end-of-line before `endstream` is indistinguishable from a trailing
+     * 0x0D byte of the compressed stream, so the capture above can drop it.
+     */
+    private function decompressPdfStream(string $stream): string
+    {
+        $decoded = @gzuncompress($stream);
+        if ($decoded === false) {
+            $decoded = @gzuncompress($stream."\r");
+        }
+
+        return $decoded === false ? $stream : $decoded;
     }
 
     public function test_other_html_routes_still_deny_framing(): void
