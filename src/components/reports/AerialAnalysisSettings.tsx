@@ -4,13 +4,12 @@ import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
 import type { DiseaseReport } from "../../domain/report.types";
-import { reportKeys } from "../../hooks/reportQueries";
+import { aerialCheckLive, aerialSettingsKey, isCaseDetailQuery, reportKeys } from "../../hooks/reportQueries";
 import { Button } from "../ui/Button";
 
 const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.boolean() }) });
 type AerialSettings = z.infer<typeof schema>["data"];
 const url = "/api/v1/admin/aerial-analysis";
-const settingsKey = ["aerial-analysis-settings"];
 
 /**
  * The check is live only when the server has it installed and an Admin has it
@@ -18,21 +17,22 @@ const settingsKey = ["aerial-analysis-settings"];
  * are cancelled first so they cannot restore them.
  */
 async function reconcileAerialCache(queryClient: QueryClient, settings: AerialSettings) {
-  if (!(settings.installed && settings.enabled)) {
-    await queryClient.cancelQueries({ queryKey: reportKeys.details() });
+  const caseDetails = { queryKey: reportKeys.details(), predicate: isCaseDetailQuery };
+  if (!aerialCheckLive(settings)) {
+    await queryClient.cancelQueries(caseDetails);
     queryClient.setQueriesData<DiseaseReport>(
-      { queryKey: reportKeys.details(), predicate: (cached) => cached.queryKey.length === reportKeys.detail("").length },
+      caseDetails,
       (current) => current && { ...current, aerialAnalyses: undefined },
     );
     queryClient.removeQueries({ queryKey: ["aerial-mask"] });
   }
-  void queryClient.invalidateQueries({ queryKey: reportKeys.details() });
+  void queryClient.invalidateQueries(caseDetails);
 }
 
 export function AerialAnalysisSettings() {
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: settingsKey, retry: false, enabled: env.dataSource === "api",
+    queryKey: aerialSettingsKey, retry: false, enabled: env.dataSource === "api",
     queryFn: async ({ signal }) => {
       const settings = schema.parse((await axiosClient.get(url, { signal })).data).data;
       await reconcileAerialCache(queryClient, settings);
@@ -48,8 +48,8 @@ export function AerialAnalysisSettings() {
     },
     onSuccess: async (response) => {
       const next = schema.parse(response.data).data;
-      await queryClient.cancelQueries({ queryKey: settingsKey });
-      queryClient.setQueryData(settingsKey, next);
+      await queryClient.cancelQueries({ queryKey: aerialSettingsKey });
+      queryClient.setQueryData(aerialSettingsKey, next);
       await reconcileAerialCache(queryClient, next);
     },
   });

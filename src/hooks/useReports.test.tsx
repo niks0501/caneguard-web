@@ -9,7 +9,7 @@ import { reportsRepository } from "../services/reports.service";
 import { reportDetailDto } from "../test/fixtures";
 import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
-import { reportKeys } from "./reportQueries";
+import { aerialSettingsKey, reportKeys } from "./reportQueries";
 import { useAddAerialAnalysis, useRecordHandoffNote, useUpdateReportReview } from "./useReports";
 
 vi.mock("../services/reports.service", () => ({
@@ -101,27 +101,60 @@ describe("report mutations", () => {
     });
   });
 
-  // Intent: a review save never drops the already-loaded aerial checks from the case.
-  it("keeps cached aerial analyses when a review response omits them", async () => {
-    const queryClient = createQueryClient();
-    const report = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
-    const aerial = [{ uuid: "a1" }] as never;
-    queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: aerial });
-    vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: undefined });
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-    const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+  describe("aerial analyses in save responses", () => {
+    const reviewInput = {
+      status: "verified_by_staff" as const,
+      notes: "Reviewed.",
+      authorityClassifiedCondition: null,
+    };
+    const setup = () => {
+      const queryClient = createQueryClient();
+      const report = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+      return { queryClient, report, wrapper };
+    };
 
-    await act(async () => {
-      await result.current.mutateAsync({
-        status: "verified_by_staff",
-        notes: "Reviewed.",
-        authorityClassifiedCondition: null,
-        expectedVersion: report.reviewVersion!,
+    it("keeps the aerial analyses a review response returns while the check is on", async () => {
+      const { queryClient, report, wrapper } = setup();
+      const returned = [{ uuid: "a2" }] as never;
+      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: true });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: returned });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
       });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(returned);
     });
 
-    expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(aerial);
+    it("clears cached aerial analyses when a review response omits them", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: [{ uuid: "a1" }] as never });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: undefined });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
+    });
+
+    it("discards aerial analyses from a save that was sent before an observed Off", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: false });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: [{ uuid: "a3" }] as never });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
+      expect(queryClient.getQueryState(reportKeys.detail(report.uuid))?.isInvalidated).toBe(true);
+    });
   });
 });

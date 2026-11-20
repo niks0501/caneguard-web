@@ -1,4 +1,4 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions, type Query } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import { reportsRepository } from "../services/reports.service";
 import { getOperationalQueryRefreshOptions } from "./queryRefresh";
@@ -17,6 +17,18 @@ export const reportKeys = {
   summary: (month?: string) =>
     [...reportKeys.all, "summary", month ?? "current"] as const,
 };
+
+export const aerialSettingsKey = ["aerial-analysis-settings"] as const;
+
+export interface AerialGateState {
+  installed: boolean;
+  enabled: boolean;
+}
+
+export const aerialCheckLive = (gate: AerialGateState) => gate.installed && gate.enabled;
+
+export const isCaseDetailQuery = (query: Query) =>
+  query.queryKey.length === reportKeys.detail("").length;
 
 export const monthlySummaryQueryOptions = (month?: string) =>
   queryOptions({
