@@ -78,7 +78,7 @@ final class MailDelivery
             $issuedHash = DB::table($table)->where('email', $user->email)->value('token');
 
             return Password::RESET_LINK_SENT;
-        }) ?? Password::INVALID_USER;
+        });
         if ($status !== Password::RESET_LINK_SENT) {
             return $status;
         }

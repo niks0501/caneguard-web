@@ -3,50 +3,35 @@
 namespace App\Support;
 
 use Closure;
-use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Stops reset-link and set-password issuance while a rollback revokes links and switches releases. Every issuance
- * runs its transaction while holding the barrier lock, so engage() returns only after in-flight issuance commits,
- * and any issuance admitted afterwards sees the flag and refuses. The flag lives in the shared cache store, so the
- * web, queue and operator processes all see it.
+ * Pauses reset-link and set-password issuance while an operator-driven rollback is in progress. The operator engages
+ * it after stopping writers and confirming the drain; issuance then refuses with RollbackInProgress instead of
+ * writing. The flag lives in the shared cache store, so web and operator processes read the same value.
  */
 final class RollbackBarrier
 {
     public const FLAG = 'auth:rollback-barrier';
 
-    private const LOCK = 'auth:rollback-barrier:issuance';
-
-    private const LOCK_SECONDS = 60;
-
     public static function engage(): void
     {
-        Cache::lock(self::LOCK, self::LOCK_SECONDS)->block(self::LOCK_SECONDS, fn () => Cache::forever(self::FLAG, true));
+        Cache::forever(self::FLAG, true);
     }
 
     public static function release(): void
     {
-        Cache::lock(self::LOCK, self::LOCK_SECONDS)->block(self::LOCK_SECONDS, fn () => Cache::forget(self::FLAG));
+        Cache::forget(self::FLAG);
     }
 
-    /**
-     * Runs $write in a database transaction while holding the barrier. Returns null, without running $write, when the
-     * barrier is engaged or the lock is busy; callers treat null as a refusal rather than waiting for a rollback.
-     */
+    /** Runs $write in a database transaction after checking the flag, so a refused issuance writes nothing. */
     public static function issue(Closure $write): mixed
     {
-        try {
-            return Cache::lock(self::LOCK, self::LOCK_SECONDS)->block(30, function () use ($write): mixed {
-                if (Cache::get(self::FLAG) === true) {
-                    return null;
-                }
-
-                return DB::transaction($write);
-            });
-        } catch (LockTimeoutException) {
-            return null;
+        if (Cache::get(self::FLAG) === true) {
+            throw new RollbackInProgress('Reset links and invites are paused during a rollback; retry after the rollback finishes.');
         }
+
+        return DB::transaction($write);
     }
 }

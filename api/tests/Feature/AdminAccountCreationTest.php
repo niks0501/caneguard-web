@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Security\AccountsDirectory;
 use App\Support\MailDelivery;
 use App\Support\RollbackBarrier;
+use App\Support\RollbackInProgress;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Events\NotificationSending;
@@ -458,7 +459,7 @@ class AdminAccountCreationTest extends TestCase
         ];
         $root = $this->isolatedApplication($env);
         $artisan = $root.'/artisan';
-        $boot = fn (array $environment) => Process::env(array_merge(['DB_URL' => '', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database], $environment));
+        $boot = fn (array $environment) => Process::env(array_merge(['DB_URL' => '', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database, 'APP_CONFIG_CACHE' => $absent], $environment));
         $operatorLinks = fn (): int => (int) (new \PDO('sqlite:'.$database))
             ->query("SELECT COUNT(*) FROM security_audits WHERE action = 'operator_link_issued'")->fetchColumn();
 
@@ -541,11 +542,12 @@ class AdminAccountCreationTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_first_deploy_backfill_marks_only_verified_or_password_set_accounts(): void
+    public function test_first_deploy_marks_only_positive_evidence_and_never_verification_alone(): void
     {
         $authorityOnly = User::factory()->reviewer()->unverified()->create(['email' => 'first-authority@example.test']);
         $authorityOnly->forceFill(['auth_version' => 2])->save();
         $verified = User::factory()->reviewer()->create(['email' => 'first-verified@example.test']);
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'first-verified@example.test']);
         $passwordSet = User::factory()->reviewer()->unverified()->create(['email' => 'first-password@example.test']);
         $failedReset = User::factory()->reviewer()->unverified()->create(['email' => 'first-failed@example.test']);
         $record = app(RecordSecurityAudit::class);
@@ -556,9 +558,13 @@ class AdminAccountCreationTest extends TestCase
 
         Schema::table('users', fn ($table) => $table->dropColumn('onboarded_at'));
         (require database_path('migrations/2026_11_20_000000_add_onboarded_at_to_users_table.php'))->up();
+        $this->assertNull($verified->refresh()->onboarded_at);
+        $this->artisan('auth:set-password-link')->assertSuccessful();
+
+        $this->artisan('auth:backfill-onboarding')->assertSuccessful();
 
         $this->assertNull($authorityOnly->refresh()->onboarded_at);
-        $this->assertNotNull($verified->refresh()->onboarded_at);
+        $this->assertNull($verified->refresh()->onboarded_at);
         $this->assertNotNull($passwordSet->refresh()->onboarded_at);
         $this->assertNull($failedReset->refresh()->onboarded_at);
         $this->assertNull($emailChanged->refresh()->onboarded_at);
@@ -650,7 +656,13 @@ class AdminAccountCreationTest extends TestCase
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'barrier@example.test']);
 
         $this->artisan('auth:rollback-barrier on')->assertSuccessful();
-        $this->assertNotSame(Password::RESET_LINK_SENT, MailDelivery::sendInvite($user));
+        $refused = false;
+        try {
+            MailDelivery::sendInvite($user);
+        } catch (RollbackInProgress) {
+            $refused = true;
+        }
+        $this->assertTrue($refused);
         $this->artisan('auth:set-password-link')->assertFailed();
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => 'barrier@example.test']);
         $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued']);
@@ -797,6 +809,7 @@ class AdminAccountCreationTest extends TestCase
         try {
             $this->assertSame("listening\n", fgets($pipes[1]));
             config([
+                'mail.mailers.smtp.scheme' => 'smtp',
                 'mail.mailers.smtp.host' => '127.0.0.1',
                 'mail.mailers.smtp.port' => $port,
                 'mail.mailers.smtp.require_tls' => true,
