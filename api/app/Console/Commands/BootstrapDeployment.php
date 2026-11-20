@@ -122,7 +122,7 @@ final class BootstrapDeployment extends Command
         $this->supersedePendingAdmins($audit, $email, $retired);
 
         if (! $this->deliverable((string) config('mail.default'))) {
-            $this->error('Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine. Configure SMTP and deploy again.');
+            $this->error('Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine with MAIL_REQUIRE_TLS=false. Configure SMTP and deploy again.');
 
             return self::FAILURE;
         }
