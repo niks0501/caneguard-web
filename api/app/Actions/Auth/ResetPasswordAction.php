@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Password;
 final class ResetPasswordAction
 {
     /**
-     * Validate and consume a reset token while holding its row lock.
+     * Validate and consume a reset token, holding the account row lock before the token row lock.
      *
      * @param  array<string, mixed>  $credentials
      */

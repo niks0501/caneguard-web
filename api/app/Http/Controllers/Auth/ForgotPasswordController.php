@@ -20,7 +20,7 @@ class ForgotPasswordController extends Controller
         }
 
         return response()->json([
-            'message' => 'If an account matches, a password recovery link will be sent.',
+            'message' => 'If an account matches, a password recovery link is sent when mail is available. If none arrives, ask an administrator to issue a set-password link.',
             'code' => 'PASSWORD_RESET_LINK_SENT',
         ], 202);
     }

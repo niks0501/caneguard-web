@@ -21,7 +21,7 @@ describe("Add account success copy", () => {
     await user.type(within(dialog).getByLabelText("Your current password"), "synthetic-password");
     await user.click(within(dialog).getByRole("button", { name: "Create account" }));
     const notice = String(onCreated.mock.calls[0][0]);
-    expect(notice).toContain("1. They open the set-password email. 2. They sign in on the phone. They are added to the pilot district automatically.");
+    expect(notice).toContain("1. They set a password from their set-password link. 2. They sign in on the phone. They are added to the pilot district automatically.");
     expect(notice).not.toContain("Tell them to sign in through the mobile app");
   });
 });

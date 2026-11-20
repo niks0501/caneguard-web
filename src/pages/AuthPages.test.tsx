@@ -75,7 +75,7 @@ describe("public authentication pages", () => {
     expect(await screen.findByText("Check your email.")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "If an account matches, a password recovery link will be sent. The link expires in one hour.",
+        "If an account matches, a password recovery link is sent when mail is available. If none arrives, ask an administrator to issue a set-password link. The link expires in one hour.",
       ),
     ).toBeInTheDocument();
   });

@@ -5,7 +5,7 @@ namespace App\Support;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 
-/** Whether the default mailer can really deliver: log and array never do, and SMTP must require TLS. */
+/** Whether the default mailer can really deliver: log and array never do, SMTP must require TLS, and a failover or roundrobin needs every member to qualify. */
 final class MailDelivery
 {
     /** Outside production the log/array mailers stay allowed for local work and tests. */
@@ -16,12 +16,13 @@ final class MailDelivery
         }
 
         $name = (string) config('mail.default');
-        $transport = (string) config("mail.mailers.{$name}.transport");
-        if ($transport === 'smtp') {
-            return (bool) config("mail.mailers.{$name}.require_tls");
+        if (! in_array((string) config("mail.mailers.{$name}.transport"), ['failover', 'roundrobin'], true)) {
+            return self::deliversDirectly($name);
         }
 
-        return ! in_array($transport, ['', 'log', 'array'], true);
+        $members = array_map('strval', (array) config("mail.mailers.{$name}.mailers", []));
+
+        return $members !== [] && collect($members)->every(fn (string $member): bool => self::deliversDirectly($member));
     }
 
     /** Issues a reset token only when the mailer can deliver it; a failed send rolls back the token it would have replaced. */
@@ -32,5 +33,14 @@ final class MailDelivery
         }
 
         return DB::transaction(fn (): string => Password::broker()->sendResetLink($credentials));
+    }
+
+    private static function deliversDirectly(string $name): bool
+    {
+        return match ((string) config("mail.mailers.{$name}.transport")) {
+            'smtp' => (bool) config("mail.mailers.{$name}.require_tls"),
+            '', 'log', 'array', 'failover', 'roundrobin' => false,
+            default => true,
+        };
     }
 }

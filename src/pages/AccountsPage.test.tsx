@@ -58,7 +58,7 @@ describe("User Management", () => {
     await waitFor(() => expect(api.createAccount).toHaveBeenCalledTimes(1));
     expect(api.createAccount).toHaveBeenCalledWith({ name: "New Person", email: "new@example.test", role: "field_reporter" }, "synthetic");
     expect(await screen.findByText(/set-password link was emailed to new@example.test/)).toBeInTheDocument();
-    expect(screen.getByText(/Next steps: 1\. They open the set-password email\. 2\. They sign in on the phone/)).toBeInTheDocument();
+    expect(screen.getByText(/Next steps: 1\. They set a password from their set-password link\. 2\. They sign in on the phone/)).toBeInTheDocument();
   });
 
   it("directs web-role users to the web sign-in and workspace", async () => {
@@ -113,7 +113,7 @@ describe("User Management", () => {
     const notice = await screen.findByText(/Account created for Field Person/);
     expect(notice).toHaveTextContent("the set-password email could not be sent");
     expect(notice).toHaveTextContent("an operator can issue a set-password link");
-    expect(notice).toHaveTextContent("Next steps: 1. They open the set-password email. 2. They sign in on the phone.");
+    expect(notice).toHaveTextContent("Next steps: 1. They set a password from their set-password link. 2. They sign in on the phone.");
   });
 
   it("shows server validation errors in the dialog and keeps it open", async () => {

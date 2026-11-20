@@ -44,7 +44,7 @@ export function ForgotPasswordPage() {
         <div className="auth-success" role="status">
           <strong>Check your email.</strong>
           <span>
-            If an account matches, a password recovery link will be sent. The link expires in one hour.
+            If an account matches, a password recovery link is sent when mail is available. If none arrives, ask an administrator to issue a set-password link. The link expires in one hour.
           </span>
         </div>
       ) : (
