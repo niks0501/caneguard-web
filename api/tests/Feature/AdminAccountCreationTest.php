@@ -195,6 +195,28 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseHas('security_audits', ['action' => 'account_invite_sent', 'outcome' => 'success']);
     }
 
+    public function test_production_implicit_tls_smtp_is_reported_sent(): void
+    {
+        Notification::fake();
+        $this->productionMail();
+        config([
+            'mail.mailers.smtp.scheme' => 'smtps',
+            'mail.mailers.smtp.host' => 'mail.example.test',
+            'mail.mailers.smtp.port' => 465,
+            'mail.mailers.smtp.require_tls' => false,
+        ]);
+        app('mail.manager')->forgetMailers();
+        $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'implicit-tls@example.test']))
+            ->assertCreated()->assertJsonPath('invite_sent', true);
+
+        $user = User::query()->where('email', 'implicit-tls@example.test')->firstOrFail();
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => $user->email, 'user_id' => $user->id]);
+        Notification::assertSentTo($user, ResetPassword::class);
+    }
+
     public function test_production_invite_is_reported_not_sent_when_smtp_cannot_connect(): void
     {
         $this->productionMail();
@@ -241,7 +263,11 @@ class AdminAccountCreationTest extends TestCase
     {
         Notification::fake();
         $this->productionMail();
-        config(['mail.mailers.smtp.require_tls' => false]);
+        config([
+            'mail.mailers.smtp.scheme' => 'smtp',
+            'mail.mailers.smtp.host' => 'mail.example.test',
+            'mail.mailers.smtp.require_tls' => false,
+        ]);
         $this->pilotDistrict();
         $this->actingAs(User::factory()->admin()->create(), 'web');
 

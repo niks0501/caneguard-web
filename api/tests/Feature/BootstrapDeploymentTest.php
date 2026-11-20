@@ -463,6 +463,23 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
     }
 
+    public function test_implicit_tls_relay_is_accepted_before_creating_the_administrator(): void
+    {
+        Notification::fake();
+        $this->configure([
+            'caneguard.bootstrap_admin_email' => 'owner@example.test',
+            'mail.mailers.smtp.scheme' => 'smtps',
+            'mail.mailers.smtp.host' => 'mail.example.test',
+            'mail.mailers.smtp.port' => 465,
+            'mail.mailers.smtp.require_tls' => false,
+        ]);
+        Mail::purge('smtp');
+
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
+    }
+
     public function test_reset_link_with_a_fragment_is_never_recorded_as_sent(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test', 'caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password#help']);

@@ -5,31 +5,38 @@ namespace App\Support;
 use App\Models\User;
 use Closure;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 use Throwable;
 
-/** Whether the default mailer can really deliver: log and array never do, and SMTP must require TLS. */
+/** Whether the configured mailer can really deliver: log and array never do, and SMTP must be encrypted off-machine. */
 final class MailDelivery
 {
+    private const LOCAL_HOSTS = ['127.0.0.1', '::1', 'localhost'];
+
     public const NOT_PENDING = 'not_pending';
 
     /** Every reset-link request and redemption takes at least this long, so the response reveals no account or token state. */
     public const TIMEBOX_MICROSECONDS = 200000;
 
-    /** Outside production the log/array mailers stay allowed for local work and tests. */
-    public static function canDeliver(): bool
+    public static function canDeliver(?string $mailer = null): bool
     {
-        if (! app()->environment('production')) {
-            return true;
+        $name = $mailer ?? (string) config('mail.default');
+        try {
+            $transport = Mail::mailer($name)->getSymfonyTransport();
+        } catch (Throwable) {
+            return false;
+        }
+        if (! $transport instanceof EsmtpTransport) {
+            return false;
         }
 
-        $name = (string) config('mail.default');
-        $transport = (string) config("mail.mailers.{$name}.transport");
-        if (in_array($transport, ['smtp', 'caneguard_smtp'], true)) {
-            return (bool) config("mail.mailers.{$name}.require_tls");
-        }
+        $stream = $transport->getStream();
 
-        return ! in_array($transport, ['', 'log', 'array', 'failover', 'roundrobin'], true);
+        return $transport->isTlsRequired()
+            || ($stream instanceof SocketStream && ($stream->isTLS() || in_array($stream->getHost(), self::LOCAL_HOSTS, true)));
     }
 
     /** Public recovery resolves the account by email, as Laravel's broker does. */
@@ -62,7 +69,7 @@ final class MailDelivery
             if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasVerifiedEmail() || $user->hasCompletedOnboarding() || ($role !== null && $user->role !== $role))) {
                 return self::NOT_PENDING;
             }
-            if (! self::canDeliver()) {
+            if (app()->environment('production') && ! self::canDeliver()) {
                 return Password::INVALID_USER;
             }
             app(AuthUrlBuilder::class)->assertPasswordResetUrl();
