@@ -430,20 +430,43 @@
       "format": "date-time"
     }
   },
+  "response": {
+    "content_type": "application/json",
+    "status_codes": {
+      "created": 201,
+      "idempotent_replay": 200
+    },
+    "required_keys": ["data"],
+    "data_keys": [
+      "identity",
+      "reporter",
+      "barangay",
+      "timestamps",
+      "image",
+      "model",
+      "observations",
+      "reporter_observation",
+      "review",
+      "version",
+      "updated_at"
+    ]
+  },
   "versioning": {
     "same_major_compatible_widening": [
       "Accepting additional optional fields while preserving the undeclared-field policy.",
       "Accepting additional values for an existing enum without changing existing value meanings.",
       "Increasing a text maximum or numeric maximum, or lowering a numeric minimum, without changing persistence semantics.",
       "Adding an accepted image format without removing or changing existing formats.",
-      "Increasing the image hard maximum only when every existing v1 consumer remains safe with the wider value."
+      "Increasing the image hard maximum only when every existing v1 consumer remains safe with the wider value.",
+      "Adding keys to the upload reply without renaming or changing an existing reply key."
     ],
     "new_major_required": [
-      "Renaming or removing a field, changing its multipart encoding, or changing its type.",
+      "Renaming or removing a multipart request field, changing its multipart encoding, or changing its type.",
       "Making an accepted field or value invalid, including narrowing a text, numeric, UUID, array, coordinate, or image boundary.",
       "Changing a field from optional to required, or changing null and empty-value semantics.",
       "Changing enum meaning, disease classes, conditional location requirements, server-derived metadata, or persistence semantics.",
-      "Removing an existing image format or lowering the 10 MiB hard maximum."
+      "Removing an existing image format or lowering the 10 MiB hard maximum.",
+      "Removing an upload reply key or changing the type of a declared reply value."
     ]
   }
 }
