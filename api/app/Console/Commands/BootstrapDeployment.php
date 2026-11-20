@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 /**
  * Run by every production deploy after migrations. Safe to repeat: it only adds
@@ -123,7 +124,7 @@ final class BootstrapDeployment extends Command
     {
         try {
             return Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
-        } catch (\Throwable $e) {
+        } catch (TransportExceptionInterface $e) {
             Log::warning('Bootstrap administrator set-password email could not be sent.', ['exception' => $e::class]);
 
             return false;

@@ -13,6 +13,7 @@ use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
 class BootstrapDeploymentTest extends TestCase
@@ -187,7 +188,7 @@ class BootstrapDeploymentTest extends TestCase
         $mailDown = true;
         $this->app['events']->listen(NotificationSending::class, function () use (&$mailDown): void {
             if ($mailDown) {
-                throw new \RuntimeException('mail down');
+                throw new TransportException('mail down');
             }
         });
 
@@ -204,6 +205,24 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertSame(1, User::query()->count());
         $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
         $this->assertSame(['owner@example.test'], $this->recipients($transport));
+    }
+
+    public function test_non_mail_failure_during_the_send_is_not_reported_as_a_mail_failure(): void
+    {
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        $this->app['events']->listen(NotificationSending::class, function (): void {
+            throw new \RuntimeException('database down');
+        });
+
+        $thrown = null;
+        try {
+            $this->artisan('caneguard:bootstrap')->run();
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        }
+
+        $this->assertSame('database down', $thrown?->getMessage());
+        $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
     }
 
     public function test_pending_admin_created_outside_bootstrap_is_not_taken_over(): void
