@@ -189,5 +189,4 @@ final class BootstrapDeployment extends Command
 
         return BootstrapAdministrator::recorded($user, $action);
     }
-
 }

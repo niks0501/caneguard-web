@@ -59,7 +59,7 @@ Validation failures use `{ "message": "The given data was invalid.", "code": "VA
 
 The verification and reset links use `CANEGUARD_VERIFICATION_URL` and `CANEGUARD_PASSWORD_RESET_URL`.
 
-Those values are deployment configuration, must be absolute URLs without a fragment, and must use HTTPS in production.
+Those values are deployment configuration, must be absolute URLs without a fragment or embedded credentials, and must use HTTPS in production.
 
 Each generated parameter carries one authoritative value: `token` and `email`, or `id`, `hash`, `expires` and `signature`, replace any same-named parameter already present in the configured URL, and unrelated query parameters are kept.
 
