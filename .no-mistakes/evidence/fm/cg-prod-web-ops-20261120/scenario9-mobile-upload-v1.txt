@@ -1,0 +1,20 @@
+== revision d2bec3a; live HTTP against php -S 127.0.0.1:8000 (sqlite api/.env, seeded local demo data)
+== POST /api/v1/mobile/reports with Sanctum bearer token for field@caneguard.test
+
+1) client_uuid=AABBCCDD-1111-4222-8333-444455556666  -> HTTP 201 (created)
+   identity.uuid: 01a1f683-c509-72b6-b702-d80bf662270d
+   identity.client_uuid: aabbccdd-1111-4222-8333-444455556666 (lower-cased on store)
+   top-level keys: ['barangay', 'identity', 'image', 'model', 'observations', 'reporter', 'reporter_observation', 'review', 'timestamps', 'updated_at', 'version']
+   case_history absent
+   audit absent
+   history absent
+   reviewer_email absent
+   events absent
+
+2) same key replayed lower-case aabbccdd-1111-4222-8333-444455556666 -> HTTP 200 (receipt, not a new report)
+   identity.uuid: 01a1f683-c509-72b6-b702-d80bf662270d same report: True
+
+3) legacy pre-change row stored with UPPER-CASE client_uuid CCDDEEFF-1111-4222-8333-444455556666 (uuid 01a1f683-e636-73d3-b68a-c7ed3bf0c431)
+   resend lower-case ccddeeff-1111-4222-8333-444455556666 -> HTTP 200
+   identity.uuid: 01a1f683-e636-73d3-b68a-c7ed3bf0c431 -> matches legacy row
+   reports rows before=1042 after=1042 (no duplicate accepted by the unique key)

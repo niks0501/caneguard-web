@@ -1,0 +1,25 @@
+== revision d2bec3a
+
+$ APP_ENV=production php api/artisan db:seed --force   (users before: 0)
+
+ INFO Seeding database. 
+
+
+   LogicException 
+
+  DatabaseSeeder refuses to run in production.
+
+  at api/database/seeders/DatabaseSeeder.php:21
+     17▕      */
+     18▕     public function run(): void
+     19▕     {
+exit_status=1; users after: 0
+
+$ CANEGUARD_PILOT_DISTRICT_CODE=DP CANEGUARD_{FIELD,REVIEWER,ADMIN}_PASSWORD=... php api/artisan db:seed --force
+ Database\Seeders\DashboardReportSeeder .. RUNNING 
+ Database\Seeders\DashboardReportSeeder .. 15,176 ms DONE 
+
+ Database\Seeders\DemoAnalyticsSeeder .. RUNNING 
+ Database\Seeders\DemoAnalyticsSeeder .. 358 ms DONE 
+
+exit_status=0; users after: 3

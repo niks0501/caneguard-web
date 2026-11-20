@@ -1,0 +1,16 @@
+== revision d2bec3a
+
+$ CANEGUARD_AERIAL_ANALYSIS_ENABLED=1 CANEGUARD_AERIAL_PYTHON=/nonexistent/python3 php scripts/preflight-aerial.php $PWD
+Aerial analysis is enabled but not ready. Deploy stopped before migrations and activation:
+ - CANEGUARD_AERIAL_PYTHON ('/nonexistent/python3') cannot be executed; create the venv and set the absolute interpreter path.
+ - CANEGUARD_AERIAL_MODEL_PATH is not set.
+ - Aerial storage '{run-worktree}/api/storage/app/private/aerial' does not exist; stage it before deploying.
+Stage the missing piece (docs/production-deployment.md, Aerial analysis) or set CANEGUARD_AERIAL_ANALYSIS_ENABLED=false.
+exit_status=1
+
+$ CANEGUARD_AERIAL_ANALYSIS_ENABLED=false php scripts/preflight-aerial.php $PWD
+Aerial preflight: CANEGUARD_AERIAL_ANALYSIS_ENABLED is off; nothing to check.
+exit_status=0
+
+$ CANEGUARD_AERIAL_ANALYSIS_ENABLED=1 php -r '...config("caneguard.aerial.enabled")...'
+bool(true)

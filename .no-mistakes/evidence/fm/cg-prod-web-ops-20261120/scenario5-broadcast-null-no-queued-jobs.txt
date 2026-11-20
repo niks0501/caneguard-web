@@ -1,0 +1,17 @@
+== revision: d2bec3a
+== branch: fm/cg-prod-web-ops-20261120
+
+$ php dispatch-broadcast.php   # BROADCAST_CONNECTION=null in api/.env
+broadcasting.default=NULL
+queue.default='database'
+jobs_rows=0
+
+$ BROADCAST_CONNECTION=log php dispatch-broadcast.php
+broadcasting.default='log'
+queue.default='database'
+jobs_rows=2
+
+$ BROADCAST_CONNECTION=null php dispatch-broadcast.php
+broadcasting.default=NULL
+queue.default='database'
+jobs_rows=0

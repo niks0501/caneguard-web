@@ -1,0 +1,18 @@
+== revision d2bec3a; built shell (vite build) copied to api/public/, served by: php -S 127.0.0.1:8000 -t api/public api/server.php
+
+$ curl -s -D h1.txt http://127.0.0.1:8000/   # request 1
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+Cache-Control: no-cache, private
+Content-Security-Policy: default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data:; style-src 'self' 'nonce-V7F9j6bWT6kysmRz6QwB4g=='; script-src 'self' 'nonce-V7F9j6bWT6kysmRz6QwB4g=='; font-src 'self'; connect-src 'self'
+X-Content-Type-Options: nosniff
+body script nonce: nonce="V7F9j6bWT6kysmRz6QwB4g=="
+
+$ curl -s http://127.0.0.1:8000/   # request 2
+body script nonce: nonce="feIUsynSUmfWVEZTZwkOdA=="
+
+placeholder __CSP_NONCE__ left in body: 0
+
+browser at http://localhost:8000/ (nonced shell, real CSP header):
+  document.title = 'Sign in | CaneGuard'; path = /login; theme applied pre-paint from localStorage = 'dark' on ./index.html dataset
+  console: no refusal of the inline theme script; CSP blocked only the cross-origin localhost:8000 probe when opened on 127.0.0.1 (single-origin deploy)

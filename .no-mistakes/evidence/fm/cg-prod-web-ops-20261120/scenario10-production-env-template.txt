@@ -1,0 +1,16 @@
+== revision d2bec3a: api/.env.production.example parsed by the real consumer (vlucas/phpdotenv, the loader Laravel boot uses)
+$ php -r 'Dotenv\Dotenv::createImmutable(__DIR__."/api", ".env.production.example")->load();'
+APP_ENV='production'
+DB_CONNECTION='mysql'
+SESSION_SECURE_COOKIE='true'
+SANCTUM_STATEFUL_DOMAINS='caneguard.online'
+BROADCAST_CONNECTION='null'
+QUEUE_CONNECTION='database'
+CANEGUARD_PILOT_DISTRICT_CODE='<district-code>'
+CANEGUARD_PASSWORD_MIN_LENGTH='15'
+CANEGUARD_WEEKLY_SEND_ENABLED='false'
+CANEGUARD_AERIAL_ANALYSIS_ENABLED='false'
+VITE_DATA_SOURCE=NULL
+parsed_keys=40
+
+Chain: BROADCAST_CONNECTION='null' -> Laravel env() null -> broadcasts not queued (scenario5 evidence, jobs_rows=0).

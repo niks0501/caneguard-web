@@ -1,0 +1,14 @@
+== revision d2bec3a
+
+A) npm run build (production) -> npx vite preview --port 5181
+   fresh browser profile, GET http://127.0.0.1:5181/settings (no session):
+result: "{\"title\":\"Sign in | CaneGuard\",\"path\":\"/login\",\"accountSettings\":false,\"signInHeading\":\"Sign in to review field reports\",\"fonts\":[\"http://127.0.0.1:5181/assets/poppins-latin-700-Qrb0O0WB.woff2\",\"http://127.0.0.1:5181/assets/poppins-latin-400-cpxAROuN.woff2\",\"http://127.0.0.1:5181/assets/poppins-latin-600-zEkxB9Mr.woff2\"]}"
+   -> redirected to /login; the mock auto-signed-in workspace is not in the production bundle
+
+   shipped bundle scan of dist/assets:
+     grep -rl 'synthetic-sugarcane-rust|MockDashboardRepository|mockReportStore' -> no matches
+     'Maria Santos' occurrences -> 0
+
+B) VITE_DATA_SOURCE=mock npm run build -> npx vite preview --port 5182, GET http://127.0.0.1:5182/
+     page: 'CaneGuard could not display this page' / 'Refresh the page to try again.'
+     console: [error] The application could not start. Error: VITE_DATA_SOURCE=mock is not allowed in a production build.

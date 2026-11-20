@@ -1,0 +1,9 @@
+== revision d2bec3a
+
+A) npm run dev -- --host 127.0.0.1 --port 5179 --strictPort
+   GET http://127.0.0.1:5179/ -> redirect /login
+result: "\"Sign in | CaneGuard\""
+
+B) self-hosted Poppins, no Google Fonts request (127.0.0.1:5179 page resources):
+result: "[\"http://127.0.0.1:5179/src/assets/fonts/poppins-latin-700.woff2\",\"http://127.0.0.1:5179/src/assets/fonts/poppins-latin-400.woff2\",\"http://127.0.0.1:5179/src/assets/fonts/poppins-latin-600.woff2\"]"
+result: "{\"computed\":\"Poppins, \\\"Segoe UI\\\", Roboto, Helvetica, Arial, sans-serif\",\"check\":true,\"loaded\":[\"Poppins:400:loaded\",\"Poppins:500:unloaded\",\"Poppins:600:loaded\",\"Poppins:700:loaded\"]}"
