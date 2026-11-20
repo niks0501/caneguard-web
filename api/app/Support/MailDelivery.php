@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Throwable;
@@ -28,12 +29,24 @@ final class MailDelivery
         return ! in_array($transport, ['', 'log', 'array'], true);
     }
 
+    /** Public recovery resolves the account by email, as Laravel's broker does. */
+    public static function sendResetLink(string $email): string
+    {
+        return self::issue(fn () => User::query()->where('email', $email), onboardingOnly: false, role: null);
+    }
+
+    /** An invite is bound to the selected account, and its role and onboarding are rechecked under the account lock. */
+    public static function sendInvite(User $user, ?string $role = null): string
+    {
+        return self::issue(fn () => User::query()->whereKey($user->getKey()), onboardingOnly: true, role: $role);
+    }
+
     /**
      * Issues a reset token and sends it. The token commits before SMTP is attempted. If the send fails, the rows
      * it replaced are put back only while the failed token is still the current one, so a later link, or a link
      * already used to reset the password, is never overwritten or revived.
      */
-    public static function sendResetLink(array $credentials, bool $onboardingOnly = false): string
+    private static function issue(Closure $lookup, bool $onboardingOnly, ?string $role): string
     {
         $broker = Password::broker();
         $table = (string) config('auth.passwords.users.table', 'password_reset_tokens');
@@ -41,10 +54,10 @@ final class MailDelivery
         $token = null;
         $issuedHash = null;
         $previous = [];
-        $status = DB::transaction(function () use ($broker, $table, $credentials, $onboardingOnly, &$user, &$token, &$issuedHash, &$previous): string {
+        $status = DB::transaction(function () use ($broker, $table, $lookup, $onboardingOnly, $role, &$user, &$token, &$issuedHash, &$previous): string {
             // The account lock is taken before any other read, so the throttle and the rollback snapshot see committed token state.
-            $user = User::query()->where('email', $credentials['email'])->lockForUpdate()->first();
-            if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasCompletedOnboarding())) {
+            $user = $lookup()->lockForUpdate()->first();
+            if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasCompletedOnboarding() || ($role !== null && $user->role !== $role))) {
                 return self::NOT_PENDING;
             }
             if (! self::canDeliver()) {

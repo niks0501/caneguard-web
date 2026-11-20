@@ -23,7 +23,7 @@ class ForgotPasswordController extends Controller
                 $email = $request->validated('email');
                 $user = User::query()->where('email', $email)->first();
                 if (! $user instanceof User || ! BootstrapAdministrator::superseded($user)) {
-                    MailDelivery::sendResetLink(['email' => $email]);
+                    MailDelivery::sendResetLink($email);
                 }
             } catch (\Throwable $e) {
                 Log::warning('Password recovery link could not be sent.', ['exception' => $e::class]);

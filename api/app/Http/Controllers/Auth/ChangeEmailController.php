@@ -40,6 +40,7 @@ class ChangeEmailController extends Controller
             $user->forceFill([
                 'email' => $request->validated('email'),
                 'email_verified_at' => null,
+                'onboarded_at' => $user->onboarded_at ?? ($user->hasVerifiedEmail() ? now() : null),
             ])->save();
             $revoker->handle($user);
             $audits->handle(

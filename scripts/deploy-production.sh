@@ -133,6 +133,9 @@ ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"
 activated=1
 
+# The previous release could verify accounts without writing onboarded_at, so reclassify them after activation.
+php artisan auth:backfill-onboarding
+
 # Ensure public API and SPA both respond through the activated Nginx root.
 health="$(curl --fail --silent --show-error --max-time 20 https://caneguard.online/api/health)"
 HEALTH_JSON="$health" php -r '

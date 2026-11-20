@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -398,7 +399,7 @@ class AdminAccountCreationTest extends TestCase
         $database = $directory.'/database.sqlite';
         touch($database);
         $base = [
-            'DB_URL' => false,
+            'DB_URL' => '',
             'DB_CONNECTION' => 'sqlite',
             'DB_DATABASE' => $database,
             'APP_CONFIG_CACHE' => $absent,
@@ -442,6 +443,48 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:set-password-link')->assertSuccessful();
 
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $pending->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
+    }
+
+    public function test_invite_stays_bound_to_the_selected_account_when_its_address_is_reassigned(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        Notification::fake();
+        $selected = User::factory()->fieldReporter()->unverified()->create(['email' => 'selected-old@example.test']);
+        $stale = $selected->fresh();
+        DB::table('users')->where('id', $selected->id)->update(['email' => 'selected-new@example.test']);
+        User::factory()->reviewer()->unverified()->create(['email' => 'selected-old@example.test']);
+
+        $status = MailDelivery::sendInvite($stale, User::ROLE_FIELD_REPORTER);
+
+        $this->assertSame(Password::RESET_LINK_SENT, $status);
+        $this->assertSame(1, DB::table('password_reset_tokens')->where('email', 'selected-new@example.test')->count());
+        $this->assertSame(0, DB::table('password_reset_tokens')->where('email', 'selected-old@example.test')->count());
+    }
+
+    public function test_email_change_keeps_onboarding_for_an_account_verified_before_the_mark_existed(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        $user = User::factory()->reviewer()->create(['email' => 'legacy@example.test']);
+        $this->assertNull($user->onboarded_at);
+        $this->actingAs($user, 'web')
+            ->patchJson('/api/v1/auth/email', ['email' => 'legacy-new@example.test', 'current_password' => 'password'])
+            ->assertStatus(202);
+        $this->assertNotNull($user->refresh()->onboarded_at);
+
+        config(['caneguard.auth.operator_link_email' => 'legacy-new@example.test']);
+        $this->artisan('auth:set-password-link')->assertFailed();
+    }
+
+    public function test_backfill_marks_accounts_with_onboarding_or_authority_history_and_leaves_pending_ones(): void
+    {
+        $pending = User::factory()->reviewer()->unverified()->create(['email' => 'pending-backfill@example.test']);
+        $revoked = User::factory()->reviewer()->unverified()->create(['email' => 'revoked-backfill@example.test']);
+        $revoked->forceFill(['auth_version' => 2])->save();
+
+        $this->artisan('auth:backfill-onboarding')->assertSuccessful();
+
+        $this->assertNull($pending->refresh()->onboarded_at);
+        $this->assertNotNull($revoked->refresh()->onboarded_at);
     }
 
     public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void
