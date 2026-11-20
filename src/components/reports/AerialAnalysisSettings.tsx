@@ -4,7 +4,7 @@ import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
 import type { DiseaseReport } from "../../domain/report.types";
-import { aerialCheckLive, aerialSettingsKey, isCaseDetailQuery, recordAerialOff, reportKeys } from "../../hooks/reportQueries";
+import { aerialCheckLive, aerialGateReadCount, aerialSettingsKey, isCaseDetailQuery, recordAerialGate, reportKeys } from "../../hooks/reportQueries";
 import { Button } from "../ui/Button";
 
 const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.boolean() }) });
@@ -18,8 +18,8 @@ const url = "/api/v1/admin/aerial-analysis";
  */
 async function reconcileAerialCache(queryClient: QueryClient, settings: AerialSettings) {
   const caseDetails = { queryKey: reportKeys.details(), predicate: isCaseDetailQuery };
+  recordAerialGate(settings);
   if (!aerialCheckLive(settings)) {
-    recordAerialOff();
     await queryClient.cancelQueries(caseDetails);
     queryClient.setQueriesData<DiseaseReport>(
       caseDetails,
@@ -47,9 +47,14 @@ export function AerialAnalysisSettings() {
       if (!navigator.onLine) throw new Error("An online connection is required.");
       return axiosClient.put(url, { enabled });
     },
-    onSuccess: async (response) => {
+    onMutate: () => aerialGateReadCount(),
+    onSuccess: async (response, _enabled, readsAtSend) => {
       const next = schema.parse(response.data).data;
       await queryClient.cancelQueries({ queryKey: aerialSettingsKey });
+      if (aerialGateReadCount() !== readsAtSend) {
+        await queryClient.invalidateQueries({ queryKey: aerialSettingsKey });
+        return;
+      }
       queryClient.setQueryData(aerialSettingsKey, next);
       await reconcileAerialCache(queryClient, next);
     },

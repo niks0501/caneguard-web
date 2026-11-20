@@ -26,13 +26,17 @@ export const aerialCheckLive = (gate: { installed: boolean; enabled: boolean }) 
 export const isCaseDetailQuery = (query: Query) =>
   query.queryKey.length === reportKeys.detail("").length;
 
-let aerialOffObservations = 0;
+let aerialGateReads = 0;
+let aerialOffReads = 0;
 
-export const recordAerialOff = () => {
-  aerialOffObservations += 1;
+export const recordAerialGate = (gate: { installed: boolean; enabled: boolean }) => {
+  aerialGateReads += 1;
+  if (!aerialCheckLive(gate)) aerialOffReads += 1;
 };
 
-export const aerialOffObservationCount = () => aerialOffObservations;
+export const aerialGateReadCount = () => aerialGateReads;
+
+export const aerialOffReadCount = () => aerialOffReads;
 
 export const monthlySummaryQueryOptions = (month?: string) =>
   queryOptions({

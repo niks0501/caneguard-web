@@ -142,12 +142,6 @@ describe("aerial canopy check admin switch", () => {
     const staleReadCaptured = new Promise<void>((resolve) => { staleReadStarted = resolve; });
     let releaseStaleRead: () => void = () => undefined;
     const staleRead = new Promise<void>((resolve) => { releaseStaleRead = resolve; });
-    let staleEnded: () => void = () => undefined;
-    const staleResponseSent = new Promise<void>((resolve) => { staleEnded = resolve; });
-    const onRequestEnd = ({ request }: { request: Request }) => {
-      if (request.method === "GET" && request.url === url && reads === 2) staleEnded();
-    };
-    server.events.on("request:end", onRequestEnd);
     server.use(
       http.get(url, async () => {
         const snapshot = enabled;
@@ -172,10 +166,43 @@ describe("aerial canopy check admin switch", () => {
     await user.click(screen.getByRole("button", { name: "Turn on aerial check" }));
     expect(await screen.findByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
     releaseStaleRead();
-    await staleResponseSent;
-    server.events.removeListener("request:end", onRequestEnd);
     await vi.waitFor(() => expect(client.isFetching({ queryKey: ["aerial-analysis-settings"] })).toBe(0));
     expect(screen.getByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
+  });
+
+  it("does not let a delayed save acknowledgment overwrite a newer settings read", async () => {
+    let enabled = true;
+    let reads = 0;
+    let releaseSave: () => void = () => undefined;
+    const saveHeld = new Promise<void>((resolve) => { releaseSave = resolve; });
+    let putStarted: () => void = () => undefined;
+    const putReached = new Promise<void>((resolve) => { putStarted = resolve; });
+    server.use(
+      http.get(url, () => {
+        reads += 1;
+        return HttpResponse.json({ data: { installed: true, enabled } });
+      }),
+      http.put(url, async ({ request }) => {
+        enabled = ((await request.json()) as { enabled: boolean }).enabled;
+        putStarted();
+        await saveHeld;
+        return HttpResponse.json({ data: { installed: true, enabled: false } });
+      }),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(reportKeys.detail("case-1"), { id: "case-1", aerialAnalyses: [{ uuid: "a-9" }] });
+    const user = userEvent.setup();
+    show(client);
+    await user.click(await screen.findByRole("button", { name: "Turn off aerial check" }));
+    await putReached;
+    enabled = true;
+    void client.invalidateQueries({ queryKey: ["aerial-analysis-settings"] });
+    await vi.waitFor(() => expect(client.isFetching({ queryKey: ["aerial-analysis-settings"] })).toBe(0));
+    releaseSave();
+    await vi.waitFor(() => expect(reads).toBe(3));
+    await vi.waitFor(() => expect(client.isFetching({ queryKey: ["aerial-analysis-settings"] })).toBe(0));
+    expect(screen.getByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
+    expect(client.getQueryData(reportKeys.detail("case-1"))).toEqual({ id: "case-1", aerialAnalyses: [{ uuid: "a-9" }] });
   });
 
   it("reports a failed save", async () => {

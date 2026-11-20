@@ -10,7 +10,7 @@ import type {
 import { reportsRepository } from "../services/reports.service";
 import {
   advisoriesQueryOptions,
-  aerialOffObservationCount,
+  aerialOffReadCount,
   monthlySummaryQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
@@ -90,16 +90,14 @@ function useReportMutation<TInput>(
 
   return useMutation({
     mutationFn,
-    onMutate: () => aerialOffObservationCount(),
+    onMutate: () => aerialOffReadCount(),
     onSuccess: (report, _input, offsAtSend) => {
       const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(reportId));
-      if (!cached || (cached.reviewVersion ?? 0) < (report.reviewVersion ?? 0)) {
-        const offObservedWhileSaving = aerialOffObservationCount() !== offsAtSend;
-        queryClient.setQueryData<DiseaseReport>(
-          reportKeys.detail(reportId),
-          offObservedWhileSaving ? { ...report, aerialAnalyses: undefined } : report,
-        );
-      }
+      const offObservedWhileSaving = aerialOffReadCount() !== offsAtSend;
+      const aerialAnalyses = report.aerialAnalyses === undefined || offObservedWhileSaving
+        ? undefined
+        : cached ? cached.aerialAnalyses : report.aerialAnalyses;
+      queryClient.setQueryData<DiseaseReport>(reportKeys.detail(reportId), { ...report, aerialAnalyses });
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });

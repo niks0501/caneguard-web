@@ -188,8 +188,9 @@ describe("report mutations", () => {
       const Harness = saveButtonHarness(report.uuid, report.reviewVersion!);
       render(<QueryClientProvider client={queryClient}><Harness /></QueryClientProvider>);
 
+      const savesBefore = vi.mocked(reportsRepository.updateReview).mock.calls.length;
       fireEvent.click(screen.getByRole("button", { name: "Save review" }));
-      await vi.waitFor(() => expect(reportsRepository.updateReview).toHaveBeenCalled());
+      await vi.waitFor(() => expect(vi.mocked(reportsRepository.updateReview).mock.calls.length).toBe(savesBefore + 1));
       await screen.findByRole("button", { name: "Turn off aerial check" });
       finishSave({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: returned });
 
@@ -208,8 +209,9 @@ describe("report mutations", () => {
       render(<QueryClientProvider client={queryClient}><Harness /></QueryClientProvider>);
       await screen.findByRole("button", { name: "Turn off aerial check" });
 
+      const savesBefore = vi.mocked(reportsRepository.updateReview).mock.calls.length;
       fireEvent.click(screen.getByRole("button", { name: "Save review" }));
-      await vi.waitFor(() => expect(reportsRepository.updateReview).toHaveBeenCalled());
+      await vi.waitFor(() => expect(vi.mocked(reportsRepository.updateReview).mock.calls.length).toBe(savesBefore + 1));
       enabled = false;
       await queryClient.invalidateQueries({ queryKey: aerialSettingsKey });
       await screen.findByRole("button", { name: "Turn on aerial check" });
@@ -232,10 +234,23 @@ describe("report mutations", () => {
       expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
     });
 
-    it("does not let an older save response clear aerial analyses from a newer case read", async () => {
+    it("keeps cached aerial analyses over the list a save response returns", async () => {
       const { queryClient, report, wrapper } = setup();
-      const newer = [{ uuid: "a6" }] as never;
-      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, reviewVersion: report.reviewVersion! + 2, aerialAnalyses: newer });
+      const cached = [{ uuid: "a6" }] as never;
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: cached });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a9" }] as never });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(cached);
+    });
+
+    it("clears cached aerial analyses when a save response omits them, even over a newer read", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, reviewVersion: report.reviewVersion! + 2, aerialAnalyses: [{ uuid: "a8" }] as never });
       vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
       const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
 
@@ -243,7 +258,7 @@ describe("report mutations", () => {
         await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
       });
 
-      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(newer);
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
     });
   });
 });
