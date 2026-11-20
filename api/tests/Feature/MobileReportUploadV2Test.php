@@ -549,6 +549,7 @@ class MobileReportUploadV2Test extends TestCase
 
     public function test_shipped_v2_model_version_is_recognised_by_default(): void
     {
+        config(['caneguard.accepted_model_versions' => $this->shippedAcceptedModelVersions()]);
         Storage::fake('local');
         $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
         $token = $reporter->createToken('shipped-model', ['report:submit'])->plainTextToken;
@@ -644,6 +645,30 @@ class MobileReportUploadV2Test extends TestCase
         $this->assertSame($before, $report->fresh()->getAttributes());
         $this->assertDatabaseCount('reports', 1);
         $this->assertCount(1, Storage::disk('local')->allFiles('reports'));
+    }
+
+    private function shippedAcceptedModelVersions(): array
+    {
+        $name = 'CANEGUARD_ACCEPTED_MODEL_VERSIONS';
+        $saved = [getenv($name), $_ENV[$name] ?? null, $_SERVER[$name] ?? null];
+        putenv($name);
+        unset($_ENV[$name], $_SERVER[$name]);
+
+        try {
+            $shipped = require config_path('caneguard.php');
+
+            return $shipped['accepted_model_versions'];
+        } finally {
+            if ($saved[0] !== false) {
+                putenv("{$name}={$saved[0]}");
+            }
+            if ($saved[1] !== null) {
+                $_ENV[$name] = $saved[1];
+            }
+            if ($saved[2] !== null) {
+                $_SERVER[$name] = $saved[2];
+            }
+        }
     }
 
     private function payload(string $clientUuid, array $overrides = []): array

@@ -66,7 +66,7 @@ class EnsureMobileTokenFresh
             return;
         }
 
-        $current = IssueMobileToken::abilities($fresh);
+        $current = DistrictAccess::MOBILE_CAPABILITIES;
         $stored = (array) $token->abilities;
 
         if (array_diff($current, $stored) === [] && array_diff($stored, $current) === []) {
