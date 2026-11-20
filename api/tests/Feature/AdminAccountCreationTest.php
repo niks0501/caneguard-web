@@ -361,7 +361,8 @@ class AdminAccountCreationTest extends TestCase
         User::factory()->reviewer()->unverified()->create(['email' => 'frag@example.test']);
 
         foreach (['https://app.example.test/reset-password#token', 'https://user:secret@app.example.test/reset-password'] as $url) {
-            config(['caneguard.auth.password_reset_url' => $url, 'caneguard.auth.operator_link_email' => 'frag@example.test']);
+            config(['caneguard.auth.password_reset_url' => $url]);
+            $this->operatorTarget('frag@example.test');
             $this->artisan('auth:set-password-link')->assertFailed();
         }
         $this->assertDatabaseCount('password_reset_tokens', 0);
@@ -497,6 +498,8 @@ class AdminAccountCreationTest extends TestCase
         try {
             $this->assertTrue($boot([])->run([PHP_BINARY, $artisan, 'migrate', '--force'])->successful());
             $this->assertTrue($boot([])->run([PHP_BINARY, $artisan, 'tinker', '--execute=App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "stale@example.test"]); App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "fresh@example.test"]);'])->successful());
+            $staleUuid = (string) (new \PDO('sqlite:'.$database))->query("SELECT uuid FROM users WHERE email = 'stale@example.test'")->fetchColumn();
+            $this->writeDotenv($root, array_replace($env, ['CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED' => $staleUuid]));
             $this->assertTrue($boot(['APP_CONFIG_CACHE' => $cache])->run([PHP_BINARY, $artisan, 'config:cache'])->successful());
             $cachedDigest = hash_file('sha256', $cache);
 

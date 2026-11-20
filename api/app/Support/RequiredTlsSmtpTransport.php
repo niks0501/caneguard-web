@@ -25,6 +25,9 @@ final class RequiredTlsSmtpTransport extends EsmtpTransport
         if ($scheme === '') {
             $scheme = ((int) ($config['port'] ?? 0)) === 465 ? 'smtps' : 'smtp';
         }
+        if (! in_array($scheme, ['smtp', 'smtps'], true)) {
+            throw new \InvalidArgumentException("Unsupported SMTP scheme [{$scheme}].");
+        }
         $autoTls = (bool) ($config['auto_tls'] ?? true);
 
         $transport = new self((string) $config['host'], (int) ($config['port'] ?? 0), $scheme === 'smtps' ? true : ($autoTls ? null : false));

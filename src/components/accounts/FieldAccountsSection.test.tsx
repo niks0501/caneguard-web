@@ -15,7 +15,7 @@ const active: api.FieldAccount = { uuid: "00000000-0000-4000-8000-000000000301",
 const disabled: api.FieldAccount = { ...active, is_active: false, access_version: 4, membership_state: "revoked", allowed_actions: ["restore"] };
 const notIssued: api.FieldAccount = { ...active, uuid: "00000000-0000-4000-8000-000000000302", name: "Unassigned Sample", membership_state: "not_issued", allowed_actions: [], denial_reasons: ["Legacy or unsupported identity requires controlled operator reconciliation."] };
 const unverified: api.FieldAccount = { ...disabled, uuid: "00000000-0000-4000-8000-000000000303", name: "Unverified Sample", allowed_actions: [], denial_reasons: ["Email not verified. Staff issuance is unavailable."] };
-const pending: api.FieldAccount = { ...active, uuid: "00000000-0000-4000-8000-000000000304", name: "Pending Sample", invite_pending: true };
+const pending: api.FieldAccount = { ...active, uuid: "00000000-0000-4000-8000-000000000304", name: "Pending Sample", email_verified: false, invite_pending: true };
 const meta = { page: 1, per_page: 25, total: 1 };
 function renderSection() {
   return render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><FieldAccountsSection /></MemoryRouter></QueryClientProvider>);
