@@ -150,23 +150,24 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * onboarded_at is set only when the holder sets a password; authority changes never touch it. Successful evidence
-     * rows still count until reconciliation marks the account, so late writes from an older release cannot reopen it.
-     *
-     * Verify-only rule: a verified email alone never completes onboarding. An account verified after the marker
-     * existed, with no password set and no evidence row, stays eligible for the operator fallback. Verified rows that
-     * predate the marker are marked once by the onboarding migration's backfill, not by this predicate.
+     * Onboarding is complete when the marker is set, the account was created by public signup (a holder-chosen
+     * password), or a successful password reset or change is on record. Email changes and authority changes never
+     * complete it, and a verified email alone does not either. Evidence is read live inside the caller's locked
+     * transaction, so a success row written by an older release after the backfill is honored immediately; the marker
+     * is only a fast path.
      */
     public function hasCompletedOnboarding(): bool
     {
-        return $this->onboarded_at !== null || SecurityAudit::query()
-            ->where('target_user_id', $this->getKey())
-            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
-            ->whereIn('action', SecurityAudit::ONBOARDING_EVIDENCE_ACTIONS)
-            ->exists();
+        return $this->onboarded_at !== null
+            || $this->registration_origin === 'public_signup'
+            || SecurityAudit::query()
+                ->where('target_user_id', $this->getKey())
+                ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
+                ->whereIn('action', SecurityAudit::ONBOARDING_EVIDENCE_ACTIONS)
+                ->exists();
     }
 
-    /** Marks accounts whose history records a holder-set password. Authority changes alone never mark an account. */
+    /** Marks accounts whose history records a holder-chosen password: a public signup, or a successful reset or change. */
     public static function backfillOnboardedAt(): int
     {
         $passwordSet = DB::table('security_audits')
@@ -177,7 +178,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return DB::table('users')
             ->whereNull('onboarded_at')
-            ->whereIn('id', $passwordSet)
+            ->where(fn ($query) => $query->whereIn('id', $passwordSet)->orWhere('registration_origin', 'public_signup'))
             ->update(['onboarded_at' => now()]);
     }
 

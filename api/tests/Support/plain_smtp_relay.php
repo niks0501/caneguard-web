@@ -1,6 +1,6 @@
 <?php
 
-/** Loopback SMTP relay that accepts plaintext and never offers STARTTLS; it logs every command the client sends. */
+/** Loopback SMTP relay that refuses EHLO and accepts only HELO, so clients take the plaintext fallback; it logs every command the client sends. */
 [, $port, $log] = $argv;
 
 $server = stream_socket_server("tcp://127.0.0.1:{$port}", $errno, $errstr);
@@ -15,7 +15,9 @@ while ($connection = @stream_socket_accept($server, 60)) {
     while (($line = fgets($connection)) !== false) {
         file_put_contents($log, $line, FILE_APPEND);
         $command = strtoupper(trim($line));
-        if (str_starts_with($command, 'EHLO') || str_starts_with($command, 'HELO')) {
+        if (str_starts_with($command, 'EHLO')) {
+            fwrite($connection, "502 5.5.1 EHLO not supported\r\n");
+        } elseif (str_starts_with($command, 'HELO')) {
             fwrite($connection, "250 plain relay\r\n");
         } elseif (str_starts_with($command, 'QUIT')) {
             fwrite($connection, "221 bye\r\n");

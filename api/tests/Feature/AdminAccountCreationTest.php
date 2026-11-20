@@ -67,6 +67,54 @@ class AdminAccountCreationTest extends TestCase
         return ['token' => (string) $query['token'], 'email' => (string) $query['email']];
     }
 
+    /**
+     * Boots Artisan from a temporary root that shares this checkout's code and vendor but reads only its own .env, so
+     * no developer dotenv file or inherited shell value can change what a subprocess sees.
+     *
+     * @param  array<string, string>  $env
+     */
+    private function isolatedApplication(array $env): string
+    {
+        $root = sys_get_temp_dir().'/caneguard-app-'.bin2hex(random_bytes(6));
+        mkdir($root.'/bootstrap/cache', 0700, true);
+        foreach (['framework/cache', 'framework/sessions', 'framework/views', 'logs'] as $directory) {
+            mkdir($root.'/storage/'.$directory, 0700, true);
+        }
+        foreach (['app', 'config', 'database', 'resources', 'routes', 'vendor', 'composer.json'] as $entry) {
+            symlink(base_path($entry), $root.'/'.$entry);
+        }
+        copy(base_path('artisan'), $root.'/artisan');
+        copy(base_path('bootstrap/app.php'), $root.'/bootstrap/app.php');
+        copy(base_path('bootstrap/providers.php'), $root.'/bootstrap/providers.php');
+        $this->writeDotenv($root, $env);
+
+        return $root;
+    }
+
+    /** @param  array<string, string>  $env */
+    private function writeDotenv(string $root, array $env): void
+    {
+        file_put_contents($root.'/.env', implode("\n", array_map(fn ($key, $value): string => $key.'='.$value, array_keys($env), $env))."\n");
+    }
+
+    private function removeTree(string $path): void
+    {
+        if (is_link($path) || is_file($path)) {
+            unlink($path);
+
+            return;
+        }
+        if (! is_dir($path)) {
+            return;
+        }
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry !== '.' && $entry !== '..') {
+                $this->removeTree($path.'/'.$entry);
+            }
+        }
+        rmdir($path);
+    }
+
     private function payload(array $override = []): array
     {
         return array_merge(['name' => 'New Person', 'email' => 'New.Person@example.test', 'role' => 'reviewer', 'current_password' => 'password'], $override);
@@ -393,51 +441,49 @@ class AdminAccountCreationTest extends TestCase
         $this->assertTrue(Hash::check('password', $newOwner->refresh()->password));
     }
 
-    public function test_documented_operator_invocation_reads_the_env_target_while_ordinary_invocation_uses_a_stale_cache(): void
+    public function test_documented_operator_invocation_reads_the_shared_env_target_and_leaves_the_cache_untouched(): void
     {
-        $artisan = base_path('artisan');
         $directory = sys_get_temp_dir().'/caneguard-operator-'.bin2hex(random_bytes(6));
         mkdir($directory, 0700);
-        $cache = $directory.'/config.php';
-        $absent = $directory.'/absent-config.php';
         $database = $directory.'/database.sqlite';
         touch($database);
-        $base = [
-            'DB_URL' => '',
+        $cache = $directory.'/config-cache.php';
+        $absent = $directory.'/absent-config.php';
+        $env = [
+            'APP_ENV' => 'local',
             'DB_CONNECTION' => 'sqlite',
-            'DB_DATABASE' => $database,
-            'APP_CONFIG_CACHE' => $absent,
+            'CACHE_STORE' => 'array',
             'CANEGUARD_PASSWORD_RESET_URL' => 'https://app.example.test/reset-password',
+            'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test',
         ];
-        $issuedFor = function ($result): ?string {
-            $this->assertTrue($result->successful(), $result->errorOutput());
-            parse_str((string) parse_url((string) strtok($result->output(), "\n"), PHP_URL_QUERY), $query);
-
-            return $query['email'] ?? null;
-        };
+        $root = $this->isolatedApplication($env);
+        $artisan = $root.'/artisan';
+        $boot = fn (array $environment) => Process::env(array_merge(['DB_URL' => '', 'DB_DATABASE' => $database], $environment));
+        $operatorLinks = fn (): int => (int) (new \PDO('sqlite:'.$database))
+            ->query("SELECT COUNT(*) FROM security_audits WHERE action = 'operator_link_issued'")->fetchColumn();
 
         try {
-            $this->assertTrue(Process::env($base)->run([PHP_BINARY, $artisan, 'migrate', '--force'])->successful());
-            $this->assertTrue(Process::env($base)->run([PHP_BINARY, $artisan, 'tinker', '--execute=App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "stale@example.test"]); App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "fresh@example.test"]);'])->successful());
-            $this->assertTrue(Process::env(array_replace($base, ['APP_CONFIG_CACHE' => $cache, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test']))->run([PHP_BINARY, $artisan, 'config:cache'])->successful());
-            $cached = file_get_contents($cache);
+            $this->assertTrue($boot([])->run([PHP_BINARY, $artisan, 'migrate', '--force'])->successful());
+            $this->assertTrue($boot([])->run([PHP_BINARY, $artisan, 'tinker', '--execute=App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "stale@example.test"]); App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "fresh@example.test"]);'])->successful());
+            $this->assertTrue($boot(['APP_CONFIG_CACHE' => $cache])->run([PHP_BINARY, $artisan, 'config:cache'])->successful());
+            $cachedDigest = hash_file('sha256', $cache);
 
-            $operatorLinks = fn (): int => (int) (new \PDO('sqlite:'.$database))
-                ->query("SELECT COUNT(*) FROM security_audits WHERE action = 'operator_link_issued'")->fetchColumn();
+            $this->writeDotenv($root, array_replace($env, ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test']));
 
-            $ordinary = Process::env(array_replace($base, ['APP_CONFIG_CACHE' => $cache, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test']))
-                ->run([PHP_BINARY, $artisan, 'auth:set-password-link']);
+            $ordinary = $boot(['APP_CONFIG_CACHE' => $cache])->run([PHP_BINARY, $artisan, 'auth:set-password-link']);
             $this->assertFalse($ordinary->successful());
             $this->assertSame(0, $operatorLinks());
 
-            $documented = $issuedFor(Process::env($base + ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test'])
-                ->run([PHP_BINARY, $artisan, 'auth:set-password-link']));
-            $this->assertSame('fresh@example.test', $documented);
+            $documented = $boot(['APP_CONFIG_CACHE' => $absent, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test'])
+                ->run(['env', '-u', 'CANEGUARD_OPERATOR_LINK_EMAIL', PHP_BINARY, $artisan, 'auth:set-password-link']);
+            $this->assertTrue($documented->successful(), $documented->errorOutput());
+            parse_str((string) parse_url((string) strtok($documented->output(), "\n"), PHP_URL_QUERY), $query);
+            $this->assertSame('fresh@example.test', $query['email'] ?? null);
             $this->assertSame(1, $operatorLinks());
-            $this->assertSame($cached, file_get_contents($cache));
+            $this->assertSame($cachedDigest, hash_file('sha256', $cache));
         } finally {
-            array_map('unlink', glob($directory.'/*') ?: []);
-            @rmdir($directory);
+            $this->removeTree($root);
+            $this->removeTree($directory);
         }
     }
 
@@ -479,14 +525,6 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseMissing('security_audits', ['target_user_id' => $marked->id, 'action' => 'operator_link_issued']);
     }
 
-    public function test_production_ses_and_postmark_round_robin_counts_as_delivery(): void
-    {
-        $this->app['env'] = 'production';
-        config(['mail.default' => 'pool', 'mail.mailers.pool' => ['transport' => 'roundrobin', 'mailers' => ['ses', 'postmark']]]);
-
-        $this->assertTrue(MailDelivery::canDeliver());
-    }
-
     public function test_production_failover_mailer_is_never_reported_as_delivered(): void
     {
         Notification::fake();
@@ -523,7 +561,7 @@ class AdminAccountCreationTest extends TestCase
         $this->assertNotNull($verified->refresh()->onboarded_at);
         $this->assertNotNull($passwordSet->refresh()->onboarded_at);
         $this->assertNull($failedReset->refresh()->onboarded_at);
-        $this->assertNotNull($emailChanged->refresh()->onboarded_at);
+        $this->assertNull($emailChanged->refresh()->onboarded_at);
     }
 
     public function test_reset_link_issued_for_a_previous_holder_cannot_reset_an_account_at_the_vacated_address(): void
@@ -558,14 +596,36 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id]);
     }
 
-    public function test_operator_link_refuses_an_account_with_unreconciled_email_change_evidence(): void
+    public function test_email_change_alone_does_not_complete_onboarding_for_the_operator_fallback(): void
     {
         config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'late-evidence@example.test']);
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'late-evidence@example.test']);
         app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_EMAIL_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $user);
 
+        $this->assertFalse($user->refresh()->hasCompletedOnboarding());
+        $this->artisan('auth:set-password-link')->assertSuccessful();
+    }
+
+    public function test_public_signup_account_with_a_holder_chosen_password_completes_onboarding(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'public-signup@example.test']);
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'public-signup@example.test', 'registration_origin' => 'public_signup']);
+
+        $this->assertTrue($user->hasCompletedOnboarding());
         $this->artisan('auth:set-password-link')->assertFailed();
-        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_onboarding_honors_a_password_reset_row_written_by_an_older_release_after_the_backfill(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'delayed-write@example.test']);
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'delayed-write@example.test']);
+        $this->artisan('auth:backfill-onboarding')->assertSuccessful();
+        $this->assertNull($user->refresh()->onboarded_at);
+
+        app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::OUTCOME_SUCCESS, target: $user);
+
+        $this->assertTrue($user->refresh()->hasCompletedOnboarding());
+        $this->artisan('auth:set-password-link')->assertFailed();
     }
 
     public function test_revoking_reset_links_before_a_rollback_invalidates_every_outstanding_link(): void
@@ -617,14 +677,14 @@ class AdminAccountCreationTest extends TestCase
         $this->assertGreaterThanOrEqual(0.2, (hrtime(true) - $started) / 1e9);
     }
 
-    public function test_backfill_recognizes_a_successful_legacy_email_change(): void
+    public function test_backfill_does_not_mark_an_account_whose_only_history_is_an_email_change(): void
     {
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'legacy-change@example.test']);
         app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_EMAIL_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $user);
 
         $this->artisan('auth:backfill-onboarding')->assertSuccessful();
 
-        $this->assertNotNull($user->refresh()->onboarded_at);
+        $this->assertNull($user->refresh()->onboarded_at);
     }
 
     public function test_pruning_keeps_successful_onboarding_evidence_and_drops_the_rest(): void
@@ -693,12 +753,18 @@ class AdminAccountCreationTest extends TestCase
     public function test_mail_require_tls_is_read_from_the_environment_on_a_fresh_boot(): void
     {
         $absent = sys_get_temp_dir().'/caneguard-mail-absent-'.bin2hex(random_bytes(4)).'.php';
-        foreach (['true' => true, 'false' => false] as $value => $expected) {
-            $result = Process::env(['DB_URL' => '', 'APP_CONFIG_CACHE' => $absent, 'MAIL_REQUIRE_TLS' => $value])
-                ->run([PHP_BINARY, base_path('artisan'), 'tinker', '--execute=echo json_encode(config("mail.mailers.smtp.require_tls"));']);
+        $root = $this->isolatedApplication(['APP_ENV' => 'local', 'CACHE_STORE' => 'array', 'MAIL_REQUIRE_TLS' => 'false']);
 
-            $this->assertTrue($result->successful(), $result->errorOutput());
-            $this->assertSame($expected, json_decode(trim($result->output()), true));
+        try {
+            foreach (['true' => true, 'false' => false] as $value => $expected) {
+                $result = Process::env(['DB_URL' => '', 'APP_CONFIG_CACHE' => $absent, 'MAIL_REQUIRE_TLS' => $value])
+                    ->run([PHP_BINARY, $root.'/artisan', 'tinker', '--execute=echo json_encode(config("mail.mailers.smtp.require_tls"));']);
+
+                $this->assertTrue($result->successful(), $result->errorOutput());
+                $this->assertSame($expected, json_decode(trim($result->output()), true));
+            }
+        } finally {
+            $this->removeTree($root);
         }
     }
 
@@ -724,9 +790,9 @@ class AdminAccountCreationTest extends TestCase
                 ->assertCreated()->assertJsonPath('invite_sent', false);
 
             $sent = is_file($log) ? (string) file_get_contents($log) : '';
-            $this->assertStringContainsString('EHLO', $sent);
-            $this->assertStringNotContainsString('AUTH', $sent);
-            $this->assertStringNotContainsString('MAIL FROM', $sent);
+            $this->assertMatchesRegularExpression('/^EHLO /m', $sent);
+            $this->assertMatchesRegularExpression('/^HELO /m', $sent);
+            $this->assertDoesNotMatchRegularExpression('/^(AUTH|MAIL FROM|RCPT TO|DATA)/m', $sent);
         } finally {
             proc_terminate($relay);
             proc_close($relay);

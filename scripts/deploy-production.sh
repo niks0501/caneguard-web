@@ -52,10 +52,9 @@ successful=0
 maintenance=0
 barrier=0
 restore_previous_release() {
-  if [[ "$(cd "$old/api" && php artisan list --raw)" == *"auth:revoke-reset-links "* ]]; then
-    ln -s "$old" "$root/.rollback-$$" || return 1
-    mv -Tf "$root/.rollback-$$" "$current" || return 1
-    return 0
+  if [[ "$(cd "$old/api" && php artisan list --raw)" != *"auth:rollback-barrier "* ]]; then
+    echo "ERROR: $old predates the rollback barrier; automatic rollback is refused and the new release stays active. Roll back by the operator procedure in docs/production-deployment.md." >&2
+    return 1
   fi
   maintenance=1
   (cd "$new/api" && php artisan down --retry=60) || {

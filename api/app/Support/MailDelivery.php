@@ -29,7 +29,7 @@ final class MailDelivery
             return (bool) config("mail.mailers.{$name}.require_tls");
         }
 
-        return ! in_array($transport, ['', 'log', 'array', 'failover'], true);
+        return ! in_array($transport, ['', 'log', 'array', 'failover', 'roundrobin'], true);
     }
 
     /** Public recovery resolves the account by email, as Laravel's broker does. */
