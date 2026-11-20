@@ -29,6 +29,23 @@ class PruneSecurityAuditsTest extends TestCase
         $this->assertDatabaseHas('security_audits', ['action' => SecurityAudit::ACTION_PRUNE_RUN, 'outcome' => SecurityAudit::OUTCOME_SUCCESS]);
     }
 
+    public function test_security_audit_prune_keeps_bootstrap_provenance_and_removes_other_old_records(): void
+    {
+        config(['caneguard.security_audit.retention_days' => 30]);
+        $old = now()->subDays(31);
+        SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'bootstrap'], 'created_at' => $old]);
+        SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'web'], 'created_at' => $old]);
+        SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_REGISTRATION, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => null, 'created_at' => $old]);
+
+        $this->artisan('auth:prune-security-audits')
+            ->expectsOutput('Pruned 2 security audit records.')
+            ->assertSuccessful();
+
+        $this->assertSame(['bootstrap'], SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_CREATED)
+            ->get()->map(fn (SecurityAudit $row) => $row->metadata['provisioning_channel'])->all());
+        $this->assertDatabaseMissing('security_audits', ['action' => SecurityAudit::ACTION_REGISTRATION]);
+    }
+
     public function test_security_audit_prune_keeps_the_records_when_its_run_record_cannot_be_written(): void
     {
         config(['caneguard.security_audit.retention_days' => 30]);

@@ -119,10 +119,10 @@ MAIL_MAILER=smtp   # plus the SMTP settings; a log or array mailer, or a failove
 ```
 Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
 - fails the deploy when the district code or name is blank; it creates the district when missing, and an existing district is never renamed;
-- when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set and no active admin exists, creates the administrator (display name `CaneGuard Administrator`) and emails a set-password link. No password goes in env. Creation and the email are one step: if the email cannot be sent, nothing is created and the deploy fails;
+- when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set and no active admin exists, creates the administrator (display name `CaneGuard Administrator`) and then emails a set-password link. No password goes in env. If the email cannot be sent, the deploy fails but the pending account is kept; the next deploy emails the link again until an invitation is recorded;
 - fails the deploy when the admin email already belongs to another account. Set it to an unused address and deploy again;
 - once an active administrator exists, leaves the admin variables alone. It sends no further emails. To reissue the link, use Forgot password;
-- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. An invalid admin email fails the deploy before activation.
+- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. These bootstrap rows are exempt from the security-audit retention prune, because a later deploy relies on them to recover a pending administrator. An invalid admin email fails the deploy before activation.
 
 Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
 

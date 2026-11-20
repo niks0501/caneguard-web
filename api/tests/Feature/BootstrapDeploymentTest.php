@@ -8,8 +8,10 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\Transport\ArrayTransport;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -166,34 +168,34 @@ class BootstrapDeploymentTest extends TestCase
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
         $outsideTransaction = DB::transactionLevel();
         $levelAtSend = null;
-        $this->app['events']->listen(NotificationSending::class, function () use (&$levelAtSend): bool {
+        $transport = $this->captureMail();
+        $this->app['events']->listen(NotificationSending::class, function () use (&$levelAtSend): void {
             $levelAtSend = DB::transactionLevel();
-
-            return false;
         });
 
         $this->artisan('caneguard:bootstrap')->assertSuccessful();
 
         $this->assertSame($outsideTransaction, $levelAtSend);
         $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
+        $this->assertSame(['owner@example.test'], $this->recipients($transport));
     }
 
     public function test_failed_send_keeps_the_committed_account_and_the_next_deploy_sends_the_link(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        $transport = $this->captureMail();
         $mailDown = true;
-        $this->app['events']->listen(NotificationSending::class, function () use (&$mailDown): bool {
+        $this->app['events']->listen(NotificationSending::class, function () use (&$mailDown): void {
             if ($mailDown) {
                 throw new \RuntimeException('mail down');
             }
-
-            return false;
         });
 
         $this->artisan('caneguard:bootstrap')->assertFailed();
 
         $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
         $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
+        $this->assertSame([], $this->recipients($transport));
 
         $mailDown = false;
         $this->travel(2)->minutes();
@@ -201,6 +203,7 @@ class BootstrapDeploymentTest extends TestCase
 
         $this->assertSame(1, User::query()->count());
         $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
+        $this->assertSame(['owner@example.test'], $this->recipients($transport));
     }
 
     public function test_pending_admin_created_outside_bootstrap_is_not_taken_over(): void
@@ -245,12 +248,7 @@ class BootstrapDeploymentTest extends TestCase
     public function test_failed_invite_audit_after_the_send_is_completed_by_the_next_deploy(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
-        $sends = 0;
-        $this->app['events']->listen(NotificationSending::class, function () use (&$sends): bool {
-            $sends++;
-
-            return false;
-        });
+        $transport = $this->captureMail();
         SecurityAudit::creating(function (SecurityAudit $audit): void {
             if ($audit->action === SecurityAudit::ACTION_ACCOUNT_INVITE) {
                 throw new \RuntimeException('audit store down');
@@ -268,12 +266,12 @@ class BootstrapDeploymentTest extends TestCase
 
         $this->assertSame('audit store down', $thrown?->getMessage());
         $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
-        $this->assertSame(1, $sends);
+        $this->assertSame(['owner@example.test'], $this->recipients($transport));
 
         $this->travel(2)->minutes();
         $this->artisan('caneguard:bootstrap')->assertSuccessful();
 
-        $this->assertSame(2, $sends);
+        $this->assertSame(['owner@example.test', 'owner@example.test'], $this->recipients($transport));
         $this->assertSame(1, User::query()->count());
         $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
     }
@@ -307,6 +305,25 @@ class BootstrapDeploymentTest extends TestCase
         $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry'])->assertFailed();
 
         $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)->count());
+    }
+
+    /** Routes the default mailer to an in-memory transport that records every message actually delivered to it. */
+    private function captureMail(): ArrayTransport
+    {
+        $transport = new ArrayTransport();
+        Mail::extend('capture', fn () => $transport);
+        config(['mail.default' => 'capture', 'mail.mailers.capture' => ['transport' => 'capture']]);
+
+        return $transport;
+    }
+
+    /** @return list<string> */
+    private function recipients(ArrayTransport $transport): array
+    {
+        return $transport->messages()
+            ->map(fn ($sent) => $sent->getOriginalMessage()->getTo()[0]->getAddress())
+            ->values()
+            ->all();
     }
 
     /** Puts a fake crontab first on PATH; a null body means no crontab is installed for the user. */
