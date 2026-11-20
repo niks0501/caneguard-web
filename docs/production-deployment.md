@@ -64,11 +64,10 @@ The code default is `v2.0-mobilenetv2,v1.0-mobilenetv2`, but the persistent shar
 CANEGUARD_ACCEPTED_MODEL_VERSIONS=v2.0-mobilenetv2,v1.0-mobilenetv2
 ```
 
-Then confirm the value the active release actually uses, which is the cached config (run as `ubuntu`):
+Then confirm the value the active release actually uses, which is the cached config (from an `ubuntu` shell, as `deploy`):
 
 ```sh
-cd /var/www/caneguard/current/api
-sudo php -r '$c = require "bootstrap/cache/config.php"; echo implode(",", $c["caneguard"]["accepted_model_versions"]), PHP_EOL;'
+sudo -u deploy php -r '$c = require "/var/www/caneguard/current/api/bootstrap/cache/config.php"; echo implode(",", $c["caneguard"]["accepted_model_versions"]), PHP_EOL;'
 ```
 
 It must print `v2.0-mobilenetv2,v1.0-mobilenetv2`. If it prints only `v1.0-mobilenetv2`, the cache is stale: run `php artisan config:cache` in the active release (as the deploy account, as the deploy script does) and repeat the check. Recognition only: an unlisted version still persists and shows the office warning.
