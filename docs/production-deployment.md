@@ -94,7 +94,7 @@ Staging checklist (as `deploy`, outside the release directories, except for the 
    sudo -u www-data test -x /var/www/caneguard/shared/api/storage/app/private/aerial
    ```
    Every command must succeed; use the actual configured paths if they differ. Repeat the permission provisioning and verification after replacing or modifying the venv, packages, model, or their paths.
-7. Only then set, in the shared `.env` (`shared/api/.env`), and no earlier. This flag only marks the check as **installed**; it does not turn it on:
+7. Only then set, in the shared `.env` (`shared/api/.env`), and no earlier. This flag only marks the check as **installed**; it does not turn it on. The Admin switch is stored in the database and survives this flag being unset: if you roll back by unsetting the flag while the switch is On, setting it again on a later deploy turns the check back on immediately. To keep the check dark after a rollback, turn it Off in Admin Settings before unsetting the flag:
    ```
    CANEGUARD_AERIAL_ANALYSIS_ENABLED=true
    CANEGUARD_AERIAL_PYTHON=/var/www/caneguard/shared/aerial-venv/bin/python

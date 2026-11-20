@@ -92,11 +92,14 @@ function useReportMutation<TInput>(
     mutationFn,
     onMutate: () => aerialOffObservationCount(),
     onSuccess: (report, _input, offsAtSend) => {
-      const offObservedWhileSaving = aerialOffObservationCount() !== offsAtSend;
-      queryClient.setQueryData<DiseaseReport>(
-        reportKeys.detail(reportId),
-        offObservedWhileSaving ? { ...report, aerialAnalyses: undefined } : report,
-      );
+      const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(reportId));
+      if (!cached || (cached.reviewVersion ?? 0) < (report.reviewVersion ?? 0)) {
+        const offObservedWhileSaving = aerialOffObservationCount() !== offsAtSend;
+        queryClient.setQueryData<DiseaseReport>(
+          reportKeys.detail(reportId),
+          offObservedWhileSaving ? { ...report, aerialAnalyses: undefined } : report,
+        );
+      }
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });
