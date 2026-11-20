@@ -121,7 +121,7 @@ class WebAccountsController extends Controller
     {
         Gate::authorize('create', User::class);
         $user = User::query()->where('uuid', $uuid)->where('role', User::ROLE_FIELD_REPORTER)->firstOrFail();
-        abort_if($user->hasVerifiedEmail() || ! $user->is_active, 409, 'This account has no pending invite.');
+        abort_if($user->hasCompletedOnboarding() || ! $user->is_active, 409, 'This account has no pending invite.');
 
         $status = $resend->handle($request->user(), $user);
         abort_if($status === MailDelivery::NOT_PENDING, 409, 'This account has no pending invite.');
@@ -156,7 +156,7 @@ class WebAccountsController extends Controller
         $user = User::query()->where('uuid', $uuid)->firstOrFail();
         Gate::authorize('inspect', $user);
         $events = SecurityAudit::query()->with('actor')->where('target_user_id', $user->id)
-            ->whereIn('action', ['role_change', 'account_status_change', 'web_account_changed', 'district_access_changed', 'account_created', 'account_invite_sent', SecurityAudit::ACTION_OPERATOR_LINK, 'account_review_changed', 'district_reporting_settings_changed', 'report_approved', 'report_send_requested'])
+            ->whereIn('action', ['role_change', 'account_status_change', 'web_account_changed', 'district_access_changed', 'account_created', 'account_invite_sent', 'account_review_changed', 'district_reporting_settings_changed', 'report_approved', 'report_send_requested'])
             ->orderByDesc('created_at')->orderByDesc('id')->limit(25)->get();
 
         return response()->json(['data' => $events->map(fn (SecurityAudit $event) => [

@@ -35,11 +35,6 @@ final class MailDelivery
      */
     public static function sendResetLink(array $credentials, bool $onboardingOnly = false): string
     {
-        if (! self::canDeliver()) {
-            return Password::INVALID_USER;
-        }
-        app(AuthUrlBuilder::class)->assertPasswordResetUrl();
-
         $broker = Password::broker();
         $table = (string) config('auth.passwords.users.table', 'password_reset_tokens');
         $user = null;
@@ -47,16 +42,17 @@ final class MailDelivery
         $issuedHash = null;
         $previous = [];
         $status = DB::transaction(function () use ($broker, $table, $credentials, $onboardingOnly, &$user, &$token, &$issuedHash, &$previous): string {
-            $found = $broker->getUser($credentials);
-            if ($found === null) {
+            // The account lock is taken before any other read, so the throttle and the rollback snapshot see committed token state.
+            $user = User::query()->where('email', $credentials['email'])->lockForUpdate()->first();
+            if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasCompletedOnboarding())) {
+                return self::NOT_PENDING;
+            }
+            if (! self::canDeliver()) {
                 return Password::INVALID_USER;
             }
-            $user = User::query()->whereKey($found->getAuthIdentifier())->lockForUpdate()->first();
+            app(AuthUrlBuilder::class)->assertPasswordResetUrl();
             if ($user === null) {
                 return Password::INVALID_USER;
-            }
-            if ($onboardingOnly && (! $user->is_active || $user->hasVerifiedEmail())) {
-                return self::NOT_PENDING;
             }
             if ($broker->getRepository()->recentlyCreatedToken($user)) {
                 return Password::RESET_THROTTLED;

@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Auth\ResendWebAccountInvite;
 use App\Actions\Auth\ResetPasswordAction;
 use App\Models\AccountAccessEvent;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
+use App\Support\MailDelivery;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Events\NotificationSending;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Tests\Support\FakeSmtpMailbox;
 use Tests\TestCase;
 
@@ -130,7 +133,7 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id, 'action' => 'account_invite_sent']);
         $this->actingAs(User::factory()->admin()->create(), 'web')
             ->getJson('/api/v1/admin/accounts/'.$user->uuid.'/events')
-            ->assertOk()->assertJsonFragment(['action' => 'operator_link_issued']);
+            ->assertOk()->assertJsonMissing(['action' => 'operator_link_issued']);
 
         $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
         $user->refresh();
@@ -182,6 +185,7 @@ class AdminAccountCreationTest extends TestCase
         $this->productionMail();
         config(['mail.mailers.smtp.require_tls' => true]);
         User::factory()->reviewer()->unverified()->create(['email' => 'race@example.test']);
+        User::factory()->reviewer()->unverified()->create(['email' => 'used@example.test']);
 
         $this->travel(2)->minutes();
         $superseded = $this->issueOperatorLink('race@example.test');
@@ -197,19 +201,21 @@ class AdminAccountCreationTest extends TestCase
         $this->assertTrue($this->redeemsLink($later, 'Newer-Passphrase!42'));
 
         $this->travel(2)->minutes();
-        $pre = $this->issueOperatorLink('race@example.test');
+        $pre = $this->issueOperatorLink('used@example.test');
         $this->travel(2)->minutes();
         $used = null;
-        Event::listen(NotificationSending::class, function () use (&$used): void {
-            $used = $this->issueOperatorLink('race@example.test');
-            app(ResetPasswordAction::class)->handle(
+        $intervening = null;
+        Event::listen(NotificationSending::class, function () use (&$used, &$intervening): void {
+            $used = $this->issueOperatorLink('used@example.test');
+            $intervening = app(ResetPasswordAction::class)->handle(
                 ['email' => $used['email'], 'token' => $used['token'], 'password' => 'Used-Passphrase!43', 'password_confirmation' => 'Used-Passphrase!43'],
                 fn ($user, $password) => $user->forceFill(['password' => Hash::make($password)])->save(),
             );
             throw new \RuntimeException('smtp unavailable');
         });
-        $this->postWeb('/forgot-password', ['email' => 'race@example.test'])->assertAccepted();
+        $this->postWeb('/forgot-password', ['email' => 'used@example.test'])->assertAccepted();
         Event::forget(NotificationSending::class);
+        $this->assertSame(Password::PASSWORD_RESET, $intervening);
         $this->assertFalse($this->redeemsLink($pre, 'Revived-Passphrase!44'));
         $this->assertFalse($this->redeemsLink($used, 'Replayed-Passphrase!45'));
     }
@@ -287,6 +293,43 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:set-password-link')->assertFailed();
         $this->assertDatabaseCount('password_reset_tokens', 0);
         $this->assertDatabaseMissing('security_audits', ['action' => 'operator_link_issued']);
+    }
+
+    /** Completes onboarding through the operator link, then changes the address through the account endpoint, which clears verification. */
+    private function onboardThenChangeEmail(string $email): User
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        $this->pilotDistrict();
+        $user = User::factory()->fieldReporter()->unverified()->create(['email' => $email]);
+        $query = $this->issueOperatorLink($email);
+        $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
+
+        $this->actingAs($user->refresh(), 'web')
+            ->patchJson('/api/v1/auth/email', ['email' => 'changed-'.$email, 'current_password' => 'Str0ng-Passphrase!42'])
+            ->assertStatus(202);
+        $this->assertNull($user->refresh()->email_verified_at);
+
+        return $user;
+    }
+
+    public function test_operator_link_refuses_an_onboarded_account_whose_new_email_is_unverified(): void
+    {
+        $user = $this->onboardThenChangeEmail('moved@example.test');
+
+        config(['caneguard.auth.operator_link_email' => 'changed-moved@example.test']);
+        $this->artisan('auth:set-password-link')->assertFailed();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+        $this->assertSame(1, SecurityAudit::query()->where('target_user_id', $user->id)->where('action', 'operator_link_issued')->count());
+    }
+
+    public function test_resend_refuses_an_onboarded_account_whose_new_email_is_unverified_even_when_mail_cannot_deliver(): void
+    {
+        $user = $this->onboardThenChangeEmail('resend@example.test');
+
+        $this->productionMail();
+        $status = app(ResendWebAccountInvite::class)->handle(User::factory()->admin()->create(), $user);
+        $this->assertSame(MailDelivery::NOT_PENDING, $status);
+        $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
     public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void

@@ -62,12 +62,12 @@ final class AuthUrlBuilder
         $url = trim((string) config("caneguard.auth.{$key}"));
         $parts = parse_url($url);
 
-        if ($url === '' || $parts === false || ! isset($parts['scheme'], $parts['host']) || isset($parts['fragment'])) {
-            throw new LogicException("The caneguard.auth.{$key} value must be an absolute URL without a fragment.");
+        if ($url === '' || $parts === false || ! isset($parts['scheme'], $parts['host'])) {
+            throw new LogicException("The caneguard.auth.{$key} value must be an absolute URL.");
         }
 
-        if (($parts['query'] ?? '') !== '' || isset($parts['fragment']) || isset($parts['user']) || isset($parts['pass'])) {
-            throw new LogicException("The caneguard.auth.{$key} value must not contain a query, fragment or credentials.");
+        if (isset($parts['fragment']) || isset($parts['user']) || isset($parts['pass'])) {
+            throw new LogicException("The caneguard.auth.{$key} value must not contain a fragment or credentials.");
         }
 
         if (app()->environment('production') && $parts['scheme'] !== 'https') {

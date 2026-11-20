@@ -22,7 +22,7 @@ class IssueSetPasswordLink extends Command
     {
         $email = trim((string) config('caneguard.auth.operator_link_email'));
         if ($email === '') {
-            $this->error('Set CANEGUARD_OPERATOR_LINK_EMAIL, then refresh the config cache.');
+            $this->error('Set CANEGUARD_OPERATOR_LINK_EMAIL, then refresh the config cache as docs/production-deployment.md describes.');
 
             return self::FAILURE;
         }
@@ -40,7 +40,7 @@ class IssueSetPasswordLink extends Command
             if ($user === null || ! $user->is_active) {
                 return 'No active account matches that email.';
             }
-            if ($user->hasVerifiedEmail()) {
+            if ($user->hasCompletedOnboarding()) {
                 return 'This account has already completed onboarding. The account holder can use Forgot Password instead.';
             }
 
