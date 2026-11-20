@@ -54,7 +54,7 @@ final class ReplayAcceptedIntake
         // Report keys are scoped to the reporter, so another user's key is simply a new record.
         $report = Report::query()
             ->where('reporter_id', $userId)
-            ->where('client_uuid', $key)
+            ->clientUuid($key)
             ->first();
 
         if (! $report) {

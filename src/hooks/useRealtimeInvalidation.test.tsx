@@ -26,6 +26,7 @@ vi.mock("../config/env", () => ({
     reverbPort: 8080,
     reverbScheme: "http",
   },
+  mockDataAvailable: false,
 }));
 
 vi.mock("../realtime/echo", () => ({

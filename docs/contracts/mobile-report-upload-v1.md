@@ -75,6 +75,12 @@ mobile producer domain ⊆ mobile-report-upload-v1 ⊆ Laravel accepted domain
 The fast trusted contract gate checks this relationship at the artifact, producer, and Laravel consumer boundaries.
 It supplements rather than replaces P0F, whose separate role is to prove the complete Mobile -> API -> Web -> API -> Mobile system flow.
 
+## Idempotency and reply
+
+Idempotency is keyed on the reporter and `client_uuid`. The API normalizes that key to lowercase before it stores or looks it up, so a retry that differs only in case returns the original report (`200`) and the reply carries the stored key; a corrected submission needs a new `client_uuid`.
+
+The reply is the mobile upload resource; the artifact's `response` block declares the `data` keys it carries. The artifact gate requires that block, so a reply key cannot be added, removed, or retyped without updating the contract. It carries no office review actors, case history, audit entries, or reporter email; office actions stay on the Web report read endpoints.
+
 ## Validation boundary
 
 The Laravel request compiles its validation rules from the JSON artifact through `App\Contracts\MobileReportUploadContract`.
@@ -89,13 +95,13 @@ The existing mobile upload feature tests continue to cover idempotency, review p
 
 A backward-compatible widening remains in v1 when it preserves every existing field name, wire encoding, accepted meaning, persistence meaning, and previously valid payload.
 
-Examples of v1 widening include adding an optional field while preserving the undeclared-field policy, accepting an additional enum value without changing existing meanings, increasing a text or numeric maximum, lowering a numeric minimum, or adding an image format.
+Examples of v1 widening include adding an optional field while preserving the undeclared-field policy, accepting an additional enum value without changing existing meanings, increasing a text or numeric maximum, lowering a numeric minimum, adding an image format, or adding upload reply keys without renaming or changing an existing one.
 
 Increasing the image maximum is a v1 widening only when existing v1 consumers remain safe with the wider value.
 
-A new major contract version is required for a removed or renamed field, a changed multipart encoding or type, a newly required field, a newly invalid existing value, a tighter text or numeric boundary, a narrower UUID or array domain, or a removed image format.
+A new major contract version is required for a removed or renamed multipart request field, a changed multipart encoding or type, a newly required field, a newly invalid existing value, a tighter text or numeric boundary, a narrower UUID or array domain, or a removed image format.
 
-A new major version is also required for changes to enum meaning, disease classes, conditional location requirements, null and empty-value semantics, server-derived metadata, or persistence semantics.
+A new major version is also required for a removed upload reply key or a changed reply value type, and for changes to enum meaning, disease classes, conditional location requirements, null and empty-value semantics, server-derived metadata, or persistence semantics.
 
 The v1 artifact's `versioning` object is the machine-readable record of these compatibility rules.
 

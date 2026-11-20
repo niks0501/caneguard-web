@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../api/ApiError";
-import { env } from "../config/env";
+import { env, mockDataAvailable } from "../config/env";
 import {
   getCurrentUser,
   loginRequest,
@@ -35,7 +35,7 @@ const initialSnapshot: AuthSnapshot = {
 };
 
 async function resolveSessionSnapshot(): Promise<AuthSnapshot> {
-  if (env.dataSource === "mock") {
+  if (mockDataAvailable && env.dataSource === "mock") {
     return {
       status: "authenticated",
       user: mockUser,
@@ -103,7 +103,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [queryClient]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    if (env.dataSource === "mock") {
+    if (mockDataAvailable && env.dataSource === "mock") {
       setSnapshot({
         status: "authenticated",
         user: mockUser,
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const logout = useCallback(async () => {
-    if (env.dataSource === "mock") {
+    if (mockDataAvailable && env.dataSource === "mock") {
       queryClient.clear();
       setSnapshot({
         status: "unauthenticated",

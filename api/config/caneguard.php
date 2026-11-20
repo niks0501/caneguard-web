@@ -72,7 +72,7 @@ return [
     // Experimental aerial canopy check on the case page. Off by default; the
     // routes 404 and the case response carries no aerial field while off.
     'aerial' => [
-        'enabled' => env('CANEGUARD_AERIAL_ANALYSIS_ENABLED', false),
+        'enabled' => filter_var(env('CANEGUARD_AERIAL_ANALYSIS_ENABLED', false), FILTER_VALIDATE_BOOL),
         'python' => env('CANEGUARD_AERIAL_PYTHON', 'python3'),
         'model_path' => env('CANEGUARD_AERIAL_MODEL_PATH'),
         'model_version' => 'aerial-v3',

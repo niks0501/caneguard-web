@@ -33,6 +33,7 @@ The workflow refuses unknown host keys. Do not use `ssh-keyscan` as an unverifie
 - A server lock prevents simultaneous releases. Each release gets a unique directory.
 - Server links production `.env` and `storage`, installs Composer dependencies without dev packages, prepares Laravel, and runs `migrate --force` against the existing database.
 - After migration succeeds, it atomically switches `current` to the new code and verifies HTTPS API readiness and the frontend.
+- The frontend check fetches `/` and fails with `SPA shell served without a CSP nonce` when the built `__CSP_NONCE__` placeholder is still present. Nginx must route the shell through `index.php`, as the Laravel route substitutes the per-response CSP nonce into the theme script; a static `api/public/index.html` leaves the placeholder in place and trips this check.
 - On an activation health-check failure, it restores the old code symlink. **Database migrations are not rolled back.** This is a code rollback, not a full transactional deploy.
 - No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production.
 - Existing previous releases are retained. No automatic pruning.
@@ -52,10 +53,25 @@ After a deployment fix is merged, start a **new** dispatch and verify its SHA co
 
 The workflow needs the dedicated `deploy` key; your personal workstation SSH key is not needed. View Actions logs after each run. A passed deployment should show `PASS: Active release`.
 
+## Shared `.env` template
+`api/.env.production.example` lists the production values (HTTPS `FRONTEND_URL`, host-only session cookie, `SANCTUM_STATEFUL_DOMAINS`, MySQL, `BROADCAST_CONNECTION=null`, `LOG_LEVEL=warning`). Do not copy `api/.env.example` to production: its `APP_ENV=local`, `SESSION_DOMAIN=localhost`, localhost Sanctum domains, `LOG_LEVEL=debug` and `BROADCAST_CONNECTION=reverb` break sign-in (419 on `/login`, 401 right after it) or stop the app booting. `php artisan db:seed` refuses to run in production.
+
+## Server upload limits (check before relying on photo uploads)
+The deploy workflow and both preflights do not check the web server's upload limits, and the phone sends the original photo (the contract allows 10 MiB). Check these on the server, as `ubuntu`, before a go-live and after any PHP or nginx change:
+
+| Layer | Setting | Needs | Check |
+|---|---|---|---|
+| nginx | `client_max_body_size` | `16m` or more (default 1 MB answers 413 with an HTML page) | `sudo nginx -T 2>/dev/null \| grep client_max_body_size` |
+| PHP-FPM | `upload_max_filesize` | `12M` or more (default 2M) | `php-fpm8.3 -i \| grep -E '^(upload_max_filesize\|post_max_size)'` on the FPM binary, not the CLI |
+| PHP-FPM | `post_max_size` | `16M` or more (default 8M) | same command |
+| nginx | `fastcgi_read_timeout` | above `60s` only if aerial analysis is on (it runs inside the web request) | `sudo nginx -T 2>/dev/null \| grep fastcgi_read_timeout` |
+
+A limit that is too low makes the phone file the report as a non-retryable failure, so it stays on the phone. Verify with a real photo near 10 MiB after changing a limit: the upload should answer `201`, not `413` or `422`.
+
 ## Weekly send needs operations that production does not run yet
 Production currently runs no queue worker and no mail. Until both are provisioned:
 - Weekly send must stay off (`CANEGUARD_WEEKLY_SEND_ENABLED=false`). A send is queued on the `database` queue and, with no `queue:work` process, would stay `pending` forever. The Send control is hidden and the page says **Office delivery gate closed.**
-- Keep `BROADCAST_CONNECTION=log` in the shared production `.env` while `VITE_REALTIME_ENABLED` is `false`. Queued broadcast events otherwise accumulate unprocessed in the `jobs` table.
+- Set `BROADCAST_CONNECTION=null` in the shared production `.env` while `VITE_REALTIME_ENABLED` is `false`, before the deploy that carries this change. `scripts/deploy-production.sh` runs `config:cache` in each new release, so a release built after the edit picks it up. Editing the shared file alone does not change the active release: its cached config keeps `log` until a deploy or `php artisan config:cache` runs. With `null`, `NewCaseSubmitted` and `CaseAttentionChanged` still dispatch, but Laravel does not queue their broadcasts, so nothing accumulates in the `jobs` table. `log` does not prevent that: Laravel queues a broadcast job for every driver, `log` included, and a worker started later would flush the whole stale backlog at once. Never set `reverb` without the `REVERB_*` keys and a running Reverb server; the app fails at boot (`routes/channels.php`), and a `config:cache` in the live release would take the site down.
 
 Enabling the send flag requires a supervised `php artisan queue:work` and working SMTP first.
 

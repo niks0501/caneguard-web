@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import caneGuardLogoFlat from "../assets/brand/CaneGuard_logo_flat.svg";
@@ -37,6 +37,9 @@ export function LoginPage() {
   const navigate = useNavigate();
   const routeState = (location.state ?? {}) as LoginLocationState;
   const destination = safeDestination(routeState.from);
+  useEffect(() => {
+    document.title = "Sign in | CaneGuard";
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

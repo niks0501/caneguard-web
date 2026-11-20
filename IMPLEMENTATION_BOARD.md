@@ -142,6 +142,9 @@ is marked complete only after its required automated checks pass.
 - `npm run check:web`: passed; 9 frontend test files, 19 tests, plus lint,
   typecheck, and production build
 - `VITE_DATA_SOURCE=mock npm run build`: passed
+- Annotation (2026-11-20): that build still compiles, but a production bundle
+  configured with `VITE_DATA_SOURCE=mock` now stops at load
+  (`src/config/env.ts`); mock repositories are development and test only.
 - `npm run check:all`: passed; 31 Laravel tests, 161 assertions
 - `npm run lint`, `npm run typecheck`, and `npm run build`: passed
 - Local commit: `3bce8a2 feat: add web API data infrastructure`

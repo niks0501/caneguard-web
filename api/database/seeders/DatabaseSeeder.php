@@ -17,6 +17,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new LogicException('DatabaseSeeder refuses to run in production.');
+        }
+
         $accounts = new DemoAccounts;
         $users = $accounts->validatedUsers();
 

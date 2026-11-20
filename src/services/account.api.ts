@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { axiosClient } from "../api/axiosClient";
-import { env } from "../config/env";
+import { env, mockDataAvailable } from "../config/env";
 
 export interface MobileDevice {
   id: number;
@@ -66,12 +66,12 @@ let mockDevices: MobileDevice[] = [
 export async function changePassword(
   input: ChangePasswordInput,
 ): Promise<{ message: string }> {
-  if (env.dataSource === "mock") {
+  if (mockDataAvailable && env.dataSource === "mock") {
     if (!input.currentPassword) {
       throw new Error("The current password is required.");
     }
-    if (input.password.length < 8) {
-      throw new Error("The password must be at least 8 characters.");
+    if ([...input.password].length < 15) {
+      throw new Error("The password must be at least 15 characters.");
     }
     if (input.password !== input.passwordConfirmation) {
       throw new Error("The password confirmation does not match.");
@@ -90,7 +90,7 @@ export async function changePassword(
 export async function changeEmail(
   input: ChangeEmailInput,
 ): Promise<{ message: string }> {
-  if (env.dataSource === "mock") {
+  if (mockDataAvailable && env.dataSource === "mock") {
     if (!input.currentPassword) {
       throw new Error("The current password is required.");
     }
@@ -108,7 +108,7 @@ export async function changeEmail(
 }
 
 export async function listMobileDevices(): Promise<MobileDevice[]> {
-  if (env.dataSource === "mock") {
+  if (mockDataAvailable && env.dataSource === "mock") {
     return [...mockDevices];
   }
 
@@ -126,7 +126,7 @@ export async function listMobileDevices(): Promise<MobileDevice[]> {
 }
 
 export async function revokeMobileDevice(id: number): Promise<{ message: string }> {
-  if (env.dataSource === "mock") {
+  if (mockDataAvailable && env.dataSource === "mock") {
     mockDevices = mockDevices.filter((d) => d.id !== id);
     return { message: "Device revoked successfully." };
   }

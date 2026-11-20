@@ -1,4 +1,4 @@
-import { env } from "../config/env";
+import { env, mockDataAvailable } from "../config/env";
 import { ApiFieldSurveysRepository } from "../data/api/ApiFieldSurveysRepository";
 import type { FieldSurveysRepository } from "../data/contracts/FieldSurveysRepository";
 import { MockFieldSurveysRepository } from "../data/mock/MockFieldSurveysRepository";
@@ -6,7 +6,7 @@ import { MockFieldSurveysRepository } from "../data/mock/MockFieldSurveysReposit
 export function createFieldSurveysRepository(
   dataSource: "api" | "mock" = env.dataSource,
 ): FieldSurveysRepository {
-  return dataSource === "mock"
+  return mockDataAvailable && dataSource === "mock"
     ? new MockFieldSurveysRepository()
     : new ApiFieldSurveysRepository();
 }

@@ -106,8 +106,13 @@ if (($body["data"]["status"] ?? null) !== "ok" ||
     fwrite(STDERR, "API readiness failed".PHP_EOL);
     exit(1);
 }'
-curl --fail --silent --show-error --max-time 20 https://caneguard.online/ |
-  grep -qi '<html'
+root_shell="$(curl --fail --silent --show-error --max-time 20 https://caneguard.online/)"
+grep -qi '<html' <<<"$root_shell"
+# A static index served by Nginx bypasses the per-response CSP nonce substitution.
+if grep -q '__CSP_NONCE__' <<<"$root_shell"; then
+  echo "SPA shell served without a CSP nonce" >&2
+  exit 1
+fi
 successful=1
 echo "PASS: Active release $release_id"
 echo "Rollback reference: $old"

@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-query";
 import { AlertTriangle, LoaderCircle, Wifi, WifiOff } from "lucide-react";
 import { isTransientServerError } from "../../app/queryClient";
-import { env } from "../../config/env";
+import { env, mockDataAvailable } from "../../config/env";
 import { useApiConnectivity } from "../../api/apiConnectivity.context";
 
 type ServerStatusValue =
@@ -79,7 +79,7 @@ export function ServerStatus({
           ? "Connected"
           : apiReachability === "checking"
             ? "Checking"
-            : env.dataSource === "mock"
+            : mockDataAvailable && env.dataSource === "mock"
               ? "Local data"
               : "Not checked";
   const statusLabel = {

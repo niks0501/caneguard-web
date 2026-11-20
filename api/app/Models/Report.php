@@ -620,6 +620,17 @@ class Report extends Model
         return app(DistrictAccess::class)->scope($query, $user, $ownerOnly);
     }
 
+    /**
+     * Pre-change uploads may hold an upper-case client_uuid, so match without case.
+     *
+     * @param  Builder<Report>  $query
+     * @return Builder<Report>
+     */
+    public function scopeClientUuid(Builder $query, string $clientUuid): Builder
+    {
+        return $query->whereRaw('LOWER(client_uuid) = ?', [strtolower($clientUuid)]);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'uuid';

@@ -28,6 +28,8 @@ class StoreReport
     public function handle(User $reporter, array $data, UploadedFile $image): array
     {
         app(DistrictAccess::class)->requireMobileCapability($reporter, 'report:submit');
+        // Same normalisation as ReplayAcceptedIntake, so one key never lands twice.
+        $data['client_uuid'] = strtolower((string) $data['client_uuid']);
         $existing = $this->findExisting($reporter, $data['client_uuid']);
 
         if ($existing) {
@@ -83,7 +85,7 @@ class StoreReport
     {
         $report = Report::query()->visibleTo($reporter)
             ->whereBelongsTo($reporter, 'reporter')
-            ->where('client_uuid', $clientUuid)
+            ->clientUuid($clientUuid)
             ->first();
 
         return $report ? $this->load($report) : null;

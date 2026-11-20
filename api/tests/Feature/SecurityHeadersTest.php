@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class SecurityHeadersTest extends TestCase
@@ -25,6 +26,36 @@ class SecurityHeadersTest extends TestCase
             );
 
         $this->assertFalse($response->headers->has('Strict-Transport-Security'));
+    }
+
+    public function test_served_spa_shell_nonces_its_inline_theme_script_per_response(): void
+    {
+        $index = public_path('index.html');
+        $original = is_file($index) ? file_get_contents($index) : null;
+        copy(base_path('../index.html'), $index);
+
+        try {
+            $first = $this->get('/login')->assertOk();
+            $second = $this->get('/login')->assertOk();
+
+            $firstNonce = $this->themeScriptNonce($first);
+            $this->assertNotSame($firstNonce, $this->themeScriptNonce($second));
+        } finally {
+            $original === null ? @unlink($index) : file_put_contents($index, $original);
+        }
+    }
+
+    private function themeScriptNonce(TestResponse $response): string
+    {
+        $policy = (string) $response->headers->get('Content-Security-Policy');
+        $this->assertSame(1, preg_match("/script-src 'self' 'nonce-([^']+)'/", $policy, $policyMatch));
+
+        $html = (string) $response->getContent();
+        $this->assertSame(1, preg_match('/<script nonce="([^"]+)">/', $html, $scriptMatch));
+        $this->assertSame($policyMatch[1], $scriptMatch[1]);
+        $this->assertStringNotContainsString('__CSP_NONCE__', $html);
+
+        return $scriptMatch[1];
     }
 
     public function test_html_responses_use_a_nonce_for_inline_content(): void

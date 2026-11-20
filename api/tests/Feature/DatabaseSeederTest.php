@@ -15,12 +15,30 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use LogicException;
 use Tests\Support\ReportMetricExpectations;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_production_refuses_even_a_forced_demo_seed_without_writing_anything(): void
+    {
+        config(['caneguard.pilot_district_code' => 'demo-pilot']);
+        $this->app->instance('env', 'production');
+        try {
+            $this->artisan('db:seed', ['--class' => DatabaseSeeder::class, '--force' => true])->run();
+            $this->fail('Production must refuse the demo seed.');
+        } catch (LogicException $exception) {
+            $this->assertSame('DatabaseSeeder refuses to run in production.', $exception->getMessage());
+        } finally {
+            $this->app->instance('env', 'testing');
+        }
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('reports', 0);
+        $this->assertDatabaseCount('districts', 0);
+    }
 
     public function test_full_seed_rerun_preserves_identities_and_repairs_district_stamps(): void
     {

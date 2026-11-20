@@ -285,7 +285,10 @@ class MobileReportSecurityContractMySqlTest extends TestCase
             ->assertJsonPath('data.identity.client_uuid', $clientUuid)
             ->assertJsonPath('data.review.status', $before->review_status)
             ->assertJsonPath('data.review.notes', $before->review_notes)
-            ->assertJsonPath('data.review.reviewer.uuid', $reviewer->uuid)
+            ->assertJsonMissingPath('data.review.reviewer')
+            ->assertJsonMissingPath('data.reporter.email')
+            ->assertJsonMissingPath('data.case_history')
+            ->assertJsonMissingPath('data.audit')
             ->assertJsonPath('data.version', $before->lock_version);
 
         $after = $report->fresh();

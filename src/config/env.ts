@@ -44,3 +44,15 @@ export function parseEnv(source: Record<string, unknown>): AppEnv {
 }
 
 export const env = parseEnv(import.meta.env);
+
+/**
+ * Mock repositories and the mock sign-in exist for local development and
+ * tests only. Vite replaces `import.meta.env.PROD` with a literal in a
+ * production build, so every `mockDataAvailable && ...` branch is dead code
+ * and the mock modules are tree-shaken out of the shipped bundle.
+ */
+export const mockDataAvailable = !import.meta.env.PROD;
+
+if (!mockDataAvailable && env.dataSource === "mock") {
+  throw new Error("VITE_DATA_SOURCE=mock is not allowed in a production build.");
+}
