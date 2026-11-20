@@ -62,10 +62,19 @@ class SecurityHeaders
             ))
             : "'none'";
 
+        // The SPA shell draws MapLibre maps: hosted style, tiles and glyphs from the
+        // allowlisted origin, plus blob workers. Report documents get none of it.
+        $mapOrigins = $isReportDocument ? '' : ' '.implode(' ', array_filter(
+            (array) config('caneguard.map_origins', []),
+            'is_string',
+        ));
+        $mapWorkers = $isReportDocument ? '' : '; worker-src blob:; child-src blob:';
+        $mapImages = $isReportDocument ? '' : ' blob:';
+
         $response->headers->set(
             'Content-Security-Policy',
             $isHtml
-                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'; img-src 'self' data:; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'"
+                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'; img-src 'self' data:{$mapImages}{$mapOrigins}; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'{$mapOrigins}{$mapWorkers}"
                 : "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
         );
         if ($allowsCrossOriginFrame) {

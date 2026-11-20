@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -36,6 +37,7 @@ class ReportAerialAnalysisTest extends TestCase
 
     private function enable(): void
     {
+        DB::table('feature_switches')->updateOrInsert(['name' => 'aerial_analysis'], ['enabled' => true]);
         config([
             'caneguard.aerial.enabled' => true,
             'caneguard.aerial.model_path' => '/srv/aerial/model.onnx',
@@ -80,6 +82,58 @@ class ReportAerialAnalysisTest extends TestCase
             ->assertOk()
             ->assertJsonMissingPath('data.aerial_analyses');
         $this->assertDatabaseCount('report_aerial_analyses', 0);
+    }
+
+    public function test_installed_but_not_switched_on_stays_dark(): void
+    {
+        config(['caneguard.aerial.enabled' => true]);
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])->assertNotFound();
+        $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()->assertJsonMissingPath('data.aerial_analyses');
+    }
+
+    public function test_switched_on_without_the_install_flag_stays_dark(): void
+    {
+        DB::table('feature_switches')->insert(['name' => 'aerial_analysis', 'enabled' => true]);
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])->assertNotFound();
+    }
+
+    public function test_admin_switch_reports_install_state_and_audits_each_change(): void
+    {
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        $this->getJson('/api/v1/admin/aerial-analysis')
+            ->assertOk()
+            ->assertJsonPath('data', ['installed' => false, 'enabled' => false]);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])->assertStatus(409);
+
+        config(['caneguard.aerial.enabled' => true]);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])
+            ->assertOk()
+            ->assertJsonPath('data', ['installed' => true, 'enabled' => true]);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => false])
+            ->assertOk()
+            ->assertJsonPath('data.enabled', false);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => 'maybe'])->assertUnprocessable();
+
+        $this->assertSame(2, DB::table('security_audits')->where('action', 'aerial_analysis_switch_changed')->count());
+    }
+
+    public function test_only_admins_reach_the_aerial_switch(): void
+    {
+        config(['caneguard.aerial.enabled' => true]);
+        $this->actingAs(User::factory()->reviewer()->create(), 'web');
+
+        $this->getJson('/api/v1/admin/aerial-analysis')->assertForbidden();
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])->assertForbidden();
+        $this->assertSame(0, DB::table('feature_switches')->count());
     }
 
     public function test_flag_on_case_response_lists_active_analyses_only(): void

@@ -8,6 +8,7 @@ use App\Actions\Reports\CalibrateReportTriage;
 use App\Models\Report;
 use App\Models\ReportAudit;
 use App\Security\DistrictAccess;
+use App\Support\AerialSwitch;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -145,7 +146,7 @@ class ReportResource extends JsonResource
             ),
             // Absent unless the server flag is on and the detail endpoint loaded it.
             'aerial_analyses' => $this->when(
-                config('caneguard.aerial.enabled') === true && $this->relationLoaded('aerialAnalyses'),
+                $this->relationLoaded('aerialAnalyses') && AerialSwitch::enabled(),
                 fn () => ReportAerialAnalysisResource::collection($this->aerialAnalyses)->resolve($request),
             ),
             'inspector_attachment' => $this->when(

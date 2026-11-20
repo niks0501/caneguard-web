@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\V1\AdminUserRoleController;
 use App\Http\Controllers\Api\V1\AdvisoryController;
+use App\Http\Controllers\Api\V1\AerialAnalysisSettingsController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\DistrictAccessController;
@@ -110,6 +111,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::get('/district-reports/{version}/pdf', [DistrictReportController::class, 'pdf']);
         Route::get('/district-reporting-settings', [DistrictReportingSettingsController::class, 'show'])->middleware(EnsureAccountsAccess::class);
         Route::put('/district-reporting-settings', [DistrictReportingSettingsController::class, 'update'])->middleware(EnsureAccountsAccess::class);
+        Route::get('/admin/aerial-analysis', [AerialAnalysisSettingsController::class, 'show'])->middleware(EnsureAccountsAccess::class);
+        Route::put('/admin/aerial-analysis', [AerialAnalysisSettingsController::class, 'update'])->middleware(EnsureAccountsAccess::class);
         Route::get('/district-recipient-sets', [DistrictRecipientSetController::class, 'index'])->middleware(EnsureAccountsAccess::class);
         Route::post('/district-recipient-sets/replace', [DistrictRecipientSetController::class, 'replace'])->middleware(EnsureAccountsAccess::class);
         Route::post('/district-reports/{version}/approve', [DistrictReportController::class, 'approve'])->middleware(EnsureAccountsAccess::class);

@@ -58,6 +58,16 @@ class SecurityHeadersTest extends TestCase
         return $scriptMatch[1];
     }
 
+    public function test_spa_shell_allows_only_the_named_map_provider(): void
+    {
+        $policy = (string) $this->get('/')->assertOk()->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString("img-src 'self' data: blob: https://api.maptiler.com;", $policy);
+        $this->assertStringContainsString("connect-src 'self' https://api.maptiler.com;", $policy);
+        $this->assertStringContainsString('worker-src blob:', $policy);
+        $this->assertStringNotContainsString('*', $policy);
+    }
+
     public function test_html_responses_use_a_nonce_for_inline_content(): void
     {
         $response = $this->get('/');
