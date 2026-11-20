@@ -651,6 +651,28 @@ class MobileReportUploadTest extends TestCase
         ]);
     }
 
+    public function test_upper_case_client_uuid_is_stored_lower_case_and_replays_to_the_same_report(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('case-test')->plainTextToken;
+        $clientUuid = strtolower(fake()->uuid());
+
+        $first = $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload(strtoupper($clientUuid)));
+        $first->assertCreated()->assertJsonPath('data.identity.client_uuid', $clientUuid);
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid))
+            ->assertOk()
+            ->assertJsonPath('data.identity.uuid', $first->json('data.identity.uuid'));
+
+        $this->assertDatabaseCount('reports', 1);
+        $this->assertDatabaseHas('reports', ['client_uuid' => $clientUuid]);
+    }
+
     public function test_idempotent_resubmission_preserves_existing_evidence_review_snapshot_and_version(): void
     {
         Storage::fake('local');
@@ -698,7 +720,9 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.identity.client_uuid', $clientUuid)
             ->assertJsonPath('data.review.status', $before->review_status)
             ->assertJsonPath('data.review.notes', $before->review_notes)
-            ->assertJsonPath('data.review.reviewer.uuid', $reviewer->uuid)
+            ->assertJsonMissingPath('data.review.reviewer')
+            ->assertJsonMissingPath('data.reporter.email')
+            ->assertJsonMissingPath('data.history')
             ->assertJsonPath('data.version', $before->lock_version)
             ->assertJsonPath('data.model.predicted_label', $before->predicted_label)
             ->assertJsonPath('data.model.model_version', $before->model_version)

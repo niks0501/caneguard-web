@@ -32,4 +32,4 @@ export const cloneMockReport = (report: DiseaseReport): DiseaseReport => ({
 // reads or writes review state. Review writes and the queue projections that
 // supply `expectedVersion` must read this array so both sides agree on
 // `reviewVersion`; hand callers `cloneMockReport` so they cannot mutate it.
-export const mockReportStore: DiseaseReport[] = mockReports.map(cloneMockReport);
+export const mockReportStore: DiseaseReport[] = /* @__PURE__ */ mockReports.map(cloneMockReport);

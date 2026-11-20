@@ -1,4 +1,5 @@
-import syntheticSugarcaneRustImage from "../../assets/synthetic-sugarcane-rust.png";
+// A dev-server path, not an import: an imported asset is emitted into the production build even when the mock code is tree-shaken away.
+const syntheticSugarcaneRustImage = "/src/assets/synthetic-sugarcane-rust.png";
 import type { DiseaseReport, ReportLifecycle } from "../../domain/report.types";
 import { legacyLifecycleForReviewStatus } from "../api/mappers/lifecycle.mapper";
 
@@ -261,7 +262,7 @@ function mockLifecycle(report: DiseaseReport): ReportLifecycle {
     : lifecycle;
 }
 
-export const mockReports: DiseaseReport[] = sourceReports.map((report, index) => {
+export const mockReports: DiseaseReport[] = /* @__PURE__ */ sourceReports.map((report, index) => {
   const location = nasugbuLocations[index % nasugbuLocations.length];
   const localReport: DiseaseReport = {
     ...report,

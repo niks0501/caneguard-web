@@ -1,4 +1,4 @@
-import { env } from "../config/env";
+import { env, mockDataAvailable } from "../config/env";
 import { ApiNotificationsRepository } from "../data/api/ApiNotificationsRepository";
 import type { NotificationsRepository } from "../data/contracts/NotificationsRepository";
 import { MockNotificationsRepository } from "../data/mock/MockNotificationsRepository";
@@ -6,7 +6,7 @@ import { MockNotificationsRepository } from "../data/mock/MockNotificationsRepos
 export function createNotificationsRepository(
   dataSource: "api" | "mock" = env.dataSource,
 ): NotificationsRepository {
-  return dataSource === "mock"
+  return mockDataAvailable && dataSource === "mock"
     ? new MockNotificationsRepository()
     : new ApiNotificationsRepository();
 }

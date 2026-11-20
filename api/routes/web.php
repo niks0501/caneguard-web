@@ -8,12 +8,24 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResendVerificationController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Middleware\EnsurePublicRegistrationEnabled;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-$serveSpa = static function () {
+$serveSpa = static function (Request $request) {
     $index = public_path('index.html');
     if (is_file($index)) {
-        return response()->file($index);
+        // The built shell carries one inline theme script marked with this
+        // placeholder; give it the CSP nonce of this response.
+        $html = str_replace(
+            '__CSP_NONCE__',
+            (string) $request->attributes->get('csp_nonce'),
+            (string) file_get_contents($index),
+        );
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Cache-Control' => 'no-cache, private',
+        ]);
     }
 
     return view('welcome');

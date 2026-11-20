@@ -17,7 +17,10 @@ vi.mock("./auth.api", () => ({
   WebRoleError: class WebRoleError extends Error {},
 }));
 
-vi.mock("../config/env", () => ({ env: { dataSource: "api" } }));
+vi.mock("../config/env", () => ({
+  env: { dataSource: "api" },
+  mockDataAvailable: false,
+}));
 
 const user = {
   uuid: "user-1",

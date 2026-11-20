@@ -83,8 +83,8 @@ export function SettingsPage() {
       setPasswordError("Enter your current password.");
       return;
     }
-    if (newPassword.length < 8) {
-      setPasswordError("The new password must be at least 8 characters.");
+    if (newPassword.length < 15) {
+      setPasswordError("The new password must be at least 15 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -268,7 +268,7 @@ export function SettingsPage() {
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    minLength={8}
+                    minLength={15}
                     required
                   />
                 </label>
@@ -280,7 +280,7 @@ export function SettingsPage() {
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    minLength={8}
+                    minLength={15}
                     required
                   />
                 </label>

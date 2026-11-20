@@ -10,11 +10,13 @@
       name="description"
       content="CaneGuard municipal workspace for reviewing submitted sugarcane field observations."
     />
-    <title>CaneGuard | Submitted Reports</title>
-    <script>
+    <title>CaneGuard</title>
+    <script nonce="__CSP_NONCE__">
       // Adopt the stored appearance before the first paint, so a dark choice
       // never flashes the paper surface while the app module loads. This is the
       // one declaration `src/theme/themePreference.ts` cannot make early enough;
+      // the API replaces __CSP_NONCE__ per request (api/routes/web.php), which
+      // is what lets the CSP run this script without 'unsafe-inline';
       // keep the storage key, version and values in step with that module.
       (function () {
         try {

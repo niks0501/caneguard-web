@@ -57,6 +57,12 @@ describe("LoginPage", () => {
     vi.unstubAllEnvs();
   });
 
+  it("titles the sign-in page instead of inheriting the reports title", () => {
+    renderLoginPage();
+
+    expect(document.title).toBe("Sign in | CaneGuard");
+  });
+
   it("renders the hero CaneGuard branding and the access line", () => {
     renderLoginPage();
 

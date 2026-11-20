@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Events\Concerns\BroadcastsOnlyWhenEnabled;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldRescue;
@@ -10,7 +11,7 @@ use Illuminate\Queue\SerializesModels;
 
 class NewCaseSubmitted implements ShouldBroadcast, ShouldRescue
 {
-    use Dispatchable, SerializesModels;
+    use BroadcastsOnlyWhenEnabled, Dispatchable, SerializesModels;
 
     public const EVENT_NAME = 'case.submitted';
 

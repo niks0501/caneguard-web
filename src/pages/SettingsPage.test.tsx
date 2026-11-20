@@ -172,6 +172,22 @@ describe("SettingsPage", () => {
     });
   });
 
+  it("holds new passwords to the server minimum of 15 characters", async () => {
+    const user = userEvent.setup();
+    renderSettingsPage();
+
+    const newPwdInput = screen.getByLabelText("New password");
+    expect(newPwdInput).toHaveAttribute("minlength", "15");
+    expect(screen.getByLabelText("Confirm new password")).toHaveAttribute("minlength", "15");
+
+    await user.type(screen.getByLabelText("Current password"), "An old reviewer passphrase");
+    await user.type(newPwdInput, "short pass 12");
+    await user.type(screen.getByLabelText("Confirm new password"), "short pass 12");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(accountApi.changePassword).not.toHaveBeenCalled();
+  });
+
   it("disables credential submits while a request is in flight", async () => {
     const user = userEvent.setup();
     let resolvePassword!: (value: { message: string }) => void;

@@ -27,6 +27,27 @@ class SecurityHeadersTest extends TestCase
         $this->assertFalse($response->headers->has('Strict-Transport-Security'));
     }
 
+    public function test_built_spa_shell_nonces_its_inline_theme_script(): void
+    {
+        $index = public_path('index.html');
+        if (is_file($index)) {
+            $this->markTestSkipped('A built SPA shell already exists in api/public.');
+        }
+
+        file_put_contents($index, '<!doctype html><script nonce="__CSP_NONCE__">1</script><script type="module" src="/assets/app.js"></script>');
+        try {
+            $response = $this->get('/login');
+            $policy = (string) $response->headers->get('Content-Security-Policy');
+            $this->assertSame(1, preg_match("/script-src 'self' 'nonce-([^']+)'/", $policy, $matches));
+            $response->assertOk();
+            $html = (string) $response->getContent();
+            $this->assertStringContainsString('<script nonce="'.$matches[1].'">', $html);
+            $this->assertStringNotContainsString('__CSP_NONCE__', $html);
+        } finally {
+            @unlink($index);
+        }
+    }
+
     public function test_html_responses_use_a_nonce_for_inline_content(): void
     {
         $response = $this->get('/');

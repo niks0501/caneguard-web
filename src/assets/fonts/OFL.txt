@@ -1,0 +1,4 @@
+Poppins (latin subset, woff2) is licensed under the SIL Open Font License 1.1.
+Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+Licence text: https://openfontlicense.org
+Self-hosted so the CSP (font-src 'self'; style-src 'self') never has to allow Google Fonts.

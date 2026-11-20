@@ -29,6 +29,17 @@ class AerialDeployPreflightTest extends TestCase
         return $process;
     }
 
+    public function test_numeric_one_enables_the_flag_instead_of_silently_staying_off(): void
+    {
+        $run = $this->preflight([
+            'CANEGUARD_AERIAL_ANALYSIS_ENABLED' => '1',
+            'CANEGUARD_AERIAL_PYTHON' => '/nonexistent/python',
+        ]);
+
+        $this->assertStringNotContainsString('nothing to check', $run->getOutput());
+        $this->assertNotSame(0, $run->getExitCode());
+    }
+
     public function test_flag_off_changes_nothing_and_passes(): void
     {
         $run = $this->preflight([
