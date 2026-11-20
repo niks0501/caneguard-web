@@ -13,7 +13,7 @@ const nextSteps: Record<NewAccountRole, string> = {
   reviewer: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
   admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
 };
-const inviteFallback = "If mail is unavailable, an operator can issue a set-password link with php artisan auth:set-password-link.";
+const inviteFallback = "If mail is unavailable, an operator can issue a set-password link by following the production runbook's fallback steps.";
 
 export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) => Promise<void> | void }) {
   const [open, setOpen] = useState(false);

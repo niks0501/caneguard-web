@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Auth\RecordSecurityAudit;
 use App\Actions\Auth\ResendWebAccountInvite;
 use App\Actions\Auth\ResetPasswordAction;
 use App\Models\AccountAccessEvent;
@@ -418,13 +419,18 @@ class AdminAccountCreationTest extends TestCase
             $this->assertTrue(Process::env(array_replace($base, ['APP_CONFIG_CACHE' => $cache, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test']))->run([PHP_BINARY, $artisan, 'config:cache'])->successful());
             $cached = file_get_contents($cache);
 
-            $ordinary = $issuedFor(Process::env(array_replace($base, ['APP_CONFIG_CACHE' => $cache, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test']))
-                ->run([PHP_BINARY, $artisan, 'auth:set-password-link']));
-            $this->assertSame('stale@example.test', $ordinary);
+            $operatorLinks = fn (): int => (int) (new \PDO('sqlite:'.$database))
+                ->query("SELECT COUNT(*) FROM security_audits WHERE action = 'operator_link_issued'")->fetchColumn();
+
+            $ordinary = Process::env(array_replace($base, ['APP_CONFIG_CACHE' => $cache, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test']))
+                ->run([PHP_BINARY, $artisan, 'auth:set-password-link']);
+            $this->assertFalse($ordinary->successful());
+            $this->assertSame(0, $operatorLinks());
 
             $documented = $issuedFor(Process::env($base + ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test'])
                 ->run([PHP_BINARY, $artisan, 'auth:set-password-link']));
             $this->assertSame('fresh@example.test', $documented);
+            $this->assertSame(1, $operatorLinks());
             $this->assertSame($cached, file_get_contents($cache));
         } finally {
             array_map('unlink', glob($directory.'/*') ?: []);
@@ -439,6 +445,7 @@ class AdminAccountCreationTest extends TestCase
 
         $pending->forceFill(['is_active' => false])->save();
         $pending->forceFill(['is_active' => true])->save();
+        $this->artisan('auth:backfill-onboarding')->assertSuccessful();
         config(['caneguard.auth.operator_link_email' => 'toggled@example.test']);
         $this->artisan('auth:set-password-link')->assertSuccessful();
 
@@ -475,16 +482,19 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:set-password-link')->assertFailed();
     }
 
-    public function test_backfill_marks_accounts_with_onboarding_or_authority_history_and_leaves_pending_ones(): void
+    public function test_backfill_marks_only_accounts_whose_history_records_a_password_set(): void
     {
         $pending = User::factory()->reviewer()->unverified()->create(['email' => 'pending-backfill@example.test']);
-        $revoked = User::factory()->reviewer()->unverified()->create(['email' => 'revoked-backfill@example.test']);
-        $revoked->forceFill(['auth_version' => 2])->save();
+        $authorityOnly = User::factory()->reviewer()->unverified()->create(['email' => 'authority-backfill@example.test']);
+        $authorityOnly->forceFill(['auth_version' => 2])->save();
+        $reset = User::factory()->reviewer()->unverified()->create(['email' => 'reset-backfill@example.test']);
+        app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::OUTCOME_SUCCESS, target: $reset);
 
         $this->artisan('auth:backfill-onboarding')->assertSuccessful();
 
         $this->assertNull($pending->refresh()->onboarded_at);
-        $this->assertNotNull($revoked->refresh()->onboarded_at);
+        $this->assertNull($authorityOnly->refresh()->onboarded_at);
+        $this->assertNotNull($reset->refresh()->onboarded_at);
     }
 
     public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void

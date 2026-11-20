@@ -128,12 +128,13 @@ if [[ "$cron_next" != "$cron_existing" ]]; then
   echo "Installed scheduler cron for deploy"
 fi
 php artisan caneguard:record-scheduler-install "$cron_line" --no-interaction
+php artisan auth:backfill-onboarding
 
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"
 activated=1
 
-# The previous release could verify accounts without writing onboarded_at, so reclassify them after activation.
+# Stragglers still running the previous release can write for seconds after the switch, so reconcile again.
 php artisan auth:backfill-onboarding
 
 # Ensure public API and SPA both respond through the activated Nginx root.

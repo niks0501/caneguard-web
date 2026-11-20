@@ -20,6 +20,12 @@ class IssueSetPasswordLink extends Command
 
     public function handle(AuthUrlBuilder $urls, RecordSecurityAudit $audit): int
     {
+        if (app()->configurationIsCached()) {
+            $this->error('A config cache is loaded, so the target may be stale. Run this command with APP_CONFIG_CACHE set to an absent path, as docs/production-deployment.md describes.');
+
+            return self::FAILURE;
+        }
+
         $email = trim((string) config('caneguard.auth.operator_link_email'));
         if ($email === '') {
             $this->error('Set CANEGUARD_OPERATOR_LINK_EMAIL in the shared .env, then run this command as docs/production-deployment.md describes.');
