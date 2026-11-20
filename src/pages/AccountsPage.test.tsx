@@ -57,7 +57,7 @@ describe("User Management", () => {
     await user.dblClick(within(open).getByRole("button", { name: "Create account" }));
     await waitFor(() => expect(api.createAccount).toHaveBeenCalledTimes(1));
     expect(api.createAccount).toHaveBeenCalledWith({ name: "New Person", email: "new@example.test", role: "field_reporter" }, "synthetic");
-    expect(await screen.findByText(/set-password link was emailed to new@example.test/)).toBeInTheDocument();
+    expect(await screen.findByText(/set-password link was emailed\./)).toBeInTheDocument();
     expect(screen.getByText(/Next steps: 1\. They set a password from their set-password link\. 2\. They sign in on the phone/)).toBeInTheDocument();
   });
 

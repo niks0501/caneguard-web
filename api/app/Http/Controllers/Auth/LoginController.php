@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\RecordSecurityAudit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\SecurityAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    public function __invoke(LoginRequest $request): JsonResponse
+    public function __invoke(LoginRequest $request, RecordSecurityAudit $audits): JsonResponse
     {
         if (! Auth::guard('web')->attempt($request->safe()->only(['email', 'password']))) {
             return response()->json([
@@ -58,6 +60,7 @@ class LoginController extends Controller
         }
 
         $request->session()->put('auth.version', $user->auth_version);
+        $audits->handle(SecurityAudit::ACTION_PASSWORD_LOGIN, SecurityAudit::OUTCOME_SUCCESS, actor: $user, target: $user);
 
         return response()->json([], 204);
     }

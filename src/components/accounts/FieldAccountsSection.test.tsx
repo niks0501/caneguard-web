@@ -111,7 +111,7 @@ describe("Field accounts", () => {
     expect(screen.queryByText("Active")).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Resend set-password link to Pending Sample" }));
     await waitFor(() => expect(api.resendFieldInvite).toHaveBeenCalledWith(pending.uuid));
-    expect(await screen.findByText("Set-password link sent to field@example.test.")).toBeInTheDocument();
+    expect(await screen.findByText("Set-password link sent.")).toBeInTheDocument();
   });
   it("explains a throttled resend and offers no resend for a verified inspector", async () => {
     vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [pending, active], meta: { ...meta, total: 2 } });

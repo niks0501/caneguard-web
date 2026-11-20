@@ -39,7 +39,7 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
       setOpen(false);
       setForm(emptyForm);
       const inviteNotice = created.invite_sent
-        ? `Account created for ${created.data.name}. A set-password link was emailed to ${created.data.email}.`
+        ? `Account created for ${created.data.name}. A set-password link was emailed.`
         : `Account created for ${created.data.name}, but the set-password email could not be sent. ${inviteFallback}`;
       await onCreated(`${inviteNotice} ${nextSteps[created.data.role]}`);
     } catch (failure) {

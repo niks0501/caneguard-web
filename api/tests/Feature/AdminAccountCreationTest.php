@@ -621,6 +621,18 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:set-password-link')->assertFailed();
     }
 
+    public function test_a_password_login_completes_onboarding_for_an_account_whose_history_was_pruned(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'pruned-login@example.test']);
+        $user = User::factory()->reviewer()->create(['email' => 'pruned-login@example.test']);
+        $this->assertFalse($user->hasCompletedOnboarding());
+
+        $this->postJson('/login', ['email' => 'pruned-login@example.test', 'password' => 'password'])->assertNoContent();
+
+        $this->assertTrue($user->refresh()->hasCompletedOnboarding());
+        $this->artisan('auth:set-password-link')->assertFailed();
+    }
+
     public function test_onboarding_honors_a_password_reset_row_written_by_an_older_release_after_the_backfill(): void
     {
         config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'delayed-write@example.test']);
@@ -733,7 +745,7 @@ class AdminAccountCreationTest extends TestCase
         $this->assertSame(0, DB::table('password_reset_tokens')->where('email', 'selected-old@example.test')->count());
     }
 
-    public function test_email_change_marks_only_accounts_whose_history_already_completes_onboarding(): void
+    public function test_email_change_leaves_the_onboarding_marker_to_the_evidence_and_the_backfill(): void
     {
         config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
         $legacy = User::factory()->reviewer()->create(['email' => 'legacy@example.test', 'onboarded_at' => now()]);
