@@ -66,3 +66,13 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
             -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" \
             "bash -s -- '$GITHUB_RUN_ID'" < scripts/install-production-env.sh
+
+      - name: Remove configuration handoff
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/caneguard.env"
+          if [[ -f "$RUNNER_TEMP/caneguard-ssh/known_hosts" ]]; then
+            ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
+              -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" \
+              "rm -f '/var/www/caneguard/releases/.env-$GITHUB_RUN_ID'"
+          fi

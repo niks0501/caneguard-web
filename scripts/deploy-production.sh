@@ -5,7 +5,7 @@ umask 027
 
 release_id="${1:?release id required}"
 expected_hash="${2:?archive SHA256 required}"
-root="${CANEGUARD_DEPLOY_ROOT:-/var/www/caneguard}"
+root=/var/www/caneguard
 releases="$root/releases"
 shared="$root/shared/api"
 current="$root/current"
@@ -107,12 +107,12 @@ php artisan caneguard:bootstrap --no-interaction
 # replaced, unrelated jobs are kept, and re-running is a no-op.
 cron_line="* * * * * cd $current/api && $(command -v php) artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler"
 cron_existing="$(crontab -l 2>/dev/null || true)"
-cron_next="$({ printf '%s\n' "$cron_existing" | grep -vE '/current/api && .*artisan schedule:run' | grep -v '^$' || true; printf '%s\n' "$cron_line"; })"
+cron_next="$({ printf '%s\n' "$cron_existing" | awk -v scheduled="cd $current/api && " 'NF && (index($0, scheduled) == 0 || index($0, "artisan schedule:run") == 0)' || true; printf '%s\n' "$cron_line"; })"
 if [[ "$cron_next" != "$cron_existing" ]]; then
   printf '%s\n' "$cron_next" | crontab -
   echo "Installed scheduler cron for deploy"
-  php artisan caneguard:record-scheduler-install --no-interaction
 fi
+php artisan caneguard:record-scheduler-install "$cron_line" --no-interaction
 
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"

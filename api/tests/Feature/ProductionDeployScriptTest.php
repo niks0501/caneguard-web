@@ -7,11 +7,15 @@ use Tests\TestCase;
 
 /**
  * Runs the real production shell scripts with fake host tools (php, composer,
- * curl, crontab, ACL tools) against a temporary deploy root, then checks what
- * they did: step order, the activated release, and the deploy user's crontab.
+ * curl, crontab, ACL tools). The scripts address the fixed production root, so
+ * each run executes a copy whose root path is rewritten to a temporary fixture.
+ * The assertions check step order, the activated release, the deploy user's
+ * crontab, and the audit invocations.
  */
 class ProductionDeployScriptTest extends TestCase
 {
+    private const PRODUCTION_ROOT = '/var/www/caneguard';
+
     private const OLD_RELEASE = 'release-0-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
     private string $root;
@@ -45,12 +49,15 @@ class ProductionDeployScriptTest extends TestCase
 
     public function test_deploy_migrates_then_bootstraps_then_activates_and_keeps_one_scheduler_entry(): void
     {
-        file_put_contents($this->crontab, "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n* * * * * cd {$this->root}/current/api && php artisan schedule:run >> /dev/null 2>&1\n");
+        $legacy = "* * * * * cd {$this->root}/current/api && php artisan schedule:run >> /dev/null 2>&1";
+        $unrelated = 'cd /srv/other/current/api && php artisan schedule:run >> /dev/null 2>&1';
+        file_put_contents($this->crontab, "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n{$unrelated}\n{$legacy}\n");
         $first = 'release-1-'.str_repeat('b', 40);
         $second = 'release-2-'.str_repeat('c', 40);
+        $managed = "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler";
 
-        $this->deploy($first);
-        $this->deploy($second);
+        $this->assertTrue($this->deploy($first)->isSuccessful());
+        $this->assertTrue($this->deploy($second)->isSuccessful());
 
         $this->assertSame($this->root.'/releases/'.$second, readlink($this->root.'/current'));
         $lines = $this->logLines();
@@ -63,33 +70,52 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertSame([
             'MAILTO=ops@example.test',
             '30 4 * * * /usr/local/bin/backup.sh',
-            "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler",
+            $unrelated,
+            $managed,
         ], $this->crontabLines());
-        $this->assertSame(1, count(array_filter($lines, fn (string $line) => $line === 'artisan caneguard:record-scheduler-install --no-interaction')));
+        $this->assertSame(
+            ["artisan caneguard:record-scheduler-install {$managed} --no-interaction", "artisan caneguard:record-scheduler-install {$managed} --no-interaction"],
+            array_values(array_filter($lines, fn (string $line) => str_starts_with($line, 'artisan caneguard:record-scheduler-install '))),
+        );
     }
 
-    public function test_configuration_install_replaces_the_shared_env_and_removes_the_upload(): void
+    public function test_missing_scheduler_audit_is_backfilled_by_the_next_deploy(): void
     {
-        $upload = $this->root.'/releases/.env-4242';
-        file_put_contents($upload, "APP_KEY=base64:example\n");
+        $managed = "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler";
+
+        $failed = $this->deploy('release-1-'.str_repeat('b', 40), ['CANEGUARD_TEST_FAIL_RECORD' => '1']);
+        $this->assertFalse($failed->isSuccessful());
+        $this->assertSame($this->root.'/releases/'.self::OLD_RELEASE, readlink($this->root.'/current'));
+        $this->assertSame([$managed], $this->crontabLines());
+
+        $this->assertTrue($this->deploy('release-2-'.str_repeat('c', 40))->isSuccessful());
+        $this->assertContains("artisan caneguard:record-scheduler-install {$managed} --no-interaction", $this->logLines());
+    }
+
+    public function test_configuration_install_replaces_the_shared_env_with_owner_only_mode_and_removes_the_upload(): void
+    {
+        file_put_contents($this->root.'/releases/.env-4242', "APP_KEY=base64:example\n");
 
         $process = $this->runScript('scripts/install-production-env.sh', ['4242']);
 
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
         $this->assertSame("APP_KEY=base64:example\n", file_get_contents($this->root.'/shared/api/.env'));
-        $this->assertSame(0640, fileperms($this->root.'/shared/api/.env') & 0777);
-        $this->assertFileDoesNotExist($upload);
+        $this->assertSame(0600, fileperms($this->root.'/shared/api/.env') & 0777);
+        $this->assertFileDoesNotExist($this->root.'/releases/.env-4242');
     }
 
-    public function test_configuration_install_without_an_upload_keeps_the_existing_env(): void
+    public function test_failed_configuration_install_keeps_the_existing_env_and_removes_the_upload(): void
     {
+        file_put_contents($this->root.'/releases/.env-5151', '');
+
         $process = $this->runScript('scripts/install-production-env.sh', ['5151']);
 
         $this->assertFalse($process->isSuccessful());
         $this->assertSame("APP_ENV=production\n", file_get_contents($this->root.'/shared/api/.env'));
+        $this->assertFileDoesNotExist($this->root.'/releases/.env-5151');
     }
 
-    private function deploy(string $releaseId): void
+    private function deploy(string $releaseId, array $env = []): Process
     {
         $staging = $this->root.'/staging-'.$releaseId;
         mkdir($staging.'/api/public', 0777, true);
@@ -101,22 +127,32 @@ class ProductionDeployScriptTest extends TestCase
         $archive = $this->root.'/releases/.upload-'.$releaseId.'.tar.gz';
         (new Process(['tar', '-czf', $archive, '-C', $staging, '.']))->mustRun();
 
-        $process = $this->runScript('scripts/deploy-production.sh', [$releaseId, hash_file('sha256', $archive)]);
-
-        $this->assertTrue($process->isSuccessful(), $process->getOutput().$process->getErrorOutput());
+        return $this->runScript('scripts/deploy-production.sh', [$releaseId, hash_file('sha256', $archive)], $env);
     }
 
-    /** @param  list<string>  $arguments */
-    private function runScript(string $relativePath, array $arguments): Process
+    /**
+     * @param  list<string>  $arguments
+     * @param  array<string, string>  $env
+     */
+    private function runScript(string $relativePath, array $arguments, array $env = []): Process
     {
+        $name = basename($relativePath);
+        $script = $this->root.'/'.$name;
+        file_put_contents($script, str_replace(
+            self::PRODUCTION_ROOT,
+            $this->root,
+            (string) file_get_contents(base_path('../'.$relativePath)),
+        ));
+
         $process = new Process(
-            ['bash', base_path('../'.$relativePath), ...$arguments],
+            ['bash', $script, ...$arguments],
             null,
             [
                 'PATH' => $this->bin.':'.getenv('PATH'),
-                'CANEGUARD_DEPLOY_ROOT' => $this->root,
+                'CANEGUARD_TEST_ROOT' => $this->root,
                 'CANEGUARD_TEST_LOG' => $this->log,
                 'CANEGUARD_TEST_CRONTAB' => $this->crontab,
+                ...$env,
             ],
         );
         $process->run();
@@ -141,7 +177,10 @@ class ProductionDeployScriptTest extends TestCase
         $this->writeTool('php', <<<'SH'
             echo "$*" >> "$CANEGUARD_TEST_LOG"
             if [[ "$1 $2" == "artisan caneguard:bootstrap" ]]; then
-              echo "bootstrap saw current=$(readlink "$CANEGUARD_DEPLOY_ROOT/current")" >> "$CANEGUARD_TEST_LOG"
+              echo "bootstrap saw current=$(readlink "$CANEGUARD_TEST_ROOT/current")" >> "$CANEGUARD_TEST_LOG"
+            fi
+            if [[ "$2" == "caneguard:record-scheduler-install" && -n "${CANEGUARD_TEST_FAIL_RECORD:-}" ]]; then
+              exit 1
             fi
             SH);
         $this->writeTool('composer', 'exit 0');

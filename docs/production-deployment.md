@@ -115,7 +115,7 @@ Put these in the GitHub `production` environment secret `CANEGUARD_PRODUCTION_EN
 CANEGUARD_PILOT_DISTRICT_CODE=<district code>
 CANEGUARD_PILOT_DISTRICT_NAME=<display name>
 CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
-MAIL_MAILER=smtp   # plus the SMTP settings; a log or array mailer cannot send the first invitation
+MAIL_MAILER=smtp   # plus the SMTP settings; a log or array mailer, or a failover chain that includes one, cannot send the first invitation
 ```
 Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
 - fails the deploy when the district code or name is blank; it creates the district when missing, and an existing district is never renamed;

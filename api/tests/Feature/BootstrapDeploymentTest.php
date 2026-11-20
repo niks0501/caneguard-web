@@ -133,7 +133,8 @@ class BootstrapDeploymentTest extends TestCase
     {
         Notification::fake();
 
-        foreach (['log', 'array'] as $mailer) {
+        config(['mail.mailers.chain' => ['transport' => 'failover', 'mailers' => ['smtp', 'log']]]);
+        foreach (['log', 'array', 'chain'] as $mailer) {
             $this->configure(['mail.default' => $mailer, 'caneguard.bootstrap_admin_email' => 'owner@example.test']);
 
             $this->artisan('caneguard:bootstrap')->assertFailed();
@@ -185,11 +186,14 @@ class BootstrapDeploymentTest extends TestCase
         }
     }
 
-    public function test_scheduler_cron_install_is_recorded_in_the_audit(): void
+    public function test_scheduler_cron_entry_is_recorded_once_per_entry(): void
     {
-        $this->artisan('caneguard:record-scheduler-install')->assertSuccessful();
+        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry-a'])->assertSuccessful();
+        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry-a'])->assertSuccessful();
+        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry-b'])->assertSuccessful();
 
-        $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)
-            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->count());
+        $rows = SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->get();
+        $this->assertSame(['entry-a', 'entry-b'], $rows->map(fn (SecurityAudit $row) => $row->metadata['cron_line'])->all());
     }
 }

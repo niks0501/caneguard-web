@@ -77,7 +77,7 @@ final class BootstrapDeployment extends Command
 
             return self::FAILURE;
         }
-        if (in_array(config('mail.default'), ['log', 'array'], true)) {
+        if (! $this->deliverable((string) config('mail.default'))) {
             $this->error('Bootstrap admin: mail delivery is not configured (MAIL_MAILER is log or array). Configure SMTP and deploy again.');
 
             return self::FAILURE;
@@ -108,5 +108,19 @@ final class BootstrapDeployment extends Command
         $this->line('Bootstrap admin: created and set-password email sent.');
 
         return self::SUCCESS;
+    }
+
+    private function deliverable(string $mailer): bool
+    {
+        $transport = config("mail.mailers.{$mailer}.transport");
+        if (in_array($transport, ['log', 'array'], true)) {
+            return false;
+        }
+        if (in_array($transport, ['failover', 'roundrobin'], true)) {
+            return collect(config("mail.mailers.{$mailer}.mailers", []))
+                ->every(fn ($member) => $this->deliverable((string) $member));
+        }
+
+        return true;
     }
 }
