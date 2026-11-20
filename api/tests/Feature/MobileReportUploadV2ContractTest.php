@@ -40,7 +40,7 @@ class MobileReportUploadV2ContractTest extends TestCase
             $contract['fields']['symptom_keys']['items']['enum'],
         );
         $this->assertSame(
-            ['v1.0-mobilenetv2'],
+            ['v2.0-mobilenetv2', 'v1.0-mobilenetv2'],
             $contract['fields']['model_version']['known_values'],
         );
 

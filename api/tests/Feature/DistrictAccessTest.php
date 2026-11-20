@@ -10,6 +10,7 @@ use App\Models\DistrictMembership;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\NewCaseSubmittedNotification;
+use App\Security\DistrictAccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -269,6 +270,22 @@ class DistrictAccessTest extends TestCase
                     ->assertJsonPath('code', 'UNAUTHENTICATED');
             }
         }
+    }
+
+    public function test_stale_mobile_token_abilities_are_rederived_from_current_identity(): void
+    {
+        $district = $this->pilotDistrict();
+        $reporter = User::factory()->inDistrict($district)->fieldReporter()->create();
+        $token = app(IssueMobileToken::class)->handle($reporter, 'Test Android', 'stale-abilities-device');
+        $token->accessToken->forceFill(['abilities' => ['account:security']])->save();
+        Auth::forgetGuards();
+
+        $this->withToken($token->plainTextToken)->getJson('/api/v1/mobile/notifications')->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            DistrictAccess::MOBILE_CAPABILITIES,
+            $token->accessToken->fresh()->abilities,
+        );
     }
 
     public function test_farmer_membership_and_grant_changes_still_revoke_credentials(): void

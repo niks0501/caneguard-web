@@ -57,22 +57,52 @@ The workflow needs the dedicated `deploy` key; your personal workstation SSH key
 ## Shared `.env` template
 `api/.env.production.example` lists the production values (HTTPS `FRONTEND_URL`, host-only session cookie, `SANCTUM_STATEFUL_DOMAINS`, MySQL, `BROADCAST_CONNECTION=null`, `LOG_LEVEL=warning`). Do not copy `api/.env.example` to production: its `APP_ENV=local`, `SESSION_DOMAIN=localhost`, localhost Sanctum domains, `LOG_LEVEL=debug` and `BROADCAST_CONNECTION=reverb` break sign-in (419 on `/login`, 401 right after it) or stop the app booting. `php artisan db:seed` refuses to run in production.
 
+## Accepted model versions
+The code default is `v2.0-mobilenetv2,v1.0-mobilenetv2`, but the persistent shared `.env` is installed from the GitHub `production` environment secret `CANEGUARD_PRODUCTION_ENV`; each Configure run replaces the server file wholesale. Add or correct this line in that secret before running **Configure production environment (manual)** (a server-only edit is overwritten by the next Configure run):
+
+```
+CANEGUARD_ACCEPTED_MODEL_VERSIONS=v2.0-mobilenetv2,v1.0-mobilenetv2
+```
+
+Then confirm the value the active release actually uses, which is the cached config (from an `ubuntu` shell, as `deploy`):
+
+```sh
+sudo -u deploy php -r '$c = require "/var/www/caneguard/current/api/bootstrap/cache/config.php"; echo implode(",", $c["caneguard"]["accepted_model_versions"]), PHP_EOL;'
+```
+
+It must print `v2.0-mobilenetv2,v1.0-mobilenetv2`. If it prints only `v1.0-mobilenetv2`, the cache is stale. From the same `ubuntu` shell, refresh it as `deploy`, then repeat the check:
+
+```sh
+sudo -u deploy sh -c 'cd /var/www/caneguard/current/api && php artisan config:cache'
+```
+
+Recognition only: an unlisted version still persists and shows the office warning.
+
 ## Server upload limits (check before relying on photo uploads)
-The deploy workflow and both preflights do not check the web server's upload limits, and the phone sends the original photo (the contract allows 10 MiB). Check these on the server, as `ubuntu`, before a go-live and after any PHP or nginx change:
+The managed limits are static files in the repository: `deploy/server/nginx/caneguard-upload-limits.conf` (nginx) and `deploy/server/php/caneguard-upload-limits.ini` (PHP-FPM 8.3), listed with their SHA-256 in `deploy/server/SHA256SUMS`. The deploy account has no sudo and the deploy workflow does not apply them. An administrator (`ubuntu`) installs them from the active release, and again after any change to those files. No release script runs as root; root only reads the release's data files and checksum manifest, copies the two files into `/etc`, and tests and reloads the services. The release tree is owned by `deploy` with restrictive modes, so the whole block runs under `sudo`:
+
+```sh
+sudo sh -c 'cd /var/www/caneguard/current/deploy/server && sha256sum -c SHA256SUMS'
+sudo install -m 0644 /var/www/caneguard/current/deploy/server/nginx/caneguard-upload-limits.conf /etc/nginx/conf.d/caneguard-upload-limits.conf
+sudo install -m 0644 /var/www/caneguard/current/deploy/server/php/caneguard-upload-limits.ini /etc/php/8.3/fpm/conf.d/90-caneguard-upload-limits.ini
+sudo nginx -t && sudo php-fpm8.3 -t && sudo systemctl reload nginx php8.3-fpm
+```
+
+If a test fails, remove the two installed files, fix the cause, and repeat. The checksum file is in the same release as the files, so it detects corruption, not a change made by someone who can write the release. To change a limit, edit the file and regenerate the manifest from `deploy/server` (`sha256sum nginx/caneguard-upload-limits.conf php/caneguard-upload-limits.ini > SHA256SUMS`); `npm run test:deploy-server-manifest`, which `check:web` runs, fails when the files and the manifest disagree. The phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Check the values before a go-live and after any PHP or nginx change:
 
 | Layer | Setting | Needs | Check |
 |---|---|---|---|
-| nginx | `client_max_body_size` | `16m` or more (default 1 MB answers 413 with an HTML page) | `sudo nginx -T 2>/dev/null \| grep client_max_body_size` |
-| PHP-FPM | `upload_max_filesize` | `12M` or more (default 2M) | `php-fpm8.3 -i \| grep -E '^(upload_max_filesize\|post_max_size)'` on the FPM binary, not the CLI |
-| PHP-FPM | `post_max_size` | `16M` or more (default 8M) | same command |
+| nginx | `client_max_body_size` | `24m` or more (default 1 MB answers 413 with an HTML page) | `sudo nginx -T 2>/dev/null \| grep client_max_body_size` |
+| PHP-FPM | `upload_max_filesize` | `20M` or more (default 2M) | `php-fpm8.3 -i \| grep -E '^(upload_max_filesize\|post_max_size)'` on the FPM binary, not the CLI |
+| PHP-FPM | `post_max_size` | `24M` or more (default 8M) | same command |
 | nginx | `fastcgi_read_timeout` | above `60s` only if aerial analysis is on (it runs inside the web request) | `sudo nginx -T 2>/dev/null \| grep fastcgi_read_timeout` |
 
-A limit that is too low makes the phone file the report as a non-retryable failure, so it stays on the phone. Verify with a real photo near 10 MiB after changing a limit: the upload should answer `201`, not `413` or `422`.
+A limit that is too low makes the phone file the report as a non-retryable failure, so it stays on the phone. Verify with a real photo near 10 MiB, and an aerial photo near the 20 MiB aerial maximum, after changing a limit: the upload should answer `201`, not `413` or `422`.
 
 ## Weekly send needs operations that production does not run yet
 Production currently runs no queue worker and no mail. Until both are provisioned:
 - Weekly send must stay off (`CANEGUARD_WEEKLY_SEND_ENABLED=false`). A send is queued on the `database` queue and, with no `queue:work` process, would stay `pending` forever. The Send control is hidden and the page says **Office delivery gate closed.**
-- Set `BROADCAST_CONNECTION=null` in the shared production `.env` while `VITE_REALTIME_ENABLED` is `false`, before the deploy that carries this change. `scripts/deploy-production.sh` runs `config:cache` in each new release, so a release built after the edit picks it up. Editing the shared file alone does not change the active release: its cached config keeps `log` until a deploy or `php artisan config:cache` runs. With `null`, `NewCaseSubmitted` and `CaseAttentionChanged` still dispatch, but Laravel does not queue their broadcasts, so nothing accumulates in the `jobs` table. `log` does not prevent that: Laravel queues a broadcast job for every driver, `log` included, and a worker started later would flush the whole stale backlog at once. Never set `reverb` without the `REVERB_*` keys and a running Reverb server; the app fails at boot (`routes/channels.php`), and a `config:cache` in the live release would take the site down.
+- Set `BROADCAST_CONNECTION=null` in the shared production `.env` while `VITE_REALTIME_ENABLED` is `false`, before the deploy that carries this change. `scripts/deploy-production.sh` runs `config:cache` in each new release, so a release built after the edit picks it up. Editing the shared file alone does not change the active release: its cached config keeps `log` until a deploy or the deploy-scoped cache refresh above runs. With `null`, `NewCaseSubmitted` and `CaseAttentionChanged` still dispatch, but Laravel does not queue their broadcasts, so nothing accumulates in the `jobs` table. `log` does not prevent that: Laravel queues a broadcast job for every driver, `log` included, and a worker started later would flush the whole stale backlog at once. Never set `reverb` without the `REVERB_*` keys and a running Reverb server; the app fails at boot (`routes/channels.php`), and a `config:cache` in the live release would take the site down.
 
 Enabling the send flag requires a supervised `php artisan queue:work` and working SMTP first.
 
@@ -108,7 +138,7 @@ Staging checklist (as `deploy`, outside the release directories, except for the 
 
 Limits: the aerial preflight runs as `deploy`, not `www-data`, so its Python, package, model, storage and inference checks only prove deploy access. Step 6 verifies the FPM identity's staged dependencies and storage permissions; step 9 turns the switch on, and step 10 checks the live upload path. The model is not part of the release archive, so a deploy never replaces it; to change the model, stage the new file and its pinned SHA-256 together and redeploy.
 
-Rollback: an Admin chooses **Turn off aerial check** in Admin Settings (no deploy). New requests get `404` at once, and an upload already in progress is refused before it saves anything. To remove the install as well, set `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` in the shared `.env` and deploy again (or run `php artisan config:cache` in the active release). The routes then return `404` and cases carry no aerial field; stored photos and results are retained. The preflight runs as a no-op while the flag is off. Staging files can stay in place.
+Rollback: an Admin chooses **Turn off aerial check** in Admin Settings (no deploy). New requests get `404` at once, and an upload already in progress is refused before it saves anything. To remove the install as well, set `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` in the shared `.env` and deploy again (or run the deploy-scoped cache refresh shown above). The routes then return `404` and cases carry no aerial field; stored photos and results are retained. The preflight runs as a no-op while the flag is off. Staging files can stay in place.
 
 ## Maps need the MapTiler key at build time and the CSP allowlist
 
@@ -130,6 +160,7 @@ Put these in the GitHub `production` environment secret `CANEGUARD_PRODUCTION_EN
 CANEGUARD_PILOT_DISTRICT_CODE=<district code>
 CANEGUARD_PILOT_DISTRICT_NAME=<display name>
 CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
+CANEGUARD_ACCEPTED_MODEL_VERSIONS=v2.0-mobilenetv2,v1.0-mobilenetv2
 MAIL_MAILER=smtp   # plus MAIL_HOST, MAIL_PORT, MAIL_USERNAME and MAIL_PASSWORD (the template lists them). Only an smtp mailer can send the first invitation, and the relay must be encrypted: MAIL_SCHEME=smtps, or STARTTLS required by MAIL_REQUIRE_TLS=true (the default). Log, array and failover mailers, and plaintext relays off this machine, fail the deploy before the account is created. A plaintext relay on 127.0.0.1 or localhost is the only exception, and it needs `MAIL_REQUIRE_TLS=false`. The preflight refuses an unencrypted non-local relay only when `MAIL_REQUIRE_TLS=false`. A TLS-required relay that cannot upgrade to TLS fails after the administrator account is created and kept, and the next deploy sends the link again.
 ```
 Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
@@ -143,7 +174,7 @@ If the mail server accepts the link but the invitation record cannot be written,
 
 Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
 
-Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package and an enabled, running `cron` service, so the scheduler survives a reboot. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
+Still by hand: the PHP-FPM and nginx upload/body limits, which need root (see "Server upload limits" above). The host must also have the `cron` package and an enabled, running `cron` service, so the scheduler survives a reboot. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
 
 ## Scheduler for reminders, follow-up due notifications and pruning
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink, with the absolute `php` path that account resolves). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, and keeps unrelated jobs. Each deploy records a `scheduler_cron_observed` audit row showing that the entry was present in the crontab at that deploy; the row does not record when the entry was installed. No manual crontab step is needed:

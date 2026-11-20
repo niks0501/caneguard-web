@@ -38,7 +38,7 @@ The boolean `mismatch_reported` field accepts the JSON-declared boolean, numeric
 
 ## Server-first model evidence widening
 
-`model_version` accepts any non-empty string up to 100 characters. `caneguard.accepted_model_versions` (environment: `CANEGUARD_ACCEPTED_MODEL_VERSIONS`, comma-separated, defaults to `v1.0-mobilenetv2`) controls **recognition, not admission**. Unknown versions persist as submitted; report detail exposes `model_version_recognised` and the office review shows the unrecognised-version warning and every submitted score.
+`model_version` accepts any non-empty string up to 100 characters. `caneguard.accepted_model_versions` (environment: `CANEGUARD_ACCEPTED_MODEL_VERSIONS`, comma-separated, defaults to `v2.0-mobilenetv2,v1.0-mobilenetv2`) controls **recognition, not admission**. Unknown versions persist as submitted; report detail exposes `model_version_recognised` and the office review shows the unrecognised-version warning and every submitted score.
 
 `class_scores` requires at least four numeric scores in [0,1]. For `v1.0-mobilenetv2`, the `model_class_keys` condition keeps exactly the four Model V1 keys and forbids extras. Other versions accept additional/different keys matching `^[a-z][a-z0-9_-]{0,31}$`, consistent with the existing 32-character persistence column. Unknown labels are retained and rendered as unrecognised classes, never dropped. This does not declare new disease classes or change prediction meanings.
 

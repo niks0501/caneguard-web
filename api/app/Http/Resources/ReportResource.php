@@ -63,7 +63,7 @@ class ReportResource extends JsonResource
                 'model_version' => $this->model_version,
                 'model_version_recognised' => $this->model_version === null
                     ? null
-                    : in_array($this->model_version, config('caneguard.accepted_model_versions', ['v1.0-mobilenetv2']), true),
+                    : in_array($this->model_version, config('caneguard.accepted_model_versions'), true),
                 'timings_ms' => [
                     'preprocess' => $this->preprocess_ms === null ? null : (float) $this->preprocess_ms,
                     'inference' => $this->inference_ms === null ? null : (float) $this->inference_ms,
