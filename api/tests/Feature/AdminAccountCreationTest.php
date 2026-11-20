@@ -188,7 +188,7 @@ class AdminAccountCreationTest extends TestCase
 
         $messages = $this->fakeMailboxMessages();
         $this->assertCount(1, $messages);
-        $this->assertStringContainsString('real@example.test', (string) file_get_contents($messages[0]));
+        $this->assertSame(['real@example.test'], $this->fakeMailboxEnvelopeRecipients($messages[0]));
         $this->assertDatabaseHas('security_audits', ['action' => 'account_invite_sent', 'outcome' => 'success']);
     }
 

@@ -145,8 +145,12 @@ fi
 php artisan caneguard:record-scheduler-install "$cron_line" --no-interaction
 php artisan auth:backfill-onboarding
 
+old_commands="$(cd "$old/api" && php artisan list --raw)" || {
+  echo "ERROR: could not read the previous release's commands; deployment stopped before switching." >&2
+  exit 1
+}
 legacy_cutover=0
-if [[ "$(cd "$old/api" && php artisan list --raw)" != *"auth:rollback-barrier "* ]]; then
+if [[ "$old_commands" != *"auth:rollback-barrier "* ]]; then
   legacy_cutover=1
   php artisan auth:rollback-barrier on
 fi

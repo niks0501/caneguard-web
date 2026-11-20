@@ -14,6 +14,14 @@ trait FakeSmtpMailbox
 
     private bool $caFileChanged = false;
 
+    /** @return list<string> The SMTP envelope recipients the fake mailbox recorded for a stored message. */
+    private function fakeMailboxEnvelopeRecipients(string $path): array
+    {
+        preg_match('/^X-Fake-Envelope-To: ([^\r\n]*)/m', (string) file_get_contents($path), $match);
+
+        return array_map(fn (string $recipient): string => trim($recipient, ' <>'), explode(',', $match[1] ?? ''));
+    }
+
     private function stopFakeMailbox(): void
     {
         if (is_resource($this->fakeMailboxProcess)) {

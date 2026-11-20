@@ -57,7 +57,7 @@ class WeeklyReportMailEndToEndTest extends TestCase
         $messages = $this->fakeMailboxMessages();
         $this->assertCount(1, $messages);
         $raw = file_get_contents($messages[0]);
-        $this->assertStringContainsString('dummy@example.test', $raw);
+        $this->assertSame(['dummy@example.test'], $this->fakeMailboxEnvelopeRecipients($messages[0]));
         $this->assertStringContainsString('X-CaneGuard-Version: '.$version->uuid, $raw);
         $this->assertStringContainsString('application/pdf', $raw);
         $this->assertSame(0, DB::table('jobs')->count());
