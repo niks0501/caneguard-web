@@ -74,8 +74,7 @@ final class CreateWebAccount
     {
         $sent = false;
         try {
-            // log/array mailers accept the message but deliver nothing: never claim it was sent.
-            $sent = MailDelivery::canDeliver() && Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
+            $sent = MailDelivery::sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
         } catch (\Throwable $e) {
             Log::warning('Account invitation could not be sent.', ['user' => $user->uuid, 'exception' => $e::class]);
         }

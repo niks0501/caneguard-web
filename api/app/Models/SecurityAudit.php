@@ -54,6 +54,8 @@ class SecurityAudit extends Model
 
     public const ACTION_PRUNE_RUN = 'prune_run';
 
+    public const ACTION_OPERATOR_LINK = 'operator_link_issued';
+
     public $timestamps = false;
 
     /**

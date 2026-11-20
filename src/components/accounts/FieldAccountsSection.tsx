@@ -100,7 +100,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
       onNotice(invite_sent ? `Set-password link sent to ${account.email}.` : `The set-password email to ${account.email} could not be sent. Try again later.`);
     } catch (failure) {
       onNotice(failure instanceof ApiError && failure.status === 429
-        ? "A link was sent a moment ago. Wait a minute before sending another."
+        ? "A set-password link was issued a moment ago. Wait a minute before sending another."
         : failure instanceof ApiError && failure.status === 409
           ? "This account has no pending invite. Reload the list."
           : "The link was not confirmed sent. Check the account before trying again.");

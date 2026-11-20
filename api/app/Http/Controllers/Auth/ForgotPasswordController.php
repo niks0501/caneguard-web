@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Models\User;
 use App\Support\BootstrapAdministrator;
+use App\Support\MailDelivery;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Password;
 
 class ForgotPasswordController extends Controller
 {
@@ -16,7 +16,7 @@ class ForgotPasswordController extends Controller
         $email = $request->validated('email');
         $user = User::query()->where('email', $email)->first();
         if (! $user instanceof User || ! BootstrapAdministrator::superseded($user)) {
-            Password::broker()->sendResetLink(['email' => $email]);
+            MailDelivery::sendResetLink(['email' => $email]);
         }
 
         return response()->json([

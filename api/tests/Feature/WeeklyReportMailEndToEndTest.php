@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\FakeSmtpMailbox;
 use Tests\TestCase;
 
 /**
@@ -18,33 +19,19 @@ use Tests\TestCase;
  */
 class WeeklyReportMailEndToEndTest extends TestCase
 {
+    use FakeSmtpMailbox;
     use RefreshDatabase;
-
-    /** @var resource|null */
-    private $server = null;
-
-    private string $dir = '';
-
-    private ?string $previousCaFile = null;
 
     protected function tearDown(): void
     {
-        if (is_resource($this->server)) {
-            proc_terminate($this->server);
-            proc_close($this->server);
-        }
-        putenv($this->previousCaFile === null ? 'SSL_CERT_FILE' : 'SSL_CERT_FILE='.$this->previousCaFile);
-        if ($this->dir !== '') {
-            array_map('unlink', glob($this->dir.'/*') ?: []);
-            @rmdir($this->dir);
-        }
+        $this->stopFakeMailbox();
         parent::tearDown();
     }
 
     public function test_queued_report_reaches_fake_mailbox_over_verified_tls_with_approved_pdf(): void
     {
-        $this->startFakeMailbox();
-        config(['caneguard.weekly_send_enabled' => true]);
+        $this->startFakeMailbox('weekly_smtp');
+        config(['caneguard.weekly_send_enabled' => true, 'queue.default' => 'database']);
 
         $district = $this->pilotDistrict();
         $officer = User::factory()->admin()->inDistrict($district)->create();
@@ -60,55 +47,19 @@ class WeeklyReportMailEndToEndTest extends TestCase
         // Queued, not sent inline: the intent waits on the database queue until a worker runs.
         $this->assertSame('pending', $intent->fresh()->state);
         $this->assertSame(1, DB::table('jobs')->count());
-        $this->assertSame([], glob($this->dir.'/*.eml'));
+        $this->assertSame([], $this->fakeMailboxMessages());
 
         Artisan::call('queue:work', ['connection' => 'database', '--once' => true, '--tries' => 1]);
 
         $intent = $intent->fresh();
         $this->assertSame('sent', $intent->state, (string) $intent->failure_reason);
         $this->assertNotEmpty($intent->transport_receipt);
-        $messages = glob($this->dir.'/*.eml');
+        $messages = $this->fakeMailboxMessages();
         $this->assertCount(1, $messages);
         $raw = file_get_contents($messages[0]);
         $this->assertStringContainsString('dummy@example.test', $raw);
         $this->assertStringContainsString('X-CaneGuard-Version: '.$version->uuid, $raw);
         $this->assertStringContainsString('application/pdf', $raw);
         $this->assertSame(0, DB::table('jobs')->count());
-    }
-
-    private function startFakeMailbox(): void
-    {
-        if (! function_exists('proc_open') || trim((string) shell_exec('command -v openssl python3')) === '') {
-            $this->markTestSkipped('openssl and python3 are required for the fake mailbox.');
-        }
-        $this->dir = sys_get_temp_dir().'/caneguard-fake-mailbox-'.bin2hex(random_bytes(4));
-        mkdir($this->dir, 0700);
-        $cert = $this->dir.'/cert.pem';
-        $key = $this->dir.'/key.pem';
-        exec(sprintf('openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost -addext subjectAltName=DNS:localhost -keyout %s -out %s 2>&1',
-            escapeshellarg($key), escapeshellarg($cert)), $out, $code);
-        $this->assertSame(0, $code, implode("\n", $out));
-
-        $probe = stream_socket_server('tcp://127.0.0.1:0');
-        $port = (int) substr(strrchr((string) stream_socket_get_name($probe, false), ':'), 1);
-        fclose($probe);
-
-        $this->server = proc_open(['python3', base_path('tests/Support/fake_smtp_mailbox.py'), (string) $port, $cert, $key, $this->dir],
-            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        $this->assertSame("listening\n", fgets($pipes[1]));
-
-        // Strict verification stays on: the generated certificate is trusted explicitly, never bypassed.
-        $this->previousCaFile = getenv('SSL_CERT_FILE') ?: null;
-        putenv('SSL_CERT_FILE='.$cert);
-        config([
-            'queue.default' => 'database',
-            'mail.mailers.weekly_smtp.scheme' => 'smtp',
-            'mail.mailers.weekly_smtp.host' => 'localhost',
-            'mail.mailers.weekly_smtp.port' => $port,
-            'mail.mailers.weekly_smtp.username' => 'fake-user',
-            'mail.mailers.weekly_smtp.password' => 'fake-pass',
-            'mail.from.address' => 'reports@example.test',
-        ]);
-        app('mail.manager')->forgetMailers();
     }
 }

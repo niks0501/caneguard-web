@@ -16,9 +16,7 @@ final class ResendWebAccountInvite
     {
         $status = Password::INVALID_USER;
         try {
-            if (MailDelivery::canDeliver()) {
-                $status = Password::broker()->sendResetLink(['email' => $user->email]);
-            }
+            $status = MailDelivery::sendResetLink(['email' => $user->email]);
         } catch (\Throwable $e) {
             Log::warning('Account invitation could not be re-sent.', ['user' => $user->uuid, 'exception' => $e::class]);
         }

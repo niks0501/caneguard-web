@@ -39,6 +39,11 @@ final class AuthUrlBuilder
         );
     }
 
+    public function assertPasswordResetUrl(): void
+    {
+        $this->configuredUrl('password_reset_url');
+    }
+
     public function passwordReset(
         User $user,
         #[\SensitiveParameter] string $token,

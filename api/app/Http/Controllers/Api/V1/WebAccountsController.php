@@ -123,7 +123,7 @@ class WebAccountsController extends Controller
         abort_if($user->hasVerifiedEmail() || ! $user->is_active, 409, 'This account has no pending invite.');
 
         $status = $resend->handle($request->user(), $user);
-        abort_if($status === Password::RESET_THROTTLED, 429, 'A link was sent a moment ago. Wait a minute before sending another.');
+        abort_if($status === Password::RESET_THROTTLED, 429, 'A set-password link was issued a moment ago. Wait a minute before sending another.');
 
         return response()->json(['invite_sent' => $status === Password::RESET_LINK_SENT]);
     }

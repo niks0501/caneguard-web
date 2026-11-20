@@ -8,13 +8,51 @@ use App\Models\User;
 use App\Security\AccountsDirectory;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Tests\Support\FakeSmtpMailbox;
 use Tests\TestCase;
 
 class AdminAccountCreationTest extends TestCase
 {
+    use FakeSmtpMailbox;
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        $this->stopFakeMailbox();
+        parent::tearDown();
+    }
+
+    private function productionMail(): void
+    {
+        $this->app['env'] = 'production';
+        config([
+            'mail.default' => 'smtp',
+            'caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password',
+        ]);
+    }
+
+    /** Web-form POST with a session CSRF token, as a browser would send it. */
+    private function postWeb(string $uri, array $data): \Illuminate\Testing\TestResponse
+    {
+        return $this->withSession(['_token' => 'csrf-test-token'])
+            ->withHeader('X-CSRF-TOKEN', 'csrf-test-token')
+            ->postJson($uri, $data);
+    }
+
+    /** @return array{token: string, email: string} The query of the link the operator command printed. */
+    private function issueOperatorLink(string $email): array
+    {
+        Artisan::call('auth:set-password-link', ['email' => $email]);
+        $link = strtok(Artisan::output(), "\n");
+        parse_str((string) parse_url((string) $link, PHP_URL_QUERY), $query);
+        $this->assertSame('https://app.example.test/reset-password', strtok((string) $link, '?'));
+
+        return ['token' => (string) $query['token'], 'email' => (string) $query['email']];
+    }
 
     private function payload(array $override = []): array
     {
@@ -40,20 +78,96 @@ class AdminAccountCreationTest extends TestCase
             $this->assertDatabaseHas('security_audits', ['target_user_id' => $field->id, 'action' => 'account_invite_sent', 'outcome' => 'failure']);
         }
         Notification::assertNothingSent();
-
-        config(['mail.default' => 'smtp']);
-        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'real@example.test']))
-            ->assertCreated()->assertJsonPath('invite_sent', true);
     }
 
-    public function test_operator_command_prints_a_one_time_link_that_sets_the_password(): void
+    public function test_production_invite_is_reported_sent_only_when_the_smtp_mailbox_accepts_it(): void
     {
-        $user = User::factory()->reviewer()->create(['email' => 'op@example.test']);
+        $this->startFakeMailbox('smtp');
+        $this->productionMail();
+        $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
 
-        $this->artisan('auth:set-password-link', ['email' => 'OP@example.test'])->assertSuccessful();
-        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'account_invite_sent', 'outcome' => 'success']);
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'real@example.test']))
+            ->assertCreated()->assertJsonPath('invite_sent', true);
 
+        $messages = $this->fakeMailboxMessages();
+        $this->assertCount(1, $messages);
+        $this->assertStringContainsString('real@example.test', (string) file_get_contents($messages[0]));
+        $this->assertDatabaseHas('security_audits', ['action' => 'account_invite_sent', 'outcome' => 'success']);
+    }
+
+    public function test_production_invite_is_reported_not_sent_when_smtp_cannot_connect(): void
+    {
+        $this->productionMail();
+        $this->pilotDistrict();
+        config([
+            'mail.mailers.smtp.scheme' => 'smtp',
+            'mail.mailers.smtp.host' => '127.0.0.1',
+            'mail.mailers.smtp.port' => $this->unusedPort(),
+            'mail.mailers.smtp.require_tls' => true,
+        ]);
+        app('mail.manager')->forgetMailers();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'refused@example.test']))
+            ->assertCreated()->assertJsonPath('invite_sent', false);
+        $user = User::query()->where('email', 'refused@example.test')->firstOrFail();
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'account_invite_sent', 'outcome' => 'failure']);
+    }
+
+    public function test_operator_link_from_the_command_sets_the_password_once_and_is_audited(): void
+    {
+        $this->productionMail();
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'op@example.test']);
+
+        $query = $this->issueOperatorLink('OP@example.test');
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
+        $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id, 'action' => 'account_invite_sent']);
+
+        $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
+        $user->refresh();
+        $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $user->password));
+        $this->assertNotNull($user->email_verified_at);
+
+        $this->postWeb('/reset-password', $query + ['password' => 'Other-Passphrase!43', 'password_confirmation' => 'Other-Passphrase!43'])
+            ->assertStatus(422);
+        $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $user->refresh()->password));
+    }
+
+    public function test_operator_link_refuses_accounts_that_completed_onboarding_and_unknown_emails(): void
+    {
+        $this->productionMail();
+        User::factory()->reviewer()->create(['email' => 'done@example.test']);
+
+        $this->artisan('auth:set-password-link', ['email' => 'done@example.test'])->assertFailed();
         $this->artisan('auth:set-password-link', ['email' => 'nobody@example.test'])->assertFailed();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+        $this->assertDatabaseMissing('security_audits', ['action' => 'operator_link_issued']);
+    }
+
+    public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void
+    {
+        $this->productionMail();
+        User::factory()->reviewer()->unverified()->create(['email' => 'bad@example.test']);
+        $query = $this->issueOperatorLink('bad@example.test');
+
+        config(['caneguard.auth.password_reset_url' => 'http://app.example.test/reset-password']);
+        $this->artisan('auth:set-password-link', ['email' => 'bad@example.test'])->assertFailed();
+
+        $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
+    }
+
+    public function test_forgot_password_on_a_non_delivering_mailer_leaves_the_operator_link_usable(): void
+    {
+        $this->productionMail();
+        config(['mail.default' => 'log']);
+        User::factory()->reviewer()->unverified()->create(['email' => 'hold@example.test']);
+        $query = $this->issueOperatorLink('hold@example.test');
+
+        $this->travel(2)->minutes();
+        $this->postWeb('/forgot-password', ['email' => 'hold@example.test'])->assertStatus(202)->assertJsonPath('code', 'PASSWORD_RESET_LINK_SENT');
+
+        $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
     }
 
     public function test_admin_creates_unverified_account_and_invite_audits_are_written(): void
@@ -197,7 +311,7 @@ class AdminAccountCreationTest extends TestCase
         });
         Auth::forgetGuards();
 
-        $this->postJson('/reset-password', ['email' => 'invitee@example.test', 'token' => $token,
+        $this->postWeb('/reset-password', ['email' => 'invitee@example.test', 'token' => $token,
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
 
         $user->refresh();
@@ -223,7 +337,7 @@ class AdminAccountCreationTest extends TestCase
             return true;
         });
         Auth::forgetGuards();
-        $this->postJson('/reset-password', ['email' => 'farmer@example.test', 'token' => $token,
+        $this->postWeb('/reset-password', ['email' => 'farmer@example.test', 'token' => $token,
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
 
         $this->postJson('/api/v1/mobile/auth/login', ['email' => 'farmer@example.test', 'password' => 'Str0ng-Passphrase!42',
