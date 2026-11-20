@@ -258,6 +258,7 @@ class AdminAccountCreationTest extends TestCase
         Artisan::call('auth:set-password-link');
         $this->assertStringStartsWith('https://app.example.test/reset-password?', (string) strtok(Artisan::output(), "\n"));
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
+        $this->assertNotEmpty(SecurityAudit::query()->where('target_user_id', $user->id)->where('action', 'operator_link_issued')->firstOrFail()->metadata['operator'] ?? null);
 
         config(['caneguard.auth.operator_link_email' => null]);
         $this->artisan('auth:set-password-link')->assertFailed();

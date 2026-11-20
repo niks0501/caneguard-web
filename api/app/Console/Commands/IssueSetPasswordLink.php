@@ -45,7 +45,8 @@ class IssueSetPasswordLink extends Command
             }
 
             $token = Password::broker()->createToken($user);
-            $audit->handle(SecurityAudit::ACTION_OPERATOR_LINK, SecurityAudit::OUTCOME_SUCCESS, null, $user, ['channel' => 'operator_link']);
+            $operator = function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid())['name'] : get_current_user();
+            $audit->handle(SecurityAudit::ACTION_OPERATOR_LINK, SecurityAudit::OUTCOME_SUCCESS, null, $user, ['channel' => 'operator_link', 'operator' => $operator]);
 
             return [$user, $token];
         });

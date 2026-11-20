@@ -182,12 +182,12 @@ The `auth:prune-security-audits` command removes records older than that configu
 
 ## Admin-assisted recovery boundary
 
-The Web accounts surface manages district authority only; it has no credential-recovery handoff workflow.
+The Web accounts surface manages district authority only; it has no credential-recovery handoff workflow. No web or API response exposes an admin password setter, plaintext credential handoff, email-verification bypass, or reset-token display.
 
-v1 therefore does not expose an admin password setter, plaintext credential handoff, email-verification bypass, or reset-token display.
+The one break-glass exception is the operator console command `php artisan auth:set-password-link`. It runs only on the deployment host, reads its target from `CANEGUARD_OPERATOR_LINK_EMAIL` in the shared production `.env`, prints a one-time reset link to that operator's terminal, and never returns the token over HTTP. Interactive step-up does not apply because the command has no web session to step up; host shell access is its authentication. Each issuance writes an `operator_link_issued` audit with the host operator identity. The command refuses inactive accounts and accounts that have completed onboarding. A link is single-use and expires per `auth.passwords`; a newer issuance replaces the earlier link, and redeeming it sets the password, verifies the email, and revokes sessions and tokens.
 
 If a user cannot access email, support must first verify identity through the approved municipal process and escalate to an authorized deployment operator.
 
-A future recovery workflow must be separately approved and must require an authenticated admin step-up, an auditable identity decision, a one-time expiring handoff, forced password replacement, email verification, and session/token revocation.
+Any other recovery workflow must be separately approved and must require an authenticated admin step-up, an auditable identity decision, a one-time expiring handoff, forced password replacement, email verification, and session/token revocation.
 
-Until that workflow exists, support must not issue or record a password or bearer token manually.
+Outside this command, support must not issue or record a password or bearer token manually.
