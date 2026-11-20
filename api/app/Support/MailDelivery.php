@@ -13,6 +13,9 @@ final class MailDelivery
 {
     public const NOT_PENDING = 'not_pending';
 
+    /** Every reset-link request and redemption takes at least this long, so the response reveals no account or token state. */
+    public const TIMEBOX_MICROSECONDS = 200000;
+
     /** Outside production the log/array mailers stay allowed for local work and tests. */
     public static function canDeliver(): bool
     {
@@ -26,7 +29,7 @@ final class MailDelivery
             return (bool) config("mail.mailers.{$name}.require_tls");
         }
 
-        return ! in_array($transport, ['', 'log', 'array', 'failover', 'roundrobin'], true);
+        return ! in_array($transport, ['', 'log', 'array', 'failover'], true);
     }
 
     /** Public recovery resolves the account by email, as Laravel's broker does. */
@@ -111,8 +114,14 @@ final class MailDelivery
         return $token;
     }
 
-    public static function revokeResetTokens(string $email): void
+    /** Revokes one address's outstanding links, or every link when no address is given. */
+    public static function revokeResetTokens(?string $email = null): int
     {
-        DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))->where('email', $email)->delete();
+        $query = DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'));
+        if ($email !== null) {
+            $query->where('email', $email);
+        }
+
+        return $query->delete();
     }
 }

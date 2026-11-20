@@ -6,6 +6,7 @@ use App\Models\DistrictGrant;
 use App\Models\Report;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\MailDelivery;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -235,7 +236,7 @@ class AuthSecurityTest extends TestCase
             return true;
         });
 
-        $plainToken = Password::broker()->createToken($user);
+        $plainToken = MailDelivery::issueToken($user);
         $this->postJson('/reset-password', [
             'email' => $user->email,
             'token' => $plainToken,
@@ -250,10 +251,23 @@ class AuthSecurityTest extends TestCase
         $this->assertTrue(Hash::check('A brand new reviewer passphrase', $user->fresh()->password));
     }
 
+    public function test_reset_token_without_an_account_binding_is_rejected(): void
+    {
+        $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $unbound = Password::broker()->createToken($user);
+
+        $this->postJson('/reset-password', [
+            'email' => $user->email,
+            'token' => $unbound,
+            'password' => 'An unbound replacement passphrase',
+        ])->assertUnprocessable()->assertJsonPath('code', 'INVALID_RESET_TOKEN');
+        $this->assertFalse(Hash::check('An unbound replacement passphrase', $user->fresh()->password));
+    }
+
     public function test_expired_password_reset_is_rejected(): void
     {
         $user = User::factory()->inDistrict($this->pilotDistrict())->create();
-        $token = Password::broker()->createToken($user);
+        $token = MailDelivery::issueToken($user);
         $this->travel(61)->minutes();
 
         $this->postJson('/reset-password', [
@@ -267,7 +281,7 @@ class AuthSecurityTest extends TestCase
     {
         // Registration is closed; exercise the same password policy through recovery.
         $user = User::factory()->reviewer()->create();
-        $token = Password::broker()->createToken($user);
+        $token = MailDelivery::issueToken($user);
         foreach (['too-short', 'correct horse battery staple', str_repeat('x', 129)] as $password) {
             $this->postJson('/reset-password', [
                 'email' => $user->email, 'token' => $token, 'password' => $password,
@@ -285,7 +299,7 @@ class AuthSecurityTest extends TestCase
         $user = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
         $first = $user->createToken('first')->plainTextToken;
         $second = $user->createToken('second')->plainTextToken;
-        $token = Password::broker()->createToken($user);
+        $token = MailDelivery::issueToken($user);
 
         $this->postJson('/reset-password', [
             'email' => $user->email,
@@ -312,7 +326,7 @@ class AuthSecurityTest extends TestCase
             'payload' => '{}',
             'last_activity' => now()->getTimestamp(),
         ]);
-        $token = Password::broker()->createToken($user);
+        $token = MailDelivery::issueToken($user);
 
         $this->postJson('/reset-password', [
             'email' => $user->email,

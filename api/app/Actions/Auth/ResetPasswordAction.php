@@ -4,9 +4,11 @@ namespace App\Actions\Auth;
 
 use App\Models\User;
 use App\Support\BootstrapAdministrator;
+use App\Support\MailDelivery;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Timebox;
 
 final class ResetPasswordAction
 {
@@ -17,7 +19,7 @@ final class ResetPasswordAction
      */
     public function handle(array $credentials, Closure $callback): string
     {
-        return DB::transaction(function () use ($callback, $credentials): string {
+        return (new Timebox)->call(fn (): string => DB::transaction(function () use ($callback, $credentials): string {
             $account = User::query()->where('email', $credentials['email'])->lockForUpdate()->first();
             $token = DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
                 ->where('email', $credentials['email'])
@@ -32,6 +34,6 @@ final class ResetPasswordAction
             }
 
             return Password::broker()->reset($credentials, $callback);
-        });
+        }), MailDelivery::TIMEBOX_MICROSECONDS);
     }
 }

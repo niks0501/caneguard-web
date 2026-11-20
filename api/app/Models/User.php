@@ -149,10 +149,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->is_active && $this->hasVerifiedEmail() && $this->isWebUser();
     }
 
-    /** onboarded_at is set only when the holder sets a password; authority changes and audit pruning never touch it. */
+    /**
+     * onboarded_at is set only when the holder sets a password; authority changes never touch it. Successful evidence
+     * rows still count until reconciliation marks the account, so late writes from an older release cannot reopen it.
+     */
     public function hasCompletedOnboarding(): bool
     {
-        return $this->onboarded_at !== null || $this->hasVerifiedEmail();
+        return $this->onboarded_at !== null || $this->hasVerifiedEmail() || SecurityAudit::query()
+            ->where('target_user_id', $this->getKey())
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
+            ->whereIn('action', SecurityAudit::ONBOARDING_EVIDENCE_ACTIONS)
+            ->exists();
     }
 
     /** Marks accounts whose history records a holder-set password. Authority changes alone never mark an account. */

@@ -13,9 +13,6 @@ use Illuminate\Support\Timebox;
 
 class ForgotPasswordController extends Controller
 {
-    /** Laravel's password broker pads every recovery request to this floor, so response time does not reveal the account. */
-    private const TIMEBOX_MICROSECONDS = 200000;
-
     public function __invoke(ForgotPasswordRequest $request): JsonResponse
     {
         (new Timebox)->call(function () use ($request): void {
@@ -28,7 +25,7 @@ class ForgotPasswordController extends Controller
             } catch (\Throwable $e) {
                 Log::warning('Password recovery link could not be sent.', ['exception' => $e::class]);
             }
-        }, self::TIMEBOX_MICROSECONDS);
+        }, MailDelivery::TIMEBOX_MICROSECONDS);
 
         return response()->json([
             'message' => 'If an account matches, a password recovery link will be sent.',

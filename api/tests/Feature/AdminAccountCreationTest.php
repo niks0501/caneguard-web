@@ -524,6 +524,45 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id]);
     }
 
+    public function test_operator_link_refuses_an_account_with_unreconciled_email_change_evidence(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'late-evidence@example.test']);
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'late-evidence@example.test']);
+        app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_EMAIL_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $user);
+
+        $this->artisan('auth:set-password-link')->assertFailed();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_revoking_reset_links_before_a_rollback_invalidates_every_outstanding_link(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'revoke-links@example.test']);
+        $token = MailDelivery::issueToken($user);
+
+        $this->artisan('auth:revoke-reset-links')->assertSuccessful();
+        $this->postWeb('/reset-password', ['email' => 'revoke-links@example.test', 'token' => $token, 'password' => 'Revoked-Passphrase!42', 'password_confirmation' => 'Revoked-Passphrase!42'])
+            ->assertStatus(422);
+        $this->assertTrue(Hash::check('password', $user->refresh()->password));
+    }
+
+    public function test_production_roundrobin_of_real_providers_counts_as_delivery(): void
+    {
+        $this->app['env'] = 'production';
+        config(['mail.default' => 'pool', 'mail.mailers.pool' => ['transport' => 'roundrobin', 'mailers' => ['ses', 'postmark']]]);
+
+        $this->assertTrue(MailDelivery::canDeliver());
+    }
+
+    public function test_reset_response_is_padded_to_the_recovery_timebox_for_unknown_tokens(): void
+    {
+        $started = hrtime(true);
+        $this->postWeb('/reset-password', ['email' => 'nobody-reset@example.test', 'token' => 'bogus', 'password' => 'Nobody-Passphrase!42', 'password_confirmation' => 'Nobody-Passphrase!42'])
+            ->assertStatus(422)->assertJsonPath('code', 'INVALID_RESET_TOKEN');
+
+        $this->assertGreaterThanOrEqual(0.2, (hrtime(true) - $started) / 1e9);
+    }
+
     public function test_backfill_recognizes_a_successful_legacy_email_change(): void
     {
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'legacy-change@example.test']);
