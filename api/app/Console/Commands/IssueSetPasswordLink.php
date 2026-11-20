@@ -7,6 +7,7 @@ use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Support\AuthUrlBuilder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use LogicException;
 
@@ -46,8 +47,12 @@ class IssueSetPasswordLink extends Command
             return self::FAILURE;
         }
 
-        $token = Password::broker()->createToken($user);
-        $audit->handle(SecurityAudit::ACTION_OPERATOR_LINK, SecurityAudit::OUTCOME_SUCCESS, null, $user, ['channel' => 'operator_link']);
+        $token = DB::transaction(function () use ($user, $audit): string {
+            $token = Password::broker()->createToken($user);
+            $audit->handle(SecurityAudit::ACTION_OPERATOR_LINK, SecurityAudit::OUTCOME_SUCCESS, null, $user, ['channel' => 'operator_link']);
+
+            return $token;
+        });
 
         $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
         $this->line($urls->passwordReset($user, $token));
