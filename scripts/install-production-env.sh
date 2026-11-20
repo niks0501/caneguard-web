@@ -20,5 +20,6 @@ flock -n 9 || { echo "Another deployment is running" >&2; exit 1; }
 [[ -d "$root/shared/api" ]] || { echo "Shared Laravel state is missing" >&2; exit 1; }
 
 install -m 0600 "$upload" "$target.next"
+setfacl -m u:www-data:r "$target.next"
 mv -Tf "$target.next" "$target"
 echo "Installed shared production configuration"

@@ -101,6 +101,7 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
         $this->assertSame("APP_KEY=base64:example\n", file_get_contents($this->root.'/shared/api/.env'));
         $this->assertSame(0600, fileperms($this->root.'/shared/api/.env') & 0777);
+        $this->assertContains('setfacl -m u:www-data:r '.$this->root.'/shared/api/.env.next', $this->logLines());
         $this->assertFileDoesNotExist($this->root.'/releases/.env-4242');
     }
 
@@ -184,7 +185,7 @@ class ProductionDeployScriptTest extends TestCase
             fi
             SH);
         $this->writeTool('composer', 'exit 0');
-        $this->writeTool('setfacl', 'exit 0');
+        $this->writeTool('setfacl', 'echo "setfacl $*" >> "$CANEGUARD_TEST_LOG"');
         $this->writeTool('getfacl', 'exit 0');
         $this->writeTool('curl', <<<'SH'
             url="${@: -1}"

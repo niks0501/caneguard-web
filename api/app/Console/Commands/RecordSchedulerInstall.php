@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Actions\Auth\RecordSecurityAudit;
 use App\Models\SecurityAudit;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Process;
 
 final class RecordSchedulerInstall extends Command
 {
@@ -15,6 +16,14 @@ final class RecordSchedulerInstall extends Command
     public function handle(RecordSecurityAudit $audit): int
     {
         $line = (string) $this->argument('cron_line');
+        $crontab = Process::run(['crontab', '-l']);
+        $installed = $crontab->successful() && in_array($line, array_map('trim', explode("\n", $crontab->output())), true);
+        if (! $installed) {
+            $this->error('The scheduler entry is not installed in the deploy user crontab; nothing was recorded.');
+
+            return self::FAILURE;
+        }
+
         $recorded = SecurityAudit::query()
             ->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)
             ->get()

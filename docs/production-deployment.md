@@ -129,7 +129,7 @@ Admins and reviewers need no district. A district is required only to create a f
 Still by hand: PHP-FPM and nginx upload/body limits, which need root.
 
 ## Scheduler for reminders, follow-up due notifications and pruning
-The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, keeps unrelated jobs, and writes a `scheduler_cron_installed` audit row only when it changes the crontab, so no manual crontab step is needed:
+The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, keeps unrelated jobs, and records one `scheduler_cron_installed` audit row per installed entry, backfilled by a later deploy if a run was interrupted, so no manual crontab step is needed:
 
 ```
 * * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler

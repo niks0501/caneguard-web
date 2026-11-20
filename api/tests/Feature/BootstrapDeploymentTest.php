@@ -16,6 +16,21 @@ class BootstrapDeploymentTest extends TestCase
 {
     use RefreshDatabase;
 
+    private ?string $originalPath = null;
+
+    private ?string $fakeCrontabDir = null;
+
+    protected function tearDown(): void
+    {
+        if ($this->originalPath !== null) {
+            putenv('PATH='.$this->originalPath);
+        }
+        if ($this->fakeCrontabDir !== null) {
+            (new \Symfony\Component\Process\Process(['rm', '-rf', $this->fakeCrontabDir]))->run();
+        }
+        parent::tearDown();
+    }
+
     private function configure(array $overrides = []): void
     {
         config($overrides + [
@@ -186,14 +201,70 @@ class BootstrapDeploymentTest extends TestCase
         }
     }
 
-    public function test_scheduler_cron_entry_is_recorded_once_per_entry(): void
+    public function test_failed_invite_audit_rolls_back_the_account_and_its_reset_token(): void
     {
-        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry-a'])->assertSuccessful();
-        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry-a'])->assertSuccessful();
-        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry-b'])->assertSuccessful();
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        SecurityAudit::creating(function (SecurityAudit $audit): void {
+            if ($audit->action === SecurityAudit::ACTION_ACCOUNT_INVITE) {
+                throw new \RuntimeException('audit store down');
+            }
+        });
 
-        $rows = SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)
-            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->get();
-        $this->assertSame(['entry-a', 'entry-b'], $rows->map(fn (SecurityAudit $row) => $row->metadata['cron_line'])->all());
+        try {
+            $this->artisan('caneguard:bootstrap')->assertFailed();
+        } finally {
+            SecurityAudit::flushEventListeners();
+        }
+
+        $this->assertSame(0, User::query()->count());
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_scheduler_entry_is_recorded_once_while_it_is_installed(): void
+    {
+        $entry = '* * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler';
+        $this->fakeCrontab("MAILTO=ops@example.test\n{$entry}\n");
+
+        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => $entry])->assertSuccessful();
+        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => $entry])->assertSuccessful();
+
+        $this->assertSame([$entry], SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)
+            ->get()->map(fn (SecurityAudit $row) => $row->metadata['cron_line'])->all());
+    }
+
+    public function test_scheduler_entry_absent_from_the_crontab_is_not_recorded(): void
+    {
+        $entry = '* * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler';
+        $this->fakeCrontab("0 3 * * * /usr/local/bin/backup.sh\n");
+
+        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => $entry])->assertFailed();
+
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)->count());
+    }
+
+    public function test_missing_crontab_records_nothing(): void
+    {
+        $this->fakeCrontab(null);
+
+        $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry'])->assertFailed();
+
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)->count());
+    }
+
+    /** Puts a fake crontab first on PATH; a null body means no crontab is installed for the user. */
+    private function fakeCrontab(?string $body): void
+    {
+        $dir = sys_get_temp_dir().'/caneguard-crontab-'.bin2hex(random_bytes(6));
+        mkdir($dir, 0777, true);
+        $store = $dir.'/crontab.txt';
+        if ($body !== null) {
+            file_put_contents($store, $body);
+        }
+        file_put_contents($dir.'/crontab', "#!/usr/bin/env bash\n[[ -f '{$store}' ]] || exit 1\ncat '{$store}'\n");
+        chmod($dir.'/crontab', 0755);
+        $this->originalPath ??= (string) getenv('PATH');
+        putenv('PATH='.$dir.':'.$this->originalPath);
+        $this->fakeCrontabDir = $dir;
     }
 }

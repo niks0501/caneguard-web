@@ -116,7 +116,7 @@ final class BootstrapDeployment extends Command
         if (in_array($transport, ['log', 'array'], true)) {
             return false;
         }
-        if (in_array($transport, ['failover', 'roundrobin'], true)) {
+        if ($transport === 'failover') {
             return collect(config("mail.mailers.{$mailer}.mailers", []))
                 ->every(fn ($member) => $this->deliverable((string) $member));
         }
