@@ -18,13 +18,16 @@ final class ResetPasswordAction
     public function handle(array $credentials, Closure $callback): string
     {
         return DB::transaction(function () use ($callback, $credentials): string {
-            $user = User::query()->where('email', $credentials['email'])->lockForUpdate()->first();
-            DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
+            $account = User::query()->where('email', $credentials['email'])->lockForUpdate()->first();
+            $token = DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
                 ->where('email', $credentials['email'])
                 ->lockForUpdate()
                 ->first();
+            if ($account === null || $token === null || (int) $token->user_id !== (int) $account->getKey()) {
+                return Password::INVALID_TOKEN;
+            }
 
-            if ($user instanceof User && BootstrapAdministrator::superseded($user)) {
+            if (BootstrapAdministrator::superseded($account)) {
                 return Password::INVALID_TOKEN;
             }
 

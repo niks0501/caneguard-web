@@ -71,7 +71,7 @@ final class MailDelivery
                 return Password::RESET_THROTTLED;
             }
             $previous = DB::table($table)->where('email', $user->email)->get()->map(fn ($row): array => (array) $row)->all();
-            $token = $broker->createToken($user);
+            $token = self::issueToken($user);
             $issuedHash = DB::table($table)->where('email', $user->email)->value('token');
 
             return Password::RESET_LINK_SENT;
@@ -98,6 +98,17 @@ final class MailDelivery
         }
 
         return Password::RESET_LINK_SENT;
+    }
+
+    /** Every reset token records its issuing account, so redemption can refuse a token whose account the email no longer selects. */
+    public static function issueToken(User $user): string
+    {
+        $token = Password::broker()->createToken($user);
+        DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
+            ->where('email', $user->email)
+            ->update(['user_id' => $user->getKey()]);
+
+        return $token;
     }
 
     public static function revokeResetTokens(string $email): void

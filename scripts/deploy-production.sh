@@ -54,6 +54,8 @@ cleanup() {
   trap - EXIT
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
+    (cd "$new/api" && php artisan auth:backfill-onboarding) ||
+      echo "WARNING: onboarding reconciliation failed before rollback." >&2
     ln -s "$old" "$root/.rollback-$$"
     mv -Tf "$root/.rollback-$$" "$current"
     curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true

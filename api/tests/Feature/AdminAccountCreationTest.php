@@ -348,7 +348,7 @@ class AdminAccountCreationTest extends TestCase
 
         $this->travel(3000)->days();
         $this->artisan('auth:prune-security-audits')->assertSuccessful();
-        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'password_reset', 'outcome' => 'success']);
+        $this->assertNotNull($user->refresh()->onboarded_at);
 
         config(['caneguard.auth.operator_link_email' => 'changed-pruned@example.test']);
         $this->artisan('auth:set-password-link')->assertFailed();
@@ -479,6 +479,8 @@ class AdminAccountCreationTest extends TestCase
         $record = app(RecordSecurityAudit::class);
         $record->handle(SecurityAudit::ACTION_PASSWORD_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $passwordSet);
         $record->handle(SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::OUTCOME_FAILURE, target: $failedReset);
+        $emailChanged = User::factory()->reviewer()->unverified()->create(['email' => 'first-email-changed@example.test']);
+        $record->handle(SecurityAudit::ACTION_EMAIL_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $emailChanged);
 
         Schema::table('users', fn ($table) => $table->dropColumn('onboarded_at'));
         (require database_path('migrations/2026_11_20_000000_add_onboarded_at_to_users_table.php'))->up();
@@ -487,6 +489,49 @@ class AdminAccountCreationTest extends TestCase
         $this->assertNotNull($verified->refresh()->onboarded_at);
         $this->assertNotNull($passwordSet->refresh()->onboarded_at);
         $this->assertNull($failedReset->refresh()->onboarded_at);
+        $this->assertNotNull($emailChanged->refresh()->onboarded_at);
+    }
+
+    public function test_reset_link_issued_for_a_previous_holder_cannot_reset_an_account_at_the_vacated_address(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        Notification::fake();
+        $previous = User::factory()->reviewer()->create(['email' => 'holder-old@example.test']);
+        $this->postWeb('/forgot-password', ['email' => 'holder-old@example.test'])->assertAccepted();
+        $token = null;
+        Notification::assertSentTo($previous, ResetPassword::class, function (ResetPassword $notification) use (&$token): bool {
+            $token = $notification->token;
+
+            return true;
+        });
+        DB::table('users')->where('id', $previous->id)->update(['email' => 'holder-new@example.test']);
+        $newOwner = User::factory()->reviewer()->create(['email' => 'holder-old@example.test']);
+
+        $this->postWeb('/reset-password', ['token' => $token, 'email' => 'holder-old@example.test', 'password' => 'Hijack-Passphrase!42', 'password_confirmation' => 'Hijack-Passphrase!42'])
+            ->assertStatus(422);
+        $this->assertTrue(Hash::check('password', $newOwner->refresh()->password));
+    }
+
+    public function test_pruning_drops_onboarding_evidence_once_the_account_is_marked(): void
+    {
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'marked-prune@example.test']);
+        app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::OUTCOME_SUCCESS, target: $user);
+        $user->forceFill(['onboarded_at' => now()])->save();
+
+        $this->travel(3000)->days();
+        $this->artisan('auth:prune-security-audits')->assertSuccessful();
+
+        $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id]);
+    }
+
+    public function test_backfill_recognizes_a_successful_legacy_email_change(): void
+    {
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'legacy-change@example.test']);
+        app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_EMAIL_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $user);
+
+        $this->artisan('auth:backfill-onboarding')->assertSuccessful();
+
+        $this->assertNotNull($user->refresh()->onboarded_at);
     }
 
     public function test_pruning_keeps_successful_onboarding_evidence_and_drops_the_rest(): void

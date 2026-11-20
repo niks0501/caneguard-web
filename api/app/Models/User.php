@@ -161,7 +161,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $passwordSet = DB::table('security_audits')
             ->whereNotNull('target_user_id')
             ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
-            ->whereIn('action', [SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::ACTION_PASSWORD_CHANGE])
+            ->whereIn('action', SecurityAudit::ONBOARDING_EVIDENCE_ACTIONS)
             ->select('target_user_id');
 
         return DB::table('users')
