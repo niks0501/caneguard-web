@@ -152,6 +152,10 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * onboarded_at is set only when the holder sets a password; authority changes never touch it. Successful evidence
      * rows still count until reconciliation marks the account, so late writes from an older release cannot reopen it.
+     *
+     * Verify-only rule: a verified email alone never completes onboarding. An account verified after the marker
+     * existed, with no password set and no evidence row, stays eligible for the operator fallback. Verified rows that
+     * predate the marker are marked once by the onboarding migration's backfill, not by this predicate.
      */
     public function hasCompletedOnboarding(): bool
     {

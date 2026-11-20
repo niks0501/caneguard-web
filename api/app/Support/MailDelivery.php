@@ -57,7 +57,7 @@ final class MailDelivery
         $token = null;
         $issuedHash = null;
         $previous = [];
-        $status = DB::transaction(function () use ($broker, $table, $lookup, $onboardingOnly, $role, &$user, &$token, &$issuedHash, &$previous): string {
+        $status = RollbackBarrier::issue(function () use ($broker, $table, $lookup, $onboardingOnly, $role, &$user, &$token, &$issuedHash, &$previous): string {
             // The account lock is taken before any other read, so the throttle and the rollback snapshot see committed token state.
             $user = $lookup()->lockForUpdate()->first();
             if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasCompletedOnboarding() || ($role !== null && $user->role !== $role))) {
@@ -78,7 +78,7 @@ final class MailDelivery
             $issuedHash = DB::table($table)->where('email', $user->email)->value('token');
 
             return Password::RESET_LINK_SENT;
-        });
+        }) ?? Password::INVALID_USER;
         if ($status !== Password::RESET_LINK_SENT) {
             return $status;
         }

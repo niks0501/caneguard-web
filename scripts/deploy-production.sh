@@ -50,6 +50,7 @@ old="$(readlink -f "$current")"
 activated=0
 successful=0
 maintenance=0
+barrier=0
 restore_previous_release() {
   if [[ "$(cd "$old/api" && php artisan list --raw)" == *"auth:revoke-reset-links "* ]]; then
     ln -s "$old" "$root/.rollback-$$" || return 1
@@ -61,15 +62,16 @@ restore_previous_release() {
     echo "ERROR: could not enter maintenance mode; rollback aborted, new release stays active." >&2
     return 1
   }
-  sleep 60
+  # Engaging waits for every in-flight issuance to commit and refuses later ones, on the web and operator paths alike.
+  (cd "$new/api" && php artisan auth:rollback-barrier on) || {
+    echo "ERROR: could not engage the rollback barrier; rollback aborted, new release stays active." >&2
+    return 1
+  }
+  barrier=1
   (cd "$new/api" && php artisan auth:backfill-onboarding) ||
     echo "WARNING: onboarding reconciliation failed before rollback." >&2
   (cd "$new/api" && php artisan auth:revoke-reset-links) || {
     echo "ERROR: could not revoke outstanding reset links; rollback aborted, new release stays active." >&2
-    return 1
-  }
-  (cd "$new/api" && php artisan auth:revoke-reset-links --expect-none) || {
-    echo "ERROR: a reset link was issued during rollback; rollback aborted, new release stays active." >&2
     return 1
   }
   ln -s "$old" "$root/.rollback-$$" || return 1
@@ -84,6 +86,12 @@ cleanup() {
     if restore_previous_release; then
       restored=1
     fi
+  fi
+  # A failed rollback leaves the new release active, so issuance resumes there. After a completed rollback the barrier
+  # stays engaged: the rolled-back release does not read it, and the next activation releases it.
+  if [[ "$barrier" -eq 1 && "$restored" -ne 1 ]]; then
+    (cd "$new/api" && php artisan auth:rollback-barrier off) ||
+      echo "ERROR: could not release the rollback barrier; run php artisan auth:rollback-barrier off on the active release." >&2
   fi
   if [[ "$maintenance" -eq 1 ]]; then
     (cd "$(readlink -f "$current")/api" && php artisan up) ||
@@ -167,6 +175,9 @@ php artisan auth:backfill-onboarding
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"
 activated=1
+
+# Releases a barrier left engaged by an earlier rollback that failed, so this release can issue links.
+php artisan auth:rollback-barrier off
 
 # Stragglers still running the previous release can write for seconds after the switch, so reconcile again.
 php artisan auth:backfill-onboarding

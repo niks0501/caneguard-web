@@ -10,11 +10,13 @@ use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
 use App\Support\MailDelivery;
+use App\Support\RollbackBarrier;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -453,6 +455,30 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $pending->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
     }
 
+    public function test_verified_account_without_password_or_evidence_stays_eligible_for_the_operator_fallback(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        $verifiedOnly = User::factory()->reviewer()->create([
+            'email' => 'verify-only@example.test',
+            'email_verified_at' => now(),
+            'onboarded_at' => null,
+        ]);
+        $marked = User::factory()->reviewer()->create([
+            'email' => 'marked@example.test',
+            'email_verified_at' => now(),
+            'onboarded_at' => now(),
+        ]);
+        $this->assertFalse($verifiedOnly->hasCompletedOnboarding());
+
+        $query = $this->issueOperatorLink('verify-only@example.test');
+        $this->assertSame('verify-only@example.test', $query['email']);
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $verifiedOnly->id, 'action' => 'operator_link_issued']);
+
+        config(['caneguard.auth.operator_link_email' => 'marked@example.test']);
+        $this->artisan('auth:set-password-link')->assertFailed();
+        $this->assertDatabaseMissing('security_audits', ['target_user_id' => $marked->id, 'action' => 'operator_link_issued']);
+    }
+
     public function test_production_ses_and_postmark_round_robin_counts_as_delivery(): void
     {
         $this->app['env'] = 'production';
@@ -552,6 +578,34 @@ class AdminAccountCreationTest extends TestCase
         $this->postWeb('/reset-password', ['email' => 'revoke-links@example.test', 'token' => $token, 'password' => 'Revoked-Passphrase!42', 'password_confirmation' => 'Revoked-Passphrase!42'])
             ->assertStatus(422);
         $this->assertTrue(Hash::check('password', $user->refresh()->password));
+    }
+
+    public function test_rollback_barrier_refuses_invites_and_operator_links_until_it_is_released(): void
+    {
+        config([
+            'caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password',
+            'caneguard.auth.operator_link_email' => 'barrier@example.test',
+        ]);
+        Notification::fake();
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'barrier@example.test']);
+
+        $this->artisan('auth:rollback-barrier on')->assertSuccessful();
+        $this->assertNotSame(Password::RESET_LINK_SENT, MailDelivery::sendInvite($user));
+        $this->artisan('auth:set-password-link')->assertFailed();
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => 'barrier@example.test']);
+        $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued']);
+        Notification::assertNothingSent();
+
+        $this->artisan('auth:rollback-barrier off')->assertSuccessful();
+        $this->assertSame(Password::RESET_LINK_SENT, MailDelivery::sendInvite($user));
+        $this->artisan('auth:set-password-link')->assertSuccessful();
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued']);
+    }
+
+    public function test_rollback_barrier_command_rejects_an_unknown_state(): void
+    {
+        $this->artisan('auth:rollback-barrier maybe')->assertFailed();
+        $this->assertFalse(Cache::has(RollbackBarrier::FLAG));
     }
 
     public function test_reset_response_is_padded_to_the_recovery_timebox_for_unknown_tokens(): void

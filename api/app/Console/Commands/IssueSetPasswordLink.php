@@ -7,8 +7,8 @@ use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Support\AuthUrlBuilder;
 use App\Support\MailDelivery;
+use App\Support\RollbackBarrier;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /** Operator fallback when mail cannot deliver: prints a one-time set-password link for an account that has not onboarded; no password is typed or stored in env. */
@@ -41,7 +41,7 @@ class IssueSetPasswordLink extends Command
             return self::FAILURE;
         }
 
-        $issued = DB::transaction(function () use ($email, $audit): array|string {
+        $issued = RollbackBarrier::issue(function () use ($email, $audit): array|string {
             $user = User::query()->where('email', strtolower($email))->lockForUpdate()->first();
             if ($user === null || ! $user->is_active) {
                 return 'No active account matches that email.';
@@ -56,6 +56,11 @@ class IssueSetPasswordLink extends Command
 
             return [$user, $token];
         });
+        if ($issued === null) {
+            $this->error('Link issuance is paused during a rollback; retry after the deploy finishes.');
+
+            return self::FAILURE;
+        }
         if (is_string($issued)) {
             $this->error($issued);
 
