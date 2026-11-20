@@ -71,12 +71,12 @@ The script copies both files into `/etc/nginx/conf.d` and `/etc/php/8.3/fpm/conf
 
 | Layer | Setting | Needs | Check |
 |---|---|---|---|
-| nginx | `client_max_body_size` | `16m` or more (default 1 MB answers 413 with an HTML page) | `sudo nginx -T 2>/dev/null \| grep client_max_body_size` |
-| PHP-FPM | `upload_max_filesize` | `12M` or more (default 2M) | `php-fpm8.3 -i \| grep -E '^(upload_max_filesize\|post_max_size)'` on the FPM binary, not the CLI |
-| PHP-FPM | `post_max_size` | `16M` or more (default 8M) | same command |
+| nginx | `client_max_body_size` | `24m` or more (default 1 MB answers 413 with an HTML page) | `sudo nginx -T 2>/dev/null \| grep client_max_body_size` |
+| PHP-FPM | `upload_max_filesize` | `20M` or more (default 2M) | `php-fpm8.3 -i \| grep -E '^(upload_max_filesize\|post_max_size)'` on the FPM binary, not the CLI |
+| PHP-FPM | `post_max_size` | `24M` or more (default 8M) | same command |
 | nginx | `fastcgi_read_timeout` | above `60s` only if aerial analysis is on (it runs inside the web request) | `sudo nginx -T 2>/dev/null \| grep fastcgi_read_timeout` |
 
-A limit that is too low makes the phone file the report as a non-retryable failure, so it stays on the phone. Verify with a real photo near 10 MiB after changing a limit: the upload should answer `201`, not `413` or `422`.
+A limit that is too low makes the phone file the report as a non-retryable failure, so it stays on the phone. Verify with a real photo near 10 MiB, and an aerial photo near the 20 MiB aerial maximum, after changing a limit: the upload should answer `201`, not `413` or `422`.
 
 ## Weekly send needs operations that production does not run yet
 Production currently runs no queue worker and no mail. Until both are provisioned:

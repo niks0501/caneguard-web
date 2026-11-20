@@ -547,6 +547,27 @@ class MobileReportUploadV2Test extends TestCase
             ->assertJsonPath('data.model.model_version_recognised', true);
     }
 
+    public function test_shipped_v2_model_version_is_recognised_by_default(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('shipped-model', ['report:submit'])->plainTextToken;
+        $clientUuid = fake()->uuid();
+
+        $this->withToken($token)->withHeader('Accept', 'application/json')
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, [
+                'model_version' => 'v2.0-mobilenetv2',
+            ]))->assertCreated();
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Auth::forgetGuards();
+        $this->withoutToken()->actingAs($reviewer, 'web')
+            ->getJson("/api/v1/reports/{$report->uuid}")->assertOk()
+            ->assertJsonPath('data.model.model_version', 'v2.0-mobilenetv2')
+            ->assertJsonPath('data.model.model_version_recognised', true);
+    }
+
     public function test_v2_future_evidence_still_rejects_malformed_versions_keys_and_scores(): void
     {
         Storage::fake('local');

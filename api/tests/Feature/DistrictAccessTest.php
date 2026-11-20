@@ -280,7 +280,7 @@ class DistrictAccessTest extends TestCase
         $token->accessToken->forceFill(['abilities' => ['account:security']])->save();
         Auth::forgetGuards();
 
-        $this->withToken($token->plainTextToken)->getJson('/api/v1/mobile/auth/me')->assertOk();
+        $this->withToken($token->plainTextToken)->getJson('/api/v1/mobile/notifications')->assertOk();
 
         $this->assertEqualsCanonicalizing(
             DistrictAccess::MOBILE_CAPABILITIES,
