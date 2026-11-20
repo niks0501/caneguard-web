@@ -211,6 +211,18 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertSame(['owner@example.test'], $this->recipients($transport));
     }
 
+    public function test_undefined_mailer_fails_before_the_administrator_is_created(): void
+    {
+        Notification::fake();
+        $this->configure(['mail.default' => 'typo', 'caneguard.bootstrap_admin_email' => 'owner@example.test']);
+
+        $this->artisan('caneguard:bootstrap')->assertFailed();
+
+        $this->assertSame(0, User::query()->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_CREATED)->count());
+        Notification::assertNothingSent();
+    }
+
     public function test_non_mail_failure_during_the_send_is_not_reported_as_a_mail_failure(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
@@ -259,12 +271,13 @@ class BootstrapDeploymentTest extends TestCase
     public function test_scheduler_runs_both_prune_commands_daily_in_manila_time(): void
     {
         $events = collect($this->app->make(Schedule::class)->events());
+        $documented = ['auth:prune-security-audits' => '0 2 * * *', 'caneguard:prune-api-tokens' => '30 2 * * *'];
 
-        foreach (['auth:prune-security-audits', 'caneguard:prune-api-tokens'] as $command) {
+        foreach ($documented as $command => $expression) {
             $event = $events->first(fn ($e) => str_contains($e->command, $command));
             $this->assertNotNull($event, "{$command} is not scheduled");
             $this->assertSame('Asia/Manila', (string) $event->timezone);
-            $this->assertMatchesRegularExpression('/^\d+ \d+ \* \* \*$/', $event->expression);
+            $this->assertSame($expression, $event->expression);
         }
     }
 
@@ -334,8 +347,8 @@ class BootstrapDeploymentTest extends TestCase
     private function captureMail(): ArrayTransport
     {
         $transport = new ArrayTransport();
-        Mail::extend('capture', fn () => $transport);
-        config(['mail.default' => 'capture', 'mail.mailers.capture' => ['transport' => 'capture']]);
+        Mail::extend('smtp', fn () => $transport);
+        config(['mail.default' => 'capture', 'mail.mailers.capture' => ['transport' => 'smtp']]);
 
         return $transport;
     }

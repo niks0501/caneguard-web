@@ -79,6 +79,17 @@ class ProductionDeployScriptTest extends TestCase
         );
     }
 
+    public function test_unreadable_crontab_fails_the_deploy_and_keeps_the_existing_jobs(): void
+    {
+        $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
+        file_put_contents($this->crontab, $existing);
+
+        $process = $this->deploy('release-1-'.str_repeat('b', 40), ['CANEGUARD_TEST_CRONTAB_READ_FAILS' => '1']);
+
+        $this->assertFalse($process->isSuccessful());
+        $this->assertSame($existing, file_get_contents($this->crontab));
+    }
+
     public function test_missing_scheduler_audit_is_backfilled_by_the_next_deploy(): void
     {
         $managed = "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler";
@@ -197,7 +208,14 @@ class ProductionDeployScriptTest extends TestCase
             SH);
         $this->writeTool('crontab', <<<'SH'
             if [[ "$1" == "-l" ]]; then
-              [[ -f "$CANEGUARD_TEST_CRONTAB" ]] || exit 1
+              if [[ -n "${CANEGUARD_TEST_CRONTAB_READ_FAILS:-}" ]]; then
+                echo "crontab: permission denied" >&2
+                exit 1
+              fi
+              if [[ ! -f "$CANEGUARD_TEST_CRONTAB" ]]; then
+                echo "no crontab for deploy" >&2
+                exit 1
+              fi
               cat "$CANEGUARD_TEST_CRONTAB"
               exit 0
             fi

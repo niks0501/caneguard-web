@@ -106,7 +106,12 @@ php artisan caneguard:bootstrap --no-interaction
 # symlink, so later releases need no change. Earlier entries for that symlink are
 # replaced, unrelated jobs are kept, and re-running is a no-op.
 cron_line="* * * * * cd $current/api && $(command -v php) artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler"
-cron_existing="$(crontab -l 2>/dev/null || true)"
+if ! cron_existing="$(crontab -l 2>&1)"; then
+  case "$cron_existing" in
+    "no crontab for "*) cron_existing="" ;;
+    *) echo "Cannot read the deploy user's crontab; nothing was changed: $cron_existing" >&2; exit 1 ;;
+  esac
+fi
 cron_next="$({ printf '%s\n' "$cron_existing" | awk -v scheduled="cd $current/api && " 'NF && (index($0, scheduled) == 0 || index($0, "artisan schedule:run") == 0)' || true; printf '%s\n' "$cron_line"; })"
 if [[ "$cron_next" != "$cron_existing" ]]; then
   printf '%s\n' "$cron_next" | crontab -

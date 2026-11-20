@@ -146,14 +146,11 @@ final class BootstrapDeployment extends Command
     private function deliverable(string $mailer): bool
     {
         $transport = config("mail.mailers.{$mailer}.transport");
-        if (in_array($transport, ['log', 'array'], true)) {
-            return false;
-        }
         if ($transport === 'failover') {
             return collect(config("mail.mailers.{$mailer}.mailers", []))
                 ->every(fn ($member) => $this->deliverable((string) $member));
         }
 
-        return true;
+        return in_array($transport, ['smtp', 'ses', 'postmark', 'resend', 'sendmail'], true);
     }
 }
