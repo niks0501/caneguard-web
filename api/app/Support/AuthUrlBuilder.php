@@ -66,8 +66,8 @@ final class AuthUrlBuilder
             throw new LogicException("The caneguard.auth.{$key} value must be an absolute URL without a fragment.");
         }
 
-        if (isset($parts['fragment']) || isset($parts['user']) || isset($parts['pass'])) {
-            throw new LogicException("The caneguard.auth.{$key} value must not contain a fragment or credentials.");
+        if (($parts['query'] ?? '') !== '' || isset($parts['fragment']) || isset($parts['user']) || isset($parts['pass'])) {
+            throw new LogicException("The caneguard.auth.{$key} value must not contain a query, fragment or credentials.");
         }
 
         if (app()->environment('production') && $parts['scheme'] !== 'https') {

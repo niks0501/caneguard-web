@@ -152,25 +152,44 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
-    public function test_failed_smtp_send_keeps_an_existing_operator_link_usable(): void
+    public function test_failed_smtp_send_leaves_a_live_token_that_a_later_resend_delivers(): void
     {
         $this->productionMail();
         $this->pilotDistrict();
         $field = User::factory()->fieldReporter()->unverified()->create(['email' => 'field@example.test']);
-        $query = $this->issueOperatorLink('field@example.test');
+        $this->actingAs(User::factory()->admin()->create(), 'web');
 
-        $this->travel(2)->minutes();
         config([
             'mail.mailers.smtp.host' => '127.0.0.1',
             'mail.mailers.smtp.port' => $this->unusedPort(),
             'mail.mailers.smtp.require_tls' => true,
         ]);
         app('mail.manager')->forgetMailers();
-        $this->actingAs(User::factory()->admin()->create(), 'web');
-
         $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', false);
-        $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
-        $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $field->refresh()->password));
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => 'field@example.test']);
+
+        $this->travel(2)->minutes();
+        $this->startFakeMailbox('smtp');
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', true);
+        $messages = $this->fakeMailboxMessages();
+        $this->assertCount(1, $messages);
+        $this->assertStringContainsString('field@example.test', (string) file_get_contents($messages[0]));
+    }
+
+    public function test_forgot_password_answers_the_contract_message_when_smtp_is_unreachable(): void
+    {
+        $this->productionMail();
+        config([
+            'mail.mailers.smtp.host' => '127.0.0.1',
+            'mail.mailers.smtp.port' => $this->unusedPort(),
+            'mail.mailers.smtp.require_tls' => true,
+        ]);
+        app('mail.manager')->forgetMailers();
+        User::factory()->reviewer()->create(['email' => 'known@example.test']);
+        $contract = 'If an account matches, a password recovery link will be sent.';
+
+        $this->postWeb('/forgot-password', ['email' => 'known@example.test'])->assertAccepted()->assertJsonPath('message', $contract);
+        $this->postWeb('/forgot-password', ['email' => 'unknown@example.test'])->assertAccepted()->assertJsonPath('message', $contract);
     }
 
     public function test_operator_link_takes_its_target_from_env_when_no_email_is_typed(): void
@@ -187,12 +206,12 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:set-password-link')->assertFailed();
     }
 
-    public function test_operator_link_refuses_reset_urls_with_a_fragment_or_credentials(): void
+    public function test_operator_link_refuses_reset_urls_with_a_query_fragment_or_credentials(): void
     {
         $this->productionMail();
         User::factory()->reviewer()->unverified()->create(['email' => 'frag@example.test']);
 
-        foreach (['https://app.example.test/reset-password#token', 'https://user:secret@app.example.test/reset-password'] as $url) {
+        foreach (['https://app.example.test/reset-password#token', 'https://user:secret@app.example.test/reset-password', 'https://app.example.test/reset-password?token=stale&email=other@example.test'] as $url) {
             config(['caneguard.auth.password_reset_url' => $url]);
             $this->artisan('auth:set-password-link', ['email' => 'frag@example.test'])->assertFailed();
         }

@@ -216,11 +216,11 @@ class AuthSecurityTest extends TestCase
         $unknown = $this->postJson('/forgot-password', ['email' => 'missing@example.test']);
         $known = $this->postJson('/forgot-password', ['email' => $user->email]);
         $unknown->assertAccepted()->assertExactJson([
-            'message' => 'If an account matches, a password recovery link is sent when mail is available. If none arrives, ask an administrator to issue a set-password link.',
+            'message' => 'If an account matches, a password recovery link will be sent.',
             'code' => 'PASSWORD_RESET_LINK_SENT',
         ]);
         $known->assertAccepted()->assertExactJson([
-            'message' => 'If an account matches, a password recovery link is sent when mail is available. If none arrives, ask an administrator to issue a set-password link.',
+            'message' => 'If an account matches, a password recovery link will be sent.',
             'code' => 'PASSWORD_RESET_LINK_SENT',
         ]);
 

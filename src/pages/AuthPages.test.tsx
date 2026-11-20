@@ -73,11 +73,8 @@ describe("public authentication pages", () => {
     await user.click(screen.getByRole("button", { name: "Send recovery link" }));
 
     expect(await screen.findByText("Check your email.")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "If an account matches, a password recovery link is sent when mail is available. If none arrives, ask an administrator to issue a set-password link. The link expires in one hour.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("If an account matches, a password recovery link will be sent. The link expires in one hour.")).toBeInTheDocument();
+    expect(screen.getByText("If no link arrives, ask an administrator to issue a set-password link.")).toBeInTheDocument();
   });
 
   it("verifies an email link through the Laravel endpoint", async () => {

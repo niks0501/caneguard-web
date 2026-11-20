@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 
 /** Whether the default mailer can really deliver: log and array never do, and SMTP must require TLS. */
@@ -24,13 +23,13 @@ final class MailDelivery
         return ! in_array($transport, ['', 'log', 'array'], true);
     }
 
-    /** Issues a reset token only when the mailer can deliver it; a failed send rolls back the token it would have replaced. */
+    /** Issues a reset token only when the mailer can deliver it. The token commits before SMTP is attempted, so a failed send leaves a live token to resend. */
     public static function sendResetLink(array $credentials): string
     {
         if (! self::canDeliver()) {
             return Password::INVALID_USER;
         }
 
-        return DB::transaction(fn (): string => Password::broker()->sendResetLink($credentials));
+        return Password::broker()->sendResetLink($credentials);
     }
 }
