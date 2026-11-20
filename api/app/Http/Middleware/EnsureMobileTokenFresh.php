@@ -60,16 +60,16 @@ class EnsureMobileTokenFresh
             return;
         }
 
-        $fresh = $user->fresh();
-
-        if ($fresh === null || ! app(DistrictAccess::class)->inspector($fresh)) {
-            return;
-        }
-
         $current = DistrictAccess::MOBILE_CAPABILITIES;
         $stored = (array) $token->abilities;
 
         if (array_diff($current, $stored) === [] && array_diff($stored, $current) === []) {
+            return;
+        }
+
+        $fresh = $user->fresh();
+
+        if ($fresh === null || ! app(DistrictAccess::class)->inspector($fresh)) {
             return;
         }
 

@@ -61,13 +61,17 @@ The workflow needs the dedicated `deploy` key; your personal workstation SSH key
 The shared `.env` sets `CANEGUARD_ACCEPTED_MODEL_VERSIONS=v2.0-mobilenetv2,v1.0-mobilenetv2` (also the code default), so the shipped phone's `v2.0-mobilenetv2` and the earlier `v1.0-mobilenetv2` are both recognised. It is recognition only: an unlisted version still persists and shows the office warning. Run `php artisan config:cache` in the active release after changing it.
 
 ## Server upload limits (check before relying on photo uploads)
-The managed limits live in the repository: `deploy/server/nginx/caneguard-upload-limits.conf` (nginx) and `deploy/server/php/caneguard-upload-limits.ini` (PHP-FPM 8.3). The deploy account has no sudo, so the deploy workflow does not apply them. An administrator (`ubuntu`) applies them from the active release, and again after any change to those files:
+The managed limits are static files in the repository: `deploy/server/nginx/caneguard-upload-limits.conf` (nginx) and `deploy/server/php/caneguard-upload-limits.ini` (PHP-FPM 8.3), listed with their SHA-256 in `deploy/server/SHA256SUMS`. The deploy account has no sudo and the deploy workflow does not apply them. An administrator (`ubuntu`) installs them from the active release, and again after any change to those files. No release script runs as root; root only copies the two data files into `/etc` and tests and reloads the services:
 
 ```sh
-sudo /var/www/caneguard/current/scripts/install-upload-limits.sh
+cd /var/www/caneguard/current/deploy/server
+sha256sum -c SHA256SUMS
+sudo install -m 0644 nginx/caneguard-upload-limits.conf /etc/nginx/conf.d/caneguard-upload-limits.conf
+sudo install -m 0644 php/caneguard-upload-limits.ini /etc/php/8.3/fpm/conf.d/90-caneguard-upload-limits.ini
+sudo nginx -t && sudo php-fpm8.3 -t && sudo systemctl reload nginx php8.3-fpm
 ```
 
-The script copies both files into `/etc/nginx/conf.d` and `/etc/php/8.3/fpm/conf.d`, tests nginx and PHP-FPM, and reloads them. If a test fails, it removes both files and exits non-zero. The phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Check the values before a go-live and after any PHP or nginx change:
+If a test fails, remove the two installed files, fix the cause, and repeat. The checksum file is in the same release as the files, so it detects corruption, not a change made by someone who can write the release. The phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Check the values before a go-live and after any PHP or nginx change:
 
 | Layer | Setting | Needs | Check |
 |---|---|---|---|
