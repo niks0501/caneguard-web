@@ -52,3 +52,7 @@ export const env = parseEnv(import.meta.env);
  * and the mock modules are tree-shaken out of the shipped bundle.
  */
 export const mockDataAvailable = !import.meta.env.PROD;
+
+if (!mockDataAvailable && env.dataSource === "mock") {
+  throw new Error("VITE_DATA_SOURCE=mock is not allowed in a production build.");
+}

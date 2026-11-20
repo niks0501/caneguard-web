@@ -673,6 +673,26 @@ class MobileReportUploadTest extends TestCase
         $this->assertDatabaseHas('reports', ['client_uuid' => $clientUuid]);
     }
 
+    public function test_resend_matches_a_pre_change_upper_case_client_uuid_without_creating_a_second_report(): void
+    {
+        Storage::fake('local');
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $token = $reporter->createToken('legacy-case-test')->plainTextToken;
+        $clientUuid = strtolower(fake()->uuid());
+        $legacy = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $reporter->getKey(),
+            'client_uuid' => strtoupper($clientUuid),
+        ]);
+
+        $this->withToken($token)
+            ->withHeader('Accept', 'application/json')
+            ->post('/api/v1/mobile/reports', $this->payload($clientUuid))
+            ->assertOk()
+            ->assertJsonPath('data.identity.uuid', $legacy->uuid);
+
+        $this->assertDatabaseCount('reports', 1);
+    }
+
     public function test_idempotent_resubmission_preserves_existing_evidence_review_snapshot_and_version(): void
     {
         Storage::fake('local');
@@ -722,7 +742,8 @@ class MobileReportUploadTest extends TestCase
             ->assertJsonPath('data.review.notes', $before->review_notes)
             ->assertJsonMissingPath('data.review.reviewer')
             ->assertJsonMissingPath('data.reporter.email')
-            ->assertJsonMissingPath('data.history')
+            ->assertJsonMissingPath('data.case_history')
+            ->assertJsonMissingPath('data.audit')
             ->assertJsonPath('data.version', $before->lock_version)
             ->assertJsonPath('data.model.predicted_label', $before->predicted_label)
             ->assertJsonPath('data.model.model_version', $before->model_version)

@@ -70,7 +70,7 @@ export async function changePassword(
     if (!input.currentPassword) {
       throw new Error("The current password is required.");
     }
-    if (input.password.length < 15) {
+    if ([...input.password].length < 15) {
       throw new Error("The password must be at least 15 characters.");
     }
     if (input.password !== input.passwordConfirmation) {

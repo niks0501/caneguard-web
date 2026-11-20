@@ -83,7 +83,7 @@ export function SettingsPage() {
       setPasswordError("Enter your current password.");
       return;
     }
-    if (newPassword.length < 15) {
+    if ([...newPassword].length < 15) {
       setPasswordError("The new password must be at least 15 characters.");
       return;
     }

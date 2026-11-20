@@ -6,13 +6,26 @@ use App\Events\CaseAttentionChanged;
 use App\Events\NewCaseSubmitted;
 use Illuminate\Broadcasting\BroadcastEvent;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class BroadcastGateTest extends TestCase
 {
-    public function test_null_broadcast_connection_queues_no_broadcast_job(): void
+    /**
+     * @return array<string, array{0: string|null}>
+     */
+    public static function disabledConnections(): array
     {
-        config(['broadcasting.default' => 'null']);
+        return [
+            'string null' => ['null'],
+            'php null' => [null],
+        ];
+    }
+
+    #[DataProvider('disabledConnections')]
+    public function test_null_broadcast_connection_queues_no_broadcast_job(?string $connection): void
+    {
+        config(['broadcasting.default' => $connection]);
         Queue::fake();
 
         NewCaseSubmitted::dispatch('recipient-uuid', 'report-uuid', 'CG-0001');

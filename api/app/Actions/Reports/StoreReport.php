@@ -85,7 +85,7 @@ class StoreReport
     {
         $report = Report::query()->visibleTo($reporter)
             ->whereBelongsTo($reporter, 'reporter')
-            ->where('client_uuid', $clientUuid)
+            ->clientUuid($clientUuid)
             ->first();
 
         return $report ? $this->load($report) : null;

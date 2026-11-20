@@ -287,7 +287,7 @@ Replace angle-bracket values with local values and never commit the file.
 | `SESSION_SECURE_COOKIE` | Keep `true`. |
 | `SESSION_HTTP_ONLY` | Keep `true`. |
 | `SESSION_SAME_SITE` | Keep `lax`. |
-| `BROADCAST_CONNECTION` | Keep `null`; with `log` or `reverb`, broadcast jobs pile up in `jobs` when no worker runs. |
+| `BROADCAST_CONNECTION` | Keep `log`. |
 | `FILESYSTEM_DISK` | Keep `local`. |
 | `QUEUE_CONNECTION` | Keep `database`. |
 | `CACHE_STORE` | Keep `database`. |

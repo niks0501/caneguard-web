@@ -188,6 +188,35 @@ describe("SettingsPage", () => {
     expect(accountApi.changePassword).not.toHaveBeenCalled();
   });
 
+  it("counts new passwords in characters, not UTF-16 units, against the 15 minimum", async () => {
+    const user = userEvent.setup();
+    renderSettingsPage();
+
+    const fourteenEmoji = "😀".repeat(14);
+    const fifteenEmoji = "😀".repeat(15);
+    await user.type(screen.getByLabelText("Current password"), "An old reviewer passphrase");
+    await user.type(screen.getByLabelText("New password"), fourteenEmoji);
+    await user.type(screen.getByLabelText("Confirm new password"), fourteenEmoji);
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(accountApi.changePassword).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("The new password must be at least 15 characters."),
+    ).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("New password"));
+    await user.clear(screen.getByLabelText("Confirm new password"));
+    await user.type(screen.getByLabelText("New password"), fifteenEmoji);
+    await user.type(screen.getByLabelText("Confirm new password"), fifteenEmoji);
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(accountApi.changePassword).toHaveBeenCalledWith({
+      currentPassword: "An old reviewer passphrase",
+      password: fifteenEmoji,
+      passwordConfirmation: fifteenEmoji,
+    });
+  });
+
   it("disables credential submits while a request is in flight", async () => {
     const user = userEvent.setup();
     let resolvePassword!: (value: { message: string }) => void;

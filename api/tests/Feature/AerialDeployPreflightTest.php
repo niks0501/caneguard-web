@@ -37,7 +37,8 @@ class AerialDeployPreflightTest extends TestCase
         ]);
 
         $this->assertStringNotContainsString('nothing to check', $run->getOutput());
-        $this->assertNotSame(0, $run->getExitCode());
+        $this->assertSame(1, $run->getExitCode());
+        $this->assertStringContainsString("CANEGUARD_AERIAL_PYTHON ('/nonexistent/python') cannot be executed", $run->getErrorOutput());
     }
 
     public function test_flag_off_changes_nothing_and_passes(): void
