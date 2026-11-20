@@ -19,7 +19,7 @@ The authenticated user must have the field reporter role and may receive only th
 
 Unauthenticated requests return `401 UNAUTHENTICATED`.
 
-Reviewer, administrator, and tokens without the `report:status` ability cannot read this feed and return `403 FORBIDDEN`.
+Reviewer, administrator, and tokens without the `report:status` ability cannot read this feed and return `403 FORBIDDEN`. A token whose owner is a current pilot inspector is first refreshed to the inspector abilities (see `auth-v1.md`), so only tokens that stay without `report:status` after that refresh are refused.
 
 ## Query parameters
 
