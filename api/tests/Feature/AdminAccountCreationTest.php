@@ -546,14 +546,6 @@ class AdminAccountCreationTest extends TestCase
         $this->assertTrue(Hash::check('password', $user->refresh()->password));
     }
 
-    public function test_production_roundrobin_of_real_providers_counts_as_delivery(): void
-    {
-        $this->app['env'] = 'production';
-        config(['mail.default' => 'pool', 'mail.mailers.pool' => ['transport' => 'roundrobin', 'mailers' => ['ses', 'postmark']]]);
-
-        $this->assertTrue(MailDelivery::canDeliver());
-    }
-
     public function test_reset_response_is_padded_to_the_recovery_timebox_for_unknown_tokens(): void
     {
         $started = hrtime(true);

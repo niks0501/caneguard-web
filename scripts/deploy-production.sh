@@ -54,13 +54,15 @@ cleanup() {
   trap - EXIT
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
-    (cd "$new/api" && php artisan down --retry=60) ||
-      echo "WARNING: could not enter maintenance mode before rollback." >&2
+    if ! (cd "$new/api" && php artisan down --retry=60); then
+      echo "ERROR: could not enter maintenance mode; rollback aborted, new release stays active." >&2
+      exit 1
+    fi
     sleep 60
     (cd "$new/api" && php artisan auth:backfill-onboarding) ||
       echo "WARNING: onboarding reconciliation failed before rollback." >&2
     if ! (cd "$new/api" && php artisan auth:revoke-reset-links); then
-      echo "ERROR: could not revoke outstanding reset links; rollback aborted." >&2
+      echo "ERROR: could not revoke outstanding reset links; rollback aborted, new release stays active." >&2
       (cd "$new/api" && php artisan up) || true
       exit 1
     fi

@@ -236,7 +236,7 @@ class AuthSecurityTest extends TestCase
             return true;
         });
 
-        $plainToken = MailDelivery::issueToken($user);
+        $plainToken = Notification::sent($user, ResetPassword::class)->first()->token;
         $this->postJson('/reset-password', [
             'email' => $user->email,
             'token' => $plainToken,
