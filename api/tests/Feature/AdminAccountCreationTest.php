@@ -825,7 +825,7 @@ class AdminAccountCreationTest extends TestCase
 
         $this->assertSame(
             ['password_reset'],
-            SecurityAudit::query()->orderBy('id')->pluck('action')->all(),
+            SecurityAudit::query()->where('action', '!=', SecurityAudit::ACTION_PRUNE_RUN)->orderBy('id')->pluck('action')->all(),
         );
     }
 

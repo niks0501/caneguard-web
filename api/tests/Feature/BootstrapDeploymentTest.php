@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\MailDelivery;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Console\Scheduling\Schedule;
@@ -13,7 +14,6 @@ use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Process\Process;
@@ -543,7 +543,7 @@ class BootstrapDeploymentTest extends TestCase
         ]))->assertForbidden();
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertUnprocessable()->assertJsonPath('code', 'INVALID_RESET_TOKEN');
         $this->assertFalse($first->fresh()->hasVerifiedEmail());
@@ -574,7 +574,7 @@ class BootstrapDeploymentTest extends TestCase
         ]))->assertForbidden();
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertUnprocessable()->assertJsonPath('code', 'INVALID_RESET_TOKEN');
         $this->assertFalse($first->fresh()->hasVerifiedEmail());
@@ -593,7 +593,7 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertFalse($first->fresh()->hasVerifiedEmail());
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertOk()->assertJsonPath('code', 'PASSWORD_RESET');
         $this->assertTrue($first->fresh()->hasVerifiedEmail());
@@ -610,7 +610,7 @@ class BootstrapDeploymentTest extends TestCase
         Notification::assertNotSentTo($first, VerifyEmail::class);
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertOk();
         $first->forceFill(['email_verified_at' => null])->save();
