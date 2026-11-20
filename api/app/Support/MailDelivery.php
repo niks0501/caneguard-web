@@ -2,12 +2,13 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 
-/** Whether the default mailer can really deliver; log/array transports only pretend, and failover can fall back to log. */
+/** Whether the default mailer can really deliver; log/array transports only pretend, and SMTP must require TLS. */
 final class MailDelivery
 {
-    private const NON_DELIVERING = ['log', 'array', 'failover'];
+    private const NON_DELIVERING = ['log', 'array'];
 
     /** Outside production the log/array mailers stay allowed for local work and tests. */
     public static function canDeliver(): bool
@@ -16,14 +17,22 @@ final class MailDelivery
             return true;
         }
 
-        $transport = (string) config('mail.mailers.'.config('mail.default').'.transport');
+        $name = (string) config('mail.default');
+        $transport = (string) config("mail.mailers.{$name}.transport");
+        if ($transport === '' || in_array($transport, self::NON_DELIVERING, true)) {
+            return false;
+        }
 
-        return $transport !== '' && ! in_array($transport, self::NON_DELIVERING, true);
+        return $transport !== 'smtp' || (bool) config("mail.mailers.{$name}.require_tls");
     }
 
-    /** Issues a reset token only when the mailer can deliver it; otherwise nothing changes and no token replaces another. */
+    /** Issues a reset token only when the mailer can deliver it; a failed send rolls back the token it would have replaced. */
     public static function sendResetLink(array $credentials): string
     {
-        return self::canDeliver() ? Password::broker()->sendResetLink($credentials) : Password::INVALID_USER;
+        if (! self::canDeliver()) {
+            return Password::INVALID_USER;
+        }
+
+        return DB::transaction(fn (): string => Password::broker()->sendResetLink($credentials));
     }
 }

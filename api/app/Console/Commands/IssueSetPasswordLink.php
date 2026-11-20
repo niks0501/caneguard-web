@@ -13,13 +13,20 @@ use LogicException;
 /** Operator fallback when mail cannot deliver: prints a one-time set-password link for an account that has not onboarded; no password is typed or stored in env. */
 class IssueSetPasswordLink extends Command
 {
-    protected $signature = 'auth:set-password-link {email : Email of an active account that has not completed onboarding}';
+    protected $signature = 'auth:set-password-link {email? : Email of an active account that has not completed onboarding (defaults to CANEGUARD_OPERATOR_LINK_EMAIL)}';
 
     protected $description = 'Print a one-time set-password link for an account that has not completed onboarding (operator fallback when mail is unavailable)';
 
     public function handle(AuthUrlBuilder $urls, RecordSecurityAudit $audit): int
     {
-        $user = User::query()->where('email', strtolower(trim((string) $this->argument('email'))))->first();
+        $email = trim((string) ($this->argument('email') ?? config('caneguard.auth.operator_link_email')));
+        if ($email === '') {
+            $this->error('Pass an email, or set CANEGUARD_OPERATOR_LINK_EMAIL.');
+
+            return self::FAILURE;
+        }
+
+        $user = User::query()->where('email', strtolower($email))->first();
         if ($user === null || ! $user->is_active) {
             $this->error('No active account matches that email.');
 

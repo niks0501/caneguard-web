@@ -154,7 +154,7 @@ class WebAccountsController extends Controller
         $user = User::query()->where('uuid', $uuid)->firstOrFail();
         Gate::authorize('inspect', $user);
         $events = SecurityAudit::query()->with('actor')->where('target_user_id', $user->id)
-            ->whereIn('action', ['role_change', 'account_status_change', 'web_account_changed', 'district_access_changed', 'account_created', 'account_invite_sent', 'account_review_changed', 'district_reporting_settings_changed', 'report_approved', 'report_send_requested'])
+            ->whereIn('action', ['role_change', 'account_status_change', 'web_account_changed', 'district_access_changed', 'account_created', 'account_invite_sent', SecurityAudit::ACTION_OPERATOR_LINK, 'account_review_changed', 'district_reporting_settings_changed', 'report_approved', 'report_send_requested'])
             ->orderByDesc('created_at')->orderByDesc('id')->limit(25)->get();
 
         return response()->json(['data' => $events->map(fn (SecurityAudit $event) => [

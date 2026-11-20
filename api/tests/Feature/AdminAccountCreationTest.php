@@ -67,7 +67,7 @@ class AdminAccountCreationTest extends TestCase
         $admin = User::factory()->admin()->create();
         $this->actingAs($admin, 'web');
 
-        foreach (['log', 'array', 'failover'] as $i => $mailer) {
+        foreach (['log', 'array'] as $i => $mailer) {
             config(['mail.default' => $mailer]);
             $email = "m{$i}@example.test";
             $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => $email, 'role' => 'field_reporter']))
@@ -120,9 +120,13 @@ class AdminAccountCreationTest extends TestCase
         $this->productionMail();
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'op@example.test']);
 
+        $this->pilotDistrict();
         $query = $this->issueOperatorLink('OP@example.test');
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
         $this->assertDatabaseMissing('security_audits', ['target_user_id' => $user->id, 'action' => 'account_invite_sent']);
+        $this->actingAs(User::factory()->admin()->create(), 'web')
+            ->getJson('/api/v1/admin/accounts/'.$user->uuid.'/events')
+            ->assertOk()->assertJsonFragment(['action' => 'operator_link_issued']);
 
         $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
         $user->refresh();
@@ -132,6 +136,55 @@ class AdminAccountCreationTest extends TestCase
         $this->postWeb('/reset-password', $query + ['password' => 'Other-Passphrase!43', 'password_confirmation' => 'Other-Passphrase!43'])
             ->assertStatus(422);
         $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $user->refresh()->password));
+    }
+
+    public function test_production_smtp_without_tls_reports_invite_not_sent_and_issues_no_token(): void
+    {
+        Notification::fake();
+        $this->productionMail();
+        config(['mail.mailers.smtp.require_tls' => false]);
+        $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'plain@example.test']))
+            ->assertCreated()->assertJsonPath('invite_sent', false);
+        Notification::assertNothingSent();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_failed_smtp_send_keeps_an_existing_operator_link_usable(): void
+    {
+        $this->productionMail();
+        $this->pilotDistrict();
+        $field = User::factory()->fieldReporter()->unverified()->create(['email' => 'field@example.test']);
+        $query = $this->issueOperatorLink('field@example.test');
+
+        $this->travel(2)->minutes();
+        config([
+            'mail.mailers.smtp.host' => '127.0.0.1',
+            'mail.mailers.smtp.port' => $this->unusedPort(),
+            'mail.mailers.smtp.require_tls' => true,
+        ]);
+        app('mail.manager')->forgetMailers();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', false);
+        $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
+        $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $field->refresh()->password));
+    }
+
+    public function test_operator_link_takes_its_target_from_env_when_no_email_is_typed(): void
+    {
+        $this->productionMail();
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'env@example.test']);
+
+        config(['caneguard.auth.operator_link_email' => 'ENV@example.test']);
+        Artisan::call('auth:set-password-link');
+        $this->assertStringStartsWith('https://app.example.test/reset-password?', (string) strtok(Artisan::output(), "\n"));
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
+
+        config(['caneguard.auth.operator_link_email' => null]);
+        $this->artisan('auth:set-password-link')->assertFailed();
     }
 
     public function test_operator_link_refuses_accounts_that_completed_onboarding_and_unknown_emails(): void

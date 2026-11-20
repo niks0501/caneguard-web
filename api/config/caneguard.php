@@ -99,6 +99,7 @@ return [
             'CANEGUARD_PASSWORD_RESET_URL',
             $frontendUrl.'/reset-password',
         ),
+        'operator_link_email' => env('CANEGUARD_OPERATOR_LINK_EMAIL'),
         'password_min_length' => max(15, (int) env('CANEGUARD_PASSWORD_MIN_LENGTH', 15)),
         'password_max_length' => max(64, (int) env('CANEGUARD_PASSWORD_MAX_LENGTH', 128)),
         'compromised_password_hashes' => array_values(
