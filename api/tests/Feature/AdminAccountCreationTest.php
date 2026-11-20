@@ -640,6 +640,38 @@ class AdminAccountCreationTest extends TestCase
         }
     }
 
+    public function test_production_invite_is_not_sent_through_a_relay_without_starttls(): void
+    {
+        $this->productionMail();
+        $this->pilotDistrict();
+        $port = $this->unusedPort();
+        $log = sys_get_temp_dir().'/caneguard-plain-relay-'.bin2hex(random_bytes(4)).'.log';
+        $relay = proc_open([PHP_BINARY, base_path('tests/Support/plain_smtp_relay.php'), (string) $port, $log], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+
+        try {
+            $this->assertSame("listening\n", fgets($pipes[1]));
+            config([
+                'mail.mailers.smtp.host' => '127.0.0.1',
+                'mail.mailers.smtp.port' => $port,
+                'mail.mailers.smtp.require_tls' => true,
+            ]);
+            app('mail.manager')->forgetMailers();
+            $this->actingAs(User::factory()->admin()->create(), 'web');
+
+            $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'plain@example.test', 'role' => 'field_reporter']))
+                ->assertCreated()->assertJsonPath('invite_sent', false);
+
+            $sent = is_file($log) ? (string) file_get_contents($log) : '';
+            $this->assertStringContainsString('EHLO', $sent);
+            $this->assertStringNotContainsString('AUTH', $sent);
+            $this->assertStringNotContainsString('MAIL FROM', $sent);
+        } finally {
+            proc_terminate($relay);
+            proc_close($relay);
+            @unlink($log);
+        }
+    }
+
     public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void
     {
         $this->productionMail();

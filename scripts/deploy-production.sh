@@ -72,17 +72,21 @@ restore_previous_release() {
 cleanup() {
   status=$?
   trap - EXIT
+  restored=0
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
     maintenance=1
     if restore_previous_release; then
-      curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true
-      echo "WARNING: Database migrations are not rolled back automatically." >&2
+      restored=1
     fi
   fi
   if [[ "$maintenance" -eq 1 ]]; then
     (cd "$(readlink -f "$current")/api" && php artisan up) ||
       echo "ERROR: could not leave maintenance mode; run php artisan up on the active release." >&2
+  fi
+  if [[ "$restored" -eq 1 ]]; then
+    curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true
+    echo "WARNING: Database migrations are not rolled back automatically." >&2
   fi
   rm -f "$archive"
   exit "$status"
