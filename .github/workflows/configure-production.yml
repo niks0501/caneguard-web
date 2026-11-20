@@ -58,7 +58,7 @@ jobs:
           printf '%s\n' "$PRODUCTION_ENV" > "$RUNNER_TEMP/caneguard.env"
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
             -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" \
-            "umask 077 && cat > '/var/www/caneguard/releases/.env-$GITHUB_RUN_ID'" < "$RUNNER_TEMP/caneguard.env"
+            "umask 077 && set -C && cat > '/var/www/caneguard/releases/.env-$GITHUB_RUN_ID'" < "$RUNNER_TEMP/caneguard.env"
 
       - name: Install shared configuration
         run: |

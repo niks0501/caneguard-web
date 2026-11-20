@@ -11,6 +11,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\ConfigurationUrlParser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
@@ -170,6 +171,16 @@ final class BootstrapDeployment extends Command
             $config['transport'] = Arr::pull($config, 'driver');
         }
 
-        return ($config['transport'] ?? null) === 'smtp';
+        if (($config['transport'] ?? null) !== 'smtp') {
+            return false;
+        }
+
+        try {
+            Mail::mailer($mailer)->getSymfonyTransport();
+        } catch (\LogicException) {
+            return false;
+        }
+
+        return true;
     }
 }

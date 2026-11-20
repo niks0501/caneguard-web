@@ -252,6 +252,17 @@ class BootstrapDeploymentTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_smtp_scheme_the_transport_cannot_use_fails_before_creating_an_administrator(): void
+    {
+        Notification::fake();
+        $this->configure(['mail.mailers.smtp.scheme' => 'log', 'caneguard.bootstrap_admin_email' => 'owner@example.test']);
+
+        $this->artisan('caneguard:bootstrap')->assertFailed();
+
+        $this->assertSame(0, User::query()->count());
+        Notification::assertNothingSent();
+    }
+
     public function test_undefined_mailer_fails_before_the_administrator_is_created(): void
     {
         Notification::fake();
