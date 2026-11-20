@@ -88,7 +88,7 @@ sudo install -m 0644 /var/www/caneguard/current/deploy/server/php/caneguard-uplo
 sudo nginx -t && sudo php-fpm8.3 -t && sudo systemctl reload nginx php8.3-fpm
 ```
 
-If a test fails, remove the two installed files, fix the cause, and repeat. The checksum file is in the same release as the files, so it detects corruption, not a change made by someone who can write the release. The phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Check the values before a go-live and after any PHP or nginx change:
+If a test fails, remove the two installed files, fix the cause, and repeat. The checksum file is in the same release as the files, so it detects corruption, not a change made by someone who can write the release. To change a limit, edit the file and regenerate the manifest from `deploy/server` (`sha256sum nginx/caneguard-upload-limits.conf php/caneguard-upload-limits.ini > SHA256SUMS`); `npm run test:deploy-server-manifest`, which `check:web` runs, fails when the files and the manifest disagree. The phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Check the values before a go-live and after any PHP or nginx change:
 
 | Layer | Setting | Needs | Check |
 |---|---|---|---|
@@ -174,7 +174,7 @@ If the mail server accepts the link but the invitation record cannot be written,
 
 Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
 
-Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package and an enabled, running `cron` service, so the scheduler survives a reboot. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
+Still by hand: the PHP-FPM and nginx upload/body limits, which need root (see "Server upload limits" above). The host must also have the `cron` package and an enabled, running `cron` service, so the scheduler survives a reboot. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
 
 ## Scheduler for reminders, follow-up due notifications and pruning
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink, with the absolute `php` path that account resolves). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, and keeps unrelated jobs. Each deploy records a `scheduler_cron_observed` audit row showing that the entry was present in the crontab at that deploy; the row does not record when the entry was installed. No manual crontab step is needed:
