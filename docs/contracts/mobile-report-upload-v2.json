@@ -625,7 +625,7 @@
       "required": true,
       "nullable": false,
       "max_length": 100,
-      "known_values": ["v1.0-mobilenetv2"],
+      "known_values": ["v2.0-mobilenetv2", "v1.0-mobilenetv2"],
       "unrecognised_value_policy": "persist_as_submitted"
     },
     "preprocess_ms": {

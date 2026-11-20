@@ -555,6 +555,7 @@ class MobileReportUploadV2Test extends TestCase
         $token = $reporter->createToken('shipped-model', ['report:submit'])->plainTextToken;
         $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
 
+        $reportUuids = [];
         foreach (['v2.0-mobilenetv2', 'v1.0-mobilenetv2'] as $version) {
             $clientUuid = fake()->uuid();
 
@@ -563,10 +564,13 @@ class MobileReportUploadV2Test extends TestCase
                     'model_version' => $version,
                 ]))->assertCreated();
 
-            $report = Report::query()->where('client_uuid', $clientUuid)->sole();
-            Auth::forgetGuards();
-            $this->withoutToken()->actingAs($reviewer, 'web')
-                ->getJson("/api/v1/reports/{$report->uuid}")->assertOk()
+            $reportUuids[$version] = Report::query()->where('client_uuid', $clientUuid)->sole()->uuid;
+        }
+
+        Auth::forgetGuards();
+        $this->withoutToken()->actingAs($reviewer, 'web');
+        foreach ($reportUuids as $version => $uuid) {
+            $this->getJson("/api/v1/reports/{$uuid}")->assertOk()
                 ->assertJsonPath('data.model.model_version', $version)
                 ->assertJsonPath('data.model.model_version_recognised', true);
         }
