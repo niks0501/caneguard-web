@@ -40,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Mail::extend('smtp', static fn (array $config): RequiredTlsSmtpTransport => RequiredTlsSmtpTransport::fromConfig($config));
+        Mail::extend('caneguard_smtp', static fn (array $config): RequiredTlsSmtpTransport => RequiredTlsSmtpTransport::fromConfig($config));
         Gate::policy(Report::class, ReportPolicy::class);
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
         Sanctum::authenticateAccessTokensUsing(static function (PersonalAccessToken $token, bool $valid): bool {

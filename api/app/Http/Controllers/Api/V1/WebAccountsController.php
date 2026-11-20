@@ -69,7 +69,7 @@ class WebAccountsController extends Controller
                 $detail = $directory->detail($user, $actor);
 
                 return array_merge(self::account($user), [
-                    'invite_pending' => ! $user->hasCompletedOnboarding() && ! $user->hasVerifiedEmail(),
+                    'invite_pending' => ! $user->hasVerifiedEmail() && ! $user->hasCompletedOnboarding(),
                     'email_verified' => $user->hasVerifiedEmail(),
                     'membership_state' => $detail['membership_state'],
                     'allowed_actions' => $detail['allowed_actions'],

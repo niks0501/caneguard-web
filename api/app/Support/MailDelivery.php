@@ -25,7 +25,7 @@ final class MailDelivery
 
         $name = (string) config('mail.default');
         $transport = (string) config("mail.mailers.{$name}.transport");
-        if ($transport === 'smtp') {
+        if (in_array($transport, ['smtp', 'caneguard_smtp'], true)) {
             return (bool) config("mail.mailers.{$name}.require_tls");
         }
 
@@ -59,7 +59,7 @@ final class MailDelivery
         $status = RollbackBarrier::issue(function () use ($table, $lookup, $onboardingOnly, $role, &$user, &$token, &$issuedHash, &$previous): string {
             // The account lock is taken before any other read, so the throttle and the rollback snapshot see committed token state.
             $user = $lookup()->lockForUpdate()->first();
-            if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasCompletedOnboarding() || $user->hasVerifiedEmail() || ($role !== null && $user->role !== $role))) {
+            if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasVerifiedEmail() || $user->hasCompletedOnboarding() || ($role !== null && $user->role !== $role))) {
                 return self::NOT_PENDING;
             }
             if (! self::canDeliver()) {

@@ -51,7 +51,7 @@ activated=0
 successful=0
 restored=0
 restore_previous_release() {
-  if [[ "$(cd "$old/api" && php artisan list --raw)" != *"auth:rollback-barrier "* ]]; then
+  if [[ "$legacy_cutover" -eq 1 ]]; then
     echo "ERROR: $old predates the rollback barrier; automatic rollback is refused and the new release stays active. Roll back by the operator procedure in docs/production-deployment.md." >&2
     return 1
   fi
@@ -154,7 +154,9 @@ ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"
 activated=1
 
-php artisan up
+if [[ "$legacy_cutover" -eq 1 ]]; then
+  php artisan up
+fi
 
 # Ensure public API and SPA both respond through the activated Nginx root.
 health="$(curl --fail --silent --show-error --max-time 20 https://caneguard.online/api/health)"
