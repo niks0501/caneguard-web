@@ -8,7 +8,7 @@ This workflow deploys **only** the Web/Laravel application to the existing Light
 - The existing persistent `/var/www/caneguard/shared/api/.env` and `shared/api/storage` must exist, have correct restrictive access, and remain outside releases.
 - PHP 8.3+, Composer 2, PHP extensions, Nginx, MySQL, and DNS/HTTPS must already be operational.
 - `/var/www/caneguard/current/api/public` must be the Nginx document root.
-- The server's `deploy` account must have `flock`, `tar`, `sha256sum`, `curl`, `id` and PHP 8.3+ CLI with `proc_open` enabled.
+- The server's `deploy` account must have `flock`, `tar`, `sha256sum`, `curl`, `id`, `crontab` (Ubuntu package `cron`) and PHP 8.3+ CLI with `proc_open` enabled.
 - On the VPS, `ubuntu` must install the `acl` package (`sudo apt-get update && sudo apt-get install -y acl`). This provides `setfacl` and `getfacl` to the `deploy` account.
 - `deploy` must own release files created by the deployment. After Composer and Laravel cache preparation, the script grants PHP-FPM user `www-data` read/traverse ACL permissions on the new release using a physical (`-P`) walk. Permission changes never follow the persistent `.env` or `storage` symlinks. No recursive `chgrp`, no broad `other` read access, and no sudo grant to `deploy`.
 - The FPM pool must run as `www-data` with the primary/supplementary groups reported by `id -G www-data`. The read-only preflight evaluates numeric POSIX access ACLs (including masks, owner/named-user precedence and matching groups) for that identity, not the deploying account. It checks ancestor traversal, release/application/vendor/frontend readability, generated `bootstrap/cache/config.php` and compiled views, shared `.env` readability, and read/write/search on shared runtime directories plus read/write on existing runtime files. Missing artifacts or denied/unknown metadata abort before migrations and activation, without printing file contents or changing shared permissions.
@@ -32,10 +32,11 @@ The workflow refuses unknown host keys. Do not use `ssh-keyscan` as an unverifie
 - It packages tracked source and compiled assets, hashes the archive, and uploads over authenticated SSH.
 - A server lock prevents simultaneous releases. Each release gets a unique directory.
 - Server links production `.env` and `storage`, installs Composer dependencies without dev packages, prepares Laravel, and runs `migrate --force` against the existing database.
+- Right after migration it runs `php artisan caneguard:bootstrap` and ensures the deploy user's scheduler cron (see "Go-live bootstrap" below). Both are idempotent, so every deploy repeats them safely.
 - After migration succeeds, it atomically switches `current` to the new code and verifies HTTPS API readiness and the frontend.
 - The frontend check fetches `/` and fails with `SPA shell served without a CSP nonce` when the built `__CSP_NONCE__` placeholder is still present. Nginx must route the shell through `index.php`, as the Laravel route substitutes the per-response CSP nonce into the theme script; a static `api/public/index.html` leaves the placeholder in place and trips this check.
 - On an activation health-check failure, it restores the old code symlink. **Database migrations are not rolled back.** This is a code rollback, not a full transactional deploy.
-- No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production.
+- No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production. `caneguard:bootstrap` is not a seeder: it adds only a missing pilot district and first admin, and never edits or deletes existing rows.
 - Existing previous releases are retained. No automatic pruning.
 
 ## Release safety
@@ -108,16 +109,35 @@ Limits: the aerial preflight runs as `deploy`, not `www-data`, so its Python, pa
 
 Rollback: set `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` in the shared `.env` and deploy again (or run `php artisan config:cache` in the active release). The routes then return `404` and cases carry no aerial field; stored photos and results are retained. The preflight runs as a no-op while the flag is off. Staging files can stay in place.
 
-## Scheduler for reminders and follow-up due notifications
-The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. Add one cron entry for the application user, from the `api` directory of the active release:
+## Go-live bootstrap
+Set these in the shared `.env` (`shared/api/.env`) before the first deploy; nothing is typed on the server and no PHP tinker inserts are needed:
+```
+CANEGUARD_PILOT_DISTRICT_CODE=<district code>
+CANEGUARD_PILOT_DISTRICT_NAME=<display name>
+CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
+CANEGUARD_BOOTSTRAP_ADMIN_NAME=<first administrator name>
+```
+Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
+- creates the district from the code and name when it does not exist (the name defaults to the code; an existing district is never renamed);
+- when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set and no active admin exists, creates that admin and emails a set-password link. No password goes in env. If that admin has not set a password yet, the next deploy emails a fresh link; once an active admin exists the variables are ignored;
+- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. A failed email is audited and does not fail the deploy; use Forgot password once mail works. An invalid admin email fails the deploy before activation.
+
+Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
+
+Still by hand: PHP-FPM and nginx upload/body limits, which need root.
+
+## Scheduler for reminders, follow-up due notifications and pruning
+The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink) and leaves an existing identical entry untouched, so no manual crontab step is needed:
 
 ```
-* * * * * cd /path/to/current/api && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler
 ```
+
+Two prune commands also run from the scheduler, daily in Asia/Manila: `auth:prune-security-audits` at 02:00 (retention `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`) and `sanctum:prune-expired --hours=24` at 02:30.
 
 `reports:send-weekly-reminders` then runs every 15 minutes. From the saved slot until the end of that Manila day, if the previous ISO week has no approved current version, it creates one in-app notification per active Admin and Reviewer, once per week. It never prepares, approves or sends, and needs no queue worker or mail. Without the cron entry, saved reminders silently never fire.
 
 `notifications:derive-follow-up-due` runs on the same 15-minute schedule. It creates the overdue follow-up items Mobile renders; without the cron entry, no follow-up due notification is ever created and reading the feed never makes one appear.
 
 ## Explicit exclusions
-No Android app build, Mobile integration, SRA roster provisioning, district changes, SMTP setup, seeding, Reverb launch, or database reset.
+No Android app build, Mobile integration, SRA roster provisioning, SMTP setup, seeding, Reverb launch, or database reset. District and first-admin creation happen only through `caneguard:bootstrap` above.

@@ -31,6 +31,11 @@ for tool in setfacl getfacl; do
     exit 1
   }
 done
+# The scheduler cron below is installed in the deploy user's own crontab.
+command -v crontab >/dev/null 2>&1 || {
+  echo "Missing crontab on Lightsail; ubuntu must install the 'cron' package" >&2
+  exit 1
+}
 [[ -f "$archive" ]] || { echo "Release archive missing" >&2; exit 1; }
 [[ ! -e "$new" ]] || { echo "Release already exists" >&2; exit 1; }
 printf '%s  %s\n' "$expected_hash" "$archive" | sha256sum -c -
@@ -91,6 +96,21 @@ php "$new/scripts/preflight-aerial.php" "$new"
 # Only non-destructive, backward-compatible migrations may be released.
 # Take an out-of-band MySQL backup before deployments with schema changes.
 php artisan migrate --force --no-interaction
+
+# Idempotent: creates the pilot district and first admin from the shared .env
+# only when missing, and writes security audit rows for what it creates.
+php artisan caneguard:bootstrap --no-interaction
+
+# Ensure the deploy user's cron runs the Laravel scheduler (reminders, follow-up
+# notifications and the two prune commands). The entry targets the stable
+# current symlink, so later releases need no change. Re-running is a no-op.
+cron_marker='# caneguard-scheduler'
+cron_line="* * * * * cd $current/api && $(command -v php) artisan schedule:run >> /dev/null 2>&1 $cron_marker"
+cron_existing="$(crontab -l 2>/dev/null || true)"
+if ! printf '%s\n' "$cron_existing" | grep -qxF "$cron_line"; then
+  { printf '%s\n' "$cron_existing" | grep -vF "$cron_marker" | grep -v '^$' || true; printf '%s\n' "$cron_line"; } | crontab -
+  echo "Installed scheduler cron for deploy"
+fi
 
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"

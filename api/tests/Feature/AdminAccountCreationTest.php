@@ -56,6 +56,27 @@ class AdminAccountCreationTest extends TestCase
         $this->assertSame('admin', User::query()->where('email', 'a@example.test')->value('role'));
     }
 
+    public function test_only_field_reporter_requires_a_configured_district(): void
+    {
+        Notification::fake();
+        config(['caneguard.pilot_district_code' => '']);
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin, 'web');
+
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'f@example.test', 'role' => 'field_reporter']))->assertStatus(503);
+        $this->assertDatabaseMissing('users', ['email' => 'f@example.test']);
+
+        foreach (['reviewer', 'admin', 'farmer'] as $role) {
+            $email = "{$role}@example.test";
+            $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => $email, 'role' => $role]))
+                ->assertCreated()->assertJsonPath('invite_sent', true);
+            $user = User::query()->where('email', $email)->firstOrFail();
+            $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'account_created', 'outcome' => 'success']);
+        }
+        $this->assertDatabaseCount('account_access_events', 0);
+        $this->assertDatabaseCount('district_memberships', 0);
+    }
+
     public function test_role_allow_list_rejects_unknown_roles_and_extra_fields(): void
     {
         Notification::fake();

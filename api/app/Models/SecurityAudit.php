@@ -48,6 +48,8 @@ class SecurityAudit extends Model
 
     public const ACTION_ACCOUNT_INVITE = 'account_invite_sent';
 
+    public const ACTION_BOOTSTRAP_DISTRICT = 'bootstrap_district_created';
+
     public $timestamps = false;
 
     /**
