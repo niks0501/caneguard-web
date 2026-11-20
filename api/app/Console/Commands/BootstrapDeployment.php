@@ -92,14 +92,15 @@ final class BootstrapDeployment extends Command
         }
 
         $user = $existing ?? $this->createAdmin($audit, $email);
-        if (! $this->sendSetPasswordEmail($user)) {
+        $sent = $this->sendSetPasswordEmail($user);
+        $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, $sent ? SecurityAudit::OUTCOME_SUCCESS : SecurityAudit::OUTCOME_FAILURE, null, $user, [
+            'provisioning_channel' => 'bootstrap',
+        ]);
+        if (! $sent) {
             $this->error('Bootstrap admin: the set-password email could not be sent. The administrator account is kept; fix mail delivery and deploy again.');
 
             return self::FAILURE;
         }
-        $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
-            'provisioning_channel' => 'bootstrap',
-        ]);
 
         $this->line('Bootstrap admin: set-password email sent.');
 
@@ -137,7 +138,8 @@ final class BootstrapDeployment extends Command
             return false;
         }
 
-        return SecurityAudit::query()->where('target_user_id', $user->id)->where('action', $action)->get()
+        return SecurityAudit::query()->where('target_user_id', $user->id)->where('action', $action)
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->get()
             ->contains(fn (SecurityAudit $event) => ($event->metadata['provisioning_channel'] ?? null) === 'bootstrap');
     }
 

@@ -33,7 +33,7 @@ for tool in setfacl getfacl; do
 done
 # The scheduler cron below is installed in the deploy user's own crontab.
 command -v crontab >/dev/null 2>&1 || {
-  echo "Missing crontab on Lightsail; ubuntu must install the 'cron' package" >&2
+  echo "Missing crontab on Lightsail; install it as ubuntu with: sudo apt-get install -y cron" >&2
   exit 1
 }
 [[ -f "$archive" ]] || { echo "Release archive missing" >&2; exit 1; }

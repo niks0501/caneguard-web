@@ -126,7 +126,7 @@ Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
 
 Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
 
-Still by hand: PHP-FPM and nginx upload/body limits, which need root.
+Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package, which the deploy checks for and does not install: `sudo apt-get install -y cron` as `ubuntu`.
 
 ## Scheduler for reminders, follow-up due notifications and pruning
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, keeps unrelated jobs, and records one `scheduler_cron_installed` audit row per installed entry, backfilled by a later deploy if a run was interrupted, so no manual crontab step is needed:

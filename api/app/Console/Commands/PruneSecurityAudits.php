@@ -11,7 +11,7 @@ class PruneSecurityAudits extends Command
 {
     protected $signature = 'auth:prune-security-audits';
 
-    protected $description = 'Remove security audit records past the configured retention period';
+    protected $description = 'Remove security audit records past the configured retention period, except bootstrap provisioning records';
 
     public function handle(RecordSecurityAudit $audit): int
     {

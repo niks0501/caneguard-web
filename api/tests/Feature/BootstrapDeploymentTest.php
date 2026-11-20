@@ -195,7 +195,10 @@ class BootstrapDeploymentTest extends TestCase
         $this->artisan('caneguard:bootstrap')->assertFailed();
 
         $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
-        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->count());
+        $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)
+            ->where('outcome', SecurityAudit::OUTCOME_FAILURE)->count());
         $this->assertSame([], $this->recipients($transport));
 
         $mailDown = false;
@@ -203,7 +206,8 @@ class BootstrapDeploymentTest extends TestCase
         $this->artisan('caneguard:bootstrap')->assertSuccessful();
 
         $this->assertSame(1, User::query()->count());
-        $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
+        $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->count());
         $this->assertSame(['owner@example.test'], $this->recipients($transport));
     }
 
