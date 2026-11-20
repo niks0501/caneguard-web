@@ -14,6 +14,16 @@ class AuthUrlBuilderTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_configured_auth_url_with_a_fragment_is_rejected(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password#help']);
+        $user = User::factory()->make(['email' => 'owner@example.test']);
+
+        $this->expectException(\LogicException::class);
+
+        app(\App\Support\AuthUrlBuilder::class)->passwordReset($user, 'reset-token-for-test');
+    }
+
     public function test_auth_notifications_use_configured_urls(): void
     {
         config([

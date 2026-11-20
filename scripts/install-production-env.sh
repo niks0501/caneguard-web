@@ -3,15 +3,15 @@
 set -Eeuo pipefail
 umask 077
 
-run_id="${1:?run id required}"
+handoff="${1:?handoff id required}"
 root=/var/www/caneguard
-upload="$root/releases/.env-$run_id"
+upload="$root/releases/.env-$handoff"
 target="$root/shared/api/.env"
-staging="$target.next-$run_id"
+staging="$target.next-$handoff"
 lock="$root/.production-deploy.lock"
 trap 'rm -f "$upload" "$staging"' EXIT
 
-if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+if [[ ! "$handoff" =~ ^[0-9]+-[0-9]+$ ]]; then
   echo "Invalid run id" >&2
   exit 1
 fi

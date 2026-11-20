@@ -332,6 +332,30 @@ class BootstrapDeploymentTest extends TestCase
         }
     }
 
+    public function test_reset_link_with_a_fragment_is_never_recorded_as_sent(): void
+    {
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test', 'caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password#help']);
+        $transport = $this->captureMail();
+
+        $thrown = null;
+        try {
+            $this->artisan('caneguard:bootstrap')->run();
+        } catch (\LogicException $e) {
+            $thrown = $e;
+        }
+
+        $this->assertNotNull($thrown);
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->count());
+        $this->assertSame([], $this->recipients($transport));
+
+        config(['caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password']);
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertSame(['owner@example.test'], $this->recipients($transport));
+    }
+
     public function test_failed_invite_audit_after_the_send_is_completed_by_the_next_deploy(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
