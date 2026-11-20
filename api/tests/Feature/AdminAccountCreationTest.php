@@ -86,7 +86,7 @@ class AdminAccountCreationTest extends TestCase
      */
     private function subprocessEnvironment(string $root, array $overrides = []): array
     {
-        $inherited = array_fill_keys(array_keys(getenv()), false);
+        $inherited = array_fill_keys([...array_keys(getenv()), ...array_keys($_ENV)], false);
 
         return array_merge($inherited, [
             'PATH' => (string) getenv('PATH'),

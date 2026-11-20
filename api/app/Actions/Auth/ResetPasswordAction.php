@@ -25,8 +25,7 @@ final class ResetPasswordAction
                 ->where('email', $credentials['email'])
                 ->lockForUpdate()
                 ->first();
-            if ($account === null || $token === null || (int) $token->user_id !== (int) $account->getKey()
-                || ! Password::broker()->getRepository()->exists($account, $credentials['token'])) {
+            if ($account === null || $token === null || (int) $token->user_id !== (int) $account->getKey()) {
                 return Password::INVALID_TOKEN;
             }
 
@@ -34,7 +33,15 @@ final class ResetPasswordAction
                 return Password::INVALID_TOKEN;
             }
 
-            return Password::broker()->reset($credentials, $callback);
+            $repository = Password::broker()->getRepository();
+            if (! $repository->exists($account, $credentials['token'])) {
+                return Password::INVALID_TOKEN;
+            }
+
+            $callback($account, $credentials['password']);
+            $repository->delete($account);
+
+            return Password::PASSWORD_RESET;
         }), MailDelivery::TIMEBOX_MICROSECONDS);
     }
 }

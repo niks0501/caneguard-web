@@ -145,7 +145,11 @@ fi
 php artisan caneguard:record-scheduler-install "$cron_line" --no-interaction
 php artisan auth:backfill-onboarding
 
-php artisan auth:rollback-barrier on
+legacy_cutover=0
+if [[ "$(cd "$old/api" && php artisan list --raw)" != *"auth:rollback-barrier "* ]]; then
+  legacy_cutover=1
+  php artisan auth:rollback-barrier on
+fi
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"
 activated=1
