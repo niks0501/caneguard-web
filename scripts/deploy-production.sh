@@ -54,14 +54,19 @@ cleanup() {
   trap - EXIT
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
+    (cd "$new/api" && php artisan down --retry=60) ||
+      echo "WARNING: could not enter maintenance mode before rollback." >&2
+    sleep 60
     (cd "$new/api" && php artisan auth:backfill-onboarding) ||
       echo "WARNING: onboarding reconciliation failed before rollback." >&2
-    (cd "$new/api" && php artisan auth:revoke-reset-links) || {
+    if ! (cd "$new/api" && php artisan auth:revoke-reset-links); then
       echo "ERROR: could not revoke outstanding reset links; rollback aborted." >&2
+      (cd "$new/api" && php artisan up) || true
       exit 1
-    }
+    fi
     ln -s "$old" "$root/.rollback-$$"
     mv -Tf "$root/.rollback-$$" "$current"
+    (cd "$old/api" && php artisan up) || echo "WARNING: could not leave maintenance mode." >&2
     curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true
     echo "WARNING: Database migrations are not rolled back automatically." >&2
   fi
