@@ -23,7 +23,7 @@ Schedule::command('auth:prune-security-audits')
     ->timezone('Asia/Manila')
     ->withoutOverlapping(60);
 
-Schedule::command('sanctum:prune-expired --hours=24')
+Schedule::command('caneguard:prune-api-tokens')
     ->dailyAt('02:30')
     ->timezone('Asia/Manila')
     ->withoutOverlapping(60);

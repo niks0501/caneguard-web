@@ -5,7 +5,7 @@ umask 027
 
 release_id="${1:?release id required}"
 expected_hash="${2:?archive SHA256 required}"
-root=/var/www/caneguard
+root="${CANEGUARD_DEPLOY_ROOT:-/var/www/caneguard}"
 releases="$root/releases"
 shared="$root/shared/api"
 current="$root/current"
@@ -102,14 +102,16 @@ php artisan migrate --force --no-interaction
 php artisan caneguard:bootstrap --no-interaction
 
 # Ensure the deploy user's cron runs the Laravel scheduler (reminders, follow-up
-# notifications and the two prune commands). The entry targets the stable
-# current symlink, so later releases need no change. Re-running is a no-op.
-cron_marker='# caneguard-scheduler'
-cron_line="* * * * * cd $current/api && $(command -v php) artisan schedule:run >> /dev/null 2>&1 $cron_marker"
+# notifications and the prune commands). The entry targets the stable current
+# symlink, so later releases need no change. Earlier entries for that symlink are
+# replaced, unrelated jobs are kept, and re-running is a no-op.
+cron_line="* * * * * cd $current/api && $(command -v php) artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler"
 cron_existing="$(crontab -l 2>/dev/null || true)"
-if ! printf '%s\n' "$cron_existing" | grep -qxF "$cron_line"; then
-  { printf '%s\n' "$cron_existing" | grep -vF "$cron_marker" | grep -v '^$' || true; printf '%s\n' "$cron_line"; } | crontab -
+cron_next="$({ printf '%s\n' "$cron_existing" | grep -vE '/current/api && .*artisan schedule:run' | grep -v '^$' || true; printf '%s\n' "$cron_line"; })"
+if [[ "$cron_next" != "$cron_existing" ]]; then
+  printf '%s\n' "$cron_next" | crontab -
   echo "Installed scheduler cron for deploy"
+  php artisan caneguard:record-scheduler-install --no-interaction
 fi
 
 ln -s "$new" "$root/.activate-$$"

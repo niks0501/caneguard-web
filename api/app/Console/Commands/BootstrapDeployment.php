@@ -24,9 +24,16 @@ final class BootstrapDeployment extends Command
 
     public function handle(RecordSecurityAudit $audit): int
     {
-        $this->district($audit);
+        $code = trim((string) config('caneguard.pilot_district_code'));
+        $name = trim((string) config('caneguard.pilot_district_name'));
+        if ($code === '' || $name === '') {
+            $this->error('CANEGUARD_PILOT_DISTRICT_CODE and CANEGUARD_PILOT_DISTRICT_NAME must be set.');
 
-        $email = Str::lower(trim((string) config('caneguard.bootstrap_admin.email')));
+            return self::FAILURE;
+        }
+        $this->district($audit, $code, $name);
+
+        $email = Str::lower(trim((string) config('caneguard.bootstrap_admin_email')));
         if ($email === '') {
             $this->line('Bootstrap admin: CANEGUARD_BOOTSTRAP_ADMIN_EMAIL is not set; skipped.');
 
@@ -38,89 +45,68 @@ final class BootstrapDeployment extends Command
             return self::FAILURE;
         }
 
-        $this->admin($audit, $email);
-
-        return self::SUCCESS;
+        return $this->admin($audit, $email);
     }
 
-    private function district(RecordSecurityAudit $audit): void
+    private function district(RecordSecurityAudit $audit, string $code, string $name): void
     {
-        $code = trim((string) config('caneguard.pilot_district_code'));
-        if ($code === '') {
-            $this->line('Pilot district: CANEGUARD_PILOT_DISTRICT_CODE is not set; skipped.');
-
-            return;
-        }
-
-        $name = trim((string) config('caneguard.pilot_district_name')) ?: $code;
-        $district = District::query()->firstOrCreate(['code' => $code], ['name' => $name]);
-        if ($district->wasRecentlyCreated) {
+        $created = DB::transaction(function () use ($audit, $code, $name): bool {
+            $district = District::query()->firstOrCreate(['code' => $code], ['name' => $name]);
+            if (! $district->wasRecentlyCreated) {
+                return false;
+            }
             $audit->handle(SecurityAudit::ACTION_BOOTSTRAP_DISTRICT, SecurityAudit::OUTCOME_SUCCESS, metadata: [
                 'district_id' => $district->id, 'district_code' => $code, 'provisioning_channel' => 'bootstrap',
             ]);
-        }
-        $this->line($district->wasRecentlyCreated ? "Pilot district: created '{$code}'." : "Pilot district: '{$code}' already exists.");
+
+            return true;
+        });
+        $this->line($created ? "Pilot district: created '{$code}'." : "Pilot district: '{$code}' already exists.");
     }
 
-    private function admin(RecordSecurityAudit $audit, string $email): void
+    private function admin(RecordSecurityAudit $audit, string $email): int
     {
-        $existing = User::query()->where('email', $email)->first();
-        if ($existing === null) {
-            $hasAdmin = User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)
-                ->whereNotNull('email_verified_at')->exists();
-            if ($hasAdmin) {
-                $this->line('Bootstrap admin: an active administrator already exists; skipped.');
+        $hasActiveAdmin = User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->exists();
+        if ($hasActiveAdmin) {
+            $this->line('Bootstrap admin: an active administrator already exists; skipped.');
 
-                return;
-            }
+            return self::SUCCESS;
+        }
+        if (User::query()->where('email', $email)->exists()) {
+            $this->error('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL belongs to an existing account. Set it to an unused email address and deploy again.');
 
-            $user = DB::transaction(function () use ($audit, $email): User {
-                $user = new User([
-                    'name' => trim((string) config('caneguard.bootstrap_admin.name')) ?: 'CaneGuard Administrator',
-                    'email' => $email,
-                    'role' => User::ROLE_ADMIN,
-                ]);
+            return self::FAILURE;
+        }
+        if (in_array(config('mail.default'), ['log', 'array'], true)) {
+            $this->error('Bootstrap admin: mail delivery is not configured (MAIL_MAILER is log or array). Configure SMTP and deploy again.');
+
+            return self::FAILURE;
+        }
+
+        try {
+            DB::transaction(function () use ($audit, $email): void {
+                $user = new User(['name' => 'CaneGuard Administrator', 'email' => $email, 'role' => User::ROLE_ADMIN]);
                 // Unusable random secret: the administrator sets the real password through the emailed link.
                 $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
                 $audit->handle(SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
                     'after' => ['role' => $user->role, 'is_active' => $user->is_active], 'provisioning_channel' => 'bootstrap',
                 ]);
-
-                return $user;
+                if (Password::broker()->sendResetLink(['email' => $user->email]) !== Password::RESET_LINK_SENT) {
+                    throw new \RuntimeException('Set-password email was not sent.');
+                }
+                $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
+                    'provisioning_channel' => 'bootstrap',
+                ]);
             });
-            $this->line("Bootstrap admin: created {$email}.");
-            $this->invite($audit, $user, false);
-
-            return;
-        }
-
-        // A bootstrap admin who has not yet set a password gets a fresh link on each deploy, so an expired email is recoverable.
-        if ($existing->role === User::ROLE_ADMIN && $existing->is_active && ! $existing->hasVerifiedEmail()) {
-            $this->invite($audit, $existing, true);
-
-            return;
-        }
-        $this->line("Bootstrap admin: {$email} already has an account; skipped.");
-    }
-
-    private function invite(RecordSecurityAudit $audit, User $user, bool $resend): void
-    {
-        $sent = false;
-        try {
-            $sent = Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
         } catch (\Throwable $e) {
-            Log::warning('Bootstrap administrator invitation could not be sent.', ['user' => $user->uuid, 'exception' => $e::class]);
+            Log::warning('Bootstrap administrator set-password email could not be sent; no account was created.', ['exception' => $e::class]);
+            $this->error('Bootstrap admin: the set-password email could not be sent, so no administrator was created. Fix mail delivery and deploy again.');
+
+            return self::FAILURE;
         }
-        $audit->handle(
-            SecurityAudit::ACTION_ACCOUNT_INVITE,
-            $sent ? SecurityAudit::OUTCOME_SUCCESS : SecurityAudit::OUTCOME_FAILURE,
-            null,
-            $user,
-            ['provisioning_channel' => 'bootstrap'] + ($resend ? ['resend' => true] : []),
-        );
-        // Mail delivery is configured separately; a failed send must not block the release.
-        $this->line($sent
-            ? "Bootstrap admin: set-password email sent to {$user->email}."
-            : "Bootstrap admin: set-password email for {$user->email} was not sent; use Forgot password once mail is configured.");
+
+        $this->line('Bootstrap admin: created and set-password email sent.');
+
+        return self::SUCCESS;
     }
 }

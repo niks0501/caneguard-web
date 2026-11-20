@@ -62,13 +62,10 @@ return [
     'pilot_roster_certified' => env('CANEGUARD_PILOT_ROSTER_CERTIFIED', false),
     // Blank means no live district. Never infer membership from location/name.
     'pilot_district_code' => env('CANEGUARD_PILOT_DISTRICT_CODE', ''),
-    // Display name used only when caneguard:bootstrap creates the district; an existing district keeps its name.
+    // Required by caneguard:bootstrap to create the pilot district; an existing district keeps its name.
     'pilot_district_name' => env('CANEGUARD_PILOT_DISTRICT_NAME', ''),
     // First administrator created by caneguard:bootstrap. The account gets a set-password email, never a password from env.
-    'bootstrap_admin' => [
-        'email' => env('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL', ''),
-        'name' => env('CANEGUARD_BOOTSTRAP_ADMIN_NAME', ''),
-    ],
+    'bootstrap_admin_email' => env('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL', ''),
     // Recognition only: unknown bounded versions remain valid submitted evidence.
     'accepted_model_versions' => array_values(array_filter(array_map(
         'trim',

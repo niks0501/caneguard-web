@@ -50,6 +50,10 @@ class SecurityAudit extends Model
 
     public const ACTION_BOOTSTRAP_DISTRICT = 'bootstrap_district_created';
 
+    public const ACTION_SCHEDULER_CRON_INSTALLED = 'scheduler_cron_installed';
+
+    public const ACTION_PRUNE_RUN = 'prune_run';
+
     public $timestamps = false;
 
     /**

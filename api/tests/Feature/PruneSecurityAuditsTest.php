@@ -25,6 +25,22 @@ class PruneSecurityAuditsTest extends TestCase
         $this->artisan('auth:prune-security-audits')
             ->expectsOutput('Pruned 1 security audit records.')
             ->assertSuccessful();
-        $this->assertDatabaseCount('security_audits', 0);
+        $this->assertDatabaseMissing('security_audits', ['action' => SecurityAudit::ACTION_REGISTRATION]);
+        $this->assertDatabaseHas('security_audits', ['action' => SecurityAudit::ACTION_PRUNE_RUN, 'outcome' => SecurityAudit::OUTCOME_SUCCESS]);
+    }
+
+    public function test_api_token_prune_removes_tokens_expired_over_a_day_and_records_the_run(): void
+    {
+        $user = User::factory()->create();
+        $expired = $user->createToken('expired')->accessToken;
+        $expired->forceFill(['expires_at' => now()->subHours(25)])->save();
+        $fresh = $user->createToken('fresh')->accessToken;
+        $fresh->forceFill(['expires_at' => now()->subHours(2)])->save();
+
+        $this->artisan('caneguard:prune-api-tokens')->assertSuccessful();
+
+        $this->assertDatabaseMissing('personal_access_tokens', ['id' => $expired->id]);
+        $this->assertDatabaseHas('personal_access_tokens', ['id' => $fresh->id]);
+        $this->assertDatabaseHas('security_audits', ['action' => SecurityAudit::ACTION_PRUNE_RUN, 'outcome' => SecurityAudit::OUTCOME_SUCCESS]);
     }
 }

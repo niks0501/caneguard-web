@@ -110,34 +110,36 @@ Limits: the aerial preflight runs as `deploy`, not `www-data`, so its Python, pa
 Rollback: set `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` in the shared `.env` and deploy again (or run `php artisan config:cache` in the active release). The routes then return `404` and cases carry no aerial field; stored photos and results are retained. The preflight runs as a no-op while the flag is off. Staging files can stay in place.
 
 ## Go-live bootstrap
-Set these in the shared `.env` (`shared/api/.env`) before the first deploy; nothing is typed on the server and no PHP tinker inserts are needed:
+Put these in the GitHub `production` environment secret `CANEGUARD_PRODUCTION_ENV`, which holds the complete shared `.env` (`shared/api/.env`). Then run **Configure production environment (manual)** from Actions with `configure-caneguard`. It installs the file on the server without any terminal step. Required for go-live:
 ```
 CANEGUARD_PILOT_DISTRICT_CODE=<district code>
 CANEGUARD_PILOT_DISTRICT_NAME=<display name>
 CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
-CANEGUARD_BOOTSTRAP_ADMIN_NAME=<first administrator name>
+MAIL_MAILER=smtp   # plus the SMTP settings; a log or array mailer cannot send the first invitation
 ```
 Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
-- creates the district from the code and name when it does not exist (the name defaults to the code; an existing district is never renamed);
-- when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set and no active admin exists, creates that admin and emails a set-password link. No password goes in env. If that admin has not set a password yet, the next deploy emails a fresh link; once an active admin exists the variables are ignored;
-- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. A failed email is audited and does not fail the deploy; use Forgot password once mail works. An invalid admin email fails the deploy before activation.
+- fails the deploy when the district code or name is blank; it creates the district when missing, and an existing district is never renamed;
+- when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set and no active admin exists, creates the administrator (display name `CaneGuard Administrator`) and emails a set-password link. No password goes in env. Creation and the email are one step: if the email cannot be sent, nothing is created and the deploy fails;
+- fails the deploy when the admin email already belongs to another account. Set it to an unused address and deploy again;
+- once an active administrator exists, leaves the admin variables alone. It sends no further emails. To reissue the link, use Forgot password;
+- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. An invalid admin email fails the deploy before activation.
 
 Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
 
 Still by hand: PHP-FPM and nginx upload/body limits, which need root.
 
 ## Scheduler for reminders, follow-up due notifications and pruning
-The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink) and leaves an existing identical entry untouched, so no manual crontab step is needed:
+The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, keeps unrelated jobs, and writes a `scheduler_cron_installed` audit row only when it changes the crontab, so no manual crontab step is needed:
 
 ```
 * * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler
 ```
 
-Two prune commands also run from the scheduler, daily in Asia/Manila: `auth:prune-security-audits` at 02:00 (retention `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`) and `sanctum:prune-expired --hours=24` at 02:30.
+Two prune commands also run from the scheduler, daily in Asia/Manila: `auth:prune-security-audits` at 02:00 (retention `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`) and `caneguard:prune-api-tokens` at 02:30, which removes API tokens expired for more than 24 hours. Each successful run writes a `prune_run` audit row.
 
 `reports:send-weekly-reminders` then runs every 15 minutes. From the saved slot until the end of that Manila day, if the previous ISO week has no approved current version, it creates one in-app notification per active Admin and Reviewer, once per week. It never prepares, approves or sends, and needs no queue worker or mail. Without the cron entry, saved reminders silently never fire.
 
 `notifications:derive-follow-up-due` runs on the same 15-minute schedule. It creates the overdue follow-up items Mobile renders; without the cron entry, no follow-up due notification is ever created and reading the feed never makes one appear.
 
 ## Explicit exclusions
-No Android app build, Mobile integration, SRA roster provisioning, SMTP setup, seeding, Reverb launch, or database reset. District and first-admin creation happen only through `caneguard:bootstrap` above.
+No Android app build, Mobile integration, SRA roster provisioning, seeding, Reverb launch, or database reset. SMTP is needed only for the first administrator's invitation in the go-live bootstrap above. District and first-admin creation happen only through `caneguard:bootstrap` above.
