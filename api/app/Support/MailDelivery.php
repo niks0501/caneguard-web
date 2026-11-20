@@ -51,13 +51,12 @@ final class MailDelivery
      */
     private static function issue(Closure $lookup, bool $onboardingOnly, ?string $role): string
     {
-        $broker = Password::broker();
         $table = (string) config('auth.passwords.users.table', 'password_reset_tokens');
         $user = null;
         $token = null;
         $issuedHash = null;
         $previous = [];
-        $status = RollbackBarrier::issue(function () use ($broker, $table, $lookup, $onboardingOnly, $role, &$user, &$token, &$issuedHash, &$previous): string {
+        $status = RollbackBarrier::issue(function () use ($table, $lookup, $onboardingOnly, $role, &$user, &$token, &$issuedHash, &$previous): string {
             // The account lock is taken before any other read, so the throttle and the rollback snapshot see committed token state.
             $user = $lookup()->lockForUpdate()->first();
             if ($onboardingOnly && $user !== null && (! $user->is_active || $user->hasCompletedOnboarding() || ($role !== null && $user->role !== $role))) {
@@ -70,7 +69,8 @@ final class MailDelivery
             if ($user === null) {
                 return Password::INVALID_USER;
             }
-            if ($broker->getRepository()->recentlyCreatedToken($user)) {
+            if (DB::table($table)->where('email', $user->email)->where('user_id', $user->getKey())
+                ->where('created_at', '>', now()->subSeconds((int) config('auth.passwords.users.throttle', 60)))->exists()) {
                 return Password::RESET_THROTTLED;
             }
             $previous = DB::table($table)->where('email', $user->email)->get()->map(fn ($row): array => (array) $row)->all();

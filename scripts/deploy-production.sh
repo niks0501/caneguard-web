@@ -49,52 +49,23 @@ old="$(readlink -f "$current")"
 
 activated=0
 successful=0
-maintenance=0
-barrier=0
+restored=0
 restore_previous_release() {
   if [[ "$(cd "$old/api" && php artisan list --raw)" != *"auth:rollback-barrier "* ]]; then
     echo "ERROR: $old predates the rollback barrier; automatic rollback is refused and the new release stays active. Roll back by the operator procedure in docs/production-deployment.md." >&2
     return 1
   fi
-  maintenance=1
-  (cd "$new/api" && php artisan down --retry=60) || {
-    echo "ERROR: could not enter maintenance mode; rollback aborted, new release stays active." >&2
-    return 1
-  }
-  # Engaging waits for every in-flight issuance to commit and refuses later ones, on the web and operator paths alike.
-  (cd "$new/api" && php artisan auth:rollback-barrier on) || {
-    echo "ERROR: could not engage the rollback barrier; rollback aborted, new release stays active." >&2
-    return 1
-  }
-  barrier=1
-  (cd "$new/api" && php artisan auth:backfill-onboarding) ||
-    echo "WARNING: onboarding reconciliation failed before rollback." >&2
-  (cd "$new/api" && php artisan auth:revoke-reset-links) || {
-    echo "ERROR: could not revoke outstanding reset links; rollback aborted, new release stays active." >&2
-    return 1
-  }
   ln -s "$old" "$root/.rollback-$$" || return 1
   mv -Tf "$root/.rollback-$$" "$current" || return 1
 }
 cleanup() {
   status=$?
   trap - EXIT
-  restored=0
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
     if restore_previous_release; then
       restored=1
     fi
-  fi
-  # A failed rollback leaves the new release active, so issuance resumes there. After a completed rollback the barrier
-  # stays engaged: the rolled-back release does not read it, and the next activation releases it.
-  if [[ "$barrier" -eq 1 && "$restored" -ne 1 ]]; then
-    (cd "$new/api" && php artisan auth:rollback-barrier off) ||
-      echo "ERROR: could not release the rollback barrier; run php artisan auth:rollback-barrier off on the active release." >&2
-  fi
-  if [[ "$maintenance" -eq 1 ]]; then
-    (cd "$(readlink -f "$current")/api" && php artisan up) ||
-      echo "ERROR: could not leave maintenance mode; run php artisan up on the active release." >&2
   fi
   if [[ "$restored" -eq 1 ]]; then
     curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true
@@ -177,9 +148,6 @@ activated=1
 
 # Releases a barrier left engaged by an earlier rollback that failed, so this release can issue links.
 php artisan auth:rollback-barrier off
-
-# Stragglers still running the previous release can write for seconds after the switch, so reconcile again.
-php artisan auth:backfill-onboarding
 
 # Ensure public API and SPA both respond through the activated Nginx root.
 health="$(curl --fail --silent --show-error --max-time 20 https://caneguard.online/api/health)"

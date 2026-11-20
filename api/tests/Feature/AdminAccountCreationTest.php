@@ -458,7 +458,7 @@ class AdminAccountCreationTest extends TestCase
         ];
         $root = $this->isolatedApplication($env);
         $artisan = $root.'/artisan';
-        $boot = fn (array $environment) => Process::env(array_merge(['DB_URL' => '', 'DB_DATABASE' => $database], $environment));
+        $boot = fn (array $environment) => Process::env(array_merge(['DB_URL' => '', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database], $environment));
         $operatorLinks = fn (): int => (int) (new \PDO('sqlite:'.$database))
             ->query("SELECT COUNT(*) FROM security_audits WHERE action = 'operator_link_issued'")->fetchColumn();
 
@@ -721,18 +721,36 @@ class AdminAccountCreationTest extends TestCase
         $this->assertSame(0, DB::table('password_reset_tokens')->where('email', 'selected-old@example.test')->count());
     }
 
-    public function test_email_change_keeps_onboarding_for_an_account_verified_before_the_mark_existed(): void
+    public function test_email_change_marks_only_accounts_whose_history_already_completes_onboarding(): void
     {
         config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
-        $user = User::factory()->reviewer()->create(['email' => 'legacy@example.test']);
-        $this->assertNull($user->onboarded_at);
-        $this->actingAs($user, 'web')
+        $legacy = User::factory()->reviewer()->create(['email' => 'legacy@example.test', 'onboarded_at' => now()]);
+        $verifiedOnly = User::factory()->reviewer()->create(['email' => 'verify-only-change@example.test']);
+
+        $this->actingAs($legacy, 'web')
             ->patchJson('/api/v1/auth/email', ['email' => 'legacy-new@example.test', 'current_password' => 'password'])
             ->assertStatus(202);
-        $this->assertNotNull($user->refresh()->onboarded_at);
-
+        $this->assertNotNull($legacy->refresh()->onboarded_at);
         config(['caneguard.auth.operator_link_email' => 'legacy-new@example.test']);
         $this->artisan('auth:set-password-link')->assertFailed();
+
+        $this->actingAs($verifiedOnly, 'web')
+            ->patchJson('/api/v1/auth/email', ['email' => 'verify-only-new@example.test', 'current_password' => 'password'])
+            ->assertStatus(202);
+        $this->assertNull($verifiedOnly->refresh()->onboarded_at);
+        config(['caneguard.auth.operator_link_email' => 'verify-only-new@example.test']);
+        $this->artisan('auth:set-password-link')->assertSuccessful();
+    }
+
+    public function test_recent_unbound_legacy_token_does_not_throttle_a_replacement_link(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        Notification::fake();
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'legacy-throttle@example.test']);
+        DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => Hash::make('legacy'), 'created_at' => now()]);
+
+        $this->assertSame(Password::RESET_LINK_SENT, MailDelivery::sendResetLink($user->email));
+        $this->assertSame(Password::RESET_THROTTLED, MailDelivery::sendResetLink($user->email));
     }
 
     public function test_backfill_marks_only_accounts_whose_history_records_a_password_set(): void
@@ -757,7 +775,7 @@ class AdminAccountCreationTest extends TestCase
 
         try {
             foreach (['true' => true, 'false' => false] as $value => $expected) {
-                $result = Process::env(['DB_URL' => '', 'APP_CONFIG_CACHE' => $absent, 'MAIL_REQUIRE_TLS' => $value])
+                $result = Process::env(['DB_URL' => '', 'DB_CONNECTION' => 'sqlite', 'APP_CONFIG_CACHE' => $absent, 'MAIL_REQUIRE_TLS' => $value])
                     ->run([PHP_BINARY, $root.'/artisan', 'tinker', '--execute=echo json_encode(config("mail.mailers.smtp.require_tls"));']);
 
                 $this->assertTrue($result->successful(), $result->errorOutput());
