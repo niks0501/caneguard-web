@@ -10,7 +10,6 @@ use App\Support\MailDelivery;
 use App\Support\RollbackBarrier;
 use App\Support\RollbackInProgress;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /** Operator fallback when mail cannot deliver: prints a one-time set-password link for an account that has not onboarded; no password is typed or stored in env. */

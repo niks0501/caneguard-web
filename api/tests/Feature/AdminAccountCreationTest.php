@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\FakeSmtpMailbox;
 use Tests\TestCase;
 
@@ -49,7 +50,7 @@ class AdminAccountCreationTest extends TestCase
     }
 
     /** Web-form POST with a session CSRF token, as a browser would send it. */
-    private function postWeb(string $uri, array $data): \Illuminate\Testing\TestResponse
+    private function postWeb(string $uri, array $data): TestResponse
     {
         return $this->withSession(['_token' => 'csrf-test-token'])
             ->withHeader('X-CSRF-TOKEN', 'csrf-test-token')

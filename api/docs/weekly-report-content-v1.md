@@ -45,7 +45,7 @@ SMTP acceptance is **not** guaranteed inbox delivery. SMTP Message-ID is the acc
 
 The dedicated `weekly_smtp` mailer cannot fall back to log/array/default mailers. Symfony requires TLS/STARTTLS and uses normal certificate verification. Configure `CANEGUARD_WEEKLY_SMTP_SCHEME` (`smtp` for STARTTLS, `smtps` for implicit TLS), host, port, username and password in the environment, plus the existing `MAIL_FROM_*` identity. No credentials or real recipient are seeded. The captain's dummy test address must first be entered through the Admin Settings **Official recipients** panel; keep the send gate closed until that decision is recorded.
 
-`WeeklyReportMailEndToEndTest` is the only suite that opens an SMTP connection: it queues a report and delivers it through this same `weekly_smtp` transport into `tests/Support/fake_smtp_mailbox.py`, a loopback STARTTLS mailbox that stores messages and relays nothing. Certificate verification stays on against a locally generated certificate trusted via `SSL_CERT_FILE`, never bypassed. The test skips when `openssl` or `python3` is unavailable; no other suite connects or sends.
+`WeeklyReportMailEndToEndTest` queues a report and delivers it through this same `weekly_smtp` transport into `tests/Support/fake_smtp_mailbox.py`, a loopback STARTTLS mailbox that stores messages and relays nothing. Certificate verification stays on against a locally generated certificate trusted via `SSL_CERT_FILE`, never bypassed. The test skips when `openssl` or `python3` is unavailable. The account-invite suite (`AdminAccountCreationTest`) uses the same mailbox for the `smtp` mailer, so no suite reaches a real provider.
 
 ## Website schedule
 

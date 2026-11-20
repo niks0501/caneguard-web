@@ -102,7 +102,7 @@ If a test fails, remove the two installed files, fix the cause, and repeat. The 
 A limit that is too low makes the phone file the report as a non-retryable failure, so it stays on the phone. Verify with a real photo near 10 MiB, and an aerial photo near the 20 MiB aerial maximum, after changing a limit: the upload should answer `201`, not `413` or `422`.
 
 ## Weekly send needs operations that production does not run yet
-Production currently runs no queue worker and no mail. Until both are provisioned:
+Production runs no queue worker and no `weekly_smtp` credentials. Until both are provisioned:
 - Weekly send must stay off (`CANEGUARD_WEEKLY_SEND_ENABLED=false`). A send is queued on the `database` queue and, with no `queue:work` process, would stay `pending` forever. The Send control is hidden and the page says **Office delivery gate closed.**
 - Set `BROADCAST_CONNECTION=null` in the shared production `.env` while `VITE_REALTIME_ENABLED` is `false`, before the deploy that carries this change. `scripts/deploy-production.sh` runs `config:cache` in each new release, so a release built after the edit picks it up. Editing the shared file alone does not change the active release: its cached config keeps `log` until a deploy or the deploy-scoped cache refresh above runs. With `null`, `NewCaseSubmitted` and `CaseAttentionChanged` still dispatch, but Laravel does not queue their broadcasts, so nothing accumulates in the `jobs` table. `log` does not prevent that: Laravel queues a broadcast job for every driver, `log` included, and a worker started later would flush the whole stale backlog at once. Never set `reverb` without the `REVERB_*` keys and a running Reverb server; the app fails at boot (`routes/channels.php`), and a `config:cache` in the live release would take the site down.
 
@@ -199,4 +199,4 @@ Two prune commands also run from the scheduler, daily in Asia/Manila: `auth:prun
 `notifications:derive-follow-up-due` runs on the same 15-minute schedule. It creates the overdue follow-up items Mobile renders; without the cron entry, no follow-up due notification is ever created and reading the feed never makes one appear.
 
 ## Explicit exclusions
-No Android app build, Mobile integration, SRA roster provisioning, seeding, Reverb launch, or database reset. SMTP is needed only for the first administrator's invitation in the go-live bootstrap above. District and first-admin creation happen only through `caneguard:bootstrap` above.
+No Android app build, Mobile integration, SRA roster provisioning, district changes, seeding, Reverb launch, or database reset. District and first-admin creation happen only through `caneguard:bootstrap` above.
