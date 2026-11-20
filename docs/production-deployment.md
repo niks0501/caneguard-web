@@ -61,7 +61,13 @@ The workflow needs the dedicated `deploy` key; your personal workstation SSH key
 The shared `.env` sets `CANEGUARD_ACCEPTED_MODEL_VERSIONS=v2.0-mobilenetv2,v1.0-mobilenetv2` (also the code default), so the shipped phone's `v2.0-mobilenetv2` and the earlier `v1.0-mobilenetv2` are both recognised. It is recognition only: an unlisted version still persists and shows the office warning. Run `php artisan config:cache` in the active release after changing it.
 
 ## Server upload limits (check before relying on photo uploads)
-The deploy workflow and both preflights do not check the web server's upload limits, and the phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Set these production values on the server, as `ubuntu`, and check them before a go-live and after any PHP or nginx change:
+The managed limits live in the repository: `deploy/server/nginx/caneguard-upload-limits.conf` (nginx) and `deploy/server/php/caneguard-upload-limits.ini` (PHP-FPM 8.3). The deploy account has no sudo, so the deploy workflow does not apply them. An administrator (`ubuntu`) applies them from the active release, and again after any change to those files:
+
+```sh
+sudo /var/www/caneguard/current/scripts/install-upload-limits.sh
+```
+
+The script copies both files into `/etc/nginx/conf.d` and `/etc/php/8.3/fpm/conf.d`, tests nginx and PHP-FPM, and reloads them. If a test fails, it removes both files and exits non-zero. The phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Check the values before a go-live and after any PHP or nginx change:
 
 | Layer | Setting | Needs | Check |
 |---|---|---|---|
