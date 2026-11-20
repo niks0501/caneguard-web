@@ -50,6 +50,8 @@ The workflow refuses unknown host keys. Do not use `ssh-keyscan` as an unverifie
 ## Manual operation
 GitHub > Actions > Deploy CaneGuard Web (manual) > Run workflow > branch `main` > enter `deploy-caneguard`.
 
+The first activation from a release without account-bound reset links is not a routine dispatch: run the cutover drain in the Mail and account section below (`php artisan down` on the previous release, confirmed drain) before dispatching, or the script refuses to activate.
+
 After a deployment fix is merged, start a **new** dispatch and verify its SHA contains the fix. Do not rerun an old failed run: reruns reuse the old revision and release identity, which can collide with retained failed-release directories.
 
 The workflow needs the dedicated `deploy` key; your personal workstation SSH key is not needed. View Actions logs after each run. A passed deployment should show `PASS: Active release`.

@@ -169,8 +169,10 @@ class AdminAccountCreationTest extends TestCase
             $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => $email, 'role' => 'field_reporter']))
                 ->assertCreated()->assertJsonPath('invite_sent', false);
             $field = User::query()->where('email', $email)->firstOrFail();
+            $this->assertDatabaseMissing('password_reset_tokens', ['email' => $email]);
             $this->travel(2)->minutes();
             $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', false);
+            $this->assertDatabaseMissing('password_reset_tokens', ['email' => $email]);
             $this->assertDatabaseHas('security_audits', ['target_user_id' => $field->id, 'action' => 'account_invite_sent', 'outcome' => 'failure']);
         }
         Notification::assertNothingSent();

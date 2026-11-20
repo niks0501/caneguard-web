@@ -151,6 +151,10 @@ old_commands="$(cd "$old/api" && php artisan list --raw)" || {
 }
 legacy_cutover=0
 if [[ "$old_commands" != *"auth:rollback-barrier "* ]]; then
+  if [[ ! -f "$shared/storage/framework/down" ]]; then
+    echo "ERROR: the previous release predates the rollback barrier and is still serving; put it in maintenance mode and drain it before this cutover (docs/production-deployment.md)." >&2
+    exit 1
+  fi
   legacy_cutover=1
   php artisan auth:rollback-barrier on
 fi
