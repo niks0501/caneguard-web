@@ -16,7 +16,7 @@ class SecurityAuditPruneMySqlTest extends TestCase
 
         DB::beginTransaction();
         try {
-            $missingKey = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_EMAIL_VERIFICATION, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['via' => 'password_reset'], 'created_at' => $old]);
+            $missingKey = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['via' => 'web'], 'created_at' => $old]);
             $nullMetadata = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_REGISTRATION, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => null, 'created_at' => $old]);
             $webChannel = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'web'], 'created_at' => $old]);
             $bootstrap = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'bootstrap'], 'created_at' => $old]);

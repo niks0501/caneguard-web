@@ -8,12 +8,12 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Mail\Transport\ArrayTransport;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Symfony\Component\Mailer\Exception\TransportException;
+use Tests\Support\CapturingSmtpTransport;
 use Tests\TestCase;
 
 class BootstrapDeploymentTest extends TestCase
@@ -193,7 +193,7 @@ class BootstrapDeploymentTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_redeemed_bootstrap_invite_missing_its_record_is_recorded_on_the_next_deploy(): void
+    public function test_redeemed_admin_whose_invite_record_is_missing_gets_no_fabricated_invitation(): void
     {
         Notification::fake();
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
@@ -205,8 +205,7 @@ class BootstrapDeploymentTest extends TestCase
         $this->travel(2)->minutes();
         $this->artisan('caneguard:bootstrap')->assertSuccessful();
 
-        $this->assertSame(1, SecurityAudit::query()->where('target_user_id', $admin->id)
-            ->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
         Notification::assertSentToTimes($admin, ResetPassword::class, 1);
     }
 
@@ -395,10 +394,10 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)->count());
     }
 
-    /** Routes the default mailer to an in-memory transport that records every message actually delivered to it. */
-    private function captureMail(): ArrayTransport
+    /** Routes the default mailer to an in-memory SMTP transport that records every message actually delivered to it. */
+    private function captureMail(): CapturingSmtpTransport
     {
-        $transport = new ArrayTransport();
+        $transport = new CapturingSmtpTransport();
         Mail::extend('smtp', fn () => $transport);
         config(['mail.default' => 'capture', 'mail.mailers.capture' => ['transport' => 'smtp']]);
 
@@ -406,9 +405,9 @@ class BootstrapDeploymentTest extends TestCase
     }
 
     /** @return list<string> */
-    private function recipients(ArrayTransport $transport): array
+    private function recipients(CapturingSmtpTransport $transport): array
     {
-        return $transport->messages()
+        return collect($transport->sent)
             ->map(fn ($sent) => $sent->getOriginalMessage()->getTo()[0]->getAddress())
             ->values()
             ->all();

@@ -60,11 +60,11 @@ class PruneSecurityAuditsTest extends TestCase
     public function test_security_audit_prune_removes_old_records_whose_metadata_lacks_a_provisioning_channel(): void
     {
         config(['caneguard.security_audit.retention_days' => 30]);
-        SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_EMAIL_VERIFICATION, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['via' => 'password_reset'], 'created_at' => now()->subDays(31)]);
+        SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['via' => 'web'], 'created_at' => now()->subDays(31)]);
 
         $this->artisan('auth:prune-security-audits')->assertSuccessful();
 
-        $this->assertDatabaseMissing('security_audits', ['action' => SecurityAudit::ACTION_EMAIL_VERIFICATION]);
+        $this->assertDatabaseMissing('security_audits', ['action' => SecurityAudit::ACTION_ACCOUNT_INVITE]);
     }
 
     public function test_security_audit_prune_keeps_the_records_when_its_run_record_cannot_be_written(): void

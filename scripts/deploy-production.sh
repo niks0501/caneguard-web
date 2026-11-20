@@ -36,8 +36,8 @@ command -v crontab >/dev/null 2>&1 || {
   echo "Missing crontab on Lightsail; install it as ubuntu with: sudo apt-get install -y cron" >&2
   exit 1
 }
-systemctl is-active --quiet cron || {
-  echo "The cron service is not running on Lightsail; start it as ubuntu with: sudo systemctl enable --now cron" >&2
+systemctl is-enabled --quiet cron && systemctl is-active --quiet cron || {
+  echo "The cron service is not enabled and running on Lightsail; enable and start it as ubuntu with: sudo systemctl enable --now cron" >&2
   exit 1
 }
 [[ -f "$archive" ]] || { echo "Release archive missing" >&2; exit 1; }
@@ -118,8 +118,10 @@ if ! cron_existing="$(crontab -l 2>&1)"; then
 fi
 cron_legacy="* * * * * cd $current/api && php artisan schedule:run >> /dev/null 2>&1"
 cron_next="$(printf '%s\n' "$cron_existing" | awk \
-  -v legacy="$cron_legacy" -v scheduled="cd $current/api && " -v line="$cron_line" '
-  NF && $0 != legacy && !(index($0, scheduled) > 0 && $0 ~ /# caneguard-scheduler$/) { print }
+  -v legacy="$cron_legacy" -v prefix="* * * * * cd $current/api && " -v line="$cron_line" '
+  { entry = $0; gsub(/^[ \t]+|[ \t]+$/, "", entry) }
+  entry == "" || entry == legacy || (index(entry, prefix) == 1 && entry ~ /artisan schedule:run >> \/dev\/null 2>&1 # caneguard-scheduler$/) { next }
+  { print }
   END { print line }')"
 if [[ "$cron_next" != "$cron_existing" ]]; then
   printf '%s\n' "$cron_next" | crontab -

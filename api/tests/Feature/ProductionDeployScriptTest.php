@@ -102,6 +102,29 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertNotContains('artisan migrate --force --no-interaction', $this->logLines());
     }
 
+    public function test_deploy_stops_before_migrations_when_the_cron_service_is_not_enabled_for_reboot(): void
+    {
+        $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
+        file_put_contents($this->crontab, $existing);
+
+        $process = $this->deploy('release-1-'.str_repeat('b', 40), ['CANEGUARD_TEST_CRON_DISABLED' => '1']);
+
+        $this->assertFalse($process->isSuccessful());
+        $this->assertSame($existing, file_get_contents($this->crontab));
+        $this->assertNotContains('artisan migrate --force --no-interaction', $this->logLines());
+    }
+
+    public function test_legacy_scheduler_line_with_trailing_whitespace_is_replaced_not_duplicated(): void
+    {
+        $legacy = "* * * * * cd {$this->root}/current/api && php artisan schedule:run >> /dev/null 2>&1 \t";
+        file_put_contents($this->crontab, "{$legacy}\n");
+        $managed = "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler";
+
+        $this->assertTrue($this->deploy('release-1-'.str_repeat('b', 40))->isSuccessful());
+
+        $this->assertSame([$managed], $this->crontabLines());
+    }
+
     public function test_failed_crontab_rewrite_aborts_before_replacing_the_existing_jobs(): void
     {
         $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
@@ -122,6 +145,7 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertSame($this->root.'/releases/'.self::OLD_RELEASE, readlink($this->root.'/current'));
         $this->assertSame([$managed], $this->crontabLines());
 
+        @unlink($this->log);
         $this->assertTrue($this->deploy('release-2-'.str_repeat('c', 40))->isSuccessful());
         $this->assertContains("artisan caneguard:record-scheduler-install {$managed} --no-interaction", $this->logLines());
     }
@@ -246,7 +270,10 @@ class ProductionDeployScriptTest extends TestCase
         $this->writeTool('composer', 'exit 0');
         $this->writeTool('setfacl', 'echo "setfacl $*" >> "$CANEGUARD_TEST_LOG"');
         $this->writeTool('getfacl', 'exit 0');
-        $this->writeTool('systemctl', 'if [[ -n "${CANEGUARD_TEST_CRON_INACTIVE:-}" ]]; then exit 3; fi');
+        $this->writeTool('systemctl', <<<'SH'
+            if [[ "$1" == "is-enabled" && -n "${CANEGUARD_TEST_CRON_DISABLED:-}" ]]; then exit 1; fi
+            if [[ "$1" == "is-active" && -n "${CANEGUARD_TEST_CRON_INACTIVE:-}" ]]; then exit 3; fi
+            SH);
         $this->writeTool('awk', 'if [[ -n "${CANEGUARD_TEST_AWK_FAILS:-}" ]]; then echo "awk: failed" >&2; exit 2; fi'."\n".'exec '.escapeshellarg(trim((string) shell_exec('command -v awk'))).' "$@"');
         $this->writeTool('curl', <<<'SH'
             url="${@: -1}"

@@ -7,14 +7,13 @@ use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Arr;
-use Illuminate\Support\ConfigurationUrlParser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
 /**
  * Run by every production deploy after migrations. Safe to repeat: it only adds
@@ -28,8 +27,6 @@ final class BootstrapDeployment extends Command
 
     public function handle(RecordSecurityAudit $audit): int
     {
-        $this->backfillRedeemedInvites($audit);
-
         $code = trim((string) config('caneguard.pilot_district_code'));
         $name = trim((string) config('caneguard.pilot_district_name'));
         if ($code === '' || $name === '') {
@@ -66,7 +63,30 @@ final class BootstrapDeployment extends Command
 
     private function admin(RecordSecurityAudit $audit, string $email): int
     {
-        if (User::query()->where('role', User::ROLE_ADMIN)->get()->contains(fn (User $admin) => $admin->isActiveAdmin())) {
+        $user = DB::transaction(fn (): User|int => $this->pendingAdmin($audit, $email));
+        if (! $user instanceof User) {
+            return $user;
+        }
+
+        $sent = $this->sendSetPasswordEmail($user);
+        $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, $sent ? SecurityAudit::OUTCOME_SUCCESS : SecurityAudit::OUTCOME_FAILURE, null, $user, [
+            'provisioning_channel' => 'bootstrap',
+        ]);
+        if (! $sent) {
+            $this->error('Bootstrap admin: the set-password email could not be sent. The administrator account is kept; fix mail delivery and deploy again.');
+
+            return self::FAILURE;
+        }
+
+        $this->line('Bootstrap admin: set-password email sent.');
+
+        return self::SUCCESS;
+    }
+
+    private function pendingAdmin(RecordSecurityAudit $audit, string $email): User|int
+    {
+        $admins = User::query()->where('role', User::ROLE_ADMIN)->lockForUpdate()->get();
+        if ($admins->contains(fn (User $admin) => $admin->isActiveAdmin())) {
             $this->line('Bootstrap admin: an active administrator already exists; skipped.');
 
             return self::SUCCESS;
@@ -96,34 +116,19 @@ final class BootstrapDeployment extends Command
             return self::FAILURE;
         }
 
-        $user = $existing ?? $this->createAdmin($audit, $email);
-        $sent = $this->sendSetPasswordEmail($user);
-        $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, $sent ? SecurityAudit::OUTCOME_SUCCESS : SecurityAudit::OUTCOME_FAILURE, null, $user, [
-            'provisioning_channel' => 'bootstrap',
-        ]);
-        if (! $sent) {
-            $this->error('Bootstrap admin: the set-password email could not be sent. The administrator account is kept; fix mail delivery and deploy again.');
-
-            return self::FAILURE;
-        }
-
-        $this->line('Bootstrap admin: set-password email sent.');
-
-        return self::SUCCESS;
+        return $existing ?? $this->createAdmin($audit, $email);
     }
 
     private function createAdmin(RecordSecurityAudit $audit, string $email): User
     {
-        return DB::transaction(function () use ($audit, $email): User {
-            $user = new User(['name' => 'CaneGuard Administrator', 'email' => $email, 'role' => User::ROLE_ADMIN]);
-            // Unusable random secret: the administrator sets the real password through the emailed link.
-            $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
-            $audit->handle(SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
-                'after' => ['role' => $user->role, 'is_active' => $user->is_active], 'provisioning_channel' => 'bootstrap',
-            ]);
+        $user = new User(['name' => 'CaneGuard Administrator', 'email' => $email, 'role' => User::ROLE_ADMIN]);
+        // Unusable random secret: the administrator sets the real password through the emailed link.
+        $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
+        $audit->handle(SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
+            'after' => ['role' => $user->role, 'is_active' => $user->is_active], 'provisioning_channel' => 'bootstrap',
+        ]);
 
-            return $user;
-        });
+        return $user;
     }
 
     private function sendSetPasswordEmail(User $user): bool
@@ -135,16 +140,6 @@ final class BootstrapDeployment extends Command
 
             return false;
         }
-    }
-
-    private function backfillRedeemedInvites(RecordSecurityAudit $audit): void
-    {
-        User::query()->where('role', User::ROLE_ADMIN)->whereNotNull('email_verified_at')->get()
-            ->filter(fn (User $admin) => $this->bootstrapRecorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED)
-                && ! $this->bootstrapRecorded($admin, SecurityAudit::ACTION_ACCOUNT_INVITE))
-            ->each(fn (User $admin) => $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, SecurityAudit::OUTCOME_SUCCESS, null, $admin, [
-                'provisioning_channel' => 'bootstrap',
-            ]));
     }
 
     private function bootstrapEvent(User $user, string $action): bool
@@ -165,22 +160,10 @@ final class BootstrapDeployment extends Command
 
     private function deliverable(string $mailer): bool
     {
-        $config = (array) config("mail.mailers.{$mailer}", []);
-        if (isset($config['url'])) {
-            $config = array_merge($config, (new ConfigurationUrlParser)->parseConfiguration($config));
-            $config['transport'] = Arr::pull($config, 'driver');
-        }
-
-        if (($config['transport'] ?? null) !== 'smtp') {
-            return false;
-        }
-
         try {
-            Mail::mailer($mailer)->getSymfonyTransport();
+            return Mail::mailer($mailer)->getSymfonyTransport() instanceof EsmtpTransport;
         } catch (\LogicException) {
             return false;
         }
-
-        return true;
     }
 }

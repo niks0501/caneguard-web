@@ -122,14 +122,13 @@ Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
 - once an active administrator exists, leaves the admin variables alone, including a malformed admin email, and sends no further emails. To reissue the link, use Forgot password;
 - otherwise, when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set, fails the deploy if the address is invalid, and fails the deploy when it already belongs to another account. Set it to an unused address and deploy again;
 - otherwise creates the administrator (display name `CaneGuard Administrator`) and then emails a set-password link. No password goes in env. If the email cannot be sent, the deploy fails but the pending account is kept; the next deploy emails the link again until an invitation is recorded;
-- records the invitation for an administrator who has already set a password through the emailed link but whose invitation record is missing;
 - writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. The successful `account_created` and `account_invite_sent` rows are exempt from the security-audit retention prune, because a later deploy relies on them to recover a pending administrator; other audit rows age out normally.
 
 If the mail server accepts the link but the invitation record cannot be written, the outcome is indeterminate: the account stays pending, and a later deploy sends the link again if the administrator has not yet set a password. This is the accepted policy; no outbox is kept.
 
 Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
 
-Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package and a running `cron` service. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
+Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package and an enabled, running `cron` service, so the scheduler survives a reboot. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
 
 ## Scheduler for reminders, follow-up due notifications and pruning
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, keeps unrelated jobs, and records one `scheduler_cron_installed` audit row per installed entry, backfilled by a later deploy if a run was interrupted, so no manual crontab step is needed:
