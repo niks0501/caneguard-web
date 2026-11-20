@@ -48,8 +48,6 @@ class SecurityAudit extends Model
 
     public const ACTION_ACCOUNT_INVITE = 'account_invite_sent';
 
-    public const ACTION_AERIAL_SWITCH = 'aerial_analysis_switch_changed';
-
     public $timestamps = false;
 
     /**

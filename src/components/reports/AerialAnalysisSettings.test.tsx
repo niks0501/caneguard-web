@@ -70,7 +70,7 @@ describe("aerial canopy check admin switch", () => {
     online.mockRestore();
   });
 
-  it("drops cached case details after a save so the case stops showing the aerial check", async () => {
+  it("removes cached aerial results once the server confirms the check is off", async () => {
     let enabled = true;
     server.use(
       http.get(url, () => HttpResponse.json({ data: { installed: true, enabled } })),
@@ -80,12 +80,32 @@ describe("aerial canopy check admin switch", () => {
       }),
     );
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(reportKeys.detail("case-1"), { id: "case-1" });
+    client.setQueryData(reportKeys.detail("case-1"), { id: "case-1", aerialAnalyses: [{ uuid: "a-1" }] });
+    client.setQueryData(["aerial-mask", "/masks/a-1"], new Blob(["mask"]));
+    client.setQueryData(reportKeys.possibleMatches("case-1"), []);
     const user = userEvent.setup();
     show(client);
     await user.click(await screen.findByRole("button", { name: "Turn off aerial check" }));
     await screen.findByRole("button", { name: "Turn on aerial check" });
-    expect(client.getQueryState(reportKeys.detail("case-1"))?.isInvalidated).toBe(true);
+    expect(client.getQueryData(reportKeys.detail("case-1"))).toEqual({ id: "case-1", aerialAnalyses: undefined });
+    expect(client.getQueryData(["aerial-mask", "/masks/a-1"])).toBeUndefined();
+    expect(client.getQueryData(reportKeys.possibleMatches("case-1"))).toEqual([]);
+  });
+
+  it("applies the save response without re-reading the settings", async () => {
+    let reads = 0;
+    server.use(
+      http.get(url, () => {
+        reads += 1;
+        return HttpResponse.json({ data: { installed: true, enabled: false } });
+      }),
+      http.put(url, () => HttpResponse.json({ data: { installed: true, enabled: true } })),
+    );
+    const user = userEvent.setup();
+    show();
+    await user.click(await screen.findByRole("button", { name: "Turn on aerial check" }));
+    expect(await screen.findByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
+    expect(reads).toBe(1);
   });
 
   it("reports a failed save", async () => {

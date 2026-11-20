@@ -22,8 +22,11 @@ function buildStep() {
 
 function runBuildStep(mapTilerKey) {
   const binDir = mkdtempSync(join(tmpdir(), "deploy-build-bin-"));
-  const npmMarker = join(binDir, "npm-ran");
-  writeFileSync(join(binDir, "npm"), `#!/bin/sh\ntouch "${npmMarker}"\n`);
+  const npmRecord = join(binDir, "npm-record");
+  writeFileSync(
+    join(binDir, "npm"),
+    `#!/bin/sh\nprintf '%s\\n' "$*" > "${npmRecord}"\nprintf '%s' "$VITE_MAPTILER_KEY" >> "${npmRecord}"\n`,
+  );
   chmodSync(join(binDir, "npm"), 0o755);
 
   const step = buildStep();
@@ -38,7 +41,13 @@ function runBuildStep(mapTilerKey) {
     },
     encoding: "utf8",
   });
-  return { status: result.status, stderr: result.stderr, npmRan: existsSync(npmMarker) };
+  const record = existsSync(npmRecord) ? readFileSync(npmRecord, "utf8").split("\n") : null;
+  return {
+    status: result.status,
+    stderr: result.stderr,
+    npmArgs: record?.[0],
+    npmMapTilerKey: record?.[1],
+  };
 }
 
 test("production build step passes the MapTiler build secret to Vite", () => {
@@ -50,12 +59,21 @@ test("production build fails and does not build when the MapTiler key is empty",
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /CANEGUARD_MAPTILER_KEY/);
-  assert.equal(result.npmRan, false);
+  assert.equal(result.npmArgs, undefined);
 });
 
-test("production build runs when the MapTiler key is set", () => {
+test("production build fails and does not build when the MapTiler key is whitespace", () => {
+  const result = runBuildStep("   ");
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /CANEGUARD_MAPTILER_KEY/);
+  assert.equal(result.npmArgs, undefined);
+});
+
+test("production build runs the Vite build with the MapTiler key when it is set", () => {
   const result = runBuildStep("test-build-key");
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.npmRan, true);
+  assert.equal(result.npmArgs, "run build");
+  assert.equal(result.npmMapTilerKey, "test-build-key");
 });

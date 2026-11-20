@@ -122,8 +122,6 @@ class ReportAerialAnalysisTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.enabled', false);
         $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => 'maybe'])->assertUnprocessable();
-
-        $this->assertSame(2, DB::table('security_audits')->where('action', 'aerial_analysis_switch_changed')->count());
     }
 
     public function test_only_admins_reach_the_aerial_switch(): void

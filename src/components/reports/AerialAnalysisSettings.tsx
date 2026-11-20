@@ -3,16 +3,18 @@ import { z } from "zod";
 import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
+import type { DiseaseReport } from "../../domain/report.types";
 import { reportKeys } from "../../hooks/reportQueries";
 import { Button } from "../ui/Button";
 
 const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.boolean() }) });
 const url = "/api/v1/admin/aerial-analysis";
+const settingsKey = ["aerial-analysis-settings"];
 
 export function AerialAnalysisSettings() {
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["aerial-analysis-settings"], retry: false, enabled: env.dataSource === "api",
+    queryKey: settingsKey, retry: false, enabled: env.dataSource === "api",
     queryFn: async ({ signal }) => schema.parse((await axiosClient.get(url, { signal })).data).data,
   });
   const save = useMutation({
@@ -22,10 +24,17 @@ export function AerialAnalysisSettings() {
       if (!navigator.onLine) throw new Error("An online connection is required.");
       return axiosClient.put(url, { enabled });
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const next = schema.parse(response.data).data;
+      queryClient.setQueryData(settingsKey, next);
+      if (!next.enabled) {
+        queryClient.setQueriesData<DiseaseReport>(
+          { queryKey: reportKeys.details(), predicate: (cached) => cached.queryKey.length === reportKeys.detail("").length },
+          (current) => current && { ...current, aerialAnalyses: undefined },
+        );
+        queryClient.removeQueries({ queryKey: ["aerial-mask"] });
+      }
       void queryClient.invalidateQueries({ queryKey: reportKeys.details() });
-      void queryClient.invalidateQueries({ queryKey: ["aerial-mask"] });
-      return query.refetch();
     },
   });
   if (env.dataSource !== "api") return null;

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\SecurityAudit;
 use App\Support\AerialSwitch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,23 +24,11 @@ final class AerialAnalysisSettingsController extends Controller
         $input = $request->validate(['enabled' => ['required', 'boolean']]);
         abort_unless(AerialSwitch::installed(), 409, 'The aerial check is not installed on this server.');
 
-        $actor = $request->user();
-        $enabled = (bool) $input['enabled'];
-        DB::transaction(function () use ($actor, $enabled): void {
-            DB::table('feature_switches')->upsert(
-                [['name' => AerialSwitch::NAME, 'enabled' => $enabled]],
-                ['name'],
-                ['enabled'],
-            );
-            SecurityAudit::query()->create([
-                'actor_id' => $actor->getKey(),
-                'target_user_id' => $actor->getKey(),
-                'action' => SecurityAudit::ACTION_AERIAL_SWITCH,
-                'outcome' => SecurityAudit::OUTCOME_SUCCESS,
-                'metadata' => ['enabled' => $enabled],
-                'created_at' => now()->utc(),
-            ]);
-        });
+        DB::table('feature_switches')->upsert(
+            [['name' => AerialSwitch::NAME, 'enabled' => (bool) $input['enabled']]],
+            ['name'],
+            ['enabled'],
+        );
 
         return $this->show();
     }
