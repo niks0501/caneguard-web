@@ -20,7 +20,7 @@ Laravel remains the authority for authentication, the field-reporter role, the `
 
 Unknown multipart fields are ignored for backward compatibility and cannot set server-owned identity, reviewer, authority-classification, review-status, or submission-timestamp fields. The artifact's `authority` block partitions the write envelope into client-owned inputs and disjoint, **undeclared** server-derived/read-only names. Only client-owned names belong in `fields`; the artifact gate and Laravel tests enforce that boundary. District is strictly derived from the authenticated pilot access model, never coordinates, barangay, or a phone-supplied district field.
 
-A retry with the same reporter and `client_uuid` returns the original report without writing any submitted evidence, review snapshot, lifecycle, or lock version. After rejection, a corrected submission requires a new UUID; retries cannot reopen or reset the office decision. Review mutations remain role-gated and optimistic-version locked on the separate review endpoint.
+A retry with the same reporter and `client_uuid` returns the original report without writing any submitted evidence, review snapshot, lifecycle, or lock version. The key is normalized to lowercase before storage and lookup, so a retry that differs only in case returns the original report and the reply carries the stored key. After rejection, a corrected submission requires a new UUID; retries cannot reopen or reset the office decision. Review mutations remain role-gated and optimistic-version locked on the separate review endpoint.
 
 The accepted declared fields, their requiredness, wire encodings, types, bounds, conditions, and enums are defined only in the JSON artifact.
 

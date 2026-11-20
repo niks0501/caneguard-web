@@ -75,6 +75,12 @@ mobile producer domain ⊆ mobile-report-upload-v1 ⊆ Laravel accepted domain
 The fast trusted contract gate checks this relationship at the artifact, producer, and Laravel consumer boundaries.
 It supplements rather than replaces P0F, whose separate role is to prove the complete Mobile -> API -> Web -> API -> Mobile system flow.
 
+## Idempotency and reply
+
+Idempotency is keyed on the reporter and `client_uuid`. The API normalizes that key to lowercase before it stores or looks it up, so a retry that differs only in case returns the original report (`200`) and the reply carries the stored key; a corrected submission needs a new `client_uuid`.
+
+The reply is the mobile upload resource: `data` carries the report identity, reporter name, barangay, timestamps, image metadata, model evidence, observations, the reporter observation, the review status and notes, `version` and `updated_at`. It carries no office review actors, case history, audit entries, or reporter email; office actions stay on the Web report read endpoints.
+
 ## Validation boundary
 
 The Laravel request compiles its validation rules from the JSON artifact through `App\Contracts\MobileReportUploadContract`.

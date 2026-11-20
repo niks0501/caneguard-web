@@ -33,6 +33,7 @@ The workflow refuses unknown host keys. Do not use `ssh-keyscan` as an unverifie
 - A server lock prevents simultaneous releases. Each release gets a unique directory.
 - Server links production `.env` and `storage`, installs Composer dependencies without dev packages, prepares Laravel, and runs `migrate --force` against the existing database.
 - After migration succeeds, it atomically switches `current` to the new code and verifies HTTPS API readiness and the frontend.
+- The frontend check fetches `/` and fails with `SPA shell served without a CSP nonce` when the built `__CSP_NONCE__` placeholder is still present. Nginx must route the shell through `index.php`, as the Laravel route substitutes the per-response CSP nonce into the theme script; a static `api/public/index.html` leaves the placeholder in place and trips this check.
 - On an activation health-check failure, it restores the old code symlink. **Database migrations are not rolled back.** This is a code rollback, not a full transactional deploy.
 - No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production.
 - Existing previous releases are retained. No automatic pruning.
