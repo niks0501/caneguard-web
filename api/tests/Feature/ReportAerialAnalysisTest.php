@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -174,14 +175,24 @@ class ReportAerialAnalysisTest extends TestCase
         Storage::disk('local')->assertExists($row->image_path);
         Storage::disk('local')->assertExists($row->mask_path);
         $this->assertSame(self::SHA, $row->weights_sha256);
-        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")
-            ->assertOk()->assertHeader('Cache-Control', 'no-cache, private');
-        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/mask")
-            ->assertOk()->assertHeader('Content-Type', 'image/png')->assertHeader('Cache-Control', 'no-cache, private');
+        $image = $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")->assertOk();
+        $this->assertSame(['no-cache', 'private'], $this->cacheDirectives($image));
+        $mask = $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/mask")
+            ->assertOk()->assertHeader('Content-Type', 'image/png');
+        $this->assertSame(['no-cache', 'private'], $this->cacheDirectives($mask));
 
         $report->refresh();
         $this->assertSame(33.0, (float) $report->affected_portion_percent);
         $this->assertSame(2.5, (float) $report->affected_area_hectares);
+    }
+
+    /** @return list<string> */
+    private function cacheDirectives(TestResponse $response): array
+    {
+        $directives = array_map('trim', explode(',', (string) $response->headers->get('Cache-Control')));
+        sort($directives);
+
+        return $directives;
     }
 
     public function test_shares_are_hidden_below_the_coverage_floor(): void
