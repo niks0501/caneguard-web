@@ -29,8 +29,9 @@ final class MailDelivery
     }
 
     /**
-     * Issues a reset token and sends it. The token commits before SMTP is attempted; if the send fails, the
-     * previously issued token rows are restored, so a failed attempt never destroys a working link.
+     * Issues a reset token and sends it. The token commits before SMTP is attempted. If the send fails, the rows
+     * it replaced are put back only while the failed token is still the current one, so a later link, or a link
+     * already used to reset the password, is never overwritten or revived.
      */
     public static function sendResetLink(array $credentials, bool $onboardingOnly = false): string
     {
@@ -43,8 +44,9 @@ final class MailDelivery
         $table = (string) config('auth.passwords.users.table', 'password_reset_tokens');
         $user = null;
         $token = null;
+        $issuedHash = null;
         $previous = [];
-        $status = DB::transaction(function () use ($broker, $table, $credentials, $onboardingOnly, &$user, &$token, &$previous): string {
+        $status = DB::transaction(function () use ($broker, $table, $credentials, $onboardingOnly, &$user, &$token, &$issuedHash, &$previous): string {
             $found = $broker->getUser($credentials);
             if ($found === null) {
                 return Password::INVALID_USER;
@@ -61,6 +63,7 @@ final class MailDelivery
             }
             $previous = DB::table($table)->where('email', $user->email)->get()->map(fn ($row): array => (array) $row)->all();
             $token = $broker->createToken($user);
+            $issuedHash = DB::table($table)->where('email', $user->email)->value('token');
 
             return Password::RESET_LINK_SENT;
         });
@@ -71,7 +74,11 @@ final class MailDelivery
         try {
             $user->sendPasswordResetNotification($token);
         } catch (Throwable $e) {
-            DB::transaction(function () use ($table, $user, $previous): void {
+            DB::transaction(function () use ($table, $user, $previous, $issuedHash): void {
+                User::query()->whereKey($user->getKey())->lockForUpdate()->first();
+                if (DB::table($table)->where('email', $user->email)->value('token') !== $issuedHash) {
+                    return;
+                }
                 DB::table($table)->where('email', $user->email)->delete();
                 if ($previous !== []) {
                     DB::table($table)->insert($previous);

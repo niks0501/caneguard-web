@@ -2,14 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Auth\ResetPasswordAction;
 use App\Models\AccountAccessEvent;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Tests\Support\FakeSmtpMailbox;
@@ -172,6 +175,51 @@ class AdminAccountCreationTest extends TestCase
         $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', false);
         $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
         $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $field->refresh()->password));
+    }
+
+    public function test_failed_send_neither_overwrites_a_later_link_nor_revives_a_used_one(): void
+    {
+        $this->productionMail();
+        config(['mail.mailers.smtp.require_tls' => true]);
+        User::factory()->reviewer()->unverified()->create(['email' => 'race@example.test']);
+
+        $this->travel(2)->minutes();
+        $superseded = $this->issueOperatorLink('race@example.test');
+        $this->travel(2)->minutes();
+        $later = null;
+        Event::listen(NotificationSending::class, function () use (&$later): void {
+            $later = $this->issueOperatorLink('race@example.test');
+            throw new \RuntimeException('smtp unavailable');
+        });
+        $this->postWeb('/forgot-password', ['email' => 'race@example.test'])->assertAccepted();
+        Event::forget(NotificationSending::class);
+        $this->assertFalse($this->redeemsLink($superseded, 'Stale-Passphrase!41'));
+        $this->assertTrue($this->redeemsLink($later, 'Newer-Passphrase!42'));
+
+        $this->travel(2)->minutes();
+        $pre = $this->issueOperatorLink('race@example.test');
+        $this->travel(2)->minutes();
+        $used = null;
+        Event::listen(NotificationSending::class, function () use (&$used): void {
+            $used = $this->issueOperatorLink('race@example.test');
+            app(ResetPasswordAction::class)->handle(
+                ['email' => $used['email'], 'token' => $used['token'], 'password' => 'Used-Passphrase!43', 'password_confirmation' => 'Used-Passphrase!43'],
+                fn ($user, $password) => $user->forceFill(['password' => Hash::make($password)])->save(),
+            );
+            throw new \RuntimeException('smtp unavailable');
+        });
+        $this->postWeb('/forgot-password', ['email' => 'race@example.test'])->assertAccepted();
+        Event::forget(NotificationSending::class);
+        $this->assertFalse($this->redeemsLink($pre, 'Revived-Passphrase!44'));
+        $this->assertFalse($this->redeemsLink($used, 'Replayed-Passphrase!45'));
+    }
+
+    /** @param  array{token: string, email: string}  $link */
+    private function redeemsLink(array $link, string $password): bool
+    {
+        $this->postWeb('/reset-password', $link + ['password' => $password, 'password_confirmation' => $password]);
+
+        return Hash::check($password, User::query()->where('email', $link['email'])->firstOrFail()->password);
     }
 
     public function test_forgot_password_response_is_padded_to_the_recovery_timebox_for_unknown_addresses(): void
