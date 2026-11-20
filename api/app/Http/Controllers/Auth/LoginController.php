@@ -60,7 +60,10 @@ class LoginController extends Controller
         }
 
         $request->session()->put('auth.version', $user->auth_version);
-        $audits->handle(SecurityAudit::ACTION_PASSWORD_LOGIN, SecurityAudit::OUTCOME_SUCCESS, actor: $user, target: $user);
+        if ($user->onboarded_at === null) {
+            $user->forceFill(['onboarded_at' => now()])->save();
+            $audits->handle(SecurityAudit::ACTION_PASSWORD_LOGIN, SecurityAudit::OUTCOME_SUCCESS, actor: $user, target: $user);
+        }
 
         return response()->json([], 204);
     }

@@ -33,6 +33,12 @@ class AdminAccountCreationTest extends TestCase
     use FakeSmtpMailbox;
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['caneguard.auth.operator_link_no_password_confirmed' => true]);
+    }
+
     protected function tearDown(): void
     {
         $this->stopFakeMailbox();
@@ -66,6 +72,23 @@ class AdminAccountCreationTest extends TestCase
         $this->assertSame('https://app.example.test/reset-password', strtok((string) $link, '?'));
 
         return ['token' => (string) $query['token'], 'email' => (string) $query['email']];
+    }
+
+    /**
+     * Fixes every database and cache setting a subprocess can inherit, so a developer's exported service settings cannot
+     * reach the fixture; callers add only what their scenario needs.
+     *
+     * @param  array<string, string>  $overrides
+     * @return array<string, string>
+     */
+    private function subprocessEnvironment(array $overrides = []): array
+    {
+        return array_merge([
+            'DB_URL' => '',
+            'DB_CONNECTION' => 'sqlite',
+            'DB_CACHE_CONNECTION' => '',
+            'CACHE_STORE' => 'array',
+        ], $overrides);
     }
 
     /**
@@ -456,10 +479,11 @@ class AdminAccountCreationTest extends TestCase
             'CACHE_STORE' => 'array',
             'CANEGUARD_PASSWORD_RESET_URL' => 'https://app.example.test/reset-password',
             'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test',
+            'CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED' => 'true',
         ];
         $root = $this->isolatedApplication($env);
         $artisan = $root.'/artisan';
-        $boot = fn (array $environment) => Process::env(array_merge(['DB_URL' => '', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database, 'APP_CONFIG_CACHE' => $absent], $environment));
+        $boot = fn (array $environment) => Process::env($this->subprocessEnvironment(array_merge(['DB_DATABASE' => $database, 'APP_CONFIG_CACHE' => $absent], $environment)));
         $operatorLinks = fn (): int => (int) (new \PDO('sqlite:'.$database))
             ->query("SELECT COUNT(*) FROM security_audits WHERE action = 'operator_link_issued'")->fetchColumn();
 
@@ -619,6 +643,19 @@ class AdminAccountCreationTest extends TestCase
 
         $this->assertTrue($user->hasCompletedOnboarding());
         $this->artisan('auth:set-password-link')->assertFailed();
+    }
+
+    public function test_operator_link_requires_an_explicit_no_password_confirmation(): void
+    {
+        config([
+            'caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password',
+            'caneguard.auth.operator_link_email' => 'unconfirmed@example.test',
+            'caneguard.auth.operator_link_no_password_confirmed' => false,
+        ]);
+        User::factory()->reviewer()->unverified()->create(['email' => 'unconfirmed@example.test']);
+
+        $this->artisan('auth:set-password-link')->assertFailed();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
     public function test_a_password_login_completes_onboarding_for_an_account_whose_history_was_pruned(): void
@@ -799,7 +836,7 @@ class AdminAccountCreationTest extends TestCase
 
         try {
             foreach (['true' => true, 'false' => false] as $value => $expected) {
-                $result = Process::env(['DB_URL' => '', 'DB_CONNECTION' => 'sqlite', 'APP_CONFIG_CACHE' => $absent, 'MAIL_REQUIRE_TLS' => $value])
+                $result = Process::env($this->subprocessEnvironment(['APP_CONFIG_CACHE' => $absent, 'MAIL_REQUIRE_TLS' => $value]))
                     ->run([PHP_BINARY, $root.'/artisan', 'tinker', '--execute=echo json_encode(config("mail.mailers.smtp.require_tls"));']);
 
                 $this->assertTrue($result->successful(), $result->errorOutput());

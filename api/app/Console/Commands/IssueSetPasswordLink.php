@@ -35,6 +35,12 @@ class IssueSetPasswordLink extends Command
             return self::FAILURE;
         }
 
+        if (! config('caneguard.auth.operator_link_no_password_confirmed')) {
+            $this->error('Confirm the account has no password by setting CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED=true in the shared .env, then run this command again.');
+
+            return self::FAILURE;
+        }
+
         try {
             $urls->assertPasswordResetUrl();
         } catch (LogicException $e) {
@@ -55,7 +61,7 @@ class IssueSetPasswordLink extends Command
 
                 $token = MailDelivery::issueToken($user);
                 $operator = function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid())['name'] : get_current_user();
-                $audit->handle(SecurityAudit::ACTION_OPERATOR_LINK, SecurityAudit::OUTCOME_SUCCESS, null, $user, ['channel' => 'operator_link', 'operator' => $operator]);
+                $audit->handle(SecurityAudit::ACTION_OPERATOR_LINK, SecurityAudit::OUTCOME_SUCCESS, null, $user, ['channel' => 'operator_link', 'operator' => $operator, 'no_password_confirmed' => true]);
 
                 return [$user, $token];
             });

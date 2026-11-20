@@ -19,7 +19,7 @@ class SecurityAudit extends Model
     public const OUTCOME_SUCCESS = 'success';
 
     /** Successful records of these actions prove onboarding; they are kept past retention until the account is marked. */
-    public const ONBOARDING_EVIDENCE_ACTIONS = [self::ACTION_PASSWORD_RESET, self::ACTION_PASSWORD_CHANGE, self::ACTION_PASSWORD_LOGIN, self::ACTION_MOBILE_LOGIN];
+    public const ONBOARDING_EVIDENCE_ACTIONS = [self::ACTION_PASSWORD_RESET, self::ACTION_PASSWORD_CHANGE, self::ACTION_PASSWORD_LOGIN];
 
     public const OUTCOME_FAILURE = 'failure';
 
