@@ -18,18 +18,6 @@ document:
     docs/ owns workflows and integration contracts.
     api/docs/ owns backend-specific documentation.
 
-review:
-  conversation: false
-  path_instructions:
-    - path: "api/app/Http/**"
-      instructions: "Enforce server-side authorization and validation; preserve error and response contracts."
-    - path: "api/routes/**"
-      instructions: "Preserve route permissions, HTTP semantics and existing API consumers."
-    - path: "api/database/migrations/**"
-      instructions: "Preserve existing records and schema compatibility; flag destructive migrations."
-    - path: "src/auth/**"
-      instructions: "Preserve session restoration, logout and role-gated routing; client guards do not replace server authorization."
-
 test:
   instructions: |
     Use PROJECT_CHECKS.md to select affected Vitest, Laravel or consumer-contract tests; full suites belong in CI.
