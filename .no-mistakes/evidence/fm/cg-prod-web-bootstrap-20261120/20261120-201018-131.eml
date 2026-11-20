@@ -1,0 +1,325 @@
+X-Rcpt: RCPT TO:<second.admin@caneguard.test>
+From: CaneGuard <noreply@caneguard.test>
+To: second.admin@caneguard.test
+Subject: Reset your password
+Message-ID: <b3ff787cf61809c79012be44b34e76ef@caneguard.test>
+MIME-Version: 1.0
+Date: Fri, 20 Nov 2026 12:10:18 +0000
+Content-Type: multipart/alternative; boundary=ZUYS6APb
+
+--ZUYS6APb
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Laravel: http://127.0.0.1:8123
+
+# Hello!
+
+You are receiving this em=
+ail because we received a password reset request for your account.
+
+Res=
+et Password: https://caneguard.online/reset-password?token=3D7d71c4972392be=
+1a9e3a6ad6ee6c736140e904e8c65a5cf965669a4fcfe47221&email=3Dsecond.admin%40c=
+aneguard.test
+
+This password reset link will expire in 60 minutes.
+=
+
+If you did not request a password reset, no further action is required.=
+
+
+Regards,
+Laravel
+
+If you're having trouble clicking the "Reset =
+Password" button, copy and paste the URL below
+into your web browser: [ht=
+tps://caneguard.online/reset-password?token=3D7d71c4972392be1a9e3a6ad6ee6c7=
+36140e904e8c65a5cf965669a4fcfe47221&email=3Dsecond.admin%40caneguard.test](=
+https://caneguard.online/reset-password?token=3D7d71c4972392be1a9e3a6ad6ee6=
+c736140e904e8c65a5cf965669a4fcfe47221&email=3Dsecond.admin%40caneguard.test=
+)
+
+=C2=A9 2026 Laravel. All rights reserved.
+
+--ZUYS6APb
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.=
+w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns=3D"http://www.=
+w3.org/1999/xhtml" lang=3D"en">
+<head>
+<title>Laravel</title>
+<meta n=
+ame=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D1.0">
+<=
+meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3DUTF-8">
+=
+<meta name=3D"color-scheme" content=3D"light">
+<meta name=3D"supported-co=
+lor-schemes" content=3D"light">
+<style>
+@media only screen and (max-wid=
+th: 600px) {
+..inner-body {
+width: 100% !important;
+}
+
+..footer {=
+
+width: 100% !important;
+}
+}
+
+@media only screen and (max-width: =
+500px) {
+..button {
+width: 100% !important;
+}
+}
+</style>
+
+</he=
+ad>
+<body style=3D"box-sizing: border-box; font-family: -apple-system, Bl=
+inkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple =
+Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; -web=
+kit-text-size-adjust: none; background-color: #ffffff; color: #52525b; heig=
+ht: 100%; line-height: 1.4; margin: 0; padding: 0; width: 100% !important;"=
+>
+
+<table class=3D"wrapper" width=3D"100%" cellpadding=3D"0" cellspacin=
+g=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; font-family:=
+ -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, s=
+ans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; positi=
+on: relative; -premailer-cellpadding: 0; -premailer-cellspacing: 0; -premai=
+ler-width: 100%; background-color: #fafafa; margin: 0; padding: 0; width: 1=
+00%;">
+<tr>
+<td align=3D"center" style=3D"box-sizing: border-box; font-=
+family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, A=
+rial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';=
+ position: relative;">
+<table class=3D"content" width=3D"100%" cellpaddin=
+g=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border=
+-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, H=
+elvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe =
+UI Symbol'; position: relative; -premailer-cellpadding: 0; -premailer-cells=
+pacing: 0; -premailer-width: 100%; margin: 0; padding: 0; width: 100%;">
+=
+<tr>
+<td class=3D"header" style=3D"box-sizing: border-box; font-family: -=
+apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, san=
+s-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position=
+: relative; padding: 25px 0; text-align: center;">
+<a href=3D"http://127.=
+0.0.1:8123" style=3D"box-sizing: border-box; font-family: -apple-system, Bl=
+inkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple =
+Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; colo=
+r: #18181b; font-size: 19px; font-weight: bold; text-decoration: none; disp=
+lay: inline-block;">
+<img src=3D"https://laravel.com/img/notification-log=
+o-v2.1.png" class=3D"logo" alt=3D"Laravel Logo" style=3D"box-sizing: border=
+-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, H=
+elvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe =
+UI Symbol'; position: relative; max-width: 100%; border: none; height: 75px=
+; margin-top: 15px; margin-bottom: 10px; max-height: 75px; width: 75px;">=
+
+</a>
+</td>
+</tr>
+
+<!-- Email Body -->
+<tr>
+<td class=3D"body=
+" width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" style=3D"box-sizing: b=
+order-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Robo=
+to, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'S=
+egoe UI Symbol'; position: relative; -premailer-cellpadding: 0; -premailer-=
+cellspacing: 0; -premailer-width: 100%; background-color: #fafafa; border-b=
+ottom: 1px solid #fafafa; border-top: 1px solid #fafafa; margin: 0; padding=
+: 0; width: 100%; border: hidden !important;">
+<table class=3D"inner-body=
+" align=3D"center" width=3D"570" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; font-family: -apple-syst=
+em, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, '=
+Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative=
+; -premailer-cellpadding: 0; -premailer-cellspacing: 0; -premailer-width: 5=
+70px; background-color: #ffffff; border-color: #e4e4e7; border-radius: 4px;=
+ border-width: 1px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -=
+1px rgba(0, 0, 0, 0.1); margin: 0 auto; padding: 0; width: 570px;">
+<!-- =
+Body content -->
+<tr>
+<td class=3D"content-cell" style=3D"box-sizing: b=
+order-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Robo=
+to, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'S=
+egoe UI Symbol'; position: relative; max-width: 100vw; padding: 32px;">
+<=
+h1 style=3D"box-sizing: border-box; font-family: -apple-system, BlinkMacSys=
+temFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emo=
+ji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; color: #18181=
+b; font-size: 18px; font-weight: bold; margin-top: 0; text-align: start;">H=
+ello!</h1>
+<p style=3D"box-sizing: border-box; font-family: -apple-system=
+, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Ap=
+ple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; =
+font-size: 16px; line-height: 1.5em; margin-top: 0; text-align: left;">You =
+are receiving this email because we received a password reset request for y=
+our account.</p>
+<table class=3D"action" align=3D"center" width=3D"100%" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizi=
+ng: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',=
+ Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji=
+', 'Segoe UI Symbol'; position: relative; -premailer-cellpadding: 0; -prema=
+iler-cellspacing: 0; -premailer-width: 100%; margin: 30px auto; padding: 0;=
+ text-align: center; width: 100%; float: unset;">
+<tr>
+<td align=3D"cen=
+ter" style=3D"box-sizing: border-box; font-family: -apple-system, BlinkMacS=
+ystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color E=
+moji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative;">
+<table =
+width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pre=
+sentation" style=3D"box-sizing: border-box; font-family: -apple-system, Bli=
+nkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple C=
+olor Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative;">
+<=
+tr>
+<td align=3D"center" style=3D"box-sizing: border-box; font-family: -a=
+pple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans=
+-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position:=
+ relative;">
+<table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; font-family: -apple-syst=
+em, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, '=
+Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative=
+;">
+<tr>
+<td style=3D"box-sizing: border-box; font-family: -apple-syste=
+m, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'A=
+pple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative;=
+">
+<a href=3D"https://caneguard.online/reset-password?token=3D7d71c497239=
+2be1a9e3a6ad6ee6c736140e904e8c65a5cf965669a4fcfe47221&amp;email=3Dsecond.ad=
+min%40caneguard.test" class=3D"button button-primary" target=3D"_blank" rel=
+=3D"noopener" style=3D"box-sizing: border-box; font-family: -apple-system, =
+BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Appl=
+e Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; -w=
+ebkit-text-size-adjust: none; border-radius: 4px; color: #fff; display: inl=
+ine-block; overflow: hidden; text-decoration: none; background-color: #1818=
+1b; border-bottom: 8px solid #18181b; border-left: 18px solid #18181b; bord=
+er-right: 18px solid #18181b; border-top: 8px solid #18181b; word-break: br=
+eak-all;">Reset Password</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<=
+/table>
+</td>
+</tr>
+</table>
+<p style=3D"box-sizing: border-box; fo=
+nt-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica=
+, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbo=
+l'; position: relative; font-size: 16px; line-height: 1.5em; margin-top: 0;=
+ text-align: left;">This password reset link will expire in 60 minutes.</p>=
+
+<p style=3D"box-sizing: border-box; font-family: -apple-system, BlinkMac=
+SystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color =
+Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; font-size:=
+ 16px; line-height: 1.5em; margin-top: 0; text-align: left;">If you did not=
+ request a password reset, no further action is required.</p>
+<p style=3D=
+"box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'S=
+egoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe=
+ UI Emoji', 'Segoe UI Symbol'; position: relative; font-size: 16px; line-he=
+ight: 1.5em; margin-top: 0; text-align: left;">Regards,<br>
+Laravel</p>=
+
+
+
+<table class=3D"subcopy" width=3D"100%" cellpadding=3D"0" cellspac=
+ing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; font-famil=
+y: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,=
+ sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; posi=
+tion: relative; border-top: 1px solid #e4e4e7; margin-top: 25px; padding-to=
+p: 25px;">
+<tr>
+<td style=3D"box-sizing: border-box; font-family: -appl=
+e-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-se=
+rif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: re=
+lative;">
+<p style=3D"box-sizing: border-box; font-family: -apple-system,=
+ BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'App=
+le Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; l=
+ine-height: 1.5em; margin-top: 0; text-align: left; font-size: 14px;">If yo=
+u're having trouble clicking the "Reset Password" button, copy and paste th=
+e URL below
+into your web browser: <span class=3D"break-all" style=3D"box=
+-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe=
+ UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI =
+Emoji', 'Segoe UI Symbol'; position: relative; word-break: break-all;"><a h=
+ref=3D"https://caneguard.online/reset-password?token=3D7d71c4972392be1a9e3a=
+6ad6ee6c736140e904e8c65a5cf965669a4fcfe47221&amp;email=3Dsecond.admin%40can=
+eguard.test" style=3D"box-sizing: border-box; font-family: -apple-system, B=
+linkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple=
+ Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; col=
+or: #18181b; word-break: break-all;">https://caneguard.online/reset-passwor=
+d?token=3D7d71c4972392be1a9e3a6ad6ee6c736140e904e8c65a5cf965669a4fcfe47221&=
+amp;email=3Dsecond.admin%40caneguard.test</a></span></p>
+
+</td>
+</tr>=
+
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td styl=
+e=3D"box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont=
+, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'S=
+egoe UI Emoji', 'Segoe UI Symbol'; position: relative;">
+<table class=3D"=
+footer" align=3D"center" width=3D"570" cellpadding=3D"0" cellspacing=3D"0" =
+role=3D"presentation" style=3D"box-sizing: border-box; font-family: -apple-=
+system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-seri=
+f, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: rela=
+tive; -premailer-cellpadding: 0; -premailer-cellspacing: 0; -premailer-widt=
+h: 570px; margin: 0 auto; padding: 0; text-align: center; width: 570px;">=
+
+<tr>
+<td class=3D"content-cell" align=3D"center" style=3D"box-sizing: =
+border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Rob=
+oto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', '=
+Segoe UI Symbol'; position: relative; max-width: 100vw; padding: 32px;">
+=
+<p style=3D"box-sizing: border-box; font-family: -apple-system, BlinkMacSys=
+temFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emo=
+ji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; line-height: =
+1.5em; margin-top: 0; color: #a1a1aa; font-size: 12px; text-align: center;"=
+>=C2=A9 2026 Laravel. All rights reserved.</p>
+
+</td>
+</tr>
+</table=
+>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>
+--ZUYS6APb--
+

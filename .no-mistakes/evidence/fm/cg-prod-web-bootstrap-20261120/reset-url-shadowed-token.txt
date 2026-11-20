@@ -1,0 +1,16 @@
+### reset URL template already carries a token query parameter
+### CANEGUARD_PASSWORD_RESET_URL='https://caneguard.online/reset-password?token=stale&ref=keep'
+Pilot district: 'PILOT-LV' already exists.
+Bootstrap admin: set-password email sent.
+exit=0
+
+### reset link delivered for the new administrator
+https://caneguard.online/reset-password?ref=keep&token=993f573faf4808b46e316721bb3a05708cc9c305196575a685c7aa4d746f512b&email=shadow.admin%40caneguard.test
+
+### parameter audit of the delivered link
+/reset-password?ref=keep&token=993f573faf4808b46e316721bb3a05708cc9c305196575a685c7aa4d746f512b&email=shadow.admin%40caneguard.test
+params: ref,token,email | token=993f573faf48...
+/reset-password?ref=keep&token=993f573faf4808b46e316721bb3a05708cc9c305196575a685c7aa4d746f512b&email=shadow.admin%40caneguard.test)
+params: ref,token,email | token=993f573faf48...
+/reset-password?ref=keep&token=993f573faf4808b46e316721bb3a05708cc9c305196575a685c7aa4d746f512b&email=shadow.admin%40caneguard.test
+params: ref,token,email | token=993f573faf48...

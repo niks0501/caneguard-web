@@ -1,0 +1,55 @@
+### crontab before deploy
+MAILTO=ops@example.test
+30 4 * * * /usr/local/bin/backup.sh
+15 3 * * * cd /srv/other/current/api && php artisan schedule:run >> /dev/null 2>&1
+* * * * *  cd /tmp/lv/deploy/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1
+* * * * *^Icd /tmp/lv/deploy/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /tmp/lv/deploy/caneguard/current/api && /usr/bin/php8.3 artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /tmp/lv/deploy/caneguard/current/api && php artisan schedule:run > /dev/null 2>&1
+
+### deploy 1
+/tmp/lv/deploy/caneguard/releases/.upload-release-1-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz: OK
+Installed scheduler cron for deploy
+PASS: Active release release-1-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+Rollback reference: /tmp/lv/deploy/caneguard/releases/release-0-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+exit=0
+
+### crontab after deploy 1
+MAILTO=ops@example.test
+30 4 * * * /usr/local/bin/backup.sh
+15 3 * * * cd /srv/other/current/api && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /tmp/lv/deploy/caneguard/current/api && /tmp/lv/deploy/bin/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler
+
+### deploy 2 (idempotency)
+/tmp/lv/deploy/caneguard/releases/.upload-release-2-cccccccccccccccccccccccccccccccccccccccc.tar.gz: OK
+PASS: Active release release-2-cccccccccccccccccccccccccccccccccccccccc
+Rollback reference: /tmp/lv/deploy/caneguard/releases/release-1-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+exit=0
+
+### crontab after deploy 2
+MAILTO=ops@example.test
+30 4 * * * /usr/local/bin/backup.sh
+15 3 * * * cd /srv/other/current/api && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /tmp/lv/deploy/caneguard/current/api && /tmp/lv/deploy/bin/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler
+
+### artisan invocations in deploy order
+php artisan optimize:clear
+php artisan config:cache
+php artisan view:cache
+php artisan migrate --force --no-interaction
+php artisan caneguard:bootstrap --no-interaction
+php artisan caneguard:record-scheduler-install * * * * * cd /tmp/lv/deploy/caneguard/current/api && /tmp/lv/deploy/bin/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler --no-interaction
+php artisan optimize:clear
+php artisan config:cache
+php artisan view:cache
+php artisan migrate --force --no-interaction
+php artisan caneguard:bootstrap --no-interaction
+php artisan caneguard:record-scheduler-install * * * * * cd /tmp/lv/deploy/caneguard/current/api && /tmp/lv/deploy/bin/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler --no-interaction
+
+### deploy with cron service stopped (adversarial: no scheduler at go-live)
+The cron service is not enabled and running on Lightsail; enable and start it as ubuntu with: sudo systemctl enable --now cron
+exit=1
+crontab unchanged: yes
+migrate reached: 2
+
+### bootstrapped release artefact: release-3 directory created? no

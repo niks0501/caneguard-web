@@ -1,0 +1,23 @@
+### pilot district unset (CANEGUARD_PILOT_DISTRICT_CODE=''), active admin signed in
+health: 200
+
+### admin creates a reviewer (web role) with no pilot district
+{"data":{"uuid":"01a1f8e3-bbd6-720d-a399-45c98b63f026","name":"Nora Reviewer","email":"nora.reviewer@caneguard.test","role":"reviewer","is_active":true,"access_version":1},"invite_sent":true}
+HTTP 201
+
+### admin creates a field reporter (district required) with no pilot district
+{"message":"The service is temporarily unavailable.","code":"SERVICE_UNAVAILABLE"}
+HTTP 503
+
+### persisted users and access event
+== users ==
+{"id":1,"email":"first.admin@caneguard.test","role":"admin","is_active":0,"email_verified_at":null,"bootstrap_superseded_at":"2026-11-20 12:09:57"}
+{"id":2,"email":"second.admin@caneguard.test","role":"admin","is_active":1,"email_verified_at":"2026-11-20 12:11:03","bootstrap_superseded_at":null}
+{"id":3,"email":"rowena.reviewer@caneguard.test","role":"reviewer","is_active":1,"email_verified_at":null,"bootstrap_superseded_at":null}
+{"id":4,"email":"nora.reviewer@caneguard.test","role":"reviewer","is_active":1,"email_verified_at":null,"bootstrap_superseded_at":null}
+== reset_tokens ==
+== access_events ==
+{"id":1,"district_id":null,"action":"create","target_id":3,"actor_id":2,"contract_version":"account-access-event-v1"}
+{"id":2,"district_id":null,"action":"create","target_id":4,"actor_id":2,"contract_version":"account-access-event-v1"}
+== tokens ==
+{"id":2,"tokenable_id":2,"expires_at":"2027-11-01 00:00:00"}

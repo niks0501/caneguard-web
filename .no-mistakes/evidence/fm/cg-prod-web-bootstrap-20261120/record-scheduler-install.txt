@@ -1,0 +1,9 @@
+### crontab without the scheduler entry (adversarial: audit must not claim it is installed)
+The scheduler entry is not present in the deploy user crontab; nothing was recorded.
+exit=1
+
+### deploy user crontab now lists the entry
+exit=0
+
+### recorded audit rows
+{"id":12,"action":"scheduler_cron_observed","outcome":"success","target_user_id":null,"metadata":"{\"cron_line\":\"* * * * * cd \\/var\\/www\\/caneguard\\/current\\/api && php artisan schedule:run >> \\/dev\\/null 2>&1 # caneguard-scheduler\",\"provisioning_channel\":\"deploy\"}","created_at":"2026-11-20 12:17:47"}

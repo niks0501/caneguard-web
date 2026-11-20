@@ -1,0 +1,23 @@
+### install-production-env.sh driven through a /bin/sh login shell (not bash), stdin streamed, like the configure workflow
+Installed shared production configuration
+exit=0
+--- installed file mode
+600 /tmp/lv/envroot/caneguard/shared/api/.env
+--- installed file content
+APP_ENV=production
+APP_KEY=base64:SYNTHETICONLY
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtps
+CANEGUARD_PILOT_DISTRICT_CODE=PILOT-LV
+CANEGUARD_PILOT_DISTRICT_NAME=Lipa
+CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=admin@caneguard.test
+# caneguard-config-complete
+--- staging left behind: none
+--- setfacl calls
+setfacl -m u:www-data:r /tmp/lv/envroot/caneguard/shared/api/.env.next
+
+### adversarial: stream without the completion marker
+Configuration input is empty or incomplete
+exit=1
+--- installed file unchanged: NO
+--- staging left behind: none

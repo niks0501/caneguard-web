@@ -1,0 +1,70 @@
+### run A: MAIL_MAILER=log (non-deliverable preflight), fresh database
+Pilot district: created 'PILOT-LV'.
+Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine with MAIL_REQUIRE_TLS=false. Configure SMTP and deploy again.
+exit=1
+== users ==
+== reset_tokens ==
+== audits ==
+
+### run B: relay unreachable (MAIL_PORT=2699) - send fails, account kept
+Pilot district: 'PILOT-LV' already exists.
+[2026-11-20 12:12:50] local.WARNING: Bootstrap administrator set-password email could not be sent. {"exception":"Symfony\\Component\\Mailer\\Exception\\TransportException"} 
+Bootstrap admin: the set-password email could not be sent. The administrator account is kept; fix mail delivery and deploy again.
+exit=1
+== users ==
+{"id":1,"email":"ops.admin@caneguard.test","role":"admin","is_active":1,"email_verified_at":null,"bootstrap_superseded_at":null}
+== reset_tokens ==
+{"email":"ops.admin@caneguard.test","created_at":"2026-11-20 12:11:50"}
+== audits ==
+{"id":1,"action":"bootstrap_district_created","outcome":"success","target_user_id":null,"metadata":"{\"district_id\":1,\"district_code\":\"PILOT-LV\",\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:11:43"}
+{"id":2,"action":"account_created","outcome":"success","target_user_id":1,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:11:50"}
+{"id":3,"action":"account_invite_sent","outcome":"failure","target_user_id":1,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:12:50"}
+== access_events ==
+== tokens ==
+
+### run C: relay fixed, immediate retry inside the 60s throttle window
+Pilot district: 'PILOT-LV' already exists.
+Bootstrap admin: set-password email sent.
+exit=0
+== audits ==
+{"id":1,"action":"bootstrap_district_created","outcome":"success","target_user_id":null,"metadata":"{\"district_id\":1,\"district_code\":\"PILOT-LV\",\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:11:43"}
+{"id":2,"action":"account_created","outcome":"success","target_user_id":1,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:11:50"}
+{"id":3,"action":"account_invite_sent","outcome":"failure","target_user_id":1,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:12:50"}
+{"id":4,"action":"account_invite_sent","outcome":"success","target_user_id":1,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:12:51"}
+== access_events ==
+== tokens ==
+mails to ops.admin: 1
+
+### run D: relay accepts the connection then rejects the message (fast failure)
+Pilot district: 'PILOT-LV' already exists.
+[2026-11-20 12:13:11] local.WARNING: Bootstrap administrator set-password email could not be sent. {"exception":"Symfony\\Component\\Mailer\\Exception\\UnexpectedResponseException"} 
+Bootstrap admin: the set-password email could not be sent. The administrator account is kept; fix mail delivery and deploy again.
+exit=1
+
+### run E: relay healthy, immediate retry within 60s of the failed attempt
+Pilot district: 'PILOT-LV' already exists.
+Bootstrap admin: a set-password link was issued less than a minute ago. Deploy again after that.
+exit=1
+== audits ==
+{"id":1,"action":"bootstrap_district_created","outcome":"success","target_user_id":null,"metadata":"{\"district_id\":1,\"district_code\":\"PILOT-LV\",\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:11:43"}
+{"id":2,"action":"account_created","outcome":"success","target_user_id":1,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:11:50"}
+{"id":3,"action":"account_invite_sent","outcome":"failure","target_user_id":1,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:12:50"}
+{"id":4,"action":"account_invite_sent","outcome":"success","target_user_id":1,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:12:51"}
+{"id":5,"action":"account_status_change","outcome":"success","target_user_id":1,"metadata":"{\"before\":{\"role\":\"admin\",\"is_active\":true},\"after\":{\"role\":\"admin\",\"is_active\":false},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:13:11"}
+{"id":6,"action":"account_created","outcome":"success","target_user_id":2,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:13:11"}
+{"id":7,"action":"account_invite_sent","outcome":"failure","target_user_id":2,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:13:11"}
+== access_events ==
+== tokens ==
+mails: 3
+
+### run F: retry after the throttle window (62s) succeeds without extra invites
+Pilot district: 'PILOT-LV' already exists.
+Bootstrap admin: set-password email sent.
+exit=0
+== users ==
+{"id":1,"email":"ops.admin@caneguard.test","role":"admin","is_active":0,"email_verified_at":null,"bootstrap_superseded_at":"2026-11-20 12:13:11"}
+{"id":2,"email":"ops2.admin@caneguard.test","role":"admin","is_active":1,"email_verified_at":null,"bootstrap_superseded_at":null}
+== reset_tokens ==
+{"email":"ops2.admin@caneguard.test","created_at":"2026-11-20 12:14:21"}
+== audits ==
+mails to ops2: 1

@@ -1,0 +1,51 @@
+### scheduled entries (php artisan schedule:list)
+
+ */15 * * * * php artisan reports:send-weekly-reminders Next Due: 14 minutes from now
+ */15 * * * * php artisan notifications:derive-follow-up-due Next Due: 14 minutes from now
+ 0 18 * * * php artisan auth:prune-security-audits Next Due: 5 hours from now
+ 30 18 * * * php artisan caneguard:prune-api-tokens Next Due: 6 hours from now
+
+
+### before
+== audits ==
+{"id":1,"action":"bootstrap_district_created","outcome":"success","target_user_id":null,"metadata":"{\"district_id\":1,\"district_code\":\"PILOT-LV\",\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:39"}
+{"id":2,"action":"account_created","outcome":"success","target_user_id":1,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:39"}
+{"id":3,"action":"account_invite_sent","outcome":"success","target_user_id":1,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:39"}
+{"id":4,"action":"account_status_change","outcome":"success","target_user_id":1,"metadata":"{\"before\":{\"role\":\"admin\",\"is_active\":true},\"after\":{\"role\":\"admin\",\"is_active\":false},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:57"}
+{"id":5,"action":"account_created","outcome":"success","target_user_id":2,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:10:17"}
+{"id":6,"action":"account_invite_sent","outcome":"success","target_user_id":2,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:10:18"}
+{"id":7,"action":"password_reset","outcome":"success","target_user_id":2,"metadata":null,"created_at":"2026-11-20 12:11:03"}
+{"id":8,"action":"email_verification","outcome":"success","target_user_id":2,"metadata":"{\"via\":\"password_reset\"}","created_at":"2026-11-20 12:11:03"}
+{"id":9,"action":"login_succeeded","outcome":"success","target_user_id":null,"metadata":null,"created_at":"2026-01-01 00:00:00"}
+{"id":10,"action":"login_succeeded","outcome":"success","target_user_id":null,"metadata":null,"created_at":"2026-11-19 00:00:00"}
+== access_events ==
+== tokens ==
+{"id":1,"tokenable_id":2,"expires_at":"2026-11-01 00:00:00"}
+{"id":2,"tokenable_id":2,"expires_at":"2027-11-01 00:00:00"}
+
+### run the scheduled prune commands
+Pruned 1 security audit records.
+exit=0
+ Pruning tokens with expired expires_at timestamps .. 9.12ms DONE
+ Pruning tokens with expired expiration value based on configuration file  0.23ms DONE
+
+ INFO Tokens expired for more than [24 hours] pruned successfully. 
+
+exit=0
+
+### after
+== audits ==
+{"id":1,"action":"bootstrap_district_created","outcome":"success","target_user_id":null,"metadata":"{\"district_id\":1,\"district_code\":\"PILOT-LV\",\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:39"}
+{"id":2,"action":"account_created","outcome":"success","target_user_id":1,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:39"}
+{"id":3,"action":"account_invite_sent","outcome":"success","target_user_id":1,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:39"}
+{"id":4,"action":"account_status_change","outcome":"success","target_user_id":1,"metadata":"{\"before\":{\"role\":\"admin\",\"is_active\":true},\"after\":{\"role\":\"admin\",\"is_active\":false},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:09:57"}
+{"id":5,"action":"account_created","outcome":"success","target_user_id":2,"metadata":"{\"after\":{\"role\":\"admin\",\"is_active\":true},\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:10:17"}
+{"id":6,"action":"account_invite_sent","outcome":"success","target_user_id":2,"metadata":"{\"provisioning_channel\":\"bootstrap\"}","created_at":"2026-11-20 12:10:18"}
+{"id":7,"action":"password_reset","outcome":"success","target_user_id":2,"metadata":null,"created_at":"2026-11-20 12:11:03"}
+{"id":8,"action":"email_verification","outcome":"success","target_user_id":2,"metadata":"{\"via\":\"password_reset\"}","created_at":"2026-11-20 12:11:03"}
+{"id":10,"action":"login_succeeded","outcome":"success","target_user_id":null,"metadata":null,"created_at":"2026-11-19 00:00:00"}
+{"id":11,"action":"prune_run","outcome":"success","target_user_id":null,"metadata":"{\"command\":\"auth:prune-security-audits\",\"deleted\":1}","created_at":"2026-11-20 12:15:59"}
+{"id":12,"action":"prune_run","outcome":"success","target_user_id":null,"metadata":"{\"command\":\"sanctum:prune-expired\",\"hours\":24}","created_at":"2026-11-20 12:16:00"}
+== access_events ==
+== tokens ==
+{"id":2,"tokenable_id":2,"expires_at":"2027-11-01 00:00:00"}

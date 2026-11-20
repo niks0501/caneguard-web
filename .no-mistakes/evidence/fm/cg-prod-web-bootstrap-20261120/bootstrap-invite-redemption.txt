@@ -1,0 +1,15 @@
+### set-password link delivered by caneguard:bootstrap (no password from env)
+https://caneguard.online/reset-password?token=b2e2f63a329d5606db9caca9d417aeeeeb3e0d972680b884b8958039ecd9fc78&email=template.admin%40caneguard.test
+
+### redeem the link through the product HTTP API
+{"message":"Password updated. Sign in with your new password.","code":"PASSWORD_RESET"}
+HTTP 200
+
+### sign in with that password
+
+HTTP 204
+
+### administrator row after redemption
+== users ==
+{"id":1,"email":"template.admin@caneguard.test","role":"admin","is_active":1,"email_verified_at":"2026-11-20 12:19:11","bootstrap_superseded_at":null}
+== reset_tokens ==
