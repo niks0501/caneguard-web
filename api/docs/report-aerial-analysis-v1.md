@@ -6,10 +6,12 @@ aerial photo; the server segments it with the Aerial V3 SegFormer-B1 model
 
 ## Gate
 
-`CANEGUARD_AERIAL_ANALYSIS_ENABLED` (`caneguard.aerial.enabled`) defaults to
-`false`. While it is off every route below returns `404` and
-`GET /api/v1/reports/{report}` carries no `aerial_analyses` key. The key is
-never on list, map, mobile, export or PDF payloads. For production staging and
+The check is live only when two conditions hold. `CANEGUARD_AERIAL_ANALYSIS_ENABLED`
+(`caneguard.aerial.enabled`, the install gate) defaults to `false` and must be
+`true`. An Admin must also switch the check on in Admin Settings, which is stored
+in `feature_switches` and defaults to off. While either condition is unmet every
+route below returns `404` and `GET /api/v1/reports/{report}` carries no
+`aerial_analyses` key. The key is never on list, map, mobile, export or PDF payloads. For production staging and
 enablement, follow the [aerial deployment runbook](../../docs/production-deployment.md#aerial-analysis-needs-python-and-the-model-staged-first).
 
 ## Case-page use
