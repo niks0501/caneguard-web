@@ -7,6 +7,8 @@ use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
+use Illuminate\Support\ConfigurationUrlParser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
@@ -145,9 +147,14 @@ final class BootstrapDeployment extends Command
 
     private function deliverable(string $mailer): bool
     {
-        $transport = config("mail.mailers.{$mailer}.transport");
+        $config = (array) config("mail.mailers.{$mailer}", []);
+        if (isset($config['url'])) {
+            $config = array_merge($config, (new ConfigurationUrlParser)->parseConfiguration($config));
+            $config['transport'] = Arr::pull($config, 'driver');
+        }
+        $transport = $config['transport'] ?? null;
         if ($transport === 'failover') {
-            return collect(config("mail.mailers.{$mailer}.mailers", []))
+            return collect($config['mailers'] ?? [])
                 ->every(fn ($member) => $this->deliverable((string) $member));
         }
 

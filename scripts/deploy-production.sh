@@ -112,7 +112,11 @@ if ! cron_existing="$(crontab -l 2>&1)"; then
     *) echo "Cannot read the deploy user's crontab; nothing was changed: $cron_existing" >&2; exit 1 ;;
   esac
 fi
-cron_next="$({ printf '%s\n' "$cron_existing" | awk -v scheduled="cd $current/api && " 'NF && (index($0, scheduled) == 0 || index($0, "artisan schedule:run") == 0)' || true; printf '%s\n' "$cron_line"; })"
+cron_legacy="* * * * * cd $current/api && php artisan schedule:run >> /dev/null 2>&1"
+cron_next="$(printf '%s\n' "$cron_existing" | awk \
+  -v legacy="$cron_legacy" -v scheduled="cd $current/api && " -v line="$cron_line" '
+  NF && $0 != legacy && !(index($0, scheduled) > 0 && $0 ~ /# caneguard-scheduler$/) { print }
+  END { print line }')"
 if [[ "$cron_next" != "$cron_existing" ]]; then
   printf '%s\n' "$cron_next" | crontab -
   echo "Installed scheduler cron for deploy"

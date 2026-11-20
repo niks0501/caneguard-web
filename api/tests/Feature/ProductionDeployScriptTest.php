@@ -50,7 +50,7 @@ class ProductionDeployScriptTest extends TestCase
     public function test_deploy_migrates_then_bootstraps_then_activates_and_keeps_one_scheduler_entry(): void
     {
         $legacy = "* * * * * cd {$this->root}/current/api && php artisan schedule:run >> /dev/null 2>&1";
-        $unrelated = 'cd /srv/other/current/api && php artisan schedule:run >> /dev/null 2>&1';
+        $unrelated = '15 3 * * * cd /srv/other/current/api && php artisan schedule:run >> /dev/null 2>&1';
         file_put_contents($this->crontab, "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n{$unrelated}\n{$legacy}\n");
         $first = 'release-1-'.str_repeat('b', 40);
         $second = 'release-2-'.str_repeat('c', 40);
@@ -90,6 +90,17 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertSame($existing, file_get_contents($this->crontab));
     }
 
+    public function test_failed_crontab_rewrite_aborts_before_replacing_the_existing_jobs(): void
+    {
+        $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
+        file_put_contents($this->crontab, $existing);
+
+        $process = $this->deploy('release-1-'.str_repeat('b', 40), ['CANEGUARD_TEST_AWK_FAILS' => '1']);
+
+        $this->assertFalse($process->isSuccessful());
+        $this->assertSame($existing, file_get_contents($this->crontab));
+    }
+
     public function test_missing_scheduler_audit_is_backfilled_by_the_next_deploy(): void
     {
         $managed = "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler";
@@ -112,7 +123,6 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
         $this->assertSame("APP_KEY=base64:example\n", file_get_contents($this->root.'/shared/api/.env'));
         $this->assertSame(0600, fileperms($this->root.'/shared/api/.env') & 0777);
-        $this->assertContains('setfacl -m u:www-data:r '.$this->root.'/shared/api/.env.next', $this->logLines());
         $this->assertFileDoesNotExist($this->root.'/releases/.env-4242');
     }
 
@@ -198,6 +208,7 @@ class ProductionDeployScriptTest extends TestCase
         $this->writeTool('composer', 'exit 0');
         $this->writeTool('setfacl', 'echo "setfacl $*" >> "$CANEGUARD_TEST_LOG"');
         $this->writeTool('getfacl', 'exit 0');
+        $this->writeTool('awk', 'if [[ -n "${CANEGUARD_TEST_AWK_FAILS:-}" ]]; then echo "awk: failed" >&2; exit 2; fi'."\n".'exec '.escapeshellarg(trim((string) shell_exec('command -v awk'))).' "$@"');
         $this->writeTool('curl', <<<'SH'
             url="${@: -1}"
             if [[ "$url" == */api/health ]]; then

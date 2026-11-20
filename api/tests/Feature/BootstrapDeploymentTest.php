@@ -211,6 +211,18 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertSame(['owner@example.test'], $this->recipients($transport));
     }
 
+    public function test_mail_url_that_selects_a_log_transport_fails_before_creating_an_administrator(): void
+    {
+        Notification::fake();
+        $this->configure(['mail.mailers.smtp.url' => 'log://default', 'caneguard.bootstrap_admin_email' => 'owner@example.test']);
+
+        $this->artisan('caneguard:bootstrap')->assertFailed();
+
+        $this->assertSame(0, User::query()->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_CREATED)->count());
+        Notification::assertNothingSent();
+    }
+
     public function test_undefined_mailer_fails_before_the_administrator_is_created(): void
     {
         Notification::fake();

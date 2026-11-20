@@ -21,7 +21,8 @@ class PruneSecurityAudits extends Command
             $deleted = SecurityAudit::query()
                 ->where('created_at', '<', $cutoff)
                 ->where(fn ($query) => $query->whereNull('metadata')
-                    ->orWhereJsonDoesntContain('metadata->provisioning_channel', 'bootstrap'))
+                    ->orWhereNull('metadata->provisioning_channel')
+                    ->orWhere('metadata->provisioning_channel', '!=', 'bootstrap'))
                 ->delete();
 
             $audit->handle(SecurityAudit::ACTION_PRUNE_RUN, SecurityAudit::OUTCOME_SUCCESS, metadata: [

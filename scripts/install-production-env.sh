@@ -7,8 +7,9 @@ run_id="${1:?run id required}"
 root=/var/www/caneguard
 upload="$root/releases/.env-$run_id"
 target="$root/shared/api/.env"
+staging="$target.next-$run_id"
 lock="$root/.production-deploy.lock"
-trap 'rm -f "$upload" "$target.next"' EXIT
+trap 'rm -f "$upload" "$staging"' EXIT
 
 if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
   echo "Invalid run id" >&2
@@ -19,7 +20,7 @@ flock -n 9 || { echo "Another deployment is running" >&2; exit 1; }
 [[ -f "$upload" && ! -L "$upload" && -s "$upload" ]] || { echo "Configuration upload is missing or empty" >&2; exit 1; }
 [[ -d "$root/shared/api" ]] || { echo "Shared Laravel state is missing" >&2; exit 1; }
 
-install -m 0600 "$upload" "$target.next"
-setfacl -m u:www-data:r "$target.next"
-mv -Tf "$target.next" "$target"
+install -m 0600 "$upload" "$staging"
+setfacl -m u:www-data:r "$staging"
+mv -Tf "$staging" "$target"
 echo "Installed shared production configuration"
