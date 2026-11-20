@@ -17,3 +17,13 @@ Schedule::command('notifications:derive-follow-up-due')
     ->everyFifteenMinutes()
     ->timezone('Asia/Manila')
     ->withoutOverlapping(10);
+
+Schedule::command('auth:prune-security-audits')
+    ->dailyAt('02:00')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping(60);
+
+Schedule::command('caneguard:prune-api-tokens')
+    ->dailyAt('02:30')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping(60);

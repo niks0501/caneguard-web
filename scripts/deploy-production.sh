@@ -31,6 +31,15 @@ for tool in setfacl getfacl; do
     exit 1
   }
 done
+# The scheduler cron below is installed in the deploy user's own crontab.
+command -v crontab >/dev/null 2>&1 || {
+  echo "Missing crontab on Lightsail; install it as ubuntu with: sudo apt-get install -y cron" >&2
+  exit 1
+}
+[[ "$(systemctl is-enabled cron 2>/dev/null || true)" == enabled ]] && systemctl is-active --quiet cron || {
+  echo "The cron service is not enabled and running on Lightsail; enable and start it as ubuntu with: sudo systemctl enable --now cron" >&2
+  exit 1
+}
 [[ -f "$archive" ]] || { echo "Release archive missing" >&2; exit 1; }
 [[ ! -e "$new" ]] || { echo "Release already exists" >&2; exit 1; }
 printf '%s  %s\n' "$expected_hash" "$archive" | sha256sum -c -
@@ -91,6 +100,34 @@ php "$new/scripts/preflight-aerial.php" "$new"
 # Only non-destructive, backward-compatible migrations may be released.
 # Take an out-of-band MySQL backup before deployments with schema changes.
 php artisan migrate --force --no-interaction
+
+# Idempotent: creates the pilot district and first admin from the shared .env
+# only when missing, and writes security audit rows for what it creates.
+php artisan caneguard:bootstrap --no-interaction
+
+# Ensure the deploy user's cron runs the Laravel scheduler (reminders, follow-up
+# notifications and the prune commands). The entry targets the stable current
+# symlink, so later releases need no change. Earlier entries for that symlink are
+# replaced, unrelated jobs are kept, and re-running is a no-op.
+cron_line="* * * * * cd $current/api && $(command -v php) artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler"
+if ! cron_existing="$(crontab -l 2>&1)"; then
+  case "$cron_existing" in
+    "no crontab for "*) cron_existing="" ;;
+    *) echo "Cannot read the deploy user's crontab; nothing was changed: $cron_existing" >&2; exit 1 ;;
+  esac
+fi
+cron_next="$(printf '%s\n' "$cron_existing" | awk \
+  -v prefix="* * * * * cd $current/api && " -v line="$cron_line" '
+  function norm(s) { gsub(/[ \t]+/, " ", s); gsub(/ *>+ */, ">", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
+  { entry = norm($0) }
+  entry == "" || (index(entry, prefix) == 1 && entry ~ /artisan schedule:run>\/dev\/null 2>&1( # caneguard-scheduler)?$/) { next }
+  { print }
+  END { print line }')"
+if [[ "$cron_next" != "$cron_existing" ]]; then
+  printf '%s\n' "$cron_next" | crontab -
+  echo "Installed scheduler cron for deploy"
+fi
+php artisan caneguard:record-scheduler-install "$cron_line" --no-interaction
 
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"

@@ -1,0 +1,205 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Actions\Auth\RecordSecurityAudit;
+use App\Models\District;
+use App\Models\SecurityAudit;
+use App\Models\User;
+use App\Support\BootstrapAdministrator;
+use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
+
+/**
+ * Run by every production deploy after migrations. Safe to repeat: it adds what is
+ * missing from the environment, and deactivates an earlier pending first administrator
+ * when the configured address changes. It never deletes accounts or audit rows.
+ */
+final class BootstrapDeployment extends Command
+{
+    private const LOCAL_HOSTS = ['127.0.0.1', '::1', 'localhost'];
+
+    protected $signature = 'caneguard:bootstrap';
+
+    protected $description = 'Create the pilot district and first administrator from environment values when they are missing';
+
+    public function handle(RecordSecurityAudit $audit): int
+    {
+        $code = trim((string) config('caneguard.pilot_district_code'));
+        $name = trim((string) config('caneguard.pilot_district_name'));
+        if ($code === '' || $name === '') {
+            $this->error('CANEGUARD_PILOT_DISTRICT_CODE and CANEGUARD_PILOT_DISTRICT_NAME must be set.');
+
+            return self::FAILURE;
+        }
+        $this->district($audit, $code, $name);
+
+        $email = Str::lower(trim((string) config('caneguard.bootstrap_admin_email')));
+        if ($email === '') {
+            $this->line('Bootstrap admin: CANEGUARD_BOOTSTRAP_ADMIN_EMAIL is not set; skipped.');
+
+            return self::SUCCESS;
+        }
+
+        return $this->admin($audit, $email);
+    }
+
+    private function district(RecordSecurityAudit $audit, string $code, string $name): void
+    {
+        $created = DB::transaction(function () use ($audit, $code, $name): bool {
+            $district = District::query()->firstOrCreate(['code' => $code], ['name' => $name]);
+            if (! $district->wasRecentlyCreated) {
+                return false;
+            }
+            $audit->handle(SecurityAudit::ACTION_BOOTSTRAP_DISTRICT, SecurityAudit::OUTCOME_SUCCESS, metadata: [
+                'district_id' => $district->id, 'district_code' => $code, 'provisioning_channel' => 'bootstrap',
+            ]);
+
+            return true;
+        });
+        $this->line($created ? "Pilot district: created '{$code}'." : "Pilot district: '{$code}' already exists.");
+    }
+
+    private function admin(RecordSecurityAudit $audit, string $email): int
+    {
+        $retired = collect();
+        $user = DB::transaction(fn (): User|int => $this->pendingAdmin($audit, $email, $retired));
+        $retired->each(fn (User $admin) => Password::broker()->getRepository()->delete($admin));
+        if (! $user instanceof User) {
+            return $user;
+        }
+
+        $status = $this->sendSetPasswordEmail($user);
+        if ($status === Password::RESET_THROTTLED) {
+            $this->error('Bootstrap admin: a set-password link was issued less than a minute ago. Deploy again after that.');
+
+            return self::FAILURE;
+        }
+        $sent = $status === Password::RESET_LINK_SENT;
+        $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, $sent ? SecurityAudit::OUTCOME_SUCCESS : SecurityAudit::OUTCOME_FAILURE, null, $user, [
+            'provisioning_channel' => 'bootstrap',
+        ]);
+        if (! $sent) {
+            $this->error('Bootstrap admin: the set-password email could not be sent. The administrator account is kept; fix mail delivery and deploy again.');
+
+            return self::FAILURE;
+        }
+
+        $this->line('Bootstrap admin: set-password email sent.');
+
+        return self::SUCCESS;
+    }
+
+    /** @param  Collection<int, User>  $retired  Superseded administrators whose reset links are deleted after commit. */
+    private function pendingAdmin(RecordSecurityAudit $audit, string $email, Collection $retired): User|int
+    {
+        $admins = User::query()->where('role', User::ROLE_ADMIN)->lockForUpdate()->get();
+        if ($admins->contains(fn (User $admin) => $admin->isActiveAdmin())) {
+            $this->line('Bootstrap admin: an active administrator already exists; skipped.');
+
+            return self::SUCCESS;
+        }
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false || strlen($email) > 255) {
+            $this->error('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL is not a valid email address.');
+
+            return self::FAILURE;
+        }
+
+        $existing = User::query()->where('email', $email)->first();
+        if ($existing !== null && ! $this->bootstrapEvent($existing, SecurityAudit::ACTION_ACCOUNT_CREATED)) {
+            $this->error('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL belongs to an existing account. Set it to an unused email address and deploy again.');
+
+            return self::FAILURE;
+        }
+        if ($existing !== null && $this->bootstrapEvent($existing, SecurityAudit::ACTION_ACCOUNT_INVITE)) {
+            $this->line('Bootstrap admin: the pending administrator was already sent a set-password email; skipped.');
+
+            return self::SUCCESS;
+        }
+
+        $this->supersedePendingAdmins($audit, $email, $retired);
+
+        if (! $this->deliverable((string) config('mail.default'))) {
+            $this->error('Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine with MAIL_REQUIRE_TLS=false. Configure SMTP and deploy again.');
+
+            return self::FAILURE;
+        }
+
+        return $existing ?? $this->createAdmin($audit, $email);
+    }
+
+    /** @param  Collection<int, User>  $retired */
+    private function supersedePendingAdmins(RecordSecurityAudit $audit, string $email, Collection $retired): void
+    {
+        User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->whereNull('email_verified_at')
+            ->where('email', '!=', $email)->get()
+            ->filter(fn (User $admin) => BootstrapAdministrator::recorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED))
+            ->each(function (User $admin) use ($audit, $retired): void {
+                $admin->forceFill(['is_active' => false, 'bootstrap_superseded_at' => now()])->save();
+                $retired->push($admin);
+                $audit->handle('account_status_change', SecurityAudit::OUTCOME_SUCCESS, null, $admin, [
+                    'before' => ['role' => User::ROLE_ADMIN, 'is_active' => true],
+                    'after' => ['role' => $admin->role, 'is_active' => false],
+                    'provisioning_channel' => 'bootstrap',
+                ]);
+            });
+    }
+
+    private function createAdmin(RecordSecurityAudit $audit, string $email): User
+    {
+        $user = new User(['name' => 'CaneGuard Administrator', 'email' => $email, 'role' => User::ROLE_ADMIN]);
+        // Unusable random secret: the administrator sets the real password through the emailed link.
+        $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
+        $audit->handle(SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
+            'after' => ['role' => $user->role, 'is_active' => $user->is_active], 'provisioning_channel' => 'bootstrap',
+        ]);
+
+        return $user;
+    }
+
+    private function sendSetPasswordEmail(User $user): ?string
+    {
+        try {
+            return Password::broker()->sendResetLink(['email' => $user->email]);
+        } catch (TransportExceptionInterface $e) {
+            Log::warning('Bootstrap administrator set-password email could not be sent.', ['exception' => $e::class]);
+
+            return null;
+        }
+    }
+
+    private function bootstrapEvent(User $user, string $action): bool
+    {
+        if ($user->role !== User::ROLE_ADMIN || ! $user->is_active || $user->hasVerifiedEmail()) {
+            return false;
+        }
+
+        return BootstrapAdministrator::recorded($user, $action);
+    }
+
+    private function deliverable(string $mailer): bool
+    {
+        try {
+            $transport = Mail::mailer($mailer)->getSymfonyTransport();
+        } catch (\Throwable) {
+            return false;
+        }
+        if (! $transport instanceof EsmtpTransport) {
+            return false;
+        }
+
+        $stream = $transport->getStream();
+
+        return $transport->isTlsRequired()
+            || ($stream instanceof SocketStream && ($stream->isTLS() || in_array($stream->getHost(), self::LOCAL_HOSTS, true)));
+    }
+}

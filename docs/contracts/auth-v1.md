@@ -14,7 +14,7 @@ AI output remains decision support and is never an authority finding or diagnosi
 
 The supported persisted roles are `farmer`, `field_reporter` (inspector wire identity), `reviewer`, and `admin` (District Mill Officer). Guests have no staff identity and read public education without signing in. Farmer scans and own-result retention belong to the Mobile app; farmers cannot submit official field reports or enter the office workspace.
 
-Public registration is disabled unconditionally: `POST /register` always returns `403 REGISTRATION_DISABLED` and the Web `/register` route redirects to sign-in. Staff identities are created by an Admin in Web User Management (unverified until the mailed set-password link is completed), never by self-service sign-up and never with a public staff role choice; see [simplified Web RBAC](../security/simplified-web-rbac.md) for the maintained role/action matrix and [district access and weekly workflow](district-access-v1.md) for provisioning. Existing `field_reporter` identities retain their UUID, verification state and history; verification alone does not infer district membership or named grants. Official authority also requires an explicitly provisioned membership in the single configured pilot district. Unverified, disabled and retired-expert identities remain denied.
+Public registration is disabled unconditionally: `POST /register` always returns `403 REGISTRATION_DISABLED` and the Web `/register` route redirects to sign-in. Staff identities are created by an Admin in Web User Management, or for the first administrator only by the production deploy bootstrap; each starts unverified until its mailed set-password link is completed. They are never created by self-service sign-up and never with a public staff role choice; see [simplified Web RBAC](../security/simplified-web-rbac.md) for the maintained role/action matrix and [district access and weekly workflow](district-access-v1.md) for provisioning. Existing `field_reporter` identities retain their UUID, verification state and history; verification alone does not infer district membership or named grants. Field-reporter official authority also requires an explicitly provisioned membership in the single configured pilot district. Unverified, disabled and retired-expert identities remain denied.
 
 Web and Mobile password login reject an unverified account with `403 EMAIL_NOT_VERIFIED`.
 
@@ -59,9 +59,13 @@ Validation failures use `{ "message": "The given data was invalid.", "code": "VA
 
 The verification and reset links use `CANEGUARD_VERIFICATION_URL` and `CANEGUARD_PASSWORD_RESET_URL`.
 
-Those values are deployment configuration and must use HTTPS in production.
+Those values are deployment configuration, must be absolute URLs without a fragment, and must use HTTPS in production.
+
+Each generated parameter carries one authoritative value: `token` and `email`, or `id`, `hash`, `expires` and `signature`, replace any same-named parameter already present in the configured URL, and unrelated query parameters are kept.
 
 The verification signature is generated for Laravel's named `verification.verify` route and is valid for the configured verification lifetime.
+
+An account that still owes its bootstrap set-password link is refused both email verification and verification resend until it redeems that link; see [production deployment](../production-deployment.md#go-live-bootstrap).
 
 The password reset broker uses a one-hour expiry and a one-minute creation throttle.
 
@@ -174,7 +178,7 @@ Audit metadata contains action context only and never contains passwords, reset 
 
 The retention period is configured with `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`.
 
-The `auth:prune-security-audits` command removes records older than that configured period.
+The `auth:prune-security-audits` command removes records older than that configured period, except the successful `account_created` and `account_invite_sent` records of a bootstrap first administrator (`provisioning_channel` `bootstrap`) that is still pending (active and not yet verified). Those are kept so a later deploy can recover it; once it is verified or superseded, they are pruned like other records.
 
 ## Admin-assisted recovery boundary
 

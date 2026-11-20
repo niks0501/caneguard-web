@@ -33,11 +33,12 @@ final class CreateWebAccount
         if (! app(CheckStepUpPassword::class)->handle($actor, $input['current_password'], 'account_created')) {
             throw ValidationException::withMessages(['current_password' => ['The current password is incorrect.']]);
         }
+        // Only a field reporter needs the pilot district (it receives a membership); web roles are role-based.
         $districtId = $this->access->pilotId();
-        abort_if($districtId === null, 503, 'The pilot district is not configured.');
+        abort_if($districtId === null && $input['role'] === User::ROLE_FIELD_REPORTER, 503, 'The pilot district is not configured.');
 
         $user = DB::transaction(function () use ($actor, $input, $districtId): User {
-            $district = District::query()->lockForUpdate()->findOrFail($districtId);
+            $district = $districtId === null ? null : District::query()->lockForUpdate()->findOrFail($districtId);
             $manager = User::query()->whereKey($actor->id)->lockForUpdate()->firstOrFail();
             Gate::forUser($manager)->authorize('create', User::class);
             abort_unless($manager->access_version === $actor->access_version
@@ -46,12 +47,12 @@ final class CreateWebAccount
             $user = new User(['name' => $input['name'], 'email' => $input['email'], 'role' => $input['role']]);
             // Unusable random secret: the invitee sets the real password through the reset link.
             $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
-            if ($user->role === User::ROLE_FIELD_REPORTER) {
+            if ($district !== null && $user->role === User::ROLE_FIELD_REPORTER) {
                 DistrictMembership::query()->firstOrCreate(['user_id' => $user->id, 'district_id' => $district->id]);
             }
             $user->refresh();
             $event = AccountAccessEvent::query()->create([
-                'operation_id' => (string) Str::uuid(), 'district_id' => $district->id, 'target_id' => $user->id, 'actor_id' => $manager->id,
+                'operation_id' => (string) Str::uuid(), 'district_id' => $district?->id, 'target_id' => $user->id, 'actor_id' => $manager->id,
                 'contract_version' => 'account-access-event-v1', 'action' => 'create', 'office_reference' => self::OFFICE_REFERENCE,
                 'actor_snapshot' => ['uuid' => $manager->uuid, 'name' => $manager->name, 'role' => $manager->role],
                 'before' => ['role' => null, 'membership_state' => 'not_issued', 'membership_id' => null, 'grants' => [], 'review_state' => 'new'],
@@ -59,7 +60,7 @@ final class CreateWebAccount
             ]);
             app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::OUTCOME_SUCCESS, $manager, $user, [
                 'after' => ['role' => $user->role, 'is_active' => $user->is_active],
-                'district_id' => $district->id, 'event_id' => $event->id, 'provisioning_channel' => 'web',
+                'district_id' => $district?->id, 'event_id' => $event?->id, 'provisioning_channel' => 'web',
             ]);
 
             return $user;

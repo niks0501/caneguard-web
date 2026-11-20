@@ -6,6 +6,7 @@ use App\Actions\Auth\RecordSecurityAudit;
 use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\BootstrapAdministrator;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class EmailVerificationController extends Controller
         if (! $user || ! hash_equals(
             sha1($user->getEmailForVerification()),
             strtolower($hash),
-        )) {
+        ) || BootstrapAdministrator::awaitingPassword($user)) {
             return response()->json([
                 'message' => 'The verification link is invalid or expired.',
                 'code' => 'INVALID_VERIFICATION_LINK',

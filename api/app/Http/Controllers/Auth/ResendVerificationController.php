@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ResendVerificationRequest;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\BootstrapAdministrator;
 use Illuminate\Http\JsonResponse;
 
 class ResendVerificationController extends Controller
@@ -19,7 +20,7 @@ class ResendVerificationController extends Controller
             ->where('email', $request->validated('email'))
             ->first();
 
-        if ($user && ! $user->hasVerifiedEmail()) {
+        if ($user && ! $user->hasVerifiedEmail() && ! BootstrapAdministrator::awaitingPassword($user)) {
             $user->sendEmailVerificationNotification();
             $audits->handle(
                 SecurityAudit::ACTION_VERIFICATION_RESEND,

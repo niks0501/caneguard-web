@@ -8,7 +8,7 @@ This workflow deploys **only** the Web/Laravel application to the existing Light
 - The existing persistent `/var/www/caneguard/shared/api/.env` and `shared/api/storage` must exist, have correct restrictive access, and remain outside releases.
 - PHP 8.3+, Composer 2, PHP extensions, Nginx, MySQL, and DNS/HTTPS must already be operational.
 - `/var/www/caneguard/current/api/public` must be the Nginx document root.
-- The server's `deploy` account must have `flock`, `tar`, `sha256sum`, `curl`, `id` and PHP 8.3+ CLI with `proc_open` enabled.
+- The server's `deploy` account must have `flock`, `tar`, `sha256sum`, `curl`, `id`, `crontab` (Ubuntu package `cron`) and PHP 8.3+ CLI with `proc_open` enabled.
 - On the VPS, `ubuntu` must install the `acl` package (`sudo apt-get update && sudo apt-get install -y acl`). This provides `setfacl` and `getfacl` to the `deploy` account.
 - `deploy` must own release files created by the deployment. After Composer and Laravel cache preparation, the script grants PHP-FPM user `www-data` read/traverse ACL permissions on the new release using a physical (`-P`) walk. Permission changes never follow the persistent `.env` or `storage` symlinks. No recursive `chgrp`, no broad `other` read access, and no sudo grant to `deploy`.
 - The FPM pool must run as `www-data` with the primary/supplementary groups reported by `id -G www-data`. The read-only preflight evaluates numeric POSIX access ACLs (including masks, owner/named-user precedence and matching groups) for that identity, not the deploying account. It checks ancestor traversal, release/application/vendor/frontend readability, generated `bootstrap/cache/config.php` and compiled views, shared `.env` readability, and read/write/search on shared runtime directories plus read/write on existing runtime files. Missing artifacts or denied/unknown metadata abort before migrations and activation, without printing file contents or changing shared permissions.
@@ -32,10 +32,11 @@ The workflow refuses unknown host keys. Do not use `ssh-keyscan` as an unverifie
 - It packages tracked source and compiled assets, hashes the archive, and uploads over authenticated SSH.
 - A server lock prevents simultaneous releases. Each release gets a unique directory.
 - Server links production `.env` and `storage`, installs Composer dependencies without dev packages, prepares Laravel, and runs `migrate --force` against the existing database.
+- Right after migration it runs `php artisan caneguard:bootstrap` and ensures the deploy user's scheduler cron (see "Go-live bootstrap" and the scheduler section below). Both are idempotent, so every deploy repeats them safely.
 - After migration succeeds, it atomically switches `current` to the new code and verifies HTTPS API readiness and the frontend.
 - The frontend check fetches `/` and fails with `SPA shell served without a CSP nonce` when the built `__CSP_NONCE__` placeholder is still present. Nginx must route the shell through `index.php`, as the Laravel route substitutes the per-response CSP nonce into the theme script; a static `api/public/index.html` leaves the placeholder in place and trips this check.
 - On an activation health-check failure, it restores the old code symlink. **Database migrations are not rolled back.** This is a code rollback, not a full transactional deploy.
-- No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production.
+- No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production. `caneguard:bootstrap` is not a seeder: it adds only a missing pilot district and first admin, deactivates an earlier pending first admin when the configured address changes, and never deletes accounts or audit rows.
 - Existing previous releases are retained. No automatic pruning.
 
 ## Release safety
@@ -123,16 +124,39 @@ The proxy lives in this API: `GET /api/v1/mobile/map-tiles/{z}/{x}/{y}.png` (zoo
 - the route is live on production: the same path without a token on `https://caneguard.online` answers `401`, not `404`;
 - one cold authenticated fetch with a real mobile token, through production, returns `200 image/png` and its body decodes as an image. The proxy caches for a day, so only a request the cache has not answered proves the production path. Automation does not run this check; it needs a production credential.
 
-## Scheduler for reminders and follow-up due notifications
-The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. Add one cron entry for the application user, from the `api` directory of the active release:
+## Go-live bootstrap
+Put these in the GitHub `production` environment secret `CANEGUARD_PRODUCTION_ENV`, which holds the complete shared `.env` (`shared/api/.env`). Then run **Configure production environment (manual)** from Actions with `configure-caneguard`. It installs the file on the server without any terminal step. Required for go-live:
+```
+CANEGUARD_PILOT_DISTRICT_CODE=<district code>
+CANEGUARD_PILOT_DISTRICT_NAME=<display name>
+CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
+MAIL_MAILER=smtp   # plus MAIL_HOST, MAIL_PORT, MAIL_USERNAME and MAIL_PASSWORD (the template lists them). Only an smtp mailer can send the first invitation, and the relay must be encrypted: MAIL_SCHEME=smtps, or STARTTLS required by MAIL_REQUIRE_TLS=true (the default). Log, array and failover mailers, and plaintext relays off this machine, fail the deploy before the account is created. A plaintext relay on 127.0.0.1 or localhost is the only exception, and it needs `MAIL_REQUIRE_TLS=false`. The preflight refuses an unencrypted non-local relay only when `MAIL_REQUIRE_TLS=false`. A TLS-required relay that cannot upgrade to TLS fails after the administrator account is created and kept, and the next deploy sends the link again.
+```
+Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
+- fails the deploy when the district code or name is blank; it creates the district when missing, and an existing district is never renamed;
+- once an active administrator exists, leaves the admin variables alone, including a malformed admin email, and sends no further emails. To reissue the link, use Forgot password;
+- otherwise, when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set, fails the deploy if the address is invalid, and fails the deploy when it already belongs to another account. Set it to an unused address and deploy again;
+- otherwise creates the administrator (display name `CaneGuard Administrator`) and then emails a set-password link. No password goes in env. If the email cannot be sent, the deploy fails but the pending account is kept; the next deploy emails the link again until an invitation is recorded. A deploy retried within a minute of a link being issued also fails, asking for another deploy after that minute. Changing `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` before that administrator sets a password supersedes the earlier invitation, even when the mail check then fails: the earlier address is deactivated, its reset links are deleted, and an `account_status_change` audit row records it, so only the new address can onboard. The earlier address cannot be verified by link, requested again through Forgot password, or used to set a password; this is recorded on the account itself (`bootstrap_superseded_at`), so it holds after audit retention prunes the old invitation rows. Setting the old address again then fails the deploy as an existing account;
+- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. While the first administrator is pending (active and not yet verified), its successful `account_created` and `account_invite_sent` rows are exempt from the security-audit retention prune, because a later deploy relies on them to recover it. Once it is verified or superseded they age out normally.
+
+If the mail server accepts the link but the invitation record cannot be written, the outcome is indeterminate: the account stays pending, and a later deploy sends the link again if the administrator has not yet set a password. This is the accepted policy; no outbox is kept.
+
+Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
+
+Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package and an enabled, running `cron` service, so the scheduler survives a reboot. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
+
+## Scheduler for reminders, follow-up due notifications and pruning
+The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink, with the absolute `php` path that account resolves). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, and keeps unrelated jobs. Each deploy records a `scheduler_cron_observed` audit row showing that the entry was present in the crontab at that deploy; the row does not record when the entry was installed. No manual crontab step is needed:
 
 ```
-* * * * * cd /path/to/current/api && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler
 ```
+
+Two prune commands also run from the scheduler, daily in Asia/Manila: `auth:prune-security-audits` at 02:00 (retention `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`) and `caneguard:prune-api-tokens` at 02:30, which removes API tokens expired for more than 24 hours. Each successful run writes a `prune_run` audit row.
 
 `reports:send-weekly-reminders` then runs every 15 minutes. From the saved slot until the end of that Manila day, if the previous ISO week has no approved current version, it creates one in-app notification per active Admin and Reviewer, once per week. It never prepares, approves or sends, and needs no queue worker or mail. Without the cron entry, saved reminders silently never fire.
 
 `notifications:derive-follow-up-due` runs on the same 15-minute schedule. It creates the overdue follow-up items Mobile renders; without the cron entry, no follow-up due notification is ever created and reading the feed never makes one appear.
 
 ## Explicit exclusions
-No Android app build, Mobile integration, SRA roster provisioning, district changes, SMTP setup, seeding, Reverb launch, or database reset.
+No Android app build, Mobile integration, SRA roster provisioning, seeding, Reverb launch, or database reset. SMTP is needed only for the first administrator's invitation in the go-live bootstrap above. District and first-admin creation happen only through `caneguard:bootstrap` above.

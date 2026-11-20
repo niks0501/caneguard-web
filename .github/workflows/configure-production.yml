@@ -1,0 +1,59 @@
+name: Configure production environment (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type configure-caneguard to install the production shared .env"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: caneguard-production
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    name: Install shared production configuration
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'configure-caneguard'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+
+    env:
+      DEPLOY_HOST: caneguard.online
+
+    steps:
+      - name: Checkout exact approved revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Configure pinned SSH host key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CANEGUARD_DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.CANEGUARD_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          mkdir -p "$RUNNER_TEMP/caneguard-ssh"
+          chmod 700 "$RUNNER_TEMP/caneguard-ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/caneguard-ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/caneguard-ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/caneguard-ssh/"*
+          ssh-keygen -lf "$RUNNER_TEMP/caneguard-ssh/known_hosts" >/dev/null
+          grep -q '^caneguard\.online ssh-ed25519 ' "$RUNNER_TEMP/caneguard-ssh/known_hosts"
+
+      - name: Install shared configuration over pinned SSH
+        env:
+          PRODUCTION_ENV: ${{ secrets.CANEGUARD_PRODUCTION_ENV }}
+        run: |
+          set -euo pipefail
+          test -n "$PRODUCTION_ENV"
+          script_b64="$(base64 -w0 scripts/install-production-env.sh)"
+          { printf '%s\n' "$PRODUCTION_ENV"; printf '%s\n' '# caneguard-config-complete'; } | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
+            -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" "bash -c \"\$(printf %s '$script_b64' | base64 -d)\""

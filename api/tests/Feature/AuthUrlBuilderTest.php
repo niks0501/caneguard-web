@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\AuthUrlBuilder;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,6 +14,31 @@ use Tests\TestCase;
 class AuthUrlBuilderTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_configured_query_does_not_shadow_the_issued_credentials(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password?token=stale&lang=en']);
+        $user = User::factory()->make(['email' => 'owner@example.test']);
+
+        $link = app(AuthUrlBuilder::class)->passwordReset($user, 'issued-token');
+
+        $query = (string) parse_url($link, PHP_URL_QUERY);
+        parse_str($query, $parsed);
+        $this->assertSame('issued-token', $parsed['token']);
+        $this->assertSame('owner@example.test', $parsed['email']);
+        $this->assertSame('en', $parsed['lang']);
+        $this->assertSame(1, substr_count($query, 'token='));
+    }
+
+    public function test_configured_auth_url_with_a_fragment_is_rejected(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password#help']);
+        $user = User::factory()->make(['email' => 'owner@example.test']);
+
+        $this->expectException(\LogicException::class);
+
+        app(AuthUrlBuilder::class)->passwordReset($user, 'reset-token-for-test');
+    }
 
     public function test_auth_notifications_use_configured_urls(): void
     {

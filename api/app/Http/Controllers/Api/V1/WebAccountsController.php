@@ -159,7 +159,7 @@ class WebAccountsController extends Controller
 
         return response()->json(['data' => $events->map(fn (SecurityAudit $event) => [
             'id' => $event->id, 'action' => $event->action, 'outcome' => $event->outcome,
-            'actor_name' => $event->actor?->name ?? 'Administrator',
+            'actor_name' => $event->actor?->name ?? (($event->metadata['provisioning_channel'] ?? null) === 'bootstrap' ? 'Deployment bootstrap' : 'Administrator'),
             'created_at' => $event->created_at->toISOString(),
             'before' => $this->snapshot($event->metadata['before'] ?? null),
             'after' => $this->snapshot($event->metadata['after'] ?? null),
