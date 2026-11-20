@@ -183,7 +183,7 @@ final class BootstrapDeployment extends Command
     {
         try {
             $transport = Mail::mailer($mailer)->getSymfonyTransport();
-        } catch (\LogicException) {
+        } catch (\Throwable) {
             return false;
         }
         if (! $transport instanceof EsmtpTransport) {

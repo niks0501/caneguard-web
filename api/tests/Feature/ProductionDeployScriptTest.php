@@ -159,6 +159,18 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertSame([$managed], $this->crontabLines());
     }
 
+    public function test_hand_installed_scheduler_variants_are_replaced_not_duplicated(): void
+    {
+        $absolutePhp = "* * * * * cd {$this->root}/current/api && /usr/bin/php artisan schedule:run > /dev/null 2>&1";
+        $unrelated = "0 3 * * * cd {$this->root}/current/api && php artisan other:command >> /dev/null 2>&1";
+        file_put_contents($this->crontab, "{$absolutePhp}\n{$unrelated}\n");
+        $managed = "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler";
+
+        $this->assertTrue($this->deploy('release-1-'.str_repeat('b', 40))->isSuccessful());
+
+        $this->assertSame([$unrelated, $managed], $this->crontabLines());
+    }
+
     public function test_failed_crontab_rewrite_aborts_before_replacing_the_existing_jobs(): void
     {
         $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";

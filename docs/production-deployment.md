@@ -115,7 +115,7 @@ Put these in the GitHub `production` environment secret `CANEGUARD_PRODUCTION_EN
 CANEGUARD_PILOT_DISTRICT_CODE=<district code>
 CANEGUARD_PILOT_DISTRICT_NAME=<display name>
 CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
-MAIL_MAILER=smtp   # plus MAIL_HOST, MAIL_PORT, MAIL_USERNAME and MAIL_PASSWORD (the template lists them). Only an smtp mailer can send the first invitation, and the relay must be encrypted: MAIL_SCHEME=smtps, or STARTTLS required by MAIL_REQUIRE_TLS=true (the default). Log, array and failover mailers, and plaintext relays off this machine, fail the deploy before the account is created. A plaintext relay on 127.0.0.1 or localhost is the only exception, and it needs `MAIL_REQUIRE_TLS=false`; with the default `true` it is refused before the account is created.
+MAIL_MAILER=smtp   # plus MAIL_HOST, MAIL_PORT, MAIL_USERNAME and MAIL_PASSWORD (the template lists them). Only an smtp mailer can send the first invitation, and the relay must be encrypted: MAIL_SCHEME=smtps, or STARTTLS required by MAIL_REQUIRE_TLS=true (the default). Log, array and failover mailers, and plaintext relays off this machine, fail the deploy before the account is created. A plaintext relay on 127.0.0.1 or localhost is the only exception, and it needs `MAIL_REQUIRE_TLS=false`. The preflight refuses an unencrypted non-local relay only when `MAIL_REQUIRE_TLS=false`. A TLS-required relay that cannot upgrade to TLS fails after the administrator account is created and kept, and the next deploy sends the link again.
 ```
 Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
 - fails the deploy when the district code or name is blank; it creates the district when missing, and an existing district is never renamed;

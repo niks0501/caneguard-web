@@ -355,6 +355,23 @@ class BootstrapDeploymentTest extends TestCase
         Notification::assertSentToTimes($second, ResetPassword::class, 1);
     }
 
+    public function test_undefined_mailer_after_a_replacement_still_revokes_the_earlier_invitation(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'first@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $first = User::query()->where('email', 'first@example.test')->firstOrFail();
+
+        $this->configure(['caneguard.bootstrap_admin_email' => 'second@example.test', 'mail.default' => 'smtps']);
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertFailed();
+
+        $this->assertFalse($first->fresh()->is_active);
+        $this->assertFalse(DB::table('password_reset_tokens')->where('email', 'first@example.test')->exists());
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $first->id, 'action' => 'account_status_change', 'outcome' => 'success']);
+        $this->assertDatabaseMissing('users', ['email' => 'second@example.test']);
+    }
+
     public function test_replacement_with_a_failed_mail_check_still_revokes_the_earlier_invitation(): void
     {
         Notification::fake();
