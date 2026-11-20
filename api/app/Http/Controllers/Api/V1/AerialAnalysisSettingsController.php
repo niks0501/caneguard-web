@@ -16,7 +16,7 @@ final class AerialAnalysisSettingsController extends Controller
         return response()->json(['data' => [
             'installed' => AerialSwitch::installed(),
             'enabled' => AerialSwitch::switchedOn(),
-        ]])->header('Cache-Control', 'private, no-store');
+        ]]);
     }
 
     public function update(Request $request): JsonResponse

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
@@ -8,14 +8,36 @@ import { reportKeys } from "../../hooks/reportQueries";
 import { Button } from "../ui/Button";
 
 const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.boolean() }) });
+type AerialSettings = z.infer<typeof schema>["data"];
 const url = "/api/v1/admin/aerial-analysis";
 const settingsKey = ["aerial-analysis-settings"];
+
+/**
+ * The check is live only when the server has it installed and an Admin has it
+ * switched on. Once it is not live, drop cached results: in-flight case reads
+ * are cancelled first so they cannot restore them.
+ */
+async function reconcileAerialCache(queryClient: QueryClient, settings: AerialSettings) {
+  if (!(settings.installed && settings.enabled)) {
+    await queryClient.cancelQueries({ queryKey: reportKeys.details() });
+    queryClient.setQueriesData<DiseaseReport>(
+      { queryKey: reportKeys.details(), predicate: (cached) => cached.queryKey.length === reportKeys.detail("").length },
+      (current) => current && { ...current, aerialAnalyses: undefined },
+    );
+    queryClient.removeQueries({ queryKey: ["aerial-mask"] });
+  }
+  void queryClient.invalidateQueries({ queryKey: reportKeys.details() });
+}
 
 export function AerialAnalysisSettings() {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: settingsKey, retry: false, enabled: env.dataSource === "api",
-    queryFn: async ({ signal }) => schema.parse((await axiosClient.get(url, { signal })).data).data,
+    queryFn: async ({ signal }) => {
+      const settings = schema.parse((await axiosClient.get(url, { signal })).data).data;
+      await reconcileAerialCache(queryClient, settings);
+      return settings;
+    },
   });
   const save = useMutation({
     retry: false,
@@ -24,17 +46,11 @@ export function AerialAnalysisSettings() {
       if (!navigator.onLine) throw new Error("An online connection is required.");
       return axiosClient.put(url, { enabled });
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       const next = schema.parse(response.data).data;
+      await queryClient.cancelQueries({ queryKey: settingsKey });
       queryClient.setQueryData(settingsKey, next);
-      if (!next.enabled) {
-        queryClient.setQueriesData<DiseaseReport>(
-          { queryKey: reportKeys.details(), predicate: (cached) => cached.queryKey.length === reportKeys.detail("").length },
-          (current) => current && { ...current, aerialAnalyses: undefined },
-        );
-        queryClient.removeQueries({ queryKey: ["aerial-mask"] });
-      }
-      void queryClient.invalidateQueries({ queryKey: reportKeys.details() });
+      await reconcileAerialCache(queryClient, next);
     },
   });
   if (env.dataSource !== "api") return null;

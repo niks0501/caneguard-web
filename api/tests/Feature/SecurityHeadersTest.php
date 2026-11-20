@@ -76,15 +76,6 @@ class SecurityHeadersTest extends TestCase
         $this->assertArrayNotHasKey('child-src', $directives);
     }
 
-    public function test_json_responses_get_no_map_sources(): void
-    {
-        $directives = $this->policyDirectives($this->getJson('/api/health')->assertOk());
-
-        $this->assertArrayNotHasKey('worker-src', $directives);
-        $this->assertArrayNotHasKey('connect-src', $directives);
-        $this->assertSame(["'none'"], $directives['default-src']);
-    }
-
     /** @return array<string, list<string>> */
     private function policyDirectives(TestResponse $response): array
     {

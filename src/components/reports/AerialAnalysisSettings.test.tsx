@@ -108,6 +108,62 @@ describe("aerial canopy check admin switch", () => {
     expect(reads).toBe(1);
   });
 
+  it("clears cached aerial results when the install gate is off even though the saved switch is on", async () => {
+    server.use(http.get(url, () => HttpResponse.json({ data: { installed: false, enabled: true } })));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(reportKeys.detail("case-1"), { id: "case-1", aerialAnalyses: [{ uuid: "a-1" }] });
+    client.setQueryData(["aerial-mask", "/masks/a-1"], new Blob(["mask"]));
+    show(client);
+    expect(await screen.findByText("Not installed on this server")).toBeInTheDocument();
+    expect(client.getQueryData(reportKeys.detail("case-1"))).toEqual({ id: "case-1", aerialAnalyses: undefined });
+    expect(client.getQueryData(["aerial-mask", "/masks/a-1"])).toBeUndefined();
+  });
+
+  it("does not let a case read started before the check was turned off repopulate it", async () => {
+    server.use(http.get(url, () => HttpResponse.json({ data: { installed: true, enabled: false } })));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    let finishCaseRead: ((report: unknown) => void) | undefined;
+    void client.fetchQuery({
+      queryKey: reportKeys.detail("case-1"),
+      queryFn: () => new Promise((resolve) => { finishCaseRead = resolve; }),
+    }).catch(() => undefined);
+    await vi.waitFor(() => expect(finishCaseRead).toBeDefined());
+    show(client);
+    expect(await screen.findByText("Off")).toBeInTheDocument();
+    finishCaseRead?.({ id: "case-1", aerialAnalyses: [{ uuid: "a-1" }] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(client.getQueryData(reportKeys.detail("case-1"))).toBeUndefined();
+  });
+
+  it("keeps an acknowledged save when an earlier settings read lands afterwards", async () => {
+    let enabled = false;
+    let reads = 0;
+    let releaseStaleRead: () => void = () => undefined;
+    const staleRead = new Promise<void>((resolve) => { releaseStaleRead = resolve; });
+    server.use(
+      http.get(url, async () => {
+        const snapshot = enabled;
+        reads += 1;
+        if (reads === 2) await staleRead;
+        return HttpResponse.json({ data: { installed: true, enabled: snapshot } });
+      }),
+      http.put(url, async ({ request }) => {
+        enabled = ((await request.json()) as { enabled: boolean }).enabled;
+        return HttpResponse.json({ data: { installed: true, enabled } });
+      }),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
+    show(client);
+    await screen.findByRole("button", { name: "Turn on aerial check" });
+    void client.invalidateQueries({ queryKey: ["aerial-analysis-settings"] });
+    await user.click(screen.getByRole("button", { name: "Turn on aerial check" }));
+    expect(await screen.findByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
+    releaseStaleRead();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.getByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
+  });
+
   it("reports a failed save", async () => {
     server.use(
       http.get(url, () => HttpResponse.json({ data: { installed: true, enabled: false } })),

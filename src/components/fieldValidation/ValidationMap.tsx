@@ -8,6 +8,7 @@ import {
   type MapRef,
 } from "react-map-gl/maplibre";
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource } from "maplibre-gl";
+import "../../lib/mapLibreWorker";
 import { LOCATION_MAP_MAX_ZOOM, locationGroupKey, locationGroupMembers, radialLocationOffsets } from "./locationGroups";
 import type { FieldValidationMapData, FieldValidationMapFeature } from "../../domain/fieldValidation.types";
 import { reviewStatusLabels } from "../../domain/report.metadata";

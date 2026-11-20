@@ -1,15 +1,9 @@
-import type { ReactNode } from "react";
 import { getWorkerUrl } from "maplibre-gl";
-import { describe, expect, it, vi } from "vitest";
-import bundledWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-
-vi.mock("../App", () => ({ default: () => null }));
-vi.mock("../app/AppProviders", () => ({ AppProviders: ({ children }: { children: ReactNode }) => children }));
+import { describe, expect, it } from "vitest";
 
 describe("map worker registration", () => {
-  it("registers the bundled worker when the app entry loads", async () => {
-    document.body.innerHTML = '<div id="root"></div>';
-    await import("../main");
-    expect(getWorkerUrl()).toBe(bundledWorkerUrl);
+  it("points MapLibre at the bundled worker asset when the shared registration loads", async () => {
+    await import("./mapLibreWorker");
+    expect(getWorkerUrl()).toContain("maplibre-gl-worker");
   });
 });

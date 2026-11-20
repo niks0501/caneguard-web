@@ -160,6 +160,29 @@ class ReportAerialAnalysisTest extends TestCase
             ->assertJsonPath('data.aerial_analyses.0.uuid', $uuid);
     }
 
+    public function test_handoff_responses_list_active_analyses_only_while_the_check_is_live(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+        $uuid = $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->assertCreated()
+            ->json('data.uuid');
+        $handoff = ['destination' => 'Agronomy desk', 'sent_date' => '2026-11-20', 'expected_version' => 0];
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", $handoff)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.aerial_analyses')
+            ->assertJsonPath('data.aerial_analyses.0.uuid', $uuid);
+
+        DB::table('feature_switches')->where('name', 'aerial_analysis')->update(['enabled' => false]);
+        $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [...$handoff, 'expected_version' => 1])
+            ->assertOk()
+            ->assertJsonMissingPath('data.aerial_analyses');
+    }
+
     public function test_success_stores_row_and_both_files_and_streams_them(): void
     {
         $this->enable();

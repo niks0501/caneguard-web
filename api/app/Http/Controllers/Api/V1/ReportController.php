@@ -53,12 +53,8 @@ class ReportController extends Controller
             'qualityWarnings',
             'audits.actor',
             ...$caseHistory->relations(),
+            ...AerialSwitch::relations(),
         ];
-
-        if (AerialSwitch::enabled()) {
-            $relations[] = 'aerialAnalyses.uploader';
-            $relations[] = 'aerialAnalyses.report';
-        }
 
         return new ReportResource($report->load(array_values(array_unique($relations))));
     }

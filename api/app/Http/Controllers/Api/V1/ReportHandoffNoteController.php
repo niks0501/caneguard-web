@@ -7,6 +7,7 @@ use App\Http\Requests\RecordHandoffNoteRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use App\Models\ReportHandoffNote;
+use App\Support\AerialSwitch;
 use Illuminate\Support\Facades\DB;
 
 class ReportHandoffNoteController extends Controller
@@ -34,6 +35,7 @@ class ReportHandoffNoteController extends Controller
         return new ReportResource($report->refresh()->load([
             'reporter', 'reviewer', 'advisory', 'affectedFieldSurveys.inspector', 'attachedFieldSurvey.inspector', 'classScores', 'symptoms', 'qualityWarnings',
             'audits.actor', 'referral.officeReviewer', 'referrals', 'handoffNotes',
+            ...AerialSwitch::relations(),
         ]));
     }
 }

@@ -90,15 +90,7 @@ function useReportMutation<TInput>(
   return useMutation({
     mutationFn,
     onSuccess: (report) => {
-      // Review-style responses never carry the aerial checks; keep what the
-      // case page already loaded so the card does not vanish after a save.
-      queryClient.setQueryData<DiseaseReport | null>(
-        reportKeys.detail(reportId),
-        (current) =>
-          report.aerialAnalyses === undefined && current?.aerialAnalyses !== undefined
-            ? { ...report, aerialAnalyses: current.aerialAnalyses }
-            : report,
-      );
+      queryClient.setQueryData<DiseaseReport>(reportKeys.detail(reportId), report);
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });
