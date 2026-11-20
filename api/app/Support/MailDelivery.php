@@ -10,6 +10,8 @@ use Throwable;
 /** Whether the default mailer can really deliver: log and array never do, and SMTP must require TLS. */
 final class MailDelivery
 {
+    public const NOT_PENDING = 'not_pending';
+
     /** Outside production the log/array mailers stay allowed for local work and tests. */
     public static function canDeliver(): bool
     {
@@ -48,8 +50,11 @@ final class MailDelivery
                 return Password::INVALID_USER;
             }
             $user = User::query()->whereKey($found->getAuthIdentifier())->lockForUpdate()->first();
-            if ($user === null || ($onboardingOnly && (! $user->is_active || $user->hasVerifiedEmail()))) {
+            if ($user === null) {
                 return Password::INVALID_USER;
+            }
+            if ($onboardingOnly && (! $user->is_active || $user->hasVerifiedEmail())) {
+                return self::NOT_PENDING;
             }
             if ($broker->getRepository()->recentlyCreatedToken($user)) {
                 return Password::RESET_THROTTLED;

@@ -74,7 +74,7 @@ final class CreateWebAccount
     {
         $sent = false;
         try {
-            $sent = MailDelivery::sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
+            $sent = MailDelivery::sendResetLink(['email' => $user->email], onboardingOnly: true) === Password::RESET_LINK_SENT;
         } catch (\Throwable $e) {
             Log::warning('Account invitation could not be sent.', ['user' => $user->uuid, 'exception' => $e::class]);
         }

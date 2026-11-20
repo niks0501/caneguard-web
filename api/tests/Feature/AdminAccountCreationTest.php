@@ -46,7 +46,8 @@ class AdminAccountCreationTest extends TestCase
     /** @return array{token: string, email: string} The query of the link the operator command printed. */
     private function issueOperatorLink(string $email): array
     {
-        Artisan::call('auth:set-password-link', ['email' => $email]);
+        config(['caneguard.auth.operator_link_email' => $email]);
+        Artisan::call('auth:set-password-link');
         $link = strtok(Artisan::output(), "\n");
         parse_str((string) parse_url((string) $link, PHP_URL_QUERY), $query);
         $this->assertSame('https://app.example.test/reset-password', strtok((string) $link, '?'));
@@ -173,6 +174,17 @@ class AdminAccountCreationTest extends TestCase
         $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $field->refresh()->password));
     }
 
+    public function test_forgot_password_response_is_padded_to_the_recovery_timebox_for_unknown_addresses(): void
+    {
+        $this->productionMail();
+        $contract = 'If an account matches, a password recovery link will be sent.';
+
+        $started = hrtime(true);
+        $this->postWeb('/forgot-password', ['email' => 'nobody-here@example.test'])->assertAccepted()->assertJsonPath('message', $contract);
+
+        $this->assertGreaterThanOrEqual(0.2, (hrtime(true) - $started) / 1e9);
+    }
+
     public function test_forgot_password_answers_the_contract_message_when_smtp_is_unreachable(): void
     {
         $this->productionMail();
@@ -209,8 +221,8 @@ class AdminAccountCreationTest extends TestCase
         User::factory()->reviewer()->unverified()->create(['email' => 'frag@example.test']);
 
         foreach (['https://app.example.test/reset-password#token', 'https://user:secret@app.example.test/reset-password', 'https://app.example.test/reset-password?token=stale&email=other@example.test'] as $url) {
-            config(['caneguard.auth.password_reset_url' => $url]);
-            $this->artisan('auth:set-password-link', ['email' => 'frag@example.test'])->assertFailed();
+            config(['caneguard.auth.password_reset_url' => $url, 'caneguard.auth.operator_link_email' => 'frag@example.test']);
+            $this->artisan('auth:set-password-link')->assertFailed();
         }
         $this->assertDatabaseCount('password_reset_tokens', 0);
     }
@@ -220,8 +232,10 @@ class AdminAccountCreationTest extends TestCase
         $this->productionMail();
         User::factory()->reviewer()->create(['email' => 'done@example.test']);
 
-        $this->artisan('auth:set-password-link', ['email' => 'done@example.test'])->assertFailed();
-        $this->artisan('auth:set-password-link', ['email' => 'nobody@example.test'])->assertFailed();
+        config(['caneguard.auth.operator_link_email' => 'done@example.test']);
+        $this->artisan('auth:set-password-link')->assertFailed();
+        config(['caneguard.auth.operator_link_email' => 'nobody@example.test']);
+        $this->artisan('auth:set-password-link')->assertFailed();
         $this->assertDatabaseCount('password_reset_tokens', 0);
         $this->assertDatabaseMissing('security_audits', ['action' => 'operator_link_issued']);
     }
@@ -233,7 +247,7 @@ class AdminAccountCreationTest extends TestCase
         $query = $this->issueOperatorLink('bad@example.test');
 
         config(['caneguard.auth.password_reset_url' => 'http://app.example.test/reset-password']);
-        $this->artisan('auth:set-password-link', ['email' => 'bad@example.test'])->assertFailed();
+        $this->artisan('auth:set-password-link')->assertFailed();
 
         $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
     }

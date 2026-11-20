@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
+use App\Support\MailDelivery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -123,6 +124,7 @@ class WebAccountsController extends Controller
         abort_if($user->hasVerifiedEmail() || ! $user->is_active, 409, 'This account has no pending invite.');
 
         $status = $resend->handle($request->user(), $user);
+        abort_if($status === MailDelivery::NOT_PENDING, 409, 'This account has no pending invite.');
         abort_if($status === Password::RESET_THROTTLED, 429, 'A set-password link was issued a moment ago. Wait a minute before sending another.');
 
         return response()->json(['invite_sent' => $status === Password::RESET_LINK_SENT]);

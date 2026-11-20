@@ -12,13 +12,18 @@ trait FakeSmtpMailbox
 
     private ?string $previousCaFile = null;
 
+    private bool $caFileChanged = false;
+
     private function stopFakeMailbox(): void
     {
         if (is_resource($this->fakeMailboxProcess)) {
             proc_terminate($this->fakeMailboxProcess);
             proc_close($this->fakeMailboxProcess);
         }
-        putenv($this->previousCaFile === null ? 'SSL_CERT_FILE' : 'SSL_CERT_FILE='.$this->previousCaFile);
+        if ($this->caFileChanged) {
+            putenv($this->previousCaFile === null ? 'SSL_CERT_FILE' : 'SSL_CERT_FILE='.$this->previousCaFile);
+            $this->caFileChanged = false;
+        }
         if ($this->fakeMailboxDir !== '') {
             array_map('unlink', glob($this->fakeMailboxDir.'/*') ?: []);
             @rmdir($this->fakeMailboxDir);
@@ -51,6 +56,7 @@ trait FakeSmtpMailbox
 
         // Strict verification stays on: the generated certificate is trusted explicitly, never bypassed.
         $this->previousCaFile = getenv('SSL_CERT_FILE') ?: null;
+        $this->caFileChanged = true;
         putenv('SSL_CERT_FILE='.$cert);
         config([
             "mail.mailers.{$mailer}.scheme" => 'smtp',
