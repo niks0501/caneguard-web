@@ -10,6 +10,9 @@ import type {
 import { reportsRepository } from "../services/reports.service";
 import {
   advisoriesQueryOptions,
+  aerialOffReadCount,
+  caseReadsInFlight,
+  caseReadsStartedCount,
   monthlySummaryQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
@@ -89,16 +92,21 @@ function useReportMutation<TInput>(
 
   return useMutation({
     mutationFn,
-    onSuccess: (report) => {
-      // Review-style responses never carry the aerial checks; keep what the
-      // case page already loaded so the card does not vanish after a save.
-      queryClient.setQueryData<DiseaseReport | null>(
-        reportKeys.detail(reportId),
-        (current) =>
-          report.aerialAnalyses === undefined && current?.aerialAnalyses !== undefined
-            ? { ...report, aerialAnalyses: current.aerialAnalyses }
-            : report,
-      );
+    onMutate: () => ({ reads: caseReadsStartedCount(), offs: aerialOffReadCount() }),
+    onSuccess: async (report, _input, sentAt) => {
+      const overlapped = caseReadsStartedCount() !== sentAt.reads
+        || caseReadsInFlight() > 0
+        || aerialOffReadCount() !== sentAt.offs;
+      if (overlapped) {
+        await queryClient.cancelQueries({ queryKey: reportKeys.detail(reportId), exact: true });
+        queryClient.setQueryData<DiseaseReport | null>(
+          reportKeys.detail(reportId),
+          (current) => current && { ...current, aerialAnalyses: undefined },
+        );
+        await queryClient.fetchQuery({ ...reportQueryOptions(reportId), staleTime: 0 }).catch(() => undefined);
+      } else {
+        queryClient.setQueryData<DiseaseReport>(reportKeys.detail(reportId), report);
+      }
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });

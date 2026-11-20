@@ -6,15 +6,26 @@ aerial photo; the server segments it with the Aerial V3 SegFormer-B1 model
 
 ## Gate
 
-`CANEGUARD_AERIAL_ANALYSIS_ENABLED` (`caneguard.aerial.enabled`) defaults to
-`false`. While it is off every route below returns `404` and
-`GET /api/v1/reports/{report}` carries no `aerial_analyses` key. The key is
-never on list, map, mobile, export or PDF payloads. For production staging and
-enablement, follow the [aerial deployment runbook](../../docs/production-deployment.md#aerial-analysis-needs-python-and-the-model-staged-first).
+The check is live only when two conditions hold. `CANEGUARD_AERIAL_ANALYSIS_ENABLED`
+(`caneguard.aerial.enabled`, the install gate) defaults to `false` and must be
+`true`. An Admin must also switch the check on in Admin Settings, which is stored
+in `feature_switches` and defaults to off. While either condition is unmet every
+route below returns `404` and `GET /api/v1/reports/{report}` carries no
+`aerial_analyses` key. The key is never on list, map, mobile, export or PDF
+payloads. For production staging and enablement, follow the
+[aerial deployment runbook](../../docs/production-deployment.md#aerial-analysis-needs-python-and-the-model-staged-first).
+
+An active verified Admin reads and writes the switch through
+`GET` and `PUT /api/v1/admin/aerial-analysis`, the only aerial routes that stay
+reachable while the check is off. Both answer
+`{"data":{"installed":bool,"enabled":bool}}`. `PUT` takes `{"enabled":bool}`
+and returns the same shape; it answers `409` while the install gate is off, so
+the switch can only be changed on a server that is already installed.
 
 ## Case-page use
 
-When enabled, the Aerial check card appears after Affected field boundaries.
+When the check is live, the Aerial check card appears after Affected field
+boundaries.
 Choose a photo while online; the latest result shows canopy shares and photo
 highlights, opening on Problem areas. Use Highlights and the Photo / Problem
 areas compare slider to inspect the overlay, or expand Earlier aerial checks
@@ -35,17 +46,18 @@ Field reporters and mobile tokens get `403`.
 | Route | Result |
 | --- | --- |
 | `POST /api/v1/reports/{report}/aerial-analyses` | `201` with the analysis. Multipart field `image`: jpg, jpeg, png or webp, at most 20 MiB and 10,000 px per side. Throttled to 6 per minute. |
-| `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/image` | The stored photo, private cache, `nosniff`. |
+| `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/image` | The stored photo, `Cache-Control: private, no-cache`, `nosniff`. |
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/mask` | 8-bit PNG class mask, same orientation as the displayed photo. |
 | `DELETE /api/v1/reports/{report}/aerial-analyses/{analysis}` | `200` with `{"data":{"removal_id":"…"}}`. Soft removal: the row is hidden, the files are kept and a new removal identity is minted. |
 | `POST /api/v1/reports/{report}/aerial-analyses/{analysis}/restore` | `200` with the analysis. Body `{"removal_id":"<uuid>"}` must name the current removal; undoing an already undone removal is returned unchanged. |
 
-Errors: `404` flag off, unknown analysis, or a removed analysis on any route but
-restore; `409` the well-formed restore identity no longer names the analysis's
-current removal; `422` a missing or malformed removal identity, or a bad file;
-`429` another check is running (single-run lock) or the upload rate limit was
-reached; `503` the check could not run. On failure the server attempts to
-delete the image and mask; cleanup failures are logged and can leave orphaned
+Errors: `404` the check off (including when it is switched off while an upload
+is running, which saves nothing), unknown analysis, or a removed analysis on any
+route but restore; `409` the well-formed restore identity no longer names the
+analysis's current removal; `422` a missing or malformed removal identity, or a
+bad file; `429` another check is running (single-run lock) or the upload rate
+limit was reached; `503` the check could not run. On failure the server attempts
+to delete the image and mask; cleanup failures are logged and can leave orphaned
 files.
 
 ## Analysis object

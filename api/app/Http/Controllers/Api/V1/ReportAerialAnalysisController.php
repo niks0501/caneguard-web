@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ReportAerialAnalysisResource;
 use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
+use App\Support\AerialSwitch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -106,7 +107,7 @@ class ReportAerialAnalysisController extends Controller
 
     private function gate(Report $report, ?ReportAerialAnalysis $analysis = null, bool $allowRemoved = false): void
     {
-        abort_unless(config('caneguard.aerial.enabled') === true, 404);
+        abort_unless(AerialSwitch::enabled(), 404);
         $this->authorize('review', $report);
         abort_if(
             $analysis !== null
@@ -121,7 +122,7 @@ class ReportAerialAnalysisController extends Controller
 
         return Storage::disk('local')->response($path, null, [
             'Content-Type' => $mime,
-            'Cache-Control' => 'private, max-age=300',
+            'Cache-Control' => 'private, no-cache',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

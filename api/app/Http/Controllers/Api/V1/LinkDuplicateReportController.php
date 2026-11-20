@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LinkDuplicateReportRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
+use App\Support\AerialSwitch;
 
 class LinkDuplicateReportController extends Controller
 {
@@ -62,6 +63,7 @@ class LinkDuplicateReportController extends Controller
             'qualityWarnings',
             'audits.actor',
             ...app(BuildReportCaseHistory::class)->relations(),
+            ...AerialSwitch::relations(),
         ]));
     }
 }

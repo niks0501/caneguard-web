@@ -9,6 +9,7 @@ use App\Http\Requests\ListReportsRequest;
 use App\Http\Resources\ReportListResource;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
+use App\Support\AerialSwitch;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ReportController extends Controller
@@ -52,12 +53,8 @@ class ReportController extends Controller
             'qualityWarnings',
             'audits.actor',
             ...$caseHistory->relations(),
+            ...AerialSwitch::relations(),
         ];
-
-        if (config('caneguard.aerial.enabled') === true) {
-            $relations[] = 'aerialAnalyses.uploader';
-            $relations[] = 'aerialAnalyses.report';
-        }
 
         return new ReportResource($report->load(array_values(array_unique($relations))));
     }

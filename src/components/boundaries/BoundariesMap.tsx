@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Map, Marker, NavigationControl, Popup, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
+import "../../lib/mapLibreWorker";
 import { Link } from "react-router";
 import { X } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPosition } from "../../domain/fieldSurvey.types";

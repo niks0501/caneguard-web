@@ -1,15 +1,19 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createQueryClient } from "../app/queryClient";
+import { AerialAnalysisSettings } from "../components/reports/AerialAnalysisSettings";
+import type { DiseaseReport } from "../domain/report.types";
 import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
 import { reportsRepository } from "../services/reports.service";
 import { reportDetailDto } from "../test/fixtures";
+import { server } from "../test/server";
 import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
-import { reportKeys } from "./reportQueries";
+import { aerialSettingsKey, caseReadsInFlight, reportKeys, reportQueryOptions } from "./reportQueries";
 import { useAddAerialAnalysis, useRecordHandoffNote, useUpdateReportReview } from "./useReports";
 
 vi.mock("../services/reports.service", () => ({
@@ -17,6 +21,7 @@ vi.mock("../services/reports.service", () => ({
     updateReview: vi.fn(),
     recordHandoffNote: vi.fn(),
     addAerialAnalysis: vi.fn(),
+    getReportById: vi.fn(),
   },
 }));
 
@@ -101,27 +106,197 @@ describe("report mutations", () => {
     });
   });
 
-  // Intent: a review save never drops the already-loaded aerial checks from the case.
-  it("keeps cached aerial analyses when a review response omits them", async () => {
-    const queryClient = createQueryClient();
-    const report = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
-    const aerial = [{ uuid: "a1" }] as never;
-    queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: aerial });
-    vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: undefined });
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-    const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+  describe("aerial analyses in save responses", () => {
+    const reviewInput = {
+      status: "verified_by_staff" as const,
+      notes: "Reviewed.",
+      authorityClassifiedCondition: null,
+    };
+    const setup = () => {
+      const queryClient = createQueryClient();
+      const report = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+      return { queryClient, report, wrapper };
+    };
 
-    await act(async () => {
-      await result.current.mutateAsync({
-        status: "verified_by_staff",
-        notes: "Reviewed.",
-        authorityClassifiedCondition: null,
-        expectedVersion: report.reviewVersion!,
+    it("keeps the aerial analyses a review response returns while the check is on", async () => {
+      const { queryClient, report, wrapper } = setup();
+      const returned = [{ uuid: "a2" }] as never;
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: returned });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
       });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(returned);
     });
 
-    expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(aerial);
+    it("clears cached aerial analyses when a review response omits them", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: [{ uuid: "a1" }] as never });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: report.reviewVersion! + 1, aerialAnalyses: undefined });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
+    });
+
+    const settingsUrl = "http://localhost:8000/api/v1/admin/aerial-analysis";
+    const nextVersion = (report: DiseaseReport) => report.reviewVersion! + 1;
+    const saveButtonHarness = (reportId: string, expectedVersion: number) => function SaveHarness() {
+      const save = useUpdateReportReview(reportId);
+      return (
+        <>
+          <AerialAnalysisSettings />
+          <button
+            type="button"
+            onClick={() => { void save.mutateAsync({ ...reviewInput, expectedVersion }).catch(() => undefined); }}
+          >
+            Save review
+          </button>
+        </>
+      );
+    };
+
+    it("keeps aerial analyses from a save sent after an Off the settings screen already showed", async () => {
+      const { queryClient, report } = setup();
+      const returned = [{ uuid: "a4" }] as never;
+      const enabled = false;
+      server.use(http.get(settingsUrl, () => HttpResponse.json({ data: { installed: true, enabled } })));
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: returned });
+      const Harness = saveButtonHarness(report.uuid, report.reviewVersion!);
+      render(<QueryClientProvider client={queryClient}><Harness /></QueryClientProvider>);
+      await screen.findByRole("button", { name: "Turn on aerial check" });
+
+      fireEvent.click(screen.getByRole("button", { name: "Save review" }));
+
+      await vi.waitFor(() => expect(queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid))?.reviewVersion).toBe(nextVersion(report)));
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(returned);
+    });
+
+    it("keeps aerial analyses from a save during which the settings screen first loaded On", async () => {
+      const { queryClient, report } = setup();
+      const returned = [{ uuid: "a5" }] as never;
+      let finishSave: (saved: DiseaseReport) => void = () => undefined;
+      vi.mocked(reportsRepository.updateReview).mockReturnValueOnce(new Promise((resolve) => { finishSave = resolve; }));
+      server.use(http.get(settingsUrl, () => HttpResponse.json({ data: { installed: true, enabled: true } })));
+      const Harness = saveButtonHarness(report.uuid, report.reviewVersion!);
+      render(<QueryClientProvider client={queryClient}><Harness /></QueryClientProvider>);
+
+      const savesBefore = vi.mocked(reportsRepository.updateReview).mock.calls.length;
+      fireEvent.click(screen.getByRole("button", { name: "Save review" }));
+      await vi.waitFor(() => expect(vi.mocked(reportsRepository.updateReview).mock.calls.length).toBe(savesBefore + 1));
+      await screen.findByRole("button", { name: "Turn off aerial check" });
+      finishSave({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: returned });
+
+      await vi.waitFor(() => expect(queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid))?.reviewVersion).toBe(nextVersion(report)));
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(returned);
+    });
+
+    it("discards aerial analyses from a save overtaken by an Off the settings screen observed", async () => {
+      const { queryClient, report } = setup();
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: [{ uuid: "a0" }] as never });
+      let enabled = true;
+      server.use(http.get(settingsUrl, () => HttpResponse.json({ data: { installed: true, enabled } })));
+      let finishSave: (saved: DiseaseReport) => void = () => undefined;
+      vi.mocked(reportsRepository.updateReview).mockReturnValueOnce(new Promise((resolve) => { finishSave = resolve; }));
+      const Harness = saveButtonHarness(report.uuid, report.reviewVersion!);
+      render(<QueryClientProvider client={queryClient}><Harness /></QueryClientProvider>);
+      await screen.findByRole("button", { name: "Turn off aerial check" });
+
+      const savesBefore = vi.mocked(reportsRepository.updateReview).mock.calls.length;
+      fireEvent.click(screen.getByRole("button", { name: "Save review" }));
+      await vi.waitFor(() => expect(vi.mocked(reportsRepository.updateReview).mock.calls.length).toBe(savesBefore + 1));
+      enabled = false;
+      await queryClient.invalidateQueries({ queryKey: aerialSettingsKey });
+      await screen.findByRole("button", { name: "Turn on aerial check" });
+      vi.mocked(reportsRepository.getReportById).mockResolvedValueOnce({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
+      finishSave({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a3" }] as never });
+
+      await vi.waitFor(() => expect(queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid))?.reviewVersion).toBe(nextVersion(report)));
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
+    });
+
+    it("applies a save response that no case read overlapped, over cached aerial analyses", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: [{ uuid: "a6" }] as never });
+      const returned = [{ uuid: "a9" }] as never;
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: returned });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toEqual(returned);
+    });
+
+    it("refetches rather than applying a save response a case read was still in flight for", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: [{ uuid: "a0" }] as never });
+      let releaseStaleRead: (stale: DiseaseReport) => void = () => undefined;
+      vi.mocked(reportsRepository.getReportById)
+        .mockReturnValueOnce(new Promise((resolve) => { releaseStaleRead = resolve; }))
+        .mockResolvedValueOnce({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a2" }] as never });
+      const staleRead = queryClient.fetchQuery({ ...reportQueryOptions(report.uuid), staleTime: 0 }).catch(() => undefined);
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+      releaseStaleRead({ ...report, aerialAnalyses: [{ uuid: "a0" }] as never });
+      await staleRead;
+      await vi.waitFor(() => expect(caseReadsInFlight()).toBe(0));
+
+      const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid));
+      expect(cached?.reviewVersion).toBe(nextVersion(report));
+      expect(cached?.aerialAnalyses).toBeUndefined();
+    });
+
+    it("refetches when a case read starts during the save and the save returns aerial analyses", async () => {
+      const { queryClient, report, wrapper } = setup();
+      let finishSave: (saved: DiseaseReport) => void = () => undefined;
+      vi.mocked(reportsRepository.updateReview).mockReturnValueOnce(new Promise((resolve) => { finishSave = resolve; }));
+      vi.mocked(reportsRepository.getReportById)
+        .mockResolvedValueOnce({ ...report, aerialAnalyses: [{ uuid: "a1" }] as never })
+        .mockResolvedValueOnce({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      let saving: Promise<unknown> = Promise.resolve();
+      act(() => {
+        saving = result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! }).catch(() => undefined);
+      });
+      await act(async () => {
+        await queryClient.fetchQuery({ ...reportQueryOptions(report.uuid), staleTime: 0 });
+      });
+      await act(async () => {
+        finishSave({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a2" }] as never });
+        await saving;
+      });
+
+      const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid));
+      expect(cached?.reviewVersion).toBe(nextVersion(report));
+      expect(cached?.aerialAnalyses).toBeUndefined();
+    });
+
+    it("clears cached aerial analyses when a save response omits them, even over a newer read", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, reviewVersion: report.reviewVersion! + 2, aerialAnalyses: [{ uuid: "a8" }] as never });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
+    });
   });
 });

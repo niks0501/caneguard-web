@@ -58,6 +58,38 @@ class SecurityHeadersTest extends TestCase
         return $scriptMatch[1];
     }
 
+    public function test_spa_shell_allows_the_maptiler_origin_and_a_same_origin_map_worker(): void
+    {
+        $index = public_path('index.html');
+        $original = is_file($index) ? file_get_contents($index) : null;
+        copy(base_path('../index.html'), $index);
+
+        try {
+            $directives = $this->policyDirectives($this->get('/')->assertOk());
+        } finally {
+            $original === null ? @unlink($index) : file_put_contents($index, $original);
+        }
+
+        $this->assertSame(["'self'", 'data:', 'blob:'], $directives['img-src']);
+        $this->assertSame(["'self'", 'https://api.maptiler.com'], $directives['connect-src']);
+        $this->assertSame(["'self'"], $directives['worker-src']);
+        $this->assertArrayNotHasKey('child-src', $directives);
+    }
+
+    /** @return array<string, list<string>> */
+    private function policyDirectives(TestResponse $response): array
+    {
+        $directives = [];
+        foreach (explode(';', (string) $response->headers->get('Content-Security-Policy')) as $directive) {
+            $parts = preg_split('/\s+/', trim($directive)) ?: [];
+            if ($parts !== [] && $parts[0] !== '') {
+                $directives[array_shift($parts)] = $parts;
+            }
+        }
+
+        return $directives;
+    }
+
     public function test_html_responses_use_a_nonce_for_inline_content(): void
     {
         $response = $this->get('/');

@@ -13,6 +13,7 @@ use App\Models\Report;
 use App\Models\ReportAudit;
 use App\Models\User;
 use App\Security\DistrictAccess;
+use App\Support\AerialSwitch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -295,6 +296,7 @@ class ReviewReportController extends Controller
             'handoffNotes',
             'audits.actor',
             ...$this->reviewEventRelations(),
+            ...AerialSwitch::relations(),
         ]));
     }
 

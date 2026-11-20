@@ -8,6 +8,7 @@ import {
   Source,
 } from "react-map-gl/maplibre";
 import type { MapLayerMouseEvent } from "react-map-gl/maplibre";
+import "../../lib/mapLibreWorker";
 import { routes } from "../../app/routes";
 import { locationGroupKey, locationGroupMembers } from "../fieldValidation/locationGroups";
 import { formatValidationDate } from "../fieldValidation/fieldValidation.format";

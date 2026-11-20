@@ -1,4 +1,4 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions, type Query } from "@tanstack/react-query";
 import type { DiseaseReport, ReportFilters } from "../domain/report.types";
 import { reportsRepository } from "../services/reports.service";
 import { getOperationalQueryRefreshOptions } from "./queryRefresh";
@@ -17,6 +17,33 @@ export const reportKeys = {
   summary: (month?: string) =>
     [...reportKeys.all, "summary", month ?? "current"] as const,
 };
+
+export const aerialSettingsKey = ["aerial-analysis-settings"] as const;
+
+export const aerialCheckLive = (gate: { installed: boolean; enabled: boolean }) =>
+  gate.installed && gate.enabled;
+
+export const isCaseDetailQuery = (query: Query) =>
+  query.queryKey.length === reportKeys.detail("").length;
+
+let aerialGateReads = 0;
+let aerialOffReads = 0;
+
+export const recordAerialGate = (gate: { installed: boolean; enabled: boolean }) => {
+  aerialGateReads += 1;
+  if (!aerialCheckLive(gate)) aerialOffReads += 1;
+};
+
+export const aerialGateReadCount = () => aerialGateReads;
+
+export const aerialOffReadCount = () => aerialOffReads;
+
+let caseReadsStarted = 0;
+let caseReadsSettled = 0;
+
+export const caseReadsStartedCount = () => caseReadsStarted;
+
+export const caseReadsInFlight = () => caseReadsStarted - caseReadsSettled;
 
 export const monthlySummaryQueryOptions = (month?: string) =>
   queryOptions({
@@ -105,7 +132,14 @@ export const advisoriesQueryOptions = () =>
 export const reportQueryOptions = (reportId: string) =>
   queryOptions({
     queryKey: reportKeys.detail(reportId),
-    queryFn: () => reportsRepository.getReportById(reportId),
+    queryFn: async () => {
+      caseReadsStarted += 1;
+      try {
+        return await reportsRepository.getReportById(reportId);
+      } finally {
+        caseReadsSettled += 1;
+      }
+    },
     enabled: Boolean(reportId),
   });
 

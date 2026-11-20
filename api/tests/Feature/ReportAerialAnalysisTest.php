@@ -5,15 +5,18 @@ namespace Tests\Feature;
 use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
 use App\Models\User;
+use Closure;
 use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -36,6 +39,7 @@ class ReportAerialAnalysisTest extends TestCase
 
     private function enable(): void
     {
+        DB::table('feature_switches')->updateOrInsert(['name' => 'aerial_analysis'], ['enabled' => true]);
         config([
             'caneguard.aerial.enabled' => true,
             'caneguard.aerial.model_path' => '/srv/aerial/model.onnx',
@@ -44,9 +48,10 @@ class ReportAerialAnalysisTest extends TestCase
     }
 
     /** @param array<string, mixed> $override */
-    private function fakeSegmenter(array $override = []): void
+    private function fakeSegmenter(array $override = [], ?Closure $whileRunning = null): void
     {
-        Process::fake(function (PendingProcess $pending) use ($override): ProcessResult {
+        Process::fake(function (PendingProcess $pending) use ($override, $whileRunning): ProcessResult {
+            $whileRunning?->__invoke();
             $mask = $pending->command[array_search('--mask-out', $pending->command, true) + 1];
             file_put_contents($mask, 'png');
 
@@ -82,6 +87,56 @@ class ReportAerialAnalysisTest extends TestCase
         $this->assertDatabaseCount('report_aerial_analyses', 0);
     }
 
+    public function test_installed_but_not_switched_on_stays_dark(): void
+    {
+        config(['caneguard.aerial.enabled' => true]);
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])->assertNotFound();
+        $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()->assertJsonMissingPath('data.aerial_analyses');
+    }
+
+    public function test_switched_on_without_the_install_flag_stays_dark(): void
+    {
+        DB::table('feature_switches')->insert(['name' => 'aerial_analysis', 'enabled' => true]);
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])->assertNotFound();
+    }
+
+    public function test_admin_switch_reports_install_state_and_transitions(): void
+    {
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+
+        $this->getJson('/api/v1/admin/aerial-analysis')
+            ->assertOk()
+            ->assertJsonPath('data', ['installed' => false, 'enabled' => false]);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])->assertStatus(409);
+
+        config(['caneguard.aerial.enabled' => true]);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])
+            ->assertOk()
+            ->assertJsonPath('data', ['installed' => true, 'enabled' => true]);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => false])
+            ->assertOk()
+            ->assertJsonPath('data.enabled', false);
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => 'maybe'])->assertUnprocessable();
+    }
+
+    public function test_only_admins_reach_the_aerial_switch(): void
+    {
+        config(['caneguard.aerial.enabled' => true]);
+        $this->actingAs(User::factory()->reviewer()->create(), 'web');
+
+        $this->getJson('/api/v1/admin/aerial-analysis')->assertForbidden();
+        $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])->assertForbidden();
+        $this->assertSame(0, DB::table('feature_switches')->count());
+    }
+
     public function test_flag_on_case_response_lists_active_analyses_only(): void
     {
         $this->enable();
@@ -107,6 +162,29 @@ class ReportAerialAnalysisTest extends TestCase
             ->assertJsonPath('data.aerial_analyses.0.uuid', $uuid);
     }
 
+    public function test_handoff_responses_list_active_analyses_only_while_the_check_is_live(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+        $uuid = $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->assertCreated()
+            ->json('data.uuid');
+        $handoff = ['destination' => 'Agronomy desk', 'sent_date' => '2026-11-20', 'expected_version' => 0];
+
+        $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", $handoff)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.aerial_analyses')
+            ->assertJsonPath('data.aerial_analyses.0.uuid', $uuid);
+
+        DB::table('feature_switches')->where('name', 'aerial_analysis')->update(['enabled' => false]);
+        $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [...$handoff, 'expected_version' => 1])
+            ->assertOk()
+            ->assertJsonMissingPath('data.aerial_analyses');
+    }
+
     public function test_success_stores_row_and_both_files_and_streams_them(): void
     {
         $this->enable();
@@ -122,13 +200,24 @@ class ReportAerialAnalysisTest extends TestCase
         Storage::disk('local')->assertExists($row->image_path);
         Storage::disk('local')->assertExists($row->mask_path);
         $this->assertSame(self::SHA, $row->weights_sha256);
-        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")->assertOk();
-        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/mask")
+        $image = $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")->assertOk();
+        $this->assertSame(['no-cache', 'private'], $this->cacheDirectives($image));
+        $mask = $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/mask")
             ->assertOk()->assertHeader('Content-Type', 'image/png');
+        $this->assertSame(['no-cache', 'private'], $this->cacheDirectives($mask));
 
         $report->refresh();
         $this->assertSame(33.0, (float) $report->affected_portion_percent);
         $this->assertSame(2.5, (float) $report->affected_area_hectares);
+    }
+
+    /** @return list<string> */
+    private function cacheDirectives(TestResponse $response): array
+    {
+        $directives = array_map('trim', explode(',', (string) $response->headers->get('Cache-Control')));
+        sort($directives);
+
+        return $directives;
     }
 
     public function test_shares_are_hidden_below_the_coverage_floor(): void
@@ -176,6 +265,22 @@ class ReportAerialAnalysisTest extends TestCase
         $this->postJson($url, ['image' => UploadedFile::fake()->image('big.jpg', 400, 300)->size(20481)])->assertUnprocessable();
         $this->postJson($url, ['image' => UploadedFile::fake()->image('wide.jpg', 10001, 10)])->assertUnprocessable();
         Process::assertNothingRan();
+    }
+
+    public function test_switch_turned_off_during_inference_refuses_the_upload_and_stores_nothing(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter(whileRunning: fn () => DB::table('feature_switches')
+            ->where('name', 'aerial_analysis')->update(['enabled' => false]));
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+
+        $this->actingAs($reviewer, 'web')
+            ->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('report_aerial_analyses', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles('aerial'));
     }
 
     public function test_runner_failure_returns_503_and_leaves_nothing(): void

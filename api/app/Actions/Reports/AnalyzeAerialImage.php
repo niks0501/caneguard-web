@@ -5,6 +5,7 @@ namespace App\Actions\Reports;
 use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
 use App\Models\User;
+use App\Support\AerialSwitch;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,7 @@ class AnalyzeAerialImage
             if (! $disk->exists($maskPath)) {
                 throw new RuntimeException('The segmentation produced no mask.');
             }
+            abort_unless(AerialSwitch::enabled(), 404);
 
             return DB::transaction(fn () => ReportAerialAnalysis::query()->create([
                 'uuid' => $uuid,
@@ -71,6 +73,9 @@ class AnalyzeAerialImage
             ]));
         } catch (Throwable $failure) {
             $this->deleteFiles(array_filter([$imagePath, $maskPath]), $failure);
+            if ($failure instanceof HttpException) {
+                throw $failure;
+            }
             Log::warning('Aerial analysis failed.', ['failure_type' => $failure::class]);
 
             throw new HttpException(503, 'The aerial check is unavailable right now. Nothing was saved.');

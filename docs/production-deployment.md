@@ -94,7 +94,7 @@ Staging checklist (as `deploy`, outside the release directories, except for the 
    sudo -u www-data test -x /var/www/caneguard/shared/api/storage/app/private/aerial
    ```
    Every command must succeed; use the actual configured paths if they differ. Repeat the permission provisioning and verification after replacing or modifying the venv, packages, model, or their paths.
-7. Only then set, in the shared `.env` (`shared/api/.env`), and no earlier:
+7. Only then set, in the shared `.env` (`shared/api/.env`), and no earlier. This flag only marks the check as **installed**; it does not turn it on. The Admin switch is stored in the database and survives this flag being unset: if you roll back by unsetting the flag while the switch is On, setting it again on a later deploy turns the check back on immediately. To keep the check dark after a rollback, turn it Off in Admin Settings before unsetting the flag:
    ```
    CANEGUARD_AERIAL_ANALYSIS_ENABLED=true
    CANEGUARD_AERIAL_PYTHON=/var/www/caneguard/shared/aerial-venv/bin/python
@@ -102,11 +102,26 @@ Staging checklist (as `deploy`, outside the release directories, except for the 
    ```
    Use an absolute interpreter path: PHP-FPM does not inherit your shell's venv.
 8. Run a new deploy. `scripts/preflight-aerial.php` runs after `config:cache` and before migrations and activation. It prints `PASS ...` per check and `PASS aerial preflight`, or fails the deploy listing each missing piece (Python version, packages, model file or SHA-256, storage, smoke inference). With the flag `false` it prints one line and changes nothing.
-9. After activation, confirm in the office UI that an aerial photo uploads on a test case and shows canopy shares.
+9. After activation, an Admin opens Admin Settings, finds **Aerial canopy check** (it reads **Not installed on this server** while the flag is off) and chooses **Turn on aerial check**. The switch is stored in the `feature_switches` table and defaults to off. The check is live only when both the install flag and the Admin switch are on.
+10. Confirm in the office UI that an aerial photo uploads on a test case and shows canopy shares.
 
-Limits: the aerial preflight runs as `deploy`, not `www-data`, so its Python, package, model, storage and inference checks only prove deploy access. Step 6 verifies the FPM identity's staged dependencies and storage permissions; step 9 checks the live upload path. The model is not part of the release archive, so a deploy never replaces it; to change the model, stage the new file and its pinned SHA-256 together and redeploy.
+Limits: the aerial preflight runs as `deploy`, not `www-data`, so its Python, package, model, storage and inference checks only prove deploy access. Step 6 verifies the FPM identity's staged dependencies and storage permissions; step 9 turns the switch on, and step 10 checks the live upload path. The model is not part of the release archive, so a deploy never replaces it; to change the model, stage the new file and its pinned SHA-256 together and redeploy.
 
-Rollback: set `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` in the shared `.env` and deploy again (or run `php artisan config:cache` in the active release). The routes then return `404` and cases carry no aerial field; stored photos and results are retained. The preflight runs as a no-op while the flag is off. Staging files can stay in place.
+Rollback: an Admin chooses **Turn off aerial check** in Admin Settings (no deploy). New requests get `404` at once, and an upload already in progress is refused before it saves anything. To remove the install as well, set `CANEGUARD_AERIAL_ANALYSIS_ENABLED=false` in the shared `.env` and deploy again (or run `php artisan config:cache` in the active release). The routes then return `404` and cases carry no aerial field; stored photos and results are retained. The preflight runs as a no-op while the flag is off. Staging files can stay in place.
+
+## Maps need the MapTiler key at build time and the CSP allowlist
+
+1. Create a MapTiler key restricted to the `https://caneguard.online` origin. A `VITE_*` value is public in the shipped bundle, so the origin restriction is the real protection.
+2. Store it as the GitHub Actions secret `CANEGUARD_MAPTILER_KEY`. The deploy workflow passes it to the React build as `VITE_MAPTILER_KEY` and fails the build step while the secret is blank. A nonblank key that is revoked or used from another origin still builds, so step 5 is the check that maps actually render.
+3. Basemap style, tile and glyph requests go from the browser to MapTiler, so MapTiler receives the approximate area and zoom of the locations on screen (for example a filtered report's coordinates on the validation map, or field bounds on the boundaries map). The captain allows these location-derived requests.
+4. The map worker is bundled as a same-origin asset. Each map module (`src/lib/mapLibreWorker.ts`, imported by the boundaries, dashboard location and field validation maps) registers it when it loads, so the sign-in screen does not load MapLibre. The SPA shell CSP allows `https://api.maptiler.com` for `connect-src` only, plus `blob:` images and `worker-src 'self'`. Report documents and other HTML get none of these. Nginx must not add its own stricter CSP to the shell.
+5. After a deploy, open the Map page signed in: tiles should draw and the browser console should show no CSP violations.
+
+### Mobile manual-map tile proxy (`EXPO_PUBLIC_MAP_TILE_PROXY_URL`)
+The proxy lives in this API: `GET /api/v1/mobile/map-tiles/{z}/{x}/{y}.png` (zoom 11–18, mobile token with `report:status`), fetching from `tile.openstreetmap.org` and caching for a day. The value for the mobile production environment is `EXPO_PUBLIC_MAP_TILE_PROXY_URL=https://caneguard.online/api/v1/mobile/map-tiles/{z}/{x}/{y}.png`; it must match `EXPO_PUBLIC_API_BASE_URL`'s origin. This runbook does not set it. The Mobile release owner sets it after confirming the proxy:
+- the upstream answers: `curl -sS -A 'CaneGuard-MapTileProxy/1.0' -o /dev/null -w '%{http_code} %{content_type}\n' https://tile.openstreetmap.org/11/1676/898.png` prints `200 image/png`;
+- the route is live on production: the same path without a token on `https://caneguard.online` answers `401`, not `404`;
+- one cold authenticated fetch with a real mobile token, through production, returns `200 image/png` and its body decodes as an image. The proxy caches for a day, so only a request the cache has not answered proves the production path. Automation does not run this check; it needs a production credential.
 
 ## Scheduler for reminders and follow-up due notifications
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. Add one cron entry for the application user, from the `api` directory of the active release:
