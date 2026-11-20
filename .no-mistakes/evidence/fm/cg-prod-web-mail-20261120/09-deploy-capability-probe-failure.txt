@@ -1,0 +1,3 @@
+/tmp/cg-live-fdCJDv/deploy/root/releases/.upload-release-2-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz: OK
+ERROR: could not read the previous release's commands; deployment stopped before switching.
+exit=1

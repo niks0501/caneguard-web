@@ -1,0 +1,3 @@
+/tmp/cg-live-fdCJDv/deploy/root/releases/.upload-release-2-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz: OK
+ERROR: the previous release predates the rollback barrier and is still serving; put it in maintenance mode and drain it before this cutover (docs/production-deployment.md).
+exit=1

@@ -1,0 +1,6 @@
+/tmp/cg-live-fdCJDv/deploy/root/releases/.upload-release-2-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz: OK
+curl: (22) 503
+Health check failed; restoring previous code symlink
+curl: (22) 503
+WARNING: Database migrations are not rolled back automatically.
+exit=22

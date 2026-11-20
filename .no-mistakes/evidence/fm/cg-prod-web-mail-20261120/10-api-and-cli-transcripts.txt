@@ -1,0 +1,39 @@
+== POST /api/v1/admin/accounts (APP_ENV=production, MAIL_MAILER=log) ==
+{"data":{"uuid":"01a1fa0d-9402-721c-ac99-52834185bf54","name":"Live Field One","email":"field.one@example.test","role":"field_reporter","is_active":true,"access_version":2},"invite_sent":false}
+HTTP:201
+
+== POST /api/v1/admin/accounts (production, smtp+STARTTLS mailbox) ==
+{"data":{"uuid":"01a1fa0e-deb2-73f8-bb24-7f9b683b204f","name":"Live Field Three","email":"field.three@example.test","role":"field_reporter","is_active":true,"access_version":2},"invite_sent":true}
+HTTP:201
+
+== email envelope + reset redemption ==
+X-Fake-Envelope-To: <field.three@example.test>
+{"message":"Password updated. Sign in with your new password.","code":"PASSWORD_RESET"}
+HTTP:200
+
+== production smtp+require_tls to a HELO-only relay ==
+{"data":{"uuid":"01a1fa0f-b971-7134-a70e-a3b6d6845328","name":"Live Field Plain2","email":"field.plain2@example.test","role":"field_reporter","is_active":true,"access_version":2},"invite_sent":false}
+HTTP:201
+
+-- SMTP commands the relay received (no MAIL FROM/RCPT TO/AUTH/DATA):
+EHLO [127.0.0.1]
+HELO [127.0.0.1]
+QUIT
+
+== produce, no TLS ==
+{"data":{"uuid":"01a1fa0f-fb4b-7142-a0d8-cd5da3ad4c19","name":"Live Field NoTls","email":"field.notls@example.test","role":"field_reporter","is_active":true,"access_version":2},"invite_sent":false}
+HTTP:201
+
+== per-address token and audit state ==
+field.one@example.test tokens=0 audits=account_created:success,account_invite_sent:failure
+field.plain2@example.test tokens=0 audits=account_created:success,account_invite_sent:failure
+field.notls@example.test tokens=0 audits=account_created:success,account_invite_sent:failure
+field.three@example.test tokens=0 audits=account_created:success,account_invite_sent:success,password_reset:success,email_verification:success
+
+== operator fallback command ==
+https://localhost:5199/reset-password?token=73d9ee965e071982a2689d7e2e0f96b66d9357b245ee0a9e4d1260e862822356&email=field.one%40example.test
+One-time link for field.one@example.test; expires in 60 minutes. Share it only with the account holder.
+
+== barrier engaged: invite + operator refusal ==
+{"data":{"uuid":"01a1fa15-cbf3-70f3-a359-e4a5c3ed0591","name":"Barrier Field","email":"barrier.field@example.test","role":"field_reporter","is_active":true,"access_version":2},"invite_sent":false}
+HTTP:201

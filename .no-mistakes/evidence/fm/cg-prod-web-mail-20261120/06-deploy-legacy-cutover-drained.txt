@@ -1,0 +1,4 @@
+/tmp/cg-live-fdCJDv/deploy/root/releases/.upload-release-2-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz: OK
+PASS: Active release release-2-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+Rollback reference: /tmp/cg-live-fdCJDv/deploy/root/releases/release-1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+exit=0
