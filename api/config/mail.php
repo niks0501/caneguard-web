@@ -93,14 +93,6 @@ return [
             'transport' => 'array',
         ],
 
-        'failover' => [
-            'transport' => 'failover',
-            'mailers' => [
-                'smtp',
-            ],
-            'retry_after' => 60,
-        ],
-
         'roundrobin' => [
             'transport' => 'roundrobin',
             'mailers' => [

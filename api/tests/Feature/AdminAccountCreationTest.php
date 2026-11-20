@@ -138,22 +138,6 @@ class AdminAccountCreationTest extends TestCase
         $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $user->refresh()->password));
     }
 
-    public function test_production_failover_of_tls_smtp_delivers_to_the_mailbox(): void
-    {
-        $this->startFakeMailbox('smtp');
-        $this->productionMail();
-        config(['mail.default' => 'failover', 'mail.mailers.failover.mailers' => ['smtp']]);
-        app('mail.manager')->forgetMailers();
-        $this->pilotDistrict();
-        $this->actingAs(User::factory()->admin()->create(), 'web');
-
-        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'failover@example.test']))
-            ->assertCreated()->assertJsonPath('invite_sent', true);
-        $messages = $this->fakeMailboxMessages();
-        $this->assertCount(1, $messages);
-        $this->assertStringContainsString('failover@example.test', (string) file_get_contents($messages[0]));
-    }
-
     public function test_production_smtp_without_tls_reports_invite_not_sent_and_issues_no_token(): void
     {
         Notification::fake();
