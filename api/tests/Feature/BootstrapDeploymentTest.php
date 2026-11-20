@@ -548,6 +548,37 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertFalse($first->fresh()->hasVerifiedEmail());
     }
 
+    public function test_superseded_administrator_stays_barred_after_its_audit_rows_are_pruned(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'first@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $first = User::query()->where('email', 'first@example.test')->firstOrFail();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'second@example.test']);
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        config(['caneguard.security_audit.retention_days' => 1]);
+        $this->travel(3)->days();
+        $this->artisan('auth:prune-security-audits')->assertSuccessful();
+        $this->assertSame(0, SecurityAudit::query()->where('target_user_id', $first->id)->count());
+
+        $this->postJson('/forgot-password', ['email' => 'first@example.test'])->assertAccepted();
+        $this->postJson('/email/verification-notification', ['email' => 'first@example.test'])->assertAccepted();
+        Notification::assertSentToTimes($first, ResetPassword::class, 1);
+        Notification::assertNotSentTo($first, VerifyEmail::class);
+
+        $this->getJson(URL::temporarySignedRoute('verification.verify', now()->addHour(), [
+            'id' => $first->id, 'hash' => sha1($first->getEmailForVerification()),
+        ]))->assertForbidden();
+
+        $this->postJson('/reset-password', [
+            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
+        ])->assertUnprocessable()->assertJsonPath('code', 'INVALID_RESET_TOKEN');
+        $this->assertFalse($first->fresh()->hasVerifiedEmail());
+    }
+
     public function test_standalone_verification_cannot_complete_a_pending_bootstrap_administrator_but_redemption_can(): void
     {
         Notification::fake();

@@ -143,7 +143,7 @@ final class BootstrapDeployment extends Command
             ->where('email', '!=', $email)->get()
             ->filter(fn (User $admin) => BootstrapAdministrator::recorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED))
             ->each(function (User $admin) use ($audit, $retired): void {
-                $admin->forceFill(['is_active' => false])->save();
+                $admin->forceFill(['is_active' => false, 'bootstrap_superseded_at' => now()])->save();
                 $retired->push($admin);
                 $audit->handle('account_status_change', SecurityAudit::OUTCOME_SUCCESS, null, $admin, [
                     'before' => ['role' => User::ROLE_ADMIN, 'is_active' => true],

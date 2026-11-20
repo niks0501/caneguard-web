@@ -14,19 +14,25 @@ final class BootstrapAdministrator
             ->contains(fn (SecurityAudit $event) => ($event->metadata['provisioning_channel'] ?? null) === 'bootstrap');
     }
 
-    /** Created by the deployment bootstrap, never redeemed, and not verified: only a set-password redemption can onboard it. */
+    /** Not verified and still owed a set-password redemption: a superseded account, or a bootstrap account never redeemed. */
     public static function awaitingPassword(User $user): bool
     {
-        return ! $user->hasVerifiedEmail()
-            && self::recorded($user, SecurityAudit::ACTION_ACCOUNT_CREATED)
+        if ($user->hasVerifiedEmail()) {
+            return false;
+        }
+        if ($user->bootstrap_superseded_at !== null) {
+            return true;
+        }
+
+        return self::recorded($user, SecurityAudit::ACTION_ACCOUNT_CREATED)
             && ! SecurityAudit::query()->where('target_user_id', $user->id)
                 ->where('action', SecurityAudit::ACTION_PASSWORD_RESET)
                 ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->exists();
     }
 
-    /** A bootstrap administrator whose address was replaced before it set a password. */
+    /** A bootstrap administrator whose address was replaced before it set a password. Durable: independent of audit retention. */
     public static function superseded(User $user): bool
     {
-        return ! $user->is_active && self::awaitingPassword($user);
+        return ! $user->is_active && $user->bootstrap_superseded_at !== null;
     }
 }
