@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeSmtpMailbox;
 use Tests\TestCase;
 
@@ -330,6 +331,65 @@ class AdminAccountCreationTest extends TestCase
         $status = app(ResendWebAccountInvite::class)->handle(User::factory()->admin()->create(), $user);
         $this->assertSame(MailDelivery::NOT_PENDING, $status);
         $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_operator_link_still_refuses_an_onboarded_account_after_its_audits_are_pruned(): void
+    {
+        $this->onboardThenChangeEmail('pruned@example.test');
+
+        $this->travel(3000)->days();
+        $this->artisan('auth:prune-security-audits')->assertSuccessful();
+        $this->assertDatabaseCount('security_audits', 0);
+
+        config(['caneguard.auth.operator_link_email' => 'changed-pruned@example.test']);
+        $this->artisan('auth:set-password-link')->assertFailed();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_field_directory_offers_no_invite_to_an_onboarded_account_with_a_changed_email(): void
+    {
+        $user = $this->onboardThenChangeEmail('directory@example.test');
+
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $row = collect($this->getJson('/api/v1/admin/accounts/field')->assertOk()->json('data'))->firstWhere('uuid', $user->uuid);
+
+        $this->assertIsArray($row);
+        $this->assertFalse($row['invite_pending']);
+    }
+
+    public function test_reset_link_issued_before_an_email_change_cannot_reset_a_new_account_at_the_old_address(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        Notification::fake();
+        $this->pilotDistrict();
+        $moved = User::factory()->reviewer()->create(['email' => 'vacated@example.test']);
+        $this->postWeb('/forgot-password', ['email' => 'vacated@example.test'])->assertAccepted();
+        $token = null;
+        Notification::assertSentTo($moved, ResetPassword::class, function (ResetPassword $notification) use (&$token): bool {
+            $token = $notification->token;
+
+            return true;
+        });
+
+        $this->actingAs($moved->refresh(), 'web')
+            ->patchJson('/api/v1/auth/email', ['email' => 'elsewhere@example.test', 'current_password' => 'password'])
+            ->assertStatus(202);
+        $newOwner = User::factory()->reviewer()->create(['email' => 'vacated@example.test']);
+
+        $this->postWeb('/reset-password', ['token' => $token, 'email' => 'vacated@example.test', 'password' => 'Hijack-Passphrase!42', 'password_confirmation' => 'Hijack-Passphrase!42'])
+            ->assertStatus(422);
+        $this->assertTrue(Hash::check('password', $newOwner->refresh()->password));
+    }
+
+    public function test_operator_target_is_read_from_env_on_a_fresh_boot_even_with_a_config_cache_present(): void
+    {
+        $result = Process::env([
+            'CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh-boot@example.test',
+            'APP_CONFIG_CACHE' => sys_get_temp_dir().'/caneguard-missing-config-'.bin2hex(random_bytes(4)).'.php',
+        ])->run([PHP_BINARY, base_path('artisan'), 'config:show', 'caneguard.auth']);
+
+        $this->assertTrue($result->successful(), $result->errorOutput());
+        $this->assertStringContainsString('fresh-boot@example.test', $result->output());
     }
 
     public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void

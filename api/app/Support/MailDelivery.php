@@ -86,4 +86,9 @@ final class MailDelivery
 
         return Password::RESET_LINK_SENT;
     }
+
+    public static function revokeResetTokens(string $email): void
+    {
+        DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))->where('email', $email)->delete();
+    }
 }

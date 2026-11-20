@@ -149,14 +149,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->is_active && $this->hasVerifiedEmail() && $this->isWebUser();
     }
 
-    /** A verified email, or a password reset or verification ever completed, means onboarding is done even if the address later changed. */
+    /**
+     * Every password reset, password change and email change revokes credentials, which moves auth_version off its
+     * creation value of 1 and never moves it back, so an account that has ever onboarded keeps this answer after
+     * audit pruning. Any other value fails closed.
+     */
     public function hasCompletedOnboarding(): bool
     {
-        return $this->hasVerifiedEmail() || SecurityAudit::query()
-            ->where('target_user_id', $this->getKey())
-            ->whereIn('action', [SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::ACTION_EMAIL_VERIFICATION])
-            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
-            ->exists();
+        return $this->hasVerifiedEmail() || (int) $this->auth_version !== 1;
     }
 
     public function isActiveAdmin(): bool

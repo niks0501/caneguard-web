@@ -22,7 +22,7 @@ class IssueSetPasswordLink extends Command
     {
         $email = trim((string) config('caneguard.auth.operator_link_email'));
         if ($email === '') {
-            $this->error('Set CANEGUARD_OPERATOR_LINK_EMAIL, then refresh the config cache as docs/production-deployment.md describes.');
+            $this->error('Set CANEGUARD_OPERATOR_LINK_EMAIL in the shared .env, then run this command as docs/production-deployment.md describes.');
 
             return self::FAILURE;
         }

@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangeEmailRequest;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\MailDelivery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -33,8 +34,9 @@ class ChangeEmailController extends Controller
             ], 422);
         }
 
-        $oldEmail = $user->email;
-        DB::transaction(function () use ($audits, $oldEmail, $request, $revoker, $user): void {
+        DB::transaction(function () use ($audits, $request, $revoker, $user): void {
+            $oldEmail = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail()->email;
+            MailDelivery::revokeResetTokens($oldEmail);
             $user->forceFill([
                 'email' => $request->validated('email'),
                 'email_verified_at' => null,
