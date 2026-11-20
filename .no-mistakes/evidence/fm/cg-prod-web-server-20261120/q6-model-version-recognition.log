@@ -1,0 +1,22 @@
+# Q6 - the shipped phone's v2.0-mobilenetv2 model version is recognised on the server
+
+Revision: eca16dfd0e1eca3fed2200f5cb6026be711a45bf
+Product: live Laravel API over HTTP on 127.0.0.1:8123, default config (no CANEGUARD_ACCEPTED_MODEL_VERSIONS override;
+         this run's .env sets no such variable, so config('caneguard.accepted_model_versions') is the shipped default)
+Effective accepted_model_versions: v2.0-mobilenetv2,v1.0-mobilenetv2
+
+Flow: POST /api/v2/mobile/reports as the pilot inspector (multipart, real 1x1 PNG photo), then
+      GET /api/v1/reports/{uuid} as the signed-in reviewer (office cookie session).
+
+model_version=v2.0-mobilenetv2
+  POST /api/v2/mobile/reports -> HTTP 201
+  GET  /api/v1/reports/01a1f9bf-3b25-706a-b3dc-8cdbd41572ce -> model_version=v2.0-mobilenetv2 model_version_recognised=true
+
+model_version=v1.0-mobilenetv2
+  POST /api/v2/mobile/reports -> HTTP 201
+  GET  /api/v1/reports/01a1f9bf-3b99-7244-9411-3bfb5540c49b -> model_version=v1.0-mobilenetv2 model_version_recognised=true
+
+model_version=v9.9-future-experimental
+  POST /api/v2/mobile/reports -> HTTP 201
+  GET  /api/v1/reports/01a1f9bf-3bf9-738a-98ae-d7b0a4f7885f -> model_version=v9.9-future-experimental model_version_recognised=false
+

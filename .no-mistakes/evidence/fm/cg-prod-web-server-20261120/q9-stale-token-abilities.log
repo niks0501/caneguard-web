@@ -1,0 +1,32 @@
+# Q9 - a mobile token's abilities are re-derived from the owner's current identity
+
+Revision: eca16dfd0e1eca3fed2200f5cb6026be711a45bf
+Product: live Laravel API over HTTP - php -c deploy/server/php/caneguard-upload-limits.ini -S 127.0.0.1:8123 -t api/public api/server.php
+Isolated throwaway SQLite database: /tmp/cg-live/db.sqlite (created for this run, deleted afterwards)
+
+## 1) Current pilot inspector with a token that still carries the stale sign-in abilities
+   before:    token 6 caneguard-mobile:stale-device-ev abilities=["account:security"]
+   GET /api/v1/mobile/notifications -> HTTP 200   (ability gate requires notification:read)
+{"data":[],"links":{"first":null,"last":null,"prev":null,"next":null},"meta":{"path":"http:\/\/127.0.0.1:8123\/api\/v1\/mobile\/notifications","per_page":100,"next_cursor":null,"prev_cursor":null},"sy
+   after:     token 6 caneguard-mobile:stale-device-ev abilities=["report:submit","survey:submit","report:status","assignment:read","assignment:complete","notification:read"]
+
+## 2) Inspector whose district membership was revoked (token still holds the full list)
+   before:    token 7 caneguard-mobile:revoked-device-ev abilities=["report:submit","survey:submit","report:status","assignment:read","assignment:complete","notification:read"]
+   GET /api/v1/mobile/notifications -> HTTP 403  {"message":"The mobile capability is no longer current.","code":"CAPABILITY_REVOKED"}
+   after:     token 7 caneguard-mobile:revoked-device-ev abilities=["report:submit","survey:submit","report:status","assignment:read","assignment:complete","notification:read"]
+
+## 3) Farmer without pilot membership
+   before:    token 8 caneguard-mobile:farmer-device-ev abilities=["account:security"]
+   GET /api/v1/mobile/notifications -> HTTP 403  {"message":"This action is unauthorized.","code":"FORBIDDEN"}
+   after:     token 8 caneguard-mobile:farmer-device-ev abilities=["account:security"]
+
+## 4) Adversarial: a non-mobile-named PAT of the same current pilot inspector
+   before:    token 9 web-cli-ev                       abilities=["account:security"]
+   GET /api/v1/mobile/auth/me -> HTTP 200
+   after:     token 9 web-cli-ev                       abilities=["account:security"]
+
+## 5) Adversarial: an inspector demoted to farmer after the token was issued
+   owner role now: farmer
+   before:    token 10 caneguard-mobile:demoted-device-ev abilities=["account:security"]
+   GET /api/v1/mobile/notifications -> HTTP 403  {"message":"This action is unauthorized.","code":"FORBIDDEN"}
+   after:     token 10 caneguard-mobile:demoted-device-ev abilities=["account:security"]

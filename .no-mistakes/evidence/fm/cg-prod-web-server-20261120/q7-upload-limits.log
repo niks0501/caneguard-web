@@ -1,0 +1,34 @@
+# Q7 - production upload limits are shipped as managed server config and take effect
+
+Revision: eca16dfd0e1eca3fed2200f5cb6026be711a45bf
+
+## Managed PHP-FPM config deploy/server/php/caneguard-upload-limits.ini is the effective limit set
+$ php -c deploy/server/php/caneguard-upload-limits.ini -r 'echo ini_get(...)'
+  upload_max_filesize=20M post_max_size=24M
+$ php -r 'echo ini_get(...)'   # stock host defaults, for contrast
+  upload_max_filesize=2M post_max_size=8M
+
+## nginx config deploy/server/nginx/caneguard-upload-limits.conf
+  # Managed by docs/production-deployment.md (Server upload limits). Applies to every server block on this host.
+  client_max_body_size 24m;
+
+## Integrity manifest the administrator installs from (deploy/server/SHA256SUMS)
+$ cd deploy/server && sha256sum -c SHA256SUMS
+  nginx/caneguard-upload-limits.conf: OK
+  php/caneguard-upload-limits.ini: OK
+
+## End-to-end: a 9 MiB original photo (near the 10 MiB contract maximum) through the real API
+   Photo on disk: 9437184 bytes, real JPEG 2000x2000
+
+a) Server started with stock PHP limits (php -S 127.0.0.1:8124, upload_max_filesize=2M post_max_size=8M):
+   POST /api/v2/mobile/reports -> HTTP 413
+{"message":"The request could not be processed.","code":"HTTP_ERROR"}
+
+b) Server started with the managed limits (php -c deploy/server/php/caneguard-upload-limits.ini -S 127.0.0.1:8123):
+   POST /api/v2/mobile/reports -> HTTP 201
+   persisted identity=01a1f9bf-74a3-71cd-8803-3290fb5d9f69 image.size_bytes=9437184 image.mime_type=image/jpeg
+
+c) Adversarial: a 12 MiB photo still exceeds the contract's 10 MiB maximum (server limit is not a bypass)
+   Photo on disk: 12582912 bytes
+   POST /api/v2/mobile/reports -> HTTP 422
+{"message":"The given data was invalid.","code":"VALIDATION_ERROR","errors":{"image":["The image field must not be greater than 10240 kilobytes."]}}
