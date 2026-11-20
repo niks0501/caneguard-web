@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Actions\Auth\RecordSecurityAudit;
 use App\Models\SecurityAudit;
+use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -11,7 +12,7 @@ class PruneSecurityAudits extends Command
 {
     protected $signature = 'auth:prune-security-audits';
 
-    protected $description = 'Remove security audit records past the configured retention period, except the bootstrap administrator account-created and invite-sent records';
+    protected $description = 'Remove security audit records past the configured retention period, except the invitation records of a bootstrap administrator that is still pending';
 
     public function handle(RecordSecurityAudit $audit): int
     {
@@ -23,7 +24,10 @@ class PruneSecurityAudits extends Command
                 ->where(fn ($query) => $query->whereNull('metadata->provisioning_channel')
                     ->orWhere('metadata->provisioning_channel', '!=', 'bootstrap')
                     ->orWhereNotIn('action', [SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::ACTION_ACCOUNT_INVITE])
-                    ->orWhere('outcome', '!=', SecurityAudit::OUTCOME_SUCCESS))
+                    ->orWhere('outcome', '!=', SecurityAudit::OUTCOME_SUCCESS)
+                    ->orWhereNotExists(fn ($pending) => $pending->selectRaw('1')->from('users')
+                        ->whereColumn('users.id', 'security_audits.target_user_id')
+                        ->where('role', User::ROLE_ADMIN)->where('is_active', true)->whereNull('email_verified_at')))
                 ->delete();
 
             $audit->handle(SecurityAudit::ACTION_PRUNE_RUN, SecurityAudit::OUTCOME_SUCCESS, metadata: [

@@ -119,8 +119,10 @@ fi
 cron_legacy="* * * * * cd $current/api && php artisan schedule:run >> /dev/null 2>&1"
 cron_next="$(printf '%s\n' "$cron_existing" | awk \
   -v legacy="$cron_legacy" -v prefix="* * * * * cd $current/api && " -v line="$cron_line" '
-  { entry = $0; gsub(/[ \t]+/, " ", entry); sub(/^ /, "", entry); sub(/ $/, "", entry) }
-  entry == "" || entry == legacy || (index(entry, prefix) == 1 && entry ~ /artisan schedule:run >> \/dev\/null 2>&1 # caneguard-scheduler$/) { next }
+  function norm(s) { gsub(/[ \t]+/, " ", s); gsub(/ ?>> ?/, ">>", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
+  BEGIN { legacy = norm(legacy) }
+  { entry = norm($0) }
+  entry == "" || entry == legacy || (index(entry, prefix) == 1 && entry ~ /artisan schedule:run>>\/dev\/null 2>&1 # caneguard-scheduler$/) { next }
   { print }
   END { print line }')"
 if [[ "$cron_next" != "$cron_existing" ]]; then

@@ -6,7 +6,9 @@ use App\Actions\Auth\RecordSecurityAudit;
 use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\BootstrapAdministrator;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -19,7 +21,7 @@ use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 /**
  * Run by every production deploy after migrations. Safe to repeat: it adds what is
  * missing from the environment, and deactivates an earlier pending first administrator
- * when the configured address changes. It never removes rows.
+ * when the configured address changes. It never deletes accounts or audit rows.
  */
 final class BootstrapDeployment extends Command
 {
@@ -67,7 +69,9 @@ final class BootstrapDeployment extends Command
 
     private function admin(RecordSecurityAudit $audit, string $email): int
     {
-        $user = DB::transaction(fn (): User|int => $this->pendingAdmin($audit, $email));
+        $retired = collect();
+        $user = DB::transaction(fn (): User|int => $this->pendingAdmin($audit, $email, $retired));
+        $retired->each(fn (User $admin) => Password::broker()->getRepository()->delete($admin));
         if (! $user instanceof User) {
             return $user;
         }
@@ -87,7 +91,8 @@ final class BootstrapDeployment extends Command
         return self::SUCCESS;
     }
 
-    private function pendingAdmin(RecordSecurityAudit $audit, string $email): User|int
+    /** @param  Collection<int, User>  $retired  Superseded administrators whose reset links are deleted after commit. */
+    private function pendingAdmin(RecordSecurityAudit $audit, string $email, Collection $retired): User|int
     {
         $admins = User::query()->where('role', User::ROLE_ADMIN)->lockForUpdate()->get();
         if ($admins->contains(fn (User $admin) => $admin->isActiveAdmin())) {
@@ -114,7 +119,7 @@ final class BootstrapDeployment extends Command
             return self::SUCCESS;
         }
 
-        $this->supersedePendingAdmins($audit, $email);
+        $this->supersedePendingAdmins($audit, $email, $retired);
 
         if (! $this->deliverable((string) config('mail.default'))) {
             $this->error('Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine. Configure SMTP and deploy again.');
@@ -125,14 +130,15 @@ final class BootstrapDeployment extends Command
         return $existing ?? $this->createAdmin($audit, $email);
     }
 
-    private function supersedePendingAdmins(RecordSecurityAudit $audit, string $email): void
+    /** @param  Collection<int, User>  $retired */
+    private function supersedePendingAdmins(RecordSecurityAudit $audit, string $email, Collection $retired): void
     {
         User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->whereNull('email_verified_at')
             ->where('email', '!=', $email)->get()
-            ->filter(fn (User $admin) => $this->bootstrapRecorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED))
-            ->each(function (User $admin) use ($audit): void {
+            ->filter(fn (User $admin) => BootstrapAdministrator::recorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED))
+            ->each(function (User $admin) use ($audit, $retired): void {
                 $admin->forceFill(['is_active' => false])->save();
-                Password::broker()->getRepository()->delete($admin);
+                $retired->push($admin);
                 $audit->handle('account_status_change', SecurityAudit::OUTCOME_SUCCESS, null, $admin, [
                     'before' => ['role' => User::ROLE_ADMIN, 'is_active' => true],
                     'after' => ['role' => $admin->role, 'is_active' => false],
@@ -170,14 +176,7 @@ final class BootstrapDeployment extends Command
             return false;
         }
 
-        return $this->bootstrapRecorded($user, $action);
-    }
-
-    private function bootstrapRecorded(User $user, string $action): bool
-    {
-        return SecurityAudit::query()->where('target_user_id', $user->id)->where('action', $action)
-            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->get()
-            ->contains(fn (SecurityAudit $event) => ($event->metadata['provisioning_channel'] ?? null) === 'bootstrap');
+        return BootstrapAdministrator::recorded($user, $action);
     }
 
     private function deliverable(string $mailer): bool

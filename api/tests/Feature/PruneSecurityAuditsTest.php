@@ -29,24 +29,31 @@ class PruneSecurityAuditsTest extends TestCase
         $this->assertDatabaseHas('security_audits', ['action' => SecurityAudit::ACTION_PRUNE_RUN, 'outcome' => SecurityAudit::OUTCOME_SUCCESS]);
     }
 
-    public function test_security_audit_prune_keeps_only_the_bootstrap_recovery_records(): void
+    public function test_security_audit_prune_keeps_only_the_bootstrap_records_of_a_pending_administrator(): void
     {
         config(['caneguard.security_audit.retention_days' => 30]);
         $old = now()->subDays(31);
+        $pending = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => true, 'email_verified_at' => null]);
+        $verified = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => true, 'email_verified_at' => $old]);
+        $superseded = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => false, 'email_verified_at' => null]);
         $bootstrap = ['provisioning_channel' => 'bootstrap'];
         $kept = [
-            SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
-            SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $pending->id, 'action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $pending->id, 'action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
         ];
         $removed = [
             SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_BOOTSTRAP_DISTRICT, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
-            SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_FAILURE, 'metadata' => $bootstrap, 'created_at' => $old]),
-            SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'web'], 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $pending->id, 'action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_FAILURE, 'metadata' => $bootstrap, 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $pending->id, 'action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'web'], 'created_at' => $old]),
             SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_REGISTRATION, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => null, 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $verified->id, 'action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $verified->id, 'action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $superseded->id, 'action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
+            SecurityAudit::query()->create(['target_user_id' => $superseded->id, 'action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => $bootstrap, 'created_at' => $old]),
         ];
 
         $this->artisan('auth:prune-security-audits')
-            ->expectsOutput('Pruned 4 security audit records.')
+            ->expectsOutput('Pruned 8 security audit records.')
             ->assertSuccessful();
 
         foreach ($kept as $row) {

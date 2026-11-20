@@ -148,6 +148,17 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertSame([$managed], $this->crontabLines());
     }
 
+    public function test_legacy_scheduler_line_without_spaces_around_the_redirection_is_replaced_not_duplicated(): void
+    {
+        $legacy = "* * * * * cd {$this->root}/current/api && php artisan schedule:run >>/dev/null 2>&1";
+        file_put_contents($this->crontab, "{$legacy}\n");
+        $managed = "* * * * * cd {$this->root}/current/api && {$this->bin}/php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler";
+
+        $this->assertTrue($this->deploy('release-1-'.str_repeat('b', 40))->isSuccessful());
+
+        $this->assertSame([$managed], $this->crontabLines());
+    }
+
     public function test_failed_crontab_rewrite_aborts_before_replacing_the_existing_jobs(): void
     {
         $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
@@ -173,16 +184,13 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertContains("artisan caneguard:record-scheduler-install {$managed} --no-interaction", $this->logLines());
     }
 
-    public function test_configuration_install_replaces_the_shared_env_with_owner_only_mode_and_removes_the_upload(): void
+    public function test_configuration_install_replaces_the_shared_env_from_stdin_without_leaving_a_staging_file(): void
     {
-        file_put_contents($this->root.'/releases/.env-4242-1', "APP_KEY=base64:example\n");
-
-        $process = $this->runScript('scripts/install-production-env.sh', ['4242-1']);
+        $process = $this->runScript('scripts/install-production-env.sh', [], [], "APP_KEY=base64:example\n");
 
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
         $this->assertSame("APP_KEY=base64:example\n", file_get_contents($this->root.'/shared/api/.env'));
-        $this->assertSame(0600, fileperms($this->root.'/shared/api/.env') & 0777);
-        $this->assertFileDoesNotExist($this->root.'/releases/.env-4242-1');
+        $this->assertFileDoesNotExist($this->root.'/shared/api/.env.next');
     }
 
     public function test_configuration_install_grants_php_fpm_read_through_acl_without_group_or_other_access(): void
@@ -192,7 +200,6 @@ class ProductionDeployScriptTest extends TestCase
         if ($setfacl === '' || $getfacl === '' || posix_getpwnam('www-data') === false) {
             $this->markTestSkipped('Needs the acl tools and the www-data account.');
         }
-        file_put_contents($this->root.'/releases/.env-6161-1', "APP_KEY=base64:example\n");
         $script = $this->root.'/install-production-env.sh';
         file_put_contents($script, str_replace(
             self::PRODUCTION_ROOT,
@@ -200,7 +207,7 @@ class ProductionDeployScriptTest extends TestCase
             (string) file_get_contents(base_path('../scripts/install-production-env.sh')),
         ));
 
-        $install = new Process(['bash', $script, '6161-1'], null, ['PATH' => getenv('PATH')]);
+        $install = new Process(['bash', $script], null, ['PATH' => getenv('PATH')], "APP_KEY=base64:example\n");
         $install->run();
         $this->assertTrue($install->isSuccessful(), $install->getErrorOutput());
 
@@ -211,15 +218,13 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertContains('other::---', $entries);
     }
 
-    public function test_failed_configuration_install_keeps_the_existing_env_and_removes_the_upload(): void
+    public function test_empty_configuration_input_keeps_the_existing_env(): void
     {
-        file_put_contents($this->root.'/releases/.env-5151-1', '');
-
-        $process = $this->runScript('scripts/install-production-env.sh', ['5151-1']);
+        $process = $this->runScript('scripts/install-production-env.sh', [], [], '');
 
         $this->assertFalse($process->isSuccessful());
         $this->assertSame("APP_ENV=production\n", file_get_contents($this->root.'/shared/api/.env'));
-        $this->assertFileDoesNotExist($this->root.'/releases/.env-5151-1');
+        $this->assertFileDoesNotExist($this->root.'/shared/api/.env.next');
     }
 
     private function deploy(string $releaseId, array $env = []): Process
@@ -241,7 +246,7 @@ class ProductionDeployScriptTest extends TestCase
      * @param  list<string>  $arguments
      * @param  array<string, string>  $env
      */
-    private function runScript(string $relativePath, array $arguments, array $env = []): Process
+    private function runScript(string $relativePath, array $arguments, array $env = [], ?string $stdin = null): Process
     {
         $name = basename($relativePath);
         $script = $this->root.'/'.$name;
@@ -261,6 +266,7 @@ class ProductionDeployScriptTest extends TestCase
                 'CANEGUARD_TEST_CRONTAB' => $this->crontab,
                 ...$env,
             ],
+            $stdin,
         );
         $process->run();
 

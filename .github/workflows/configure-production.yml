@@ -48,29 +48,11 @@ jobs:
           ssh-keygen -lf "$RUNNER_TEMP/caneguard-ssh/known_hosts" >/dev/null
           grep -q '^caneguard\.online ssh-ed25519 ' "$RUNNER_TEMP/caneguard-ssh/known_hosts"
 
-      - name: Upload shared configuration to restricted deploy account
+      - name: Install shared configuration over pinned SSH
         env:
           PRODUCTION_ENV: ${{ secrets.CANEGUARD_PRODUCTION_ENV }}
         run: |
           set -euo pipefail
           test -n "$PRODUCTION_ENV"
-          umask 077
           printf '%s\n' "$PRODUCTION_ENV" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
-            -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" \
-            "umask 077 && f='/var/www/caneguard/releases/.env-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT' && [ ! -e \"\$f\" ] && [ ! -L \"\$f\" ] && install -m 0600 /dev/null \"\$f\" && cat > \"\$f\""
-
-      - name: Install shared configuration
-        run: |
-          set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
-            -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" \
-            "bash -s -- '$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT'" < scripts/install-production-env.sh
-
-      - name: Remove configuration handoff
-        if: always()
-        run: |
-          if [[ -f "$RUNNER_TEMP/caneguard-ssh/known_hosts" ]]; then
-            ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
-              -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" \
-              "rm -f '/var/www/caneguard/releases/.env-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT'"
-          fi
+            -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" "$(cat scripts/install-production-env.sh)"

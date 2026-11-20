@@ -3,6 +3,7 @@
 namespace Tests\MySql;
 
 use App\Models\SecurityAudit;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -19,7 +20,8 @@ class SecurityAuditPruneMySqlTest extends TestCase
             $missingKey = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['via' => 'web'], 'created_at' => $old]);
             $nullMetadata = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_REGISTRATION, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => null, 'created_at' => $old]);
             $webChannel = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'web'], 'created_at' => $old]);
-            $bootstrap = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'bootstrap'], 'created_at' => $old]);
+            $pending = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => true, 'email_verified_at' => null]);
+            $bootstrap = SecurityAudit::query()->create(['target_user_id' => $pending->id, 'action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'bootstrap'], 'created_at' => $old]);
             $failedInvite = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_FAILURE, 'metadata' => ['provisioning_channel' => 'bootstrap'], 'created_at' => $old]);
 
             $this->artisan('auth:prune-security-audits')->assertSuccessful();

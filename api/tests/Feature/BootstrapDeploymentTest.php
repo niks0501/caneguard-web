@@ -6,12 +6,15 @@ use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\Support\CapturingSmtpTransport;
 use Tests\TestCase;
@@ -448,7 +451,7 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
     }
 
-    public function test_scheduler_entry_is_recorded_once_while_it_is_installed(): void
+    public function test_scheduler_entry_is_observed_on_every_run_while_it_is_present(): void
     {
         $entry = '* * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler';
         $this->fakeCrontab("MAILTO=ops@example.test\n{$entry}\n");
@@ -456,7 +459,7 @@ class BootstrapDeploymentTest extends TestCase
         $this->artisan('caneguard:record-scheduler-install', ['cron_line' => $entry])->assertSuccessful();
         $this->artisan('caneguard:record-scheduler-install', ['cron_line' => $entry])->assertSuccessful();
 
-        $this->assertSame([$entry], SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)
+        $this->assertSame([$entry, $entry], SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_OBSERVED)
             ->get()->map(fn (SecurityAudit $row) => $row->metadata['cron_line'])->all());
     }
 
@@ -467,7 +470,7 @@ class BootstrapDeploymentTest extends TestCase
 
         $this->artisan('caneguard:record-scheduler-install', ['cron_line' => $entry])->assertFailed();
 
-        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_OBSERVED)->count());
     }
 
     public function test_missing_crontab_records_nothing(): void
@@ -476,7 +479,74 @@ class BootstrapDeploymentTest extends TestCase
 
         $this->artisan('caneguard:record-scheduler-install', ['cron_line' => 'entry'])->assertFailed();
 
-        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_INSTALLED)->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_SCHEDULER_CRON_OBSERVED)->count());
+    }
+
+    public function test_superseded_administrator_cannot_request_verify_or_redeem_a_link(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'first@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $first = User::query()->where('email', 'first@example.test')->firstOrFail();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'second@example.test']);
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->postJson('/forgot-password', ['email' => 'first@example.test'])->assertAccepted();
+        $this->postJson('/email/verification-notification', ['email' => 'first@example.test'])->assertAccepted();
+        Notification::assertSentToTimes($first, ResetPassword::class, 1);
+        Notification::assertNotSentTo($first, VerifyEmail::class);
+
+        $this->getJson(URL::temporarySignedRoute('verification.verify', now()->addHour(), [
+            'id' => $first->id, 'hash' => sha1($first->getEmailForVerification()),
+        ]))->assertForbidden();
+
+        $this->postJson('/reset-password', [
+            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
+        ])->assertUnprocessable()->assertJsonPath('code', 'INVALID_RESET_TOKEN');
+        $this->assertFalse($first->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_standalone_verification_cannot_complete_a_pending_bootstrap_administrator_but_redemption_can(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'first@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $first = User::query()->where('email', 'first@example.test')->firstOrFail();
+
+        $this->getJson(URL::temporarySignedRoute('verification.verify', now()->addHour(), [
+            'id' => $first->id, 'hash' => sha1($first->getEmailForVerification()),
+        ]))->assertForbidden();
+        $this->assertFalse($first->fresh()->hasVerifiedEmail());
+
+        $this->postJson('/reset-password', [
+            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
+        ])->assertOk()->assertJsonPath('code', 'PASSWORD_RESET');
+        $this->assertTrue($first->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_reset_links_are_deleted_outside_the_provisioning_transaction(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'first@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'second@example.test']);
+        $this->travel(2)->minutes();
+
+        $baseline = DB::transactionLevel();
+        $deleteLevels = [];
+        DB::listen(function ($query) use (&$deleteLevels): void {
+            if (str_starts_with(strtolower($query->sql), 'delete from') && str_contains($query->sql, 'password_reset_tokens')) {
+                $deleteLevels[] = $query->connection->transactionLevel();
+            }
+        });
+
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertNotEmpty($deleteLevels);
+        $this->assertSame([], array_values(array_filter($deleteLevels, fn (int $level) => $level !== $baseline)));
     }
 
     /** Routes the default mailer to an in-memory SMTP transport that records every message actually delivered to it. */
