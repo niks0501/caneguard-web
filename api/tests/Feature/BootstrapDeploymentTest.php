@@ -332,6 +332,26 @@ class BootstrapDeploymentTest extends TestCase
         }
     }
 
+    public function test_changing_the_admin_email_supersedes_the_pending_invitation(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'first@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $first = User::query()->where('email', 'first@example.test')->firstOrFail();
+        $this->assertTrue(DB::table('password_reset_tokens')->where('email', 'first@example.test')->exists());
+
+        $this->configure(['caneguard.bootstrap_admin_email' => 'second@example.test']);
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertFalse($first->fresh()->is_active);
+        $this->assertFalse(DB::table('password_reset_tokens')->where('email', 'first@example.test')->exists());
+        Notification::assertSentToTimes($first, ResetPassword::class, 1);
+        $second = User::query()->where('email', 'second@example.test')->firstOrFail();
+        $this->assertTrue($second->is_active);
+        Notification::assertSentToTimes($second, ResetPassword::class, 1);
+    }
+
     public function test_reset_link_with_a_fragment_is_never_recorded_as_sent(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test', 'caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password#help']);

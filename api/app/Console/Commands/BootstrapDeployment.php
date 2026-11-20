@@ -116,7 +116,20 @@ final class BootstrapDeployment extends Command
             return self::FAILURE;
         }
 
+        $this->supersedePendingAdmins($email);
+
         return $existing ?? $this->createAdmin($audit, $email);
+    }
+
+    private function supersedePendingAdmins(string $email): void
+    {
+        User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->whereNull('email_verified_at')
+            ->where('email', '!=', $email)->get()
+            ->filter(fn (User $admin) => $this->bootstrapRecorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED))
+            ->each(function (User $admin): void {
+                $admin->forceFill(['is_active' => false])->save();
+                Password::broker()->getRepository()->delete($admin);
+            });
     }
 
     private function createAdmin(RecordSecurityAudit $audit, string $email): User

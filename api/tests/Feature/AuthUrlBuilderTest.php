@@ -14,6 +14,21 @@ class AuthUrlBuilderTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_configured_query_does_not_shadow_the_issued_credentials(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password?token=stale&lang=en']);
+        $user = User::factory()->make(['email' => 'owner@example.test']);
+
+        $link = app(\App\Support\AuthUrlBuilder::class)->passwordReset($user, 'issued-token');
+
+        $query = (string) parse_url($link, PHP_URL_QUERY);
+        parse_str($query, $parsed);
+        $this->assertSame('issued-token', $parsed['token']);
+        $this->assertSame('owner@example.test', $parsed['email']);
+        $this->assertSame('en', $parsed['lang']);
+        $this->assertSame(1, substr_count($query, 'token='));
+    }
+
     public function test_configured_auth_url_with_a_fragment_is_rejected(): void
     {
         config(['caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password#help']);

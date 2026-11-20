@@ -28,14 +28,14 @@ final class AuthUrlBuilder
             throw new LogicException('The verification signature could not be generated.');
         }
 
-        return $this->appendQuery(
+        return $this->withQuery(
             $this->configuredUrl('verification_url'),
-            http_build_query([
+            [
                 'id' => $id,
                 'hash' => $hash,
-                'expires' => $query['expires'] ?? null,
-                'signature' => $query['signature'] ?? null,
-            ], '', '&', PHP_QUERY_RFC3986),
+                'expires' => $query['expires'],
+                'signature' => $query['signature'],
+            ],
         );
     }
 
@@ -43,12 +43,12 @@ final class AuthUrlBuilder
         User $user,
         #[\SensitiveParameter] string $token,
     ): string {
-        return $this->appendQuery(
+        return $this->withQuery(
             $this->configuredUrl('password_reset_url'),
-            http_build_query([
+            [
                 'token' => $token,
                 'email' => $user->getEmailForPasswordReset(),
-            ], '', '&', PHP_QUERY_RFC3986),
+            ],
         );
     }
 
@@ -68,14 +68,16 @@ final class AuthUrlBuilder
         return rtrim($url, '?&');
     }
 
-    private function appendQuery(string $url, string $query): string
+    /** @param  array<string, string>  $params */
+    private function withQuery(string $url, array $params): string
     {
-        if ($query === '') {
-            return $url;
-        }
+        [$base, $existing] = array_pad(explode('?', $url, 2), 2, '');
+        $pairs = array_values(array_filter(
+            explode('&', $existing),
+            fn (string $pair): bool => $pair !== '' && ! array_key_exists(urldecode(explode('=', $pair, 2)[0]), $params),
+        ));
+        $pairs[] = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
-        $separator = str_contains($url, '?') ? '&' : '?';
-
-        return $url.$separator.$query;
+        return $base.'?'.implode('&', $pairs);
     }
 }
