@@ -343,11 +343,11 @@ class AdminAccountCreationTest extends TestCase
 
     public function test_operator_link_still_refuses_an_onboarded_account_after_its_audits_are_pruned(): void
     {
-        $this->onboardThenChangeEmail('pruned@example.test');
+        $user = $this->onboardThenChangeEmail('pruned@example.test');
 
         $this->travel(3000)->days();
         $this->artisan('auth:prune-security-audits')->assertSuccessful();
-        $this->assertDatabaseCount('security_audits', 0);
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'password_reset', 'outcome' => 'success']);
 
         config(['caneguard.auth.operator_link_email' => 'changed-pruned@example.test']);
         $this->artisan('auth:set-password-link')->assertFailed();
@@ -450,6 +450,40 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:set-password-link')->assertSuccessful();
 
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $pending->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
+    }
+
+    public function test_production_failover_mailer_is_never_reported_as_delivered(): void
+    {
+        Notification::fake();
+        $this->pilotDistrict();
+        $this->app['env'] = 'production';
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        config([
+            'mail.default' => 'failover',
+            'mail.mailers.failover' => ['transport' => 'failover', 'mailers' => ['smtp', 'log']],
+        ]);
+
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'failover@example.test', 'role' => 'field_reporter']))
+            ->assertCreated()->assertJsonPath('invite_sent', false);
+        Notification::assertNothingSent();
+    }
+
+    public function test_pruning_keeps_successful_onboarding_evidence_and_drops_the_rest(): void
+    {
+        $user = User::factory()->reviewer()->unverified()->create(['email' => 'retained@example.test']);
+        $record = app(RecordSecurityAudit::class);
+        $record->handle(SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::OUTCOME_SUCCESS, target: $user);
+        $record->handle(SecurityAudit::ACTION_EMAIL_VERIFICATION, SecurityAudit::OUTCOME_SUCCESS, target: $user);
+        $record->handle(SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::OUTCOME_FAILURE, target: $user);
+        $record->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, SecurityAudit::OUTCOME_SUCCESS, target: $user);
+
+        $this->travel(3000)->days();
+        $this->artisan('auth:prune-security-audits')->assertSuccessful();
+
+        $this->assertSame(
+            ['password_reset', 'email_verification'],
+            SecurityAudit::query()->orderBy('id')->pluck('action')->all(),
+        );
     }
 
     public function test_invite_stays_bound_to_the_selected_account_when_its_address_is_reassigned(): void
