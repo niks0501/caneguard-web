@@ -80,7 +80,7 @@ export function validateMobileReportUploadV3Artifact(
   }
   if (fields?.model_version?.enum !== undefined || fields?.model_version?.type !== 'string'
     || fields?.model_version?.max_length !== 100 || fields?.model_version?.required !== true
-    || JSON.stringify(fields?.model_version?.known_values) !== JSON.stringify(['v1.0-mobilenetv2'])
+    || JSON.stringify(fields?.model_version?.known_values) !== JSON.stringify(['v2.0-mobilenetv2', 'v1.0-mobilenetv2'])
     || fields?.model_version?.unrecognised_value_policy !== 'persist_as_submitted') {
     issues.push('model_version must preserve bounded, non-empty future versions');
   }
