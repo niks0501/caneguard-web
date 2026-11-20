@@ -35,12 +35,6 @@ class IssueSetPasswordLink extends Command
             return self::FAILURE;
         }
 
-        if (! config('caneguard.auth.operator_link_no_password_confirmed')) {
-            $this->error('Confirm the account has no password by setting CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED=true in the shared .env, then run this command again.');
-
-            return self::FAILURE;
-        }
-
         try {
             $urls->assertPasswordResetUrl();
         } catch (LogicException $e) {
@@ -57,6 +51,9 @@ class IssueSetPasswordLink extends Command
                 }
                 if ($user->hasCompletedOnboarding()) {
                     return 'This account has already completed onboarding. The account holder can use Forgot Password instead.';
+                }
+                if (strtolower(trim((string) config('caneguard.auth.operator_link_no_password_confirmed'))) !== strtolower($user->email)) {
+                    return 'Confirm the account has no password by setting CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED to this account\'s email in the shared .env, then run this command again.';
                 }
 
                 $token = MailDelivery::issueToken($user);
