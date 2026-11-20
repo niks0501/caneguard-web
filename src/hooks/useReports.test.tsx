@@ -143,14 +143,34 @@ describe("report mutations", () => {
       expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
     });
 
-    it("discards aerial analyses from a save that was sent before an observed Off", async () => {
+    it("keeps aerial analyses from a save sent after an Off that the client already observed", async () => {
       const { queryClient, report, wrapper } = setup();
+      const returned = [{ uuid: "a4" }] as never;
       queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: false });
-      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: [{ uuid: "a3" }] as never });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: returned });
       const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
 
       await act(async () => {
         await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(returned);
+    });
+
+    it("discards aerial analyses from a save overtaken by an Off and a later On", async () => {
+      const { queryClient, report, wrapper } = setup();
+      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: true });
+      let finishSave: (saved: unknown) => void = () => undefined;
+      vi.mocked(reportsRepository.updateReview).mockReturnValueOnce(new Promise((resolve) => { finishSave = resolve; }));
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      const pending = result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      await vi.waitFor(() => expect(reportsRepository.updateReview).toHaveBeenCalled());
+      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: false });
+      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: true });
+      finishSave({ ...report, aerialAnalyses: [{ uuid: "a3" }] });
+      await act(async () => {
+        await pending;
       });
 
       expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();

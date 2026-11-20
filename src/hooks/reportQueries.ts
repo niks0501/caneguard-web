@@ -20,12 +20,8 @@ export const reportKeys = {
 
 export const aerialSettingsKey = ["aerial-analysis-settings"] as const;
 
-export interface AerialGateState {
-  installed: boolean;
-  enabled: boolean;
-}
-
-export const aerialCheckLive = (gate: AerialGateState) => gate.installed && gate.enabled;
+export const aerialCheckLive = (gate: { installed: boolean; enabled: boolean }) =>
+  gate.installed && gate.enabled;
 
 export const isCaseDetailQuery = (query: Query) =>
   query.queryKey.length === reportKeys.detail("").length;

@@ -8,10 +8,8 @@ import type {
   HandoffNoteInput,
 } from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
-import type { QueryClient } from "@tanstack/react-query";
 import {
   advisoriesQueryOptions,
-  aerialCheckLive,
   aerialSettingsKey,
   monthlySummaryQueryOptions,
   possibleRecentMatchesQueryOptions,
@@ -19,7 +17,6 @@ import {
   reportQueryOptions,
   reportQueueReadQueryOptions,
   reportsQueryOptions,
-  type AerialGateState,
 } from "./reportQueries";
 import { invalidateReportDependentQueries } from "./reportInvalidation";
 
@@ -85,12 +82,6 @@ export function useOpenCase(reportId: string) {
   });
 }
 
-/** A save response that carries aerial data but was sent before an observed Off is stale. */
-function withObservedAerialGate(queryClient: QueryClient, report: DiseaseReport) {
-  const gate = queryClient.getQueryData<AerialGateState>(aerialSettingsKey);
-  return gate && !aerialCheckLive(gate) ? { ...report, aerialAnalyses: undefined } : report;
-}
-
 function useReportMutation<TInput>(
   reportId: string,
   mutationFn: (input: TInput) => Promise<DiseaseReport>,
@@ -99,10 +90,12 @@ function useReportMutation<TInput>(
 
   return useMutation({
     mutationFn,
-    onSuccess: (report) => {
+    onMutate: () => queryClient.getQueryData(aerialSettingsKey),
+    onSuccess: (report, _input, gateAtSend) => {
+      const gateChangedWhileSaving = queryClient.getQueryData(aerialSettingsKey) !== gateAtSend;
       queryClient.setQueryData<DiseaseReport>(
         reportKeys.detail(reportId),
-        withObservedAerialGate(queryClient, report),
+        gateChangedWhileSaving ? { ...report, aerialAnalyses: undefined } : report,
       );
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
