@@ -46,7 +46,7 @@ export function ForgotPasswordPage() {
           <span>
             If an account matches, a password recovery link will be sent. The link expires in one hour.
           </span>
-          <span>If no link arrives, ask an administrator to issue a set-password link.</span>
+          <span>If no link arrives and you have not set a password yet, ask an administrator to issue a set-password link.</span>
         </div>
       ) : (
         <form className="login-form auth-form" onSubmit={submit}>

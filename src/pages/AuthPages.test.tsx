@@ -74,7 +74,7 @@ describe("public authentication pages", () => {
 
     expect(await screen.findByText("Check your email.")).toBeInTheDocument();
     expect(screen.getByText("If an account matches, a password recovery link will be sent. The link expires in one hour.")).toBeInTheDocument();
-    expect(screen.getByText("If no link arrives, ask an administrator to issue a set-password link.")).toBeInTheDocument();
+    expect(screen.getByText("If no link arrives and you have not set a password yet, ask an administrator to issue a set-password link.")).toBeInTheDocument();
   });
 
   it("verifies an email link through the Laravel endpoint", async () => {
