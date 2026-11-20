@@ -49,28 +49,40 @@ old="$(readlink -f "$current")"
 
 activated=0
 successful=0
+maintenance=0
+restore_previous_release() {
+  (cd "$new/api" && php artisan down --retry=60) || {
+    echo "ERROR: could not enter maintenance mode; rollback aborted, new release stays active." >&2
+    return 1
+  }
+  sleep 60
+  (cd "$new/api" && php artisan auth:backfill-onboarding) ||
+    echo "WARNING: onboarding reconciliation failed before rollback." >&2
+  (cd "$new/api" && php artisan auth:revoke-reset-links) || {
+    echo "ERROR: could not revoke outstanding reset links; rollback aborted, new release stays active." >&2
+    return 1
+  }
+  (cd "$new/api" && php artisan auth:revoke-reset-links --expect-none) || {
+    echo "ERROR: a reset link was issued during rollback; rollback aborted, new release stays active." >&2
+    return 1
+  }
+  ln -s "$old" "$root/.rollback-$$" || return 1
+  mv -Tf "$root/.rollback-$$" "$current" || return 1
+}
 cleanup() {
   status=$?
   trap - EXIT
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
-    if ! (cd "$new/api" && php artisan down --retry=60); then
-      echo "ERROR: could not enter maintenance mode; rollback aborted, new release stays active." >&2
-      exit 1
+    maintenance=1
+    if restore_previous_release; then
+      curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true
+      echo "WARNING: Database migrations are not rolled back automatically." >&2
     fi
-    sleep 60
-    (cd "$new/api" && php artisan auth:backfill-onboarding) ||
-      echo "WARNING: onboarding reconciliation failed before rollback." >&2
-    if ! (cd "$new/api" && php artisan auth:revoke-reset-links); then
-      echo "ERROR: could not revoke outstanding reset links; rollback aborted, new release stays active." >&2
-      (cd "$new/api" && php artisan up) || true
-      exit 1
-    fi
-    ln -s "$old" "$root/.rollback-$$"
-    mv -Tf "$root/.rollback-$$" "$current"
-    (cd "$old/api" && php artisan up) || echo "WARNING: could not leave maintenance mode." >&2
-    curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true
-    echo "WARNING: Database migrations are not rolled back automatically." >&2
+  fi
+  if [[ "$maintenance" -eq 1 ]]; then
+    (cd "$(readlink -f "$current")/api" && php artisan up) ||
+      echo "ERROR: could not leave maintenance mode; run php artisan up on the active release." >&2
   fi
   rm -f "$archive"
   exit "$status"

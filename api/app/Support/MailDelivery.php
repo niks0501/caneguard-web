@@ -88,11 +88,8 @@ final class MailDelivery
         } catch (Throwable $e) {
             DB::transaction(function () use ($table, $user, $previous, $issuedHash): void {
                 User::query()->whereKey($user->getKey())->lockForUpdate()->first();
-                if (DB::table($table)->where('email', $user->email)->value('token') !== $issuedHash) {
-                    return;
-                }
-                DB::table($table)->where('email', $user->email)->delete();
-                if ($previous !== []) {
+                $removed = DB::table($table)->where('email', $user->email)->where('token', $issuedHash)->delete();
+                if ($removed === 1 && $previous !== []) {
                     DB::table($table)->insert($previous);
                 }
             });

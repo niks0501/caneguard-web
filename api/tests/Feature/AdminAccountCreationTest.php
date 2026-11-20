@@ -628,6 +628,18 @@ class AdminAccountCreationTest extends TestCase
         $this->assertNotNull($reset->refresh()->onboarded_at);
     }
 
+    public function test_mail_require_tls_is_read_from_the_environment_on_a_fresh_boot(): void
+    {
+        $absent = sys_get_temp_dir().'/caneguard-mail-absent-'.bin2hex(random_bytes(4)).'.php';
+        foreach (['true' => true, 'false' => false] as $value => $expected) {
+            $result = Process::env(['DB_URL' => '', 'APP_CONFIG_CACHE' => $absent, 'MAIL_REQUIRE_TLS' => $value])
+                ->run([PHP_BINARY, base_path('artisan'), 'tinker', '--execute=echo json_encode(config("mail.mailers.smtp.require_tls"));']);
+
+            $this->assertTrue($result->successful(), $result->errorOutput());
+            $this->assertSame($expected, json_decode(trim($result->output()), true));
+        }
+    }
+
     public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void
     {
         $this->productionMail();
