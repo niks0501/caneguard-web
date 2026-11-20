@@ -3,13 +3,14 @@ import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createQueryClient } from "../app/queryClient";
+import type { DiseaseReport } from "../domain/report.types";
 import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
 import { reportsRepository } from "../services/reports.service";
 import { reportDetailDto } from "../test/fixtures";
 import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
-import { aerialSettingsKey, reportKeys } from "./reportQueries";
+import { recordAerialOff, reportKeys } from "./reportQueries";
 import { useAddAerialAnalysis, useRecordHandoffNote, useUpdateReportReview } from "./useReports";
 
 vi.mock("../services/reports.service", () => ({
@@ -119,7 +120,6 @@ describe("report mutations", () => {
     it("keeps the aerial analyses a review response returns while the check is on", async () => {
       const { queryClient, report, wrapper } = setup();
       const returned = [{ uuid: "a2" }] as never;
-      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: true });
       vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: returned });
       const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
 
@@ -146,7 +146,7 @@ describe("report mutations", () => {
     it("keeps aerial analyses from a save sent after an Off that the client already observed", async () => {
       const { queryClient, report, wrapper } = setup();
       const returned = [{ uuid: "a4" }] as never;
-      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: false });
+      recordAerialOff();
       vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, aerialAnalyses: returned });
       const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
 
@@ -157,18 +157,33 @@ describe("report mutations", () => {
       expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(returned);
     });
 
-    it("discards aerial analyses from a save overtaken by an Off and a later On", async () => {
+    it("keeps aerial analyses from a save during which the check was only turned on", async () => {
       const { queryClient, report, wrapper } = setup();
-      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: true });
-      let finishSave: (saved: unknown) => void = () => undefined;
+      const returned = [{ uuid: "a5" }] as never;
+      let finishSave: (saved: DiseaseReport) => void = () => undefined;
       vi.mocked(reportsRepository.updateReview).mockReturnValueOnce(new Promise((resolve) => { finishSave = resolve; }));
       const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
 
       const pending = result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
       await vi.waitFor(() => expect(reportsRepository.updateReview).toHaveBeenCalled());
-      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: false });
-      queryClient.setQueryData(aerialSettingsKey, { installed: true, enabled: true });
-      finishSave({ ...report, aerialAnalyses: [{ uuid: "a3" }] });
+      finishSave({ ...report, aerialAnalyses: returned });
+      await act(async () => {
+        await pending;
+      });
+
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(returned);
+    });
+
+    it("discards aerial analyses from a save overtaken by an observed Off", async () => {
+      const { queryClient, report, wrapper } = setup();
+      let finishSave: (saved: DiseaseReport) => void = () => undefined;
+      vi.mocked(reportsRepository.updateReview).mockReturnValueOnce(new Promise((resolve) => { finishSave = resolve; }));
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      const pending = result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
+      await vi.waitFor(() => expect(reportsRepository.updateReview).toHaveBeenCalled());
+      recordAerialOff();
+      finishSave({ ...report, aerialAnalyses: [{ uuid: "a3" }] as never });
       await act(async () => {
         await pending;
       });

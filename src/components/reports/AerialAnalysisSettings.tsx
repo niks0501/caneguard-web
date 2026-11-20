@@ -4,7 +4,7 @@ import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
 import type { DiseaseReport } from "../../domain/report.types";
-import { aerialCheckLive, aerialSettingsKey, isCaseDetailQuery, reportKeys } from "../../hooks/reportQueries";
+import { aerialCheckLive, aerialSettingsKey, isCaseDetailQuery, recordAerialOff, reportKeys } from "../../hooks/reportQueries";
 import { Button } from "../ui/Button";
 
 const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.boolean() }) });
@@ -19,6 +19,7 @@ const url = "/api/v1/admin/aerial-analysis";
 async function reconcileAerialCache(queryClient: QueryClient, settings: AerialSettings) {
   const caseDetails = { queryKey: reportKeys.details(), predicate: isCaseDetailQuery };
   if (!aerialCheckLive(settings)) {
+    recordAerialOff();
     await queryClient.cancelQueries(caseDetails);
     queryClient.setQueriesData<DiseaseReport>(
       caseDetails,

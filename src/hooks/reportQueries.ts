@@ -26,6 +26,14 @@ export const aerialCheckLive = (gate: { installed: boolean; enabled: boolean }) 
 export const isCaseDetailQuery = (query: Query) =>
   query.queryKey.length === reportKeys.detail("").length;
 
+let aerialOffObservations = 0;
+
+export const recordAerialOff = () => {
+  aerialOffObservations += 1;
+};
+
+export const aerialOffObservationCount = () => aerialOffObservations;
+
 export const monthlySummaryQueryOptions = (month?: string) =>
   queryOptions({
     queryKey: reportKeys.summary(month),
