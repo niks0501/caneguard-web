@@ -1191,6 +1191,21 @@ class AdminAccountCreationTest extends TestCase
         $this->assertSame(0, SecurityAudit::query()->where('action', 'account_invite_sent')->count());
     }
 
+    public function test_resend_refuses_a_verified_account_without_onboarding_evidence_before_any_send(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        Notification::fake();
+        $this->pilotDistrict();
+        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $field = User::factory()->fieldReporter()->create(['email' => 'verified-pending@example.test']);
+
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertStatus(409);
+
+        Notification::assertNothingSent();
+        $this->assertDatabaseMissing('security_audits', ['target_user_id' => $field->id, 'action' => 'account_invite_sent']);
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
     public function test_resend_invite_rejects_non_field_accounts(): void
     {
         Notification::fake();

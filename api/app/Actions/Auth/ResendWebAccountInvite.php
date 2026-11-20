@@ -20,6 +20,9 @@ final class ResendWebAccountInvite
         } catch (\Throwable $e) {
             Log::warning('Account invitation could not be re-sent.', ['user' => $user->uuid, 'exception' => $e::class]);
         }
+        if ($status === MailDelivery::NOT_PENDING) {
+            return $status;
+        }
         $sent = $status === Password::RESET_LINK_SENT;
         app(RecordSecurityAudit::class)->handle(
             SecurityAudit::ACTION_ACCOUNT_INVITE,
