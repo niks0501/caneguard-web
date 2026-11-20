@@ -1,0 +1,59 @@
+Live mail-path acceptance at 9e3e9ad45c7ed3d374c907a65b1e09930e80c3f3
+Disposable env: APP_ENV=production, SQLite /tmp/cg-mail-live/live.sqlite, CACHE/SESSION=file.
+Two API servers on the same DB: 8011 -> loopback STARTTLS mailbox (deliverable), 8012 -> MAIL_MAILER=log (undeliverable).
+
+1) Bootstrap first admin, mailer = log (undeliverable)
+$ MAIL_MAILER=log php artisan caneguard:bootstrap --no-interaction
+Pilot district: created 'nasugbu-issuing'.
+Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine with MAIL_REQUIRE_TLS=false. Configure SMTP and deploy again.
+EXIT=1        password_reset_tokens rows: 0        users: 0
+
+2) Bootstrap first admin, mailer = SMTP loopback mailbox (deliverable)
+$ php artisan caneguard:bootstrap --no-interaction
+Pilot district: 'nasugbu-issuing' already exists.
+Bootstrap admin: set-password email sent.
+EXIT=0
+mailbox 1.eml -> X-Fake-Envelope-To: <first.admin@example.test>   Subject: Reset your password
+reset URL token redeemed: {"message":"Password updated. Sign in with your new password.","code":"PASSWORD_RESET"} HTTP 200
+web sign-in: POST /login -> HTTP 204, GET /api/v1/me -> {"email":"first.admin@example.test","role":"admin"} HTTP 200
+
+3) Admin creates a field reporter while SMTP delivers
+POST /api/v1/admin/accounts {"name":"Field Reporter One","email":"field.one@example.test","role":"field_reporter",...}
+HTTP 201 {"...","invite_sent":true}
+mailbox 2.eml -> X-Fake-Envelope-To: <field.one@example.test>
+reset URL token redeemed: PASSWORD_RESET HTTP 200; POST /login with the new password -> 403 FORBIDDEN ("cannot access the web workspace"), i.e. credentials accepted for a mobile-only role.
+
+4) Admin creates a reviewer while the mailer is log (undeliverable)
+POST /api/v1/admin/accounts {"name":"Reviewer Unmailed","email":"reviewer.unmailed@example.test","role":"reviewer",...}
+HTTP 201 {"...","invite_sent":false}
+security_audits: account_invite_sent failure ; password_reset_tokens rows: 0 ; mailbox unchanged (2 messages)
+
+5) Resend a pending field invite while the mailer is log
+POST /api/v1/admin/accounts/01a1fa86-ea55-7198-9bba-64d7b31fd647/invite
+HTTP 200 {"invite_sent":false}      password_reset_tokens rows: 0 ; mailbox unchanged
+
+6) Forgot Password
+log mailer:  POST /forgot-password {"email":"field.two@example.test"} -> HTTP 202 PASSWORD_RESET_LINK_SENT ; token rows 0 ; mailbox unchanged
+smtp:        POST /forgot-password {"email":"field.two@example.test"} -> HTTP 202 ; mailbox 3.eml -> X-Fake-Envelope-To: <field.two@example.test>
+             token redeemed -> PASSWORD_RESET HTTP 200
+
+7) Operator fallback while mail is unavailable (MAIL_MAILER=log)
+no target:            EXIT=1 "Set CANEGUARD_OPERATOR_LINK_EMAIL in the shared .env, then run this command..."
+no confirmation:      EXIT=1 "Confirm the account has no password by setting CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED to 01a1fa87-214c-7023-9118-733a1cb9940a..."
+confirmation of another account: EXIT=1 (same refusal, uuid of the locked target echoed)
+already onboarded:    EXIT=1 "This account has already completed onboarding. The account holder can use Forgot Password instead."
+correct uuid:         EXIT=0 https://app.example.test/reset-password?token=c9bbaa8c...&email=reviewer.operator%40example.test
+                      "One-time link for reviewer.operator@example.test; expires in 60 minutes."
+token redeemed -> PASSWORD_RESET HTTP 200 ; POST /login -> HTTP 204 ; GET /api/v1/me -> {"email":"reviewer.operator@example.test","role":"reviewer"} HTTP 200
+security_audits: operator_link_issued success {"channel":"operator_link","operator":"aki","no_password_confirmed":true}
+
+8) Adversarial reset-token binding (legacy unbound row inserted for field.three)
+(a) unbound row (user_id NULL) + token "legacytoken":
+    {"message":"The password recovery link is invalid or expired.","code":"INVALID_RESET_TOKEN"} HTTP 422
+(b) operator-issued bound token for field.three submitted with email=field.two@example.test:
+    {"message":"The password recovery link is invalid or expired.","code":"INVALID_RESET_TOKEN"} HTTP 422
+(c) the same token submitted with its own email:
+    {"message":"Password updated. Sign in with your new password.","code":"PASSWORD_RESET"} HTTP 200
+
+Final disposable state: 8 accounts; 3 mailbox messages, matching exactly the 3 deliverable attempts; 0 outstanding reset-token rows,
+so every undeliverable create/resend/recovery attempt left no token behind.
