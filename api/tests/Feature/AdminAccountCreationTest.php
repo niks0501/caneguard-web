@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Schema;
 use Tests\Support\FakeSmtpMailbox;
 use Tests\TestCase;
 
@@ -468,6 +469,26 @@ class AdminAccountCreationTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_first_deploy_backfill_marks_only_verified_or_password_set_accounts(): void
+    {
+        $authorityOnly = User::factory()->reviewer()->unverified()->create(['email' => 'first-authority@example.test']);
+        $authorityOnly->forceFill(['auth_version' => 2])->save();
+        $verified = User::factory()->reviewer()->create(['email' => 'first-verified@example.test']);
+        $passwordSet = User::factory()->reviewer()->unverified()->create(['email' => 'first-password@example.test']);
+        $failedReset = User::factory()->reviewer()->unverified()->create(['email' => 'first-failed@example.test']);
+        $record = app(RecordSecurityAudit::class);
+        $record->handle(SecurityAudit::ACTION_PASSWORD_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $passwordSet);
+        $record->handle(SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::OUTCOME_FAILURE, target: $failedReset);
+
+        Schema::table('users', fn ($table) => $table->dropColumn('onboarded_at'));
+        (require database_path('migrations/2026_11_20_000000_add_onboarded_at_to_users_table.php'))->up();
+
+        $this->assertNull($authorityOnly->refresh()->onboarded_at);
+        $this->assertNotNull($verified->refresh()->onboarded_at);
+        $this->assertNotNull($passwordSet->refresh()->onboarded_at);
+        $this->assertNull($failedReset->refresh()->onboarded_at);
+    }
+
     public function test_pruning_keeps_successful_onboarding_evidence_and_drops_the_rest(): void
     {
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'retained@example.test']);
@@ -481,7 +502,7 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:prune-security-audits')->assertSuccessful();
 
         $this->assertSame(
-            ['password_reset', 'email_verification'],
+            ['password_reset'],
             SecurityAudit::query()->orderBy('id')->pluck('action')->all(),
         );
     }

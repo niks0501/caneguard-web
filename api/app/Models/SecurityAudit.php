@@ -19,7 +19,7 @@ class SecurityAudit extends Model
     public const OUTCOME_SUCCESS = 'success';
 
     /** Successful records of these actions are kept past retention, because cutover reconciliation depends on them. */
-    public const ONBOARDING_EVIDENCE_ACTIONS = [self::ACTION_PASSWORD_RESET, self::ACTION_PASSWORD_CHANGE, self::ACTION_EMAIL_VERIFICATION];
+    public const ONBOARDING_EVIDENCE_ACTIONS = [self::ACTION_PASSWORD_RESET, self::ACTION_PASSWORD_CHANGE];
 
     public const OUTCOME_FAILURE = 'failure';
 

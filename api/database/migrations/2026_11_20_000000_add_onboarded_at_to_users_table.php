@@ -14,17 +14,15 @@ return new class extends Migration
             $table->timestamp('onboarded_at')->nullable();
         });
 
-        // Fail closed: any existing account with verification, a reset or verification record, or a credential
-        // revocation is treated as onboarded, because its history cannot prove the holder never set a password.
-        $onboardingAudits = DB::table('security_audits')
+        $passwordSet = DB::table('security_audits')
             ->whereNotNull('target_user_id')
-            ->whereIn('action', [SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::ACTION_EMAIL_VERIFICATION])
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
+            ->whereIn('action', [SecurityAudit::ACTION_PASSWORD_RESET, SecurityAudit::ACTION_PASSWORD_CHANGE])
             ->select('target_user_id');
 
         DB::table('users')
             ->where(fn ($query) => $query->whereNotNull('email_verified_at')
-                ->orWhere('auth_version', '!=', 1)
-                ->orWhereIn('id', $onboardingAudits))
+                ->orWhereIn('id', $passwordSet))
             ->update(['onboarded_at' => now()]);
     }
 
