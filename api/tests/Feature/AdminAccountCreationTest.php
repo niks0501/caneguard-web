@@ -295,7 +295,7 @@ class AdminAccountCreationTest extends TestCase
     public function test_operator_link_refuses_accounts_that_completed_onboarding_and_unknown_emails(): void
     {
         $this->productionMail();
-        User::factory()->reviewer()->create(['email' => 'done@example.test']);
+        User::factory()->reviewer()->create(['email' => 'done@example.test'])->forceFill(['onboarded_at' => now()])->save();
 
         config(['caneguard.auth.operator_link_email' => 'done@example.test']);
         $this->artisan('auth:set-password-link')->assertFailed();
@@ -451,6 +451,14 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:set-password-link')->assertSuccessful();
 
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $pending->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
+    }
+
+    public function test_production_ses_and_postmark_round_robin_counts_as_delivery(): void
+    {
+        $this->app['env'] = 'production';
+        config(['mail.default' => 'pool', 'mail.mailers.pool' => ['transport' => 'roundrobin', 'mailers' => ['ses', 'postmark']]]);
+
+        $this->assertTrue(MailDelivery::canDeliver());
     }
 
     public function test_production_failover_mailer_is_never_reported_as_delivered(): void
@@ -910,7 +918,7 @@ class AdminAccountCreationTest extends TestCase
         // creation invite, the throttled attempt (failure), and the delivered resend
         $this->assertSame(3, SecurityAudit::query()->where('target_user_id', $field->id)->where('action', 'account_invite_sent')->count());
 
-        $field->forceFill(['email_verified_at' => now()])->save();
+        $field->forceFill(['email_verified_at' => now(), 'onboarded_at' => now()])->save();
         $this->getJson('/api/v1/admin/accounts/field')->assertJsonPath('data.0.invite_pending', false);
         $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertStatus(409);
     }

@@ -155,7 +155,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasCompletedOnboarding(): bool
     {
-        return $this->onboarded_at !== null || $this->hasVerifiedEmail() || SecurityAudit::query()
+        return $this->onboarded_at !== null || SecurityAudit::query()
             ->where('target_user_id', $this->getKey())
             ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
             ->whereIn('action', SecurityAudit::ONBOARDING_EVIDENCE_ACTIONS)
