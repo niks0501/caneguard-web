@@ -76,7 +76,13 @@ final class BootstrapDeployment extends Command
             return $user;
         }
 
-        $sent = $this->sendSetPasswordEmail($user);
+        $status = $this->sendSetPasswordEmail($user);
+        if ($status === Password::RESET_THROTTLED) {
+            $this->error('Bootstrap admin: a set-password link was issued less than a minute ago. Deploy again after that.');
+
+            return self::FAILURE;
+        }
+        $sent = $status === Password::RESET_LINK_SENT;
         $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, $sent ? SecurityAudit::OUTCOME_SUCCESS : SecurityAudit::OUTCOME_FAILURE, null, $user, [
             'provisioning_channel' => 'bootstrap',
         ]);
@@ -159,14 +165,14 @@ final class BootstrapDeployment extends Command
         return $user;
     }
 
-    private function sendSetPasswordEmail(User $user): bool
+    private function sendSetPasswordEmail(User $user): ?string
     {
         try {
-            return Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
+            return Password::broker()->sendResetLink(['email' => $user->email]);
         } catch (TransportExceptionInterface $e) {
             Log::warning('Bootstrap administrator set-password email could not be sent.', ['exception' => $e::class]);
 
-            return false;
+            return null;
         }
     }
 

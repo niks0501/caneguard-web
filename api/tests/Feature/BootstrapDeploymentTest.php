@@ -242,6 +242,29 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertSame(['owner@example.test'], $this->recipients($transport));
     }
 
+    public function test_retry_inside_the_reset_throttle_fails_without_recording_a_second_delivery_failure(): void
+    {
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        $transport = $this->captureMail();
+        $mailDown = true;
+        $this->app['events']->listen(NotificationSending::class, function () use (&$mailDown): void {
+            if ($mailDown) {
+                throw new TransportException('mail down');
+            }
+        });
+
+        $this->artisan('caneguard:bootstrap')->assertFailed();
+
+        $mailDown = false;
+        $this->artisan('caneguard:bootstrap')->assertFailed();
+
+        $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)
+            ->where('outcome', SecurityAudit::OUTCOME_FAILURE)->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->count());
+        $this->assertSame([], $this->recipients($transport));
+    }
+
     public function test_mail_url_that_selects_a_log_transport_fails_before_creating_an_administrator(): void
     {
         Notification::fake();
