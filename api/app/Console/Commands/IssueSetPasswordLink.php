@@ -52,8 +52,8 @@ class IssueSetPasswordLink extends Command
                 if ($user->hasCompletedOnboarding()) {
                     return 'This account has already completed onboarding. The account holder can use Forgot Password instead.';
                 }
-                if (strtolower(trim((string) config('caneguard.auth.operator_link_no_password_confirmed'))) !== strtolower($user->email)) {
-                    return 'Confirm the account has no password by setting CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED to this account\'s email in the shared .env, then run this command again.';
+                if (trim((string) config('caneguard.auth.operator_link_no_password_confirmed')) !== (string) $user->uuid) {
+                    return "Confirm the account has no password by setting CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED to {$user->uuid} in the shared .env, then run this command again.";
                 }
 
                 $token = MailDelivery::issueToken($user);

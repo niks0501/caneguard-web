@@ -56,10 +56,19 @@ class AdminAccountCreationTest extends TestCase
             ->postJson($uri, $data);
     }
 
+    /** Targets the operator command at an existing account and confirms that account's uuid, as the operator's .env would. */
+    private function operatorTarget(string $email): void
+    {
+        config([
+            'caneguard.auth.operator_link_email' => $email,
+            'caneguard.auth.operator_link_no_password_confirmed' => (string) User::query()->where('email', strtolower($email))->value('uuid'),
+        ]);
+    }
+
     /** @return array{token: string, email: string} The query of the link the operator command printed. */
     private function issueOperatorLink(string $email): array
     {
-        config(['caneguard.auth.operator_link_email' => $email, 'caneguard.auth.operator_link_no_password_confirmed' => $email]);
+        $this->operatorTarget($email);
         Artisan::call('auth:set-password-link');
         $link = strtok(Artisan::output(), "\n");
         parse_str((string) parse_url((string) $link, PHP_URL_QUERY), $query);
@@ -336,7 +345,7 @@ class AdminAccountCreationTest extends TestCase
         $this->productionMail();
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'env@example.test']);
 
-        config(['caneguard.auth.operator_link_email' => 'ENV@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'ENV@example.test']);
+        $this->operatorTarget('ENV@example.test');
         Artisan::call('auth:set-password-link');
         $this->assertStringStartsWith('https://app.example.test/reset-password?', (string) strtok(Artisan::output(), "\n"));
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
@@ -352,7 +361,7 @@ class AdminAccountCreationTest extends TestCase
         User::factory()->reviewer()->unverified()->create(['email' => 'frag@example.test']);
 
         foreach (['https://app.example.test/reset-password#token', 'https://user:secret@app.example.test/reset-password'] as $url) {
-            config(['caneguard.auth.password_reset_url' => $url, 'caneguard.auth.operator_link_email' => 'frag@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'frag@example.test']);
+            config(['caneguard.auth.password_reset_url' => $url, 'caneguard.auth.operator_link_email' => 'frag@example.test']);
             $this->artisan('auth:set-password-link')->assertFailed();
         }
         $this->assertDatabaseCount('password_reset_tokens', 0);
@@ -369,9 +378,9 @@ class AdminAccountCreationTest extends TestCase
         $this->productionMail();
         User::factory()->reviewer()->create(['email' => 'done@example.test'])->forceFill(['onboarded_at' => now()])->save();
 
-        config(['caneguard.auth.operator_link_email' => 'done@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'done@example.test']);
+        $this->operatorTarget('done@example.test');
         $this->artisan('auth:set-password-link')->assertFailed();
-        config(['caneguard.auth.operator_link_email' => 'nobody@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'nobody@example.test']);
+        $this->operatorTarget('nobody@example.test');
         $this->artisan('auth:set-password-link')->assertFailed();
         $this->assertDatabaseCount('password_reset_tokens', 0);
         $this->assertDatabaseMissing('security_audits', ['action' => 'operator_link_issued']);
@@ -398,7 +407,7 @@ class AdminAccountCreationTest extends TestCase
     {
         $user = $this->onboardThenChangeEmail('moved@example.test');
 
-        config(['caneguard.auth.operator_link_email' => 'changed-moved@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'changed-moved@example.test']);
+        $this->operatorTarget($user->refresh()->email);
         $this->artisan('auth:set-password-link')->assertFailed();
         $this->assertDatabaseCount('password_reset_tokens', 0);
         $this->assertSame(1, SecurityAudit::query()->where('target_user_id', $user->id)->where('action', 'operator_link_issued')->count());
@@ -422,7 +431,7 @@ class AdminAccountCreationTest extends TestCase
         $this->artisan('auth:prune-security-audits')->assertSuccessful();
         $this->assertNotNull($user->refresh()->onboarded_at);
 
-        config(['caneguard.auth.operator_link_email' => 'changed-pruned@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'changed-pruned@example.test']);
+        $this->operatorTarget($user->refresh()->email);
         $this->artisan('auth:set-password-link')->assertFailed();
         $this->assertDatabaseCount('password_reset_tokens', 0);
     }
@@ -491,14 +500,15 @@ class AdminAccountCreationTest extends TestCase
             $this->assertTrue($boot(['APP_CONFIG_CACHE' => $cache])->run([PHP_BINARY, $artisan, 'config:cache'])->successful());
             $cachedDigest = hash_file('sha256', $cache);
 
-            $this->writeDotenv($root, array_replace($env, ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test', 'CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED' => 'fresh@example.test']));
+            $freshUuid = (string) (new \PDO('sqlite:'.$database))->query("SELECT uuid FROM users WHERE email = 'fresh@example.test'")->fetchColumn();
+            $this->writeDotenv($root, array_replace($env, ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test', 'CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED' => $freshUuid]));
 
             $ordinary = $boot(['APP_CONFIG_CACHE' => $cache])->run([PHP_BINARY, $artisan, 'auth:set-password-link']);
             $this->assertFalse($ordinary->successful());
             $this->assertSame(0, $operatorLinks());
 
-            $documented = $boot(['APP_CONFIG_CACHE' => $absent, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test'])
-                ->run(['env', '-u', 'CANEGUARD_OPERATOR_LINK_EMAIL', PHP_BINARY, $artisan, 'auth:set-password-link']);
+            $documented = $boot(['APP_CONFIG_CACHE' => $absent, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test', 'CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED' => 'stale-inherited-confirmation'])
+                ->run(['env', '-u', 'CANEGUARD_OPERATOR_LINK_EMAIL', '-u', 'CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED', PHP_BINARY, $artisan, 'auth:set-password-link']);
             $this->assertTrue($documented->successful(), $documented->errorOutput());
             parse_str((string) parse_url((string) strtok($documented->output(), "\n"), PHP_URL_QUERY), $query);
             $this->assertSame('fresh@example.test', $query['email'] ?? null);
@@ -518,7 +528,7 @@ class AdminAccountCreationTest extends TestCase
         $pending->forceFill(['is_active' => false])->save();
         $pending->forceFill(['is_active' => true])->save();
         $this->artisan('auth:backfill-onboarding')->assertSuccessful();
-        config(['caneguard.auth.operator_link_email' => 'toggled@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'toggled@example.test']);
+        $this->operatorTarget('toggled@example.test');
         $this->artisan('auth:set-password-link')->assertSuccessful();
 
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $pending->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
@@ -543,7 +553,7 @@ class AdminAccountCreationTest extends TestCase
         $this->assertSame('verify-only@example.test', $query['email']);
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $verifiedOnly->id, 'action' => 'operator_link_issued']);
 
-        config(['caneguard.auth.operator_link_email' => 'marked@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'marked@example.test']);
+        $this->operatorTarget('marked@example.test');
         $this->artisan('auth:set-password-link')->assertFailed();
         $this->assertDatabaseMissing('security_audits', ['target_user_id' => $marked->id, 'action' => 'operator_link_issued']);
     }
@@ -569,7 +579,7 @@ class AdminAccountCreationTest extends TestCase
         $authorityOnly = User::factory()->reviewer()->unverified()->create(['email' => 'first-authority@example.test']);
         $authorityOnly->forceFill(['auth_version' => 2])->save();
         $verified = User::factory()->reviewer()->create(['email' => 'first-verified@example.test']);
-        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'first-verified@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'first-verified@example.test']);
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'first-verified@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => (string) User::query()->where('email', 'first-verified@example.test')->value('uuid')]);
         $passwordSet = User::factory()->reviewer()->unverified()->create(['email' => 'first-password@example.test']);
         $failedReset = User::factory()->reviewer()->unverified()->create(['email' => 'first-failed@example.test']);
         $record = app(RecordSecurityAudit::class);
@@ -626,8 +636,9 @@ class AdminAccountCreationTest extends TestCase
 
     public function test_email_change_alone_does_not_complete_onboarding_for_the_operator_fallback(): void
     {
-        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'late-evidence@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'late-evidence@example.test']);
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'late-evidence@example.test']);
+        $this->operatorTarget('late-evidence@example.test');
         app(RecordSecurityAudit::class)->handle(SecurityAudit::ACTION_EMAIL_CHANGE, SecurityAudit::OUTCOME_SUCCESS, target: $user);
 
         $this->assertFalse($user->refresh()->hasCompletedOnboarding());
@@ -636,8 +647,9 @@ class AdminAccountCreationTest extends TestCase
 
     public function test_public_signup_account_with_a_holder_chosen_password_completes_onboarding(): void
     {
-        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'public-signup@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'public-signup@example.test']);
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'public-signup@example.test', 'registration_origin' => 'public_signup']);
+        $this->operatorTarget('public-signup@example.test');
 
         $this->assertTrue($user->hasCompletedOnboarding());
         $this->artisan('auth:set-password-link')->assertFailed();
@@ -669,10 +681,24 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
+    public function test_operator_confirmation_does_not_transfer_to_a_later_account_at_the_same_address(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        $first = User::factory()->reviewer()->unverified()->create(['email' => 'reused@example.test']);
+        $first->forceFill(['email' => 'moved-on@example.test'])->save();
+        $second = User::factory()->reviewer()->unverified()->create(['email' => 'reused@example.test']);
+        config(['caneguard.auth.operator_link_email' => 'reused@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => $first->uuid]);
+
+        $this->artisan('auth:set-password-link')->assertFailed();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+        $this->assertDatabaseMissing('security_audits', ['target_user_id' => $second->id, 'action' => 'operator_link_issued']);
+    }
+
     public function test_a_web_password_login_marks_the_account_so_the_operator_fallback_refuses_it(): void
     {
-        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'web-login@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'web-login@example.test']);
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
         $user = User::factory()->reviewer()->create(['email' => 'web-login@example.test']);
+        $this->operatorTarget('web-login@example.test');
         $this->assertFalse($user->hasCompletedOnboarding());
 
         $this->postJson('/login', ['email' => 'web-login@example.test', 'password' => 'password'])->assertNoContent();
@@ -684,8 +710,9 @@ class AdminAccountCreationTest extends TestCase
 
     public function test_a_mobile_password_login_is_onboarding_evidence_for_an_account_whose_marker_is_missing(): void
     {
-        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'mobile-login@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'mobile-login@example.test']);
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
         $user = User::factory()->fieldReporter()->create(['email' => 'mobile-login@example.test']);
+        $this->operatorTarget('mobile-login@example.test');
         $this->assertFalse($user->hasCompletedOnboarding());
 
         $this->postJson('/api/v1/mobile/auth/login', ['email' => 'mobile-login@example.test', 'password' => 'password', 'device_name' => 'Field phone', 'device_id' => 'device-mobile-login-1'])
@@ -697,8 +724,9 @@ class AdminAccountCreationTest extends TestCase
 
     public function test_onboarding_honors_a_password_reset_row_written_by_an_older_release_after_the_backfill(): void
     {
-        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password', 'caneguard.auth.operator_link_email' => 'delayed-write@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'delayed-write@example.test']);
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'delayed-write@example.test']);
+        $this->operatorTarget('delayed-write@example.test');
         $this->artisan('auth:backfill-onboarding')->assertSuccessful();
         $this->assertNull($user->refresh()->onboarded_at);
 
@@ -724,10 +752,10 @@ class AdminAccountCreationTest extends TestCase
     {
         config([
             'caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password',
-            'caneguard.auth.operator_link_email' => 'barrier@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'barrier@example.test',
         ]);
         Notification::fake();
         $user = User::factory()->reviewer()->unverified()->create(['email' => 'barrier@example.test']);
+        $this->operatorTarget('barrier@example.test');
 
         $this->artisan('auth:rollback-barrier on')->assertSuccessful();
         $refused = false;
@@ -817,14 +845,14 @@ class AdminAccountCreationTest extends TestCase
             ->patchJson('/api/v1/auth/email', ['email' => 'legacy-new@example.test', 'current_password' => 'password'])
             ->assertStatus(202);
         $this->assertNotNull($legacy->refresh()->onboarded_at);
-        config(['caneguard.auth.operator_link_email' => 'legacy-new@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'legacy-new@example.test']);
+        $this->operatorTarget('legacy-new@example.test');
         $this->artisan('auth:set-password-link')->assertFailed();
 
         $this->actingAs($verifiedOnly, 'web')
             ->patchJson('/api/v1/auth/email', ['email' => 'verify-only-new@example.test', 'current_password' => 'password'])
             ->assertStatus(202);
         $this->assertNull($verifiedOnly->refresh()->onboarded_at);
-        config(['caneguard.auth.operator_link_email' => 'verify-only-new@example.test', 'caneguard.auth.operator_link_no_password_confirmed' => 'verify-only-new@example.test']);
+        $this->operatorTarget('verify-only-new@example.test');
         $this->artisan('auth:set-password-link')->assertSuccessful();
     }
 

@@ -87,7 +87,10 @@ rm -rf "$new/api/storage"
 ln -s "$shared/storage" "$new/api/storage"
 cd "$new/api"
 composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
-php artisan optimize:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan event:clear
 php artisan config:cache
 php artisan view:cache
 

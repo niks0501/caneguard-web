@@ -122,7 +122,7 @@ class WebAccountsController extends Controller
     {
         Gate::authorize('create', User::class);
         $user = User::query()->where('uuid', $uuid)->where('role', User::ROLE_FIELD_REPORTER)->firstOrFail();
-        abort_if($user->hasCompletedOnboarding() || ! $user->is_active, 409, 'This account has no pending invite.');
+        abort_if($user->hasCompletedOnboarding() || $user->hasVerifiedEmail() || ! $user->is_active, 409, 'This account has no pending invite.');
 
         $status = $resend->handle($request->user(), $user);
         abort_if($status === MailDelivery::NOT_PENDING, 409, 'This account has no pending invite.');
