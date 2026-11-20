@@ -186,10 +186,19 @@ class ProductionDeployScriptTest extends TestCase
 
     public function test_configuration_install_replaces_the_shared_env_from_stdin_without_leaving_a_staging_file(): void
     {
-        $process = $this->runScript('scripts/install-production-env.sh', [], [], "APP_KEY=base64:example\n");
+        $process = $this->runScript('scripts/install-production-env.sh', [], [], "APP_KEY=base64:example\n# caneguard-config-complete\n");
 
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
-        $this->assertSame("APP_KEY=base64:example\n", file_get_contents($this->root.'/shared/api/.env'));
+        $this->assertSame("APP_KEY=base64:example\n# caneguard-config-complete\n", file_get_contents($this->root.'/shared/api/.env'));
+        $this->assertFileDoesNotExist($this->root.'/shared/api/.env.next');
+    }
+
+    public function test_truncated_configuration_stream_keeps_the_existing_env(): void
+    {
+        $process = $this->runScript('scripts/install-production-env.sh', [], [], "APP_KEY=base64:exam");
+
+        $this->assertFalse($process->isSuccessful());
+        $this->assertSame("APP_ENV=production\n", file_get_contents($this->root.'/shared/api/.env'));
         $this->assertFileDoesNotExist($this->root.'/shared/api/.env.next');
     }
 
@@ -207,7 +216,7 @@ class ProductionDeployScriptTest extends TestCase
             (string) file_get_contents(base_path('../scripts/install-production-env.sh')),
         ));
 
-        $install = new Process(['bash', $script], null, ['PATH' => getenv('PATH')], "APP_KEY=base64:example\n");
+        $install = new Process(['bash', $script], null, ['PATH' => getenv('PATH')], "APP_KEY=base64:example\n# caneguard-config-complete\n");
         $install->run();
         $this->assertTrue($install->isSuccessful(), $install->getErrorOutput());
 

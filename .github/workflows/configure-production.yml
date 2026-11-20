@@ -54,5 +54,5 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$PRODUCTION_ENV"
-          printf '%s\n' "$PRODUCTION_ENV" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
+          { printf '%s\n' "$PRODUCTION_ENV"; printf '%s\n' '# caneguard-config-complete'; } | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/caneguard-ssh/known_hosts" \
             -i "$RUNNER_TEMP/caneguard-ssh/id_ed25519" "deploy@$DEPLOY_HOST" "$(cat scripts/install-production-env.sh)"

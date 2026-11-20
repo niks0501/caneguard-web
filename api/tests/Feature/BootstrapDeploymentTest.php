@@ -527,6 +527,28 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertTrue($first->fresh()->hasVerifiedEmail());
     }
 
+    public function test_pending_administrator_gets_no_verification_link_and_a_redeemed_one_can_verify_a_changed_address(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'first@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $first = User::query()->where('email', 'first@example.test')->firstOrFail();
+
+        $this->postJson('/email/verification-notification', ['email' => 'first@example.test'])->assertAccepted();
+        Notification::assertNotSentTo($first, VerifyEmail::class);
+
+        $this->postJson('/reset-password', [
+            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
+        ])->assertOk();
+        $first->forceFill(['email_verified_at' => null])->save();
+
+        $this->getJson(URL::temporarySignedRoute('verification.verify', now()->addHour(), [
+            'id' => $first->id, 'hash' => sha1($first->getEmailForVerification()),
+        ]))->assertOk()->assertJsonPath('code', 'EMAIL_VERIFIED');
+        $this->assertTrue($first->fresh()->hasVerifiedEmail());
+    }
+
     public function test_reset_links_are_deleted_outside_the_provisioning_transaction(): void
     {
         Notification::fake();

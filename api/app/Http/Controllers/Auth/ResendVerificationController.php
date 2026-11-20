@@ -20,7 +20,7 @@ class ResendVerificationController extends Controller
             ->where('email', $request->validated('email'))
             ->first();
 
-        if ($user && ! $user->hasVerifiedEmail() && ! BootstrapAdministrator::superseded($user)) {
+        if ($user && ! $user->hasVerifiedEmail() && ! BootstrapAdministrator::awaitingPassword($user)) {
             $user->sendEmailVerificationNotification();
             $audits->handle(
                 SecurityAudit::ACTION_VERIFICATION_RESEND,

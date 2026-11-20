@@ -14,10 +14,14 @@ final class BootstrapAdministrator
             ->contains(fn (SecurityAudit $event) => ($event->metadata['provisioning_channel'] ?? null) === 'bootstrap');
     }
 
-    /** Created by the deployment bootstrap and not yet verified: only a set-password redemption can onboard it. */
+    /** Created by the deployment bootstrap, never redeemed, and not verified: only a set-password redemption can onboard it. */
     public static function awaitingPassword(User $user): bool
     {
-        return ! $user->hasVerifiedEmail() && self::recorded($user, SecurityAudit::ACTION_ACCOUNT_CREATED);
+        return ! $user->hasVerifiedEmail()
+            && self::recorded($user, SecurityAudit::ACTION_ACCOUNT_CREATED)
+            && ! SecurityAudit::query()->where('target_user_id', $user->id)
+                ->where('action', SecurityAudit::ACTION_PASSWORD_RESET)
+                ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->exists();
     }
 
     /** A bootstrap administrator whose address was replaced before it set a password. */

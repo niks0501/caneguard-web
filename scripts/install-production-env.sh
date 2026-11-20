@@ -14,7 +14,7 @@ flock -n 9 || { echo "Another deployment is running" >&2; exit 1; }
 [[ -d "$root/shared/api" ]] || { echo "Shared Laravel state is missing" >&2; exit 1; }
 
 cat > "$staging"
-[[ -s "$staging" ]] || { echo "Configuration input is empty" >&2; exit 1; }
+[[ "$(tail -n 1 "$staging")" == "# caneguard-config-complete" ]] || { echo "Configuration input is empty or incomplete" >&2; exit 1; }
 setfacl -m u:www-data:r "$staging"
 mv -Tf "$staging" "$target"
 echo "Installed shared production configuration"
