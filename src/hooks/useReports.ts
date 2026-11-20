@@ -11,6 +11,8 @@ import { reportsRepository } from "../services/reports.service";
 import {
   advisoriesQueryOptions,
   aerialOffReadCount,
+  caseReadsInFlight,
+  caseReadsStartedCount,
   monthlySummaryQueryOptions,
   possibleRecentMatchesQueryOptions,
   reportKeys,
@@ -90,16 +92,21 @@ function useReportMutation<TInput>(
 
   return useMutation({
     mutationFn,
-    onMutate: () => aerialOffReadCount(),
-    onSuccess: (report, _input, offsAtSend) => {
-      const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(reportId));
-      const offObservedWhileSaving = aerialOffReadCount() !== offsAtSend;
-      const aerialSnapshotsConflict = cached !== undefined
-        && (cached.aerialAnalyses !== undefined) !== (report.aerialAnalyses !== undefined);
-      const aerialAnalyses = offObservedWhileSaving || aerialSnapshotsConflict
-        ? undefined
-        : cached ? cached.aerialAnalyses : report.aerialAnalyses;
-      queryClient.setQueryData<DiseaseReport>(reportKeys.detail(reportId), { ...report, aerialAnalyses });
+    onMutate: () => ({ reads: caseReadsStartedCount(), offs: aerialOffReadCount() }),
+    onSuccess: async (report, _input, sentAt) => {
+      const overlapped = caseReadsStartedCount() !== sentAt.reads
+        || caseReadsInFlight() > 0
+        || aerialOffReadCount() !== sentAt.offs;
+      if (overlapped) {
+        await queryClient.cancelQueries({ queryKey: reportKeys.detail(reportId), exact: true });
+        queryClient.setQueryData<DiseaseReport | null>(
+          reportKeys.detail(reportId),
+          (current) => current && { ...current, aerialAnalyses: undefined },
+        );
+        await queryClient.fetchQuery({ ...reportQueryOptions(reportId), staleTime: 0 }).catch(() => undefined);
+      } else {
+        queryClient.setQueryData<DiseaseReport>(reportKeys.detail(reportId), report);
+      }
       return invalidateReportDependentQueries(queryClient, { reportId });
     },
   });

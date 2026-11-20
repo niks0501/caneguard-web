@@ -142,6 +142,8 @@ describe("aerial canopy check admin switch", () => {
     const staleReadCaptured = new Promise<void>((resolve) => { staleReadStarted = resolve; });
     let releaseStaleRead: () => void = () => undefined;
     const staleRead = new Promise<void>((resolve) => { releaseStaleRead = resolve; });
+    let staleResponded: () => void = () => undefined;
+    const staleReply = new Promise<void>((resolve) => { staleResponded = resolve; });
     server.use(
       http.get(url, async () => {
         const snapshot = enabled;
@@ -149,6 +151,7 @@ describe("aerial canopy check admin switch", () => {
         if (reads === 2) {
           staleReadStarted();
           await staleRead;
+          staleResponded();
         }
         return HttpResponse.json({ data: { installed: true, enabled: snapshot } });
       }),
@@ -166,7 +169,8 @@ describe("aerial canopy check admin switch", () => {
     await user.click(screen.getByRole("button", { name: "Turn on aerial check" }));
     expect(await screen.findByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
     releaseStaleRead();
-    await vi.waitFor(() => expect(client.isFetching({ queryKey: ["aerial-analysis-settings"] })).toBe(0));
+    await staleReply;
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(screen.getByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
   });
 

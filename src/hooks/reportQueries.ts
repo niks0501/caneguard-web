@@ -38,6 +38,13 @@ export const aerialGateReadCount = () => aerialGateReads;
 
 export const aerialOffReadCount = () => aerialOffReads;
 
+let caseReadsStarted = 0;
+let caseReadsSettled = 0;
+
+export const caseReadsStartedCount = () => caseReadsStarted;
+
+export const caseReadsInFlight = () => caseReadsStarted - caseReadsSettled;
+
 export const monthlySummaryQueryOptions = (month?: string) =>
   queryOptions({
     queryKey: reportKeys.summary(month),
@@ -125,7 +132,14 @@ export const advisoriesQueryOptions = () =>
 export const reportQueryOptions = (reportId: string) =>
   queryOptions({
     queryKey: reportKeys.detail(reportId),
-    queryFn: () => reportsRepository.getReportById(reportId),
+    queryFn: async () => {
+      caseReadsStarted += 1;
+      try {
+        return await reportsRepository.getReportById(reportId);
+      } finally {
+        caseReadsSettled += 1;
+      }
+    },
     enabled: Boolean(reportId),
   });
 

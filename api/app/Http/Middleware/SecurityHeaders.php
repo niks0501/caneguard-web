@@ -63,7 +63,7 @@ class SecurityHeaders
             : "'none'";
 
         $isSpaShell = $request->attributes->get('spa_shell') === true;
-        $mapImages = $isSpaShell ? ' blob: https://api.maptiler.com' : '';
+        $mapImages = $isSpaShell ? ' blob:' : '';
         $mapConnect = $isSpaShell ? ' https://api.maptiler.com' : '';
         $mapWorkers = $isSpaShell ? "; worker-src 'self'" : '';
 

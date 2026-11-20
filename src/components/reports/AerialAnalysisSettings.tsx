@@ -61,7 +61,7 @@ export function AerialAnalysisSettings() {
       const current = queryClient.getQueryData<AerialSettings>(aerialSettingsKey);
       if (aerialGateReadCount() !== readsAtSend && !sameGate(current, next)) {
         await evictAerialEvidence(queryClient);
-        await queryClient.resetQueries({ queryKey: aerialSettingsKey });
+        await queryClient.resetQueries({ queryKey: aerialSettingsKey, type: "all" });
         return;
       }
       queryClient.setQueryData(aerialSettingsKey, next);

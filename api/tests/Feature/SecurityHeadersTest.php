@@ -70,7 +70,7 @@ class SecurityHeadersTest extends TestCase
             $original === null ? @unlink($index) : file_put_contents($index, $original);
         }
 
-        $this->assertSame(["'self'", 'data:', 'blob:', 'https://api.maptiler.com'], $directives['img-src']);
+        $this->assertSame(["'self'", 'data:', 'blob:'], $directives['img-src']);
         $this->assertSame(["'self'", 'https://api.maptiler.com'], $directives['connect-src']);
         $this->assertSame(["'self'"], $directives['worker-src']);
         $this->assertArrayNotHasKey('child-src', $directives);

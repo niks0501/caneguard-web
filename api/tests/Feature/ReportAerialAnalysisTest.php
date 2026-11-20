@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
 use App\Models\User;
+use Closure;
 use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -47,9 +48,10 @@ class ReportAerialAnalysisTest extends TestCase
     }
 
     /** @param array<string, mixed> $override */
-    private function fakeSegmenter(array $override = []): void
+    private function fakeSegmenter(array $override = [], ?Closure $whileRunning = null): void
     {
-        Process::fake(function (PendingProcess $pending) use ($override): ProcessResult {
+        Process::fake(function (PendingProcess $pending) use ($override, $whileRunning): ProcessResult {
+            $whileRunning?->__invoke();
             $mask = $pending->command[array_search('--mask-out', $pending->command, true) + 1];
             file_put_contents($mask, 'png');
 
@@ -263,6 +265,22 @@ class ReportAerialAnalysisTest extends TestCase
         $this->postJson($url, ['image' => UploadedFile::fake()->image('big.jpg', 400, 300)->size(20481)])->assertUnprocessable();
         $this->postJson($url, ['image' => UploadedFile::fake()->image('wide.jpg', 10001, 10)])->assertUnprocessable();
         Process::assertNothingRan();
+    }
+
+    public function test_switch_turned_off_during_inference_refuses_the_upload_and_stores_nothing(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter(whileRunning: fn () => DB::table('feature_switches')
+            ->where('name', 'aerial_analysis')->update(['enabled' => false]));
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+
+        $this->actingAs($reviewer, 'web')
+            ->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('report_aerial_analyses', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles('aerial'));
     }
 
     public function test_runner_failure_returns_503_and_leaves_nothing(): void

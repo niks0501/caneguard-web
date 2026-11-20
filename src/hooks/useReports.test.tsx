@@ -13,7 +13,7 @@ import { reportDetailDto } from "../test/fixtures";
 import { server } from "../test/server";
 import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
-import { aerialSettingsKey, reportKeys } from "./reportQueries";
+import { aerialSettingsKey, caseReadsInFlight, reportKeys, reportQueryOptions } from "./reportQueries";
 import { useAddAerialAnalysis, useRecordHandoffNote, useUpdateReportReview } from "./useReports";
 
 vi.mock("../services/reports.service", () => ({
@@ -21,6 +21,7 @@ vi.mock("../services/reports.service", () => ({
     updateReview: vi.fn(),
     recordHandoffNote: vi.fn(),
     addAerialAnalysis: vi.fn(),
+    getReportById: vi.fn(),
   },
 }));
 
@@ -215,37 +216,74 @@ describe("report mutations", () => {
       enabled = false;
       await queryClient.invalidateQueries({ queryKey: aerialSettingsKey });
       await screen.findByRole("button", { name: "Turn on aerial check" });
+      vi.mocked(reportsRepository.getReportById).mockResolvedValueOnce({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
       finishSave({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a3" }] as never });
 
       await vi.waitFor(() => expect(queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid))?.reviewVersion).toBe(nextVersion(report)));
       expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
     });
 
-    it("does not let a save response overwrite a newer case read that omits aerial analyses", async () => {
+    it("applies a save response that no case read overlapped, over cached aerial analyses", async () => {
       const { queryClient, report, wrapper } = setup();
-      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
-      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a7" }] as never });
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: [{ uuid: "a6" }] as never });
+      const returned = [{ uuid: "a9" }] as never;
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: returned });
       const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
 
       await act(async () => {
         await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
       });
 
-      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
+      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toEqual(returned);
     });
 
-    it("keeps cached aerial analyses over the list a save response returns", async () => {
+    it("refetches rather than applying a save response a case read was still in flight for", async () => {
       const { queryClient, report, wrapper } = setup();
-      const cached = [{ uuid: "a6" }] as never;
-      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: cached });
-      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a9" }] as never });
+      queryClient.setQueryData(reportKeys.detail(report.uuid), { ...report, aerialAnalyses: [{ uuid: "a0" }] as never });
+      let releaseStaleRead: (stale: DiseaseReport) => void = () => undefined;
+      vi.mocked(reportsRepository.getReportById)
+        .mockReturnValueOnce(new Promise((resolve) => { releaseStaleRead = resolve; }))
+        .mockResolvedValueOnce({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
+      vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a2" }] as never });
+      const staleRead = queryClient.fetchQuery({ ...reportQueryOptions(report.uuid), staleTime: 0 }).catch(() => undefined);
       const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
 
       await act(async () => {
         await result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! });
       });
+      releaseStaleRead({ ...report, aerialAnalyses: [{ uuid: "a0" }] as never });
+      await staleRead;
+      await vi.waitFor(() => expect(caseReadsInFlight()).toBe(0));
 
-      expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBe(cached);
+      const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid));
+      expect(cached?.reviewVersion).toBe(nextVersion(report));
+      expect(cached?.aerialAnalyses).toBeUndefined();
+    });
+
+    it("refetches when a case read starts during the save and the save returns aerial analyses", async () => {
+      const { queryClient, report, wrapper } = setup();
+      let finishSave: (saved: DiseaseReport) => void = () => undefined;
+      vi.mocked(reportsRepository.updateReview).mockReturnValueOnce(new Promise((resolve) => { finishSave = resolve; }));
+      vi.mocked(reportsRepository.getReportById)
+        .mockResolvedValueOnce({ ...report, aerialAnalyses: [{ uuid: "a1" }] as never })
+        .mockResolvedValueOnce({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: undefined });
+      const { result } = renderHook(() => useUpdateReportReview(report.uuid), { wrapper });
+
+      let saving: Promise<unknown> = Promise.resolve();
+      act(() => {
+        saving = result.current.mutateAsync({ ...reviewInput, expectedVersion: report.reviewVersion! }).catch(() => undefined);
+      });
+      await act(async () => {
+        await queryClient.fetchQuery({ ...reportQueryOptions(report.uuid), staleTime: 0 });
+      });
+      await act(async () => {
+        finishSave({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: [{ uuid: "a2" }] as never });
+        await saving;
+      });
+
+      const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(report.uuid));
+      expect(cached?.reviewVersion).toBe(nextVersion(report));
+      expect(cached?.aerialAnalyses).toBeUndefined();
     });
 
     it("clears cached aerial analyses when a save response omits them, even over a newer read", async () => {
